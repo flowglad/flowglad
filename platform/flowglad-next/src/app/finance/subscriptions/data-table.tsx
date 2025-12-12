@@ -7,11 +7,13 @@ import {
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
+import { Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
+import { Button } from '@/components/ui/button'
 import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
@@ -48,6 +50,7 @@ interface SubscriptionsDataTableProps {
   filterOptions?: { value: string; label: string }[]
   activeFilter?: string
   onFilterChange?: (value: string) => void
+  onCreateSubscription?: () => void
 }
 
 export function SubscriptionsDataTable({
@@ -56,6 +59,7 @@ export function SubscriptionsDataTable({
   filterOptions,
   activeFilter,
   onFilterChange,
+  onCreateSubscription,
 }: SubscriptionsDataTableProps) {
   const router = useRouter()
 
@@ -208,6 +212,12 @@ export function SubscriptionsDataTable({
             </SelectContent>
           </Select>
           <DataTableViewOptions table={table} />
+          {onCreateSubscription && (
+            <Button onClick={onCreateSubscription}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Subscription
+            </Button>
+          )}
         </div>
       </div>
 

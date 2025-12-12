@@ -15,7 +15,6 @@ import { useAuthContext } from '@/contexts/authContext'
 import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
 import {
   getSubscriptionDateInfo,
   getSubscriptionStatusBadge,
@@ -27,24 +26,21 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import core from '@/utils/core'
-import { getCurrencyParts } from '@/utils/stripe'
-import { InvoicesDataTable } from '../../invoices/data-table'
-import { PaymentsDataTable } from '../../payments/data-table'
+import { formatBillingPeriod, getCurrencyParts } from '@/utils/stripe'
 import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
+import { BillingHistorySection } from './BillingHistorySection'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
 
 const InnerSubscriptionPage = ({
   subscription,
   defaultPaymentMethod,
   customer,
-  product,
   pricingModel,
   productNames,
 }: {
   subscription: RichSubscription
   defaultPaymentMethod: PaymentMethod.ClientRecord | null
   customer: Customer.Record
-  product: Product.Record | null
   pricingModel: PricingModel.Record | null
   productNames: Record<string, string>
 }) => {
@@ -83,35 +79,13 @@ const InnerSubscriptionPage = ({
     setIsCancelModalOpen(true)
   }
 
-  /**
-   * Helper function to format the billing period for display
-   * Handles singular/plural forms and interval counts
-   */
-  const formatBillingPeriod = (
-    intervalUnit: string | null | undefined,
-    intervalCount: number | null | undefined
-  ): string => {
-    if (!intervalUnit) return 'one-time'
-
-    const count = intervalCount || 1
-    const unit = intervalUnit.toLowerCase()
-
-    // Handle singular vs plural
-    if (count === 1) {
-      return unit
-    }
-
-    // Handle plural forms
-    return `${count} ${unit}s`
-  }
-
   if (!organization) {
     return <div>Loading...</div>
   }
 
   return (
     <InnerPageContainerNew>
-      <div className="w-full relative flex flex-col justify-center gap-6 pb-6">
+      <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title="Subscription Details"
           breadcrumb="Subscriptions"
@@ -208,7 +182,10 @@ const InnerSubscriptionPage = ({
             href={`/customers/${customer.id}`}
           />
         </ExpandSection>
-        <ExpandSection title="Feature Access" defaultExpanded={false}>
+        <ExpandSection
+          title="Features Granted"
+          defaultExpanded={false}
+        >
           <div className="flex flex-col gap-1 px-3">
             {subscription.experimental?.featureItems?.map(
               (feature) => (
@@ -242,24 +219,10 @@ const InnerSubscriptionPage = ({
             )}
           </div>
         </ExpandSection>
-        <InvoicesDataTable
-          title="Invoices"
-          filters={{ subscriptionId: subscription.id }}
-          hiddenColumns={['customerName']}
-          columnOrder={[
-            'total',
-            'invoiceNumber',
-            'status',
-            'dueDate',
-            'createdAt',
-            'invoiceId',
-            'actions',
-          ]}
-        />
-        <PaymentsDataTable
-          title="Payments"
-          filters={{ subscriptionId: subscription.id }}
-          hiddenColumns={['customerName']}
+        <BillingHistorySection
+          subscriptionId={subscription.id}
+          customerId={subscription.customerId}
+          customerName={customer.name}
         />
       </div>
 

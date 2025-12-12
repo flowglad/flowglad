@@ -28,8 +28,7 @@ const PurchaseStatusCell = ({
     badgeClassName = 'bg-muted text-muted-foreground'
     badgeLabel = 'Concluded'
   } else if (purchase.purchaseDate) {
-    badgeClassName =
-      'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+    badgeClassName = 'bg-jade-background text-jade-foreground'
     badgeLabel = 'Paid'
   } else {
     badgeClassName = 'bg-muted text-muted-foreground'
@@ -53,10 +52,15 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
     maxSize: 400,
     cell: ({ row }) => {
       const name = row.getValue('name') as string
+      const purchaseId = row.original.purchase.id
       return (
-        <div className="truncate" title={name}>
-          {name}
-        </div>
+        <DataTableLinkableCell
+          href={`/finance/purchases/${purchaseId}`}
+        >
+          <div className="truncate" title={name}>
+            {name}
+          </div>
+        </DataTableLinkableCell>
       )
     },
   },
@@ -74,13 +78,11 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
           ? original.customer.email
           : original.customer.name
       return (
-        <div onClick={(e) => e.stopPropagation()}>
-          <DataTableLinkableCell
-            href={`/customers/${original.customer.id}`}
-          >
-            {displayName}
-          </DataTableLinkableCell>
-        </div>
+        <DataTableLinkableCell
+          href={`/customers/${original.customer.id}`}
+        >
+          {displayName}
+        </DataTableLinkableCell>
       )
     },
   },
