@@ -1,13 +1,12 @@
 'use client'
-import { Clipboard, Ellipsis, Eye, Pencil, Plus } from 'lucide-react'
+import { Ellipsis, Pencil } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
-import EditPriceModal from '@/components/forms/EditPriceModal'
 import EditProductModal from '@/components/forms/EditProductModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PopoverMenu, {
   type PopoverMenuItem,
@@ -21,19 +20,22 @@ import {
 } from '@/components/ui/popover'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import { PricesDataTable } from './prices/data-table'
 
 export type InternalProductDetailsPageProps = {
   product: Product.ClientRecord
   prices: Price.ClientRecord[]
+  pricingModel: PricingModel.Record
 }
 
 function InternalProductDetailsPage(
   props: InternalProductDetailsPageProps
 ) {
-  const { product, prices } = props
+  const { product, prices, pricingModel } = props
   const { organization } = useAuthenticatedContext()
+  const router = useRouter()
   const [isCreatePriceOpen, setIsCreatePriceOpen] = useState(false)
 
   const productURL = `${
@@ -67,11 +69,18 @@ function InternalProductDetailsPage(
     },
   ]
 
+  const handleBreadcrumbClick = () => {
+    router.push(`/store/pricing-models/${pricingModel.id}`)
+  }
+
   return (
     <InternalPageContainer>
       <div className="w-full flex flex-col gap-6">
         <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
-          <Breadcrumb />
+          <Breadcrumb
+            label={pricingModel.name}
+            onClick={handleBreadcrumbClick}
+          />
           <div className="flex flex-row items-center justify-between">
             <div className="min-w-0 overflow-hidden mr-4">
               <PageHeader
