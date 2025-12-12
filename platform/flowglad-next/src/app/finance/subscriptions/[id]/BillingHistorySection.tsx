@@ -251,7 +251,7 @@ export function BillingHistorySection({
     customerName.split(' ')[0] || customerName || 'this customer'
 
   return (
-    <ExpandSection title="Billing History" defaultExpanded={true}>
+    <ExpandSection title="Billing History" defaultExpanded={false}>
       <div className="flex flex-col gap-0 w-full">
         {isLoading ? (
           <div className="text-center py-4 text-muted-foreground text-sm">
