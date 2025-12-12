@@ -188,6 +188,8 @@ const InnerSubscriptionPage = ({
     return <div>Loading...</div>
   }
 
+  const statusBadge = getSubscriptionStatusBadge(subscription.status)
+
   return (
     <InnerPageContainerNew>
       <div className="w-full relative flex flex-col justify-center pb-6">
@@ -198,26 +200,21 @@ const InnerSubscriptionPage = ({
             router.push('/finance/subscriptions')
           }
           badges={[
-            (() => {
-              const statusBadge = getSubscriptionStatusBadge(
-                subscription.status
-              )
-              return {
-                ...statusBadge,
-                label: (
-                  <TooltipProvider delayDuration={300}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span>{statusBadge.label}</span>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom">
-                        <p>Status</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ),
-              }
-            })(),
+            {
+              ...statusBadge,
+              label: (
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>{statusBadge.label}</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>Status</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ),
+            },
             ...(pricingModel
               ? [
                   {
