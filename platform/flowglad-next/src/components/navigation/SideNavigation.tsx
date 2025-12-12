@@ -5,12 +5,12 @@ import {
   BookOpen,
   ChevronRight,
   CircleDollarSign,
+  DollarSign,
   Gauge,
   LogOut,
   type LucideIcon,
   PanelLeft,
   Settings,
-  Tags,
   TriangleRight,
   Users,
 } from 'lucide-react'
@@ -192,7 +192,7 @@ export const SideNavigation = () => {
     {
       title: 'Pricing',
       url: '/pricing-models',
-      icon: Tags,
+      icon: DollarSign,
       isActive: isActive('/pricing-models'),
     },
   ]
