@@ -148,7 +148,7 @@ export function PageHeaderNew({
                   badge.variant === 'active' &&
                     'text-[hsl(var(--jade-muted-foreground))]',
                   badge.variant === 'muted' &&
-                    'text-muted-foreground opacity-80',
+                    'text-muted-foreground',
                   badge.variant === 'destructive' &&
                     'text-destructive',
                   badge.variant === 'warning' &&
@@ -174,7 +174,7 @@ export function PageHeaderNew({
 
           {/* Optional description */}
           {description && (
-            <p className="font-sans font-medium text-sm text-muted-foreground opacity-80 leading-5 whitespace-nowrap">
+            <p className="font-sans font-medium text-sm text-muted-foreground leading-5 whitespace-nowrap">
               {description}
             </p>
           )}
