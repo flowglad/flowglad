@@ -10,7 +10,7 @@ import {
   type LucideIcon,
   PanelLeft,
   Settings,
-  Store,
+  Tags,
   TriangleRight,
   Users,
 } from 'lucide-react'
@@ -188,22 +188,17 @@ export const SideNavigation = () => {
     },
   ]
 
-  // Navigation sections with children (using official pattern)
-  const storeChildItems = [
+  const pricingItem: StandaloneNavItem[] = [
     {
-      title: 'Pricing Models',
-      url: '/store/pricing-models',
+      title: 'Pricing',
+      url: '/pricing-models',
+      icon: Tags,
+      isActive: isActive('/pricing-models'),
     },
   ]
 
+  // Navigation sections with children (using official pattern)
   const navigationSections: MainNavItem[] = [
-    {
-      title: 'Store',
-      url: '/store',
-      icon: Store,
-      isActive: isActive('/store'),
-      items: storeChildItems,
-    },
     {
       title: 'Finance',
       url: '/finance',
@@ -308,11 +303,11 @@ export const SideNavigation = () => {
           {/* 3. Customers */}
           <NavStandalone items={customersItem} />
 
-          {/* 4. Store */}
-          <NavMain items={[navigationSections[0]]} />
+          {/* 4. Pricing */}
+          <NavStandalone items={pricingItem} />
 
           {/* 5. Finance */}
-          <NavMain items={[navigationSections[1]]} />
+          <NavMain items={[navigationSections[0]]} />
 
           {/* 6. Settings */}
           <NavStandalone items={settingsItem} />
