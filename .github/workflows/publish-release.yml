@@ -16,6 +16,8 @@ on:
     types: [closed]
     branches:
       - main
+  # Also allow manual triggering via GitHub Actions UI
+  workflow_dispatch:
 
 permissions:
   id-token: write # Required for OIDC
