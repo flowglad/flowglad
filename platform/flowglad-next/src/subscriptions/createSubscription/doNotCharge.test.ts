@@ -13,6 +13,9 @@ import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
+import { createSubscriptionInputSchema } from '@/server/routers/subscriptionsRouter'
+import { idempotentSendCustomerSubscriptionCreatedNotification } from '@/trigger/notifications/send-customer-subscription-created-notification'
+import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
 import {
   CancellationReason,
   CurrencyCode,
@@ -129,6 +132,7 @@ describe('doNotCharge subscription creation', () => {
       autoStart: true,
       defaultPaymentMethod: paymentMethod,
       doNotCharge: true,
+      metadata: { testKey: 'testValue' },
     }
 
     const {
@@ -139,7 +143,10 @@ describe('doNotCharge subscription creation', () => {
 
     expect(subscriptionItems).toHaveLength(1)
     expect(subscriptionItems[0].unitPrice).toBe(0)
-    expect(paidPrice.unitPrice).toBe(5000) // Price record should remain unchanged
+    // Subscription should be active when autoStart is true
+    expect(subscription.status).toBe(SubscriptionStatus.Active)
+    // Metadata should be preserved
+    expect(subscription.metadata).toEqual({ testKey: 'testValue' })
   })
 
   it('should set isFreePlan to false when doNotCharge is true and price.unitPrice > 0 (treats as paid plan)', async () => {
@@ -175,16 +182,6 @@ describe('doNotCharge subscription creation', () => {
   })
 
   it('should send notifications when doNotCharge is true and price.unitPrice > 0 (treated as paid plan)', async () => {
-    const {
-      idempotentSendOrganizationSubscriptionCreatedNotification,
-    } = await import(
-      '@/trigger/notifications/send-organization-subscription-created-notification'
-    )
-    const { idempotentSendCustomerSubscriptionCreatedNotification } =
-      await import(
-        '@/trigger/notifications/send-customer-subscription-created-notification'
-      )
-
     const paymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
       customerId: customer.id,
@@ -273,7 +270,40 @@ describe('doNotCharge subscription creation', () => {
     })
   })
 
-  it('should default doNotCharge to false when not provided', async () => {
+  it('should set subscription item unitPrice to price.unitPrice when doNotCharge is false', async () => {
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      stripePaymentMethodId: `pm_${core.nanoid()}`,
+      livemode: true,
+    })
+
+    const params: CreateSubscriptionParams = {
+      customer,
+      price: paidPrice,
+      product: paidProduct,
+      organization,
+      quantity: 1,
+      livemode: true,
+      startDate: new Date(),
+      interval: IntervalUnit.Month,
+      intervalCount: 1,
+      autoStart: true,
+      defaultPaymentMethod: paymentMethod,
+      doNotCharge: false,
+    }
+
+    const {
+      result: { subscriptionItems },
+    } = await adminTransaction(async ({ transaction }) => {
+      return createSubscriptionWorkflow(params, transaction)
+    })
+
+    expect(subscriptionItems).toHaveLength(1)
+    expect(subscriptionItems[0].unitPrice).toBe(paidPrice.unitPrice)
+  })
+
+  it('should set subscription item unitPrice to price.unitPrice when doNotCharge is undefined', async () => {
     const paymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
       customerId: customer.id,
@@ -304,139 +334,6 @@ describe('doNotCharge subscription creation', () => {
 
     expect(subscriptionItems).toHaveLength(1)
     expect(subscriptionItems[0].unitPrice).toBe(paidPrice.unitPrice)
-  })
-
-  it('should preserve price.unitPrice value in price record when doNotCharge is true', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
-
-    const originalUnitPrice = paidPrice.unitPrice
-
-    const params: CreateSubscriptionParams = {
-      customer,
-      price: paidPrice,
-      product: paidProduct,
-      organization,
-      quantity: 1,
-      livemode: true,
-      startDate: new Date(),
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      autoStart: true,
-      defaultPaymentMethod: paymentMethod,
-      doNotCharge: true,
-    }
-
-    await adminTransaction(async ({ transaction }) => {
-      await createSubscriptionWorkflow(params, transaction)
-    })
-
-    // Verify price record is unchanged
-    expect(paidPrice.unitPrice).toBe(originalUnitPrice)
-  })
-
-  it('should set subscription item unitPrice to price.unitPrice when doNotCharge is false', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
-
-    const params: CreateSubscriptionParams = {
-      customer,
-      price: paidPrice,
-      product: paidProduct,
-      organization,
-      quantity: 1,
-      livemode: true,
-      startDate: new Date(),
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      autoStart: true,
-      defaultPaymentMethod: paymentMethod,
-      doNotCharge: false,
-    }
-
-    const {
-      result: { subscriptionItems },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, transaction)
-    })
-
-    expect(subscriptionItems[0].unitPrice).toBe(paidPrice.unitPrice)
-  })
-
-  it('should handle doNotCharge with autoStart correctly', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
-
-    const params: CreateSubscriptionParams = {
-      customer,
-      price: paidPrice,
-      product: paidProduct,
-      organization,
-      quantity: 1,
-      livemode: true,
-      startDate: new Date(),
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      autoStart: true,
-      defaultPaymentMethod: paymentMethod,
-      doNotCharge: true,
-    }
-
-    const {
-      result: { subscription, subscriptionItems },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, transaction)
-    })
-
-    // Subscription should be active when autoStart is true
-    expect(subscription.status).toBe(SubscriptionStatus.Active)
-    expect(subscriptionItems[0].unitPrice).toBe(0)
-  })
-
-  it('should create subscription with correct status when doNotCharge is true', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
-
-    const params: CreateSubscriptionParams = {
-      customer,
-      price: paidPrice,
-      product: paidProduct,
-      organization,
-      quantity: 1,
-      livemode: true,
-      startDate: new Date(),
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      autoStart: true,
-      defaultPaymentMethod: paymentMethod,
-      doNotCharge: true,
-    }
-
-    const {
-      result: { subscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, transaction)
-    })
-
-    // Should have correct status (Active when autoStart is true)
-    expect(subscription.status).toBe(SubscriptionStatus.Active)
-    expect(subscription.isFreePlan).toBe(false) // Treated as paid plan
   })
 
   it('should set all subscription items to unitPrice 0 when doNotCharge is true and quantity > 1', async () => {
@@ -474,72 +371,56 @@ describe('doNotCharge subscription creation', () => {
     expect(subscriptionItems[0].unitPrice).toBe(0)
   })
 
-  it('should validate doNotCharge parameter type (boolean only)', async () => {
-    // This test verifies TypeScript type checking - if doNotCharge is not boolean,
-    // TypeScript should catch it at compile time
-    // In runtime, zod validation in the API layer would catch non-boolean values
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
-
-    // TypeScript should enforce boolean type
-    const params: CreateSubscriptionParams = {
-      customer,
-      price: paidPrice,
-      product: paidProduct,
-      organization,
-      quantity: 1,
-      livemode: true,
-      startDate: new Date(),
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      autoStart: true,
-      defaultPaymentMethod: paymentMethod,
-      doNotCharge: true, // boolean
+  it('should validate doNotCharge parameter type via Zod schema (boolean only)', () => {
+    const baseValidInput = {
+      customerId: 'cus-123',
+      priceId: 'price-123',
     }
 
-    // This should compile and work
-    await adminTransaction(async ({ transaction }) => {
-      await createSubscriptionWorkflow(params, transaction)
-    })
+    // Valid boolean values should be accepted
+    expect(() => {
+      createSubscriptionInputSchema.parse({
+        ...baseValidInput,
+        doNotCharge: true,
+      })
+    }).not.toThrow()
 
-    expect(true).toBe(true) // Type check passed
-  })
+    expect(() => {
+      createSubscriptionInputSchema.parse({
+        ...baseValidInput,
+        doNotCharge: false,
+      })
+    }).not.toThrow()
 
-  it('should ensure subscription item metadata is preserved when doNotCharge is true', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
+    // Invalid types should be rejected
+    expect(() => {
+      createSubscriptionInputSchema.parse({
+        ...baseValidInput,
+        doNotCharge: 'true',
+      })
+    }).toThrow()
 
-    const params: CreateSubscriptionParams = {
-      customer,
-      price: paidPrice,
-      product: paidProduct,
-      organization,
-      quantity: 1,
-      livemode: true,
-      startDate: new Date(),
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      autoStart: true,
-      defaultPaymentMethod: paymentMethod,
-      doNotCharge: true,
-      metadata: { testKey: 'testValue' },
-    }
+    expect(() => {
+      createSubscriptionInputSchema.parse({
+        ...baseValidInput,
+        doNotCharge: 1,
+      })
+    }).toThrow()
 
-    const {
-      result: { subscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, transaction)
-    })
+    expect(() => {
+      createSubscriptionInputSchema.parse({
+        ...baseValidInput,
+        doNotCharge: null,
+      })
+    }).toThrow()
 
-    expect(subscription.metadata).toEqual({ testKey: 'testValue' })
+    // Undefined should be accepted (optional field)
+    expect(() => {
+      createSubscriptionInputSchema.parse({
+        ...baseValidInput,
+        // doNotCharge not provided
+      })
+    }).not.toThrow()
   })
 
   it('should treat doNotCharge subscription as paid plan in workflow logic (isFreePlan = false when price.unitPrice > 0)', async () => {
