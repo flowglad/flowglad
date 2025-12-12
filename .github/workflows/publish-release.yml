@@ -58,6 +58,9 @@ jobs:
           node-version: '18'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Update npm
+        run: npm install -g npm@latest  # Ensures npm 11.5.1+
+        
       # Install dependencies (needed to build packages before publishing)
       - name: Install dependencies
         run: bun install --no-progress
@@ -65,8 +68,6 @@ jobs:
       # Publish all packages to npm
       # This command builds packages, publishes them, and cleans up changeset files
       - name: Publish packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: bun run packages:publish
 
       # Extract version and changelog for the GitHub release
