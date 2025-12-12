@@ -293,6 +293,7 @@ export const AddSubscriptionFeatureItemFormFields = ({
         name="featureId"
         render={({ field }) => (
           <FormItem>
+            <FormLabel className="sr-only">Feature</FormLabel>
             <FormControl>
               {isLoadingFeatures ? (
                 <Skeleton className="h-9 w-full" />
