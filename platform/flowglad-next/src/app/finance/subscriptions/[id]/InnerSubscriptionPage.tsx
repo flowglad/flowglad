@@ -186,36 +186,35 @@ const InnerSubscriptionPage = ({
           title="Features Granted"
           defaultExpanded={false}
         >
-          <div className="flex flex-col gap-1 px-3">
-            {subscription.experimental?.featureItems?.map(
-              (feature) => (
-                <ItemFeature
-                  key={feature.id}
-                  href={`/store/features/${feature.featureId}`}
-                >
-                  {feature.name}
-                  {feature.type === FeatureType.UsageCreditGrant &&
-                    feature.amount != null && (
-                      <span className="text-muted-foreground font-normal">
-                        &nbsp;- {feature.amount.toLocaleString()}{' '}
-                        total credits,{' '}
-                        {feature.renewalFrequency ===
-                        FeatureUsageGrantFrequency.EveryBillingPeriod
-                          ? 'every billing period'
-                          : 'one-time'}
-                        .
-                      </span>
-                    )}
-                </ItemFeature>
-              )
-            )}
+          <div className="flex flex-col gap-1 w-full">
             {canAddFeature && (
               <ItemFeature
                 icon={Plus}
                 onClick={() => setIsAddFeatureModalOpen(true)}
               >
-                Add feature
+                Grant Additional Feature
               </ItemFeature>
+            )}
+            {subscription.experimental?.featureItems?.map(
+              (feature) => (
+                <ItemFeature
+                  key={feature.id}
+                  href={`/store/features/${feature.featureId}`}
+                  description={
+                    feature.type === FeatureType.UsageCreditGrant &&
+                    feature.amount != null
+                      ? `${feature.amount.toLocaleString()} total credits, ${
+                          feature.renewalFrequency ===
+                          FeatureUsageGrantFrequency.EveryBillingPeriod
+                            ? 'every billing period'
+                            : 'one-time'
+                        }`
+                      : undefined
+                  }
+                >
+                  {feature.name}
+                </ItemFeature>
+              )
             )}
           </div>
         </ExpandSection>
