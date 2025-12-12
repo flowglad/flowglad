@@ -16,8 +16,11 @@ on:
     types: [closed]
     branches:
       - main
+    if: >
+      (github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && (contains(github.event.pull_request.title, 'chore: version packages') || contains(github.event.pull_request.labels.*.name, 'release'))))
 
 permissions:
+  id-token: write # Required for OIDC
   contents: write
 
 jobs:
@@ -55,6 +58,9 @@ jobs:
           node-version: '18'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Update npm
+        run: npm install -g npm@latest  # Ensures npm 11.5.1+
+        
       # Install dependencies (needed to build packages before publishing)
       - name: Install dependencies
         run: bun install --no-progress
@@ -62,8 +68,6 @@ jobs:
       # Publish all packages to npm
       # This command builds packages, publishes them, and cleans up changeset files
       - name: Publish packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: bun run packages:publish
 
       # Extract version and changelog for the GitHub release
