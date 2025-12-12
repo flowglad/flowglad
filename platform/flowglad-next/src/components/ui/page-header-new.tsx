@@ -105,7 +105,7 @@ export function PageHeaderNew({
       }}
     >
       {/* Headline wrapper */}
-      <div className="flex flex-col gap-0.5 items-start w-full">
+      <div className="flex flex-col gap-1 items-start w-full">
         {/* Breadcrumb navigation */}
         {breadcrumb && onBreadcrumbClick ? (
           <button
