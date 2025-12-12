@@ -39,7 +39,7 @@ export interface SubscriptionDateInfo {
  * 1. Canceled → "Ended {canceledAt}"
  * 2. Cancellation Scheduled → "Ends {cancelScheduledAt}"
  * 3. Terminal states (IncompleteExpired, Paused, Incomplete) → no date
- * 4. Trialing → "Trial ends {trialEnd}"
+ * 4. Trialing/CreditTrial → "Trial ends {trialEnd}"
  * 5. Active/renewing → "Renews {currentBillingPeriodEnd}"
  *
  * @param subscription - The subscription object with status and date fields
@@ -103,7 +103,11 @@ export function getSubscriptionDateInfo(subscription: {
   }
 
   // Trialing subscription - show when trial ends
-  if (status === SubscriptionStatus.Trialing && trialEnd) {
+  if (
+    (status === SubscriptionStatus.Trialing ||
+      status === SubscriptionStatus.CreditTrial) &&
+    trialEnd != null
+  ) {
     return {
       label: 'Trial ends',
       date: trialEnd,

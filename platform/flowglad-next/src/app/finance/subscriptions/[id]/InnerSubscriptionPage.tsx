@@ -31,6 +31,31 @@ import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
 import { BillingHistorySection } from './BillingHistorySection'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
 
+/**
+ * Formats the description for a feature item based on its type and renewal frequency.
+ */
+function formatFeatureDescription(feature: {
+  type: string
+  amount?: number | null
+  renewalFrequency?: string | null
+}): string | undefined {
+  if (
+    feature.type !== FeatureType.UsageCreditGrant ||
+    feature.amount == null
+  ) {
+    return undefined
+  }
+
+  if (
+    feature.renewalFrequency ===
+    FeatureUsageGrantFrequency.EveryBillingPeriod
+  ) {
+    return `${feature.amount.toLocaleString()} total credits, every billing period`
+  } else {
+    return `${feature.amount.toLocaleString()} total credits, one-time`
+  }
+}
+
 const InnerSubscriptionPage = ({
   subscription,
   defaultPaymentMethod,
@@ -200,17 +225,7 @@ const InnerSubscriptionPage = ({
                 <ItemFeature
                   key={feature.id}
                   href={`/store/features/${feature.featureId}`}
-                  description={
-                    feature.type === FeatureType.UsageCreditGrant &&
-                    feature.amount != null
-                      ? `${feature.amount.toLocaleString()} total credits, ${
-                          feature.renewalFrequency ===
-                          FeatureUsageGrantFrequency.EveryBillingPeriod
-                            ? 'every billing period'
-                            : 'one-time'
-                        }`
-                      : undefined
-                  }
+                  description={formatFeatureDescription(feature)}
                 >
                   {feature.name}
                 </ItemFeature>
