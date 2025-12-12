@@ -146,6 +146,7 @@ const createSubscriptionCoreSchema = z.object({
   defaultPaymentMethodId: z.string().optional(),
   interval: z.enum(['day', 'week', 'month', 'year']).optional(),
   intervalCount: z.number().optional(),
+  doNotCharge: z.boolean().optional().default(false),
 })
 
 const createSubscriptionWithPriceId =
