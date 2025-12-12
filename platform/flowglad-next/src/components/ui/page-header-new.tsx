@@ -1,5 +1,6 @@
 import { ChevronLeft, MoreHorizontal } from 'lucide-react'
 import type { ReactNode } from 'react'
+import React from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from './button'
 import {
@@ -64,8 +65,8 @@ interface PageHeaderNewProps {
   onBreadcrumbClick?: () => void
   /** Status badges to display below title */
   badges?: StatusBadge[]
-  /** Optional description text */
-  description?: string
+  /** Optional description text or element */
+  description?: ReactNode
   /** Action buttons to display */
   actions?: PageHeaderAction[]
   /** Show more menu button */
@@ -174,9 +175,9 @@ export function PageHeaderNew({
 
           {/* Optional description */}
           {description && (
-            <p className="font-sans font-medium text-sm text-muted-foreground leading-5 whitespace-nowrap">
+            <div className="font-sans font-medium text-sm text-muted-foreground leading-5 whitespace-nowrap">
               {description}
-            </p>
+            </div>
           )}
         </div>
       )}
