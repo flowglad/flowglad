@@ -97,8 +97,11 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
   >[] = []
   if (!params.trialPeriod) {
     const subscriptionItemsToPutTowardsBillingItems =
+      // Filter out expired items and manuallyCreated items
       params.subscriptionItems.filter(
-        (item) => !item.expiredAt || item.expiredAt > Date.now()
+        (item) =>
+          (!item.expiredAt || item.expiredAt > Date.now()) &&
+          !item.manuallyCreated
       )
 
     billingPeriodItemInserts =

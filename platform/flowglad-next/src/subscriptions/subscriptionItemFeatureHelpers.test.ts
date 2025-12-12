@@ -26,6 +26,7 @@ import type { Subscription } from '@/db/schema/subscriptions'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import {
   addFeatureToSubscriptionItem,
@@ -38,6 +39,7 @@ import {
   IntervalUnit,
   LedgerTransactionType,
   PriceType,
+  SubscriptionItemType,
   UsageCreditSourceReferenceType,
   UsageCreditStatus,
   UsageCreditType,
@@ -543,6 +545,29 @@ describe('SubscriptionItemFeatureHelpers', () => {
           transaction
         )
 
+        const manualSubscriptionItems = await selectSubscriptionItems(
+          {
+            subscriptionId: subscription.id,
+            manuallyCreated: true,
+            expiredAt: null,
+          },
+          transaction
+        )
+
+        expect(manualSubscriptionItems.length).toEqual(1)
+        const manualSubscriptionItem = manualSubscriptionItems[0]
+
+        expect(manualSubscriptionItem).toMatchObject({
+          manuallyCreated: true,
+          priceId: null,
+          unitPrice: 0,
+          quantity: 0,
+          name: 'Manual Features',
+          type: SubscriptionItemType.Static,
+          expiredAt: null,
+          subscriptionId: subscription.id,
+        })
+
         const expectedImmediateGrantAmount = usageFeature.amount ?? 0
         const expectedRecurringGrantAmount =
           (usageFeature.amount ?? 0) * subscriptionItem.quantity
@@ -558,7 +583,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
         const [activeGrant] = await selectSubscriptionItemFeatures(
           {
-            subscriptionItemId: subscriptionItem.id,
+            subscriptionItemId: manualSubscriptionItem.id,
             featureId: usageFeature.id,
             expiredAt: null,
           },
@@ -648,8 +673,31 @@ describe('SubscriptionItemFeatureHelpers', () => {
           },
         })
 
+        const manualSubscriptionItems = await selectSubscriptionItems(
+          {
+            subscriptionId: subscription.id,
+            manuallyCreated: true,
+            expiredAt: null,
+          },
+          transaction
+        )
+
+        expect(manualSubscriptionItems.length).toEqual(1)
+        const manualSubscriptionItem = manualSubscriptionItems[0]
+
+        expect(manualSubscriptionItem).toMatchObject({
+          manuallyCreated: true,
+          priceId: null,
+          unitPrice: 0,
+          quantity: 0,
+          name: 'Manual Features',
+          type: SubscriptionItemType.Static,
+          expiredAt: null,
+          subscriptionId: subscription.id,
+        })
+
         const featureGrants = await selectSubscriptionItemFeatures(
-          { subscriptionItemId: subscriptionItem.id },
+          { subscriptionItemId: manualSubscriptionItem.id },
           transaction
         )
         // ensure no ledger command when not granting immediately
@@ -661,7 +709,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         )
         expect(activeGrant).toEqual(
           expect.objectContaining({
-            subscriptionItemId: subscriptionItem.id,
+            subscriptionItemId: manualSubscriptionItem.id,
             featureId: usageFeature.id,
             amount: expectedCumulativeGrantAmount,
             expiredAt: null,
@@ -755,9 +803,21 @@ describe('SubscriptionItemFeatureHelpers', () => {
           transaction
         )
 
+        const manualSubscriptionItems = await selectSubscriptionItems(
+          {
+            subscriptionId: subscription.id,
+            manuallyCreated: true,
+            expiredAt: null,
+          },
+          transaction
+        )
+
+        expect(manualSubscriptionItems.length).toEqual(1)
+        const manualSubscriptionItem = manualSubscriptionItems[0]
+
         expect(result.result.subscriptionItemFeature).toEqual(
           expect.objectContaining({
-            subscriptionItemId: subscriptionItem.id,
+            subscriptionItemId: manualSubscriptionItem.id,
             featureId: standaloneFeature.id,
             productFeatureId: null,
           })
