@@ -3,7 +3,7 @@
 import { Check, Copy, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CustomerCardNew } from '@/components/CustomerCardNew'
 import { ExpandSection } from '@/components/ExpandSection'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
@@ -51,12 +51,26 @@ function CopyableField({
   displayText?: string
 }) {
   const [copied, setCopied] = useState(false)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(value)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      timeoutRef.current = setTimeout(() => setCopied(false), 2000)
     } catch (error) {
       console.error('Failed to copy:', error)
     }
@@ -90,7 +104,7 @@ function CopyableField({
           </div>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          <p className="font-mono text-xs">{value}</p>
+          <p className="font-sans">{value}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -184,7 +198,26 @@ const InnerSubscriptionPage = ({
             router.push('/finance/subscriptions')
           }
           badges={[
-            getSubscriptionStatusBadge(subscription.status),
+            (() => {
+              const statusBadge = getSubscriptionStatusBadge(
+                subscription.status
+              )
+              return {
+                ...statusBadge,
+                label: (
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>{statusBadge.label}</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <p>Status</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ),
+              }
+            })(),
             ...(pricingModel
               ? [
                   {
