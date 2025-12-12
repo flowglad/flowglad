@@ -8,7 +8,6 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import RefundPaymentModal from '@/app/finance/payments/RefundPaymentModal'
@@ -114,7 +113,8 @@ function BillingHistoryItem({
   onClick,
 }: {
   item: BillingHistoryItemWithPayment
-  onClick: () => void
+  /** TODO: Add onClick handler once payment detail page is created */
+  onClick?: () => void
 }) {
   const [isRefundOpen, setIsRefundOpen] = React.useState(false)
   const [isRetryOpen, setIsRetryOpen] = React.useState(false)
@@ -189,8 +189,6 @@ export function BillingHistorySection({
   customerId,
   customerName,
 }: BillingHistorySectionProps) {
-  const router = useRouter()
-
   // Fetch payments for this subscription using cursor pagination
   const { data: paymentsData, isLoading: isLoadingPayments } =
     trpc.payments.getTableRows.useQuery({
@@ -242,9 +240,10 @@ export function BillingHistorySection({
       }
     }) ?? []
 
-  const handlePaymentClick = (paymentId: string) => {
-    router.push(`/finance/payments/${paymentId}`)
-  }
+  // TODO: Add click handler to navigate to payment detail page once it's created
+  // const handlePaymentClick = (paymentId: string) => {
+  //   router.push(`/finance/payments/${paymentId}`)
+  // }
 
   // Get the customer's first name for the link text
   const customerFirstName =
@@ -277,11 +276,7 @@ export function BillingHistorySection({
           </Alert>
         ) : (
           billingHistoryItems.map((item) => (
-            <BillingHistoryItem
-              key={item.id}
-              item={item}
-              onClick={() => handlePaymentClick(item.id)}
-            />
+            <BillingHistoryItem key={item.id} item={item} />
           ))
         )}
       </div>
