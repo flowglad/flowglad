@@ -31,6 +31,31 @@ import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
 import { BillingHistorySection } from './BillingHistorySection'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
 
+/**
+ * Formats the description for a feature item based on its type and renewal frequency.
+ */
+function formatFeatureDescription(feature: {
+  type: string
+  amount?: number | null
+  renewalFrequency?: string | null
+}): string | undefined {
+  if (
+    feature.type !== FeatureType.UsageCreditGrant ||
+    feature.amount == null
+  ) {
+    return undefined
+  }
+
+  if (
+    feature.renewalFrequency ===
+    FeatureUsageGrantFrequency.EveryBillingPeriod
+  ) {
+    return `${feature.amount.toLocaleString()} total credits, every billing period`
+  } else {
+    return `${feature.amount.toLocaleString()} total credits, one-time`
+  }
+}
+
 const InnerSubscriptionPage = ({
   subscription,
   defaultPaymentMethod,
@@ -186,36 +211,25 @@ const InnerSubscriptionPage = ({
           title="Features Granted"
           defaultExpanded={false}
         >
-          <div className="flex flex-col gap-1 px-3">
-            {subscription.experimental?.featureItems?.map(
-              (feature) => (
-                <ItemFeature
-                  key={feature.id}
-                  href={`/store/features/${feature.featureId}`}
-                >
-                  {feature.name}
-                  {feature.type === FeatureType.UsageCreditGrant &&
-                    feature.amount != null && (
-                      <span className="text-muted-foreground font-normal">
-                        &nbsp;- {feature.amount.toLocaleString()}{' '}
-                        total credits,{' '}
-                        {feature.renewalFrequency ===
-                        FeatureUsageGrantFrequency.EveryBillingPeriod
-                          ? 'every billing period'
-                          : 'one-time'}
-                        .
-                      </span>
-                    )}
-                </ItemFeature>
-              )
-            )}
+          <div className="flex flex-col gap-1 w-full">
             {canAddFeature && (
               <ItemFeature
                 icon={Plus}
                 onClick={() => setIsAddFeatureModalOpen(true)}
               >
-                Add feature
+                Grant Additional Feature
               </ItemFeature>
+            )}
+            {subscription.experimental?.featureItems?.map(
+              (feature) => (
+                <ItemFeature
+                  key={feature.id}
+                  href={`/store/features/${feature.featureId}`}
+                  description={formatFeatureDescription(feature)}
+                >
+                  {feature.name}
+                </ItemFeature>
+              )
             )}
           </div>
         </ExpandSection>
