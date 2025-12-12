@@ -970,12 +970,18 @@ const handlerWrapper = core.IS_TEST
 
 const handler = handlerWrapper
 
-export {
-  handler as GET,
-  handler as POST,
-  handler as PUT,
-  handler as DELETE,
-}
+// FIXME: need to upgrade Unkey to 2.0.0 to fix this
+// @ts-ignore - Next.js expects NextRequest but we use NextRequestWithUnkeyContext
+// which extends NextRequest with unkey authentication context. The handler signature
+// is compatible at runtime but TypeScript doesn't recognize the extension.
+// @ts-ignore
+export const GET = handler
+// @ts-ignore
+export const POST = handler
+// @ts-ignore
+export const PUT = handler
+// @ts-ignore
+export const DELETE = handler
 
 // Example Usage:
 // GET /api/v1/products - lists products
