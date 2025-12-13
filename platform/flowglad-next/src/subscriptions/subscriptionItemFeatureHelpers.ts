@@ -1,5 +1,6 @@
 import * as R from 'ramda'
 import type { CreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import { Customer } from '@/db/schema/customers'
 import type { Feature } from '@/db/schema/features'
 import type { Price } from '@/db/schema/prices'
 import type { ProductFeature } from '@/db/schema/productFeatures'
@@ -11,11 +12,13 @@ import type {
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
 import {
   selectPriceById,
   selectPrices,
 } from '@/db/tableMethods/priceMethods'
+import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import {
   selectFeaturesByProductFeatureWhere,
   selectProductFeatures,
@@ -28,7 +31,11 @@ import {
   updateSubscriptionItemFeature,
   upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId,
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { selectSubscriptionItemById } from '@/db/tableMethods/subscriptionItemMethods'
+import {
+  insertSubscriptionItem,
+  selectSubscriptionItemById,
+  selectSubscriptionItems,
+} from '@/db/tableMethods/subscriptionItemMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
@@ -36,6 +43,7 @@ import type { DbTransaction } from '@/db/types'
 import {
   FeatureType,
   LedgerTransactionType,
+  SubscriptionItemType,
   UsageCreditSourceReferenceType,
   UsageCreditStatus,
   UsageCreditType,
@@ -136,13 +144,18 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
     } = args
     switch (feature.type) {
       case FeatureType.UsageCreditGrant:
+        // Manually Created Subscription Items have a quantity of 0
+        const amount = manuallyCreated
+          ? feature.amount
+          : feature.amount * subscriptionItem.quantity
+
         return {
           subscriptionItemId: subscriptionItem.id,
           featureId: feature.id,
           type: FeatureType.UsageCreditGrant,
           livemode: subscriptionItem.livemode,
           usageMeterId: feature.usageMeterId,
-          amount: feature.amount * subscriptionItem.quantity,
+          amount: amount,
           renewalFrequency: feature.renewalFrequency,
           productFeatureId: productFeature?.id ?? null,
           expiredAt: null,
@@ -188,8 +201,18 @@ export const createSubscriptionFeatureItems = async (
     return []
   }
 
+  const hasPriceId = (
+    item: SubscriptionItem.Record
+  ): item is SubscriptionItem.Record & { priceId: string } => {
+    return item.priceId !== null
+  }
+
+  // Filter out items without priceId
+  const subscriptionItemsWithPriceId =
+    subscriptionItems.filter(hasPriceId)
+
   const uniquePriceIds: string[] = R.uniq(
-    subscriptionItems.map((item) => item.priceId)
+    subscriptionItemsWithPriceId.map((item) => item.priceId)
   )
 
   if (R.isEmpty(uniquePriceIds)) {
@@ -214,7 +237,7 @@ export const createSubscriptionFeatureItems = async (
   )
 
   const subscriptionFeatureInserts: SubscriptionItemFeature.Insert[] =
-    subscriptionItems.flatMap((item) => {
+    subscriptionItemsWithPriceId.flatMap((item) => {
       const featuresData = priceIdToFeaturesMap.get(item.priceId)
 
       if (!featuresData || R.isEmpty(featuresData)) {
@@ -289,16 +312,40 @@ const ensureOrganizationAndLivemodeMatch = ({
   }
 }
 
-const ensureFeatureBelongsToProductPricingModel = ({
-  product,
+const ensureFeatureBelongsToCustomerPricingModel = async ({
+  customer,
   feature,
+  transaction,
 }: {
-  product: Product.Record
+  customer: Customer.Record
   feature: Feature.Record
+  transaction: DbTransaction
 }) => {
-  if (product.pricingModelId !== feature.pricingModelId) {
+  let customerPricingModelId: string | null = customer.pricingModelId
+
+  // If customer doesn't have explicit pricing model, get the default one
+  if (!customerPricingModelId) {
+    const defaultPricingModels = await selectPricingModels(
+      {
+        isDefault: true,
+        organizationId: customer.organizationId,
+        livemode: customer.livemode,
+      },
+      transaction
+    )
+
+    if (defaultPricingModels.length === 0) {
+      throw new Error(
+        `No default pricing model found for organization ${customer.organizationId}`
+      )
+    }
+
+    customerPricingModelId = defaultPricingModels[0].id
+  }
+
+  if (customerPricingModelId !== feature.pricingModelId) {
     throw new Error(
-      `Feature ${feature.id} does not belong to the same pricing model as product ${product.id}.`
+      `Feature ${feature.id} does not belong to the same pricing model as customer ${customer.id}.`
     )
   }
 }
@@ -385,6 +432,45 @@ const grantImmediateUsageCredits = async (
   }
 }
 
+const findOrCreateManualSubscriptionItem = async (
+  subscriptionId: string,
+  livemode: boolean,
+  transaction: DbTransaction
+): Promise<SubscriptionItem.Record> => {
+  // First, try to find an existing manual subscription item
+  const existingManualItems = await selectSubscriptionItems(
+    {
+      subscriptionId,
+      manuallyCreated: true,
+      expiredAt: null,
+    },
+    transaction
+  )
+
+  if (existingManualItems.length > 0) {
+    // Return the first active manual item
+    return existingManualItems[0]
+  }
+
+  // If none exists, create one
+  const manualItemInsert: SubscriptionItem.Insert = {
+    subscriptionId,
+    name: 'Manual Features',
+    priceId: null, // Manual items have no priceId
+    unitPrice: 0,
+    quantity: 0,
+    addedDate: Date.now(),
+    expiredAt: null,
+    metadata: null,
+    externalId: null,
+    type: SubscriptionItemType.Static,
+    manuallyCreated: true,
+    livemode,
+  }
+
+  return await insertSubscriptionItem(manualItemInsert, transaction)
+}
+
 export const addFeatureToSubscriptionItem = async (
   input: AddFeatureToSubscriptionInput,
   transaction: DbTransaction
@@ -399,14 +485,14 @@ export const addFeatureToSubscriptionItem = async (
     grantCreditsImmediately = false,
   } = input
 
-  const subscriptionItem = await selectSubscriptionItemById(
+  const providedSubscriptionItem = await selectSubscriptionItemById(
     subscriptionItemId,
     transaction
   )
-  ensureSubscriptionItemIsActive(subscriptionItem)
+  ensureSubscriptionItemIsActive(providedSubscriptionItem)
 
   const subscription = await selectSubscriptionById(
-    subscriptionItem.subscriptionId,
+    providedSubscriptionItem.subscriptionId,
     transaction
   )
 
@@ -414,21 +500,27 @@ export const addFeatureToSubscriptionItem = async (
   ensureFeatureIsEligible(feature)
   ensureOrganizationAndLivemodeMatch({
     subscription,
-    subscriptionItem,
+    subscriptionItem: providedSubscriptionItem,
     feature,
   })
 
-  const price = await selectPriceById(
-    subscriptionItem.priceId,
+  // Find or create manual subscription item for this sub
+  const manualSubscriptionItem =
+    await findOrCreateManualSubscriptionItem(
+      subscription.id,
+      subscription.livemode,
+      transaction
+    )
+
+  const customer = await selectCustomerById(
+    subscription.customerId,
     transaction
   )
-
-  const product = await selectProductById(
-    price.productId,
-    transaction
-  )
-
-  ensureFeatureBelongsToProductPricingModel({ product, feature })
+  await ensureFeatureBelongsToCustomerPricingModel({
+    customer,
+    feature,
+    transaction,
+  })
 
   if (
     grantCreditsImmediately &&
@@ -441,7 +533,7 @@ export const addFeatureToSubscriptionItem = async (
 
   const featureInsert =
     subscriptionItemFeatureInsertFromSubscriptionItemAndFeature({
-      subscriptionItem,
+      subscriptionItem: manualSubscriptionItem,
       feature,
       productFeature: undefined,
       manuallyCreated: true, // manuallyCreated - this is a manual addition via API
@@ -483,7 +575,7 @@ export const addFeatureToSubscriptionItem = async (
       // The upsert didn't return a record; retrieve the (now existing) toggle feature.
       const [existingToggle] = await selectSubscriptionItemFeatures(
         {
-          subscriptionItemId: subscriptionItem.id,
+          subscriptionItemId: manualSubscriptionItem.id,
           featureId: feature.id,
           expiredAt: null,
         },
@@ -491,7 +583,7 @@ export const addFeatureToSubscriptionItem = async (
       )
       if (!existingToggle) {
         throw new Error(
-          `Failed to upsert toggle feature ${feature.id} for subscription item ${subscriptionItem.id}.`
+          `Failed to upsert toggle feature ${feature.id} for subscription item ${manualSubscriptionItem.id}.`
         )
       }
       subscriptionItemFeature = existingToggle
@@ -505,7 +597,7 @@ export const addFeatureToSubscriptionItem = async (
     const [existingUsageFeature] =
       await selectSubscriptionItemFeatures(
         {
-          subscriptionItemId: subscriptionItem.id,
+          subscriptionItemId: manualSubscriptionItem.id,
           featureId: feature.id,
           expiredAt: null,
         },

@@ -154,10 +154,13 @@ export const syncSubscriptionWithActiveItems = async (
 ): Promise<Subscription.StandardRecord> => {
   const { subscriptionId, currentTime } = params
   // Get all currently active subscription items at the specified time
-  const activeItems = await selectCurrentlyActiveSubscriptionItems(
+  let activeItems = await selectCurrentlyActiveSubscriptionItems(
     { subscriptionId },
     currentTime,
     transaction
+  )
+  activeItems = activeItems.filter(
+    (item) => !item.manuallyCreated && item.priceId !== null
   )
 
   if (activeItems.length === 0) {
@@ -254,11 +257,18 @@ export const adjustSubscription = async (
     )
   }
 
-  const priceIds = newSubscriptionItems.map((item) => item.priceId)
+  // Filter out manual items first
+  const planItems = newSubscriptionItems.filter(
+    (item) => !item.manuallyCreated && item.priceId !== null
+  )
+
+  const priceIds = planItems
+    .map((item) => item.priceId)
+    .filter((id): id is string => id !== null)
   const prices = await selectPrices({ id: priceIds }, transaction)
   const priceMap = new Map(prices.map((price) => [price.id, price]))
-  newSubscriptionItems.forEach((item) => {
-    const price = priceMap.get(item.priceId)
+  planItems.forEach((item) => {
+    const price = priceMap.get(item.priceId!)
     if (!price) {
       throw new Error(`Price ${item.priceId} not found`)
     }
