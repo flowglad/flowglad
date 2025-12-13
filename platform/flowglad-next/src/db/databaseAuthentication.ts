@@ -1,5 +1,4 @@
 import type { Session } from '@supabase/supabase-js'
-import { verifyKey } from '@unkey/api'
 import type { User } from 'better-auth'
 import { and, desc, eq, or } from 'drizzle-orm'
 import type { JwtPayload } from 'jsonwebtoken'
@@ -8,7 +7,7 @@ import { FlowgladApiKeyType } from '@/types'
 import { getSession } from '@/utils/auth'
 import core from '@/utils/core'
 import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
-import { parseUnkeyMeta } from '@/utils/unkey'
+import { parseUnkeyMeta, unkey } from '@/utils/unkey'
 import { adminTransaction } from './adminTransaction'
 import db from './client'
 import type { ApiKey } from './schema/apiKeys'
@@ -52,22 +51,29 @@ const userIdFromUnkeyMeta = (meta: ApiKey.ApiKeyMetadata) => {
  */
 async function keyVerify(key: string): Promise<KeyVerifyResult> {
   if (!core.IS_TEST) {
-    const { result, error } = await verifyKey({
+    const verificationResponse = await unkey().keys.verifyKey({
       key,
-      apiId: core.envVariable('UNKEY_API_ID'),
     })
-    if (error) {
-      throw error
-    }
+    const result = verificationResponse.data
     if (!result) {
       throw new Error('No result for provided API key')
     }
     const meta = parseUnkeyMeta(result.meta)
+    const ownerId = result.identity?.externalId
+    if (!ownerId) {
+      throw new Error(
+        'No ownerId found in API key verification result'
+      )
+    }
+    // Extract environment from key prefix (sk_live_ or sk_test_)
+    const environment =
+      (result.meta?.environment as string | undefined) ||
+      (key.includes('_live_') ? 'live' : 'test')
     return {
       keyType: meta.type,
       userId: userIdFromUnkeyMeta(meta),
-      ownerId: result.ownerId as string,
-      environment: result.environment as string,
+      ownerId,
+      environment,
       metadata: meta,
     }
   }

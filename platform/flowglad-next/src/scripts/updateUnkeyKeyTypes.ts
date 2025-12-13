@@ -19,18 +19,14 @@ async function updateUnkeyKeyTypes(db: PostgresJsDatabase) {
   let listKeys: any[] = []
 
   while (true) {
-    const listResults = await unkey.apis.listKeys({
+    const listResponse = await unkey.apis.listKeys({
       apiId: core.envVariable('UNKEY_API_ID'),
       limit: 100,
       cursor,
     })
 
-    if (!listResults.result) {
-      break
-    }
-
-    listKeys = [...listKeys, ...listResults.result.keys]
-    cursor = listResults.result.cursor
+    listKeys = [...listKeys, ...listResponse.data]
+    cursor = listResponse.pagination?.cursor
 
     if (!cursor) {
       break
@@ -41,22 +37,22 @@ async function updateUnkeyKeyTypes(db: PostgresJsDatabase) {
   )
   for (const key of secretKeys) {
     // eslint-disable-next-line no-console
-    console.log(`updating ${key.name} (id: ${key.id})`)
+    console.log(`updating ${key.name} (id: ${key.keyId})`)
     // eslint-disable-next-line no-console
     console.log('key.meta', key.meta)
     const parsedMeta = secretApiKeyMetadataSchema.parse({
-      userId: key.meta.userId,
+      userId: key.meta?.userId,
       type: FlowgladApiKeyType.Secret,
     })
     // eslint-disable-next-line no-console
     console.log('parsedMeta', parsedMeta)
-    await unkey.keys.update({
-      keyId: key.id,
+    await unkey.keys.updateKey({
+      keyId: key.keyId,
       meta: parsedMeta,
     })
     // eslint-disable-next-line no-console
     console.log(
-      `updated ${key.name} (unkey id: ${key.id})
+      `updated ${key.name} (unkey id: ${key.keyId})
 ==============================================`
     )
   }

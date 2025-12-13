@@ -54,7 +54,6 @@ export const POST = async (
       { status: 400 }
     )
   }
-
   try {
     const body = await request.text()
     const signature = request.headers.get('stripe-signature')

@@ -1,8 +1,8 @@
-import type { verifyKey } from '@unkey/api'
 import { Redis } from '@upstash/redis'
 import { z } from 'zod'
 import type { TelemetryEntityType, TelemetryRecord } from '@/types'
 import { referralOptionEnum } from '@/utils/referrals'
+import type { verifyApiKey } from '@/utils/unkey'
 import { hashData } from './backendCore'
 import core from './core'
 import { logger } from './logger'
@@ -22,10 +22,10 @@ const verificationCodeEnum = z.enum([
   'FORBIDDEN',
   'USAGE_EXCEEDED',
   'RATE_LIMITED',
-  'UNAUTHORIZED',
   'DISABLED',
   'INSUFFICIENT_PERMISSIONS',
   'EXPIRED',
+  'INSUFFICIENT_CREDITS',
 ])
 
 const errorResponseSchema = z.object({
@@ -119,7 +119,7 @@ const evictionPolicy: Record<
 
 export const setApiKeyVerificationResult = async (
   apiKey: string,
-  result: Awaited<ReturnType<typeof verifyKey>>
+  result: Awaited<ReturnType<typeof verifyApiKey>>
 ) => {
   try {
     const redisClient = redis()
