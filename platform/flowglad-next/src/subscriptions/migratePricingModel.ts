@@ -158,9 +158,13 @@ export const migratePricingModelForCustomer = async (
     }
 
     if (!defaultFreeSubscription) {
-      throw new Error(
-        `Customer ${customer.id} is already on pricing model ${newPricingModelId} but has no subscription with a default free price associated with a default product`
+      const created = await createDefaultSubscriptionOnPricingModel(
+        customer,
+        newPricingModelId,
+        transaction
       )
+      defaultFreeSubscription = created.newSubscription
+      eventsToInsert = created.eventsToInsert
     }
 
     // Update customer with new pricing model ID (ensures it's set even in no-op case)
@@ -179,7 +183,7 @@ export const migratePricingModelForCustomer = async (
         canceledSubscriptions: [],
         newSubscription: defaultFreeSubscription,
       },
-      eventsToInsert: [],
+      eventsToInsert,
     }
   }
 
