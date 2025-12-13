@@ -14,6 +14,7 @@ DECLARE
   subscription_record RECORD;
   manual_item_id text;
   new_item_id text;
+  next_position bigint;
 BEGIN
   -- Loop through each unique subscription that has manual features
   FOR subscription_record IN
@@ -34,6 +35,10 @@ BEGIN
 
     -- Create manual item if it doesn't exist
     IF manual_item_id IS NULL THEN
+      -- Calculate the next position by finding the max position and adding 1
+      SELECT COALESCE(MAX("position"), 0) + 1 INTO next_position
+      FROM "subscription_items";
+      
       -- Generate ID in format: si_<nanoid> (matching core.nanoid format)
       -- Using URL-safe alphabet: 0-9A-Za-z (62 chars), length 21
       new_item_id := 'si_' || array_to_string(
@@ -62,6 +67,7 @@ BEGIN
         "type", 
         "manually_created", 
         "livemode", 
+        "position",
         "created_at", 
         "updated_at"
       ) VALUES (
@@ -71,13 +77,14 @@ BEGIN
         NULL,
         0,
         0,
-        NOW(),  -- Current timestamp in milliseconds
+        NOW(),
         NULL,
         NULL,
         NULL,
         'static',
         true,
         subscription_record."livemode",
+        next_position,
         NOW(),
         NOW()
       );

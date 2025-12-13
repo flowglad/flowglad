@@ -57,6 +57,7 @@ import {
   aggregateBalanceForLedgerAccountFromEntries,
   selectLedgerEntries,
 } from '@/db/tableMethods/ledgerEntryMethods'
+import { insertSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   safelyUpdateSubscriptionStatus,
   updateSubscription,
@@ -620,6 +621,50 @@ describe('Subscription Billing Period Transition', async () => {
       ).rejects.toThrow(
         `Cannot transition subscription ${subscription.id} in credit trial status`
       )
+    })
+  })
+
+  it('should exclude manual subscription items from billing period items', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      // Create a regular subscription item
+      const regularItem = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Regular Plan',
+        quantity: 1,
+        unitPrice: 1000,
+      })
+
+      // Create a manual subscription item (simulating one created by addFeatureToSubscriptionItem)
+      const manualItem = await insertSubscriptionItem(
+        {
+          subscriptionId: subscription.id,
+          name: 'Manual Features',
+          priceId: null,
+          unitPrice: 0,
+          quantity: 0,
+          addedDate: Date.now(),
+          expiredAt: null,
+          metadata: null,
+          externalId: null,
+          type: SubscriptionItemType.Static,
+          manuallyCreated: true,
+          livemode: subscription.livemode,
+        },
+        transaction
+      )
+
+      const { billingPeriodItemInserts } =
+        billingPeriodAndItemsInsertsFromSubscription({
+          subscription,
+          subscriptionItems: [regularItem, manualItem],
+          trialPeriod: false,
+          isInitialBillingPeriod: true,
+        })
+
+      // Should only include the regular item, not the manual item
+      expect(billingPeriodItemInserts.length).toBe(1)
+      expect(billingPeriodItemInserts[0].name).toBe('Regular Plan')
+      expect(billingPeriodItemInserts[0].unitPrice).toBe(1000)
     })
   })
 })

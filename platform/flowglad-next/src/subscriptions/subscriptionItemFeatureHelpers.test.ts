@@ -26,7 +26,10 @@ import type { Subscription } from '@/db/schema/subscriptions'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import {
+  insertSubscriptionItem,
+  selectSubscriptionItems,
+} from '@/db/tableMethods/subscriptionItemMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import {
   addFeatureToSubscriptionItem,
@@ -473,6 +476,59 @@ describe('SubscriptionItemFeatureHelpers', () => {
         expect(sif.amount).toBe(featureAmount * quantity)
       })
     })
+
+    it('should exclude manual subscription items from feature creation', async () => {
+      const [{ feature: productFeature, productFeature: pf }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [{ name: 'Product Feature', type: FeatureType.Toggle }]
+        )
+
+      await adminTransaction(async ({ transaction }) => {
+        // Create a regular subscription item with a price
+        const regularItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Regular Plan',
+          quantity: 1,
+          unitPrice: 1000,
+          priceId: priceForFeatures.id,
+        })
+
+        // Create a manual subscription item (no priceId)
+        await insertSubscriptionItem(
+          {
+            subscriptionId: subscription.id,
+            name: 'Manual Features',
+            priceId: null,
+            unitPrice: 0,
+            quantity: 0,
+            addedDate: Date.now(),
+            expiredAt: null,
+            metadata: null,
+            externalId: null,
+            type: SubscriptionItemType.Static,
+            manuallyCreated: true,
+            livemode: subscription.livemode,
+          },
+          transaction
+        )
+
+        const createdFeatures = await createSubscriptionFeatureItems(
+          [regularItem],
+          transaction
+        )
+
+        // Should create features for regular item only
+        expect(createdFeatures.length).toBe(1)
+        expect(createdFeatures[0].subscriptionItemId).toBe(
+          regularItem.id
+        )
+        expect(createdFeatures[0].featureId).toBe(productFeature.id)
+      })
+    })
   })
 
   describe('addFeatureToSubscriptionItem', () => {
@@ -898,6 +954,216 @@ describe('SubscriptionItemFeatureHelpers', () => {
         )
         expect(sif.manuallyCreated).toBe(true)
       })
+    })
+
+    it('should reuse existing manual subscription item when adding multiple features', async () => {
+      const [{ feature: feature1 }, { feature: feature2 }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [
+            { name: 'Feature 1', type: FeatureType.Toggle },
+            { name: 'Feature 2', type: FeatureType.Toggle },
+          ]
+        )
+
+      await adminTransaction(async ({ transaction }) => {
+        const result1 = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: feature1.id,
+            grantCreditsImmediately: false,
+          },
+          transaction
+        )
+
+        const result2 = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: feature2.id,
+            grantCreditsImmediately: false,
+          },
+          transaction
+        )
+
+        // Both features should be on the same manual subscription item
+        expect(
+          result1.result.subscriptionItemFeature.subscriptionItemId
+        ).toBe(
+          result2.result.subscriptionItemFeature.subscriptionItemId
+        )
+
+        // Verify only one manual item exists
+        const manualItems = await selectSubscriptionItems(
+          {
+            subscriptionId: subscription.id,
+            manuallyCreated: true,
+            expiredAt: null,
+          },
+          transaction
+        )
+        expect(manualItems.length).toBe(1)
+      })
+    })
+  })
+
+  describe('manual item database constraints', () => {
+    it('should reject when priceId is null but manuallyCreated is false', async () => {
+      // Don't nest this inside adminTransaction - setupSubscription already uses one
+      const testSubscription = await setupSubscription({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        priceId: priceForFeatures.id,
+        paymentMethodId: paymentMethod.id,
+        livemode: true,
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'Invalid Item',
+              priceId: null,
+              unitPrice: 0,
+              quantity: 0,
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: false,
+              livemode: testSubscription.livemode,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should reject when unit_price is not zero', async () => {
+      const testSubscription = await setupSubscription({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        priceId: priceForFeatures.id,
+        paymentMethodId: paymentMethod.id,
+        livemode: true,
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'Invalid Manual Item',
+              priceId: null,
+              unitPrice: 100,
+              quantity: 0,
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: true,
+              livemode: testSubscription.livemode,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should allow valid manual item', async () => {
+      const testSubscription = await setupSubscription({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        priceId: priceForFeatures.id,
+        paymentMethodId: paymentMethod.id,
+        livemode: true,
+      })
+
+      const validManualItem = await adminTransaction(
+        async ({ transaction }) => {
+          return insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'Valid Manual Item',
+              priceId: null,
+              unitPrice: 0,
+              quantity: 0,
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: true,
+              livemode: testSubscription.livemode,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(validManualItem).toBeDefined()
+      expect(validManualItem.priceId).toBeNull()
+      expect(validManualItem.manuallyCreated).toBe(true)
+      expect(validManualItem.unitPrice).toBe(0)
+    })
+
+    it('should enforce unique constraint - only one manual item per subscription', async () => {
+      const testSubscription = await setupSubscription({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        priceId: priceForFeatures.id,
+        paymentMethodId: paymentMethod.id,
+        livemode: true,
+      })
+
+      // Create first manual item
+      await adminTransaction(async ({ transaction }) => {
+        return insertSubscriptionItem(
+          {
+            subscriptionId: testSubscription.id,
+            name: 'First Manual Item',
+            priceId: null,
+            unitPrice: 0,
+            quantity: 0,
+            addedDate: Date.now(),
+            expiredAt: null,
+            metadata: null,
+            externalId: null,
+            type: SubscriptionItemType.Static,
+            manuallyCreated: true,
+            livemode: testSubscription.livemode,
+          },
+          transaction
+        )
+      })
+
+      // Try to create second manual item
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'Second Manual Item',
+              priceId: null,
+              unitPrice: 0,
+              quantity: 0,
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: true,
+              livemode: testSubscription.livemode,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
     })
   })
 })
