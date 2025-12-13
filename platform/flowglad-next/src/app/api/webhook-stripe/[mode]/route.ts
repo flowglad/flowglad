@@ -45,7 +45,7 @@ export const POST = async (
   request: NextRequest,
   { params }: { params: Promise<{ mode: string }> }
 ) => {
-  const { mode } = (await params) as { mode: WebhookMode }
+  const { mode } = await params
   if (mode !== 'livemode' && mode !== 'testmode') {
     return NextResponse.json(
       {

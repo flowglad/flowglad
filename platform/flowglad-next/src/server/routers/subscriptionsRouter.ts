@@ -313,6 +313,13 @@ export const createSubscriptionInputSchema = z
       .describe(
         `The payment method to try if charges for the subscription fail with the default payment method.`
       ),
+    doNotCharge: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe(
+        `If true, the subscription item's unitPrice will be set to 0, resulting in no charges. The original price.unitPrice value in the price record remains unchanged.`
+      ),
     // FIXME: Consider exposing preserveBillingCycleAnchor to the API
   })
   .refine(
@@ -462,6 +469,7 @@ const createSubscriptionProcedure = protectedProcedure
             backupPaymentMethod,
             livemode: ctx.livemode,
             autoStart: true,
+            doNotCharge: input.doNotCharge,
             // FIXME: Uncomment if we decide to expose preserveBillingCycleAnchor in the API
             // preserveBillingCycleAnchor: input.preserveBillingCycleAnchor ?? false,
           },

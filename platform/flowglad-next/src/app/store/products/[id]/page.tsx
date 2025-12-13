@@ -1,5 +1,6 @@
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectPricesAndProductByProductId } from '@/db/tableMethods/priceMethods'
+import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import InternalProductDetailsPage from './InternalProductDetailsPage'
 
 interface ProductPageProps {
@@ -10,15 +11,22 @@ interface ProductPageProps {
 
 const ProductPage = async ({ params }: ProductPageProps) => {
   const { id } = await params
-  const { product, prices } = await authenticatedTransaction(
-    async ({ transaction }) => {
+  const { product, prices, pricingModel } =
+    await authenticatedTransaction(async ({ transaction }) => {
       const { prices, ...product } =
         await selectPricesAndProductByProductId(id, transaction)
-      return { product, prices }
-    }
-  )
+      const pricingModel = await selectPricingModelById(
+        product.pricingModelId,
+        transaction
+      )
+      return { product, prices, pricingModel }
+    })
   return (
-    <InternalProductDetailsPage product={product} prices={prices} />
+    <InternalProductDetailsPage
+      product={product}
+      prices={prices}
+      pricingModel={pricingModel}
+    />
   )
 }
 export default ProductPage

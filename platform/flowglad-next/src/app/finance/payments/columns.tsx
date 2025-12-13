@@ -26,8 +26,8 @@ const PaymentStatusBadge = ({
   let className: string = 'bg-gray-100 text-gray-800'
   let icon: React.ReactNode = null
   if (status === PaymentStatus.Succeeded) {
-    className = 'bg-green-100 text-green-800'
-    icon = <Check className="w-3 h-3 mr-1" />
+    className = 'bg-jade-background text-jade-foreground'
+    icon = <Check className="w-3 h-3 mr-1 text-jade-foreground" />
   } else if (status === PaymentStatus.Processing) {
     className = 'bg-yellow-100 text-yellow-800'
     icon = <Hourglass className="w-3 h-3 mr-1" />

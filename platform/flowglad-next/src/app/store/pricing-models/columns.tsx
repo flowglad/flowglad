@@ -87,7 +87,7 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
           {pricingModel.isDefault && (
             <Badge
               variant="secondary"
-              className="bg-green-100 text-green-800 text-xs flex-shrink-0"
+              className="bg-jade-background text-jade-foreground text-xs flex-shrink-0"
             >
               Default
             </Badge>

@@ -3,13 +3,13 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { sentenceCase } from 'change-case'
 // Icons come next
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil } from 'lucide-react'
 import * as React from 'react'
-import DeleteDiscountModal from '@/components/forms/DeleteDiscountModal'
 import EditDiscountModal from '@/components/forms/EditDiscountModal'
 import StatusBadge from '@/components/StatusBadge'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
+import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
@@ -89,11 +89,19 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
     id: 'name',
     accessorFn: (row) => row.discount.name,
     header: 'Name',
-    cell: ({ row }) => (
-      <div className="truncate" title={row.getValue('name')}>
-        {row.getValue('name')}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const name = row.getValue('name') as string
+      const discountId = row.original.discount.id
+      return (
+        <DataTableLinkableCell
+          href={`/finance/discounts/${discountId}`}
+        >
+          <div className="truncate" title={name}>
+            {name}
+          </div>
+        </DataTableLinkableCell>
+      )
+    },
     size: 150,
     minSize: 120,
     maxSize: 200,

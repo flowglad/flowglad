@@ -976,17 +976,14 @@ const withVerification = (
   }
 }
 
-const handlerWrapper = core.IS_TEST
-  ? innerHandler
-  : withVerification(innerHandler)
-
-// Create wrapper functions that match Next.js's expected signature
-// These wrappers cast the types internally to our extended types
 const routeHandler = async (
   request: NextRequest,
   context: { params: Promise<{ path: string[] }> }
 ): Promise<Response> => {
-  return handlerWrapper(
+  const handler = core.IS_TEST
+    ? innerHandler
+    : withVerification(innerHandler)
+  return handler(
     request as NextRequestWithUnkeyContext,
     context as FlowgladRESTRouteContext
   )

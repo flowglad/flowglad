@@ -96,10 +96,19 @@ interface BillingContext {
   paymentMethods: PaymentMethod[]
   
   // Subscriptions
-  subscriptions: Subscription[]
+  currentSubscription: Subscription // The most recently created current subscription for the customer
+  currentSubscriptions: Subscription[] // Subscriptions currently active or pending. Length will always be 1 unless your organization settings allow for multiple subscriptions per customer.
+  subscriptions: Subscription[] // All subscriptions for the customer
+  
+  // Purchases
+  purchases: Purchase[]
   
   // Invoices
   invoices: Invoice[]
+  
+  // Catalog and pricing
+  pricingModel: PricingModel // The customer's pricing model
+  billingPortalUrl: string // URL to the customer's billing portal
   
   // Feature access
   checkFeatureAccess: (featureSlug: string) => boolean
@@ -121,6 +130,7 @@ interface BillingContext {
   
   // Subscription management
   cancelSubscription: (params: CancelSubscriptionParams) => Promise<void>
+  uncancelSubscription: (params: UncancelSubscriptionParams) => Promise<void>
   
   // Loading states
   isLoading: boolean
@@ -330,11 +340,11 @@ import { useBilling } from '@flowglad/react'
 import { useState } from 'react'
 
 function SubscriptionManager() {
-  const { uncancelSubscription, currentSubscriptions } = useBilling()
+  const { uncancelSubscription, currentSubscription } = useBilling()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  const subscription = currentSubscriptions?.[0]
+  const subscription = currentSubscription
   const isScheduledForCancellation = subscription?.status === 'cancellation_scheduled'
   
   const handleUncancel = async () => {
@@ -480,6 +490,7 @@ The billing payload also exposes higher-level billing records you can use to bui
 - `subscriptions` – All subscriptions (active and past) returned for the customer.
 - `purchases` – Historical purchases for the customer.
 - `invoices` – Invoice records (including status and totals).
+- `currentSubscription` - The most recently created current subscription for the customer.
 - `currentSubscriptions` – Subscriptions currently active or pending.
 - `paymentMethods` – Saved payment methods for the customer.
 - `billingPortalUrl` – Deep link to Flowglad’s hosted billing portal (if enabled).
