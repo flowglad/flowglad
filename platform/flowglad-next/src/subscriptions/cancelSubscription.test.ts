@@ -826,6 +826,102 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
+    it('should cancel subscription with CancellationScheduled status immediately', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
+        })
+
+        const periodStart = Date.now() - 60 * 60 * 1000
+        const periodEnd = Date.now() + 60 * 60 * 1000
+        await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: periodStart,
+          endDate: periodEnd,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        const { result, eventsToInsert } =
+          await cancelSubscriptionImmediately(
+            subscription,
+            transaction
+          )
+
+        // Verify subscription was canceled immediately
+        expect(result.status).toBe(SubscriptionStatus.Canceled)
+        expect(result.canceledAt).toBeDefined()
+        expect(eventsToInsert).toHaveLength(1)
+        if (!eventsToInsert) {
+          throw new Error('No events to insert')
+        }
+        expect(eventsToInsert[0]).toMatchObject({
+          type: FlowgladEventType.SubscriptionCanceled,
+          payload: {
+            object: EventNoun.Subscription,
+            id: subscription.id,
+          },
+        })
+      })
+    })
+
+    it('should cancel subscriptions in various non-terminal statuses', async () => {
+      // Test all non-terminal statuses that can be canceled
+      const statusesToTest = [
+        SubscriptionStatus.Active,
+        SubscriptionStatus.Trialing,
+        SubscriptionStatus.PastDue,
+        SubscriptionStatus.Unpaid,
+        SubscriptionStatus.Paused,
+        SubscriptionStatus.CancellationScheduled,
+      ]
+
+      for (const status of statusesToTest) {
+        await adminTransaction(async ({ transaction }) => {
+          const subscription = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer.id,
+            paymentMethodId: paymentMethod.id,
+            priceId: price.id,
+            status,
+          })
+
+          const periodStart = Date.now() - 60 * 60 * 1000
+          const periodEnd = Date.now() + 60 * 60 * 1000
+          await setupBillingPeriod({
+            subscriptionId: subscription.id,
+            startDate: periodStart,
+            endDate: periodEnd,
+          })
+
+          const { result, eventsToInsert } =
+            await cancelSubscriptionImmediately(
+              subscription,
+              transaction
+            )
+
+          // Verify subscription was canceled regardless of initial status
+          expect(result.status).toBe(SubscriptionStatus.Canceled)
+          expect(result.canceledAt).toBeDefined()
+          expect(eventsToInsert).toHaveLength(1)
+          if (!eventsToInsert) {
+            throw new Error('No events to insert')
+          }
+          expect(eventsToInsert[0]).toMatchObject({
+            type: FlowgladEventType.SubscriptionCanceled,
+            payload: {
+              object: EventNoun.Subscription,
+              id: subscription.id,
+            },
+          })
+        })
+      }
+    })
+
     it('should throw an error if the cancellation date is before the subscription start date', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Create a subscription whose billing period starts in the future.

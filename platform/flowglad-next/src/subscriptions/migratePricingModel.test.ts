@@ -123,7 +123,7 @@ describe('Pricing Model Migration Test Suite', async () => {
   })
 
   describe('Basic Migration Scenarios', () => {
-    it('should migrate customer with single free plan to new pricing model', async () => {
+    it('should migrate customer with single free plan to a default subscription on the new pricing model', async () => {
       // Setup: Customer has default free subscription on pricing model 1
       const freeSubscription = await setupSubscription({
         organizationId: organization.id,
@@ -269,7 +269,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
     })
 
-    it('should migrate customer with multiple subscriptions', async () => {
+    it('should migrate customer with multiple subscriptions to a default subscription on the new pricing model, canceling the old subscriptions', async () => {
       // Setup: Customer has default free subscription on pricing model 1
       const freeSubscription = await setupSubscription({
         organizationId: organization.id,
@@ -374,7 +374,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       expect(result.result.newSubscription.priceId).toBe(price2.id)
     })
 
-    it('should handle customer with no subscriptions', async () => {
+    it('should migrate customer with no subscriptions to a default subscription on the new pricing model', async () => {
       // Execute migration on customer with no subscriptions
       const result = await adminTransaction(
         async ({ transaction }) => {
@@ -494,98 +494,6 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Verify no events were generated
       expect(result.eventsToInsert).toHaveLength(0)
-    })
-
-    it('should cancel subscription with scheduled cancellation', async () => {
-      // Setup: Subscription with scheduled cancellation
-      const subscription = await setupSubscription({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price1.id,
-        status: SubscriptionStatus.CancellationScheduled,
-        cancelScheduledAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
-      })
-
-      // Execute migration
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return await migratePricingModelForCustomer(
-            {
-              customer,
-              oldPricingModelId: pricingModel1.id,
-              newPricingModelId: pricingModel2.id,
-            },
-            transaction
-          )
-        }
-      )
-
-      // Verify subscription was canceled immediately
-      expect(result.result.canceledSubscriptions[0].status).toBe(
-        SubscriptionStatus.Canceled
-      )
-      expect(
-        result.result.canceledSubscriptions[0].canceledAt
-      ).toBeDefined()
-    })
-
-    it('should cancel subscriptions in various statuses', async () => {
-      // Setup: Active subscription on default free product
-      const activeSubscription = await setupSubscription({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price1.id,
-        status: SubscriptionStatus.Active,
-      })
-
-      // Setup: Create a separate product for trialing subscription
-      const trialingProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel1.id,
-        name: 'Trialing Product',
-        default: false,
-      })
-
-      const trialingPrice = await setupPrice({
-        name: 'Trialing Price',
-        livemode: false,
-        productId: trialingProduct.id,
-        type: PriceType.Subscription,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        unitPrice: 1000,
-        isDefault: true,
-      })
-
-      const trialingSubscription = await setupSubscription({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: trialingPrice.id,
-        status: SubscriptionStatus.Trialing,
-      })
-
-      // Execute migration
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return await migratePricingModelForCustomer(
-            {
-              customer,
-              oldPricingModelId: pricingModel1.id,
-              newPricingModelId: pricingModel2.id,
-            },
-            transaction
-          )
-        }
-      )
-
-      // Verify both subscriptions were canceled
-      expect(result.result.canceledSubscriptions).toHaveLength(2)
-      for (const sub of result.result.canceledSubscriptions) {
-        expect(sub.status).toBe(SubscriptionStatus.Canceled)
-        expect(sub.cancellationReason).toBe(
-          CancellationReason.PricingModelMigration
-        )
-      }
     })
   })
 
@@ -1243,7 +1151,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
     })
 
-    it('should update billing periods correctly when migrating', async () => {
+    it('should make current billing period completed and cancel future ones when migrating', async () => {
       // Setup: Create subscription with multiple billing periods
       const subscription = await setupSubscription({
         organizationId: organization.id,
@@ -1489,7 +1397,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
     })
 
-    it('should throw BAD_REQUEST when livemode does not match', async () => {
+    it('should throw BAD_REQUEST when customer livemode does not match pricing model livemode', async () => {
       // Setup: Ensure customer has livemode=false
       await adminTransaction(async ({ transaction }) => {
         await updateCustomer(
