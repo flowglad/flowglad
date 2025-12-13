@@ -474,4 +474,98 @@ describe('doNotCharge subscription creation', () => {
       expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
     })
   })
+
+  it('should create subscription as Active when doNotCharge is true and no payment method is provided', async () => {
+    const params: CreateSubscriptionParams = {
+      customer,
+      price: paidPrice,
+      product: paidProduct,
+      organization,
+      quantity: 1,
+      livemode: true,
+      startDate: new Date(),
+      interval: IntervalUnit.Month,
+      intervalCount: 1,
+      autoStart: true,
+      // No defaultPaymentMethod provided
+      doNotCharge: true,
+    }
+
+    const {
+      result: { subscription, subscriptionItems },
+    } = await adminTransaction(async ({ transaction }) => {
+      return createSubscriptionWorkflow(params, transaction)
+    })
+
+    expect(subscriptionItems).toHaveLength(1)
+    expect(subscriptionItems[0].unitPrice).toBe(0)
+    // Subscription should be Active even without payment method when doNotCharge is true
+    expect(subscription.status).toBe(SubscriptionStatus.Active)
+    expect(subscription.isFreePlan).toBe(false)
+  })
+
+  it('should create subscription as Incomplete when doNotCharge is false and no payment method is provided', async () => {
+    const params: CreateSubscriptionParams = {
+      customer,
+      price: paidPrice,
+      product: paidProduct,
+      organization,
+      quantity: 1,
+      livemode: true,
+      startDate: new Date(),
+      interval: IntervalUnit.Month,
+      intervalCount: 1,
+      autoStart: true,
+      // No defaultPaymentMethod provided
+      doNotCharge: false,
+    }
+
+    const {
+      result: { subscription },
+    } = await adminTransaction(async ({ transaction }) => {
+      return createSubscriptionWorkflow(params, transaction)
+    })
+
+    // Subscription should be Incomplete without payment method when doNotCharge is false
+    expect(subscription.status).toBe(SubscriptionStatus.Incomplete)
+  })
+
+  describe('doNotCharge validation with payment methods', () => {
+    it('should not create billing run when doNotCharge is true, even with payment method', async () => {
+      // This test verifies defensive behavior: even if the workflow is called directly
+      // (bypassing API validation), doNotCharge=true should prevent billing run creation.
+      // This ensures the workflow is resilient to invalid input combinations.
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        livemode: true,
+      })
+
+      const params: CreateSubscriptionParams = {
+        customer,
+        price: paidPrice,
+        product: paidProduct,
+        organization,
+        quantity: 1,
+        livemode: true,
+        startDate: new Date(),
+        interval: IntervalUnit.Month,
+        intervalCount: 1,
+        autoStart: true,
+        defaultPaymentMethod: paymentMethod,
+        doNotCharge: true,
+      }
+
+      const {
+        result: { billingRun },
+      } = await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(params, transaction)
+      })
+
+      // No billing run should be created when doNotCharge is true
+      // (even though payment method exists, since unitPrice is 0)
+      expect(billingRun).toBeNull()
+    })
+  })
 })

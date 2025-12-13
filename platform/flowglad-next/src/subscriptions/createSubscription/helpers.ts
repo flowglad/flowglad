@@ -52,18 +52,25 @@ export const deriveSubscriptionStatus = ({
   trialEnd,
   defaultPaymentMethodId,
   isDefaultPlan,
+  doNotCharge,
 }: {
   autoStart: boolean
   trialEnd?: Date | number
   defaultPaymentMethodId?: string
   isDefaultPlan: boolean
+  doNotCharge?: boolean
 }):
   | SubscriptionStatus.Trialing
   | SubscriptionStatus.Active
   | SubscriptionStatus.Incomplete => {
-  /**
-   * If the subscription is a default plan, it is always active
-   */
+  // doNotCharge takes precedence over trial - if free, no trial needed
+  if (doNotCharge && autoStart) {
+    return SubscriptionStatus.Active
+  }
+  if (doNotCharge && !autoStart) {
+    return SubscriptionStatus.Incomplete
+  }
+  // Trial can start even if autoStart is false
   if (trialEnd) {
     return SubscriptionStatus.Trialing
   }
@@ -73,6 +80,7 @@ export const deriveSubscriptionStatus = ({
   if (autoStart && defaultPaymentMethodId) {
     return SubscriptionStatus.Active
   }
+  // Default plans are always active
   if (isDefaultPlan) {
     return SubscriptionStatus.Active
   }
@@ -508,6 +516,7 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     preservedBillingPeriodEnd?: Date | number
     preservedBillingPeriodStart?: Date | number
     isDefaultPlan: boolean
+    doNotCharge?: boolean
   },
   transaction: DbTransaction
 ) => {
@@ -516,9 +525,10 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     defaultPaymentMethod,
     subscriptionItems,
     isDefaultPlan,
+    doNotCharge,
   } = params
   /**
-   * If
+   * If the subscription is in credit trial(deprecated), incomplete, or non-renewing status,
    * and no default payment method is provided,
    * we do not create a billing period or run.
    *
@@ -557,13 +567,16 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
   /**
    * Initial active subscription: create the first billing period based on subscription.currentBillingPeriodStart/end
    * Also create billing period when preserving cycle with proration, even if dates don't match
+   *
+   * We can create a billing period if we have a payment method OR if doNotCharge is true.
+   * When doNotCharge is true, we create the billing period but skip the billing run (see below).
    */
   const shouldCreateBillingPeriod =
     (subscription.startDate ===
       subscription.currentBillingPeriodStart ||
       params.prorateFirstPeriod) &&
     params.autoStart &&
-    defaultPaymentMethod &&
+    (defaultPaymentMethod || doNotCharge) &&
     subscription.runBillingAtPeriodStart
 
   if (shouldCreateBillingPeriod) {
@@ -613,14 +626,22 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     const scheduledFor = subscription.runBillingAtPeriodStart
       ? subscription.currentBillingPeriodStart!
       : subscription.currentBillingPeriodEnd!
-    const billingRun = await createBillingRun(
-      {
-        billingPeriod,
-        paymentMethod: defaultPaymentMethod,
-        scheduledFor,
-      },
-      transaction
-    )
+    /**
+     * Only create a billing run if we have a payment method AND doNotCharge is false.
+     * If doNotCharge is true, we skip the billing run since there's nothing to charge,
+     * even if a payment method exists (defensive check in case API validation is bypassed).
+     */
+    const billingRun =
+      defaultPaymentMethod && !doNotCharge
+        ? await createBillingRun(
+            {
+              billingPeriod,
+              paymentMethod: defaultPaymentMethod,
+              scheduledFor,
+            },
+            transaction
+          )
+        : null
     return {
       subscription,
       billingPeriod,
@@ -632,9 +653,12 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
    * If the subscription is in incomplete status and no default payment method is provided,
    * we throw an error.
    *
-   * In practice this should never be reached
+   * However, if doNotCharge is true, we don't need a payment method.
+   *
+   * In practice this should never be reached for incomplete subscriptions
+   * since we set them to Active when doNotCharge is true.
    */
-  if (!defaultPaymentMethod && !isDefaultPlan) {
+  if (!defaultPaymentMethod && !isDefaultPlan && !doNotCharge) {
     throw new Error(
       'Default payment method is required if trial period is not set'
     )

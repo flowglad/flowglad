@@ -65,6 +65,7 @@ export const createStandardSubscriptionAndItems = async (
       trialEnd,
       defaultPaymentMethodId: defaultPaymentMethod?.id,
       isDefaultPlan: product.default,
+      doNotCharge,
     }),
     isFreePlan: price.unitPrice === 0,
     cancellationReason: null,

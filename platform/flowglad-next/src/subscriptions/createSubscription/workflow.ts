@@ -265,6 +265,7 @@ export const createSubscriptionWorkflow = async (
       preservedBillingPeriodEnd: params.preservedBillingPeriodEnd,
       preservedBillingPeriodStart: params.preservedBillingPeriodStart,
       isDefaultPlan: params.product.default,
+      doNotCharge: params.doNotCharge,
     },
     transaction
   )

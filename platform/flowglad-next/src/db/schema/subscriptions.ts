@@ -80,6 +80,11 @@ const columns = {
   ),
   cancellationReason: text('cancellation_reason'),
   replacedBySubscriptionId: text('replaced_by_subscription_id'),
+  /**
+   * Indicates whether the subscription's underlying price is a free plan (based on `price.unitPrice === 0`, not `subscriptionItem.unitPrice === 0`).
+   * Subscriptions created with `doNotCharge: true` will have `isFreePlan: false` intentionally.
+   * This flag indicates the price's nature, not whether it's currently being charged.
+   */
   isFreePlan: boolean('is_free_plan').default(false),
   priceId: nullableStringForeignKey('price_id', prices),
   runBillingAtPeriodStart: boolean(
