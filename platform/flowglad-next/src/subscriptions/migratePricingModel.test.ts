@@ -1,11 +1,19 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  setupBillingPeriod,
+  setupBillingRun,
   setupCustomer,
   setupOrg,
+  setupPaymentMethod,
   setupPrice,
   setupPricingModel,
   setupProduct,
+  setupProductFeature,
   setupSubscription,
+  setupSubscriptionItem,
+  setupSubscriptionItemFeature,
+  setupUsageCreditGrantFeature,
+  setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
@@ -14,17 +22,26 @@ import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
+import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
+import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   currentSubscriptionStatuses,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
 import { migratePricingModelForCustomer } from '@/subscriptions/migratePricingModel'
 import {
+  BillingPeriodStatus,
+  BillingRunStatus,
   CancellationReason,
+  FeatureType,
+  FeatureUsageGrantFrequency,
   IntervalUnit,
   PriceType,
+  SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
@@ -543,8 +560,249 @@ describe('Pricing Model Migration Test Suite', async () => {
   })
 
   describe('Integration with getCustomerBilling', () => {
-    it('should return correct subscriptions and features after migration', async () => {
-      // Setup: Customer with subscription on pricing model 1
+    it('should return correct subscriptions after migration via customerBillingTransaction', async () => {
+      // Setup: Customer with default free subscription on pricing model 1
+      const freeSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      // Setup: Add a paid subscription on pricing model 1
+      const paidProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
+        name: 'Paid Product Before Migration',
+        default: false,
+      })
+
+      const paidPrice = await setupPrice({
+        productId: paidProduct.id,
+        name: 'Paid Price',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 5000,
+        livemode: false,
+        isDefault: true,
+      })
+
+      const paidSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: paidPrice.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      // Execute migration
+      await adminTransaction(async ({ transaction }) => {
+        await migratePricingModelForCustomer(
+          {
+            customer,
+            oldPricingModelId: pricingModel1.id,
+            newPricingModelId: pricingModel2.id,
+          },
+          transaction
+        )
+
+        // Update customer record
+        await updateCustomer(
+          {
+            id: customer.id,
+            pricingModelId: pricingModel2.id,
+          },
+          transaction
+        )
+      })
+
+      // Verify billing state via customerBillingTransaction
+      const billingState = await adminTransaction(
+        async ({ transaction }) => {
+          return await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Verify the new pricing model is returned
+      expect(billingState.pricingModel.id).toBe(pricingModel2.id)
+
+      // Verify all subscriptions are present (current and canceled)
+      expect(
+        billingState.subscriptions.length
+      ).toBeGreaterThanOrEqual(3)
+
+      // Verify only the new subscription is in currentSubscriptions
+      expect(billingState.currentSubscriptions).toHaveLength(1)
+      expect(billingState.currentSubscriptions[0].priceId).toBe(
+        price2.id
+      )
+      expect(billingState.currentSubscriptions[0].status).toBe(
+        SubscriptionStatus.Active
+      )
+
+      // Verify currentSubscription is the new subscription
+      expect(billingState.currentSubscription.priceId).toBe(price2.id)
+      expect(billingState.currentSubscription.status).toBe(
+        SubscriptionStatus.Active
+      )
+
+      // Verify old subscriptions are canceled and not in currentSubscriptions
+      const oldFreeSubscription = billingState.subscriptions.find(
+        (s) => s.id === freeSubscription.id
+      )
+      const oldPaidSubscription = billingState.subscriptions.find(
+        (s) => s.id === paidSubscription.id
+      )
+
+      expect(oldFreeSubscription).toBeDefined()
+      expect(oldFreeSubscription!.status).toBe(
+        SubscriptionStatus.Canceled
+      )
+      expect(oldFreeSubscription!.cancellationReason).toBe(
+        CancellationReason.PricingModelMigration
+      )
+
+      expect(oldPaidSubscription).toBeDefined()
+      expect(oldPaidSubscription!.status).toBe(
+        SubscriptionStatus.Canceled
+      )
+      expect(oldPaidSubscription!.cancellationReason).toBe(
+        CancellationReason.PricingModelMigration
+      )
+
+      // Verify old subscriptions are NOT in currentSubscriptions
+      expect(
+        billingState.currentSubscriptions.find(
+          (s) => s.id === freeSubscription.id
+        )
+      ).toBeUndefined()
+      expect(
+        billingState.currentSubscriptions.find(
+          (s) => s.id === paidSubscription.id
+        )
+      ).toBeUndefined()
+    })
+
+    it('should only show products and prices from new pricing model in catalog', async () => {
+      // Setup: Customer starts on pricing model 1
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      // Execute migration to pricing model 2
+      await adminTransaction(async ({ transaction }) => {
+        await migratePricingModelForCustomer(
+          {
+            customer,
+            oldPricingModelId: pricingModel1.id,
+            newPricingModelId: pricingModel2.id,
+          },
+          transaction
+        )
+
+        // Update customer record
+        await updateCustomer(
+          {
+            id: customer.id,
+            pricingModelId: pricingModel2.id,
+          },
+          transaction
+        )
+      })
+
+      // Get billing state
+      const billingState = await adminTransaction(
+        async ({ transaction }) => {
+          return await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Verify the pricing model is pricingModel2
+      expect(billingState.pricingModel.id).toBe(pricingModel2.id)
+
+      // Verify only products from pricing model 2 are in the catalog
+      expect(billingState.pricingModel.products).toHaveLength(1)
+      expect(billingState.pricingModel.products[0].id).toBe(
+        product2.id
+      )
+
+      // Verify no products from pricing model 1 are in the catalog
+      const oldProductInCatalog =
+        billingState.pricingModel.products.find(
+          (p) => p.id === product1.id
+        )
+      expect(oldProductInCatalog).toBeUndefined()
+
+      // Verify only prices from pricing model 2 are shown
+      const allPrices = billingState.pricingModel.products.flatMap(
+        (p) => p.prices
+      )
+      expect(allPrices.some((p) => p.id === price2.id)).toBe(true)
+      expect(allPrices.some((p) => p.id === price1.id)).toBe(false)
+    })
+
+    it('should show features from new pricing model after migration', async () => {
+      // Setup: Create features on both pricing models
+      const usageMeter1 = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
+        name: 'Old Pricing Model Meter',
+      })
+
+      const feature1 = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'Old Pricing Model Feature',
+        usageMeterId: usageMeter1.id,
+        amount: 1000,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: false,
+      })
+
+      const productFeature1 = await setupProductFeature({
+        organizationId: organization.id,
+        productId: product1.id,
+        featureId: feature1.id,
+        livemode: false,
+      })
+
+      const usageMeter2 = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel2.id,
+        name: 'New Pricing Model Meter',
+      })
+
+      const feature2 = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'New Pricing Model Feature',
+        usageMeterId: usageMeter2.id,
+        amount: 2000,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: false,
+      })
+
+      const productFeature2 = await setupProductFeature({
+        organizationId: organization.id,
+        productId: product2.id,
+        featureId: feature2.id,
+        livemode: false,
+      })
+
+      // Setup: Customer starts with subscription on pricing model 1
       const subscription1 = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -552,68 +810,480 @@ describe('Pricing Model Migration Test Suite', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      // Execute migration
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          const migrationResult =
-            await migratePricingModelForCustomer(
-              {
-                customer,
-                oldPricingModelId: pricingModel1.id,
-                newPricingModelId: pricingModel2.id,
-              },
-              transaction
-            )
+      const subscriptionItem1 = await setupSubscriptionItem({
+        subscriptionId: subscription1.id,
+        priceId: price1.id,
+        name: price1.name ?? 'Item 1',
+        quantity: 1,
+        unitPrice: price1.unitPrice,
+        type: SubscriptionItemType.Static,
+      })
 
-          // Update customer record
-          await updateCustomer(
+      await setupSubscriptionItemFeature({
+        subscriptionItemId: subscriptionItem1.id,
+        featureId: feature1.id,
+        type: FeatureType.UsageCreditGrant,
+        usageMeterId: usageMeter1.id,
+        productFeatureId: productFeature1.id,
+      })
+
+      // Execute migration
+      await adminTransaction(async ({ transaction }) => {
+        await migratePricingModelForCustomer(
+          {
+            customer,
+            oldPricingModelId: pricingModel1.id,
+            newPricingModelId: pricingModel2.id,
+          },
+          transaction
+        )
+
+        // Update customer record
+        await updateCustomer(
+          {
+            id: customer.id,
+            pricingModelId: pricingModel2.id,
+          },
+          transaction
+        )
+      })
+
+      // Get billing state
+      const billingState = await adminTransaction(
+        async ({ transaction }) => {
+          return await customerBillingTransaction(
             {
-              id: customer.id,
-              pricingModelId: pricingModel2.id,
+              externalId: customer.externalId,
+              organizationId: organization.id,
             },
             transaction
           )
-
-          return migrationResult
         }
       )
 
-      // Verify subscriptions field contains canceled and new subscriptions
-      expect(
-        result.result.canceledSubscriptions.length
-      ).toBeGreaterThanOrEqual(1)
-      expect(result.result.canceledSubscriptions[0].id).toBe(
-        subscription1.id
-      )
+      // Verify the pricing model is pricingModel2
+      expect(billingState.pricingModel.id).toBe(pricingModel2.id)
 
-      // Verify new subscription is on new pricing model
-      expect(result.result.newSubscription.priceId).toBe(price2.id)
-      expect(result.result.newSubscription.status).toBe(
-        SubscriptionStatus.Active
+      // Verify the catalog shows features from the new pricing model
+      const newProduct = billingState.pricingModel.products.find(
+        (p) => p.id === product2.id
       )
+      expect(newProduct).toBeDefined()
+      expect(newProduct!.features).toHaveLength(1)
+      expect(newProduct!.features[0].id).toBe(feature2.id)
+
+      // Verify features from the old pricing model are not in the catalog
+      const oldProductInCatalog =
+        billingState.pricingModel.products.find(
+          (p) => p.id === product1.id
+        )
+      expect(oldProductInCatalog).toBeUndefined()
     })
 
-    it('should only show features from new pricing model', async () => {
-      // This test would require setting up features on both pricing models
-      // and verifying that only features from the new model are returned
-      // Skipping for now as it requires more complex setup
+    it('should return experimental field with only new pricing model features for checkFeatureAccess and checkUsageBalance', async () => {
+      // Setup: Create usage meters and features on both pricing models
+      const oldUsageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
+        name: 'Old Meter for Experimental',
+        slug: 'old-meter-experimental',
+      })
+
+      const oldFeature = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'Old Feature for Experimental',
+        usageMeterId: oldUsageMeter.id,
+        amount: 500,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: false,
+      })
+
+      const oldProductFeature = await setupProductFeature({
+        organizationId: organization.id,
+        productId: product1.id,
+        featureId: oldFeature.id,
+        livemode: false,
+      })
+
+      const newUsageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel2.id,
+        name: 'New Meter for Experimental',
+        slug: 'new-meter-experimental',
+      })
+
+      const newFeature = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'New Feature for Experimental',
+        usageMeterId: newUsageMeter.id,
+        amount: 1500,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: false,
+      })
+
+      const newProductFeature = await setupProductFeature({
+        organizationId: organization.id,
+        productId: product2.id,
+        featureId: newFeature.id,
+        livemode: false,
+      })
+
+      // Setup: Customer starts with subscription on old pricing model
+      const oldSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      const oldSubscriptionItem = await setupSubscriptionItem({
+        subscriptionId: oldSubscription.id,
+        priceId: price1.id,
+        name: price1.name ?? 'Old Item',
+        quantity: 1,
+        unitPrice: price1.unitPrice,
+        type: SubscriptionItemType.Static,
+      })
+
+      await setupSubscriptionItemFeature({
+        subscriptionItemId: oldSubscriptionItem.id,
+        featureId: oldFeature.id,
+        type: FeatureType.UsageCreditGrant,
+        usageMeterId: oldUsageMeter.id,
+        productFeatureId: oldProductFeature.id,
+      })
+
+      // Execute migration
+      await adminTransaction(async ({ transaction }) => {
+        await migratePricingModelForCustomer(
+          {
+            customer,
+            oldPricingModelId: pricingModel1.id,
+            newPricingModelId: pricingModel2.id,
+          },
+          transaction
+        )
+
+        // Update customer record
+        await updateCustomer(
+          {
+            id: customer.id,
+            pricingModelId: pricingModel2.id,
+          },
+          transaction
+        )
+      })
+
+      // Get billing state
+      const billingState = await adminTransaction(
+        async ({ transaction }) => {
+          return await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Verify currentSubscriptions has only the new subscription
+      expect(billingState.currentSubscriptions).toHaveLength(1)
+      const currentSub = billingState.currentSubscriptions[0]
+      expect(currentSub.priceId).toBe(price2.id)
+
+      // Verify experimental field exists and contains the right structure
+      expect(currentSub.experimental).toBeDefined()
+
+      // Verify experimental.featureItems only contains features from new pricing model
+      if (
+        currentSub.experimental?.featureItems &&
+        currentSub.experimental.featureItems.length > 0
+      ) {
+        for (const featureItem of currentSub.experimental
+          .featureItems) {
+          // All feature items should be from the new pricing model
+          expect(featureItem.usageMeterId).toBe(newUsageMeter.id)
+          expect(featureItem.usageMeterId).not.toBe(oldUsageMeter.id)
+        }
+      }
+
+      // Verify experimental.usageMeterBalances only contains balances from new pricing model
+      if (
+        currentSub.experimental?.usageMeterBalances &&
+        currentSub.experimental.usageMeterBalances.length > 0
+      ) {
+        for (const balance of currentSub.experimental
+          .usageMeterBalances) {
+          // All usage meter balances should be from the new pricing model's usage meter
+          expect(balance.subscriptionId).not.toBe(oldSubscription.id)
+          expect(balance.pricingModelId).toBe(pricingModel2.id)
+        }
+      }
+
+      // Verify old subscription is canceled and not in currentSubscriptions
+      const oldSubInHistory = billingState.subscriptions.find(
+        (s) => s.id === oldSubscription.id
+      )
+      expect(oldSubInHistory).toBeDefined()
+      expect(oldSubInHistory!.status).toBe(
+        SubscriptionStatus.Canceled
+      )
+
+      // Verify old subscription is not in currentSubscriptions (which is what checkFeatureAccess/checkUsageBalance use)
+      expect(
+        billingState.currentSubscriptions.find(
+          (s) => s.id === oldSubscription.id
+        )
+      ).toBeUndefined()
+
+      // This ensures that when FlowgladServer constructs checkFeatureAccess and checkUsageBalance,
+      // it will only use features/balances from the new pricing model
     })
   })
 
   describe('Subscription Cleanup', () => {
-    it('should abort all scheduled billing runs', async () => {
-      // This test requires setting up billing runs
-      // which is complex - covered in the cancelSubscription tests
+    it('should abort all scheduled billing runs when migrating', async () => {
+      // Setup: Create subscription with billing period and scheduled billing runs
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+
+      const now = new Date()
+      const billingPeriod = await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: new Date(now.getTime() - 60 * 60 * 1000), // 1 hour ago
+        endDate: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour later
+        status: BillingPeriodStatus.Active,
+      })
+
+      // Create scheduled billing runs
+      const billingRun1 = await setupBillingRun({
+        billingPeriodId: billingPeriod.id,
+        subscriptionId: subscription.id,
+        paymentMethodId: paymentMethod.id,
+        status: BillingRunStatus.Scheduled,
+        scheduledFor: now.getTime() + 30 * 60 * 1000,
+      })
+
+      const billingRun2 = await setupBillingRun({
+        billingPeriodId: billingPeriod.id,
+        subscriptionId: subscription.id,
+        paymentMethodId: paymentMethod.id,
+        status: BillingRunStatus.Scheduled,
+        scheduledFor: now.getTime() + 45 * 60 * 1000,
+      })
+
+      // Execute migration
+      await adminTransaction(async ({ transaction }) => {
+        await migratePricingModelForCustomer(
+          {
+            customer,
+            oldPricingModelId: pricingModel1.id,
+            newPricingModelId: pricingModel2.id,
+          },
+          transaction
+        )
+      })
+
+      // Verify all scheduled billing runs are now aborted
+      await adminTransaction(async ({ transaction }) => {
+        const updatedBillingRun1 = await selectBillingRunById(
+          billingRun1.id,
+          transaction
+        )
+        const updatedBillingRun2 = await selectBillingRunById(
+          billingRun2.id,
+          transaction
+        )
+
+        expect(updatedBillingRun1.status).toBe(
+          BillingRunStatus.Aborted
+        )
+        expect(updatedBillingRun2.status).toBe(
+          BillingRunStatus.Aborted
+        )
+      })
     })
 
-    it('should expire all subscription items', async () => {
-      // This test requires setting up subscription items
-      // which is complex - covered in the cancelSubscription tests
+    it('should expire all subscription items when migrating', async () => {
+      // Setup: Create product with features
+      const paidProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
+        name: 'Paid Product with Features',
+        default: false,
+      })
+
+      const paidPrice = await setupPrice({
+        productId: paidProduct.id,
+        name: 'Paid Price',
+        type: PriceType.Subscription,
+        unitPrice: 5000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: false,
+        isDefault: true,
+      })
+
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: paidPrice.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      const subscriptionItem = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        priceId: paidPrice.id,
+        name: paidPrice.name ?? 'Test Item',
+        quantity: 1,
+        unitPrice: paidPrice.unitPrice,
+        type: SubscriptionItemType.Static,
+      })
+
+      // Create a feature on the subscription item
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
+        name: 'Test Meter',
+      })
+
+      const feature = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'Test Feature',
+        usageMeterId: usageMeter.id,
+        amount: 1000,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: false,
+      })
+
+      const productFeature = await setupProductFeature({
+        organizationId: organization.id,
+        productId: paidProduct.id,
+        featureId: feature.id,
+        livemode: false,
+      })
+
+      await setupSubscriptionItemFeature({
+        subscriptionItemId: subscriptionItem.id,
+        featureId: feature.id,
+        type: FeatureType.UsageCreditGrant,
+        usageMeterId: usageMeter.id,
+        productFeatureId: productFeature.id,
+      })
+
+      await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: Date.now() - 60 * 60 * 1000,
+        endDate: Date.now() + 60 * 60 * 1000,
+      })
+
+      // Execute migration
+      const canceledAt = await adminTransaction(
+        async ({ transaction }) => {
+          const result = await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+          return result.result.canceledSubscriptions[0].canceledAt
+        }
+      )
+
+      // Verify subscription items are expired
+      await adminTransaction(async ({ transaction }) => {
+        const items = await selectSubscriptionItems(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+        expect(items).toHaveLength(1)
+        expect(items[0].expiredAt).toBe(canceledAt)
+
+        // Verify features are expired
+        const features = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: subscriptionItem.id },
+          transaction
+        )
+        expect(features).toHaveLength(1)
+        expect(features[0].expiredAt).toBe(canceledAt)
+      })
     })
 
-    it('should update billing periods correctly', async () => {
-      // This test requires setting up billing periods
-      // which is complex - covered in the cancelSubscription tests
+    it('should update billing periods correctly when migrating', async () => {
+      // Setup: Create subscription with multiple billing periods
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      const now = new Date()
+
+      // Create an active billing period (current)
+      const activeBP = await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: new Date(now.getTime() - 60 * 60 * 1000), // 1 hour ago
+        endDate: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour later
+        status: BillingPeriodStatus.Active,
+      })
+
+      // Create a future billing period
+      const futureBP = await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: new Date(now.getTime() + 2 * 60 * 60 * 1000), // 2 hours later
+        endDate: new Date(now.getTime() + 3 * 60 * 60 * 1000), // 3 hours later
+        status: BillingPeriodStatus.Upcoming,
+      })
+
+      // Execute migration
+      await adminTransaction(async ({ transaction }) => {
+        await migratePricingModelForCustomer(
+          {
+            customer,
+            oldPricingModelId: pricingModel1.id,
+            newPricingModelId: pricingModel2.id,
+          },
+          transaction
+        )
+      })
+
+      // Verify billing period updates
+      await adminTransaction(async ({ transaction }) => {
+        const updatedActiveBP = await selectBillingPeriodById(
+          activeBP.id,
+          transaction
+        )
+        const updatedFutureBP = await selectBillingPeriodById(
+          futureBP.id,
+          transaction
+        )
+
+        // Active period should be completed and end date should be set to cancellation time
+        expect(updatedActiveBP.status).toBe(
+          BillingPeriodStatus.Completed
+        )
+        expect(updatedActiveBP.endDate).toBeLessThanOrEqual(
+          Date.now()
+        )
+
+        // Future period should be canceled
+        expect(updatedFutureBP.status).toBe(
+          BillingPeriodStatus.Canceled
+        )
+      })
     })
   })
 
