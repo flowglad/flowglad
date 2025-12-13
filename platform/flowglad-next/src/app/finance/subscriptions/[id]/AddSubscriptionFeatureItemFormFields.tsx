@@ -229,7 +229,11 @@ export const AddSubscriptionFeatureItemFormFields = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
+      <p className="mb-5 text-sm text-muted-foreground">
+        Grant an additional feature to this subscription. Action
+        cannot be undone.
+      </p>
       {!hasSingleActiveItem && (
         <FormField
           control={form.control}
@@ -289,7 +293,7 @@ export const AddSubscriptionFeatureItemFormFields = ({
         name="featureId"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Feature</FormLabel>
+            <FormLabel className="sr-only">Feature</FormLabel>
             <FormControl>
               {isLoadingFeatures ? (
                 <Skeleton className="h-9 w-full" />

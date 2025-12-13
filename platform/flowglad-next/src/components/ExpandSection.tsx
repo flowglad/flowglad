@@ -65,9 +65,9 @@ export function ExpandSection({
           <CollapsibleTrigger asChild>
             <button
               type="button"
-              className="group bg-transparent box-border flex h-9 items-center justify-between px-3 py-2 rounded w-full hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="group bg-transparent box-border flex h-9 items-center justify-between gap-2 px-3 py-2 rounded w-full hover:bg-accent hover:text-accent-foreground transition-colors"
             >
-              <span className="font-sans font-medium text-base text-foreground leading-6">
+              <span className="font-sans font-medium text-base text-foreground leading-6 truncate min-w-0">
                 {title}
               </span>
               <div className="rounded-[4px] border border-border bg-background transition-colors group-hover:border-muted-foreground">
