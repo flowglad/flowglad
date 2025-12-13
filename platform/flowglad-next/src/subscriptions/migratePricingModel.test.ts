@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
@@ -19,12 +20,18 @@ import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
+import {
+  type PricingModel,
+  pricingModels,
+} from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
-import { updateCustomer } from '@/db/tableMethods/customerMethods'
+import {
+  selectCustomerById,
+  updateCustomer,
+} from '@/db/tableMethods/customerMethods'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
@@ -32,7 +39,10 @@ import {
   currentSubscriptionStatuses,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
-import { migratePricingModelForCustomer } from '@/subscriptions/migratePricingModel'
+import {
+  migrateCustomerPricingModelProcedureTransaction,
+  migratePricingModelForCustomer,
+} from '@/subscriptions/migratePricingModel'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -1323,6 +1333,215 @@ describe('Pricing Model Migration Test Suite', async () => {
           )
         })
       ).rejects.toThrow('does not belong to organization')
+    })
+  })
+
+  describe('Procedure Transaction Function', () => {
+    it('should successfully migrate and update customer pricingModelId', async () => {
+      // Setup: Customer with subscription on pricing model 1
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      // Execute via procedure transaction function
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return await migrateCustomerPricingModelProcedureTransaction(
+            {
+              input: {
+                externalId: customer.externalId,
+                newPricingModelId: pricingModel2.id,
+              },
+              transaction,
+              ctx: { apiKey: undefined },
+              livemode: false,
+              userId: 'test-user-id',
+              organizationId: organization.id,
+            }
+          )
+        }
+      )
+
+      // Verify customer's pricingModelId was updated
+      expect(result.result.customer.pricingModelId).toBe(
+        pricingModel2.id
+      )
+
+      // Verify subscriptions were handled correctly
+      expect(result.result.canceledSubscriptions).toHaveLength(1)
+      expect(result.result.canceledSubscriptions[0].id).toBe(
+        subscription.id
+      )
+      expect(result.result.newSubscription.priceId).toBe(price2.id)
+
+      // Verify customer in database was updated
+      const updatedCustomer = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectCustomerById(customer.id, transaction)
+        }
+      )
+      expect(updatedCustomer.pricingModelId).toBe(pricingModel2.id)
+    })
+
+    it('should throw UNAUTHORIZED when organizationId is missing', async () => {
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return await migrateCustomerPricingModelProcedureTransaction(
+            {
+              input: {
+                externalId: customer.externalId,
+                newPricingModelId: pricingModel2.id,
+              },
+              transaction,
+              ctx: { apiKey: undefined },
+              livemode: false,
+              userId: 'test-user-id',
+              organizationId: undefined as unknown as string,
+            }
+          )
+        })
+      ).rejects.toThrow('Organization ID is required')
+    })
+
+    it('should throw NOT_FOUND when customer does not exist', async () => {
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return await migrateCustomerPricingModelProcedureTransaction(
+            {
+              input: {
+                externalId: 'non-existent-customer',
+                newPricingModelId: pricingModel2.id,
+              },
+              transaction,
+              ctx: { apiKey: undefined },
+              livemode: false,
+              userId: 'test-user-id',
+              organizationId: organization.id,
+            }
+          )
+        })
+      ).rejects.toThrow(
+        'Customer with external ID non-existent-customer not found'
+      )
+    })
+
+    it('should throw NOT_FOUND when new pricing model does not exist', async () => {
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return await migrateCustomerPricingModelProcedureTransaction(
+            {
+              input: {
+                externalId: customer.externalId,
+                newPricingModelId: 'non-existent-pricing-model',
+              },
+              transaction,
+              ctx: { apiKey: undefined },
+              livemode: false,
+              userId: 'test-user-id',
+              organizationId: organization.id,
+            }
+          )
+        })
+      ).rejects.toThrow('No pricing models found with id')
+    })
+
+    it('should throw FORBIDDEN when pricing model belongs to different organization', async () => {
+      // Setup: Create pricing model for different organization
+      const { organization: org2 } = await setupOrg()
+      const otherPricingModel = await setupPricingModel({
+        organizationId: org2.id,
+        name: 'Other Org Pricing Model',
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return await migrateCustomerPricingModelProcedureTransaction(
+            {
+              input: {
+                externalId: customer.externalId,
+                newPricingModelId: otherPricingModel.id,
+              },
+              transaction,
+              ctx: { apiKey: undefined },
+              livemode: false,
+              userId: 'test-user-id',
+              organizationId: organization.id,
+            }
+          )
+        })
+      ).rejects.toThrow(
+        'Pricing model does not belong to your organization'
+      )
+    })
+
+    it('should throw BAD_REQUEST when livemode does not match', async () => {
+      // Setup: Ensure customer has livemode=false
+      await adminTransaction(async ({ transaction }) => {
+        await updateCustomer(
+          {
+            id: customer.id,
+            livemode: false,
+          },
+          transaction
+        )
+      })
+
+      // Setup: Create a live pricing model with a default product
+      const livePricingModel = await setupPricingModel({
+        organizationId: organization.id,
+        name: 'Live Pricing Model',
+      })
+
+      // Update pricing model to livemode=true
+      await adminTransaction(async ({ transaction }) => {
+        await transaction
+          .update(pricingModels)
+          .set({ livemode: true })
+          .where(eq(pricingModels.id, livePricingModel.id))
+      })
+
+      // Create a default product with default price for the live pricing model
+      const liveProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: livePricingModel.id,
+        name: 'Live Product',
+        default: true,
+      })
+
+      await setupPrice({
+        name: 'Live Free Plan',
+        livemode: true,
+        productId: liveProduct.id,
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 0,
+        isDefault: true,
+      })
+
+      // customer.livemode is false, livePricingModel.livemode is true
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return await migrateCustomerPricingModelProcedureTransaction(
+            {
+              input: {
+                externalId: customer.externalId,
+                newPricingModelId: livePricingModel.id,
+              },
+              transaction,
+              ctx: { apiKey: undefined },
+              livemode: false,
+              userId: 'test-user-id',
+              organizationId: organization.id,
+            }
+          )
+        })
+      ).rejects.toThrow(
+        'Pricing model livemode must match customer livemode'
+      )
     })
   })
 

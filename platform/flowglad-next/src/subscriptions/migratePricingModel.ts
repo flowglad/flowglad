@@ -1,3 +1,5 @@
+import { TRPCError } from '@trpc/server'
+import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Event } from '@/db/schema/events'
 import type { Subscription } from '@/db/schema/subscriptions'
@@ -6,7 +8,11 @@ import {
   selectBillingPeriods,
   updateBillingPeriod,
 } from '@/db/tableMethods/billingPeriodMethods'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import {
+  selectCustomerByExternalIdAndOrganizationId,
+  selectCustomerById,
+  updateCustomer as updateCustomerDb,
+} from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   selectPriceById,
@@ -23,6 +29,7 @@ import {
   isSubscriptionInTerminalState,
   safelyUpdateSubscriptionStatus,
   selectSubscriptions,
+  subscriptionWithCurrent,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
@@ -487,3 +494,116 @@ async function createDefaultSubscriptionOnPricingModel(
     eventsToInsert: subscriptionResult.eventsToInsert || [],
   }
 }
+
+/**
+ * Transaction function for the migrateCustomerPricingModel TRPC procedure.
+ * Validates inputs, performs the migration, and updates the customer's pricing model ID.
+ */
+type MigrateCustomerPricingModelProcedureParams =
+  AuthenticatedProcedureTransactionParams<
+    { externalId: string; newPricingModelId: string },
+    {
+      customer: Customer.ClientRecord
+      canceledSubscriptions: Subscription.ClientRecord[]
+      newSubscription: Subscription.ClientRecord
+    },
+    { apiKey?: string }
+  >
+
+export const migrateCustomerPricingModelProcedureTransaction =
+  async ({
+    input,
+    transaction,
+    organizationId,
+  }: MigrateCustomerPricingModelProcedureParams): Promise<
+    TransactionOutput<{
+      customer: Customer.ClientRecord
+      canceledSubscriptions: Subscription.ClientRecord[]
+      newSubscription: Subscription.ClientRecord
+    }>
+  > => {
+    const { externalId, newPricingModelId } = input
+
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'Organization ID is required',
+      })
+    }
+
+    // Fetch customer by external ID
+    const customer =
+      await selectCustomerByExternalIdAndOrganizationId(
+        { externalId, organizationId },
+        transaction
+      )
+
+    if (!customer) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `Customer with external ID ${externalId} not found`,
+      })
+    }
+
+    // Validate that new pricing model exists and belongs to organization
+    const newPricingModel = await selectPricingModelById(
+      newPricingModelId,
+      transaction
+    )
+
+    if (!newPricingModel) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `Pricing model ${newPricingModelId} not found`,
+      })
+    }
+
+    if (newPricingModel.organizationId !== organizationId) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Pricing model does not belong to your organization',
+      })
+    }
+
+    // Validate livemode matches
+    if (newPricingModel.livemode !== customer.livemode) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message:
+          'Pricing model livemode must match customer livemode',
+      })
+    }
+
+    // Perform the migration
+    const { result, eventsToInsert } =
+      await migratePricingModelForCustomer(
+        {
+          customer,
+          oldPricingModelId: customer.pricingModelId,
+          newPricingModelId,
+        },
+        transaction
+      )
+
+    // Update customer with new pricing model ID
+    const updatedCustomer = await updateCustomerDb(
+      {
+        id: customer.id,
+        pricingModelId: newPricingModelId,
+      },
+      transaction
+    )
+
+    return {
+      result: {
+        customer: updatedCustomer,
+        canceledSubscriptions: result.canceledSubscriptions.map((s) =>
+          subscriptionWithCurrent(s)
+        ),
+        newSubscription: subscriptionWithCurrent(
+          result.newSubscription
+        ),
+      },
+      eventsToInsert,
+    }
+  }
