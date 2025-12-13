@@ -437,10 +437,6 @@ export function CreateSubscriptionFormModal({
 
 const ChargeToggle = () => {
   const form = useFormContext<CreateSubscriptionFormData>()
-  const doNotCharge = useWatch({
-    control: form.control,
-    name: 'doNotCharge',
-  })
 
   return (
     <FormField
@@ -448,21 +444,20 @@ const ChargeToggle = () => {
       name="doNotCharge"
       render={({ field }) => (
         <FormItem>
-          <FormControl>
-            <div className="flex items-center justify-between">
-              <FormLabel className="cursor-pointer">
-                Charge for this subscription
-              </FormLabel>
+          <div className="flex items-center justify-between">
+            <FormLabel className="cursor-pointer">
+              Charge for this subscription
+            </FormLabel>
+            <FormControl>
               <Switch
-                id="charge-toggle"
                 checked={!field.value}
                 onCheckedChange={(checked) =>
                   field.onChange(!checked)
                 }
               />
-            </div>
-          </FormControl>
-          {doNotCharge && (
+            </FormControl>
+          </div>
+          {field.value && (
             <p className="text-xs text-muted-foreground mt-1">
               The customer will not be charged for this subscription.
             </p>
@@ -474,6 +469,10 @@ const ChargeToggle = () => {
   )
 }
 
+/**
+ * Generates subscription details content based on charge settings and pricing data.
+ * Returns formatted JSX describing the subscription terms for the info card.
+ */
 const getSubscriptionDetailsText = (
   doNotCharge: boolean,
   customerName: string | undefined,
@@ -484,7 +483,7 @@ const getSubscriptionDetailsText = (
     currencySymbol: string
     trialPeriodDays: number | null
   }
-) => {
+): React.ReactNode => {
   const customerDisplay = customerName ? (
     <strong>"{customerName}"</strong>
   ) : (

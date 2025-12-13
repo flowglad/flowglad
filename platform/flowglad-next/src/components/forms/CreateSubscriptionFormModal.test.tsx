@@ -4,7 +4,9 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import React from 'react'
 import type { DefaultValues, FieldValues } from 'react-hook-form'
+import { FormProvider, useForm } from 'react-hook-form'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { trpc } from '@/app/_trpc/client'
 import type { ModalInterfaceProps } from '@/components/forms/FormModal'
@@ -40,9 +42,7 @@ vi.mock('@/app/_trpc/client', () => ({
 }))
 
 // Mock FormModal to provide FormProvider context
-vi.mock('@/components/forms/FormModal', async () => {
-  const React = await import('react')
-  const { useForm, FormProvider } = await import('react-hook-form')
+vi.mock('@/components/forms/FormModal', () => {
   function FormModalMock<T extends FieldValues>({
     children,
     onSubmit,
@@ -232,10 +232,6 @@ describe('CreateSubscriptionFormModal', () => {
       expect(
         screen.getByText('Charge for this subscription')
       ).toBeInTheDocument()
-      // Switch has an ID, so we can find it directly
-      expect(
-        document.getElementById('charge-toggle')
-      ).toBeInTheDocument()
       expect(screen.getByRole('switch')).toBeInTheDocument()
     })
   })
@@ -322,6 +318,26 @@ describe('CreateSubscriptionFormModal', () => {
         expect(screen.getByText('Product')).toBeInTheDocument()
         expect(screen.getAllByRole('combobox').length).toBe(2)
       })
+
+      // Open product combobox and select a product
+      const productCombobox = screen.getAllByRole('combobox')[0]
+      fireEvent.click(productCombobox)
+
+      // Click the product option
+      const productOption = screen.getByText('Test Product')
+      fireEvent.click(productOption)
+
+      // Wait for info card to appear
+      await waitFor(() => {
+        expect(
+          screen.getByText('Subscription Details')
+        ).toBeInTheDocument()
+      })
+
+      // Verify info card content is displayed
+      expect(
+        screen.getByText(/When you create this subscription/)
+      ).toBeInTheDocument()
     })
 
     it('should show "no charge" text when toggle is OFF', async () => {
@@ -348,6 +364,23 @@ describe('CreateSubscriptionFormModal', () => {
           screen.getByText(/The customer will not be charged/)
         ).toBeInTheDocument()
       })
+
+      // Open product combobox and select a product
+      const productCombobox = screen.getAllByRole('combobox')[0]
+      fireEvent.click(productCombobox)
+
+      // Click the product option
+      const productOption = screen.getByText('Test Product')
+      fireEvent.click(productOption)
+
+      // Wait for info card to appear and verify "no charge" text
+      await waitFor(() => {
+        expect(
+          screen.getByText('Subscription Details')
+        ).toBeInTheDocument()
+        // "no charge" is in a <strong> tag, so search for it directly
+        expect(screen.getByText(/no charge/i)).toBeInTheDocument()
+      })
     })
 
     it('should show rate information when toggle is ON', async () => {
@@ -365,10 +398,32 @@ describe('CreateSubscriptionFormModal', () => {
       })
 
       // Verify payment method selector is visible (toggle is ON by default)
-      // Info card with rate info only appears when product is selected
       expect(screen.getByText('Payment Method')).toBeInTheDocument()
       // Should have 2 comboboxes: Product and Payment Method
       expect(screen.getAllByRole('combobox').length).toBe(2)
+
+      // Open product combobox and select a product
+      const productCombobox = screen.getAllByRole('combobox')[0]
+      fireEvent.click(productCombobox)
+
+      // Click the product option
+      const productOption = screen.getByText('Test Product')
+      fireEvent.click(productOption)
+
+      // Wait for info card to appear and verify rate information
+      await waitFor(() => {
+        expect(
+          screen.getByText('Subscription Details')
+        ).toBeInTheDocument()
+        expect(screen.getByText(/\$100/)).toBeInTheDocument()
+        expect(screen.getByText(/per month/i)).toBeInTheDocument()
+        expect(screen.getByText(/at a rate of/i)).toBeInTheDocument()
+        expect(
+          screen.getByText(
+            /The subscription will begin immediately upon creation/i
+          )
+        ).toBeInTheDocument()
+      })
     })
   })
 
