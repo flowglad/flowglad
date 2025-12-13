@@ -237,7 +237,7 @@ const processChatMessage = async (params: { chat: string }) => {
 ```
 
 ## Getting Started
-First, set up a pricing model. You can do so in the [dashboard](https://app.flowglad.com/store/pricing-models) in just a few clicks using a template, that you can then customize to suit your specific needs.
+First, set up a pricing model. You can do so in the [dashboard](https://app.flowglad.com/pricing-models) in just a few clicks using a template, that you can then customize to suit your specific needs.
 
 We currently have templates for the following pricing models:
 - Usage-limit + Subscription Hybrid (like Cursor)

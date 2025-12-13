@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 
 const StorePage = () => {
-  redirect('/store/pricing-models')
+  redirect('/pricing-models')
 }
 
 export default StorePage

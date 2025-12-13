@@ -77,7 +77,7 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
       return (
         <div onClick={(e) => e.stopPropagation()}>
           <DataTableLinkableCell
-            href={`/store/pricing-models/${pricingModelId}`}
+            href={`/pricing-models/${pricingModelId}`}
           >
             {name}
           </DataTableLinkableCell>

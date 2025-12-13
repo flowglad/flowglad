@@ -182,7 +182,7 @@ function InnerFeatureDetailsPage({
           {
             label: (
               <Link
-                href={`/store/pricing-models/${pricingModel.id}`}
+                href={`/pricing-models/${pricingModel.id}`}
                 className="hover:underline hover:text-foreground transition-colors"
               >
                 {pricingModel.name}
@@ -209,9 +209,9 @@ function InnerFeatureDetailsPage({
 
   const handleBreadcrumbClick = () => {
     if (pricingModel) {
-      router.push(`/store/pricing-models/${pricingModel.id}`)
+      router.push(`/pricing-models/${pricingModel.id}`)
     } else {
-      router.push('/store/pricing-models')
+      router.push('/pricing-models')
     }
   }
 
