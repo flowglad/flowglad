@@ -527,10 +527,9 @@ const getSubscriptionDetailsText = (
         <li>
           The subscription includes a{' '}
           <strong>
-            {productCardData.trialPeriodDays}{' '}
-            {productCardData.trialPeriodDays === 1 ? 'day' : 'days'}
-          </strong>{' '}
-          trial period.
+            {productCardData.trialPeriodDays} day free trial
+          </strong>
+          .
         </li>
         <li>
           The subscription will begin immediately upon creation.
