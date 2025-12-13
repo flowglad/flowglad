@@ -23,6 +23,7 @@ import {
   createCustomerOutputSchema,
   purchaseClientSelectSchema,
 } from '@/db/schema/purchases'
+import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
 import {
   selectCustomerByExternalIdAndOrganizationId,
   selectCustomerById,
@@ -32,12 +33,19 @@ import {
   updateCustomer as updateCustomerDb,
 } from '@/db/tableMethods/customerMethods'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
-import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
+import {
+  selectPricingModelById,
+  selectPricingModelForCustomer,
+} from '@/db/tableMethods/pricingModelMethods'
 import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
-import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
+import {
+  isSubscriptionCurrent,
+  subscriptionWithCurrent,
+} from '@/db/tableMethods/subscriptionMethods'
 import { externalIdInputSchema } from '@/db/tableUtils'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { protectedProcedure } from '@/server/trpc'
+import { migratePricingModelForCustomer } from '@/subscriptions/migratePricingModel'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
 import { generateCsvExportTask } from '@/trigger/exports/generate-csv-export'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
@@ -541,6 +549,136 @@ const exportCsvProcedure = protectedProcedure
     )
   )
 
+const migrateCustomerPricingModelProcedure = protectedProcedure
+  .meta({
+    openapi: {
+      method: 'POST',
+      path: '/api/v1/customers/{externalId}/migrate-pricing-model',
+      summary: 'Migrate Customer to New Pricing Model',
+      tags: ['Customer'],
+      protect: true,
+    },
+  })
+  .input(
+    z.object({
+      externalId: z.string(),
+      newPricingModelId: z.string(),
+    })
+  )
+  .output(
+    z.object({
+      customer: customerClientSelectSchema,
+      canceledSubscriptions: z.array(subscriptionClientSelectSchema),
+      newSubscription: subscriptionClientSelectSchema,
+    })
+  )
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      async ({
+        input,
+        transaction,
+        ctx,
+        organizationId,
+      }): Promise<
+        TransactionOutput<{
+          customer: z.infer<typeof customerClientSelectSchema>
+          canceledSubscriptions: z.infer<
+            typeof subscriptionClientSelectSchema
+          >[]
+          newSubscription: z.infer<
+            typeof subscriptionClientSelectSchema
+          >
+        }>
+      > => {
+        const { externalId, newPricingModelId } = input
+
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'Organization ID is required',
+          })
+        }
+
+        // Fetch customer by external ID
+        const customer =
+          await selectCustomerByExternalIdAndOrganizationId(
+            { externalId, organizationId },
+            transaction
+          )
+
+        if (!customer) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Customer with external ID ${externalId} not found`,
+          })
+        }
+
+        // Validate that new pricing model exists and belongs to organization
+        const newPricingModel = await selectPricingModelById(
+          newPricingModelId,
+          transaction
+        )
+
+        if (!newPricingModel) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Pricing model ${newPricingModelId} not found`,
+          })
+        }
+
+        if (newPricingModel.organizationId !== organizationId) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message:
+              'Pricing model does not belong to your organization',
+          })
+        }
+
+        // Validate livemode matches
+        if (newPricingModel.livemode !== customer.livemode) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Pricing model livemode must match customer livemode',
+          })
+        }
+
+        // Perform the migration
+        const {
+          result: { canceledSubscriptions, newSubscription },
+          eventsToInsert,
+        } = await migratePricingModelForCustomer(
+          {
+            customer,
+            oldPricingModelId: customer.pricingModelId,
+            newPricingModelId,
+          },
+          transaction
+        )
+
+        // Update customer with new pricing model ID
+        const updatedCustomer = await updateCustomerDb(
+          {
+            id: customer.id,
+            pricingModelId: newPricingModelId,
+          },
+          transaction
+        )
+
+        return {
+          result: {
+            customer: updatedCustomer,
+            canceledSubscriptions: canceledSubscriptions.map(
+              (subscription) => subscriptionWithCurrent(subscription)
+            ),
+            newSubscription: subscriptionWithCurrent(newSubscription),
+          },
+          eventsToInsert,
+        }
+      }
+    )
+  )
+
 export const customersRouter = router({
   create: createCustomerProcedure,
   /**
@@ -554,4 +692,5 @@ export const customersRouter = router({
   list: listCustomersProcedure,
   getTableRows: getTableRowsProcedure,
   exportCsv: exportCsvProcedure,
+  migratePricingModel: migrateCustomerPricingModelProcedure,
 })
