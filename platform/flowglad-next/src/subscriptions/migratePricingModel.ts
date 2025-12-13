@@ -293,9 +293,18 @@ export const migratePricingModelForCustomer = async (
           transaction
         )
 
+      // Update customer with new pricing model ID
+      const updatedCustomer = await updateCustomerDb(
+        {
+          id: customer.id,
+          pricingModelId: newPricingModelId,
+        },
+        transaction
+      )
+
       return {
         result: {
-          customer,
+          customer: updatedCustomer,
           canceledSubscriptions: [],
           newSubscription,
         },
@@ -335,10 +344,19 @@ export const migratePricingModelForCustomer = async (
       )
     }
 
+    // Update customer with new pricing model ID (ensures it's set even in no-op case)
+    const updatedCustomer = await updateCustomerDb(
+      {
+        id: customer.id,
+        pricingModelId: newPricingModelId,
+      },
+      transaction
+    )
+
     // Already on target model with subscriptions, nothing to do
     return {
       result: {
-        customer,
+        customer: updatedCustomer,
         canceledSubscriptions: [],
         newSubscription: defaultFreeSubscription,
       },
@@ -402,9 +420,18 @@ export const migratePricingModelForCustomer = async (
     eventsToInsert.push(...createEvents)
   }
 
+  // Update customer with new pricing model ID
+  const updatedCustomer = await updateCustomerDb(
+    {
+      id: customer.id,
+      pricingModelId: newPricingModelId,
+    },
+    transaction
+  )
+
   return {
     result: {
-      customer,
+      customer: updatedCustomer,
       canceledSubscriptions,
       newSubscription,
     },
@@ -585,18 +612,9 @@ export const migrateCustomerPricingModelProcedureTransaction =
         transaction
       )
 
-    // Update customer with new pricing model ID
-    const updatedCustomer = await updateCustomerDb(
-      {
-        id: customer.id,
-        pricingModelId: newPricingModelId,
-      },
-      transaction
-    )
-
     return {
       result: {
-        customer: updatedCustomer,
+        customer: result.customer,
         canceledSubscriptions: result.canceledSubscriptions.map((s) =>
           subscriptionWithCurrent(s)
         ),

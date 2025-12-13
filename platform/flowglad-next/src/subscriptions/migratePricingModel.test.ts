@@ -146,6 +146,11 @@ describe('Pricing Model Migration Test Suite', async () => {
         }
       )
 
+      // Verify customer's pricingModelId was updated
+      expect(result.result.customer.pricingModelId).toBe(
+        pricingModel2.id
+      )
+
       // Verify old subscription was canceled
       expect(result.result.canceledSubscriptions).toHaveLength(1)
       expect(result.result.canceledSubscriptions[0].id).toBe(
@@ -229,6 +234,11 @@ describe('Pricing Model Migration Test Suite', async () => {
             transaction
           )
         }
+      )
+
+      // Verify customer's pricingModelId was updated
+      expect(result.result.customer.pricingModelId).toBe(
+        pricingModel2.id
       )
 
       // Verify both free and paid subscriptions were canceled
@@ -334,6 +344,11 @@ describe('Pricing Model Migration Test Suite', async () => {
         }
       )
 
+      // Verify customer's pricingModelId was updated
+      expect(result.result.customer.pricingModelId).toBe(
+        pricingModel2.id
+      )
+
       // Verify all subscriptions (1 free + 2 paid) were canceled
       expect(result.result.canceledSubscriptions).toHaveLength(3)
       expect(
@@ -372,6 +387,11 @@ describe('Pricing Model Migration Test Suite', async () => {
             transaction
           )
         }
+      )
+
+      // Verify customer's pricingModelId was updated
+      expect(result.result.customer.pricingModelId).toBe(
+        pricingModel2.id
       )
 
       // Verify no subscriptions were canceled
@@ -428,15 +448,17 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should handle customer already on target pricing model as no-op', async () => {
       // Setup: Customer already on pricing model 2
-      await adminTransaction(async ({ transaction }) => {
-        await updateCustomer(
-          {
-            id: customer.id,
-            pricingModelId: pricingModel2.id,
-          },
-          transaction
-        )
-      })
+      const updatedCustomer = await adminTransaction(
+        async ({ transaction }) => {
+          return await updateCustomer(
+            {
+              id: customer.id,
+              pricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+        }
+      )
 
       const subscription = await setupSubscription({
         organizationId: organization.id,
@@ -448,13 +470,6 @@ describe('Pricing Model Migration Test Suite', async () => {
       // Execute migration (same pricing model)
       const result = await adminTransaction(
         async ({ transaction }) => {
-          const updatedCustomer = await updateCustomer(
-            {
-              id: customer.id,
-              pricingModelId: pricingModel2.id,
-            },
-            transaction
-          )
           return await migratePricingModelForCustomer(
             {
               customer: updatedCustomer,
@@ -471,6 +486,11 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Verify existing subscription is returned
       expect(result.result.newSubscription.id).toBe(subscription.id)
+
+      // Verify customer's pricingModelId remains on target model
+      expect(result.result.customer.pricingModelId).toBe(
+        pricingModel2.id
+      )
 
       // Verify no events were generated
       expect(result.eventsToInsert).toHaveLength(0)
@@ -605,26 +625,24 @@ describe('Pricing Model Migration Test Suite', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      // Execute migration
-      await adminTransaction(async ({ transaction }) => {
-        await migratePricingModelForCustomer(
-          {
-            customer,
-            oldPricingModelId: pricingModel1.id,
-            newPricingModelId: pricingModel2.id,
-          },
-          transaction
-        )
+      // Execute migration (automatically updates customer's pricingModelId)
+      const migrationResult = await adminTransaction(
+        async ({ transaction }) => {
+          return await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+        }
+      )
 
-        // Update customer record
-        await updateCustomer(
-          {
-            id: customer.id,
-            pricingModelId: pricingModel2.id,
-          },
-          transaction
-        )
-      })
+      // Verify customer's pricingModelId was updated
+      expect(migrationResult.result.customer.pricingModelId).toBe(
+        pricingModel2.id
+      )
 
       // Verify billing state via customerBillingTransaction
       const billingState = await adminTransaction(
@@ -709,25 +727,23 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration to pricing model 2
-      await adminTransaction(async ({ transaction }) => {
-        await migratePricingModelForCustomer(
-          {
-            customer,
-            oldPricingModelId: pricingModel1.id,
-            newPricingModelId: pricingModel2.id,
-          },
-          transaction
-        )
+      const migrationResult = await adminTransaction(
+        async ({ transaction }) => {
+          return await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+        }
+      )
 
-        // Update customer record
-        await updateCustomer(
-          {
-            id: customer.id,
-            pricingModelId: pricingModel2.id,
-          },
-          transaction
-        )
-      })
+      // Verify customer's pricingModelId was updated
+      expect(migrationResult.result.customer.pricingModelId).toBe(
+        pricingModel2.id
+      )
 
       // Get billing state
       const billingState = await adminTransaction(
@@ -838,25 +854,23 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration
-      await adminTransaction(async ({ transaction }) => {
-        await migratePricingModelForCustomer(
-          {
-            customer,
-            oldPricingModelId: pricingModel1.id,
-            newPricingModelId: pricingModel2.id,
-          },
-          transaction
-        )
+      const migrationResult = await adminTransaction(
+        async ({ transaction }) => {
+          return await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+        }
+      )
 
-        // Update customer record
-        await updateCustomer(
-          {
-            id: customer.id,
-            pricingModelId: pricingModel2.id,
-          },
-          transaction
-        )
-      })
+      // Verify customer's pricingModelId was updated
+      expect(migrationResult.result.customer.pricingModelId).toBe(
+        pricingModel2.id
+      )
 
       // Get billing state
       const billingState = await adminTransaction(
@@ -964,25 +978,23 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration
-      await adminTransaction(async ({ transaction }) => {
-        await migratePricingModelForCustomer(
-          {
-            customer,
-            oldPricingModelId: pricingModel1.id,
-            newPricingModelId: pricingModel2.id,
-          },
-          transaction
-        )
+      const migrationResult = await adminTransaction(
+        async ({ transaction }) => {
+          return await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+        }
+      )
 
-        // Update customer record
-        await updateCustomer(
-          {
-            id: customer.id,
-            pricingModelId: pricingModel2.id,
-          },
-          transaction
-        )
-      })
+      // Verify customer's pricingModelId was updated
+      expect(migrationResult.result.customer.pricingModelId).toBe(
+        pricingModel2.id
+      )
 
       // Get billing state
       const billingState = await adminTransaction(
