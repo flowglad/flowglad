@@ -34,12 +34,16 @@ const cancelSubscriptionForMigration = async (
   customer: Customer.Record,
   transaction: DbTransaction
 ): Promise<TransactionOutput<Subscription.Record>> => {
-  return cancelSubscriptionImmediately(subscription, transaction, {
-    customer,
-    skipNotifications: true,
-    skipReassignDefaultSubscription: true,
-    cancellationReason: CancellationReason.PricingModelMigration,
-  })
+  return cancelSubscriptionImmediately(
+    {
+      subscription,
+      customer,
+      skipNotifications: true,
+      skipReassignDefaultSubscription: true,
+      cancellationReason: CancellationReason.PricingModelMigration,
+    },
+    transaction
+  )
 }
 
 export interface MigratePricingModelForCustomerParams {

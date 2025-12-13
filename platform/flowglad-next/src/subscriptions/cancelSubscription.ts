@@ -230,7 +230,11 @@ const constructSubscriptionCanceledEventInsert = (
     hash: constructSubscriptionCanceledEventHash(subscription),
   }
 }
-export interface CancelSubscriptionImmediatelyOptions {
+export interface CancelSubscriptionImmediatelyParams {
+  /**
+   * The subscription to cancel
+   */
+  subscription: Subscription.Record
   /**
    * Customer record to use (avoids re-fetching if already available)
    */
@@ -251,17 +255,16 @@ export interface CancelSubscriptionImmediatelyOptions {
 
 // Cancel a subscription immediately
 export const cancelSubscriptionImmediately = async (
-  subscription: Subscription.Record,
-  transaction: DbTransaction,
-  options: CancelSubscriptionImmediatelyOptions = {}
+  params: CancelSubscriptionImmediatelyParams,
+  transaction: DbTransaction
 ): Promise<TransactionOutput<Subscription.Record>> => {
   const {
+    subscription,
     customer: providedCustomer,
     skipNotifications = false,
     skipReassignDefaultSubscription = false,
     cancellationReason,
-  } = options
-
+  } = params
   const customer =
     providedCustomer ??
     (await selectCustomerById(subscription.customerId, transaction))
@@ -643,7 +646,12 @@ export const cancelSubscriptionProcedureTransaction = async ({
   ) {
     // Note: subscription is already fetched above, can reuse it
     const { result: updatedSubscription, eventsToInsert } =
-      await cancelSubscriptionImmediately(subscription, transaction)
+      await cancelSubscriptionImmediately(
+        {
+          subscription,
+        },
+        transaction
+      )
     return {
       result: {
         subscription: {
