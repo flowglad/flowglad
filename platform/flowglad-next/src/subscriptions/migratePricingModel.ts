@@ -200,6 +200,12 @@ export const migratePricingModelForCustomer = async (
     )
   }
 
+  if (newPricingModel.livemode !== customer.livemode) {
+    throw new Error(
+      `Pricing model livemode must match customer livemode`
+    )
+  }
+
   // Fetch all current subscriptions
   const currentSubscriptions = await selectSubscriptions(
     {
