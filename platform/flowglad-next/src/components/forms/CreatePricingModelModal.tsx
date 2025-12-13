@@ -58,7 +58,7 @@ const CreatePricingModelModal: React.FC<
       onSuccess: ({ pricingModel }) => {
         toast.success('Pricing model created successfully')
         setIsOpen(false)
-        router.push(`/store/pricing-models/${pricingModel.id}`)
+        router.push(`/pricing-models/${pricingModel.id}`)
         resetState()
       },
       onError: (error) => {
@@ -74,7 +74,7 @@ const CreatePricingModelModal: React.FC<
           'Pricing model created from template successfully'
         )
         setIsOpen(false)
-        router.push(`/store/pricing-models/${pricingModel.id}`)
+        router.push(`/pricing-models/${pricingModel.id}`)
         resetState()
       },
       onError: (error) => {

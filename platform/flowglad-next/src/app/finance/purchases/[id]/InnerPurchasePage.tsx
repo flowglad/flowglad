@@ -69,7 +69,7 @@ const InnerPurchasePage = ({
             <div className="flex flex-col gap-2">
               <div>
                 <Link
-                  href={`/store/products/${product.id}`}
+                  href={`/products/${product.id}`}
                   className="text-sm font-medium hover:underline"
                 >
                   {product.name}

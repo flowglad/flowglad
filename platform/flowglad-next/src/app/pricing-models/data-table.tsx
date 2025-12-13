@@ -198,7 +198,7 @@ export function PricingModelsDataTable({
                     return
                   }
                   router.push(
-                    `/store/pricing-models/${row.original.pricingModel.id}`
+                    `/pricing-models/${row.original.pricingModel.id}`
                   )
                 }}
               >
