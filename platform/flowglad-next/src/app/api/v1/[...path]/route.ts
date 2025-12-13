@@ -11,7 +11,7 @@ import {
 } from '@trpc/server/adapters/fetch'
 import type { NextRequestWithUnkeyContext } from '@unkey/nextjs'
 import { headers } from 'next/headers'
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { appRouter } from '@/server'
 import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsRouter'
 import {
@@ -188,9 +188,17 @@ const innerHandler = async (
         const path = (await params).path.join('/')
 
         // Extract organization context
+        // Note: req.unkey has additional properties (ownerId, environment) added by verifyApiKey
+        // that aren't in the V2KeysVerifyKeyResponseBody type, so we extract them safely
         const unkeyMeta = parseUnkeyMeta(req.unkey?.meta)
+        const unkeyWithExtras = req.unkey as typeof req.unkey & {
+          ownerId?: string
+          environment?: string
+        }
         const organizationId =
-          unkeyMeta.organizationId || req.unkey?.ownerId!
+          unkeyMeta.organizationId || unkeyWithExtras.ownerId!
+        const apiEnvironment =
+          unkeyWithExtras.environment || 'unknown'
         const organizationIdSource = unkeyMeta.organizationId
           ? 'metadata'
           : 'owner_id'
@@ -211,21 +219,21 @@ const innerHandler = async (
           'organization.id': organizationId,
           'organization.id_source': organizationIdSource,
           'user.id': userId,
-          'api.environment': req.unkey?.environment || 'unknown',
+          'api.environment': apiEnvironment,
           'api.key_type': apiKeyType,
           rest_sdk_version: sdkVersion,
         })
 
         logger.info(`[${requestId}] REST API Request Started`, {
           service: 'api',
-          apiEnvironment: req.unkey?.environment as ApiEnvironment,
+          apiEnvironment: apiEnvironment as ApiEnvironment,
           request_id: requestId,
           method: req.method,
           path,
           organization_id: organizationId,
           organization_id_source: organizationIdSource,
           user_id: userId,
-          environment: req.unkey?.environment,
+          environment: apiEnvironment,
           api_key_type: apiKeyType,
           body_size_bytes: requestBodySize,
           rest_sdk_version: sdkVersion,
@@ -263,7 +271,7 @@ const innerHandler = async (
 
           logger.warn(`[${requestId}] REST API Route Not Found`, {
             service: 'api',
-            apiEnvironment: req.unkey?.environment as ApiEnvironment,
+            apiEnvironment: apiEnvironment as ApiEnvironment,
             request_id: requestId,
             method: req.method,
             path,
@@ -286,7 +294,7 @@ const innerHandler = async (
 
         logger.info(`[${requestId}] Route matched`, {
           service: 'api',
-          apiEnvironment: req.unkey?.environment as ApiEnvironment,
+          apiEnvironment: apiEnvironment as ApiEnvironment,
           request_id: requestId,
           route_pattern: routeKey,
           procedure: route.procedure,
@@ -346,8 +354,7 @@ const innerHandler = async (
                 `[${requestId}] Invalid JSON in request body`,
                 {
                   service: 'api',
-                  apiEnvironment: req.unkey
-                    ?.environment as ApiEnvironment,
+                  apiEnvironment: apiEnvironment as ApiEnvironment,
                   request_id: requestId,
                   error: error as Error,
                   parsing_duration_ms: inputParsingDuration,
@@ -458,8 +465,7 @@ const innerHandler = async (
               `[${requestId}] Invalid pagination parameters`,
               {
                 service: 'api',
-                apiEnvironment: req.unkey
-                  ?.environment as ApiEnvironment,
+                apiEnvironment: apiEnvironment as ApiEnvironment,
                 request_id: requestId,
                 error: error as Error,
                 queryParams: queryParamsObject,
@@ -503,7 +509,7 @@ const innerHandler = async (
             router: appRouter,
             createContext: createApiContext({
               organizationId,
-              environment: req.unkey?.environment as ApiEnvironment,
+              environment: apiEnvironment as ApiEnvironment,
             }) as unknown as FetchCreateContextFn<typeof appRouter>,
           })
         )
@@ -560,7 +566,7 @@ const innerHandler = async (
 
           logger.error(`[${requestId}] REST API Error`, {
             service: 'api',
-            apiEnvironment: req.unkey?.environment as ApiEnvironment,
+            apiEnvironment: apiEnvironment as ApiEnvironment,
             request_id: requestId,
             method: req.method,
             path,
@@ -621,13 +627,13 @@ const innerHandler = async (
 
         logger.info(`[${requestId}] REST API Success`, {
           service: 'api',
-          apiEnvironment: req.unkey?.environment as ApiEnvironment,
+          apiEnvironment: apiEnvironment as ApiEnvironment,
           request_id: requestId,
           method: req.method,
           path,
           procedure: route.procedure,
           organization_id: organizationId,
-          environment: req.unkey?.environment,
+          environment: apiEnvironment,
           total_duration_ms: totalDuration,
           response_size_bytes: responseSize,
           endpoint_category: endpointCategory,
@@ -654,9 +660,13 @@ const innerHandler = async (
           'perf.total_duration_ms': totalDuration,
         })
 
+        const errorApiEnvironment = req.unkey
+          ? (req.unkey as typeof req.unkey & { environment?: string })
+              .environment || 'unknown'
+          : 'unknown'
         logger.error(`[${requestId}] REST API Unexpected Error`, {
           service: 'api',
-          apiEnvironment: req.unkey?.environment as ApiEnvironment,
+          apiEnvironment: errorApiEnvironment as ApiEnvironment,
           request_id: requestId,
           error: error as Error,
           method: req.method,
@@ -781,9 +791,11 @@ const withVerification = (
           })
 
           if (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error)
             authSpan.setStatus({
               code: SpanStatusCode.ERROR,
-              message: `API key verification error: ${error.message || error}`,
+              message: `API key verification error: ${errorMessage}`,
             })
             authSpan.setAttributes({
               'auth.error': 'verification_error',
@@ -876,8 +888,8 @@ const withVerification = (
                 apiKeyPrefix: keyPrefix,
                 organizationId: result.ownerId,
                 details: {
-                  remaining: result.remaining,
-                  limit: result.ratelimit?.limit,
+                  remaining: result.ratelimits?.[0]?.remaining,
+                  limit: result.ratelimits?.[0]?.limit,
                 },
               })
             } else {
@@ -926,7 +938,7 @@ const withVerification = (
             'auth.expires_at': result.expires
               ? new Date(result.expires).toISOString()
               : undefined,
-            'auth.remaining_requests': result.remaining || undefined,
+            'auth.remaining_requests': result.credits || undefined,
             'security.auth_attempts': 1,
             'security.failed_auth_count': 0,
           })
@@ -977,10 +989,6 @@ const routeHandler = async (
   )
 }
 
-// FIXME: need to upgrade Unkey to 2.0.0 to fix this
-// @ts-ignore - Next.js expects NextRequest but we use NextRequestWithUnkeyContext
-// which extends NextRequest with unkey authentication context. The handler signature
-// is compatible at runtime but TypeScript doesn't recognize the extension.
 export const GET = routeHandler
 export const POST = routeHandler
 export const PUT = routeHandler
