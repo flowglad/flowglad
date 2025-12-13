@@ -740,5 +740,82 @@ describe('subscriptionsRouteConfigs', () => {
         })
       })
     })
+
+    describe('doNotCharge validation', () => {
+      const baseValidInputWithCustomer = {
+        customerId: 'cus-123',
+        priceId: 'price-123',
+      }
+
+      it('should accept doNotCharge without payment methods', () => {
+        const result = createSubscriptionInputSchema.parse({
+          ...baseValidInputWithCustomer,
+          doNotCharge: true,
+        })
+        expect(result.doNotCharge).toBe(true)
+        expect(result.defaultPaymentMethodId).toBeUndefined()
+        expect(result.backupPaymentMethodId).toBeUndefined()
+      })
+
+      it('should reject when doNotCharge is true and defaultPaymentMethodId is provided', () => {
+        expect(() => {
+          createSubscriptionInputSchema.parse({
+            ...baseValidInputWithCustomer,
+            doNotCharge: true,
+            defaultPaymentMethodId: 'pm_123',
+          })
+        }).toThrow(
+          'Payment methods cannot be provided when doNotCharge is true. Payment methods are not needed since no charges will be made.'
+        )
+      })
+
+      it('should reject when doNotCharge is true and backupPaymentMethodId is provided', () => {
+        expect(() => {
+          createSubscriptionInputSchema.parse({
+            ...baseValidInputWithCustomer,
+            doNotCharge: true,
+            backupPaymentMethodId: 'pm_456',
+          })
+        }).toThrow(
+          'Payment methods cannot be provided when doNotCharge is true. Payment methods are not needed since no charges will be made.'
+        )
+      })
+
+      it('should reject when doNotCharge is true and both payment methods are provided', () => {
+        expect(() => {
+          createSubscriptionInputSchema.parse({
+            ...baseValidInputWithCustomer,
+            doNotCharge: true,
+            defaultPaymentMethodId: 'pm_123',
+            backupPaymentMethodId: 'pm_456',
+          })
+        }).toThrow(
+          'Payment methods cannot be provided when doNotCharge is true. Payment methods are not needed since no charges will be made.'
+        )
+      })
+
+      it('should accept payment methods when doNotCharge is false', () => {
+        const result = createSubscriptionInputSchema.parse({
+          ...baseValidInputWithCustomer,
+          doNotCharge: false,
+          defaultPaymentMethodId: 'pm_123',
+          backupPaymentMethodId: 'pm_456',
+        })
+        expect(result.doNotCharge).toBe(false)
+        expect(result.defaultPaymentMethodId).toBe('pm_123')
+        expect(result.backupPaymentMethodId).toBe('pm_456')
+      })
+
+      it('should accept payment methods when doNotCharge is undefined', () => {
+        const result = createSubscriptionInputSchema.parse({
+          ...baseValidInputWithCustomer,
+          defaultPaymentMethodId: 'pm_123',
+          backupPaymentMethodId: 'pm_456',
+        })
+        expect(result.doNotCharge).toBe(false) // defaults to false
+        expect(result.defaultPaymentMethodId).toBe('pm_123')
+        expect(result.backupPaymentMethodId).toBe('pm_456')
+      })
+    })
   })
 })
