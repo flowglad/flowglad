@@ -23,6 +23,7 @@ import {
   createCustomerOutputSchema,
   purchaseClientSelectSchema,
 } from '@/db/schema/purchases'
+import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
 import {
   selectCustomerByExternalIdAndOrganizationId,
   selectCustomerById,
@@ -32,12 +33,19 @@ import {
   updateCustomer as updateCustomerDb,
 } from '@/db/tableMethods/customerMethods'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
-import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
+import {
+  selectPricingModelById,
+  selectPricingModelForCustomer,
+} from '@/db/tableMethods/pricingModelMethods'
 import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
-import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
+import {
+  isSubscriptionCurrent,
+  subscriptionWithCurrent,
+} from '@/db/tableMethods/subscriptionMethods'
 import { externalIdInputSchema } from '@/db/tableUtils'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { protectedProcedure } from '@/server/trpc'
+import { migrateCustomerPricingModelProcedureTransaction } from '@/subscriptions/migratePricingModel'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
 import { generateCsvExportTask } from '@/trigger/exports/generate-csv-export'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
@@ -541,6 +549,26 @@ const exportCsvProcedure = protectedProcedure
     )
   )
 
+const migrateCustomerPricingModelProcedure = protectedProcedure
+  .input(
+    z.object({
+      externalId: z.string(),
+      newPricingModelId: z.string(),
+    })
+  )
+  .output(
+    z.object({
+      customer: customerClientSelectSchema,
+      canceledSubscriptions: z.array(subscriptionClientSelectSchema),
+      newSubscription: subscriptionClientSelectSchema,
+    })
+  )
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      migrateCustomerPricingModelProcedureTransaction
+    )
+  )
+
 export const customersRouter = router({
   create: createCustomerProcedure,
   /**
@@ -554,4 +582,5 @@ export const customersRouter = router({
   list: listCustomersProcedure,
   getTableRows: getTableRowsProcedure,
   exportCsv: exportCsvProcedure,
+  migratePricingModel: migrateCustomerPricingModelProcedure,
 })

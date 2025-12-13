@@ -458,7 +458,9 @@ export const processOutcomeForBillingRun = async (
         result: canceledSubscription,
         eventsToInsert: cancelEvents,
       } = await cancelSubscriptionImmediately(
-        subscription,
+        {
+          subscription,
+        },
         transaction
       )
 
