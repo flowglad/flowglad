@@ -550,15 +550,6 @@ const exportCsvProcedure = protectedProcedure
   )
 
 const migrateCustomerPricingModelProcedure = protectedProcedure
-  .meta({
-    openapi: {
-      method: 'POST',
-      path: '/api/v1/customers/{externalId}/migrate-pricing-model',
-      summary: 'Migrate Customer to New Pricing Model',
-      tags: ['Customer'],
-      protect: true,
-    },
-  })
   .input(
     z.object({
       externalId: z.string(),
