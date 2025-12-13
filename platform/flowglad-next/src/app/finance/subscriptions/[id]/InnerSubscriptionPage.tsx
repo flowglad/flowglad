@@ -223,7 +223,7 @@ const InnerSubscriptionPage = ({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Link
-                              href={`/store/pricing-models/${pricingModel.id}`}
+                              href={`/pricing-models/${pricingModel.id}`}
                               className="hover:underline hover:text-foreground transition-colors"
                             >
                               {pricingModel.name}
@@ -299,7 +299,7 @@ const InnerSubscriptionPage = ({
                     variant="subscription"
                     quantity={item.quantity}
                     renewalDate={renewalDate}
-                    href={`/store/products/${productId}`}
+                    href={`/products/${productId}`}
                   />
                 )
               })}

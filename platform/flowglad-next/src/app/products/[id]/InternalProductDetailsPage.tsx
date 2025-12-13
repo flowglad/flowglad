@@ -70,7 +70,7 @@ function InternalProductDetailsPage(
   ]
 
   const handleBreadcrumbClick = () => {
-    router.push(`/store/pricing-models/${pricingModel.id}`)
+    router.push(`/pricing-models/${pricingModel.id}`)
   }
 
   return (

@@ -132,9 +132,7 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
       const product = row.original.product
       return (
         <div>
-          <DataTableLinkableCell
-            href={`/store/products/${product.id}`}
-          >
+          <DataTableLinkableCell href={`/products/${product.id}`}>
             {product.name}
           </DataTableLinkableCell>
         </div>

@@ -34,7 +34,7 @@ This project demonstrates the "Generation-Based Subscription Template Pricing Mo
 To use this example project, you'll need to upload the `pricing.yaml` file to your Flowglad dashboard and set it as your default pricing model:
 
 1. Log in to your [Flowglad dashboard](https://flowglad.com)
-2. Navigate to the Pricing Models section [Flowglad pricing models page](https://app.flowglad.com/store/pricing-models)
+2. Navigate to the Pricing Models section [Flowglad pricing models page](https://app.flowglad.com/pricing-models)
 3. Click on Create Pricing Model
 4. Import the `pricing.yaml` file from the root of this project
 5. Once uploaded, set it as your default pricing model in the dashboard settings

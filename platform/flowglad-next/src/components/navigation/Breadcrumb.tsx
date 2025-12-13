@@ -10,7 +10,7 @@ import { usePathname } from 'next/navigation'
  * This allows certain parts of a URL to become navigable links in the breadcrumb.
  */
 const pathMap: Record<string, string> = {
-  products: '/store/pricing-models',
+  products: '/pricing-models',
   payments: '/finance/payments',
   subscriptions: '/finance/subscriptions',
 }

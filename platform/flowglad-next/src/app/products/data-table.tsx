@@ -237,9 +237,7 @@ export function ProductsDataTable({
                   ) {
                     return
                   }
-                  router.push(
-                    `/store/products/${row.original.product.id}`
-                  )
+                  router.push(`/products/${row.original.product.id}`)
                 }}
               >
                 {row.getVisibleCells().map((cell) => (
