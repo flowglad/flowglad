@@ -33,7 +33,7 @@ export interface ItemFeatureProps
  * @example With description (stacked below)
  * ```tsx
  * <ItemFeature
- *   href="/store/features/feature_123"
+ *   href="/features/feature_123"
  *   description="3,000 total credits, every billing period"
  * >
  *   3,000 o4-mini-high Messages/Month

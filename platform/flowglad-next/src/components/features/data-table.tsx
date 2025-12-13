@@ -220,9 +220,7 @@ export function FeaturesDataTable({
           ) : table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => {
               const navigateToFeature = () => {
-                router.push(
-                  `/store/features/${row.original.feature.id}`
-                )
+                router.push(`/features/${row.original.feature.id}`)
               }
               return (
                 <TableRow

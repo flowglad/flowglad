@@ -335,7 +335,7 @@ const InnerSubscriptionPage = ({
               (feature) => (
                 <ItemFeature
                   key={feature.id}
-                  href={`/store/features/${feature.featureId}`}
+                  href={`/features/${feature.featureId}`}
                   description={formatFeatureDescription(feature)}
                 >
                   {feature.name}
