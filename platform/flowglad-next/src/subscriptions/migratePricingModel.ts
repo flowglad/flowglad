@@ -157,6 +157,7 @@ export const migratePricingModelForCustomer = async (
       }
     }
 
+    let eventsToInsert: Event.Insert[] = []
     if (!defaultFreeSubscription) {
       const created = await createDefaultSubscriptionOnPricingModel(
         customer,
@@ -164,7 +165,9 @@ export const migratePricingModelForCustomer = async (
         transaction
       )
       defaultFreeSubscription = created.newSubscription
-      eventsToInsert = created.eventsToInsert
+      if (created.eventsToInsert) {
+        eventsToInsert.push(...created.eventsToInsert)
+      }
     }
 
     // Update customer with new pricing model ID (ensures it's set even in no-op case)
