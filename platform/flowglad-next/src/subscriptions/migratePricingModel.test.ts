@@ -187,7 +187,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       ).toHaveLength(1)
     })
 
-    it('should migrate customer with paid plan to new pricing model', async () => {
+    it('should migrate customer with paid plan to a default subscription on the new pricing model', async () => {
       // Setup: Customer has default free subscription on pricing model 1
       const freeSubscription = await setupSubscription({
         organizationId: organization.id,
