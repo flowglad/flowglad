@@ -230,15 +230,41 @@ const constructSubscriptionCanceledEventInsert = (
     hash: constructSubscriptionCanceledEventHash(subscription),
   }
 }
+export interface CancelSubscriptionImmediatelyOptions {
+  /**
+   * Customer record to use (avoids re-fetching if already available)
+   */
+  customer?: Customer.Record
+  /**
+   * Skip sending notifications (useful for programmatic cancellations like migrations)
+   */
+  skipNotifications?: boolean
+  /**
+   * Skip reassigning default subscription (useful when migration will create new subscription)
+   */
+  skipReassignDefaultSubscription?: boolean
+  /**
+   * Custom cancellation reason to set on the subscription
+   */
+  cancellationReason?: string
+}
+
 // Cancel a subscription immediately
 export const cancelSubscriptionImmediately = async (
   subscription: Subscription.Record,
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  options: CancelSubscriptionImmediatelyOptions = {}
 ): Promise<TransactionOutput<Subscription.Record>> => {
-  const customer = await selectCustomerById(
-    subscription.customerId,
-    transaction
-  )
+  const {
+    customer: providedCustomer,
+    skipNotifications = false,
+    skipReassignDefaultSubscription = false,
+    cancellationReason,
+  } = options
+
+  const customer =
+    providedCustomer ??
+    (await selectCustomerById(subscription.customerId, transaction))
   if (isSubscriptionInTerminalState(subscription.status)) {
     return {
       result: subscription,
@@ -294,6 +320,7 @@ export const cancelSubscriptionImmediately = async (
       canceledAt: endDate,
       cancelScheduledAt: endDate,
       status,
+      ...(cancellationReason ? { cancellationReason } : {}),
       renews: subscription.renews,
     },
     transaction
@@ -370,33 +397,43 @@ export const cancelSubscriptionImmediately = async (
   if (result) {
     updatedSubscription = result
   }
-  await reassignDefaultSubscription(updatedSubscription, transaction)
-  try {
-    await idempotentSendCustomerSubscriptionCanceledNotification(
-      updatedSubscription.id
-    )
-  } catch (error) {
-    console.error(
-      'Failed to send customer subscription canceled notification',
-      {
-        subscriptionId: updatedSubscription.id,
-        error,
-      }
+
+  if (!skipReassignDefaultSubscription) {
+    await reassignDefaultSubscription(
+      updatedSubscription,
+      transaction
     )
   }
-  try {
-    await idempotentSendOrganizationSubscriptionCanceledNotification(
-      updatedSubscription
-    )
-  } catch (error) {
-    console.error(
-      'Failed to send organization subscription canceled notification',
-      {
-        subscriptionId: updatedSubscription.id,
-        error,
-      }
-    )
+
+  if (!skipNotifications) {
+    try {
+      await idempotentSendCustomerSubscriptionCanceledNotification(
+        updatedSubscription.id
+      )
+    } catch (error) {
+      console.error(
+        'Failed to send customer subscription canceled notification',
+        {
+          subscriptionId: updatedSubscription.id,
+          error,
+        }
+      )
+    }
+    try {
+      await idempotentSendOrganizationSubscriptionCanceledNotification(
+        updatedSubscription
+      )
+    } catch (error) {
+      console.error(
+        'Failed to send organization subscription canceled notification',
+        {
+          subscriptionId: updatedSubscription.id,
+          error,
+        }
+      )
+    }
   }
+
   return {
     result: updatedSubscription,
     eventsToInsert: [

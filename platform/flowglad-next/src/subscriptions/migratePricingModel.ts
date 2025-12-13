@@ -4,13 +4,7 @@ import type { Customer } from '@/db/schema/customers'
 import type { Event } from '@/db/schema/events'
 import type { Subscription } from '@/db/schema/subscriptions'
 import {
-  safelyUpdateBillingPeriodStatus,
-  selectBillingPeriods,
-  updateBillingPeriod,
-} from '@/db/tableMethods/billingPeriodMethods'
-import {
   selectCustomerByExternalIdAndOrganizationId,
-  selectCustomerById,
   updateCustomer as updateCustomerDb,
 } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -21,206 +15,31 @@ import {
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import {
-  expireSubscriptionItems,
-  selectSubscriptionItems,
-} from '@/db/tableMethods/subscriptionItemMethods'
-import {
   currentSubscriptionStatuses,
-  isSubscriptionInTerminalState,
-  safelyUpdateSubscriptionStatus,
   selectSubscriptions,
   subscriptionWithCurrent,
-  updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { DbTransaction } from '@/db/types'
-import { abortScheduledBillingRuns } from '@/subscriptions/cancelSubscription'
+import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
-import {
-  BillingPeriodStatus,
-  CancellationReason,
-  EventNoun,
-  FlowgladEventType,
-  SubscriptionStatus,
-} from '@/types'
-import { constructSubscriptionCanceledEventHash } from '@/utils/eventHelpers'
+import { CancellationReason } from '@/types'
 
 /**
  * Cancels a subscription immediately for pricing model migration.
- * Similar to cancelSubscriptionImmediately but without reassignment or notifications.
+ * Uses cancelSubscriptionImmediately with options to skip reassignment and notifications.
  */
 const cancelSubscriptionForMigration = async (
   subscription: Subscription.Record,
   customer: Customer.Record,
   transaction: DbTransaction
 ): Promise<TransactionOutput<Subscription.Record>> => {
-  // If already in terminal state, just return with event
-  if (isSubscriptionInTerminalState(subscription.status)) {
-    return {
-      result: subscription,
-      eventsToInsert: [
-        constructSubscriptionCanceledEventInsert(
-          subscription,
-          customer
-        ),
-      ],
-    }
-  }
-
-  // If already canceled but not in Canceled status, update status
-  if (
-    subscription.canceledAt &&
-    subscription.status !== SubscriptionStatus.Canceled
-  ) {
-    const updatedSubscription = await safelyUpdateSubscriptionStatus(
-      subscription,
-      SubscriptionStatus.Canceled,
-      transaction
-    )
-    return {
-      result: updatedSubscription,
-      eventsToInsert: [
-        constructSubscriptionCanceledEventInsert(
-          updatedSubscription,
-          customer
-        ),
-      ],
-    }
-  }
-
-  const endDate = Date.now()
-  const status = SubscriptionStatus.Canceled
-
-  const billingPeriodsForSubscription = await selectBillingPeriods(
-    { subscriptionId: subscription.id },
-    transaction
-  )
-
-  const earliestBillingPeriod = billingPeriodsForSubscription.sort(
-    (a, b) => a.startDate - b.startDate
-  )[0]
-
-  if (
-    earliestBillingPeriod &&
-    endDate < earliestBillingPeriod.startDate
-  ) {
-    throw new Error(
-      `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
-    )
-  }
-
-  // Update subscription with cancellation details and migration reason
-  let updatedSubscription = await updateSubscription(
-    {
-      id: subscription.id,
-      canceledAt: endDate,
-      cancelScheduledAt: endDate,
-      status,
-      cancellationReason: CancellationReason.PricingModelMigration,
-      renews: subscription.renews,
-    },
-    transaction
-  )
-
-  const result = await safelyUpdateSubscriptionStatus(
-    subscription,
-    status,
-    transaction
-  )
-
-  // Update billing periods
-  for (const billingPeriod of billingPeriodsForSubscription) {
-    // Mark future billing periods as canceled
-    if (billingPeriod.startDate > endDate) {
-      await safelyUpdateBillingPeriodStatus(
-        billingPeriod,
-        BillingPeriodStatus.Canceled,
-        transaction
-      )
-    }
-    // Mark the current billing period as completed
-    if (
-      billingPeriod.startDate < endDate &&
-      billingPeriod.endDate > endDate
-    ) {
-      await safelyUpdateBillingPeriodStatus(
-        billingPeriod,
-        BillingPeriodStatus.Completed,
-        transaction
-      )
-      await updateBillingPeriod(
-        { id: billingPeriod.id, endDate },
-        transaction
-      )
-    }
-    // Mark all past due billing periods as canceled
-    if (billingPeriod.status === BillingPeriodStatus.PastDue) {
-      await safelyUpdateBillingPeriodStatus(
-        billingPeriod,
-        BillingPeriodStatus.Canceled,
-        transaction
-      )
-    }
-  }
-
-  // Abort all scheduled billing runs
-  await abortScheduledBillingRuns(subscription.id, transaction)
-
-  // Expire all subscription items
-  const subscriptionItems = await selectSubscriptionItems(
-    { subscriptionId: subscription.id },
-    transaction
-  )
-  const itemsToExpire = subscriptionItems.filter(
-    (item) => !item.expiredAt
-  )
-
-  await expireSubscriptionItems(
-    itemsToExpire.map((item) => item.id),
-    endDate,
-    transaction
-  )
-
-  if (result) {
-    updatedSubscription = result
-  }
-
-  // Note: Do NOT call reassignDefaultSubscription
-  // Note: Do NOT send notifications
-
-  return {
-    result: updatedSubscription,
-    eventsToInsert: [
-      constructSubscriptionCanceledEventInsert(
-        updatedSubscription,
-        customer
-      ),
-    ],
-  }
-}
-
-const constructSubscriptionCanceledEventInsert = (
-  subscription: Subscription.Record,
-  customer: Customer.Record
-): Event.Insert => {
-  return {
-    type: FlowgladEventType.SubscriptionCanceled,
-    occurredAt: new Date().getTime(),
-    organizationId: subscription.organizationId,
-    livemode: subscription.livemode,
-    metadata: {},
-    submittedAt: new Date().getTime(),
-    processedAt: null,
-    payload: {
-      object: EventNoun.Subscription,
-      id: subscription.id,
-      customer: {
-        id: subscription.customerId,
-        externalId: customer.externalId,
-      },
-    },
-    hash: constructSubscriptionCanceledEventHash(subscription),
-  }
+  return cancelSubscriptionImmediately(subscription, transaction, {
+    customer,
+    skipNotifications: true,
+    skipReassignDefaultSubscription: true,
+    cancellationReason: CancellationReason.PricingModelMigration,
+  })
 }
 
 export interface MigratePricingModelForCustomerParams {
