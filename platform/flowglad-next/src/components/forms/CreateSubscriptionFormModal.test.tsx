@@ -336,7 +336,7 @@ describe('CreateSubscriptionFormModal', () => {
 
       // Verify info card content is displayed
       expect(
-        screen.getByText(/When you create this subscription/)
+        screen.getByText(/will be subscribed to/i)
       ).toBeInTheDocument()
     })
 
@@ -419,9 +419,7 @@ describe('CreateSubscriptionFormModal', () => {
         expect(screen.getByText(/per month/i)).toBeInTheDocument()
         expect(screen.getByText(/at a rate of/i)).toBeInTheDocument()
         expect(
-          screen.getByText(
-            /The subscription will begin immediately upon creation/i
-          )
+          screen.getByText(/The subscription will begin immediately/i)
         ).toBeInTheDocument()
       })
     })

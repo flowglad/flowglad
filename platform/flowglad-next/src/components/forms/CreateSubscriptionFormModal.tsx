@@ -485,7 +485,7 @@ const getSubscriptionDetailsText = (
   }
 ): React.ReactNode => {
   const customerDisplay = customerName ? (
-    <strong>"{customerName}"</strong>
+    <strong>{customerName}</strong>
   ) : (
     'the customer'
   )
@@ -494,14 +494,11 @@ const getSubscriptionDetailsText = (
     return (
       <ul className="list-disc list-inside space-y-1">
         <li>
-          When you create this subscription, {customerDisplay} will be
-          subscribed to{' '}
-          <strong>"{productCardData.productName}"</strong> at{' '}
+          {customerDisplay} will be subscribed to{' '}
+          <strong>{productCardData.productName}</strong> at{' '}
           <strong>no charge</strong>.
         </li>
-        <li>
-          The subscription will begin immediately upon creation.
-        </li>
+        <li>The subscription will begin immediately.</li>
       </ul>
     )
   }
@@ -513,10 +510,8 @@ const getSubscriptionDetailsText = (
     return (
       <ul className="list-disc list-inside space-y-1">
         <li>
-          When you create this subscription, {customerDisplay} will be
-          subscribed to{' '}
-          <strong>"{productCardData.productName}"</strong> at a rate
-          of{' '}
+          {customerDisplay} will be subscribed to{' '}
+          <strong>{productCardData.productName}</strong> at a rate of{' '}
           <strong>
             {productCardData.currencySymbol}
             {productCardData.price}
@@ -530,9 +525,7 @@ const getSubscriptionDetailsText = (
           </strong>
           .
         </li>
-        <li>
-          The subscription will begin immediately upon creation.
-        </li>
+        <li>The subscription will begin immediately.</li>
       </ul>
     )
   }
@@ -540,16 +533,15 @@ const getSubscriptionDetailsText = (
   return (
     <ul className="list-disc list-inside space-y-1">
       <li>
-        When you create this subscription, {customerDisplay} will be
-        subscribed to <strong>"{productCardData.productName}"</strong>{' '}
-        at a rate of{' '}
+        {customerDisplay} will be subscribed to{' '}
+        <strong>{productCardData.productName}</strong> at a rate of{' '}
         <strong>
           {productCardData.currencySymbol}
           {productCardData.price}
         </strong>{' '}
         per {productCardData.period}.
       </li>
-      <li>The subscription will begin immediately upon creation.</li>
+      <li>The subscription will begin immediately.</li>
     </ul>
   )
 }
