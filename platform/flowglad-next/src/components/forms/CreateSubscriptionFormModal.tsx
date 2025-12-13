@@ -25,7 +25,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Switch } from '@/components/ui/switch'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { PricingModelWithProductsAndUsageMeters } from '@/db/schema/prices'
 import { encodeCursor } from '@/db/tableUtils'
@@ -36,7 +35,6 @@ import { formatBillingPeriod, getCurrencyParts } from '@/utils/stripe'
 const createSubscriptionFormSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
   defaultPaymentMethodId: z.string().optional(),
-  doNotCharge: z.boolean().default(false),
 })
 
 type CreateSubscriptionFormData = z.infer<
@@ -316,7 +314,6 @@ export function CreateSubscriptionFormModal({
   const defaultValues: CreateSubscriptionFormData = {
     productId: '',
     defaultPaymentMethodId: 'none', // Will be updated by PaymentMethodSelector when payment methods load
-    doNotCharge: false,
   }
 
   const handleSubmit = async (data: CreateSubscriptionFormData) => {
@@ -348,7 +345,6 @@ export function CreateSubscriptionFormModal({
       customerId,
       priceId,
       defaultPaymentMethodId: mappedPaymentMethodId,
-      doNotCharge: data.doNotCharge,
     })
   }
 
@@ -435,117 +431,6 @@ export function CreateSubscriptionFormModal({
   )
 }
 
-const ChargeToggle = () => {
-  const form = useFormContext<CreateSubscriptionFormData>()
-
-  return (
-    <FormField
-      control={form.control}
-      name="doNotCharge"
-      render={({ field }) => (
-        <FormItem>
-          <div className="flex items-center justify-between">
-            <FormLabel className="cursor-pointer">
-              Charge for this subscription
-            </FormLabel>
-            <FormControl>
-              <Switch
-                checked={!field.value}
-                onCheckedChange={(checked) =>
-                  field.onChange(!checked)
-                }
-              />
-            </FormControl>
-          </div>
-          {field.value && (
-            <p className="text-xs text-muted-foreground mt-1">
-              The customer will not be charged for this subscription.
-            </p>
-          )}
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  )
-}
-
-/**
- * Generates subscription details content based on charge settings and pricing data.
- * Returns formatted JSX describing the subscription terms for the info card.
- */
-const getSubscriptionDetailsText = (
-  doNotCharge: boolean,
-  customerName: string | undefined,
-  productCardData: {
-    productName: string
-    price: string
-    period: string
-    currencySymbol: string
-    trialPeriodDays: number | null
-  }
-): React.ReactNode => {
-  const customerDisplay = customerName ? (
-    <strong>{customerName}</strong>
-  ) : (
-    'the customer'
-  )
-
-  if (doNotCharge) {
-    return (
-      <ul className="list-disc list-inside space-y-1">
-        <li>
-          {customerDisplay} will be subscribed to{' '}
-          <strong>{productCardData.productName}</strong> at{' '}
-          <strong>no charge</strong>.
-        </li>
-        <li>The subscription will begin immediately.</li>
-      </ul>
-    )
-  }
-
-  if (
-    productCardData.trialPeriodDays &&
-    productCardData.trialPeriodDays > 0
-  ) {
-    return (
-      <ul className="list-disc list-inside space-y-1">
-        <li>
-          {customerDisplay} will be subscribed to{' '}
-          <strong>{productCardData.productName}</strong> at a rate of{' '}
-          <strong>
-            {productCardData.currencySymbol}
-            {productCardData.price}
-          </strong>{' '}
-          per {productCardData.period}.
-        </li>
-        <li>
-          The subscription includes a{' '}
-          <strong>
-            {productCardData.trialPeriodDays} day free trial
-          </strong>
-          .
-        </li>
-        <li>The subscription will begin immediately.</li>
-      </ul>
-    )
-  }
-
-  return (
-    <ul className="list-disc list-inside space-y-1">
-      <li>
-        {customerDisplay} will be subscribed to{' '}
-        <strong>{productCardData.productName}</strong> at a rate of{' '}
-        <strong>
-          {productCardData.currencySymbol}
-          {productCardData.price}
-        </strong>{' '}
-        per {productCardData.period}.
-      </li>
-      <li>The subscription will begin immediately.</li>
-    </ul>
-  )
-}
-
 const CreateSubscriptionFormContent = ({
   isLoadingPricingModel,
   isLoadingPaymentMethods,
@@ -566,13 +451,6 @@ const CreateSubscriptionFormContent = ({
     control: form.control,
     name: 'productId',
   })
-  // Watch doNotCharge to conditionally render payment method selector
-  // useWatch ensures the component re-renders when this value changes
-  const doNotCharge =
-    useWatch({
-      control: form.control,
-      name: 'doNotCharge',
-    }) ?? false
 
   // Find selected product from available products
   const selectedProduct = selectedProductId
@@ -648,20 +526,38 @@ const CreateSubscriptionFormContent = ({
       ) : (
         <>
           <ProductSelector products={availableProducts} />
-          {!doNotCharge && (
-            <PaymentMethodSelector
-              key="payment-method-selector"
-              paymentMethods={paymentMethods}
-            />
-          )}
-          <ChargeToggle />
+          <PaymentMethodSelector paymentMethods={paymentMethods} />
           {productCardData && (
             <InfoCard title="Subscription Details">
-              {getSubscriptionDetailsText(
-                doNotCharge,
-                customerName,
-                productCardData
-              )}
+              When you create this subscription,{' '}
+              {customerName ? (
+                <strong>"{customerName}"</strong>
+              ) : (
+                'the customer'
+              )}{' '}
+              will be subscribed to{' '}
+              <strong>{productCardData.productName}</strong> at a rate
+              of{' '}
+              <strong>
+                {productCardData.currencySymbol}
+                {productCardData.price}
+              </strong>{' '}
+              per {productCardData.period}.
+              {productCardData.trialPeriodDays &&
+                productCardData.trialPeriodDays > 0 && (
+                  <>
+                    {' '}
+                    The subscription includes a{' '}
+                    <strong>
+                      {productCardData.trialPeriodDays}{' '}
+                      {productCardData.trialPeriodDays === 1
+                        ? 'day'
+                        : 'days'}
+                    </strong>{' '}
+                    trial period.
+                  </>
+                )}{' '}
+              The subscription will begin immediately upon creation.
             </InfoCard>
           )}
         </>
