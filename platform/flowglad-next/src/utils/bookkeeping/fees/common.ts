@@ -330,16 +330,12 @@ export const generateFeeCalculationNotes = (
 }
 
 const generateFeeCalculationNotesWithCredits = ({
-  totalProcessedMonthToDate,
   currentTransactionAmount,
-  monthlyFreeTier,
   finalFlowgladFeePercentage,
   totalProcessedLifetime,
   upfrontProcessingCredits,
 }: {
-  totalProcessedMonthToDate: number
   currentTransactionAmount: number
-  monthlyFreeTier: number
   finalFlowgladFeePercentage: number
   totalProcessedLifetime: number
   upfrontProcessingCredits: number
@@ -363,21 +359,8 @@ const generateFeeCalculationNotesWithCredits = ({
     return `No fee applied due to upfront processing credits. Credits applied: ${creditsPortionApplied}. Remaining credits before transaction: ${creditsRemainingBefore}.`
   }
 
-  // Consider monthly free tier on the post-credit amount
-  const newTotalVolumeAfterCredits =
-    totalProcessedMonthToDate + amountAfterCredits
-
-  if (monthlyFreeTier <= totalProcessedMonthToDate) {
-    return `Credits applied: ${creditsPortionApplied}. Monthly free tier already exhausted. Full fee applied on post-credit amount ${amountAfterCredits}. Effective percentage on entire transaction: ${finalFlowgladFeePercentage.toPrecision(6)}%.`
-  }
-
-  if (newTotalVolumeAfterCredits <= monthlyFreeTier) {
-    return `Credits applied: ${creditsPortionApplied}. No fee after credits due to monthly free tier. Processed MTD after post-credit amount: ${newTotalVolumeAfterCredits}. Free tier: ${monthlyFreeTier}.`
-  }
-
-  const freeTierOverageAfterCredits =
-    newTotalVolumeAfterCredits - monthlyFreeTier
-  return `Credits applied: ${creditsPortionApplied}. Partial fee after credits due to monthly free tier overage: ${freeTierOverageAfterCredits}. Processed MTD before post-credit amount: ${totalProcessedMonthToDate}. Free tier: ${monthlyFreeTier}. Effective percentage on entire transaction: ${finalFlowgladFeePercentage.toPrecision(6)}%.`
+  // Full fee applied on post-credit amount (no monthly free tier)
+  return `Credits applied: ${creditsPortionApplied}. Full fee applied on post-credit amount ${amountAfterCredits}. Effective percentage on entire transaction: ${finalFlowgladFeePercentage.toPrecision(6)}%.`
 }
 
 export const finalizeFeeCalculation = async (
@@ -414,7 +397,6 @@ export const finalizeFeeCalculation = async (
   const organizationFeePercentage = parseFeePercentage(
     organization.feePercentage
   )
-  const monthlyFreeTier = organization.monthlyBillingVolumeFreeTier
   const currentTransactionAmount = feeCalculation.pretaxTotal ?? 0
 
   // Step 1: Apply upfront processing credits first
@@ -427,20 +409,8 @@ export const finalizeFeeCalculation = async (
     0
   )
 
-  // Step 2: Apply monthly free tier to the post-credit amount
-  let chargeableAmount = 0
-  if (amountAfterCredits > 0) {
-    if (monthlyFreeTier <= totalProcessedMonthToDate) {
-      chargeableAmount = amountAfterCredits
-    } else {
-      const freeTierRemaining =
-        monthlyFreeTier - totalProcessedMonthToDate
-      chargeableAmount = Math.max(
-        amountAfterCredits - freeTierRemaining,
-        0
-      )
-    }
-  }
+  // Step 2: All post-credit amount is chargeable (no monthly free tier)
+  const chargeableAmount = amountAfterCredits
 
   const finalFlowgladFeePercentage =
     currentTransactionAmount > 0
@@ -449,9 +419,7 @@ export const finalizeFeeCalculation = async (
       : 0
 
   const internalNotes = generateFeeCalculationNotesWithCredits({
-    totalProcessedMonthToDate,
     currentTransactionAmount,
-    monthlyFreeTier,
     finalFlowgladFeePercentage,
     totalProcessedLifetime,
     upfrontProcessingCredits: organization.upfrontProcessingCredits,
