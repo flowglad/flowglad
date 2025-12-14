@@ -337,7 +337,9 @@ export function CreateSubscriptionFormModal({
     const priceId = selectedProduct.defaultPrice.id
 
     // Map payment method: 'none' → undefined, otherwise use the ID
+    // If doNotCharge is true, always send undefined for payment method
     const mappedPaymentMethodId =
+      data.doNotCharge ||
       data.defaultPaymentMethodId === 'none' ||
       !data.defaultPaymentMethodId
         ? undefined
