@@ -1,6 +1,7 @@
 'use client'
 
 import { AlertTriangle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
@@ -42,6 +43,7 @@ const MigrateCustomerPricingModelModal = ({
   setIsOpen,
   customer,
 }: MigrateCustomerPricingModelModalProps) => {
+  const router = useRouter()
   const [newPricingModelId, setNewPricingModelId] =
     useState<string>('')
   const [confirmed, setConfirmed] = useState(false)
@@ -56,6 +58,7 @@ const MigrateCustomerPricingModelModal = ({
     trpc.customers.migratePricingModel.useMutation({
       onSuccess: () => {
         toast.success('Customer pricing model migrated successfully')
+        router.refresh()
         setIsOpen(false)
         resetForm()
       },
