@@ -196,7 +196,9 @@ describe('CreateSubscriptionFormModal', () => {
     fireEvent.click(productOption)
 
     await waitFor(() => {
-      expect(screen.getByText('Subscription Details')).toBeInTheDocument()
+      expect(
+        screen.getByText('Subscription Details')
+      ).toBeInTheDocument()
     })
   }
 
@@ -278,7 +280,9 @@ describe('CreateSubscriptionFormModal', () => {
       expect(
         screen.getByText('Subscription Details')
       ).toBeInTheDocument()
-      expect(screen.getByText(/will be subscribed to/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/will be subscribed to/i)
+      ).toBeInTheDocument()
       expect(screen.getByText(/\$100/)).toBeInTheDocument()
       expect(screen.getByText(/per month/i)).toBeInTheDocument()
       expect(screen.getByText(/at a rate of/i)).toBeInTheDocument()
