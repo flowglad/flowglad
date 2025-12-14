@@ -10,15 +10,9 @@ import type {
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import type { Purchase } from '@/db/schema/purchases'
-import {
-  insertFeeCalculation,
-  updateFeeCalculation,
-} from '@/db/tableMethods/feeCalculationMethods'
+import { updateFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import {
-  selectLifetimeUsageForPayments,
-  selectResolvedPaymentsMonthToDate,
-} from '@/db/tableMethods/paymentMethods'
+import { selectLifetimeUsageForPayments } from '@/db/tableMethods/paymentMethods'
 import type { DbTransaction } from '@/db/types'
 import {
   CountryCode,
@@ -313,22 +307,6 @@ export const calculateTotalDueAmount = (
   )
 
 /* Notes & Finalization */
-export const generateFeeCalculationNotes = (
-  totalProcessedMonthToDate: number,
-  currentTransactionAmount: number,
-  monthlyFreeTier: number,
-  finalFlowgladFeePercentage: number
-): string => {
-  const newTotal =
-    totalProcessedMonthToDate + currentTransactionAmount
-  if (monthlyFreeTier <= totalProcessedMonthToDate)
-    return `Full fee applied. Processed this month before transaction: ${totalProcessedMonthToDate}. Free tier: ${monthlyFreeTier}.`
-  if (newTotal <= monthlyFreeTier)
-    return `No fee applied. Processed this month after transaction: ${newTotal}. Free tier: ${monthlyFreeTier}.`
-  const overage = newTotal - monthlyFreeTier
-  return `Partial fee applied. Overage: ${overage}. Processed this month before transaction: ${totalProcessedMonthToDate}. Free tier: ${monthlyFreeTier}. Effective percentage: ${finalFlowgladFeePercentage.toPrecision(6)}%.`
-}
-
 const generateFeeCalculationNotesWithCredits = ({
   currentTransactionAmount,
   finalFlowgladFeePercentage,
@@ -367,11 +345,6 @@ export const finalizeFeeCalculation = async (
   feeCalculation: FeeCalculation.Record,
   transaction: DbTransaction
 ): Promise<FeeCalculation.Record> => {
-  const monthToDateResolvedPayments =
-    await selectResolvedPaymentsMonthToDate(
-      { organizationId: feeCalculation.organizationId },
-      transaction
-    )
   const lifetimeResolvedPayments =
     await selectLifetimeUsageForPayments(
       { organizationId: feeCalculation.organizationId },
@@ -384,11 +357,6 @@ export const finalizeFeeCalculation = async (
 
   // Hard assume that the payments are processed in pennies.
   // We accept imprecision for Euros, and for other currencies.
-  const totalProcessedMonthToDate =
-    monthToDateResolvedPayments.reduce(
-      (acc, payment) => acc + payment.amount,
-      0
-    )
   const totalProcessedLifetime = lifetimeResolvedPayments.reduce(
     (acc, payment) => acc + payment.amount,
     0

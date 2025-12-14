@@ -565,7 +565,7 @@ describe('finalizeFeeCalculation', () => {
     )
   })
 
-  it('applies full fee when total resolved payments are under the organization free tier', async () => {
+  it('applies full fee regardless of total resolved payments', async () => {
     const stripePaymentIntentId1 = `pi_${core.nanoid()}`
     const stripePaymentIntentId2 = `pi_${core.nanoid()}`
     const stripeChargeId1 = `ch_${core.nanoid()}`
@@ -638,7 +638,7 @@ describe('finalizeFeeCalculation', () => {
     )
   })
 
-  it('keeps original flowgladFeePercentage when resolved payments exceed the organization free tier', async () => {
+  it('applies full fee regardless of total resolved payments amount', async () => {
     const stripePaymentIntentId = `pi_${core.nanoid()}`
     const stripeChargeId = `ch_${core.nanoid()}`
     const { organization, price } = await setupOrg()
@@ -700,7 +700,7 @@ describe('finalizeFeeCalculation', () => {
     )
   })
 
-  it('applies full fee when total resolved payments are under the free tier', async () => {
+  it('applies full fee regardless of resolved payment status', async () => {
     const { organization, price } = await setupOrg()
     const customer = await setupCustomer({
       organizationId: organization.id,
@@ -770,7 +770,7 @@ describe('finalizeFeeCalculation', () => {
     )
   })
 
-  it('applies full org fee when resolved payments exceed the free tier', async () => {
+  it('applies full org fee regardless of resolved payments amount', async () => {
     const { organization, price } = await setupOrg()
     const customer = await setupCustomer({
       organizationId: organization.id,
@@ -830,7 +830,7 @@ describe('finalizeFeeCalculation', () => {
     )
   })
 
-  it('applies full fee when transaction crosses the free tier', async () => {
+  it('applies full fee regardless of transaction amount', async () => {
     const { organization, price } = await setupOrg({
       feePercentage: '5.0',
     })
