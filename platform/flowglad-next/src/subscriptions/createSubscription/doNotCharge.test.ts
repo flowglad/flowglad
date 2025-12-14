@@ -502,6 +502,17 @@ describe('doNotCharge subscription creation', () => {
     // Subscription should be Active even without payment method when doNotCharge is true
     expect(subscription.status).toBe(SubscriptionStatus.Active)
     expect(subscription.isFreePlan).toBe(false)
+    // Verify doNotCharge flag is stored
+    expect(subscription.doNotCharge).toBe(true)
+
+    // Verify it persists when queried later
+    await adminTransaction(async ({ transaction }) => {
+      const retrieved = await selectSubscriptionById(
+        subscription.id,
+        transaction
+      )
+      expect(retrieved.doNotCharge).toBe(true)
+    })
   })
 
   it('should create subscription as Incomplete when doNotCharge is false and no payment method is provided', async () => {

@@ -516,7 +516,6 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     preservedBillingPeriodEnd?: Date | number
     preservedBillingPeriodStart?: Date | number
     isDefaultPlan: boolean
-    doNotCharge?: boolean
   },
   transaction: DbTransaction
 ) => {
@@ -525,8 +524,8 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     defaultPaymentMethod,
     subscriptionItems,
     isDefaultPlan,
-    doNotCharge,
   } = params
+  const doNotCharge = subscription.doNotCharge
   /**
    * If the subscription is in credit trial(deprecated), incomplete, or non-renewing status,
    * and no default payment method is provided,
