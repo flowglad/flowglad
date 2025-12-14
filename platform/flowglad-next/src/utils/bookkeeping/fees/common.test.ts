@@ -523,7 +523,7 @@ describe('finalizeFeeCalculation', () => {
     phone: '1234567890',
   }
 
-  it('sets flowgladFeePercentage to 0 when no payments exist in current month', async () => {
+  it('applies full fee when no payments exist in current month', async () => {
     const { organization, price } = await setupOrg()
 
     const feeCalculation = await adminTransaction(
@@ -557,13 +557,15 @@ describe('finalizeFeeCalculation', () => {
       }
     )
 
-    expect(updatedFeeCalculation.flowgladFeePercentage).toBe('0')
+    expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
+      organization.feePercentage
+    )
     expect(updatedFeeCalculation.internalNotes).toContain(
-      'Credits applied: 0. No fee after credits due to monthly free tier. Processed MTD after post-credit amount: 1000. Free tier: 100000.'
+      'Credits applied: 0. Full fee applied on post-credit amount 1000.'
     )
   })
 
-  it('sets flowgladFeePercentage to 0 when total resolved payments are under the organization free tier', async () => {
+  it('applies full fee regardless of total resolved payments', async () => {
     const stripePaymentIntentId1 = `pi_${core.nanoid()}`
     const stripePaymentIntentId2 = `pi_${core.nanoid()}`
     const stripeChargeId1 = `ch_${core.nanoid()}`
@@ -628,13 +630,15 @@ describe('finalizeFeeCalculation', () => {
       }
     )
 
-    expect(updatedFeeCalculation.flowgladFeePercentage).toBe('0')
+    expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
+      organization.feePercentage
+    )
     expect(updatedFeeCalculation.internalNotes).toContain(
-      'Credits applied: 0. No fee after credits due to monthly free tier. Processed MTD after post-credit amount: 51000. Free tier: 100000.'
+      'Credits applied: 0. Full fee applied on post-credit amount 1000.'
     )
   })
 
-  it('keeps original flowgladFeePercentage when resolved payments exceed the organization free tier', async () => {
+  it('applies full fee regardless of total resolved payments amount', async () => {
     const stripePaymentIntentId = `pi_${core.nanoid()}`
     const stripeChargeId = `ch_${core.nanoid()}`
     const { organization, price } = await setupOrg()
@@ -692,11 +696,11 @@ describe('finalizeFeeCalculation', () => {
       organization.feePercentage
     )
     expect(updatedFeeCalculation.internalNotes).toContain(
-      'Credits applied: 0. Monthly free tier already exhausted. Full fee applied on post-credit amount 1000. Effective percentage on entire transaction: 0.650000%.'
+      'Credits applied: 0. Full fee applied on post-credit amount 1000.'
     )
   })
 
-  it('sets flowgladFeePercentage to 0 when total resolved payments are under the free tier', async () => {
+  it('applies full fee regardless of resolved payment status', async () => {
     const { organization, price } = await setupOrg()
     const customer = await setupCustomer({
       organizationId: organization.id,
@@ -758,13 +762,15 @@ describe('finalizeFeeCalculation', () => {
       }
     )
 
-    expect(updatedFeeCalculation.flowgladFeePercentage).toBe('0')
+    expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
+      organization.feePercentage
+    )
     expect(updatedFeeCalculation.internalNotes).toContain(
-      'Credits applied: 0. No fee after credits due to monthly free tier. Processed MTD after post-credit amount: 51000. Free tier: 100000.'
+      'Credits applied: 0. Full fee applied on post-credit amount 1000.'
     )
   })
 
-  it('applies full org fee when resolved payments exceed the free tier', async () => {
+  it('applies full org fee regardless of resolved payments amount', async () => {
     const { organization, price } = await setupOrg()
     const customer = await setupCustomer({
       organizationId: organization.id,
@@ -820,11 +826,11 @@ describe('finalizeFeeCalculation', () => {
       organization.feePercentage
     )
     expect(updatedFeeCalculation.internalNotes).toContain(
-      'Credits applied: 0. Monthly free tier already exhausted. Full fee applied on post-credit amount 1000. Effective percentage on entire transaction: 0.650000%.'
+      'Credits applied: 0. Full fee applied on post-credit amount 1000.'
     )
   })
 
-  it('calculates partial fee when transaction crosses the free tier', async () => {
+  it('applies full fee regardless of transaction amount', async () => {
     const { organization, price } = await setupOrg({
       feePercentage: '5.0',
     })
@@ -878,12 +884,11 @@ describe('finalizeFeeCalculation', () => {
       }
     )
 
-    // Overage: (90000 + 20000) - 100000 = 10000
-    // Fee on overage: 10000 * 5% = 500
-    // Effective percentage: (500 / 20000) * 100 = 2.5%
-    expect(updatedFeeCalculation.flowgladFeePercentage).toBe('2.5')
+    // Full fee: 20000 * 5% = 1000
+    // Effective percentage: (1000 / 20000) * 100 = 5%
+    expect(updatedFeeCalculation.flowgladFeePercentage).toBe('5')
     expect(updatedFeeCalculation.internalNotes).toContain(
-      'Credits applied: 0. Partial fee after credits due to monthly free tier overage: 10000. Processed MTD before post-credit amount: 90000. Free tier: 100000. Effective percentage on entire transaction: 2.50000%.'
+      'Credits applied: 0. Full fee applied on post-credit amount 20000.'
     )
   })
 
@@ -944,7 +949,7 @@ describe('finalizeFeeCalculation', () => {
       baseFeePercentage
     )
     expect(updatedFeeCalculation.internalNotes).toContain(
-      'Credits applied: 0. Monthly free tier already exhausted. Full fee applied on post-credit amount 1000. Effective percentage on entire transaction: 0.650000%.'
+      'Credits applied: 0. Full fee applied on post-credit amount 1000.'
     )
   })
 
@@ -1018,9 +1023,11 @@ describe('finalizeFeeCalculation', () => {
       }
     )
 
-    expect(updatedFeeCalculation.flowgladFeePercentage).toBe('0')
+    expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
+      organization.feePercentage
+    )
     expect(updatedFeeCalculation.internalNotes).toContain(
-      'Credits applied: 0. No fee after credits due to monthly free tier. Processed MTD after post-credit amount: 1000. Free tier: 100000.'
+      'Credits applied: 0. Full fee applied on post-credit amount 1000.'
     )
   })
 
@@ -1099,9 +1106,11 @@ describe('finalizeFeeCalculation', () => {
       }
     )
 
-    expect(updatedFeeCalculation.flowgladFeePercentage).toBe('0')
+    expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
+      org1.feePercentage
+    )
     expect(updatedFeeCalculation.internalNotes).toContain(
-      'Credits applied: 0. No fee after credits due to monthly free tier. Processed MTD after post-credit amount: 51000. Free tier: 100000.'
+      'Credits applied: 0. Full fee applied on post-credit amount 1000.'
     )
   })
 })
