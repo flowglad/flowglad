@@ -655,7 +655,7 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
    * However, if doNotCharge is true, we don't need a payment method.
    *
    * In practice this should never be reached for incomplete subscriptions
-   * since we set them to Active when doNotCharge is true.
+   * since we check !doNotCharge in the error condition above.
    */
   if (!defaultPaymentMethod && !isDefaultPlan && !doNotCharge) {
     throw new Error(
