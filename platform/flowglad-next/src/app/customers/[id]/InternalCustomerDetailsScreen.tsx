@@ -2,6 +2,7 @@
 import { MoreHorizontal, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
+import MigrateCustomerPricingModelModal from '@/components/forms/MigrateCustomerPricingModelModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PopoverMenu, {
@@ -31,8 +32,13 @@ function InternalCustomerDetailsScreen({
   usageEvents: UsageEvent.ClientRecord[]
 }) {
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isMigrateOpen, setIsMigrateOpen] = useState(false)
 
   const moreMenuItems: PopoverMenuItem[] = [
+    {
+      label: 'Migrate Pricing Model',
+      handler: () => setIsMigrateOpen(true),
+    },
     {
       label: 'Email customer',
       handler: () => {
@@ -84,6 +90,11 @@ function InternalCustomerDetailsScreen({
       <EditCustomerModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
+        customer={customer}
+      />
+      <MigrateCustomerPricingModelModal
+        isOpen={isMigrateOpen}
+        setIsOpen={setIsMigrateOpen}
         customer={customer}
       />
     </InternalPageContainer>
