@@ -341,6 +341,22 @@ export const createSubscriptionInputSchema = z
       path: ['priceId'],
     }
   )
+  .refine(
+    (data) => {
+      // If doNotCharge is true, payment methods should not be provided
+      if (data.doNotCharge) {
+        return (
+          !data.defaultPaymentMethodId && !data.backupPaymentMethodId
+        )
+      }
+      return true
+    },
+    {
+      message:
+        'Payment methods cannot be provided when doNotCharge is true. Payment methods are not needed since no charges will be made.',
+      path: ['doNotCharge'],
+    }
+  )
 
 const createSubscriptionProcedure = protectedProcedure
   .meta(openApiMetas.POST)
