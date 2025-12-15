@@ -5,7 +5,10 @@ import {
   validateRouteConfigStructure,
   validateStandardCrudMappings,
 } from './routeConfigs.test-utils'
-import { usageEventsRouteConfigs } from './usageEventsRouter'
+import {
+  usageEventsBulkRouteConfig,
+  usageEventsRouteConfigs,
+} from './usageEventsRouter'
 
 describe('usageEventsRouteConfigs', () => {
   // Helper function to find route config in the array
@@ -92,6 +95,34 @@ describe('usageEventsRouteConfigs', () => {
       // Test mapParams with matches only (simulate route handler slicing)
       const result = routeConfig!.mapParams(['test-id'])
       expect(result).toEqual({ id: 'test-id' })
+    })
+
+    it('should map POST /usage-events/bulk to usageEvents.bulkInsert procedure', () => {
+      const routeConfig =
+        usageEventsBulkRouteConfig['POST /usage-events/bulk']
+
+      expect(routeConfig).toBeDefined()
+      expect(routeConfig.procedure).toBe('usageEvents.bulkInsert')
+
+      // Test pattern matching
+      expect(routeConfig.pattern.test('usage-events/bulk')).toBe(true)
+      expect(
+        routeConfig.pattern.test('usage-events/bulk/extra')
+      ).toBe(false)
+      expect(routeConfig.pattern.test('usage-events')).toBe(false)
+
+      // Test mapParams with body
+      const testBody = {
+        usageEvents: [
+          {
+            subscriptionId: 'sub_123',
+            amount: 100,
+            priceId: 'price_456',
+          },
+        ],
+      }
+      const result = routeConfig.mapParams([], testBody)
+      expect(result).toEqual(testBody)
     })
   })
 

@@ -38,7 +38,10 @@ import { productsRouteConfigs } from '@/server/routers/productsRouter'
 import { purchasesRouteConfigs } from '@/server/routers/purchasesRouter'
 import { subscriptionItemFeaturesRouteConfigs } from '@/server/routers/subscriptionItemFeaturesRouter'
 import { subscriptionsRouteConfigs } from '@/server/routers/subscriptionsRouter'
-import { usageEventsRouteConfigs } from '@/server/routers/usageEventsRouter'
+import {
+  usageEventsBulkRouteConfig,
+  usageEventsRouteConfigs,
+} from '@/server/routers/usageEventsRouter'
 import { usageMetersRouteConfigs } from '@/server/routers/usageMetersRouter'
 import { webhooksRouteConfigs } from '@/server/routers/webhooksRouter'
 import { createApiContext } from '@/server/trpcContext'
@@ -106,6 +109,7 @@ const routes: Record<string, RouteConfig> = {
   ...setupPricingModelRouteConfig,
   ...refundPaymentRouteConfig,
   ...customerBillingRouteConfig,
+  ...usageEventsBulkRouteConfig,
   ...discountsRouteConfigs,
   ...productsRouteConfigs,
   ...subscriptionItemFeaturesRouteConfigs,
