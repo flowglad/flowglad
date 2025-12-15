@@ -2701,6 +2701,41 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
+    it('should succeed for doNotCharge subscription without payment method', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        // Create doNotCharge subscription without payment method
+        const doNotChargeSubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+          isFreePlan: false, // NOT a free plan
+          doNotCharge: true, // But marked as doNotCharge
+        })
+
+        // Create a billing period marked as ScheduledToCancel
+        await setupBillingPeriod({
+          subscriptionId: doNotChargeSubscription.id,
+          startDate: now + 2 * 60 * 60 * 1000,
+          endDate: now + 3 * 60 * 60 * 1000,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        // Should succeed without payment method since it's doNotCharge
+        const { result: updatedSubscription } =
+          await uncancelSubscription(
+            doNotChargeSubscription,
+            transaction
+          )
+
+        expect(updatedSubscription.status).toBe(
+          SubscriptionStatus.Active
+        )
+      })
+    })
+
     it('should create NEW billing runs for periods with Aborted runs', async () => {
       await adminTransaction(async ({ transaction }) => {
         const now = Date.now()

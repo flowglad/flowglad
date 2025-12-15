@@ -300,11 +300,11 @@ export const SideNavigation = () => {
           {/* 2. Dashboard */}
           <NavStandalone items={dashboardItem} />
 
-          {/* 3. Customers */}
-          <NavStandalone items={customersItem} />
-
-          {/* 4. Pricing */}
+          {/* 3. Pricing */}
           <NavStandalone items={pricingItem} />
+
+          {/* 4. Customers */}
+          <NavStandalone items={customersItem} />
 
           {/* 5. Finance */}
           <NavMain items={[navigationSections[0]]} />

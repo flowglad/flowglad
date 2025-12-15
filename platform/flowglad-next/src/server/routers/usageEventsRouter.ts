@@ -26,9 +26,10 @@ import {
   selectUsageEventsPaginated,
   selectUsageEventsTableRowData,
 } from '@/db/tableMethods/usageEventMethods'
+import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import { idInputSchema } from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
-import { PriceType } from '@/types'
+import { PriceType, UsageMeterAggregationType } from '@/types'
 import {
   generateOpenApiMetas,
   type RouteConfig,
@@ -273,6 +274,24 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
           }
         })
 
+        // Fetch usage meters to check aggregation types
+        const uniqueUsageMeterIds = [
+          ...new Set(
+            prices
+              .map((price) => price.usageMeterId)
+              .filter((id): id is string => id !== null)
+          ),
+        ]
+        const usageMeters = await selectUsageMeters(
+          {
+            id: uniqueUsageMeterIds,
+          },
+          transaction
+        )
+        const usageMetersMap = new Map(
+          usageMeters.map((meter) => [meter.id, meter])
+        )
+
         const usageInsertsWithBillingPeriodId: UsageEvent.Insert[] =
           resolvedUsageEvents.map((usageEvent, index) => {
             const subscription = subscriptionsMap.get(
@@ -287,11 +306,6 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
             const billingPeriod = billingPeriodsMap.get(
               usageEvent.subscriptionId
             )
-            if (!billingPeriod) {
-              throw new Error(
-                `Billing period not found for subscription ${usageEvent.subscriptionId} at index ${index}`
-              )
-            }
 
             const price = pricesMap.get(usageEvent.priceId)
             if (!price) {
@@ -305,10 +319,25 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
               )
             }
 
+            // Check if usage meter requires billing period (CountDistinctProperties)
+            const usageMeter = usageMetersMap.get(price.usageMeterId)
+            if (
+              usageMeter?.aggregationType ===
+              UsageMeterAggregationType.CountDistinctProperties
+            ) {
+              if (!billingPeriod) {
+                throw new Error(
+                  `Billing period is required for usage meter "${usageMeter.name}" at index ${index} because it uses "count_distinct_properties" aggregation. This aggregation type requires a billing period for deduplication.`
+                )
+              }
+            }
+
             return {
               ...usageEvent,
               customerId: subscription.customerId,
-              billingPeriodId: billingPeriod.id,
+              ...(billingPeriod
+                ? { billingPeriodId: billingPeriod.id }
+                : {}),
               usageMeterId: price.usageMeterId,
               usageDate: usageEvent.usageDate
                 ? usageEvent.usageDate
