@@ -553,6 +553,7 @@ export const setupSubscription = async (params: {
           cancellationReason: params.cancellationReason ?? null,
           replacedBySubscriptionId:
             params.replacedBySubscriptionId ?? null,
+          doNotCharge: params.doNotCharge ?? false,
         },
         transaction
       )) as Subscription.StandardRecord
