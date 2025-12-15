@@ -70,10 +70,6 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
 
-const insertRefinements = {
-  name: z.string().min(1, 'Pricing model name is required'),
-}
-
 export const {
   select: pricingModelsSelectSchema,
   insert: pricingModelsInsertSchema,
@@ -84,7 +80,6 @@ export const {
     update: pricingModelsClientUpdateSchema,
   },
 } = buildSchemas(pricingModels, {
-  insertRefine: insertRefinements,
   client: {
     hiddenColumns,
     readOnlyColumns,

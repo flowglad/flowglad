@@ -120,11 +120,11 @@ export default function PricingModelFormFields({
                   htmlFor="is-default"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                 >
-                  Default pricing model
+                  Make Default
                 </label>
-                <p className="text-xs text-muted-foreground">
-                  This becomes the pricing model that automatically
-                  attaches to new customers.
+                <p className="text-sm text-muted-foreground">
+                  New customers will automatically subscribe to this
+                  pricing model.
                 </p>
               </div>
             </div>
