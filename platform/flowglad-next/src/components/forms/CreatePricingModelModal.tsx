@@ -7,6 +7,7 @@ import {
   CircleDashed,
   Loader2,
   Shapes,
+  Upload,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -237,6 +238,27 @@ const CreatePricingModelModal: React.FC<
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </button>
+
+              {/* Import YAML Option */}
+              <button
+                type="button"
+                onClick={handleImportPricingModel}
+                className="group flex items-center gap-4 p-4 rounded bg-accent hover:bg-[hsl(0_0%_0%/10%)] dark:hover:bg-[hsl(0_0%_100%/15%)] transition-colors text-left w-full"
+              >
+                <div className="flex items-center justify-center h-10 w-10">
+                  <Upload className="h-8 w-8 text-foreground" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-foreground font-sans">
+                    Import a YAML
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Upload a preconfigured YAML file to create your
+                    pricing model
+                  </p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+              </button>
             </div>
           </>
         )
@@ -245,7 +267,6 @@ const CreatePricingModelModal: React.FC<
         return (
           <TemplateSelectorContent
             onTemplateSelect={handleTemplateSelect}
-            onImportPricingModel={handleImportPricingModel}
             onBack={handleBackToChoice}
           />
         )

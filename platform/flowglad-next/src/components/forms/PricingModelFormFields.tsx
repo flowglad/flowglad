@@ -123,8 +123,8 @@ export default function PricingModelFormFields({
                   Make Default
                 </label>
                 <p className="text-sm text-muted-foreground">
-                  New customers will automatically subscribe to this
-                  pricing model.
+                  New customers will be assigned to this pricing model
+                  by default.
                 </p>
               </div>
             </div>

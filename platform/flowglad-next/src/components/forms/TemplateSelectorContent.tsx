@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, Upload } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { TemplateGrid } from '@/components/pricing-model-templates/TemplateGrid'
 import { Button } from '@/components/ui/button'
 import { PRICING_MODEL_TEMPLATES } from '@/constants/pricingModelTemplates'
@@ -8,30 +8,20 @@ import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 
 interface TemplateSelectorContentProps {
   onTemplateSelect: (template: PricingModelTemplate) => void
-  onImportPricingModel: () => void
   onBack?: () => void
 }
 
 export function TemplateSelectorContent({
   onTemplateSelect,
-  onImportPricingModel,
   onBack,
 }: TemplateSelectorContentProps) {
   return (
     <div className="flex flex-col h-full max-h-[90vh]">
       {/* Sticky Header */}
-      <div className="bg-background border-b sticky top-0 z-10 flex items-center justify-between pl-6 md:pl-6 pr-4 py-4 rounded-t-3xl">
+      <div className="bg-background border-b sticky top-0 z-10 flex items-center pl-6 md:pl-6 pr-4 py-4 rounded-t-3xl">
         <h2 className="text-xl" aria-hidden="true">
           Choose a Template
         </h2>
-        <Button
-          onClick={onImportPricingModel}
-          variant="secondary"
-          size="sm"
-        >
-          <Upload className="w-4 h-4 mr-2" />
-          Import
-        </Button>
       </div>
 
       {/* Content Area */}
