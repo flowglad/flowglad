@@ -125,7 +125,7 @@ export const createOrganizationTransaction = async (
   } = await createPricingModelBookkeeping(
     {
       pricingModel: {
-        name: 'Default',
+        name: 'Pricing Model',
         isDefault: true,
       },
     },
@@ -141,7 +141,7 @@ export const createOrganizationTransaction = async (
   } = await createPricingModelBookkeeping(
     {
       pricingModel: {
-        name: 'Default (testmode)',
+        name: '[TEST] Pricing Model',
         isDefault: true,
       },
     },

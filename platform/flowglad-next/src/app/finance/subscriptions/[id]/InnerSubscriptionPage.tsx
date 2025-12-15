@@ -1,9 +1,9 @@
 'use client'
 
-import { Plus } from 'lucide-react'
+import { Check, Copy, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CustomerCardNew } from '@/components/CustomerCardNew'
 import { ExpandSection } from '@/components/ExpandSection'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
@@ -11,11 +11,16 @@ import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import { ItemFeature } from '@/components/ItemFeature'
 import { ProductCard } from '@/components/ProductCard'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useAuthContext } from '@/contexts/authContext'
 import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
 import {
   getSubscriptionDateInfo,
   getSubscriptionStatusBadge,
@@ -27,24 +32,120 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import core from '@/utils/core'
-import { getCurrencyParts } from '@/utils/stripe'
-import { InvoicesDataTable } from '../../invoices/data-table'
-import { PaymentsDataTable } from '../../payments/data-table'
+import { formatBillingPeriod, getCurrencyParts } from '@/utils/stripe'
 import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
+import { BillingHistorySection } from './BillingHistorySection'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
+
+/**
+ * Copyable field component for displaying values with a copy button.
+ * Based on Figma design - copy icon is always visible.
+ */
+function CopyableField({
+  value,
+  label,
+  displayText,
+}: {
+  value: string
+  label: string
+  displayText?: string
+}) {
+  const [copied, setCopied] = useState(false)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      timeoutRef.current = setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      console.error('Failed to copy:', error)
+    }
+  }
+
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className="inline-flex items-center gap-2 cursor-pointer group"
+            onClick={handleCopy}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                handleCopy()
+              }
+            }}
+            aria-label={`Copy ${label}`}
+          >
+            <span className="font-sans font-medium text-sm leading-5 text-muted-foreground group-hover:underline transition-colors">
+              {displayText ?? value}
+            </span>
+            {copied ? (
+              <Check className="h-3.5 w-3.5 text-[hsl(var(--jade-muted-foreground))] flex-shrink-0" />
+            ) : (
+              <Copy className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p className="font-sans">{value}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
+
+/**
+ * Formats the description for a feature item based on its type and renewal frequency.
+ */
+function formatFeatureDescription(feature: {
+  type: string
+  amount?: number | null
+  renewalFrequency?: string | null
+}): string | undefined {
+  if (
+    feature.type !== FeatureType.UsageCreditGrant ||
+    feature.amount == null
+  ) {
+    return undefined
+  }
+
+  if (
+    feature.renewalFrequency ===
+    FeatureUsageGrantFrequency.EveryBillingPeriod
+  ) {
+    return `${feature.amount.toLocaleString()} total credits, every billing period`
+  } else {
+    return `${feature.amount.toLocaleString()} total credits, one-time`
+  }
+}
 
 const InnerSubscriptionPage = ({
   subscription,
   defaultPaymentMethod,
   customer,
-  product,
   pricingModel,
   productNames,
 }: {
   subscription: RichSubscription
   defaultPaymentMethod: PaymentMethod.ClientRecord | null
   customer: Customer.Record
-  product: Product.Record | null
   pricingModel: PricingModel.Record | null
   productNames: Record<string, string>
 }) => {
@@ -83,35 +184,15 @@ const InnerSubscriptionPage = ({
     setIsCancelModalOpen(true)
   }
 
-  /**
-   * Helper function to format the billing period for display
-   * Handles singular/plural forms and interval counts
-   */
-  const formatBillingPeriod = (
-    intervalUnit: string | null | undefined,
-    intervalCount: number | null | undefined
-  ): string => {
-    if (!intervalUnit) return 'one-time'
-
-    const count = intervalCount || 1
-    const unit = intervalUnit.toLowerCase()
-
-    // Handle singular vs plural
-    if (count === 1) {
-      return unit
-    }
-
-    // Handle plural forms
-    return `${count} ${unit}s`
-  }
-
   if (!organization) {
     return <div>Loading...</div>
   }
 
+  const statusBadge = getSubscriptionStatusBadge(subscription.status)
+
   return (
     <InnerPageContainerNew>
-      <div className="w-full relative flex flex-col justify-center gap-6 pb-6">
+      <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title="Subscription Details"
           breadcrumb="Subscriptions"
@@ -119,24 +200,53 @@ const InnerSubscriptionPage = ({
             router.push('/finance/subscriptions')
           }
           badges={[
-            getSubscriptionStatusBadge(subscription.status),
+            {
+              ...statusBadge,
+              label: (
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>{statusBadge.label}</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>Status</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ),
+            },
             ...(pricingModel
               ? [
                   {
                     label: (
-                      <Link
-                        href={`/store/pricing-models/${pricingModel.id}`}
-                        className="hover:underline hover:text-foreground transition-colors"
-                      >
-                        {pricingModel.name}
-                      </Link>
+                      <TooltipProvider delayDuration={300}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Link
+                              href={`/pricing-models/${pricingModel.id}`}
+                              className="hover:underline hover:text-foreground transition-colors"
+                            >
+                              {pricingModel.name}
+                            </Link>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom">
+                            <p>Pricing Model</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     ),
                     variant: 'muted' as const,
                   },
                 ]
               : []),
           ]}
-          description={`Started ${core.formatDate(subscription.startDate)}`}
+          description={
+            <CopyableField
+              value={subscription.id}
+              label="ID"
+              displayText="Copy ID"
+            />
+          }
           actions={[
             {
               label: 'Change Payment Method',
@@ -189,7 +299,7 @@ const InnerSubscriptionPage = ({
                     variant="subscription"
                     quantity={item.quantity}
                     renewalDate={renewalDate}
-                    href={`/store/products/${productId}`}
+                    href={`/products/${productId}`}
                   />
                 )
               })}
@@ -208,58 +318,36 @@ const InnerSubscriptionPage = ({
             href={`/customers/${customer.id}`}
           />
         </ExpandSection>
-        <ExpandSection title="Feature Access" defaultExpanded={false}>
-          <div className="flex flex-col gap-1 px-3">
-            {subscription.experimental?.featureItems?.map(
-              (feature) => (
-                <ItemFeature
-                  key={feature.id}
-                  href={`/store/features/${feature.featureId}`}
-                >
-                  {feature.name}
-                  {feature.type === FeatureType.UsageCreditGrant &&
-                    feature.amount != null && (
-                      <span className="text-muted-foreground font-normal">
-                        &nbsp;- {feature.amount.toLocaleString()}{' '}
-                        total credits,{' '}
-                        {feature.renewalFrequency ===
-                        FeatureUsageGrantFrequency.EveryBillingPeriod
-                          ? 'every billing period'
-                          : 'one-time'}
-                        .
-                      </span>
-                    )}
-                </ItemFeature>
-              )
-            )}
+        <ExpandSection
+          title="Features Granted"
+          defaultExpanded={false}
+        >
+          <div className="flex flex-col gap-1 w-full">
             {canAddFeature && (
               <ItemFeature
                 icon={Plus}
                 onClick={() => setIsAddFeatureModalOpen(true)}
               >
-                Add feature
+                Grant Additional Feature
               </ItemFeature>
+            )}
+            {subscription.experimental?.featureItems?.map(
+              (feature) => (
+                <ItemFeature
+                  key={feature.id}
+                  href={`/features/${feature.featureId}`}
+                  description={formatFeatureDescription(feature)}
+                >
+                  {feature.name}
+                </ItemFeature>
+              )
             )}
           </div>
         </ExpandSection>
-        <InvoicesDataTable
-          title="Invoices"
-          filters={{ subscriptionId: subscription.id }}
-          hiddenColumns={['customerName']}
-          columnOrder={[
-            'total',
-            'invoiceNumber',
-            'status',
-            'dueDate',
-            'createdAt',
-            'invoiceId',
-            'actions',
-          ]}
-        />
-        <PaymentsDataTable
-          title="Payments"
-          filters={{ subscriptionId: subscription.id }}
-          hiddenColumns={['customerName']}
+        <BillingHistorySection
+          subscriptionId={subscription.id}
+          customerId={subscription.customerId}
+          customerName={customer.name}
         />
       </div>
 

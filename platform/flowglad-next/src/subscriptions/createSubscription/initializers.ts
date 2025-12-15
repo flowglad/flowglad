@@ -43,6 +43,7 @@ export const createStandardSubscriptionAndItems = async (
     metadata,
     autoStart = false,
     billingCycleAnchorDate,
+    doNotCharge = false,
   } = params
   const derivedInterval = interval ?? price.intervalUnit
   const derivedIntervalCount = intervalCount ?? price.intervalCount
@@ -64,8 +65,10 @@ export const createStandardSubscriptionAndItems = async (
       trialEnd,
       defaultPaymentMethodId: defaultPaymentMethod?.id,
       isDefaultPlan: product.default,
+      doNotCharge,
     }),
     isFreePlan: price.unitPrice === 0,
+    doNotCharge,
     cancellationReason: null,
     replacedBySubscriptionId: null,
     defaultPaymentMethodId: defaultPaymentMethod?.id ?? null,
@@ -111,7 +114,9 @@ export const createStandardSubscriptionAndItems = async (
     addedDate: new Date(startDate).getTime(),
     quantity,
     livemode,
-    unitPrice: price.unitPrice,
+    // Set unitPrice to 0 if doNotCharge is true, otherwise use price.unitPrice
+    // This allows billing to be zero while keeping price.unitPrice > 0 for workflow semantics
+    unitPrice: doNotCharge ? 0 : price.unitPrice,
     metadata: null,
     externalId: null,
     expiredAt: null,
@@ -141,6 +146,7 @@ export const createNonRenewingSubscriptionAndItems = async (
     name: subscriptionName,
     stripeSetupIntentId,
     metadata,
+    doNotCharge = false,
   } = params
   if (!product.default && price.type !== PriceType.Subscription) {
     throw new Error(
@@ -153,6 +159,7 @@ export const createNonRenewingSubscriptionAndItems = async (
     priceId: price.id,
     livemode,
     isFreePlan: price.unitPrice === 0,
+    doNotCharge,
     cancellationReason: null,
     replacedBySubscriptionId: null,
     status: SubscriptionStatus.Active,
@@ -192,7 +199,12 @@ export const createNonRenewingSubscriptionAndItems = async (
     addedDate: new Date(startDate).getTime(),
     quantity,
     livemode,
-    unitPrice: price.unitPrice,
+    // Set unitPrice to 0 if doNotCharge is true, otherwise use price.unitPrice
+    // This allows billing to be zero while keeping price.unitPrice > 0 for workflow semantics
+    // NOTE: This is defensive - doNotCharge is only handled through the create subscription
+    // endpoint, which currently does not allow creating non-renewing subscriptions. This
+    // ensures consistency if that behavior changes in the future or if doNotCharge is used elsewhere.
+    unitPrice: doNotCharge ? 0 : price.unitPrice,
     metadata: null,
     externalId: null,
     expiredAt: null,

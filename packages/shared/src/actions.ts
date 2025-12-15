@@ -45,7 +45,11 @@ export const createActivateSubscriptionCheckoutSessionSchema =
     targetSubscriptionId: z.string(),
   })
 
-export type CreateProductCheckoutSessionParams = z.infer<
+/**
+ * Use z.input to get the type before any transformations (like default values) are applied by the schema.
+ * This keeps fields like `quantity` optional in the input type, even if the schema applies defaults.
+ */
+export type CreateProductCheckoutSessionParams = z.input<
   typeof createProductCheckoutSessionSchema
 >
 export type CreateAddPaymentMethodCheckoutSessionParams = z.infer<
@@ -142,6 +146,7 @@ const createSubscriptionCoreSchema = z.object({
   defaultPaymentMethodId: z.string().optional(),
   interval: z.enum(['day', 'week', 'month', 'year']).optional(),
   intervalCount: z.number().optional(),
+  doNotCharge: z.boolean().optional().default(false),
 })
 
 const createSubscriptionWithPriceId =
@@ -161,7 +166,11 @@ export const createSubscriptionSchema = z.union([
   createSubscriptionWithPriceSlug,
 ])
 
-export type CreateSubscriptionParams = z.infer<
+/**
+ * Use z.input to get the type before any transformations (like default values) are applied by the schema.
+ * This keeps fields like `doNotCharge` optional in the input type, even if the schema applies defaults.
+ */
+export type CreateSubscriptionParams = z.input<
   typeof createSubscriptionSchema
 >
 

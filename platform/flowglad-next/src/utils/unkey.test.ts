@@ -41,9 +41,9 @@ describe('secretApiKeyInputToUnkeyInput', () => {
     expect(result.name).toBe('org_123 / test / Test Key')
   })
 
-  it('should set correct environment', () => {
+  it('should set correct prefix with environment', () => {
     const result = secretApiKeyInputToUnkeyInput(mockParams)
-    expect(result.environment).toBe('test')
+    expect(result.prefix).toContain('test')
   })
 
   it('should set correct expiration', () => {

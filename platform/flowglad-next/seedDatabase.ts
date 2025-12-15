@@ -433,7 +433,7 @@ export const teardownOrg = async ({
 export const setupSubscription = async (params: {
   organizationId: string
   customerId: string
-  paymentMethodId?: string
+  paymentMethodId?: string | null
   defaultPaymentMethodId?: string
   priceId: string
   interval?: IntervalUnit
@@ -453,7 +453,16 @@ export const setupSubscription = async (params: {
   canceledAt?: number | null
   metadata?: any
   billingCycleAnchorDate?: number
+  doNotCharge?: boolean
 }): Promise<Subscription.Record> => {
+  if (
+    params.doNotCharge &&
+    (params.paymentMethodId || params.defaultPaymentMethodId)
+  ) {
+    throw new Error(
+      'doNotCharge subscriptions cannot have payment methods'
+    )
+  }
   const status = params.status ?? SubscriptionStatus.Active
   return adminTransaction(async ({ transaction }) => {
     const price = await selectPriceById(params.priceId, transaction)
@@ -490,6 +499,7 @@ export const setupSubscription = async (params: {
           startDate: Date.now(),
           renews: false,
           isFreePlan: params.isFreePlan ?? false,
+          doNotCharge: params.doNotCharge ?? false,
           cancellationReason: params.cancellationReason ?? null,
           replacedBySubscriptionId:
             params.replacedBySubscriptionId ?? null,
@@ -542,6 +552,7 @@ export const setupSubscription = async (params: {
           cancellationReason: params.cancellationReason ?? null,
           replacedBySubscriptionId:
             params.replacedBySubscriptionId ?? null,
+          doNotCharge: params.doNotCharge ?? false,
         },
         transaction
       )) as Subscription.StandardRecord

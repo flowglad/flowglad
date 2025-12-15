@@ -230,15 +230,44 @@ const constructSubscriptionCanceledEventInsert = (
     hash: constructSubscriptionCanceledEventHash(subscription),
   }
 }
+export interface CancelSubscriptionImmediatelyParams {
+  /**
+   * The subscription to cancel
+   */
+  subscription: Subscription.Record
+  /**
+   * Customer record to use (avoids re-fetching if already available)
+   */
+  customer?: Customer.Record
+  /**
+   * Skip sending notifications (useful for programmatic cancellations like migrations)
+   */
+  skipNotifications?: boolean
+  /**
+   * Skip reassigning default subscription (useful when migration will create new subscription)
+   */
+  skipReassignDefaultSubscription?: boolean
+  /**
+   * Custom cancellation reason to set on the subscription
+   */
+  cancellationReason?: string
+}
+
 // Cancel a subscription immediately
 export const cancelSubscriptionImmediately = async (
-  subscription: Subscription.Record,
+  params: CancelSubscriptionImmediatelyParams,
   transaction: DbTransaction
 ): Promise<TransactionOutput<Subscription.Record>> => {
-  const customer = await selectCustomerById(
-    subscription.customerId,
-    transaction
-  )
+  const {
+    subscription,
+    customer: providedCustomer,
+    skipNotifications = false,
+    skipReassignDefaultSubscription = false,
+    cancellationReason,
+  } = params
+  const customer =
+    providedCustomer ??
+    (await selectCustomerById(subscription.customerId, transaction))
   if (isSubscriptionInTerminalState(subscription.status)) {
     return {
       result: subscription,
@@ -294,6 +323,7 @@ export const cancelSubscriptionImmediately = async (
       canceledAt: endDate,
       cancelScheduledAt: endDate,
       status,
+      ...(cancellationReason ? { cancellationReason } : {}),
       renews: subscription.renews,
     },
     transaction
@@ -370,33 +400,43 @@ export const cancelSubscriptionImmediately = async (
   if (result) {
     updatedSubscription = result
   }
-  await reassignDefaultSubscription(updatedSubscription, transaction)
-  try {
-    await idempotentSendCustomerSubscriptionCanceledNotification(
-      updatedSubscription.id
-    )
-  } catch (error) {
-    console.error(
-      'Failed to send customer subscription canceled notification',
-      {
-        subscriptionId: updatedSubscription.id,
-        error,
-      }
+
+  if (!skipReassignDefaultSubscription) {
+    await reassignDefaultSubscription(
+      updatedSubscription,
+      transaction
     )
   }
-  try {
-    await idempotentSendOrganizationSubscriptionCanceledNotification(
-      updatedSubscription
-    )
-  } catch (error) {
-    console.error(
-      'Failed to send organization subscription canceled notification',
-      {
-        subscriptionId: updatedSubscription.id,
-        error,
-      }
-    )
+
+  if (!skipNotifications) {
+    try {
+      await idempotentSendCustomerSubscriptionCanceledNotification(
+        updatedSubscription.id
+      )
+    } catch (error) {
+      console.error(
+        'Failed to send customer subscription canceled notification',
+        {
+          subscriptionId: updatedSubscription.id,
+          error,
+        }
+      )
+    }
+    try {
+      await idempotentSendOrganizationSubscriptionCanceledNotification(
+        updatedSubscription
+      )
+    } catch (error) {
+      console.error(
+        'Failed to send organization subscription canceled notification',
+        {
+          subscriptionId: updatedSubscription.id,
+          error,
+        }
+      )
+    }
   }
+
   return {
     result: updatedSubscription,
     eventsToInsert: [
@@ -606,7 +646,12 @@ export const cancelSubscriptionProcedureTransaction = async ({
   ) {
     // Note: subscription is already fetched above, can reuse it
     const { result: updatedSubscription, eventsToInsert } =
-      await cancelSubscriptionImmediately(subscription, transaction)
+      await cancelSubscriptionImmediately(
+        {
+          subscription,
+        },
+        transaction
+      )
     return {
       result: {
         subscription: {
@@ -659,6 +704,7 @@ const determinePreviousSubscriptionStatus = (
 /**
  * Reschedules billing runs for uncanceled billing periods.
  * - For paid subscriptions: Requires a valid payment method before allowing uncancel.
+ * - For free or doNotCharge subscriptions: No payment method required, no billing runs created.
  * - Creates NEW billing runs for periods with Aborted runs.
  * - Leaves Scheduled runs as-is (already valid).
  * - Skips terminal runs (Succeeded/Failed).
@@ -678,7 +724,12 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
     : null
 
   // Security check: For paid subscriptions, require payment method
-  if (!subscription.isFreePlan && !paymentMethod) {
+  // doNotCharge subscriptions are exempt from this requirement
+  if (
+    !subscription.isFreePlan &&
+    !subscription.doNotCharge &&
+    !paymentMethod
+  ) {
     throw new TRPCError({
       code: 'BAD_REQUEST',
       message:
@@ -687,7 +738,7 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
   }
 
   if (!paymentMethod) {
-    // Free subscription with no payment method - no billing runs needed
+    // Free or doNotCharge subscription with no payment method - no billing runs needed
     return
   }
 
@@ -767,6 +818,7 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
  * Security:
  * - For paid subscriptions, requires a valid payment method.
  * - For free subscriptions, allows uncancel without payment method.
+ * - For doNotCharge subscriptions, allows uncancel without payment method.
  */
 export const uncancelSubscription = async (
   subscription: Subscription.Record,

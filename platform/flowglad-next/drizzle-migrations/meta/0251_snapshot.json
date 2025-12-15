@@ -1,5 +1,5 @@
 {
-  "id": "e0a0e7c7-cb86-4997-9719-ecc602c5e880",
+  "id": "1a193cbd-7313-418a-8c1b-7232758e31c5",
   "prevId": "ce562e36-05ad-49eb-85a8-95e388741ed7",
   "version": "7",
   "dialect": "postgresql",
@@ -8749,7 +8749,7 @@
           "name": "price_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "unit_price": {
           "name": "unit_price",
@@ -8787,13 +8787,6 @@
           "type": "timestamptz",
           "primaryKey": false,
           "notNull": false
-        },
-        "manually_created": {
-          "name": "manually_created",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         }
       },
       "indexes": {
@@ -9416,6 +9409,13 @@
         },
         "is_free_plan": {
           "name": "is_free_plan",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "do_not_charge": {
+          "name": "do_not_charge",
           "type": "boolean",
           "primaryKey": false,
           "notNull": false,

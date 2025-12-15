@@ -17,7 +17,8 @@ import { SubscriptionStatus } from '@/types'
 import { formatDate } from '@/utils/core'
 
 const subscriptionStatusColors: Record<SubscriptionStatus, string> = {
-  [SubscriptionStatus.Active]: 'bg-green-100 text-green-800',
+  [SubscriptionStatus.Active]:
+    'bg-jade-background text-jade-foreground',
   [SubscriptionStatus.Canceled]: 'bg-red-100 text-red-800',
   [SubscriptionStatus.CancellationScheduled]:
     'bg-red-100 text-red-800',
@@ -131,9 +132,7 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
       const product = row.original.product
       return (
         <div>
-          <DataTableLinkableCell
-            href={`/store/products/${product.id}`}
-          >
+          <DataTableLinkableCell href={`/products/${product.id}`}>
             {product.name}
           </DataTableLinkableCell>
         </div>

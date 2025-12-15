@@ -29,7 +29,10 @@ import {
 import { idInputSchema } from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
 import { PriceType } from '@/types'
-import { generateOpenApiMetas } from '@/utils/openapi'
+import {
+  generateOpenApiMetas,
+  type RouteConfig,
+} from '@/utils/openapi'
 import {
   createUsageEventWithSlugSchema,
   ingestAndProcessUsageEvent,
@@ -43,6 +46,15 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
 })
 
 export const usageEventsRouteConfigs = routeConfigs
+
+export const usageEventsBulkRouteConfig: Record<string, RouteConfig> =
+  {
+    'POST /usage-events/bulk': {
+      procedure: 'usageEvents.bulkInsert',
+      pattern: /^usage-events\/bulk$/,
+      mapParams: (_, body) => body,
+    },
+  }
 
 export const createUsageEvent = protectedProcedure
   .meta(openApiMetas.POST)

@@ -310,6 +310,7 @@ export const stripeCurrencyAmountToHumanReadableCurrencyAmount = (
  * Uses Intl.NumberFormat.formatToParts() for reliable i18n support with multi-character
  * currency symbols (e.g., CHF, SEK, CN¥, R$).
  */
+// FIXME: This function is not Stripe-specific and should be moved to a more appropriate location
 export const getCurrencyParts = (
   currency: CurrencyCode,
   amount: number,
@@ -350,6 +351,38 @@ export const getCurrencyParts = (
     .join('')
 
   return { symbol, value }
+}
+
+/**
+ * Formats the billing period for display.
+ * Handles singular/plural forms and interval counts.
+ *
+ * @param intervalUnit - The billing interval unit (e.g., 'month', 'year')
+ * @param intervalCount - The number of intervals (e.g., 1, 3, 6)
+ * @returns Formatted billing period string (e.g., 'month', '3 months', 'one-time')
+ *
+ * @example
+ * formatBillingPeriod('month', 1) // 'month'
+ * formatBillingPeriod('month', 3) // '3 months'
+ * formatBillingPeriod(null, null) // 'one-time'
+ */
+// FIXME: This function is not Stripe-specific and should be moved to a more appropriate location
+export const formatBillingPeriod = (
+  intervalUnit: string | null | undefined,
+  intervalCount: number | null | undefined
+): string => {
+  if (!intervalUnit) return 'one-time'
+
+  const count = intervalCount || 1
+  const unit = intervalUnit.toLowerCase()
+
+  // Handle singular vs plural
+  if (count === 1) {
+    return unit
+  }
+
+  // Handle plural forms
+  return `${count} ${unit}s`
 }
 
 // Constants for readability and maintainability
@@ -828,11 +861,17 @@ export const getStripeInvoiceAndInvoiceLineItemsForPaymentIntent =
 export const createStripeCustomer = async (params: {
   email: string
   name: string
+  organizationId: string
   livemode: boolean
+  createdBy: 'createCustomerBookkeeping' | 'confirmCheckoutSession'
 }) => {
   return stripe(params.livemode).customers.create({
     email: params.email,
     name: params.name,
+    metadata: {
+      organizationId: params.organizationId,
+      createdBy: params.createdBy,
+    },
   })
 }
 

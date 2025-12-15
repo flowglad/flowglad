@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import core from '@/utils/core'
 import {
@@ -42,10 +42,18 @@ const stripeWebhookSigningSecret = ({
  * handled by a single endpoint, just with two different signing secrets.
  */
 export const POST = async (
-  request: Request,
-  { params }: { params: Promise<{ mode: WebhookMode }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ mode: string }> }
 ) => {
   const { mode } = await params
+  if (mode !== 'livemode' && mode !== 'testmode') {
+    return NextResponse.json(
+      {
+        error: `Invalid mode: ${mode}. Must be 'livemode' or 'testmode'`,
+      },
+      { status: 400 }
+    )
+  }
   try {
     const body = await request.text()
     const signature = request.headers.get('stripe-signature')

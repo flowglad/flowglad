@@ -2,6 +2,7 @@
 import { MoreHorizontal, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
+import MigrateCustomerPricingModelModal from '@/components/forms/MigrateCustomerPricingModelModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PopoverMenu, {
@@ -15,30 +16,29 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import type { Customer } from '@/db/schema/customers'
-import type { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
 import type { Payment } from '@/db/schema/payments'
 import type { Price } from '@/db/schema/prices'
-import type { Purchase } from '@/db/schema/purchases'
 import type { UsageEvent } from '@/db/schema/usageEvents'
 import { CustomerBillingSubPage } from './CustomerDetailsBillingTab'
 
 function InternalCustomerDetailsScreen({
   customer,
-  purchases,
-  invoices,
   payments,
   usageEvents,
 }: {
   customer: Customer.ClientRecord
-  purchases: Purchase.ClientRecord[]
-  invoices: InvoiceWithLineItems[]
   payments: Payment.ClientRecord[]
   prices: Price.ClientRecord[]
   usageEvents: UsageEvent.ClientRecord[]
 }) {
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isMigrateOpen, setIsMigrateOpen] = useState(false)
 
   const moreMenuItems: PopoverMenuItem[] = [
+    {
+      label: 'Migrate Pricing Model',
+      handler: () => setIsMigrateOpen(true),
+    },
     {
       label: 'Email customer',
       handler: () => {
@@ -82,8 +82,6 @@ function InternalCustomerDetailsScreen({
         <div className="pt-6">
           <CustomerBillingSubPage
             customer={customer}
-            purchases={purchases}
-            invoices={invoices}
             payments={payments}
             usageEvents={usageEvents}
           />
@@ -92,6 +90,11 @@ function InternalCustomerDetailsScreen({
       <EditCustomerModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
+        customer={customer}
+      />
+      <MigrateCustomerPricingModelModal
+        isOpen={isMigrateOpen}
+        setIsOpen={setIsMigrateOpen}
         customer={customer}
       />
     </InternalPageContainer>

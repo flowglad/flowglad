@@ -922,12 +922,13 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       expect(result.customer).toBeDefined()
       // Verify that updatePaymentIntent was called with the correct parameters
+      // Application fee includes payment method fee (59 cents) + Flowglad fee (0.65% of $10 = 7 cents) = 66 cents
       expect(updatePaymentIntent).toHaveBeenCalledWith(
         updatedCheckoutSession.stripePaymentIntentId,
         {
           customer: customer.stripeCustomerId,
           amount: price.unitPrice,
-          application_fee_amount: 59,
+          application_fee_amount: 66,
         },
         updatedCheckoutSession.livemode
       )
@@ -964,12 +965,13 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       expect(result.customer).toBeDefined()
       // Verify that updatePaymentIntent was called with the correct parameters
+      // Application fee includes payment method fee (59 cents) + Flowglad fee (0.65% of $10 = 7 cents) = 66 cents
       expect(updatePaymentIntent).toHaveBeenCalledWith(
         updatedCheckoutSession.stripePaymentIntentId,
         {
           customer: customer.stripeCustomerId,
           amount: 1000,
-          application_fee_amount: 59,
+          application_fee_amount: 66,
         },
         updatedCheckoutSession.livemode
       )
