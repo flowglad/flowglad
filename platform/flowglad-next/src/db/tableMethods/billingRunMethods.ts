@@ -1,6 +1,7 @@
 import { and, eq, lt } from 'drizzle-orm'
 import type { z } from 'zod'
 import {
+  type BillingRun,
   billingRuns,
   billingRunsInsertSchema,
   billingRunsSelectSchema,
@@ -42,7 +43,7 @@ const dangerouslyInsertBillingRun = createInsertFunction(
 export const safelyInsertBillingRun = async (
   insert: z.infer<typeof billingRunsInsertSchema>,
   transaction: DbTransaction
-) => {
+): Promise<BillingRun.Record | null> => {
   const subscription = await selectSubscriptionById(
     insert.subscriptionId,
     transaction
@@ -51,6 +52,10 @@ export const safelyInsertBillingRun = async (
     throw new Error(
       'Cannot create billing run for canceled subscription'
     )
+  }
+  // No-op for doNotCharge subscriptions - they should never have billing runs
+  if (subscription.doNotCharge) {
+    return null
   }
   return dangerouslyInsertBillingRun(insert, transaction)
 }

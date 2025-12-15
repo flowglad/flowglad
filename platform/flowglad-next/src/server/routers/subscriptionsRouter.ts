@@ -19,7 +19,6 @@ import {
   updateSubscriptionPaymentMethodSchema,
 } from '@/db/schema/subscriptions'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
-import { safelyInsertBillingRun } from '@/db/tableMethods/billingRunMethods'
 import {
   selectCustomerByExternalIdAndOrganizationId,
   selectCustomerById,
@@ -49,7 +48,7 @@ import {
 } from '@/db/tableUtils'
 import { adjustSubscription } from '@/subscriptions/adjustSubscription'
 import {
-  createBillingRunInsert,
+  createBillingRun,
   executeBillingRun,
 } from '@/subscriptions/billingRunHelpers'
 import {
@@ -637,6 +636,15 @@ const retryBillingRunProcedure = protectedProcedure
           billingPeriod.subscriptionId,
           transaction
         )
+
+        if (subscription.doNotCharge) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Cannot retry billing for doNotCharge subscriptions',
+          })
+        }
+
         const paymentMethod = subscription.defaultPaymentMethodId
           ? await selectPaymentMethodById(
               subscription.defaultPaymentMethodId,
@@ -659,12 +667,22 @@ const retryBillingRunProcedure = protectedProcedure
           })
         }
 
-        const billingRunInsert = createBillingRunInsert({
-          billingPeriod,
-          scheduledFor: new Date(),
-          paymentMethod,
-        })
-        return safelyInsertBillingRun(billingRunInsert, transaction)
+        const billingRun = await createBillingRun(
+          {
+            billingPeriod,
+            scheduledFor: new Date(),
+            paymentMethod,
+          },
+          transaction
+        )
+        if (!billingRun) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Cannot create billing run for doNotCharge subscription',
+          })
+        }
+        return billingRun
       },
       { apiKey: ctx.apiKey }
     )
