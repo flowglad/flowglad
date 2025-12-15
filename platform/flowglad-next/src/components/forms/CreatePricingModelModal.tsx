@@ -200,7 +200,7 @@ const CreatePricingModelModal: React.FC<
               <button
                 type="button"
                 onClick={handleStartFromScratch}
-                className="group flex items-center gap-4 p-4 rounded bg-card hover:bg-accent hover:border-muted-foreground transition-colors text-left w-full"
+                className="group flex items-center gap-4 p-4 rounded bg-accent hover:bg-[hsl(0_0%_0%/10%)] dark:hover:bg-[hsl(0_0%_100%/15%)] transition-colors text-left w-full"
               >
                 <div className="flex items-center justify-center h-10 w-10">
                   <CircleDashed className="h-8 w-8 text-foreground" />
@@ -221,7 +221,7 @@ const CreatePricingModelModal: React.FC<
               <button
                 type="button"
                 onClick={handleStartWithTemplate}
-                className="group flex items-center gap-4 p-4 rounded bg-card hover:bg-accent hover:border-muted-foreground transition-colors text-left w-full"
+                className="group flex items-center gap-4 p-4 rounded bg-accent hover:bg-[hsl(0_0%_0%/10%)] dark:hover:bg-[hsl(0_0%_100%/15%)] transition-colors text-left w-full"
               >
                 <div className="flex items-center justify-center h-10 w-10">
                   <Shapes className="h-8 w-8 text-foreground" />
