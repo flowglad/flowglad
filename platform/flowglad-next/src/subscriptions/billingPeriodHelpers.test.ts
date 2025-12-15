@@ -1,11 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -20,7 +13,6 @@ import {
   setupPaymentMethod,
   setupProductFeature,
   setupSubscription,
-  setupSubscriptionItem,
   setupSubscriptionItemFeature,
   setupUsageCredit,
   setupUsageCreditApplication,
@@ -33,8 +25,6 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import { processBillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/billingPeriodTransitionLedgerCommand'
-import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import type { Customer } from '@/db/schema/customers'
@@ -47,7 +37,6 @@ import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
-import { UsageCredit } from '@/db/schema/usageCredits'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import {
   selectBillingPeriods,
@@ -78,7 +67,6 @@ import {
   PaymentStatus,
   SubscriptionItemType,
   SubscriptionStatus,
-  UsageCreditStatus,
   UsageCreditType,
 } from '@/types'
 import core from '@/utils/core'
@@ -97,7 +85,6 @@ let organization: Organization.Record
 let pricingModel: PricingModel.Record
 let price: Price.Record
 let product: Product.Record
-let pastBillingPeriod: BillingPeriod.Record
 
 describe('Subscription Billing Period Transition', async () => {
   const { organization, price, product, pricingModel } =
@@ -619,6 +606,96 @@ describe('Subscription Billing Period Transition', async () => {
       ).rejects.toThrow(
         `Cannot transition subscription ${subscription.id} in credit trial status`
       )
+    })
+  })
+
+  describe('doNotCharge subscriptions', () => {
+    it('should stay Active when transitioning billing periods without payment method', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Update subscription to doNotCharge=true and remove payment methods
+        await updateSubscription(
+          {
+            id: subscription.id,
+            doNotCharge: true,
+            defaultPaymentMethodId: null,
+            backupPaymentMethodId: null,
+            status: SubscriptionStatus.Active,
+            renews: subscription.renews,
+          },
+          transaction
+        )
+        // Ensure current billing period endDate is in the past
+        const updatedBillingPeriod = await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            endDate: Date.now() - 1000,
+          },
+          transaction
+        )
+
+        const {
+          result: {
+            subscription: updatedSub,
+            billingRun: newBillingRun,
+          },
+        } = await attemptToTransitionSubscriptionBillingPeriod(
+          updatedBillingPeriod,
+          transaction
+        )
+
+        // doNotCharge subscription should remain Active (not PastDue)
+        expect(updatedSub.status).toBe(SubscriptionStatus.Active)
+        // No billing run should be created
+        expect(newBillingRun).toBeNull()
+        // New billing period should be created
+        expect(updatedSub.currentBillingPeriodStart).toBeGreaterThan(
+          billingPeriod.startDate
+        )
+      })
+    })
+
+    // Defensive test: API validation should prevent doNotCharge=true with payment methods,
+    // but we test this edge case to ensure the billing period transition logic handles it correctly
+    it('should not create billing run even with payment method available', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Update subscription to doNotCharge=true but keep payment method
+        await updateSubscription(
+          {
+            id: subscription.id,
+            doNotCharge: true,
+            status: SubscriptionStatus.Active,
+            renews: subscription.renews,
+          },
+          transaction
+        )
+        // Ensure current billing period endDate is in the past
+        const updatedBillingPeriod = await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            endDate: Date.now() - 1000,
+          },
+          transaction
+        )
+
+        const {
+          result: {
+            subscription: updatedSub,
+            billingRun: newBillingRun,
+          },
+        } = await attemptToTransitionSubscriptionBillingPeriod(
+          updatedBillingPeriod,
+          transaction
+        )
+
+        // Should remain Active
+        expect(updatedSub.status).toBe(SubscriptionStatus.Active)
+        // No billing run should be created even though payment method exists
+        expect(newBillingRun).toBeNull()
+        // New billing period should be created
+        expect(updatedSub.currentBillingPeriodStart).toBeGreaterThan(
+          billingPeriod.startDate
+        )
+      })
     })
   })
 })
