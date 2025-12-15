@@ -18,6 +18,7 @@ import {
   type CreatePricingModelInput,
   createPricingModelSchema,
 } from '@/db/schema/pricingModels'
+import { IntervalUnit } from '@/types'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 import type { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 import { generateTemplateName } from '@/utils/pricingModelTemplates'
@@ -49,7 +50,11 @@ const CreatePricingModelModal: React.FC<
   // Form for blank pricing model creation
   const form = useForm<CreatePricingModelInput>({
     resolver: zodResolver(createPricingModelSchema),
-    defaultValues: { pricingModel: { name: '' } },
+    defaultValues: {
+      pricingModel: { name: '' },
+      defaultPlanIntervalUnit: IntervalUnit.Month,
+    },
+    mode: 'onSubmit',
   })
 
   // TRPC mutations
@@ -87,7 +92,10 @@ const CreatePricingModelModal: React.FC<
     setCurrentView('selector')
     setSelectedTemplate(null)
     setParsedYamlData(null)
-    form.reset({ pricingModel: { name: '' } })
+    form.reset({
+      pricingModel: { name: '' },
+      defaultPlanIntervalUnit: IntervalUnit.Month,
+    })
   }
 
   const handleTemplateSelect = (template: PricingModelTemplate) => {
