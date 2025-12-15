@@ -321,7 +321,7 @@ describe('adjustSubscription Integration Tests', async () => {
         subscriptionId: doNotChargeSubscription.id,
         name: 'Item 1',
         quantity: 1,
-        unitPrice: 100,
+        unitPrice: 0, // doNotCharge subscription items don't have unit prices
       })
       await adminTransaction(async ({ transaction }) => {
         const orgWithFeatureFlag = await updateOrganization(
