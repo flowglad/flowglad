@@ -675,11 +675,11 @@ const retryBillingRunProcedure = protectedProcedure
           },
           transaction
         )
+        // Guard clause for type safety (should never be null since we checked doNotCharge)
         if (!billingRun) {
           throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Cannot create billing run for doNotCharge subscription',
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to create billing run',
           })
         }
         return billingRun
