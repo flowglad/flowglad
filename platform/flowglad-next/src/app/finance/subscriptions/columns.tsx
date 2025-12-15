@@ -6,7 +6,6 @@ import { X } from 'lucide-react'
 import * as React from 'react'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
 import { Badge } from '@/components/ui/badge'
-import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 import {
   type ActionMenuItem,
@@ -156,40 +155,6 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
     },
     size: 100,
     minSize: 100,
-    maxSize: 150,
-  },
-  {
-    id: 'canceledAt',
-    accessorFn: (row) => row.subscription.canceledAt,
-    header: 'Canceled',
-    cell: ({ row }) => {
-      const date = row.getValue('canceledAt') as Date | null
-      return (
-        <div className="whitespace-nowrap">
-          {date ? formatDate(date, false) : '-'}
-        </div>
-      )
-    },
-    size: 100,
-    minSize: 100,
-    maxSize: 150,
-  },
-  {
-    id: 'subscriptionId',
-    accessorFn: (row) => row.subscription.id,
-    header: 'ID',
-    cell: ({ row }) => {
-      const id = row.getValue('subscriptionId') as string
-      return (
-        <div>
-          <DataTableCopyableCell copyText={id}>
-            {id}
-          </DataTableCopyableCell>
-        </div>
-      )
-    },
-    size: 120,
-    minSize: 120,
     maxSize: 150,
   },
   {
