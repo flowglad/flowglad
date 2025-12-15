@@ -499,6 +499,7 @@ export const setupSubscription = async (params: {
           startDate: Date.now(),
           renews: false,
           isFreePlan: params.isFreePlan ?? false,
+          doNotCharge: params.doNotCharge ?? false,
           cancellationReason: params.cancellationReason ?? null,
           replacedBySubscriptionId:
             params.replacedBySubscriptionId ?? null,
