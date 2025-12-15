@@ -3305,6 +3305,18 @@ describe('billingRunHelpers', async () => {
       )
       expect(usageLineItems.length).toBe(0)
 
+      // Usage events should be recorded in ledger
+      const entries = await adminTransaction(
+        async ({ transaction }) => {
+          return selectLedgerEntries(
+            { ledgerAccountId: ledgerAccount.id },
+            transaction
+          )
+        }
+      )
+      expect(entries.length).toBe(1)
+      expect(entries[0].amount).toBe(1000)
+
       // Verify usage costs exist but were excluded from billing
       const { rawOutstandingUsageCosts } = await adminTransaction(
         async ({ transaction }) => {
@@ -3323,65 +3335,6 @@ describe('billingRunHelpers', async () => {
       // Finally, verify totalDueAmount excludes usage costs
       // Since billing period item has unitPrice: 0 and usage costs are excluded, totalDueAmount should be 0
       expect(result.totalDueAmount).toBe(0)
-    })
-
-    it('should still record usage events for doNotCharge subscriptions', async () => {
-      // Create usage events
-      const ledgerTransaction = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: doNotChargeSubscription.id,
-        type: LedgerTransactionType.UsageEventProcessed,
-      })
-
-      const usageEvent = await setupUsageEvent({
-        organizationId: organization.id,
-        subscriptionId: doNotChargeSubscription.id,
-        usageMeterId: usageMeter.id,
-        amount: 500,
-        priceId: usageBasedPrice.id,
-        billingPeriodId: billingPeriod.id,
-        transactionId: 'dnc_record_test_' + Math.random(),
-        customerId: customer.id,
-      })
-
-      await setupDebitLedgerEntry({
-        organizationId: organization.id,
-        subscriptionId: doNotChargeSubscription.id,
-        ledgerAccountId: ledgerAccount.id,
-        ledgerTransactionId: ledgerTransaction.id,
-        amount: 500,
-        entryType: LedgerEntryType.UsageCost,
-        sourceUsageEventId: usageEvent.id,
-        status: LedgerEntryStatus.Posted,
-        usageMeterId: usageMeter.id,
-      })
-
-      // Usage events should be recorded in ledger
-      const entries = await adminTransaction(
-        async ({ transaction }) => {
-          return selectLedgerEntries(
-            { ledgerAccountId: ledgerAccount.id },
-            transaction
-          )
-        }
-      )
-
-      expect(entries.length).toBe(1)
-      expect(entries[0].amount).toBe(500)
-
-      // The raw usage costs should still exist (they're recorded), they're just not included in billing
-      const { rawOutstandingUsageCosts } = await adminTransaction(
-        async ({ transaction }) => {
-          return tabulateOutstandingUsageCosts(
-            doNotChargeSubscription.id,
-            billingPeriod.endDate,
-            transaction
-          )
-        }
-      )
-
-      // The raw usage costs should exist (they're recorded)
-      expect(rawOutstandingUsageCosts.length).toBe(1)
     })
   })
 })

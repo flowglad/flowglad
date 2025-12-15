@@ -358,8 +358,7 @@ export const processOutcomeForBillingRun = async (
     transaction
   )
 
-  // For doNotCharge subscriptions, skip usage overages - they're recorded but not charged
-  const rawOverages = await aggregateOutstandingBalanceForUsageCosts(
+  const overages = await aggregateOutstandingBalanceForUsageCosts(
     {
       ledgerAccountId: claimedLedgerEntries.map(
         (entry) => entry.ledgerAccountId!
@@ -368,7 +367,6 @@ export const processOutcomeForBillingRun = async (
     new Date(billingPeriod.endDate),
     transaction
   )
-  const overages = subscription.doNotCharge ? [] : rawOverages
 
   const { totalDueAmount } =
     await calculateFeeAndTotalAmountDueForBillingPeriod(
