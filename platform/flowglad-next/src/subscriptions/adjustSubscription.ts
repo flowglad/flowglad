@@ -161,8 +161,8 @@ export const syncSubscriptionWithActiveItems = async (
       currentTime,
       transaction
     )
-  const activeItems = allActiveSubscriptionItems.filter((item) =>
-    isNonManualSubscriptionItem(item)
+  const activeItems = allActiveSubscriptionItems.filter(
+    isNonManualSubscriptionItem
   )
 
   if (activeItems.length === 0) {
@@ -266,7 +266,7 @@ export const adjustSubscription = async (
 
   // Filter out manual items first
   const nonManualSubscriptionItems = newSubscriptionItems.filter(
-    (item) => isNonManualSubscriptionItem(item)
+    isNonManualSubscriptionItem
   )
 
   const priceIds = nonManualSubscriptionItems

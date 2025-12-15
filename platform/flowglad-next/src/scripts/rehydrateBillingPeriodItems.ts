@@ -59,8 +59,8 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
     }
     const billingPeriodItemInserts: BillingPeriodItem.Insert[] = []
     if (result?.subscriptionItems) {
-      const planItems = result.subscriptionItems.filter((item) =>
-        isSubscriptionItemActiveAndNonManual(item)
+      const planItems = result.subscriptionItems.filter(
+        isSubscriptionItemActiveAndNonManual
       )
 
       for (const item of planItems) {
