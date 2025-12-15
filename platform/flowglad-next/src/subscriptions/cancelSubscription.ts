@@ -704,6 +704,7 @@ const determinePreviousSubscriptionStatus = (
 /**
  * Reschedules billing runs for uncanceled billing periods.
  * - For paid subscriptions: Requires a valid payment method before allowing uncancel.
+ * - For free or doNotCharge subscriptions: No payment method required, no billing runs created.
  * - Creates NEW billing runs for periods with Aborted runs.
  * - Leaves Scheduled runs as-is (already valid).
  * - Skips terminal runs (Succeeded/Failed).
@@ -723,7 +724,12 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
     : null
 
   // Security check: For paid subscriptions, require payment method
-  if (!subscription.isFreePlan && !paymentMethod) {
+  // doNotCharge subscriptions are exempt from this requirement
+  if (
+    !subscription.isFreePlan &&
+    !subscription.doNotCharge &&
+    !paymentMethod
+  ) {
     throw new TRPCError({
       code: 'BAD_REQUEST',
       message:
@@ -732,7 +738,7 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
   }
 
   if (!paymentMethod) {
-    // Free subscription with no payment method - no billing runs needed
+    // Free or doNotCharge subscription with no payment method - no billing runs needed
     return
   }
 
@@ -812,6 +818,7 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
  * Security:
  * - For paid subscriptions, requires a valid payment method.
  * - For free subscriptions, allows uncancel without payment method.
+ * - For doNotCharge subscriptions, allows uncancel without payment method.
  */
 export const uncancelSubscription = async (
   subscription: Subscription.Record,
