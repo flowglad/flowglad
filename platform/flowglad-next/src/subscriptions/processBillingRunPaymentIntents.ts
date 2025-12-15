@@ -1,5 +1,4 @@
 import type Stripe from 'stripe'
-import { adminTransaction } from '@/db/adminTransaction'
 import type {
   BillingPeriodTransitionLedgerCommand,
   LedgerCommand,
@@ -27,7 +26,6 @@ import {
   selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
 } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
-  safelyUpdateInvoiceStatus,
   selectInvoiceById,
   selectInvoices,
   updateInvoice,
@@ -41,10 +39,7 @@ import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
-import {
-  safelyUpdateSubscriptionStatus,
-  updateSubscription,
-} from '@/db/tableMethods/subscriptionMethods'
+import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { DbTransaction } from '@/db/types'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
@@ -363,7 +358,8 @@ export const processOutcomeForBillingRun = async (
     transaction
   )
 
-  const overages = await aggregateOutstandingBalanceForUsageCosts(
+  // For doNotCharge subscriptions, skip usage overages - they're recorded but not charged
+  const rawOverages = await aggregateOutstandingBalanceForUsageCosts(
     {
       ledgerAccountId: claimedLedgerEntries.map(
         (entry) => entry.ledgerAccountId!
@@ -372,6 +368,7 @@ export const processOutcomeForBillingRun = async (
     new Date(billingPeriod.endDate),
     transaction
   )
+  const overages = subscription.doNotCharge ? [] : rawOverages
 
   const { totalDueAmount } =
     await calculateFeeAndTotalAmountDueForBillingPeriod(
