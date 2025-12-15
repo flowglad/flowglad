@@ -3289,8 +3289,7 @@ describe('billingRunHelpers', async () => {
       )
 
       // Verify subscription has doNotCharge flag
-      expect(result).toBeDefined()
-      expect(result.subscription.doNotCharge).toBe(true)
+      expect(result?.subscription?.doNotCharge).toBe(true)
 
       // Verify invoice line items don't include usage items
       const invoiceLineItems = await adminTransaction(
@@ -3370,7 +3369,7 @@ describe('billingRunHelpers', async () => {
       expect(entries.length).toBe(1)
       expect(entries[0].amount).toBe(500)
 
-      // But when we run billing calculation, overages should be empty
+      // The raw usage costs should still exist (they're recorded), they're just not included in billing
       const { rawOutstandingUsageCosts } = await adminTransaction(
         async ({ transaction }) => {
           return tabulateOutstandingUsageCosts(
