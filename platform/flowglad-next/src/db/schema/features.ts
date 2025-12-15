@@ -116,7 +116,7 @@ export const {
  */
 const usageCreditGrantFeatureSharedColumns = {
   type: z.literal(FeatureType.UsageCreditGrant),
-  amount: z.number().int(),
+  amount: core.safeZodPositiveInteger,
   usageMeterId: z.string(),
   renewalFrequency: core.createSafeZodEnum(
     FeatureUsageGrantFrequency
