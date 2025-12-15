@@ -253,6 +253,11 @@ export const adjustSubscription = async (
       `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be adjusted.`
     )
   }
+  if (subscription.doNotCharge) {
+    throw new Error(
+      'Cannot adjust doNotCharge subscriptions. Cancel and create a new subscription instead.'
+    )
+  }
 
   const priceIds = newSubscriptionItems.map((item) => item.priceId)
   const prices = await selectPrices({ id: priceIds }, transaction)
