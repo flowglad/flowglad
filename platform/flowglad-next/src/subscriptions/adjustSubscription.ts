@@ -34,6 +34,7 @@ import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import { createBillingRun } from './billingRunHelpers'
 import type { AdjustSubscriptionParams } from './schemas'
+import { isNonManualSubscriptionItem } from './subscriptionItemHelpers'
 
 export const calculateSplitInBillingPeriodBasedOnAdjustmentDate = (
   adjustmentDate: Date | number,
@@ -154,13 +155,14 @@ export const syncSubscriptionWithActiveItems = async (
 ): Promise<Subscription.StandardRecord> => {
   const { subscriptionId, currentTime } = params
   // Get all currently active subscription items at the specified time
-  let activeItems = await selectCurrentlyActiveSubscriptionItems(
-    { subscriptionId },
-    currentTime,
-    transaction
-  )
-  activeItems = activeItems.filter(
-    (item) => !item.manuallyCreated && item.priceId !== null
+  const allActiveSubscriptionItems =
+    await selectCurrentlyActiveSubscriptionItems(
+      { subscriptionId },
+      currentTime,
+      transaction
+    )
+  const activeItems = allActiveSubscriptionItems.filter((item) =>
+    isNonManualSubscriptionItem(item)
   )
 
   if (activeItems.length === 0) {
@@ -258,16 +260,16 @@ export const adjustSubscription = async (
   }
 
   // Filter out manual items first
-  const planItems = newSubscriptionItems.filter(
-    (item) => !item.manuallyCreated && item.priceId !== null
+  const nonManualSubscriptionItems = newSubscriptionItems.filter(
+    (item) => isNonManualSubscriptionItem(item)
   )
 
-  const priceIds = planItems
+  const priceIds = nonManualSubscriptionItems
     .map((item) => item.priceId)
     .filter((id): id is string => id !== null)
   const prices = await selectPrices({ id: priceIds }, transaction)
   const priceMap = new Map(prices.map((price) => [price.id, price]))
-  planItems.forEach((item) => {
+  nonManualSubscriptionItems.forEach((item) => {
     const price = priceMap.get(item.priceId!)
     if (!price) {
       throw new Error(`Price ${item.priceId} not found`)

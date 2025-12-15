@@ -13,6 +13,7 @@ import {
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { isSubscriptionItemActiveAndNonManual } from '@/subscriptions/subscriptionItemHelpers'
 import { PriceType, SubscriptionItemType } from '@/types'
 import runScript from './scriptRunner'
 
@@ -58,8 +59,8 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
     }
     const billingPeriodItemInserts: BillingPeriodItem.Insert[] = []
     if (result?.subscriptionItems) {
-      const planItems = result.subscriptionItems.filter(
-        (item) => !item.manuallyCreated && item.priceId !== null
+      const planItems = result.subscriptionItems.filter((item) =>
+        isSubscriptionItemActiveAndNonManual(item)
       )
 
       for (const item of planItems) {

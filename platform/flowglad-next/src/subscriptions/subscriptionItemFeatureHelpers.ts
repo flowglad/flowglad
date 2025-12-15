@@ -340,6 +340,12 @@ const ensureFeatureBelongsToCustomerPricingModel = async ({
       )
     }
 
+    if (defaultPricingModels.length > 1) {
+      throw new Error(
+        `Multiple default pricing models found for organization ${customer.organizationId}`
+      )
+    }
+
     customerPricingModelId = defaultPricingModels[0].id
   }
 
@@ -468,7 +474,38 @@ const findOrCreateManualSubscriptionItem = async (
     livemode,
   }
 
-  return await insertSubscriptionItem(manualItemInsert, transaction)
+  try {
+    return await insertSubscriptionItem(manualItemInsert, transaction)
+  } catch (error: unknown) {
+    // Handle race condition: if another request created the manual item concurrently,
+    // catch the unique constraint violation and fetch the existing item
+    const pgError = error as {
+      code?: string
+      constraint_name?: string
+    }
+    if (
+      pgError.code === '23505' &&
+      pgError.constraint_name ===
+        'subscription_items_manual_unique_idx'
+    ) {
+      // Re-fetch the manual item that was created by the concurrent request
+      const existingManualItems = await selectSubscriptionItems(
+        {
+          subscriptionId,
+          manuallyCreated: true,
+          expiredAt: null,
+        },
+        transaction
+      )
+      if (existingManualItems.length > 0) {
+        return existingManualItems[0]
+      }
+      // If still not found, re-throw the original error
+      throw error
+    }
+    // Re-throw any other errors
+    throw error
+  }
 }
 
 export const addFeatureToSubscriptionItem = async (

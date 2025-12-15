@@ -2,12 +2,21 @@ ALTER TABLE "subscription_items" ALTER COLUMN "price_id" DROP NOT NULL;--> state
 ALTER TABLE "subscription_items" ADD COLUMN "manually_created" boolean DEFAULT false NOT NULL;
 ALTER TABLE "subscription_items" ADD CONSTRAINT "subscription_items_manual_check"
 CHECK (
-    ("price_id" IS NULL AND "manually_created" = true AND "unit_price" = 0)
-    OR ("price_id" IS NOT NULL)
+    (
+      "manually_created" = true
+      AND "price_id" is NULL
+      AND "unit_price" = 0
+      AND "quantity" = 0
+    )
+    OR (
+      "manually_created" = false
+      AND "price_id" IS NOT NULL
+      AND "quantity" > 0
+    )
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "subscription_items_manual_unique_idx" 
 ON "subscription_items" ("subscription_id") 
-WHERE "manually_created" = true;
+WHERE "manually_created" = true and "expired_at" IS NULL;
 -- Data Migration: Create manual subscription items and migrate features
 DO $$
 DECLARE

@@ -27,6 +27,7 @@ import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import {
+  expireSubscriptionItems,
   insertSubscriptionItem,
   selectSubscriptionItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
@@ -498,7 +499,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         })
 
         // Create a manual subscription item (no priceId)
-        await insertSubscriptionItem(
+        const manualItem = await insertSubscriptionItem(
           {
             subscriptionId: subscription.id,
             name: 'Manual Features',
@@ -517,7 +518,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         )
 
         const createdFeatures = await createSubscriptionFeatureItems(
-          [regularItem],
+          [regularItem, manualItem],
           transaction
         )
 
@@ -1043,7 +1044,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
       ).rejects.toThrow()
     })
 
-    it('should reject when unit_price is not zero', async () => {
+    it('should reject when unitPrice is not zero', async () => {
       const testSubscription = await setupSubscription({
         organizationId: orgData.organization.id,
         customerId: customer.id,
@@ -1106,7 +1107,6 @@ describe('SubscriptionItemFeatureHelpers', () => {
         }
       )
 
-      expect(validManualItem).toBeDefined()
       expect(validManualItem.priceId).toBeNull()
       expect(validManualItem.manuallyCreated).toBe(true)
       expect(validManualItem.unitPrice).toBe(0)
@@ -1164,6 +1164,169 @@ describe('SubscriptionItemFeatureHelpers', () => {
           )
         })
       ).rejects.toThrow()
+    })
+
+    it('should reject manual item with quantity != 0', async () => {
+      const testSubscription = await setupSubscription({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        priceId: priceForFeatures.id,
+        paymentMethodId: paymentMethod.id,
+        livemode: true,
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'Invalid Manual Item',
+              priceId: null,
+              unitPrice: 0,
+              quantity: 1, // Should be 0
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: true,
+              livemode: testSubscription.livemode,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should reject manual item with priceId != null', async () => {
+      const testSubscription = await setupSubscription({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        priceId: priceForFeatures.id,
+        paymentMethodId: paymentMethod.id,
+        livemode: true,
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'Invalid Manual Item',
+              priceId: priceForFeatures.id, // Should be null
+              unitPrice: 0,
+              quantity: 0,
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: true,
+              livemode: testSubscription.livemode,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should reject non-manual item with quantity = 0', async () => {
+      const testSubscription = await setupSubscription({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        priceId: priceForFeatures.id,
+        paymentMethodId: paymentMethod.id,
+        livemode: true,
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'Invalid Item',
+              priceId: priceForFeatures.id,
+              unitPrice: 1000,
+              quantity: 0, // Should be > 0
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: false,
+              livemode: testSubscription.livemode,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should allow creating new manual item after expiring the old one', async () => {
+      const testSubscription = await setupSubscription({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        priceId: priceForFeatures.id,
+        paymentMethodId: paymentMethod.id,
+        livemode: true,
+      })
+
+      // Create first manual item
+      const firstManualItem = await adminTransaction(
+        async ({ transaction }) => {
+          return insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'First Manual Item',
+              priceId: null,
+              unitPrice: 0,
+              quantity: 0,
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: true,
+              livemode: testSubscription.livemode,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Expire the first manual item
+      await adminTransaction(async ({ transaction }) => {
+        await expireSubscriptionItems(
+          [firstManualItem.id],
+          Date.now(),
+          transaction
+        )
+      })
+
+      // Should be able to create a new manual item after expiring the old one
+      const secondManualItem = await adminTransaction(
+        async ({ transaction }) => {
+          return insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'Second Manual Item',
+              priceId: null,
+              unitPrice: 0,
+              quantity: 0,
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: true,
+              livemode: testSubscription.livemode,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(secondManualItem.id).not.toBe(firstManualItem.id)
     })
   })
 })
