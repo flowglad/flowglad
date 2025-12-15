@@ -146,10 +146,12 @@ export const confirmCheckoutSessionTransaction = async (
       // Create stripe customer if customer exists but has no stripe ID
       const stripeCustomer = await createStripeCustomer({
         email: checkoutSession.customerEmail,
+        organizationId: checkoutSession.organizationId,
         name:
           checkoutSession.customerName ||
           checkoutSession.customerEmail,
         livemode: checkoutSession.livemode,
+        createdBy: 'confirmCheckoutSession',
       })
       stripeCustomerId = stripeCustomer.id
 

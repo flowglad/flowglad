@@ -17,7 +17,6 @@ import {
   idInputSchema,
 } from '@/db/tableUtils'
 import { confirmCheckoutSession } from '@/server/mutations/confirmCheckoutSession'
-import { createPurchase } from '@/server/mutations/createPurchase'
 import { editCheckoutSession } from '@/server/mutations/editCheckoutSession'
 import { requestPurchaseAccessSession } from '@/server/mutations/requestPurchaseAccessSession'
 import { protectedProcedure, router } from '@/server/trpc'
@@ -68,7 +67,6 @@ export const purchasesRouter = router({
   // Get single purchase
   get: getPurchaseProcedure,
   // Create purchase
-  create: createPurchase,
   // Purchase session management
   updateSession: editCheckoutSession,
   confirmSession: confirmCheckoutSession,

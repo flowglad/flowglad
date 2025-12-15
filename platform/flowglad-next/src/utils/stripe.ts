@@ -861,11 +861,17 @@ export const getStripeInvoiceAndInvoiceLineItemsForPaymentIntent =
 export const createStripeCustomer = async (params: {
   email: string
   name: string
+  organizationId: string
   livemode: boolean
+  createdBy: 'createCustomerBookkeeping' | 'confirmCheckoutSession'
 }) => {
   return stripe(params.livemode).customers.create({
     email: params.email,
     name: params.name,
+    metadata: {
+      organizationId: params.organizationId,
+      createdBy: params.createdBy,
+    },
   })
 }
 
