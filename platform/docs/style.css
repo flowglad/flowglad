@@ -14,7 +14,9 @@
   8. Border Colors.................Line 660
   9. Tab Button Borders............Line 810
   10. Border Radius................Line 860
-  11. Mermaid Diagrams.............Line 1290
+  11. Code Block Fade Overlay......Line 1350
+  12. Mermaid Diagrams.............Line 1370
+  13. Logo Size Override...........Line 1440
 */
 
 /* ========================================
@@ -1256,7 +1258,7 @@ html.dark #page-context-menu > button:last-child:hover {
 }
 
 /* ========================================
-   10. MERMAID DIAGRAM COLORS
+   12. MERMAID DIAGRAM COLORS
    ======================================== */
 
 /* Mermaid flowchart styling with orange theme */
@@ -1346,7 +1348,23 @@ html.dark .mermaid .arrowMarkerPath {
    more specific selectors above or create additional rules below. */
 
 /* ========================================
-   11. LOGO SIZE OVERRIDE
+   11. CODE BLOCK FADE OVERLAY
+   ======================================== */
+
+/* Override the fade overlay colors to match Flowglad theme */
+[data-fade-overlay="true"] {
+  --fade-color-light: #ffffff !important;
+  --fade-color-dark: #3f3935 !important;
+}
+
+.dark [data-fade-overlay="true"],
+html.dark [data-fade-overlay="true"] {
+  --fade-color-light: #ffffff !important;
+  --fade-color-dark: #3f3935 !important;
+}
+
+/* ========================================
+   13. LOGO SIZE OVERRIDE
    ======================================== */
 
 /* Make logo smaller than default h-7 (28px) */
