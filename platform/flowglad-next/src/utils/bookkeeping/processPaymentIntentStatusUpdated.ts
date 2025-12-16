@@ -393,6 +393,16 @@ export const ledgerCommandForPaymentSucceeded = async (
     return undefined
   }
 
+  if (
+    usageCreditFeature.amount === null ||
+    usageCreditFeature.amount === undefined ||
+    usageCreditFeature.amount < 1
+  ) {
+    throw new Error(
+      `Usage credit feature for ${usageCreditFeature.id} too small: expected number to be >0`
+    )
+  }
+
   const subscription = await selectCurrentSubscriptionForCustomer(
     params.payment.customerId,
     transaction
