@@ -1,6 +1,12 @@
 'use client'
 
-import { Check, Loader2, Settings2, X } from 'lucide-react'
+import {
+  AlertCircle,
+  Check,
+  Loader2,
+  Settings2,
+  X,
+} from 'lucide-react'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -57,9 +63,11 @@ export interface DataTableFilterPopoverProps<
   defaultValues: T
   /**
    * Neutral values representing "no filter applied" state (typically "all" options).
-   * Used for badge calculation. If not provided, defaults to defaultValues.
+   * Used for badge calculation and the "Reset filters" action.
+   * If not provided, defaults to defaultValues for both purposes.
    * This allows defaulting to a filtered state (e.g., "Paid Only") while still
-   * showing the badge count since a filter is technically applied.
+   * showing the badge count since a filter is technically applied, and resetting
+   * to the unfiltered state (e.g., "All plans") when the user clicks reset.
    */
   neutralValues?: T
   /** Disabled state */
@@ -206,6 +214,7 @@ function AsyncSelectSection({
   >([])
   const [isLoading, setIsLoading] = React.useState(false)
   const [hasLoaded, setHasLoaded] = React.useState(false)
+  const [hasError, setHasError] = React.useState(false)
 
   // Extract loadOptions to avoid depending on the entire section object
   const { loadOptions } = section
@@ -213,24 +222,35 @@ function AsyncSelectSection({
   // Reset hasLoaded when loadOptions changes so options are reloaded
   React.useEffect(() => {
     setHasLoaded(false)
+    setHasError(false)
   }, [loadOptions])
 
+  const fetchOptions = React.useCallback(() => {
+    setIsLoading(true)
+    setHasError(false)
+    loadOptions()
+      .then((loadedOptions) => {
+        setOptions(loadedOptions)
+        setHasLoaded(true)
+      })
+      .catch((error: unknown) => {
+        console.error(
+          `Failed to load options for filter "${section.label}":`,
+          error
+        )
+        setOptions([])
+        setHasError(true)
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }, [loadOptions, section.label])
+
   React.useEffect(() => {
-    if (isOpen && !hasLoaded) {
-      setIsLoading(true)
-      loadOptions()
-        .then((loadedOptions) => {
-          setOptions(loadedOptions)
-          setHasLoaded(true)
-        })
-        .catch(() => {
-          setOptions([])
-        })
-        .finally(() => {
-          setIsLoading(false)
-        })
+    if (isOpen && !hasLoaded && !hasError) {
+      fetchOptions()
     }
-  }, [isOpen, hasLoaded, loadOptions])
+  }, [isOpen, hasLoaded, hasError, fetchOptions])
 
   return (
     <div className="space-y-2">
@@ -238,9 +258,21 @@ function AsyncSelectSection({
         {section.label}
       </Label>
       {isLoading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2 pl-2">
           <Loader2 className="size-4 animate-spin" />
           <span>Loading...</span>
+        </div>
+      ) : hasError ? (
+        <div className="flex items-center gap-2 text-sm text-destructive py-2 pl-2">
+          <AlertCircle className="size-4 flex-shrink-0" />
+          <span>Failed to load.</span>
+          <button
+            type="button"
+            onClick={fetchOptions}
+            className="text-primary hover:underline focus:outline-none"
+          >
+            Retry
+          </button>
         </div>
       ) : (
         <div className="flex flex-col mx-0">
@@ -291,7 +323,7 @@ export function DataTableFilterPopover<
   )
 
   const handleReset = () => {
-    onChange(defaultValues)
+    onChange(neutralValues ?? defaultValues)
   }
 
   const handleValueChange = (
