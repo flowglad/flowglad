@@ -17,6 +17,16 @@
 
 This example integrates sign-in with email using Better Auth. It uses Prisma SQLite for development, but we recommend using a deployed database. You can learn more about the databases supported by Better Auth in the [Databases](https://www.better-auth.com/docs/concepts/database) docs.
 
+## Run playground app
+1. Create .env with your Flowglad API key, following .env.example.
+2. Install packages in monorepo root: `bun install`
+3. Navigate to playground directory: `cd playground/react-native`
+4. Generate Prisma client and run migrations:
+- `bunx prisma generate`
+- `bunx prisma migrate deploy`
+- Start Expo development server: `bunx expo start`
+
+
 ## Launch your own
 
 [![Launch with Expo](https://github.com/expo/examples/blob/master/.gh-assets/launch.svg?raw=true)](https://launch.expo.dev/?github=https://github.com/expo/examples/tree/master/with-better-auth)
