@@ -31,7 +31,12 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { type OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
-import type { BillingRun } from '@/db/schema/billingRuns'
+import {
+  type BillingRun,
+  billingRuns,
+  billingRunsInsertSchema,
+  billingRunsSelectSchema,
+} from '@/db/schema/billingRuns'
 import type { Customer } from '@/db/schema/customers'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
@@ -3134,6 +3139,127 @@ describe('billingRunHelpers', async () => {
     })
   })
 
+  describe('safelyInsertBillingRun doNotCharge Protection', () => {
+    let organization: Organization.Record
+    let pricingModel: PricingModel.Record
+    let product: Product.Record
+    let staticPrice: Price.Record
+    let customer: Customer.Record
+    let paymentMethod: PaymentMethod.Record
+    let doNotChargeSubscription: Subscription.Record
+    let doNotChargeBillingPeriod: BillingPeriod.Record
+
+    beforeEach(async () => {
+      const orgData = await setupOrg()
+      organization = orgData.organization
+      pricingModel = orgData.pricingModel
+      product = orgData.product
+      staticPrice = orgData.price
+
+      customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+
+      doNotChargeSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: staticPrice.id,
+        status: SubscriptionStatus.Active,
+        doNotCharge: true,
+      })
+
+      doNotChargeBillingPeriod = await setupBillingPeriod({
+        subscriptionId: doNotChargeSubscription.id,
+        startDate: Date.now(),
+        endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      })
+    })
+
+    afterEach(async () => {
+      if (organization) {
+        await teardownOrg({ organizationId: organization.id })
+      }
+    })
+
+    it('should throw error for doNotCharge subscriptions via safelyInsertBillingRun', async () => {
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return safelyInsertBillingRun(
+            {
+              billingPeriodId: doNotChargeBillingPeriod.id,
+              scheduledFor: Date.now(),
+              status: BillingRunStatus.Scheduled,
+              subscriptionId: doNotChargeSubscription.id,
+              paymentMethodId: paymentMethod.id,
+              livemode: doNotChargeBillingPeriod.livemode,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        'Cannot create billing run for doNotCharge subscription'
+      )
+    })
+
+    it('should throw error for doNotCharge subscriptions via createBillingRun', async () => {
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return createBillingRun(
+            {
+              billingPeriod: doNotChargeBillingPeriod,
+              paymentMethod,
+              scheduledFor: Date.now(),
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        'Cannot create billing run for doNotCharge subscription'
+      )
+    })
+
+    it('should throw error for doNotCharge subscriptions via scheduleBillingRunRetry', async () => {
+      // Create a mock billing run to retry (normally this wouldn't exist due to prevention,
+      // but we test the retry path defensively). We use a type assertion because setupBillingRun
+      // would throw for doNotCharge subscriptions (it calls safelyInsertBillingRun which throws an error).
+      const mockBillingRunForRetry = {
+        id: 'mock_billing_run_id',
+        billingPeriodId: doNotChargeBillingPeriod.id,
+        subscriptionId: doNotChargeSubscription.id,
+        paymentMethodId: paymentMethod.id,
+        scheduledFor: Date.now(),
+        status: BillingRunStatus.Failed,
+        livemode: doNotChargeBillingPeriod.livemode,
+        attemptNumber: 1,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdByCommit: null,
+        updatedByCommit: null,
+        position: 0,
+        startedAt: null,
+        completedAt: null,
+        stripePaymentIntentId: null,
+        lastPaymentIntentEventTimestamp: null,
+        isAdjustment: false,
+      } as BillingRun.Record
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return scheduleBillingRunRetry(
+            mockBillingRunForRetry,
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        'Cannot create billing run for doNotCharge subscription'
+      )
+    })
+  })
+
   describe('doNotCharge subscriptions', () => {
     let organization: Organization.Record
     let pricingModel: PricingModel.Record
@@ -3184,7 +3310,6 @@ describe('billingRunHelpers', async () => {
         usageMeterId: usageMeter.id,
       })
 
-      // Create subscription with doNotCharge: true
       doNotChargeSubscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -3218,20 +3343,34 @@ describe('billingRunHelpers', async () => {
 
       /**
        * Defensive edge case test: In normal operation, doNotCharge subscriptions should never
-       * have billing runs created (see createSubscription/helpers.ts:maybeCreateInitialBillingPeriodAndRun).
+       * have billing runs created (see createSubscription/helpers.ts:maybeCreateInitialBillingPeriodAndRun
+       * and safelyInsertBillingRun which throws an error for doNotCharge subscriptions).
+       *
        * However, this test verifies that if a billing run somehow exists for a doNotCharge subscription
-       * (e.g., from data migration, manual database changes, or edge cases), the execution code
-       * handles it correctly by:
        * 1. Excluding usage overages from billing calculations
        * 2. Calculating totalDueAmount as 0 (since subscription items have unitPrice: 0)
        * 3. Skipping payment intent creation when amountToCharge <= 0
+       *
+       * NOTE: We use a direct database insert here because setupBillingRun would throw for doNotCharge
+       * subscriptions (it calls safelyInsertBillingRun which throws an error). This simulates the edge case
+       * where a billing run exists despite the prevention mechanism.
        */
-      billingRun = await setupBillingRun({
+      const billingRunInsert = billingRunsInsertSchema.parse({
         billingPeriodId: billingPeriod.id,
         scheduledFor: Date.now(),
         status: BillingRunStatus.Scheduled,
         subscriptionId: doNotChargeSubscription.id,
         paymentMethodId: paymentMethod.id,
+        livemode: billingPeriod.livemode,
+        attemptNumber: 1,
+        isAdjustment: false,
+      })
+      billingRun = await adminTransaction(async ({ transaction }) => {
+        const [inserted] = await transaction
+          .insert(billingRuns)
+          .values(billingRunInsert)
+          .returning()
+        return billingRunsSelectSchema.parse(inserted)
       })
 
       ledgerAccount = await setupLedgerAccount({
