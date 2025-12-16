@@ -53,6 +53,14 @@ const defaultFilterState: SubscriptionFilterState = {
   productName: '', // Empty string = "All products" (matches option value)
 }
 
+// Neutral state = no filters applied (all options showing everything)
+// Used for badge calculation - shows count of active filters vs "show all"
+const neutralFilterState: SubscriptionFilterState = {
+  planType: 'all',
+  status: 'all',
+  productName: '',
+}
+
 interface SubscriptionsDataTableProps {
   /** Optional external filters (e.g., from a customer detail page) */
   externalFilters?: Pick<
@@ -271,6 +279,7 @@ export function SubscriptionsDataTable({
             values={filterState}
             onChange={setFilterState}
             defaultValues={defaultFilterState}
+            neutralValues={neutralFilterState}
           />
           {onCreateSubscription && (
             <Button onClick={onCreateSubscription}>

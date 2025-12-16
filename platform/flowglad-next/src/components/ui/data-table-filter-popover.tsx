@@ -53,8 +53,15 @@ export interface DataTableFilterPopoverProps<
   values: T
   /** Called when any filter value changes */
   onChange: (values: T) => void
-  /** Default values - used for reset and badge calculation */
+  /** Default values - used for reset */
   defaultValues: T
+  /**
+   * Neutral values representing "no filter applied" state (typically "all" options).
+   * Used for badge calculation. If not provided, defaults to defaultValues.
+   * This allows defaulting to a filtered state (e.g., "Paid Only") while still
+   * showing the badge count since a filter is technically applied.
+   */
+  neutralValues?: T
   /** Disabled state */
   disabled?: boolean
   /** Custom trigger label (default: "Filter") */
@@ -220,7 +227,7 @@ function AsyncSelectSection({
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-2">
+      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-5">
         {section.label}
       </Label>
       {isLoading ? (
@@ -259,15 +266,21 @@ export function DataTableFilterPopover<
   values,
   onChange,
   defaultValues,
+  neutralValues,
   disabled,
   triggerLabel = 'Filter',
   showBadge = true,
 }: DataTableFilterPopoverProps<T>): React.ReactElement {
   const [isOpen, setIsOpen] = React.useState(false)
 
+  // Badge count: how many filters differ from neutral (no filter) state
   const activeFilterCount = React.useMemo(
-    () => calculateActiveFilterCount(values, defaultValues),
-    [values, defaultValues]
+    () =>
+      calculateActiveFilterCount(
+        values,
+        neutralValues ?? defaultValues
+      ),
+    [values, neutralValues, defaultValues]
   )
 
   const handleReset = () => {
@@ -302,11 +315,7 @@ export function DataTableFilterPopover<
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-64 p-0"
-        sideOffset={8}
-      >
+      <PopoverContent align="end" className="w-64 p-0" sideOffset={8}>
         <div className="flex flex-col">
           {sections.map((section, index) => (
             <React.Fragment key={section.id}>
