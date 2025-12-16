@@ -198,6 +198,17 @@ export function SubscriptionsDataTable({
     },
   })
 
+  // Memoized loadOptions callback for product filter
+  const loadProductOptions = React.useCallback(async () => {
+    return [
+      { value: '', label: 'All products' },
+      ...(allProductOptions ?? []).map((p: string) => ({
+        value: p,
+        label: p,
+      })),
+    ]
+  }, [allProductOptions])
+
   // Build filter sections for the popover
   const filterSections: FilterSection[] = React.useMemo(
     () => [
@@ -236,19 +247,10 @@ export function SubscriptionsDataTable({
         id: 'productName',
         type: 'async-select' as const,
         label: 'Product',
-        loadOptions: async () => {
-          // Uses existing listDistinctSubscriptionProductNames query data
-          return [
-            { value: '', label: 'All products' },
-            ...(allProductOptions ?? []).map((p: string) => ({
-              value: p,
-              label: p,
-            })),
-          ]
-        },
+        loadOptions: loadProductOptions,
       },
     ],
-    [allProductOptions]
+    [loadProductOptions]
   )
 
   // Calculate if any filter deviates from defaults (for pagination display)

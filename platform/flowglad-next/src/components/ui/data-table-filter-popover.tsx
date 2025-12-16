@@ -207,11 +207,18 @@ function AsyncSelectSection({
   const [isLoading, setIsLoading] = React.useState(false)
   const [hasLoaded, setHasLoaded] = React.useState(false)
 
+  // Extract loadOptions to avoid depending on the entire section object
+  const { loadOptions } = section
+
+  // Reset hasLoaded when loadOptions changes so options are reloaded
+  React.useEffect(() => {
+    setHasLoaded(false)
+  }, [loadOptions])
+
   React.useEffect(() => {
     if (isOpen && !hasLoaded) {
       setIsLoading(true)
-      section
-        .loadOptions()
+      loadOptions()
         .then((loadedOptions) => {
           setOptions(loadedOptions)
           setHasLoaded(true)
@@ -223,7 +230,7 @@ function AsyncSelectSection({
           setIsLoading(false)
         })
     }
-  }, [isOpen, hasLoaded, section])
+  }, [isOpen, hasLoaded, loadOptions])
 
   return (
     <div className="space-y-2">
