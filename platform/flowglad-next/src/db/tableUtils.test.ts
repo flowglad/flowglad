@@ -310,6 +310,9 @@ describe('createCursorPaginatedSelectFunction', () => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
+            filters: {
+              organizationId,
+            },
           },
           transaction,
         })
@@ -323,6 +326,9 @@ describe('createCursorPaginatedSelectFunction', () => {
           input: {
             pageSize: 5,
             pageAfter: firstPage.endCursor!,
+            filters: {
+              organizationId,
+            },
           },
           transaction,
         })
@@ -351,6 +357,9 @@ describe('createCursorPaginatedSelectFunction', () => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
+            filters: {
+              organizationId,
+            },
           },
           transaction,
         })
@@ -364,6 +373,9 @@ describe('createCursorPaginatedSelectFunction', () => {
           input: {
             pageSize: 5,
             pageAfter: firstPage.endCursor!,
+            filters: {
+              organizationId,
+            },
           },
           transaction,
         })
@@ -377,6 +389,9 @@ describe('createCursorPaginatedSelectFunction', () => {
           input: {
             pageSize: 5,
             pageBefore: secondPage.startCursor!,
+            filters: {
+              organizationId,
+            },
           },
           transaction,
         })
@@ -618,6 +633,7 @@ describe('createCursorPaginatedSelectFunction', () => {
             goToFirst: true,
             filters: {
               email: 'nonexistent@example.com',
+              organizationId,
             },
           },
           transaction,
@@ -640,6 +656,7 @@ describe('createCursorPaginatedSelectFunction', () => {
             goToLast: true,
             filters: {
               email: 'nonexistent@example.com',
+              organizationId,
             },
           },
           transaction,
