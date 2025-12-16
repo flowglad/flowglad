@@ -126,6 +126,11 @@ export type SetupPricingModelProductInput = z.infer<
   typeof setupPricingModelProductInputSchema
 >
 
+const slugsAreUnique = (sluggableResources: { slug: string }[]) => {
+  const slugs = sluggableResources.map((r) => r.slug)
+  return slugs.length === new Set(slugs).size
+}
+
 export const setupPricingModelSchema =
   pricingModelsClientInsertSchema.extend({
     name: sanitizedStringSchema.describe(
@@ -138,17 +143,32 @@ export const setupPricingModelSchema =
       .describe(
         'Whether the pricingModel to be created will be the default pricingModel for all customers moving forward.'
       ),
-    features: z.array(featurePricingModelSetupSchema),
-    products: z.array(setupPricingModelProductInputSchema),
-    usageMeters: z.array(
-      usageMetersClientInsertSchema
-        .omit({
-          pricingModelId: true,
-        })
-        .describe(
-          'The usage meters to add to the pricingModel. If the pricingModel has any prices that are based on usage, each dimension along which usage will be tracked will need its own meter.'
-        )
-    ),
+    features: z
+      .array(featurePricingModelSetupSchema)
+      .refine(slugsAreUnique, {
+        message: 'Features must have unique slugs',
+      }),
+    products: z
+      .array(setupPricingModelProductInputSchema)
+      .refine(
+        (products) => slugsAreUnique(products.map((p) => p.product)),
+        {
+          message: 'Products must have unique slugs',
+        }
+      ),
+    usageMeters: z
+      .array(
+        usageMetersClientInsertSchema
+          .omit({
+            pricingModelId: true,
+          })
+          .describe(
+            'The usage meters to add to the pricingModel. If the pricingModel has any prices that are based on usage, each dimension along which usage will be tracked will need its own meter.'
+          )
+      )
+      .refine(slugsAreUnique, {
+        message: 'Usage meters must have unique slugs',
+      }),
   })
 
 export type SetupPricingModelInput = z.infer<
@@ -211,20 +231,6 @@ export const validateSetupPricingModelInput = (
     R.prop('slug'),
     parsed.usageMeters
   )
-  const featureSlugs = Object.keys(featuresBySlug)
-  featureSlugs.forEach((slug) => {
-    const feature = featuresBySlug[slug]
-    if (feature.length > 1) {
-      throw new Error(`Feature with slug ${slug} already exists`)
-    }
-  })
-  const usageMeterSlugs = Object.keys(usageMetersBySlug)
-  usageMeterSlugs.forEach((slug) => {
-    const usageMeter = usageMetersBySlug[slug]
-    if (usageMeter.length > 1) {
-      throw new Error(`Usage meter with slug ${slug} already exists`)
-    }
-  })
   const pricesBySlug = core.groupBy(
     R.propOr(null, 'slug'),
     parsed.products.flatMap((p) => p.prices)
@@ -279,6 +285,7 @@ export const validateSetupPricingModelInput = (
       }
     })
   })
+  const usageMeterSlugs = Object.keys(usageMetersBySlug)
   usageMeterSlugs.forEach((slug) => {
     if (!usagePriceMeterSlugs.has(slug)) {
       throw new Error(
