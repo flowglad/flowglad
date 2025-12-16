@@ -396,7 +396,7 @@ export const ledgerCommandForPaymentSucceeded = async (
   if (
     usageCreditFeature.amount === null ||
     usageCreditFeature.amount === undefined ||
-    usageCreditFeature.amount <= 0
+    usageCreditFeature.amount < 1
   ) {
     throw new Error('Too small: expected number to be >0')
   }
