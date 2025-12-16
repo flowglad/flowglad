@@ -15,16 +15,11 @@ import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { Button } from '@/components/ui/button'
 import { CollapsibleSearch } from '@/components/ui/collapsible-search'
-import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
-import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  DataTableFilterPopover,
+  type FilterSection,
+} from '@/components/ui/data-table-filter-popover'
+import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import {
   Table,
   TableBody,
@@ -34,7 +29,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type { Subscription } from '@/db/schema/subscriptions'
-import type { SubscriptionStatus } from '@/types'
+import { SubscriptionStatus } from '@/types'
 import { columns } from './columns'
 
 export interface SubscriptionsTableFilters {
@@ -42,23 +37,35 @@ export interface SubscriptionsTableFilters {
   customerId?: string
   organizationId?: string
   productName?: string
+  isFreePlan?: boolean
+}
+
+interface SubscriptionFilterState {
+  planType: 'all' | 'paid' | 'free'
+  status: SubscriptionStatus | 'all'
+  productName: string // Empty string means "All products"
+  [key: string]: string // Index signature for Record<string, unknown> compatibility
+}
+
+const defaultFilterState: SubscriptionFilterState = {
+  planType: 'paid', // DEFAULT: Paid only
+  status: 'all',
+  productName: '', // Empty string = "All products" (matches option value)
 }
 
 interface SubscriptionsDataTableProps {
-  filters?: SubscriptionsTableFilters
+  /** Optional external filters (e.g., from a customer detail page) */
+  externalFilters?: Pick<
+    SubscriptionsTableFilters,
+    'customerId' | 'organizationId'
+  >
   title?: string
-  filterOptions?: { value: string; label: string }[]
-  activeFilter?: string
-  onFilterChange?: (value: string) => void
   onCreateSubscription?: () => void
 }
 
 export function SubscriptionsDataTable({
-  filters = {},
+  externalFilters = {},
   title,
-  filterOptions,
-  activeFilter,
-  onFilterChange,
   onCreateSubscription,
 }: SubscriptionsDataTableProps) {
   const router = useRouter()
@@ -67,9 +74,35 @@ export function SubscriptionsDataTable({
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
   const { inputValue, setInputValue, searchQuery } =
     useSearchDebounce(300)
-  const [selectedProduct, setSelectedProduct] = React.useState<
-    string | undefined
-  >(undefined)
+
+  // Filter state with "Paid only" as default
+  const [filterState, setFilterState] =
+    React.useState<SubscriptionFilterState>(defaultFilterState)
+
+  // Derive server filters from UI state
+  const derivedFilters =
+    React.useMemo((): SubscriptionsTableFilters => {
+      const filters: SubscriptionsTableFilters = {
+        ...externalFilters,
+      }
+
+      if (filterState.planType === 'paid') {
+        filters.isFreePlan = false
+      } else if (filterState.planType === 'free') {
+        filters.isFreePlan = true
+      }
+
+      if (filterState.status !== 'all') {
+        filters.status = filterState.status
+      }
+
+      // Only set productName filter if a specific product is selected
+      if (filterState.productName) {
+        filters.productName = filterState.productName
+      }
+
+      return filters
+    }, [filterState, externalFilters])
 
   const {
     pageIndex,
@@ -85,27 +118,20 @@ export function SubscriptionsDataTable({
   >({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
-    filters: {
-      ...filters,
-      productName: selectedProduct,
-    },
+    filters: derivedFilters,
     searchQuery,
     useQuery: trpc.subscriptions.getTableRows.useQuery,
   })
 
   // Global product options (independent of current page/search)
-  const {
-    data: allProductOptions,
-    isLoading: isLoadingProductOptions,
-  } =
+  const { data: allProductOptions } =
     trpc.subscriptions.listDistinctSubscriptionProductNames.useQuery(
       {},
       { staleTime: 5 * 60 * 1000 }
     )
 
   // Reset to first page when filters change
-  // Use JSON.stringify to get stable comparison of filter object
-  const filtersKey = JSON.stringify(filters)
+  const filtersKey = JSON.stringify(derivedFilters)
   React.useEffect(() => {
     goToFirstPage()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -126,19 +152,18 @@ export function SubscriptionsDataTable({
   const table = useReactTable({
     data: data?.items || [],
     columns,
-    enableColumnResizing: true, // ✅ Enables responsive sizing
-    columnResizeMode: 'onEnd', // ✅ Better performance
+    enableColumnResizing: true,
+    columnResizeMode: 'onEnd',
     defaultColumn: {
-      size: 150, // Default width
-      minSize: 20, // Minimum width
-      maxSize: 500, // Maximum width
+      size: 150,
+      minSize: 20,
+      maxSize: 500,
     },
-    enableSorting: false, // Disable header sorting UI/interactions
-    manualPagination: true, // Server-side pagination
-    manualSorting: true, // Disable client-side sorting
-    manualFiltering: true, // Disable client-side filtering
+    enableSorting: false,
+    manualPagination: true,
+    manualSorting: true,
+    manualFiltering: true,
     pageCount: Math.ceil((data?.total || 0) / currentPageSize),
-    // no client sorting/filter callbacks
     onColumnSizingChange: setColumnSizing,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: (updater) => {
@@ -150,7 +175,7 @@ export function SubscriptionsDataTable({
       // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        goToFirstPage() // Properly clears both cursors to avoid stale pagination state
+        goToFirstPage()
       }
       // Handle page index changes (page navigation)
       else if (newPagination.pageIndex !== pageIndex) {
@@ -165,23 +190,75 @@ export function SubscriptionsDataTable({
     },
   })
 
+  // Build filter sections for the popover
+  const filterSections: FilterSection[] = React.useMemo(
+    () => [
+      {
+        id: 'planType',
+        type: 'single-select' as const,
+        label: 'Plan Type',
+        options: [
+          { value: 'all', label: 'All plans' },
+          { value: 'paid', label: 'Paid only' },
+          { value: 'free', label: 'Free only' },
+        ],
+      },
+      {
+        id: 'status',
+        type: 'single-select' as const,
+        label: 'Status',
+        options: [
+          { value: 'all', label: 'All' },
+          { value: SubscriptionStatus.Active, label: 'Active' },
+          { value: SubscriptionStatus.Trialing, label: 'Trialing' },
+          {
+            value: SubscriptionStatus.CancellationScheduled,
+            label: 'Cancellation Scheduled',
+          },
+          { value: SubscriptionStatus.Canceled, label: 'Canceled' },
+          { value: SubscriptionStatus.Paused, label: 'Paused' },
+          { value: SubscriptionStatus.PastDue, label: 'Past Due' },
+          {
+            value: SubscriptionStatus.Incomplete,
+            label: 'Incomplete',
+          },
+        ],
+      },
+      {
+        id: 'productName',
+        type: 'async-select' as const,
+        label: 'Product',
+        loadOptions: async () => {
+          // Uses existing listDistinctSubscriptionProductNames query data
+          return [
+            { value: '', label: 'All products' },
+            ...(allProductOptions ?? []).map((p: string) => ({
+              value: p,
+              label: p,
+            })),
+          ]
+        },
+      },
+    ],
+    [allProductOptions]
+  )
+
+  // Calculate if any filter deviates from defaults (for pagination display)
+  const hasActiveFilters =
+    filterState.planType !== defaultFilterState.planType ||
+    filterState.status !== defaultFilterState.status ||
+    filterState.productName !== defaultFilterState.productName
+
   return (
     <div className="w-full">
       {/* Enhanced toolbar */}
       <div className="flex flex-wrap items-center justify-between pt-4 pb-3 gap-4 min-w-0">
-        {/* Title and/or Filter buttons on the left */}
+        {/* Title on the left */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
           {title && <h3 className="text-lg truncate">{title}</h3>}
-          {filterOptions && activeFilter && onFilterChange && (
-            <FilterButtonGroup
-              options={filterOptions}
-              value={activeFilter}
-              onValueChange={onFilterChange}
-            />
-          )}
         </div>
 
-        {/* View options and local filters */}
+        {/* View options and filters */}
         <div className="flex items-center gap-2 flex-wrap flex-shrink-0 justify-end">
           <CollapsibleSearch
             value={inputValue}
@@ -189,29 +266,12 @@ export function SubscriptionsDataTable({
             placeholder="Customer or sub_id..."
             isLoading={isFetching}
           />
-          <Select
-            value={selectedProduct ?? '__all__'}
-            onValueChange={(v) => {
-              setSelectedProduct(
-                v === '__all__' ? undefined : v || undefined
-              )
-              goToFirstPage()
-            }}
-            disabled={isLoadingProductOptions}
-          >
-            <SelectTrigger className="h-9 w-48">
-              <SelectValue placeholder="All Products" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">All products</SelectItem>
-              {(allProductOptions ?? []).map((product: string) => (
-                <SelectItem key={product} value={product}>
-                  {product}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <DataTableViewOptions table={table} />
+          <DataTableFilterPopover
+            sections={filterSections}
+            values={filterState}
+            onChange={setFilterState}
+            defaultValues={defaultFilterState}
+          />
           {onCreateSubscription && (
             <Button onClick={onCreateSubscription}>
               <Plus className="w-4 h-4 mr-2" />
@@ -306,7 +366,7 @@ export function SubscriptionsDataTable({
         <DataTablePagination
           table={table}
           totalCount={data?.total}
-          isFiltered={Object.keys(filters).length > 0}
+          isFiltered={hasActiveFilters}
           filteredCount={data?.total}
         />
       </div>

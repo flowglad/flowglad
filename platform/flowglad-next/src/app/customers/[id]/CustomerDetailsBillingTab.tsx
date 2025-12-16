@@ -247,7 +247,7 @@ export const CustomerBillingSubPage = ({
           <div className="w-full flex flex-col gap-5 pb-20">
             <SubscriptionsDataTable
               title="Subscriptions"
-              filters={{
+              externalFilters={{
                 customerId: customer.id,
               }}
               onCreateSubscription={

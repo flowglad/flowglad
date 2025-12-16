@@ -1,6 +1,6 @@
 'use client'
 
-import { Filter, Loader2 } from 'lucide-react'
+import { Check, Loader2, Settings2, X } from 'lucide-react'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -10,10 +10,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import {
-  RadioGroup,
-  RadioGroupItem,
-} from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
@@ -83,7 +79,40 @@ function calculateActiveFilterCount<
 }
 
 /**
- * Single-select filter section using radio buttons
+ * Selectable option item with checkmark indicator
+ */
+function SelectableOptionItem({
+  label,
+  isSelected,
+  onClick,
+  disabled,
+}: {
+  label: string
+  isSelected: boolean
+  onClick: () => void
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        'relative flex w-full cursor-default select-none items-center rounded py-1.5 pl-8 pr-2 text-sm outline-none transition-colors',
+        'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+        disabled && 'pointer-events-none opacity-50'
+      )}
+    >
+      <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+        {isSelected && <Check className="h-4 w-4" />}
+      </span>
+      {label}
+    </button>
+  )
+}
+
+/**
+ * Single-select filter section using button options with checkmarks
  */
 function SingleSelectSection({
   section,
@@ -95,34 +124,21 @@ function SingleSelectSection({
   onChange: (value: string) => void
 }) {
   return (
-    <div className="space-y-3">
-      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+    <div className="space-y-2">
+      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-5">
         {section.label}
       </Label>
-      <RadioGroup
-        value={value}
-        onValueChange={onChange}
-        disabled={section.disabled}
-        className="gap-1"
-      >
+      <div className="flex flex-col mx-0">
         {section.options.map((option) => (
-          <div
+          <SelectableOptionItem
             key={option.value}
-            className="flex items-center space-x-2"
-          >
-            <RadioGroupItem
-              value={option.value}
-              id={`${section.id}-${option.value}`}
-            />
-            <Label
-              htmlFor={`${section.id}-${option.value}`}
-              className="text-sm font-normal cursor-pointer"
-            >
-              {option.label}
-            </Label>
-          </div>
+            label={option.label}
+            isSelected={value === option.value}
+            onClick={() => onChange(option.value)}
+            disabled={section.disabled}
+          />
         ))}
-      </RadioGroup>
+      </div>
     </div>
   )
 }
@@ -203,8 +219,8 @@ function AsyncSelectSection({
   }, [isOpen, hasLoaded, section])
 
   return (
-    <div className="space-y-3">
-      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+    <div className="space-y-2">
+      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide pl-2">
         {section.label}
       </Label>
       {isLoading ? (
@@ -213,30 +229,17 @@ function AsyncSelectSection({
           <span>Loading...</span>
         </div>
       ) : (
-        <RadioGroup
-          value={value}
-          onValueChange={onChange}
-          disabled={section.disabled}
-          className="gap-1"
-        >
+        <div className="flex flex-col mx-0">
           {options.map((option) => (
-            <div
+            <SelectableOptionItem
               key={option.value}
-              className="flex items-center space-x-2"
-            >
-              <RadioGroupItem
-                value={option.value}
-                id={`${section.id}-${option.value}`}
-              />
-              <Label
-                htmlFor={`${section.id}-${option.value}`}
-                className="text-sm font-normal cursor-pointer"
-              >
-                {option.label}
-              </Label>
-            </div>
+              label={option.label}
+              isSelected={value === option.value}
+              onClick={() => onChange(option.value)}
+              disabled={section.disabled}
+            />
           ))}
-        </RadioGroup>
+        </div>
       )}
     </div>
   )
@@ -245,7 +248,7 @@ function AsyncSelectSection({
 /**
  * Reusable filter popover component for data tables.
  *
- * Supports single-select (radio buttons), toggle (switch), and async-select filter types.
+ * Supports single-select (button options with checkmarks), toggle (switch), and async-select filter types.
  * Shows a badge with the count of active filters that differ from defaults.
  * Includes a "Reset filters" link to restore all filters to their default values.
  */
@@ -288,12 +291,9 @@ export function DataTableFilterPopover<
           variant="outline"
           size="sm"
           disabled={disabled}
-          className={cn(
-            'h-9 gap-1',
-            activeFilterCount > 0 && 'border-primary'
-          )}
+          className="h-9 gap-1 text-sm"
         >
-          <Filter className="size-4" />
+          <Settings2 className="size-4" />
           <span>{triggerLabel}</span>
           {showBadge && activeFilterCount > 0 && (
             <span className="ml-1 flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
@@ -311,7 +311,7 @@ export function DataTableFilterPopover<
           {sections.map((section, index) => (
             <React.Fragment key={section.id}>
               {index > 0 && <Separator />}
-              <div className="p-4">
+              <div className="p-1">
                 {section.type === 'single-select' && (
                   <SingleSelectSection
                     section={section}
@@ -348,12 +348,15 @@ export function DataTableFilterPopover<
           {activeFilterCount > 0 && (
             <>
               <Separator />
-              <div className="p-3 flex justify-end">
+              <div className="p-1">
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="relative flex w-full cursor-default select-none items-center rounded py-1.5 pl-8 pr-2 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                 >
+                  <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                    <X className="h-4 w-4" />
+                  </span>
                   Reset filters
                 </button>
               </div>
