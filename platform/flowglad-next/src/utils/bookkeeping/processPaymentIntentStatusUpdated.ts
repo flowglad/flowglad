@@ -393,6 +393,14 @@ export const ledgerCommandForPaymentSucceeded = async (
     return undefined
   }
 
+  if (
+    usageCreditFeature.amount === null ||
+    usageCreditFeature.amount === undefined ||
+    usageCreditFeature.amount <= 0
+  ) {
+    throw new Error('Too small: expected number to be >0')
+  }
+
   const subscription = await selectCurrentSubscriptionForCustomer(
     params.payment.customerId,
     transaction

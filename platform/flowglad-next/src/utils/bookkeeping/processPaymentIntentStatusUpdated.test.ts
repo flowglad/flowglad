@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupBillingPeriod,
@@ -13,6 +14,7 @@ import {
   setupPurchase,
   setupSubscription,
   setupTestFeaturesAndProductFeatures,
+  setupUsageMeter,
 } from '@/../seedDatabase'
 import {
   adminTransaction,
@@ -33,6 +35,7 @@ import {
   safelyUpdateInvoiceStatus,
   selectInvoiceById,
 } from '@/db/tableMethods/invoiceMethods'
+import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
 import {
   selectPurchaseById,
   updatePurchase,
@@ -51,6 +54,7 @@ import {
   CurrencyCode,
   EventNoun,
   FeatureType,
+  FeatureUsageGrantFrequency,
   FlowgladEventType,
   IntervalUnit,
   InvoiceStatus,
@@ -302,19 +306,58 @@ describe('ledgerCommandForPaymentSucceeded', () => {
   })
 
   it('fails when usage credit grant amount is zero', async () => {
-    await setupTestFeaturesAndProductFeatures({
-      organizationId: organization.id,
-      productId: product.id,
-      livemode: true,
-      featureSpecs: [
+    // Insert feature with amount: 0 using raw SQL to bypass schema validation
+    // We need to ensure the feature is linked to the same product as singlePaymentPrice
+    await adminTransaction(async ({ transaction }) => {
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'UM-Z',
+        livemode: true,
+        pricingModelId: product.pricingModelId,
+      })
+
+      const featureId = core.nanoid()
+      const slug = `grant-zero-${core.nanoid(6)}`
+
+      // Insert feature directly using raw SQL to bypass schema validation
+      await transaction.execute(
+        sql`
+          INSERT INTO features (
+            id, organization_id, type, slug, name, description, amount,
+            usage_meter_id, renewal_frequency, pricing_model_id, active,
+            livemode, created_at, updated_at, position
+          ) VALUES (
+            ${featureId},
+            ${organization.id},
+            ${FeatureType.UsageCreditGrant},
+            ${slug},
+            ${'Grant Zero'},
+            ${'Grant Zero description'},
+            ${0},
+            ${usageMeter.id},
+            ${FeatureUsageGrantFrequency.EveryBillingPeriod},
+            ${product.pricingModelId},
+            ${true},
+            ${true},
+            now(),
+            now(),
+            ${0}
+          )
+        `
+      )
+
+      // Ensure the feature is linked to the product that singlePaymentPrice uses
+      await insertProductFeature(
         {
-          name: 'Grant Zero',
-          type: FeatureType.UsageCreditGrant,
-          amount: 0,
-          usageMeterName: 'UM-Z',
+          organizationId: organization.id,
+          livemode: true,
+          productId: singlePaymentPrice.productId,
+          featureId,
         },
-      ],
+        transaction
+      )
     })
+
     await expect(
       adminTransaction(async ({ transaction }) => {
         return ledgerCommandForPaymentSucceeded(
