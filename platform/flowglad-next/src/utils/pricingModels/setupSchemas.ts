@@ -20,10 +20,11 @@ import core, { safeZodSanitizedString } from '../core'
  * FIXME: we should be using safeZodSanitizedString for
  * all slug fields at the DB schemas level.
  *
- * The problem is that there are several records for slugs in the DB
+ * The problem is that there are several records with slugs in the DB
  * that would not parse if they were held to this schema.
  * - prices
  * - products
+ * (note: usage meters and features are already using safeZodSanitizedString)
  */
 
 export const featurePricingModelSetupSchema = z
