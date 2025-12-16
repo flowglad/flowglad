@@ -632,7 +632,7 @@ describe('setupPricingModelTransaction (integration)', () => {
             transaction
           )
         )
-      ).rejects.toThrow('Invalid currency code')
+      ).rejects.toThrow(/Invalid option: expected one of/)
     })
   })
 })
