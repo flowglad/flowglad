@@ -1,4 +1,3 @@
-import Stripe from 'stripe'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
@@ -7,7 +6,6 @@ import {
   setupCustomer,
   setupInvoice,
   setupInvoiceLineItem,
-  setupLedgerTransaction,
   setupMemberships,
   setupOrg,
   setupPayment,
@@ -16,8 +14,6 @@ import {
   setupProduct,
   setupProductFeature,
   setupSubscription,
-  setupSubscriptionItem,
-  setupSubscriptionItemFeatureUsageCreditGrant,
   setupUsageCreditGrantFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
@@ -30,7 +26,6 @@ import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import type { Customer } from '@/db/schema/customers'
-import { Invoice } from '@/db/schema/invoices'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
@@ -40,10 +35,7 @@ import {
   updateBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
 import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
-import {
-  selectInvoiceById,
-  updateInvoice,
-} from '@/db/tableMethods/invoiceMethods'
+import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
 import {
   aggregateBalanceForLedgerAccountFromEntries,
@@ -51,25 +43,18 @@ import {
 } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
-import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
-import {
-  createMockPaymentIntent,
-  createMockPaymentIntentEventResponse,
-} from '@/test/helpers/stripeMocks'
+import { createMockPaymentIntentEventResponse } from '@/test/helpers/stripeMocks'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
-  FeatureType,
   FeatureUsageGrantFrequency,
   IntervalUnit,
   InvoiceStatus,
-  LedgerEntryType,
   LedgerTransactionType,
   PaymentStatus,
   PriceType,
-  SubscriptionItemType,
   SubscriptionStatus,
   UsageCreditStatus,
   UsageCreditType,

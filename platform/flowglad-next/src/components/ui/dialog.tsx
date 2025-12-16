@@ -50,7 +50,7 @@ const DialogContent = React.forwardRef<
           'w-[calc(100vw-32px)] sm:max-w-md', // 16px padding on mobile, max-w-md on larger screens
           'p-4 sm:p-6', // 16px padding on mobile, 24px on larger screens
           // Visual styling
-          'border bg-background shadow-lg rounded',
+          'border bg-background shadow-lg rounded-[6px]',
           // Animations
           'duration-200',
           'data-[state=open]:animate-in data-[state=closed]:animate-out',
