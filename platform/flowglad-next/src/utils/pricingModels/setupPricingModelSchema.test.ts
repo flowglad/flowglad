@@ -345,7 +345,8 @@ describe('setupPricingModelSchema', () => {
   describe('isDefault field behavior', () => {
     it('should default to false when not provided', () => {
       const input = createMinimalValidInput()
-      delete (input as any).isDefault
+      // @ts-expect-error - Intentionally deleting required property to test default behavior
+      delete input.isDefault
 
       const result = setupPricingModelSchema.safeParse(input)
       expect(result.success).toBe(true)

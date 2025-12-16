@@ -184,7 +184,8 @@ describe('validateSetupPricingModelInput', () => {
           usageMeterId: null,
           usageEventsPerUnit: null,
           active: true,
-        } as any,
+          // slug is intentionally omitted to test runtime validation
+        },
       ]
 
       expect(() => validateSetupPricingModelInput(input)).toThrow(
@@ -447,7 +448,6 @@ describe('validateSetupPricingModelInput', () => {
         validateSetupPricingModelInput(input)
       ).not.toThrow()
       const result = validateSetupPricingModelInput(input)
-      expect(result).toBeDefined()
       expect(result.name).toBe(input.name)
     })
   })
@@ -606,7 +606,7 @@ describe('validateSetupPricingModelInput', () => {
         const currencyError = result.error.issues.find(
           (issue) => issue.message === 'Invalid currency code'
         )
-        expect(currencyError).toBeDefined()
+        expect(currencyError?.message).toBe('Invalid currency code')
       }
     })
 

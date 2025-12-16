@@ -1,7 +1,6 @@
 import * as R from 'ramda'
 import { z } from 'zod'
 import {
-  featuresClientInsertSchema,
   toggleFeatureClientInsertSchema,
   usageCreditGrantFeatureClientInsertSchema,
 } from '@/db/schema/features'
