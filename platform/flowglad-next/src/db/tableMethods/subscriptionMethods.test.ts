@@ -876,18 +876,25 @@ describe('selectSubscriptionsTableRowData', () => {
           transaction,
         })
 
-        expect(result.items.length).toBe(2)
+        // 5 total: 3 from main beforeEach (default isFreePlan: false) + 2 from this beforeEach
+        expect(result.items.length).toBe(5)
         const subscriptionIds = result.items.map(
           (item) => item.subscription.id
         )
+        // Should include paid subscriptions from this beforeEach
         expect(subscriptionIds).toContain(paidSubscription1.id)
         expect(subscriptionIds).toContain(paidSubscription2.id)
+        // Should include subscriptions from main beforeEach (default isFreePlan: false)
+        expect(subscriptionIds).toContain(subscription1.id)
+        expect(subscriptionIds).toContain(subscription2.id)
+        expect(subscriptionIds).toContain(subscription3.id)
+        // Should NOT include free subscriptions
         expect(subscriptionIds).not.toContain(freeSubscription1.id)
         expect(subscriptionIds).not.toContain(freeSubscription2.id)
         result.items.forEach((item) => {
           expect(item.subscription.isFreePlan).toBe(false)
         })
-        expect(result.total).toBe(2)
+        expect(result.total).toBe(5)
       })
     })
 
@@ -1082,14 +1089,23 @@ describe('selectSubscriptionsTableRowData', () => {
           transaction,
         })
 
-        // Should only return paid subscriptions with Premium Plan
-        expect(result.items.length).toBe(1)
-        expect(result.items[0].subscription.id).toBe(
-          paidSubscriptionPremium.id
+        // Should return paid subscriptions with Premium Plan:
+        // - subscription1, subscription2 from main beforeEach (price1 = Premium Plan, default isFreePlan: false)
+        // - paidSubscriptionPremium, activePaidSub, canceledPaidSub from this beforeEach
+        expect(result.items.length).toBe(5)
+        const subscriptionIds = result.items.map(
+          (item) => item.subscription.id
         )
-        expect(result.items[0].subscription.isFreePlan).toBe(false)
-        expect(result.items[0].product.name).toBe('Premium Plan')
-        expect(result.total).toBe(1)
+        expect(subscriptionIds).toContain(paidSubscriptionPremium.id)
+        expect(subscriptionIds).toContain(activePaidSub.id)
+        expect(subscriptionIds).toContain(canceledPaidSub.id)
+        expect(subscriptionIds).toContain(subscription1.id)
+        expect(subscriptionIds).toContain(subscription2.id)
+        result.items.forEach((item) => {
+          expect(item.subscription.isFreePlan).toBe(false)
+          expect(item.product.name).toBe('Premium Plan')
+        })
+        expect(result.total).toBe(5)
       })
     })
 
