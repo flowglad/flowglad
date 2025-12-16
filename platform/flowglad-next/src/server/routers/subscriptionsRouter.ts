@@ -667,7 +667,7 @@ const retryBillingRunProcedure = protectedProcedure
           })
         }
 
-        const billingRun = await createBillingRun(
+        return createBillingRun(
           {
             billingPeriod,
             scheduledFor: new Date(),
@@ -675,14 +675,6 @@ const retryBillingRunProcedure = protectedProcedure
           },
           transaction
         )
-        // Guard clause for type safety (should never be null since we checked doNotCharge)
-        if (!billingRun) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Failed to create billing run',
-          })
-        }
-        return billingRun
       },
       { apiKey: ctx.apiKey }
     )

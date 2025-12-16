@@ -43,7 +43,7 @@ const dangerouslyInsertBillingRun = createInsertFunction(
 export const safelyInsertBillingRun = async (
   insert: z.infer<typeof billingRunsInsertSchema>,
   transaction: DbTransaction
-): Promise<BillingRun.Record | null> => {
+): Promise<BillingRun.Record> => {
   const subscription = await selectSubscriptionById(
     insert.subscriptionId,
     transaction
@@ -53,9 +53,10 @@ export const safelyInsertBillingRun = async (
       'Cannot create billing run for canceled subscription'
     )
   }
-  // No-op for doNotCharge subscriptions - they should never have billing runs
   if (subscription.doNotCharge) {
-    return null
+    throw new Error(
+      'Cannot create billing run for doNotCharge subscription'
+    )
   }
   return dangerouslyInsertBillingRun(insert, transaction)
 }

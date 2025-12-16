@@ -3185,9 +3185,9 @@ describe('billingRunHelpers', async () => {
       }
     })
 
-    it('should return null for doNotCharge subscriptions via safelyInsertBillingRun', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+    it('should throw error for doNotCharge subscriptions via safelyInsertBillingRun', async () => {
+      await expect(
+        adminTransaction(async ({ transaction }) => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: doNotChargeBillingPeriod.id,
@@ -3199,14 +3199,15 @@ describe('billingRunHelpers', async () => {
             },
             transaction
           )
-        }
+        })
+      ).rejects.toThrow(
+        'Cannot create billing run for doNotCharge subscription'
       )
-      expect(result).toBeNull()
     })
 
-    it('should return null for doNotCharge subscriptions via createBillingRun', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+    it('should throw error for doNotCharge subscriptions via createBillingRun', async () => {
+      await expect(
+        adminTransaction(async ({ transaction }) => {
           return createBillingRun(
             {
               billingPeriod: doNotChargeBillingPeriod,
@@ -3215,15 +3216,16 @@ describe('billingRunHelpers', async () => {
             },
             transaction
           )
-        }
+        })
+      ).rejects.toThrow(
+        'Cannot create billing run for doNotCharge subscription'
       )
-      expect(result).toBeNull()
     })
 
-    it('should return null for doNotCharge subscriptions via scheduleBillingRunRetry', async () => {
+    it('should throw error for doNotCharge subscriptions via scheduleBillingRunRetry', async () => {
       // Create a mock billing run to retry (normally this wouldn't exist due to prevention,
       // but we test the retry path defensively). We use a type assertion because setupBillingRun
-      // would throw for doNotCharge subscriptions (it calls safelyInsertBillingRun which returns null).
+      // would throw for doNotCharge subscriptions (it calls safelyInsertBillingRun which throws an error).
       const mockBillingRunForRetry = {
         id: 'mock_billing_run_id',
         billingPeriodId: doNotChargeBillingPeriod.id,
@@ -3245,16 +3247,16 @@ describe('billingRunHelpers', async () => {
         isAdjustment: false,
       } as BillingRun.Record
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      await expect(
+        adminTransaction(async ({ transaction }) => {
           return scheduleBillingRunRetry(
             mockBillingRunForRetry,
             transaction
           )
-        }
+        })
+      ).rejects.toThrow(
+        'Cannot create billing run for doNotCharge subscription'
       )
-      // Should return undefined/null since doNotCharge subscriptions should not have billing runs
-      expect(result).toBeNull()
     })
   })
 
@@ -3342,7 +3344,7 @@ describe('billingRunHelpers', async () => {
       /**
        * Defensive edge case test: In normal operation, doNotCharge subscriptions should never
        * have billing runs created (see createSubscription/helpers.ts:maybeCreateInitialBillingPeriodAndRun
-       * and safelyInsertBillingRun which returns null for doNotCharge subscriptions).
+       * and safelyInsertBillingRun which throws an error for doNotCharge subscriptions).
        *
        * However, this test verifies that if a billing run somehow exists for a doNotCharge subscription
        * 1. Excluding usage overages from billing calculations
@@ -3350,7 +3352,7 @@ describe('billingRunHelpers', async () => {
        * 3. Skipping payment intent creation when amountToCharge <= 0
        *
        * NOTE: We use a direct database insert here because setupBillingRun would throw for doNotCharge
-       * subscriptions (it calls safelyInsertBillingRun which returns null). This simulates the edge case
+       * subscriptions (it calls safelyInsertBillingRun which throws an error). This simulates the edge case
        * where a billing run exists despite the prevention mechanism.
        */
       const billingRunInsert = billingRunsInsertSchema.parse({

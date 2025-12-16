@@ -593,7 +593,7 @@ export const setupBillingRun = async ({
   paymentMethodId: string
   subscriptionId: string
 }): Promise<BillingRun.Record> => {
-  const result = await adminTransaction(async ({ transaction }) => {
+  return await adminTransaction(async ({ transaction }) => {
     return safelyInsertBillingRun(
       {
         billingPeriodId,
@@ -609,12 +609,6 @@ export const setupBillingRun = async ({
       transaction
     )
   })
-  if (!result) {
-    throw new Error(
-      'setupBillingRun failed: cannot create billing run for doNotCharge subscription'
-    )
-  }
-  return result
 }
 
 export const setupBillingPeriodItem = async ({
