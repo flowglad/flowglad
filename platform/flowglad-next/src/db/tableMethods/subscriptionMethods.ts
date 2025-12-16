@@ -62,13 +62,11 @@ const config: ORMMethodCreatorConfig<
  * Extended filter type for subscriptions table that includes cross-table filters.
  * The `productName` filter is not on the subscriptions table itself, but comes
  * from the related products table via prices.
- * The `isFreePlan` filter is a direct column on the subscriptions table.
  */
 export type SubscriptionTableFilters = SelectConditions<
   typeof subscriptions
 > & {
   productName?: string
-  isFreePlan?: boolean
 }
 
 export const selectSubscriptionById = createSelectById(
