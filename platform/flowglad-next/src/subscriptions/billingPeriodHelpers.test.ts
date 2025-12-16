@@ -13,6 +13,7 @@ import {
   setupPaymentMethod,
   setupProductFeature,
   setupSubscription,
+  setupSubscriptionItem,
   setupSubscriptionItemFeature,
   setupUsageCredit,
   setupUsageCreditApplication,
@@ -654,7 +655,7 @@ describe('Subscription Billing Period Transition', async () => {
       expect(billingPeriodItemInserts[0].unitPrice).toBe(1000)
     })
   })
-  
+
   describe('doNotCharge subscriptions', () => {
     it('should stay Active when transitioning billing periods without payment method', async () => {
       await adminTransaction(async ({ transaction }) => {

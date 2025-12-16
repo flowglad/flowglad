@@ -4,26 +4,21 @@ import { Customer } from '@/db/schema/customers'
 import type { Feature } from '@/db/schema/features'
 import type { Price } from '@/db/schema/prices'
 import type { ProductFeature } from '@/db/schema/productFeatures'
-import type { Product } from '@/db/schema/products'
 import type {
   AddFeatureToSubscriptionInput,
   SubscriptionItemFeature,
 } from '@/db/schema/subscriptionItemFeatures'
-import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import {
+  type SubscriptionItem,
+  subscriptionItems,
+} from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
-import {
-  selectPriceById,
-  selectPrices,
-} from '@/db/tableMethods/priceMethods'
+import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
-import {
-  selectFeaturesByProductFeatureWhere,
-  selectProductFeatures,
-} from '@/db/tableMethods/productFeatureMethods'
-import { selectProductById } from '@/db/tableMethods/productMethods'
+import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
 import {
   bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId,
   insertSubscriptionItemFeature,
@@ -32,7 +27,6 @@ import {
   upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId,
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import {
-  insertSubscriptionItem,
   selectSubscriptionItemById,
   selectSubscriptionItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
@@ -443,26 +437,10 @@ const findOrCreateManualSubscriptionItem = async (
   livemode: boolean,
   transaction: DbTransaction
 ): Promise<SubscriptionItem.Record> => {
-  // First, try to find an existing manual subscription item
-  const existingManualItems = await selectSubscriptionItems(
-    {
-      subscriptionId,
-      manuallyCreated: true,
-      expiredAt: null,
-    },
-    transaction
-  )
-
-  if (existingManualItems.length > 0) {
-    // Return the first active manual item
-    return existingManualItems[0]
-  }
-
-  // If none exists, create one
   const manualItemInsert: SubscriptionItem.Insert = {
     subscriptionId,
     name: 'Manual Features',
-    priceId: null, // Manual items have no priceId
+    priceId: null,
     unitPrice: 0,
     quantity: 0,
     addedDate: Date.now(),
@@ -474,38 +452,29 @@ const findOrCreateManualSubscriptionItem = async (
     livemode,
   }
 
-  try {
-    return await insertSubscriptionItem(manualItemInsert, transaction)
-  } catch (error: unknown) {
-    // Handle race condition: if another request created the manual item concurrently,
-    // catch the unique constraint violation and fetch the existing item
-    const pgError = error as {
-      code?: string
-      constraint_name?: string
-    }
-    if (
-      pgError.code === '23505' &&
-      pgError.constraint_name ===
-        'subscription_items_manual_unique_idx'
-    ) {
-      // Re-fetch the manual item that was created by the concurrent request
-      const existingManualItems = await selectSubscriptionItems(
-        {
-          subscriptionId,
-          manuallyCreated: true,
-          expiredAt: null,
-        },
-        transaction
-      )
-      if (existingManualItems.length > 0) {
-        return existingManualItems[0]
-      }
-      // If still not found, re-throw the original error
-      throw error
-    }
-    // Re-throw any other errors
-    throw error
+  // Try to insert, do nothing if conflict occurs due to unique constraint
+  await transaction
+    .insert(subscriptionItems)
+    .values(manualItemInsert)
+    .onConflictDoNothing()
+
+  // Now select the manual item (either the one we just inserted or the existing one)
+  const existingManualItems = await selectSubscriptionItems(
+    {
+      subscriptionId,
+      manuallyCreated: true,
+      expiredAt: null,
+    },
+    transaction
+  )
+
+  if (existingManualItems.length === 0) {
+    throw new Error(
+      `Failed to find or create manual subscription item for subscription ${subscriptionId}`
+    )
   }
+
+  return existingManualItems[0]
 }
 
 export const addFeatureToSubscriptionItem = async (
