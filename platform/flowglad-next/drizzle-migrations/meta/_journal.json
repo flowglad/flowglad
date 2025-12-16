@@ -1758,6 +1758,13 @@
       "when": 1765685663064,
       "tag": "0251_sudden_baron_strucker",
       "breakpoints": true
+    },
+    {
+      "idx": 252,
+      "version": "7",
+      "when": 1765824908388,
+      "tag": "0252_low_dreadnoughts",
+      "breakpoints": true
     }
   ]
 }
