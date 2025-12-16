@@ -517,6 +517,13 @@ export const organizationBillingPortalURL = (params: {
 
 export const nowTime = () => Date.now()
 
+// Input validation schemas for security
+export const safeZodSanitizedString = z
+  .string()
+  .trim()
+  .min(1, 'Field is required')
+  .max(255, 'Field must be less than 255 characters')
+
 export const core = {
   IS_PROD,
   IS_TEST,
@@ -566,6 +573,7 @@ export const core = {
   safeZodAlwaysNull,
   safeZodPositiveIntegerOrZero,
   safeZodNonNegativeInteger,
+  safeZodSanitizedString,
   IS_DEV,
 }
 

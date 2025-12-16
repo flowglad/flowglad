@@ -1,5 +1,6 @@
 import * as R from 'ramda'
 import { z } from 'zod'
+import { currencyCodeSchema } from '@/db/commonZodSchema'
 import {
   toggleFeatureClientInsertSchema,
   usageCreditGrantFeatureClientInsertSchema,
@@ -13,22 +14,17 @@ import { pricingModelsClientInsertSchema } from '@/db/schema/pricingModels'
 import { productsClientInsertSchema } from '@/db/schema/products'
 import { usageMetersClientInsertSchema } from '@/db/schema/usageMeters'
 import { CurrencyCode, FeatureType, PriceType } from '@/types'
-import core from '../core'
+import core, { safeZodSanitizedString } from '../core'
 
-// Input validation schemas for security
-export const sanitizedStringSchema = z
-  .string()
-  .trim()
-  .min(1, 'Field is required')
-  .max(255, 'Field must be less than 255 characters')
-
-export const currencyValidationSchema = z
-  .string()
-  .refine(
-    (currency) =>
-      Object.values(CurrencyCode).includes(currency as CurrencyCode),
-    'Invalid currency code'
-  )
+/**
+ * FIXME: we should be using safeZodSanitizedString for
+ * all slug fields at the DB schemas level.
+ *
+ * The problem is that there are several records for slugs in the DB
+ * that would not parse if they were held to this schema.
+ * - prices
+ * - products
+ */
 
 export const featurePricingModelSetupSchema = z
   .discriminatedUnion('type', [
@@ -65,8 +61,8 @@ const productPricingModelSetupSchema = productsClientInsertSchema
     pricingModelId: true,
   })
   .extend({
-    name: sanitizedStringSchema.describe('The name of the product'),
-    slug: sanitizedStringSchema.describe('The slug of the product'),
+    name: safeZodSanitizedString.describe('The name of the product'),
+    slug: safeZodSanitizedString.describe('The slug of the product'),
   })
   .describe(
     'A product, which describes "what" a customer gets when they purchase via features, and how much they pay via prices.'
@@ -77,9 +73,9 @@ const omitProductId = {
 } as const
 
 const priceOptionalFieldSchema = {
-  currency: currencyValidationSchema.optional(),
-  name: sanitizedStringSchema.optional(),
-  slug: sanitizedStringSchema.optional(),
+  currency: currencyCodeSchema.optional(),
+  name: safeZodSanitizedString.optional(),
+  slug: safeZodSanitizedString.optional(),
 } as const
 
 export const setupPricingModelProductPriceInputSchema =
@@ -132,7 +128,7 @@ const slugsAreUnique = (sluggableResources: { slug: string }[]) => {
 
 export const setupPricingModelSchema =
   pricingModelsClientInsertSchema.extend({
-    name: sanitizedStringSchema.describe(
+    name: safeZodSanitizedString.describe(
       'The name of the pricing model'
     ),
     isDefault: z

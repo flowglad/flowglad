@@ -18,7 +18,7 @@ import {
   tableBase,
 } from '@/db/tableUtils'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
-import core from '@/utils/core'
+import core, { safeZodSanitizedString } from '@/utils/core'
 import { pricingModels } from './pricingModels'
 
 const TABLE_NAME = 'features'
@@ -90,6 +90,7 @@ const toggleFeatureSharedColumns = {
   amount: z.literal(null).optional(),
   usageMeterId: z.literal(null).optional(),
   renewalFrequency: z.literal(null).optional(),
+  slug: safeZodSanitizedString,
 }
 
 export const {
@@ -121,6 +122,7 @@ const usageCreditGrantFeatureSharedColumns = {
   renewalFrequency: core.createSafeZodEnum(
     FeatureUsageGrantFrequency
   ),
+  slug: safeZodSanitizedString,
 }
 
 export const {
@@ -259,7 +261,10 @@ export type EditFeatureInput = z.infer<typeof editFeatureSchema>
 
 export const toggleFeatureDefaultColumns: Pick<
   Feature.ToggleInsert,
-  keyof typeof toggleFeatureSharedColumns
+  /**
+   * Note: ommitting slug from default columns to avoid unexpected client side values
+   */
+  keyof Omit<typeof toggleFeatureSharedColumns, 'slug'>
 > = {
   type: FeatureType.Toggle,
   amount: null,
@@ -269,7 +274,10 @@ export const toggleFeatureDefaultColumns: Pick<
 
 export const usageCreditGrantFeatureDefaultColumns: Pick<
   Feature.UsageCreditGrantInsert,
-  keyof typeof usageCreditGrantFeatureSharedColumns
+  /**
+   * Note: ommitting slug from default columns to avoid unexpected client side values
+   */
+  keyof Omit<typeof usageCreditGrantFeatureSharedColumns, 'slug'>
 > = {
   type: FeatureType.UsageCreditGrant,
   amount: 0,
