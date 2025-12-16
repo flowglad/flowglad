@@ -339,11 +339,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       },
       transaction
     )
-    if (
-      billingRun &&
-      subscription.runBillingAtPeriodStart &&
-      !core.IS_TEST
-    ) {
+    if (subscription.runBillingAtPeriodStart && !core.IS_TEST) {
       await attemptBillingRunTask.trigger({
         billingRun,
       })
