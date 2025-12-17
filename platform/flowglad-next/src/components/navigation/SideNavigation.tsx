@@ -301,7 +301,7 @@ export const SideNavigation = () => {
 
       <SidebarFooter
         className={cn(
-          'flex flex-col gap-1 overflow-hidden transition-all duration-300 ease-in-out bg-sidebar',
+          'flex flex-col gap-1 transition-all duration-300 ease-in-out',
           isCollapsed ? 'px-0 py-2' : 'gap-2'
         )}
       >

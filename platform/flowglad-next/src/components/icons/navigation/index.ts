@@ -38,6 +38,7 @@ import {
   BookOpen as LucideBookOpen,
   ChevronsUpDown as LucideChevronsUpDown,
   DollarSign as LucideDollarSign,
+  ExternalLink as LucideExternalLink,
   Flag as LucideFlag,
   Gauge as LucideGauge,
   LogOut as LucideLogOut,
@@ -61,6 +62,10 @@ export const ChevronsUpDown = createNavIcon(
 export const DollarSign = createNavIcon(
   LucideDollarSign,
   'DollarSign'
+)
+export const ExternalLink = createNavIcon(
+  LucideExternalLink,
+  'ExternalLink'
 )
 export const Flag = createNavIcon(LucideFlag, 'Flag')
 export const Gauge = createNavIcon(LucideGauge, 'Gauge')

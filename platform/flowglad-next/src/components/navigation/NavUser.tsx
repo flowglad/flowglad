@@ -7,6 +7,7 @@ import { useState } from 'react'
 import {
   BookOpen,
   ChevronsUpDown,
+  ExternalLink,
   FinishSetupIcon,
   Flag,
   LogOut,
@@ -251,7 +252,8 @@ export const NavUser: React.FC<NavUserProps> = ({
                 data-testid="nav-user-documentation"
               >
                 <BookOpen className="h-4 w-4" />
-                <span>Documentation</span>
+                <span className="flex-1">Documentation</span>
+                <ExternalLink className="h-3 w-3 text-muted-foreground" />
               </a>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
@@ -263,7 +265,8 @@ export const NavUser: React.FC<NavUserProps> = ({
                 data-testid="nav-user-discord"
               >
                 <RiDiscordFill className="h-4 w-4" />
-                <span>Discord</span>
+                <span className="flex-1">Discord</span>
+                <ExternalLink className="h-3 w-3 text-muted-foreground" />
               </a>
             </DropdownMenuItem>
           </DropdownMenuGroup>
