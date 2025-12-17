@@ -232,7 +232,7 @@ export const NavUser: React.FC<NavUserProps> = ({
                   className="flex items-center gap-2"
                   data-testid="nav-user-finish-setup"
                 >
-                  <FinishSetupIcon className="h-4 w-4 text-orange-500" />
+                  <FinishSetupIcon className="h-4 w-4 text-yellow-500" />
                   <span>Finish Setup</span>
                 </Link>
               </DropdownMenuItem>
