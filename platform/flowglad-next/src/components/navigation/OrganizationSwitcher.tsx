@@ -2,16 +2,13 @@
 
 import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
-import { trpc } from '@/app/_trpc/client'
 import CreateOrganizationModal from '@/components/forms/CreateOrganizationModal'
 import { Button } from '@/components/ui/button'
 import {
   Command,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
@@ -20,12 +17,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { useAuthContext } from '@/contexts/authContext'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useOrganizationList } from '@/hooks/useOrganizationList'
 
 const OrganizationSwitcher = () => {
-  const router = useRouter()
-  const { organization } = useAuthContext()
   const [isOrgMenuOpen, setIsOrgMenuOpen] = useState(false)
   const [
     isCreateOrganizationModalOpen,
@@ -42,18 +37,17 @@ const OrganizationSwitcher = () => {
     )
   }, [isMobile])
 
-  const { invalidate: invalidateTRPC } = trpc.useUtils()
-  const focusedMembership =
-    trpc.organizations.getFocusedMembership.useQuery()
-  const organizations = trpc.organizations.getOrganizations.useQuery()
-  const updateFocusedMembership =
-    trpc.organizations.updateFocusedMembership.useMutation({
-      onSuccess: async () => {
-        await invalidateTRPC()
-        await focusedMembership.refetch()
-        router.refresh()
-      },
-    })
+  const {
+    organizations,
+    currentOrganizationId,
+    isSwitching,
+    switchOrganization,
+  } = useOrganizationList()
+
+  const handleSwitchOrganization = async (orgId: string) => {
+    await switchOrganization(orgId)
+    setIsOrgMenuOpen(false)
+  }
 
   return (
     <>
@@ -66,9 +60,9 @@ const OrganizationSwitcher = () => {
             aria-expanded={isOrgMenuOpen}
             aria-label="Switch organization"
             className="p-1"
-            disabled={updateFocusedMembership.isPending}
+            disabled={isSwitching}
           >
-            {updateFocusedMembership.isPending ? (
+            {isSwitching ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <ChevronsUpDown className="h-4 w-4" />
@@ -92,20 +86,15 @@ const OrganizationSwitcher = () => {
               <CommandList className="max-h-64 overflow-auto">
                 <CommandEmpty>No organizations found.</CommandEmpty>
                 <CommandGroup>
-                  {organizations.data?.map((org) => (
+                  {organizations.map((org) => (
                     <CommandItem
                       key={org.id}
                       value={`${org.id} ${org.name}`}
                       keywords={[org.name]}
                       className="cursor-pointer px-2 py-2 rounded-sm data-[selected=true]:bg-accent"
-                      onSelect={async () => {
-                        if (org.id !== organization?.id) {
-                          await updateFocusedMembership.mutateAsync({
-                            organizationId: org.id,
-                          })
-                        }
-                        setIsOrgMenuOpen(false)
-                      }}
+                      onSelect={() =>
+                        handleSwitchOrganization(org.id)
+                      }
                     >
                       {org.logoURL ? (
                         <Image
@@ -121,7 +110,7 @@ const OrganizationSwitcher = () => {
                       <span className="truncate">{org.name}</span>
                       <Check
                         className={
-                          organization?.id === org.id
+                          currentOrganizationId === org.id
                             ? 'ml-auto opacity-100 h-4 w-4'
                             : 'ml-auto opacity-0 h-4 w-4'
                         }

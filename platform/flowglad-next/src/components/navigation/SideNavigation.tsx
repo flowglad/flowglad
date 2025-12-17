@@ -1,24 +1,24 @@
 'use client'
-import { Organization } from '@clerk/nextjs/server'
-import { RiDiscordFill } from '@remixicon/react'
-import {
-  BookOpen,
-  ChevronRight,
-  CircleDollarSign,
-  DollarSign,
-  Gauge,
-  LogOut,
-  type LucideIcon,
-  PanelLeft,
-  Settings,
-  TriangleRight,
-  Users,
-} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
-import { Button } from '@/components/ui/button'
+import {
+  CustomersIcon,
+  DollarSign,
+  FinishSetupIcon,
+  Gauge,
+  MoreIcon,
+  PanelLeft,
+  PanelRight,
+  PaymentsIcon,
+  Shapes,
+  ShoppingCart,
+  SubscriptionsIcon,
+  Tag,
+  X,
+} from '@/components/icons/navigation'
 import {
   SidebarContent,
   SidebarFooter,
@@ -32,11 +32,10 @@ import {
 import { useAuthContext } from '@/contexts/authContext'
 import { cn } from '@/lib/utils'
 import { BusinessOnboardingStatus } from '@/types'
-import { signOut } from '@/utils/authClient'
+import { signOut, useSession } from '@/utils/authClient'
 import { Skeleton } from '../ui/skeleton'
-import { NavMain } from './NavMain'
 import { NavStandalone } from './NavStandalone'
-import OrganizationSwitcher from './OrganizationSwitcher'
+import { NavUser } from './NavUser'
 
 type StandaloneNavItem = {
   title: string
@@ -45,20 +44,10 @@ type StandaloneNavItem = {
   isActive?: boolean
 }
 
-type MainNavItem = {
-  title: string
-  url: string
-  icon?: LucideIcon
-  isActive?: boolean
-  items?: {
-    title: string
-    url: string
-  }[]
-}
-
 export const SideNavigation = () => {
   const pathname = usePathname()
-  const { user, organization } = useAuthContext()
+  const { organization } = useAuthContext()
+  const { data: session } = useSession()
   const toggleTestMode = trpc.utils.toggleTestMode.useMutation({
     onSuccess: async () => {
       await invalidateTRPC()
@@ -81,7 +70,6 @@ export const SideNavigation = () => {
     initialFocusedMembershipLoading,
     setInitialFocusedMembershipLoading,
   ] = useState(true)
-  const [signingOut, setSigningOut] = useState(false)
   const focusedMembershipData = focusedMembership.data
   useEffect(() => {
     if (focusedMembershipData) {
@@ -93,58 +81,39 @@ export const SideNavigation = () => {
   const { state, toggleSidebar } = useSidebar()
   const isCollapsed = state === 'collapsed'
 
-  const fallbackInitials = (() => {
-    const rawName = organization?.name?.trim()
-    if (!rawName) {
-      return 'FG'
-    }
-    const initials = rawName
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((segment) => segment[0]?.toUpperCase() ?? '')
-      .join('')
-    return initials || rawName[0]?.toUpperCase() || 'FG'
-  })()
+  const [isLogoHovered, setIsLogoHovered] = useState(false)
+  const [showMore, setShowMore] = useState(false)
 
   const logoSize = isCollapsed ? 32 : 40
-
-  const organizationLogo = organization?.logoURL ? (
-    <Image
-      className={cn(
-        'rounded-full object-cover bg-white border border-border',
-        isCollapsed ? 'h-8 w-8' : 'h-10 w-10'
-      )}
-      alt={organization?.name ?? 'Organization logo'}
-      src={organization.logoURL}
-      width={logoSize}
-      height={logoSize}
-    />
-  ) : (
-    <div
-      className={cn(
-        'flex items-center justify-center rounded-full border border-border bg-primary/10 text-primary font-semibold uppercase',
-        isCollapsed ? 'h-8 w-8 text-xs' : 'h-10 w-10 text-sm'
-      )}
-    >
-      {fallbackInitials}
-    </div>
-  )
 
   const sidebarToggleLabel = isCollapsed
     ? 'Expand sidebar'
     : 'Collapse sidebar'
 
-  const handleBrandClick = () => {
-    if (isCollapsed) {
-      toggleSidebar()
-    }
-  }
+  const CollapseIcon = isCollapsed ? PanelRight : PanelLeft
 
   // Helper function to check if a path is active
   const isActive = (url: string) => {
     return pathname === url || pathname.startsWith(url + '/')
   }
+
+  // Secondary item URLs for auto-expand detection
+  const secondaryUrls = [
+    '/finance/subscriptions',
+    '/products',
+    '/finance/discounts',
+    '/finance/purchases',
+  ]
+
+  // Auto-expand when active route is in secondary items
+  useEffect(() => {
+    const isSecondaryActive = secondaryUrls.some((url) =>
+      isActive(url)
+    )
+    if (isSecondaryActive) {
+      setShowMore(true)
+    }
+  }, [pathname])
 
   // Onboarding setup item (conditional)
   const setupItem: StandaloneNavItem[] =
@@ -152,87 +121,69 @@ export const SideNavigation = () => {
     BusinessOnboardingStatus.FullyOnboarded
       ? [
           {
-            title: 'Set Up',
+            title: 'Finish Setup',
             url: '/onboarding',
-            icon: () => <TriangleRight color="orange" />,
+            icon: () => <FinishSetupIcon color="orange" />,
             isActive: isActive('/onboarding'),
           },
         ]
       : []
 
-  // Navigation items organized in requested order
-  const dashboardItem: StandaloneNavItem[] = [
+  // Primary navigation items (always visible)
+  const primaryItems: StandaloneNavItem[] = [
     {
       title: 'Dashboard',
       url: '/dashboard',
       icon: Gauge,
       isActive: isActive('/dashboard'),
     },
-  ]
-
-  const customersItem: StandaloneNavItem[] = [
-    {
-      title: 'Customers',
-      url: '/customers',
-      icon: Users,
-      isActive: isActive('/customers'),
-    },
-  ]
-
-  const settingsItem: StandaloneNavItem[] = [
-    {
-      title: 'Settings',
-      url: '/settings',
-      icon: Settings,
-      isActive: isActive('/settings'),
-    },
-  ]
-
-  const pricingItem: StandaloneNavItem[] = [
     {
       title: 'Pricing',
       url: '/pricing-models',
       icon: DollarSign,
       isActive: isActive('/pricing-models'),
     },
-  ]
-
-  // Navigation sections with children (using official pattern)
-  const navigationSections: MainNavItem[] = [
     {
-      title: 'Finance',
+      title: 'Customers',
+      url: '/customers',
+      icon: CustomersIcon,
+      isActive: isActive('/customers'),
+    },
+    {
+      title: 'Payments',
       url: '/finance',
-      icon: CircleDollarSign,
-      isActive: isActive('/finance'),
-      items: [
-        { title: 'Payments', url: '/finance/payments' },
-        { title: 'Subscriptions', url: '/finance/subscriptions' },
-        { title: 'Invoices', url: '/finance/invoices' },
-        { title: 'Purchases', url: '/finance/purchases' },
-        { title: 'Discounts', url: '/finance/discounts' },
-      ],
+      icon: PaymentsIcon,
+      isActive:
+        isActive('/finance') &&
+        !secondaryUrls.some((url) => isActive(url)),
     },
   ]
 
-  // Footer navigation items
-  const footerNavigationItems: StandaloneNavItem[] = [
+  // Secondary navigation items (visible when showMore is true)
+  const secondaryItems: StandaloneNavItem[] = [
     {
-      title: 'Discord',
-      url: 'https://app.flowglad.com/invite-discord',
-      icon: RiDiscordFill,
-      isActive: false,
+      title: 'Subscriptions',
+      url: '/finance/subscriptions',
+      icon: SubscriptionsIcon,
+      isActive: isActive('/finance/subscriptions'),
     },
     {
-      title: 'Documentation',
-      url: 'https://docs.flowglad.com',
-      icon: BookOpen,
-      isActive: false,
+      title: 'Products',
+      url: '/products',
+      icon: Shapes,
+      isActive: isActive('/products'),
     },
     {
-      title: 'Logout',
-      url: '/logout',
-      icon: LogOut,
-      isActive: false,
+      title: 'Discounts',
+      url: '/finance/discounts',
+      icon: Tag,
+      isActive: isActive('/finance/discounts'),
+    },
+    {
+      title: 'Purchases',
+      url: '/finance/purchases',
+      icon: ShoppingCart,
+      isActive: isActive('/finance/purchases'),
     },
   ]
 
@@ -241,92 +192,110 @@ export const SideNavigation = () => {
       <SidebarHeader
         className={cn(
           'w-full flex flex-row items-center bg-sidebar py-3 px-3 gap-3 transition-all duration-300',
-          'justify-between'
+          isCollapsed ? 'justify-center' : 'justify-start'
         )}
       >
         <button
           type="button"
-          onClick={handleBrandClick}
+          onClick={() => toggleSidebar()}
+          onMouseEnter={() => setIsLogoHovered(true)}
+          onMouseLeave={() => setIsLogoHovered(false)}
           className={cn(
-            'flex items-center gap-3 min-w-0 flex-1 rounded-md bg-transparent p-0 text-left transition-colors',
-            isCollapsed
-              ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-              : 'cursor-default'
+            'relative flex-shrink-0 cursor-pointer rounded-md bg-transparent p-0 transition-colors',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
           )}
-          aria-label={isCollapsed ? sidebarToggleLabel : undefined}
-          tabIndex={isCollapsed ? 0 : -1}
+          aria-label={sidebarToggleLabel}
+          data-testid="sidebar-logo-button"
         >
-          <div className="flex-shrink-0">{organizationLogo}</div>
-          <div
-            className={cn(
-              'flex flex-col justify-center gap-0.5 whitespace-nowrap transition-all duration-300 min-w-0',
-              isCollapsed
-                ? 'opacity-0 max-w-0'
-                : 'opacity-100 max-w-xs'
+          <div className="relative">
+            {/* Logo - Show org logo if available, otherwise Flowglad logo */}
+            {organization?.logoURL ? (
+              <Image
+                className={cn(
+                  'rounded-full object-cover bg-white border border-border transition-opacity duration-200',
+                  isCollapsed ? 'h-8 w-8' : 'h-10 w-10',
+                  isLogoHovered && 'opacity-25'
+                )}
+                alt={organization?.name ?? 'Organization logo'}
+                src={organization.logoURL}
+                width={logoSize}
+                height={logoSize}
+                data-testid="sidebar-org-logo"
+              />
+            ) : (
+              <Image
+                className={cn(
+                  'rounded-full object-cover transition-opacity duration-200',
+                  isCollapsed ? 'h-8 w-8' : 'h-10 w-10',
+                  isLogoHovered && 'opacity-25'
+                )}
+                alt="Flowglad"
+                src="/flowglad-logomark-black.svg"
+                width={logoSize}
+                height={logoSize}
+                data-testid="sidebar-flowglad-logo"
+              />
             )}
-          >
-            <div className="text-sm font-semibold text-foreground truncate">
-              {organization?.name}
-            </div>
-            <div className="text-xs font-medium text-muted-foreground truncate">
-              {organization?.tagline}
+            {/* Collapse/Expand icon overlay on hover */}
+            <div
+              className={cn(
+                'absolute inset-0 flex items-center justify-center transition-opacity duration-200',
+                isLogoHovered ? 'opacity-100' : 'opacity-0'
+              )}
+              data-testid="sidebar-collapse-icon"
+            >
+              <CollapseIcon className="text-foreground" />
             </div>
           </div>
         </button>
-        {!isCollapsed && (
-          <div className="flex items-center gap-0">
-            <OrganizationSwitcher />
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="shrink-0 text-muted-foreground hover:text-foreground"
-              onClick={() => toggleSidebar()}
-              aria-label={sidebarToggleLabel}
-            >
-              <PanelLeft></PanelLeft>
-            </Button>
-          </div>
-        )}
       </SidebarHeader>
 
       <SidebarContent className="pt-3 bg-sidebar">
         <div className="px-0 bg-sidebar">
-          {/* 1. Set up - Only shows when onboarding not complete */}
+          {/* Finish Setup - Only shows when onboarding not complete */}
           {setupItem.length > 0 && (
             <NavStandalone items={setupItem} />
           )}
 
-          {/* 2. Dashboard */}
-          <NavStandalone items={dashboardItem} />
+          {/* Primary navigation items - dimmed when showMore is true */}
+          <div
+            className={cn(
+              showMore && 'opacity-25 transition-opacity duration-200'
+            )}
+          >
+            <NavStandalone items={primaryItems} />
+          </div>
 
-          {/* 3. Pricing */}
-          <NavStandalone items={pricingItem} />
+          {/* More/Less toggle button */}
+          <SidebarGroup>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setShowMore(!showMore)}
+                  tooltip={showMore ? 'Less' : 'More'}
+                  data-testid="more-less-toggle"
+                >
+                  {showMore ? <X /> : <MoreIcon />}
+                  <span>{showMore ? 'Less' : 'More'}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
 
-          {/* 4. Customers */}
-          <NavStandalone items={customersItem} />
-
-          {/* 5. Finance */}
-          <NavMain items={[navigationSections[0]]} />
-
-          {/* 6. Settings */}
-          <NavStandalone items={settingsItem} />
+          {/* Secondary navigation items - visible when showMore is true */}
+          {showMore && <NavStandalone items={secondaryItems} />}
         </div>
         <div className="flex-1" />
       </SidebarContent>
 
       <SidebarFooter
         className={cn(
-          'flex flex-col gap-0 px-0 overflow-hidden transition-all duration-300 ease-in-out bg-sidebar',
+          'flex flex-col gap-2 px-3 overflow-hidden transition-all duration-300 ease-in-out bg-sidebar',
           isCollapsed
             ? 'opacity-0 max-h-0 pointer-events-none'
             : 'opacity-100'
         )}
       >
-        <div className="px-0">
-          {/* Footer navigation using official pattern */}
-          <NavStandalone items={footerNavigationItems} />
-        </div>
         {/* Test Mode Toggle - using official sidebar components */}
         <div className="px-0">
           <SidebarGroup>
@@ -382,6 +351,29 @@ export const SideNavigation = () => {
             </SidebarMenu>
           </SidebarGroup>
         </div>
+
+        {/* NavUser - shows user info and dropdown menu */}
+        {session?.user && organization && (
+          <NavUser
+            user={{
+              name: session.user.name ?? session.user.email,
+              email: session.user.email,
+              image: session.user.image,
+            }}
+            organization={{
+              id: organization.id,
+              name: organization.name,
+              onboardingStatus: organization.onboardingStatus,
+            }}
+            onSignOut={() => signOut()}
+            onTestModeToggle={async (enabled) => {
+              await toggleTestMode.mutateAsync({
+                livemode: !enabled,
+              })
+            }}
+            testModeEnabled={!livemode}
+          />
+        )}
       </SidebarFooter>
     </>
   )

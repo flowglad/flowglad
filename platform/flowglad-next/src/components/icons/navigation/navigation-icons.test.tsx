@@ -1,11 +1,69 @@
 import { render, screen } from '@testing-library/react'
+import { Gauge } from 'lucide-react'
 import React from 'react'
 import { describe, expect, it } from 'vitest'
 import { FinishSetupIcon } from '../FinishSetupIcon'
 import { MoreIcon } from '../MoreIcon'
 import { PaymentsIcon } from '../PaymentsIcon'
 import { SettingsIcon } from '../SettingsIcon'
+import {
+  createNavIcon,
+  NAV_ICON_SIZE,
+  NAV_ICON_STROKE_WIDTH,
+} from './createNavIcon'
 import { CustomersIcon, SubscriptionsIcon } from './PhosphorWrappers'
+
+describe('Navigation Icon System', () => {
+  describe('constants', () => {
+    it('should export NAV_ICON_SIZE as 20', () => {
+      expect(NAV_ICON_SIZE).toBe(20)
+    })
+
+    it('should export NAV_ICON_STROKE_WIDTH as 2', () => {
+      expect(NAV_ICON_STROKE_WIDTH).toBe(2)
+    })
+  })
+
+  describe('createNavIcon factory', () => {
+    const TestIcon = createNavIcon(Gauge, 'TestIcon')
+
+    it('should create an icon with default size of 20', () => {
+      render(<TestIcon data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      expect(svg).toHaveAttribute('width', '20')
+      expect(svg).toHaveAttribute('height', '20')
+    })
+
+    it('should create an icon with default strokeWidth of 2', () => {
+      render(<TestIcon data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      expect(svg).toHaveAttribute('stroke-width', '2')
+    })
+
+    it('should allow overriding size', () => {
+      render(<TestIcon size={24} data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      expect(svg).toHaveAttribute('width', '24')
+      expect(svg).toHaveAttribute('height', '24')
+    })
+
+    it('should allow overriding strokeWidth', () => {
+      render(<TestIcon strokeWidth={1.5} data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      expect(svg).toHaveAttribute('stroke-width', '1.5')
+    })
+
+    it('should include shrink-0 class by default', () => {
+      render(<TestIcon data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      expect(svg).toHaveClass('shrink-0')
+    })
+
+    it('should set displayName correctly', () => {
+      expect(TestIcon.displayName).toBe('TestIcon')
+    })
+  })
+})
 
 describe('Custom Navigation Icons', () => {
   describe('PaymentsIcon', () => {
@@ -29,6 +87,34 @@ describe('Custom Navigation Icons', () => {
       const path = svg.querySelector('path')
       expect(path).toHaveAttribute('stroke', 'currentColor')
     })
+
+    it('should use default size of 20', () => {
+      render(<PaymentsIcon data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      expect(svg).toHaveAttribute('width', '20')
+      expect(svg).toHaveAttribute('height', '20')
+    })
+
+    it('should accept size prop', () => {
+      render(<PaymentsIcon size={24} data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      expect(svg).toHaveAttribute('width', '24')
+      expect(svg).toHaveAttribute('height', '24')
+    })
+
+    it('should use default strokeWidth of 2', () => {
+      render(<PaymentsIcon data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      const path = svg.querySelector('path')
+      expect(path).toHaveAttribute('stroke-width', '2')
+    })
+
+    it('should accept strokeWidth prop', () => {
+      render(<PaymentsIcon strokeWidth={1.5} data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      const path = svg.querySelector('path')
+      expect(path).toHaveAttribute('stroke-width', '1.5')
+    })
   })
 
   describe('MoreIcon', () => {
@@ -49,6 +135,20 @@ describe('Custom Navigation Icons', () => {
       const svg = screen.getByTestId('icon')
       const path = svg.querySelector('path')
       expect(path).toHaveAttribute('stroke', 'currentColor')
+    })
+
+    it('should use default size of 20', () => {
+      render(<MoreIcon data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      expect(svg).toHaveAttribute('width', '20')
+      expect(svg).toHaveAttribute('height', '20')
+    })
+
+    it('should accept size prop', () => {
+      render(<MoreIcon size={24} data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      expect(svg).toHaveAttribute('width', '24')
+      expect(svg).toHaveAttribute('height', '24')
     })
   })
 
@@ -73,6 +173,20 @@ describe('Custom Navigation Icons', () => {
       const path = svg.querySelector('path')
       expect(path).toHaveAttribute('stroke', 'currentColor')
     })
+
+    it('should use default size of 20', () => {
+      render(<SettingsIcon data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      expect(svg).toHaveAttribute('width', '20')
+      expect(svg).toHaveAttribute('height', '20')
+    })
+
+    it('should accept size prop', () => {
+      render(<SettingsIcon size={24} data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      expect(svg).toHaveAttribute('width', '24')
+      expect(svg).toHaveAttribute('height', '24')
+    })
   })
 
   describe('FinishSetupIcon', () => {
@@ -95,6 +209,20 @@ describe('Custom Navigation Icons', () => {
       const svg = screen.getByTestId('icon')
       const path = svg.querySelector('path')
       expect(path).toHaveAttribute('fill', 'currentColor')
+    })
+
+    it('should use default size of 20', () => {
+      render(<FinishSetupIcon data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      expect(svg).toHaveAttribute('width', '20')
+      expect(svg).toHaveAttribute('height', '20')
+    })
+
+    it('should accept size prop', () => {
+      render(<FinishSetupIcon size={24} data-testid="icon" />)
+      const svg = screen.getByTestId('icon')
+      expect(svg).toHaveAttribute('width', '24')
+      expect(svg).toHaveAttribute('height', '24')
     })
   })
 
