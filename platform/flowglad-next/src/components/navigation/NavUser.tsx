@@ -100,9 +100,11 @@ export const NavUser: React.FC<NavUserProps> = ({
           <button
             type="button"
             className={cn(
-              'flex w-full items-center gap-2 rounded-md border border-border p-2 text-left transition-colors',
+              'flex w-full items-center gap-2 rounded-md p-2 text-left transition-colors',
               'hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              isCollapsed && 'justify-center p-1.5'
+              isCollapsed
+                ? 'justify-center px-[7px] py-1.5'
+                : 'border border-border'
             )}
             data-testid="nav-user-trigger"
           >
@@ -143,7 +145,7 @@ export const NavUser: React.FC<NavUserProps> = ({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="w-56"
+          className="min-w-[var(--radix-dropdown-menu-trigger-width)]"
           align="start"
           side="top"
           sideOffset={8}
@@ -229,7 +231,10 @@ export const NavUser: React.FC<NavUserProps> = ({
                   className="flex items-center gap-2"
                   data-testid="nav-user-finish-setup"
                 >
-                  <FinishSetupIcon className="h-4 w-4" />
+                  <FinishSetupIcon
+                    className="h-4 w-4"
+                    color="orange"
+                  />
                   <span>Finish Setup</span>
                 </Link>
               </DropdownMenuItem>

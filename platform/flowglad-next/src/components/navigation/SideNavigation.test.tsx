@@ -186,11 +186,8 @@ describe('SideNavigation - Logo Section', () => {
 
       const flowgladLogo = screen.getByTestId('sidebar-flowglad-logo')
       expect(flowgladLogo).toBeInTheDocument()
-      expect(flowgladLogo).toHaveAttribute(
-        'src',
-        '/flowglad-logomark-black.svg'
-      )
-      expect(flowgladLogo).toHaveAttribute('alt', 'Flowglad')
+      // FlowgladLogomark is an SVG component, not an image
+      expect(flowgladLogo.tagName.toLowerCase()).toBe('svg')
     })
 
     it('should show organization logo when logoURL exists', () => {
@@ -249,23 +246,23 @@ describe('SideNavigation - Logo Section', () => {
       expect(collapseIconContainer).toHaveClass('opacity-100')
     })
 
-    it('should dim logo when hovered', () => {
+    it('should hide logo when hovered', () => {
       mockOrganization.logoURL = null
       render(<SideNavigation />)
 
       const logoButton = screen.getByTestId('sidebar-logo-button')
       const logo = screen.getByTestId('sidebar-flowglad-logo')
 
-      // Initially logo should not be dimmed
-      expect(logo).not.toHaveClass('opacity-25')
+      // Initially logo should be visible
+      expect(logo).not.toHaveClass('opacity-0')
 
-      // On hover, logo should be dimmed
+      // On hover, logo should be hidden
       fireEvent.mouseEnter(logoButton)
-      expect(logo).toHaveClass('opacity-25')
+      expect(logo).toHaveClass('opacity-0')
 
-      // On mouse leave, logo should return to normal
+      // On mouse leave, logo should return to visible
       fireEvent.mouseLeave(logoButton)
-      expect(logo).not.toHaveClass('opacity-25')
+      expect(logo).not.toHaveClass('opacity-0')
     })
   })
 

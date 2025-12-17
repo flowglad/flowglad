@@ -26,9 +26,9 @@ import { cn } from '@/lib/utils'
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state'
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = '16rem'
+const SIDEBAR_WIDTH = '15rem'
 const SIDEBAR_WIDTH_MOBILE = '20rem'
-const SIDEBAR_WIDTH_ICON = '4.5rem'
+const SIDEBAR_WIDTH_ICON = '4.25rem'
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b'
 
 type SidebarContextProps = {
@@ -426,7 +426,7 @@ const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn('flex flex-col gap-0 p-2', className)}
+      className={cn('flex flex-col gap-0', className)}
       {...props}
     />
   )
@@ -475,7 +475,7 @@ const SidebarGroup = React.forwardRef<
       ref={ref}
       data-sidebar="group"
       className={cn(
-        'relative flex w-full min-w-0 flex-col px-1 py-px',
+        'relative flex w-full min-w-0 flex-col',
         className
       )}
       {...props}

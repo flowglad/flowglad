@@ -81,6 +81,7 @@ export { RiDiscordFill } from '@remixicon/react'
 
 // Custom icons (already configured with NAV_ICON_SIZE/STROKE_WIDTH defaults)
 export { FinishSetupIcon } from '../FinishSetupIcon'
+export { FlowgladLogomark } from '../FlowgladLogomark'
 export { MoreIcon } from '../MoreIcon'
 export { PaymentsIcon } from '../PaymentsIcon'
 export { SettingsIcon } from '../SettingsIcon'
