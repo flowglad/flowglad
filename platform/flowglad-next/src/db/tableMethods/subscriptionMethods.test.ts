@@ -753,6 +753,395 @@ describe('selectSubscriptionsTableRowData', () => {
     })
   })
 
+  describe('isFreePlan filter functionality', () => {
+    let freeSubscription1: Subscription.Record
+    let freeSubscription2: Subscription.Record
+    let paidSubscription1: Subscription.Record
+    let paidSubscription2: Subscription.Record
+
+    beforeEach(async () => {
+      // Create free plan subscriptions
+      const customerFree1 = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Free User 1',
+        email: 'free1@example.com',
+      })
+      const paymentMethodFree1 = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerFree1.id,
+      })
+      freeSubscription1 = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customerFree1.id,
+        paymentMethodId: paymentMethodFree1.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+        isFreePlan: true,
+      })
+
+      const customerFree2 = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Free User 2',
+        email: 'free2@example.com',
+      })
+      const paymentMethodFree2 = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerFree2.id,
+      })
+      freeSubscription2 = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customerFree2.id,
+        paymentMethodId: paymentMethodFree2.id,
+        priceId: price2.id,
+        status: SubscriptionStatus.Active,
+        isFreePlan: true,
+      })
+
+      // Create paid plan subscriptions
+      const customerPaid1 = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Paid User 1',
+        email: 'paid1@example.com',
+      })
+      const paymentMethodPaid1 = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerPaid1.id,
+      })
+      paidSubscription1 = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customerPaid1.id,
+        paymentMethodId: paymentMethodPaid1.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+        isFreePlan: false,
+      })
+
+      const customerPaid2 = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Paid User 2',
+        email: 'paid2@example.com',
+      })
+      const paymentMethodPaid2 = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerPaid2.id,
+      })
+      paidSubscription2 = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customerPaid2.id,
+        paymentMethodId: paymentMethodPaid2.id,
+        priceId: price2.id,
+        status: SubscriptionStatus.Active,
+        isFreePlan: false,
+      })
+    })
+
+    it('should return only free plan subscriptions when isFreePlan: true', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectSubscriptionsTableRowData({
+          input: {
+            pageSize: 10,
+            filters: {
+              organizationId: organization.id,
+              isFreePlan: true,
+            } as SubscriptionTableFilters,
+          },
+          transaction,
+        })
+
+        expect(result.items.length).toBe(2)
+        const subscriptionIds = result.items.map(
+          (item) => item.subscription.id
+        )
+        expect(subscriptionIds).toContain(freeSubscription1.id)
+        expect(subscriptionIds).toContain(freeSubscription2.id)
+        expect(subscriptionIds).not.toContain(paidSubscription1.id)
+        expect(subscriptionIds).not.toContain(paidSubscription2.id)
+        result.items.forEach((item) => {
+          expect(item.subscription.isFreePlan).toBe(true)
+        })
+        expect(result.total).toBe(2)
+      })
+    })
+
+    it('should return only paid subscriptions when isFreePlan: false', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectSubscriptionsTableRowData({
+          input: {
+            pageSize: 10,
+            filters: {
+              organizationId: organization.id,
+              isFreePlan: false,
+            } as SubscriptionTableFilters,
+          },
+          transaction,
+        })
+
+        // 5 total: 3 from main beforeEach (default isFreePlan: false) + 2 from this beforeEach
+        expect(result.items.length).toBe(5)
+        const subscriptionIds = result.items.map(
+          (item) => item.subscription.id
+        )
+        // Should include paid subscriptions from this beforeEach
+        expect(subscriptionIds).toContain(paidSubscription1.id)
+        expect(subscriptionIds).toContain(paidSubscription2.id)
+        // Should include subscriptions from main beforeEach (default isFreePlan: false)
+        expect(subscriptionIds).toContain(subscription1.id)
+        expect(subscriptionIds).toContain(subscription2.id)
+        expect(subscriptionIds).toContain(subscription3.id)
+        // Should NOT include free subscriptions
+        expect(subscriptionIds).not.toContain(freeSubscription1.id)
+        expect(subscriptionIds).not.toContain(freeSubscription2.id)
+        result.items.forEach((item) => {
+          expect(item.subscription.isFreePlan).toBe(false)
+        })
+        expect(result.total).toBe(5)
+      })
+    })
+
+    it('should return all subscriptions when isFreePlan is undefined', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectSubscriptionsTableRowData({
+          input: {
+            pageSize: 20,
+            filters: {
+              organizationId: organization.id,
+            },
+          },
+          transaction,
+        })
+
+        // Should return all 7 subscriptions (3 from main beforeEach + 4 from this beforeEach)
+        expect(result.items.length).toBe(7)
+        expect(result.total).toBe(7)
+      })
+    })
+  })
+
+  describe('combined isFreePlan with other filters', () => {
+    let freeSubscriptionPremium: Subscription.Record
+    let paidSubscriptionPremium: Subscription.Record
+    let freeSubscriptionBasic: Subscription.Record
+    let paidSubscriptionBasic: Subscription.Record
+    let activeFreeSub: Subscription.Record
+    let canceledFreeSub: Subscription.Record
+    let activePaidSub: Subscription.Record
+    let canceledPaidSub: Subscription.Record
+
+    beforeEach(async () => {
+      // Create subscriptions for combined filter tests
+      const customerA = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Customer A',
+        email: 'a@example.com',
+      })
+      const paymentMethodA = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerA.id,
+      })
+      freeSubscriptionPremium = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customerA.id,
+        paymentMethodId: paymentMethodA.id,
+        priceId: price1.id, // Premium Plan
+        status: SubscriptionStatus.Active,
+        isFreePlan: true,
+      })
+
+      const customerB = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Customer B',
+        email: 'b@example.com',
+      })
+      const paymentMethodB = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerB.id,
+      })
+      paidSubscriptionPremium = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customerB.id,
+        paymentMethodId: paymentMethodB.id,
+        priceId: price1.id, // Premium Plan
+        status: SubscriptionStatus.Active,
+        isFreePlan: false,
+      })
+
+      const customerC = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Customer C',
+        email: 'c@example.com',
+      })
+      const paymentMethodC = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerC.id,
+      })
+      freeSubscriptionBasic = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customerC.id,
+        paymentMethodId: paymentMethodC.id,
+        priceId: price2.id, // Basic Plan
+        status: SubscriptionStatus.Active,
+        isFreePlan: true,
+      })
+
+      const customerD = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Customer D',
+        email: 'd@example.com',
+      })
+      const paymentMethodD = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerD.id,
+      })
+      paidSubscriptionBasic = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customerD.id,
+        paymentMethodId: paymentMethodD.id,
+        priceId: price2.id, // Basic Plan
+        status: SubscriptionStatus.Active,
+        isFreePlan: false,
+      })
+
+      // Create subscriptions for status + isFreePlan combined test
+      const customerE = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Customer E',
+        email: 'e@example.com',
+      })
+      const paymentMethodE = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerE.id,
+      })
+      activeFreeSub = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customerE.id,
+        paymentMethodId: paymentMethodE.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+        isFreePlan: true,
+      })
+
+      const customerF = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Customer F',
+        email: 'f@example.com',
+      })
+      const paymentMethodF = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerF.id,
+      })
+      canceledFreeSub = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customerF.id,
+        paymentMethodId: paymentMethodF.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Canceled,
+        isFreePlan: true,
+      })
+
+      const customerG = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Customer G',
+        email: 'g@example.com',
+      })
+      const paymentMethodG = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerG.id,
+      })
+      activePaidSub = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customerG.id,
+        paymentMethodId: paymentMethodG.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+        isFreePlan: false,
+      })
+
+      const customerH = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Customer H',
+        email: 'h@example.com',
+      })
+      const paymentMethodH = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerH.id,
+      })
+      canceledPaidSub = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customerH.id,
+        paymentMethodId: paymentMethodH.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Canceled,
+        isFreePlan: false,
+      })
+    })
+
+    it('should combine isFreePlan and productName filters', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectSubscriptionsTableRowData({
+          input: {
+            pageSize: 10,
+            filters: {
+              organizationId: organization.id,
+              isFreePlan: false,
+              productName: 'Premium Plan',
+            } as SubscriptionTableFilters,
+          },
+          transaction,
+        })
+
+        // Should return paid subscriptions with Premium Plan:
+        // - subscription1, subscription2 from main beforeEach (price1 = Premium Plan, default isFreePlan: false)
+        // - paidSubscriptionPremium, activePaidSub, canceledPaidSub from this beforeEach
+        expect(result.items.length).toBe(5)
+        const subscriptionIds = result.items.map(
+          (item) => item.subscription.id
+        )
+        expect(subscriptionIds).toContain(paidSubscriptionPremium.id)
+        expect(subscriptionIds).toContain(activePaidSub.id)
+        expect(subscriptionIds).toContain(canceledPaidSub.id)
+        expect(subscriptionIds).toContain(subscription1.id)
+        expect(subscriptionIds).toContain(subscription2.id)
+        result.items.forEach((item) => {
+          expect(item.subscription.isFreePlan).toBe(false)
+          expect(item.product.name).toBe('Premium Plan')
+        })
+        expect(result.total).toBe(5)
+      })
+    })
+
+    it('should combine isFreePlan and status filters', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectSubscriptionsTableRowData({
+          input: {
+            pageSize: 10,
+            filters: {
+              organizationId: organization.id,
+              isFreePlan: false,
+              status: SubscriptionStatus.Active,
+            } as SubscriptionTableFilters,
+          },
+          transaction,
+        })
+
+        // Should only return active paid subscriptions
+        const subscriptionIds = result.items.map(
+          (item) => item.subscription.id
+        )
+        expect(subscriptionIds).toContain(activePaidSub.id)
+        expect(subscriptionIds).not.toContain(canceledPaidSub.id)
+        expect(subscriptionIds).not.toContain(activeFreeSub.id)
+        expect(subscriptionIds).not.toContain(canceledFreeSub.id)
+
+        result.items.forEach((item) => {
+          expect(item.subscription.isFreePlan).toBe(false)
+          expect(item.subscription.status).toBe(
+            SubscriptionStatus.Active
+          )
+        })
+      })
+    })
+  })
+
   describe('edge cases and error handling', () => {
     it('should handle invalid inputs gracefully and maintain correct total count', async () => {
       await adminTransaction(async ({ transaction }) => {

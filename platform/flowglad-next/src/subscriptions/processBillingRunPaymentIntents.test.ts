@@ -1,4 +1,3 @@
-import Stripe from 'stripe'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
@@ -7,7 +6,6 @@ import {
   setupCustomer,
   setupInvoice,
   setupInvoiceLineItem,
-  setupLedgerTransaction,
   setupMemberships,
   setupOrg,
   setupPayment,
@@ -16,8 +14,6 @@ import {
   setupProduct,
   setupProductFeature,
   setupSubscription,
-  setupSubscriptionItem,
-  setupSubscriptionItemFeatureUsageCreditGrant,
   setupUsageCreditGrantFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
@@ -30,7 +26,6 @@ import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import type { Customer } from '@/db/schema/customers'
-import { Invoice } from '@/db/schema/invoices'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
@@ -40,10 +35,7 @@ import {
   updateBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
 import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
-import {
-  selectInvoiceById,
-  updateInvoice,
-} from '@/db/tableMethods/invoiceMethods'
+import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
 import {
   aggregateBalanceForLedgerAccountFromEntries,
@@ -51,25 +43,18 @@ import {
 } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
-import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
-import {
-  createMockPaymentIntent,
-  createMockPaymentIntentEventResponse,
-} from '@/test/helpers/stripeMocks'
+import { createMockPaymentIntentEventResponse } from '@/test/helpers/stripeMocks'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
-  FeatureType,
   FeatureUsageGrantFrequency,
   IntervalUnit,
   InvoiceStatus,
-  LedgerEntryType,
   LedgerTransactionType,
   PaymentStatus,
   PriceType,
-  SubscriptionItemType,
   SubscriptionStatus,
   UsageCreditStatus,
   UsageCreditType,
@@ -184,7 +169,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
       // The function should simply skip processing and return undefined.
       const { result } = await processOutcomeForBillingRun(
-        event,
+        { input: event },
         transaction
       )
       expect(result?.processingSkipped).toBe(true)
@@ -242,7 +227,10 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       const { result, ledgerCommands } =
-        await processOutcomeForBillingRun(event, transaction)
+        await processOutcomeForBillingRun(
+          { input: event },
+          transaction
+        )
 
       const updatedBillingRun = await selectBillingRunById(
         billingRun.id,
@@ -336,13 +324,19 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
     await adminTransaction(async ({ transaction }) => {
       const { ledgerCommands: firstLedgerCommands } =
-        await processOutcomeForBillingRun(event, transaction)
+        await processOutcomeForBillingRun(
+          { input: event },
+          transaction
+        )
 
       expect(firstLedgerCommands).toBeDefined()
       expect(firstLedgerCommands?.length).toBeGreaterThan(0)
 
       const { ledgerCommands: secondLedgerCommands } =
-        await processOutcomeForBillingRun(event, transaction)
+        await processOutcomeForBillingRun(
+          { input: event },
+          transaction
+        )
 
       expect(secondLedgerCommands).toBeUndefined()
     })
@@ -396,7 +390,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         }
       )
       const { ledgerCommands } = await processOutcomeForBillingRun(
-        event,
+        { input: event },
         transaction
       )
 
@@ -478,7 +472,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       const { ledgerCommands } = await processOutcomeForBillingRun(
-        event,
+        { input: event },
         transaction
       )
 
@@ -557,7 +551,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       const { ledgerCommands } = await processOutcomeForBillingRun(
-        event,
+        { input: event },
         transaction
       )
 
@@ -646,7 +640,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       const { ledgerCommands } = await processOutcomeForBillingRun(
-        event,
+        { input: event },
         transaction
       )
 
@@ -705,7 +699,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       await expect(
-        processOutcomeForBillingRun(event, transaction)
+        processOutcomeForBillingRun({ input: event }, transaction)
       ).rejects.toThrow(
         `Invoice for billing period ${billingRun.billingPeriodId} not found.`
       )
@@ -751,7 +745,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       await expect(
-        processOutcomeForBillingRun(event, transaction)
+        processOutcomeForBillingRun({ input: event }, transaction)
       ).rejects.toThrow(
         /No latest charge found for payment intent pi_no_charge/
       )
@@ -798,7 +792,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
   //     } as any
 
   //     await expect(
-  //       processOutcomeForBillingRun(event, transaction)
+  //       processOutcomeForBillingRun(event, adjustmentParams, transaction)
   //     ).rejects.toThrow(
   //       `Payment record not found for stripe charge ${event.data.object.latest_charge}`
   //     )
@@ -894,7 +888,10 @@ describe('processOutcomeForBillingRun integration tests', async () => {
           livemode: true,
         }
       )
-      return await processOutcomeForBillingRun(event, transaction)
+      return await processOutcomeForBillingRun(
+        { input: event },
+        transaction
+      )
     })
 
     // Verify subscription was canceled
@@ -1039,7 +1036,10 @@ describe('processOutcomeForBillingRun integration tests', async () => {
           livemode: true,
         }
       )
-      return await processOutcomeForBillingRun(event, transaction)
+      return await processOutcomeForBillingRun(
+        { input: event },
+        transaction
+      )
     })
 
     // Verify subscription was NOT canceled (unlike paid plans)
@@ -1173,7 +1173,10 @@ describe('processOutcomeForBillingRun integration tests', async () => {
           }
         )
 
-        return await processOutcomeForBillingRun(event, transaction)
+        return await processOutcomeForBillingRun(
+          { input: event },
+          transaction
+        )
       }
     )
 
@@ -1391,7 +1394,10 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         }
       )
 
-      return await processOutcomeForBillingRun(event, transaction)
+      return await processOutcomeForBillingRun(
+        { input: event },
+        transaction
+      )
     })
 
     // Assertions
@@ -1571,7 +1577,10 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         }
       )
 
-      return await processOutcomeForBillingRun(event, transaction)
+      return await processOutcomeForBillingRun(
+        { input: event },
+        transaction
+      )
     })
 
     // Assertions: similar to "Once" grant, as the first grant is always issued.
@@ -1756,7 +1765,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
       )
 
       return await processOutcomeForBillingRun(
-        firstEvent,
+        { input: firstEvent },
         transaction
       )
     })
@@ -1810,7 +1819,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
       )
 
       return await processOutcomeForBillingRun(
-        secondEvent,
+        { input: secondEvent },
         transaction
       )
     })

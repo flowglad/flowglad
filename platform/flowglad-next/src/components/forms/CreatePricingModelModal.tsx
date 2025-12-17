@@ -1,7 +1,14 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  CircleDashed,
+  Loader2,
+  Shapes,
+  Upload,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
@@ -18,6 +25,7 @@ import {
   type CreatePricingModelInput,
   createPricingModelSchema,
 } from '@/db/schema/pricingModels'
+import { IntervalUnit } from '@/types'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 import type { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 import { generateTemplateName } from '@/utils/pricingModelTemplates'
@@ -26,7 +34,12 @@ import { DialogFooter, DialogHeader } from '../ui/dialog'
 import { ImportPricingModel } from './ImportPricingModel'
 import { TemplateSelectorContent } from './TemplateSelectorContent'
 
-type ModalView = 'selector' | 'preview' | 'blank' | 'import'
+type ModalView =
+  | 'choice'
+  | 'selector'
+  | 'preview'
+  | 'blank'
+  | 'import'
 
 interface CreatePricingModelModalProps {
   isOpen: boolean
@@ -39,8 +52,7 @@ const CreatePricingModelModal: React.FC<
   const router = useRouter()
 
   // Single modal with different views
-  const [currentView, setCurrentView] =
-    useState<ModalView>('selector')
+  const [currentView, setCurrentView] = useState<ModalView>('choice')
   const [selectedTemplate, setSelectedTemplate] =
     useState<PricingModelTemplate | null>(null)
   const [parsedYamlData, setParsedYamlData] =
@@ -49,7 +61,11 @@ const CreatePricingModelModal: React.FC<
   // Form for blank pricing model creation
   const form = useForm<CreatePricingModelInput>({
     resolver: zodResolver(createPricingModelSchema),
-    defaultValues: { pricingModel: { name: '' } },
+    defaultValues: {
+      pricingModel: { name: '', isDefault: true },
+      defaultPlanIntervalUnit: IntervalUnit.Month,
+    },
+    mode: 'onSubmit',
   })
 
   // TRPC mutations
@@ -58,7 +74,7 @@ const CreatePricingModelModal: React.FC<
       onSuccess: ({ pricingModel }) => {
         toast.success('Pricing model created successfully')
         setIsOpen(false)
-        router.push(`/store/pricing-models/${pricingModel.id}`)
+        router.push(`/pricing-models/${pricingModel.id}`)
         resetState()
       },
       onError: (error) => {
@@ -74,7 +90,7 @@ const CreatePricingModelModal: React.FC<
           'Pricing model created from template successfully'
         )
         setIsOpen(false)
-        router.push(`/store/pricing-models/${pricingModel.id}`)
+        router.push(`/pricing-models/${pricingModel.id}`)
         resetState()
       },
       onError: (error) => {
@@ -84,19 +100,18 @@ const CreatePricingModelModal: React.FC<
     })
 
   const resetState = () => {
-    setCurrentView('selector')
+    setCurrentView('choice')
     setSelectedTemplate(null)
     setParsedYamlData(null)
-    form.reset({ pricingModel: { name: '' } })
+    form.reset({
+      pricingModel: { name: '', isDefault: true },
+      defaultPlanIntervalUnit: IntervalUnit.Month,
+    })
   }
 
   const handleTemplateSelect = (template: PricingModelTemplate) => {
     setSelectedTemplate(template)
     setCurrentView('preview')
-  }
-
-  const handleCreateBlank = () => {
-    setCurrentView('blank')
   }
 
   const handleImportPricingModel = () => {
@@ -106,6 +121,18 @@ const CreatePricingModelModal: React.FC<
   const handleBackToSelector = () => {
     setCurrentView('selector')
     setSelectedTemplate(null)
+  }
+
+  const handleBackToChoice = () => {
+    setCurrentView('choice')
+  }
+
+  const handleStartFromScratch = () => {
+    setCurrentView('blank')
+  }
+
+  const handleStartWithTemplate = () => {
+    setCurrentView('selector')
   }
 
   const handleConfirmTemplate = async ({
@@ -132,6 +159,9 @@ const CreatePricingModelModal: React.FC<
 
   // Get dialog content className based on view
   const getDialogClassName = () => {
+    if (currentView === 'choice') {
+      return 'w-[calc(100vw-32px)] sm:max-w-lg p-4 sm:p-6 gap-4 max-h-[90vh]'
+    }
     if (currentView === 'selector') {
       return 'w-[calc(100vw-32px)] sm:w-[calc(100vw-64px)] sm:max-w-[1200px] p-0 sm:p-0 gap-0 max-h-[90vh] overflow-hidden'
     }
@@ -147,7 +177,8 @@ const CreatePricingModelModal: React.FC<
 
   // Get dialog title based on view
   const getDialogTitle = () => {
-    if (currentView === 'selector') return 'Create Pricing Model'
+    if (currentView === 'choice') return 'Create Pricing Model'
+    if (currentView === 'selector') return 'Choose a Template'
     if (currentView === 'blank') return 'Create Pricing Model'
     if (currentView === 'import') return 'Import Pricing Model'
     return selectedTemplate?.metadata.title || 'Template Preview'
@@ -156,12 +187,87 @@ const CreatePricingModelModal: React.FC<
   // Render content based on current view
   const renderContent = () => {
     switch (currentView) {
+      case 'choice':
+        return (
+          <>
+            <DialogHeader>
+              <DialogTitle>Create Pricing Model</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Choose how you'd like to get started
+              </p>
+            </DialogHeader>
+            <div className="flex flex-col gap-3 pt-2">
+              {/* Start from Scratch Option */}
+              <button
+                type="button"
+                onClick={handleStartFromScratch}
+                className="group flex items-center gap-4 p-4 rounded bg-accent hover:bg-[hsl(0_0%_0%/10%)] dark:hover:bg-[hsl(0_0%_100%/15%)] transition-colors text-left w-full"
+              >
+                <div className="flex items-center justify-center h-10 w-10">
+                  <CircleDashed className="h-8 w-8 text-foreground" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-foreground font-sans">
+                    Start from Scratch
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Create a blank pricing model and add products
+                    manually
+                  </p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+              </button>
+
+              {/* Start with Template Option */}
+              <button
+                type="button"
+                onClick={handleStartWithTemplate}
+                className="group flex items-center gap-4 p-4 rounded bg-accent hover:bg-[hsl(0_0%_0%/10%)] dark:hover:bg-[hsl(0_0%_100%/15%)] transition-colors text-left w-full"
+              >
+                <div className="flex items-center justify-center h-10 w-10">
+                  <Shapes className="h-8 w-8 text-foreground" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-foreground font-sans">
+                    Start with Template
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Choose from pre-built pricing models inspired by
+                    top companies
+                  </p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+              </button>
+
+              {/* Import YAML Option */}
+              <button
+                type="button"
+                onClick={handleImportPricingModel}
+                className="group flex items-center gap-4 p-4 rounded bg-accent hover:bg-[hsl(0_0%_0%/10%)] dark:hover:bg-[hsl(0_0%_100%/15%)] transition-colors text-left w-full"
+              >
+                <div className="flex items-center justify-center h-10 w-10">
+                  <Upload className="h-8 w-8 text-foreground" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-foreground font-sans">
+                    Import a YAML
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Upload a preconfigured YAML file to create your
+                    pricing model
+                  </p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+              </button>
+            </div>
+          </>
+        )
+
       case 'selector':
         return (
           <TemplateSelectorContent
             onTemplateSelect={handleTemplateSelect}
-            onCreateBlank={handleCreateBlank}
-            onImportPricingModel={handleImportPricingModel}
+            onBack={handleBackToChoice}
           />
         )
 
@@ -195,8 +301,8 @@ const CreatePricingModelModal: React.FC<
                   type="button"
                   variant="secondary"
                   size="icon"
-                  onClick={handleBackToSelector}
-                  aria-label="Go back to template selector"
+                  onClick={handleBackToChoice}
+                  aria-label="Go back"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
@@ -231,8 +337,8 @@ const CreatePricingModelModal: React.FC<
               <Button
                 variant="secondary"
                 size="icon"
-                onClick={handleBackToSelector}
-                aria-label="Go back to template selector"
+                onClick={handleBackToChoice}
+                aria-label="Go back"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>

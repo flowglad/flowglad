@@ -2,10 +2,16 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
-import { Copy, ExternalLink, Pencil } from 'lucide-react'
+import {
+  ArrowRightLeft,
+  Copy,
+  ExternalLink,
+  Pencil,
+} from 'lucide-react'
 import * as React from 'react'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
+import MigrateCustomerPricingModelModal from '@/components/forms/MigrateCustomerPricingModelModal'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
@@ -27,6 +33,7 @@ function CustomerActionsMenu({
   customer: Customer.ClientRecord
 }) {
   const [isEditOpen, setIsEditOpen] = React.useState(false)
+  const [isMigrateOpen, setIsMigrateOpen] = React.useState(false)
 
   const billingPortalURL = core.customerBillingPortalURL({
     organizationId: customer.organizationId,
@@ -48,6 +55,11 @@ function CustomerActionsMenu({
       label: 'Edit',
       icon: <Pencil className="h-4 w-4" />,
       handler: () => setIsEditOpen(true),
+    },
+    {
+      label: 'Migrate Pricing Model',
+      icon: <ArrowRightLeft className="h-4 w-4" />,
+      handler: () => setIsMigrateOpen(true),
     },
     {
       label: 'Copy Portal Link',
@@ -75,6 +87,11 @@ function CustomerActionsMenu({
       <EditCustomerModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
+        customer={customer}
+      />
+      <MigrateCustomerPricingModelModal
+        isOpen={isMigrateOpen}
+        setIsOpen={setIsMigrateOpen}
         customer={customer}
       />
     </EnhancedDataTableActionsMenu>

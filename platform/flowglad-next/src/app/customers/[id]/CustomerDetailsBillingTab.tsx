@@ -1,18 +1,21 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { trpc } from '@/app/_trpc/client'
 import { InvoicesDataTable } from '@/app/finance/invoices/data-table'
-// import { Plus } from 'lucide-react'
-// import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
-// import { useState } from 'react'
 import { PaymentsDataTable } from '@/app/finance/payments/data-table'
 import { SubscriptionsDataTable } from '@/app/finance/subscriptions/data-table'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { DetailLabel } from '@/components/DetailLabel'
+import { CreateSubscriptionFormModal } from '@/components/forms/CreateSubscriptionFormModal'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 import type { Customer } from '@/db/schema/customers'
-import type { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
 import type { Payment } from '@/db/schema/payments'
-import type { Purchase } from '@/db/schema/purchases'
 import type { UsageEvent } from '@/db/schema/usageEvents'
 import { CurrencyCode, PaymentStatus } from '@/types'
 import core from '@/utils/core'
+import { filterAvailableSubscriptionProducts } from '@/utils/productHelpers'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { PurchasesDataTable } from './purchases/data-table'
 import { UsageEventsDataTable } from './usage-events/data-table'
@@ -21,10 +24,12 @@ const CustomerDetailsSection = ({
   customer,
   payments,
   usageEvents,
+  currency,
 }: {
   customer: Customer.ClientRecord
   payments: Payment.ClientRecord[]
   usageEvents: UsageEvent.ClientRecord[]
+  currency: CurrencyCode
 }) => {
   const billingPortalURL = core.customerBillingPortalURL({
     organizationId: customer.organizationId,
@@ -111,7 +116,7 @@ const CustomerDetailsSection = ({
           <DetailLabel
             label="Total Spend"
             value={stripeCurrencyAmountToHumanReadableCurrencyAmount(
-              payments[0]?.currency ?? CurrencyCode.USD,
+              currency,
               payments
                 .filter(
                   (payment) =>
@@ -146,21 +151,89 @@ const CustomerDetailsSection = ({
 }
 export interface CustomerBillingSubPageProps {
   customer: Customer.ClientRecord
-  purchases: Purchase.ClientRecord[]
-  invoices: InvoiceWithLineItems[]
   payments: Payment.ClientRecord[]
   usageEvents: UsageEvent.ClientRecord[]
 }
 
 export const CustomerBillingSubPage = ({
   customer,
-  purchases,
-  invoices,
   payments,
   usageEvents,
 }: CustomerBillingSubPageProps) => {
-  // const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
-  //   useState(false)
+  const [
+    createSubscriptionModalOpen,
+    setCreateSubscriptionModalOpen,
+  ] = useState(false)
+
+  const { organization } = useAuthenticatedContext()
+
+  // Fetch pricing model for customer
+  const { data: pricingModelData, error: pricingModelError } =
+    trpc.customers.getPricingModelForCustomer.useQuery({
+      customerId: customer.id,
+    })
+
+  // Fetch customer subscriptions to check if they're on a free plan
+  const { data: subscriptionsData, error: subscriptionsError } =
+    trpc.subscriptions.getTableRows.useQuery({
+      filters: { customerId: customer.id },
+      pageSize: 100, // Get all subscriptions to check for free plan
+    })
+
+  // Show error toasts when queries fail
+  useEffect(() => {
+    if (pricingModelError) {
+      toast.error(
+        'Failed to load pricing model. Please refresh the page.',
+        {
+          description: pricingModelError.message,
+        }
+      )
+    }
+  }, [pricingModelError])
+
+  useEffect(() => {
+    if (subscriptionsError) {
+      toast.error(
+        'Failed to load subscriptions. Please refresh the page.',
+        {
+          description: subscriptionsError.message,
+        }
+      )
+    }
+  }, [subscriptionsError])
+
+  // Check if customer is on a free plan
+  const isOnFreePlan =
+    subscriptionsData?.items?.some(
+      (item) =>
+        item.subscription.isFreePlan && item.subscription.current
+    ) ?? false
+
+  // Filter available products
+  const availableProducts = pricingModelData?.pricingModel?.products
+    ? filterAvailableSubscriptionProducts(
+        pricingModelData.pricingModel.products
+      )
+    : []
+
+  // Check if org allows multiple subscriptions
+  const allowsMultipleSubscriptions =
+    organization?.allowMultipleSubscriptionsPerCustomer ?? false
+
+  // Determine if button should be shown
+  const hasAvailableProducts = availableProducts.length > 0
+  const canCreateSubscription =
+    isOnFreePlan || allowsMultipleSubscriptions
+  const shouldShow = hasAvailableProducts && canCreateSubscription
+
+  const isLoading = !pricingModelData || !subscriptionsData
+  const hasError = !!pricingModelError || !!subscriptionsError
+
+  if (!organization) {
+    return null
+  }
+
   return (
     <>
       <div className="w-full flex items-start">
@@ -169,13 +242,19 @@ export const CustomerBillingSubPage = ({
             customer={customer}
             payments={payments}
             usageEvents={usageEvents}
+            currency={organization.defaultCurrency}
           />
           <div className="w-full flex flex-col gap-5 pb-20">
             <SubscriptionsDataTable
               title="Subscriptions"
-              filters={{
+              externalFilters={{
                 customerId: customer.id,
               }}
+              onCreateSubscription={
+                shouldShow && !isLoading && !hasError
+                  ? () => setCreateSubscriptionModalOpen(true)
+                  : undefined
+              }
             />
             <InvoicesDataTable
               title="Invoices"
@@ -204,11 +283,11 @@ export const CustomerBillingSubPage = ({
           </div>
         </div>
       </div>
-      {/* <CreateInvoiceModal
-        isOpen={createInvoiceModalOpen}
-        setIsOpen={setCreateInvoiceModalOpen}
-        customer={customer}
-      /> */}
+      <CreateSubscriptionFormModal
+        isOpen={createSubscriptionModalOpen}
+        setIsOpen={setCreateSubscriptionModalOpen}
+        customerId={customer.id}
+      />
     </>
   )
 }

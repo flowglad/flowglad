@@ -38,6 +38,7 @@ import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpe
 import { syncSubscriptionWithActiveItems } from './adjustSubscription'
 import { generateNextBillingPeriod } from './billingIntervalHelpers'
 import { createBillingRun } from './billingRunHelpers'
+import { isSubscriptionItemActiveAndNonManual } from './subscriptionItemHelpers'
 
 interface CreateBillingPeriodParams {
   subscription: Subscription.StandardRecord
@@ -97,8 +98,9 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
   >[] = []
   if (!params.trialPeriod) {
     const subscriptionItemsToPutTowardsBillingItems =
+      // Filter out expired items and manuallyCreated items
       params.subscriptionItems.filter(
-        (item) => !item.expiredAt || item.expiredAt > Date.now()
+        isSubscriptionItemActiveAndNonManual
       )
 
     billingPeriodItemInserts =
@@ -320,7 +322,10 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     BillingPeriodStatus.Active,
     transaction
   )
-  if (paymentMethodId) {
+  // Only create billing run if payment method exists and doNotCharge is false.
+  // Note: API validation should prevent doNotCharge=true with payment methods,
+  // but we handle this defensively to ensure no billing runs are created.
+  if (paymentMethodId && !subscription.doNotCharge) {
     const paymentMethod = await selectPaymentMethodById(
       paymentMethodId,
       transaction
@@ -347,9 +352,10 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       id: subscription.id,
       currentBillingPeriodEnd: newBillingPeriod.endDate,
       currentBillingPeriodStart: newBillingPeriod.startDate,
-      status: paymentMethodId
-        ? SubscriptionStatus.Active
-        : SubscriptionStatus.PastDue,
+      status:
+        paymentMethodId || subscription.doNotCharge
+          ? SubscriptionStatus.Active
+          : SubscriptionStatus.PastDue,
       renews: subscription.renews,
     },
     transaction

@@ -104,7 +104,6 @@ const SubscriptionPage = async ({
       subscription={subscriptionWithCurrent(subscription)}
       defaultPaymentMethod={defaultPaymentMethod ?? null}
       customer={customer}
-      product={product}
       pricingModel={pricingModel}
       productNames={productNames}
     />

@@ -37,6 +37,7 @@ export interface CreateSubscriptionParams {
   preservedBillingPeriodStart?: Date | number
   prorateFirstPeriod?: boolean
   preserveBillingCycleAnchor?: boolean
+  doNotCharge?: boolean
 }
 
 export interface StandardCreateSubscriptionResult {

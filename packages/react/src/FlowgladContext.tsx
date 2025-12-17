@@ -84,6 +84,7 @@ export interface NonPresentContextValues {
   cancelSubscription: null
   uncancelSubscription: null
   currentSubscriptions: []
+  currentSubscription: null
 }
 
 export interface NotLoadedFlowgladContextValues
@@ -131,6 +132,7 @@ const notPresentContextValues: NonPresentContextValues = {
   cancelSubscription: null,
   uncancelSubscription: null,
   currentSubscriptions: [],
+  currentSubscription: null,
 }
 
 const FlowgladContext = createContext<FlowgladContextValues>({
@@ -363,7 +365,6 @@ export const FlowgladContextProvider = (
       ).requestConfig
       const baseURL = (props as CoreFlowgladContextProviderProps)
         .baseURL
-      console.log('requestConfig===', requestConfig)
       // Use custom fetch if provided (for React Native), otherwise use global fetch
       const fetchImpl =
         requestConfig?.fetch ??
@@ -387,14 +388,13 @@ export const FlowgladContextProvider = (
           headers: requestConfig?.headers,
         }
       )
-      console.log('response===', response)
       try {
         const data = await response.json()
-        console.log('data===', data)
         return data
       } catch (error) {
-        console.log('response text===', await response.text())
-        console.error('Error fetching billing===', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Flowglad: Error fetching billing:', error)
+        }
         return null
       }
     },
@@ -458,6 +458,7 @@ export const FlowgladContextProvider = (
           purchases: billingData.purchases,
           invoices: billingData.invoices,
           paymentMethods: billingData.paymentMethods,
+          currentSubscription: billingData.currentSubscription,
           currentSubscriptions: billingData.currentSubscriptions,
           catalog: billingData.catalog,
           billingPortalUrl: billingData.billingPortalUrl,
@@ -564,6 +565,7 @@ export const FlowgladContextProvider = (
         reload,
         invoices: billingData.invoices,
         paymentMethods: billingData.paymentMethods,
+        currentSubscription: billingData.currentSubscription,
         currentSubscriptions: billingData.currentSubscriptions,
         billingPortalUrl: billingData.billingPortalUrl,
         pricingModel: billingData.pricingModel,

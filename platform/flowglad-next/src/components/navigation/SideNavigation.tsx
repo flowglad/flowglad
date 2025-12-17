@@ -5,12 +5,12 @@ import {
   BookOpen,
   ChevronRight,
   CircleDollarSign,
+  DollarSign,
   Gauge,
   LogOut,
   type LucideIcon,
   PanelLeft,
   Settings,
-  Store,
   TriangleRight,
   Users,
 } from 'lucide-react'
@@ -188,38 +188,17 @@ export const SideNavigation = () => {
     },
   ]
 
-  // Navigation sections with children (using official pattern)
-  const storeChildItems = [
+  const pricingItem: StandaloneNavItem[] = [
     {
-      title: 'Pricing Models',
-      url: '/store/pricing-models',
-    },
-    {
-      title: 'Products',
-      url: '/store/products',
-    },
-    {
-      title: 'Discounts',
-      url: '/store/discounts',
-    },
-    {
-      title: 'Purchases',
-      url: '/store/purchases',
-    },
-    {
-      title: 'Usage Meters',
-      url: '/store/usage-meters',
+      title: 'Pricing',
+      url: '/pricing-models',
+      icon: DollarSign,
+      isActive: isActive('/pricing-models'),
     },
   ]
 
+  // Navigation sections with children (using official pattern)
   const navigationSections: MainNavItem[] = [
-    {
-      title: 'Store',
-      url: '/store',
-      icon: Store,
-      isActive: isActive('/store'),
-      items: storeChildItems,
-    },
     {
       title: 'Finance',
       url: '/finance',
@@ -229,6 +208,8 @@ export const SideNavigation = () => {
         { title: 'Payments', url: '/finance/payments' },
         { title: 'Subscriptions', url: '/finance/subscriptions' },
         { title: 'Invoices', url: '/finance/invoices' },
+        { title: 'Purchases', url: '/finance/purchases' },
+        { title: 'Discounts', url: '/finance/discounts' },
       ],
     },
   ]
@@ -319,14 +300,14 @@ export const SideNavigation = () => {
           {/* 2. Dashboard */}
           <NavStandalone items={dashboardItem} />
 
-          {/* 3. Customers */}
+          {/* 3. Pricing */}
+          <NavStandalone items={pricingItem} />
+
+          {/* 4. Customers */}
           <NavStandalone items={customersItem} />
 
-          {/* 4. Store */}
-          <NavMain items={[navigationSections[0]]} />
-
           {/* 5. Finance */}
-          <NavMain items={[navigationSections[1]]} />
+          <NavMain items={[navigationSections[0]]} />
 
           {/* 6. Settings */}
           <NavStandalone items={settingsItem} />

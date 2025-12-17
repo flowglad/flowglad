@@ -68,5 +68,17 @@ You can change which pricing model serves as the default at any time. This is th
 While new customers often receive the Default pricing model automatically, you can control pricing model assignments precisely:
 
 *   **At Creation:** Specify a `pricingModelId` when creating a customer to assign them to a non-default pricing model immediately.
-*   **Updating Existing Customers:** You can change a customer's associated pricing model at any point using the API. (Dashboard support for updating a customer's pricing model is planned). This allows you to migrate specific customers between different pricing tiers or offerings manually.
+*   **Migrating Existing Customers:** You can migrate a customer to a different pricing model using the dashboard. Use the "Migrate Pricing Model" option in the customer's action menu or details page
 
+### Migration Behavior
+
+When a customer is migrated to a new pricing model:
+
+1. **Subscription Cancellation:** All current subscriptions (free and paid) are canceled immediately
+2. **Billing Period Handling:** Active billing periods are completed, future periods are canceled
+3. **New Subscription:** A default free plan subscription is created on the new pricing model
+4. **Cancellation Reason:** Canceled subscriptions are marked with `pricing_model_migration` reason
+
+<Warning>
+  When you migrate a customer to a new pricing model, ALL their existing subscriptions will be canceled immediately, and a new default free plan subscription will be created on the target pricing model. This action cannot be undone.
+</Warning>

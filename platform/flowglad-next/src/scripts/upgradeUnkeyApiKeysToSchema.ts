@@ -12,12 +12,12 @@ import { unkey } from '@/utils/unkey'
 import runScript from './scriptRunner'
 
 async function upgradeUnkeyApiKeysToSchema(db: PostgresJsDatabase) {
-  let allKeys: {
-    id: string
+  let allKeys: Array<{
+    keyId: string
     meta?: {
       [key: string]: unknown
     }
-  }[] = []
+  }> = []
   let cursor
   do {
     const response = await unkey().apis.listKeys({
@@ -25,9 +25,8 @@ async function upgradeUnkeyApiKeysToSchema(db: PostgresJsDatabase) {
       limit: 100,
       cursor,
     })
-    if (!response.result) break
-    allKeys = [...allKeys, ...response.result.keys]
-    cursor = response.result.cursor
+    allKeys = [...allKeys, ...response.data]
+    cursor = response.pagination?.cursor
   } while (cursor)
   const unkeyKeys = { result: { keys: allKeys } }
 
@@ -42,7 +41,7 @@ async function upgradeUnkeyApiKeysToSchema(db: PostgresJsDatabase) {
       )
       if (!metaParseResult.success) {
         console.error(
-          `Invalid secret key metadata for ${key.id}: ${metaParseResult.error}`
+          `Invalid secret key metadata for ${key.keyId}: ${metaParseResult.error}`
         )
       }
     }

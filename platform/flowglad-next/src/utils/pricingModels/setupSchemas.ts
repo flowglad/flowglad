@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 import { z } from 'zod'
+import { currencyCodeSchema } from '@/db/commonZodSchema'
 import {
-  featuresClientInsertSchema,
   toggleFeatureClientInsertSchema,
   usageCreditGrantFeatureClientInsertSchema,
 } from '@/db/schema/features'
@@ -14,22 +14,18 @@ import { pricingModelsClientInsertSchema } from '@/db/schema/pricingModels'
 import { productsClientInsertSchema } from '@/db/schema/products'
 import { usageMetersClientInsertSchema } from '@/db/schema/usageMeters'
 import { CurrencyCode, FeatureType, PriceType } from '@/types'
-import core from '../core'
+import core, { safeZodSanitizedString } from '../core'
 
-// Input validation schemas for security
-export const sanitizedStringSchema = z
-  .string()
-  .trim()
-  .min(1, 'Field is required')
-  .max(255, 'Field must be less than 255 characters')
-
-export const currencyValidationSchema = z
-  .string()
-  .refine(
-    (currency) =>
-      Object.values(CurrencyCode).includes(currency as CurrencyCode),
-    'Invalid currency code'
-  )
+/**
+ * FIXME: we should be using safeZodSanitizedString for
+ * all slug fields at the DB schemas level.
+ *
+ * The problem is that there are several records with slugs in the DB
+ * that would not parse if they were held to this schema.
+ * - prices
+ * - products
+ * (note: usage meters and features are already using safeZodSanitizedString)
+ */
 
 export const featurePricingModelSetupSchema = z
   .discriminatedUnion('type', [
@@ -66,8 +62,8 @@ const productPricingModelSetupSchema = productsClientInsertSchema
     pricingModelId: true,
   })
   .extend({
-    name: sanitizedStringSchema.describe('The name of the product'),
-    slug: sanitizedStringSchema.describe('The slug of the product'),
+    name: safeZodSanitizedString.describe('The name of the product'),
+    slug: safeZodSanitizedString.describe('The slug of the product'),
   })
   .describe(
     'A product, which describes "what" a customer gets when they purchase via features, and how much they pay via prices.'
@@ -78,9 +74,9 @@ const omitProductId = {
 } as const
 
 const priceOptionalFieldSchema = {
-  currency: currencyValidationSchema.optional(),
-  name: sanitizedStringSchema.optional(),
-  slug: sanitizedStringSchema.optional(),
+  currency: currencyCodeSchema.optional(),
+  name: safeZodSanitizedString.optional(),
+  slug: safeZodSanitizedString.optional(),
 } as const
 
 export const setupPricingModelProductPriceInputSchema =
@@ -126,9 +122,14 @@ export type SetupPricingModelProductInput = z.infer<
   typeof setupPricingModelProductInputSchema
 >
 
+const slugsAreUnique = (sluggableResources: { slug: string }[]) => {
+  const slugs = sluggableResources.map((r) => r.slug)
+  return slugs.length === new Set(slugs).size
+}
+
 export const setupPricingModelSchema =
   pricingModelsClientInsertSchema.extend({
-    name: sanitizedStringSchema.describe(
+    name: safeZodSanitizedString.describe(
       'The name of the pricing model'
     ),
     isDefault: z
@@ -138,17 +139,32 @@ export const setupPricingModelSchema =
       .describe(
         'Whether the pricingModel to be created will be the default pricingModel for all customers moving forward.'
       ),
-    features: z.array(featurePricingModelSetupSchema),
-    products: z.array(setupPricingModelProductInputSchema),
-    usageMeters: z.array(
-      usageMetersClientInsertSchema
-        .omit({
-          pricingModelId: true,
-        })
-        .describe(
-          'The usage meters to add to the pricingModel. If the pricingModel has any prices that are based on usage, each dimension along which usage will be tracked will need its own meter.'
-        )
-    ),
+    features: z
+      .array(featurePricingModelSetupSchema)
+      .refine(slugsAreUnique, {
+        message: 'Features must have unique slugs',
+      }),
+    products: z
+      .array(setupPricingModelProductInputSchema)
+      .refine(
+        (products) => slugsAreUnique(products.map((p) => p.product)),
+        {
+          message: 'Products must have unique slugs',
+        }
+      ),
+    usageMeters: z
+      .array(
+        usageMetersClientInsertSchema
+          .omit({
+            pricingModelId: true,
+          })
+          .describe(
+            'The usage meters to add to the pricingModel. If the pricingModel has any prices that are based on usage, each dimension along which usage will be tracked will need its own meter.'
+          )
+      )
+      .refine(slugsAreUnique, {
+        message: 'Usage meters must have unique slugs',
+      }),
   })
 
 export type SetupPricingModelInput = z.infer<
@@ -211,20 +227,6 @@ export const validateSetupPricingModelInput = (
     R.prop('slug'),
     parsed.usageMeters
   )
-  const featureSlugs = Object.keys(featuresBySlug)
-  featureSlugs.forEach((slug) => {
-    const feature = featuresBySlug[slug]
-    if (feature.length > 1) {
-      throw new Error(`Feature with slug ${slug} already exists`)
-    }
-  })
-  const usageMeterSlugs = Object.keys(usageMetersBySlug)
-  usageMeterSlugs.forEach((slug) => {
-    const usageMeter = usageMetersBySlug[slug]
-    if (usageMeter.length > 1) {
-      throw new Error(`Usage meter with slug ${slug} already exists`)
-    }
-  })
   const pricesBySlug = core.groupBy(
     R.propOr(null, 'slug'),
     parsed.products.flatMap((p) => p.prices)
@@ -279,6 +281,7 @@ export const validateSetupPricingModelInput = (
       }
     })
   })
+  const usageMeterSlugs = Object.keys(usageMetersBySlug)
   usageMeterSlugs.forEach((slug) => {
     if (!usagePriceMeterSlugs.has(slug)) {
       throw new Error(

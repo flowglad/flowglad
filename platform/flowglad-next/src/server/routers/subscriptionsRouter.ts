@@ -19,7 +19,6 @@ import {
   updateSubscriptionPaymentMethodSchema,
 } from '@/db/schema/subscriptions'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
-import { safelyInsertBillingRun } from '@/db/tableMethods/billingRunMethods'
 import {
   selectCustomerByExternalIdAndOrganizationId,
   selectCustomerById,
@@ -49,7 +48,7 @@ import {
 } from '@/db/tableUtils'
 import { adjustSubscription } from '@/subscriptions/adjustSubscription'
 import {
-  createBillingRunInsert,
+  createBillingRun,
   executeBillingRun,
 } from '@/subscriptions/billingRunHelpers'
 import {
@@ -313,6 +312,13 @@ export const createSubscriptionInputSchema = z
       .describe(
         `The payment method to try if charges for the subscription fail with the default payment method.`
       ),
+    doNotCharge: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe(
+        `If true, the subscription item's unitPrice will be set to 0, resulting in no charges. The original price.unitPrice value in the price record remains unchanged.`
+      ),
     // FIXME: Consider exposing preserveBillingCycleAnchor to the API
   })
   .refine(
@@ -332,6 +338,22 @@ export const createSubscriptionInputSchema = z
       message:
         'Either priceId or priceSlug must be provided, but not both',
       path: ['priceId'],
+    }
+  )
+  .refine(
+    (data) => {
+      // If doNotCharge is true, payment methods should not be provided
+      if (data.doNotCharge) {
+        return (
+          !data.defaultPaymentMethodId && !data.backupPaymentMethodId
+        )
+      }
+      return true
+    },
+    {
+      message:
+        'Payment methods cannot be provided when doNotCharge is true. Payment methods are not needed since no charges will be made.',
+      path: ['doNotCharge'],
     }
   )
 
@@ -462,6 +484,7 @@ const createSubscriptionProcedure = protectedProcedure
             backupPaymentMethod,
             livemode: ctx.livemode,
             autoStart: true,
+            doNotCharge: input.doNotCharge,
             // FIXME: Uncomment if we decide to expose preserveBillingCycleAnchor in the API
             // preserveBillingCycleAnchor: input.preserveBillingCycleAnchor ?? false,
           },
@@ -517,6 +540,7 @@ const getTableRows = protectedProcedure
         customerId: z.string().optional(),
         organizationId: z.string().optional(),
         productName: z.string().optional(),
+        isFreePlan: z.boolean().optional(),
       })
     )
   )
@@ -613,6 +637,15 @@ const retryBillingRunProcedure = protectedProcedure
           billingPeriod.subscriptionId,
           transaction
         )
+
+        if (subscription.doNotCharge) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Cannot retry billing for doNotCharge subscriptions',
+          })
+        }
+
         const paymentMethod = subscription.defaultPaymentMethodId
           ? await selectPaymentMethodById(
               subscription.defaultPaymentMethodId,
@@ -635,12 +668,14 @@ const retryBillingRunProcedure = protectedProcedure
           })
         }
 
-        const billingRunInsert = createBillingRunInsert({
-          billingPeriod,
-          scheduledFor: new Date(),
-          paymentMethod,
-        })
-        return safelyInsertBillingRun(billingRunInsert, transaction)
+        return createBillingRun(
+          {
+            billingPeriod,
+            scheduledFor: new Date(),
+            paymentMethod,
+          },
+          transaction
+        )
       },
       { apiKey: ctx.apiKey }
     )

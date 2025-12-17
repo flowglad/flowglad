@@ -41,7 +41,7 @@ const InvoiceStatusBadge = ({
       className = 'bg-gray-100 text-gray-800'
       break
     case 'paid':
-      className = 'bg-green-100 text-green-800'
+      className = 'bg-jade-background text-jade-foreground'
       break
     case 'void':
       className = 'bg-red-100 text-red-800'

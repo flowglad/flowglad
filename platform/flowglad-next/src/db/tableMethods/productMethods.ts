@@ -249,7 +249,13 @@ export const selectProductPriceAndFeaturesByProductId = async (
       transaction
     )
   } catch (error) {
-    throw new Error(`Product not found with id ${productId}`)
+    // If product lookup fails because it has no prices, try to get the product directly
+    const product = await selectProductById(productId, transaction)
+    const prices = await selectPrices({ productId }, transaction)
+    productWithPrices = {
+      ...product,
+      prices,
+    }
   }
 
   const { prices, ...product } = productWithPrices

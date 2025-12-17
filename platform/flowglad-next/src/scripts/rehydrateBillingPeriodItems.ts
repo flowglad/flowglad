@@ -5,6 +5,7 @@ NODE_ENV=production bunx tsx src/scripts/rehydrateBillingPeriodItems.ts billing_
 
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import {
   bulkInsertBillingPeriodItems,
   selectBillingPeriodItems,
@@ -12,6 +13,7 @@ import {
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { isSubscriptionItemActiveAndNonManual } from '@/subscriptions/subscriptionItemHelpers'
 import { PriceType, SubscriptionItemType } from '@/types'
 import runScript from './scriptRunner'
 
@@ -57,7 +59,11 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
     }
     const billingPeriodItemInserts: BillingPeriodItem.Insert[] = []
     if (result?.subscriptionItems) {
-      for (const item of result.subscriptionItems) {
+      const planItems = result.subscriptionItems.filter(
+        isSubscriptionItemActiveAndNonManual
+      )
+
+      for (const item of planItems) {
         if (
           item.expiredAt &&
           item.expiredAt > billingPeriod.endDate
@@ -67,7 +73,10 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
         if (item.createdAt > billingPeriod.startDate) {
           continue
         }
-        const price = await selectPriceById(item.priceId, transaction)
+        const price = await selectPriceById(
+          item.priceId!,
+          transaction
+        )
         if (
           price.type === PriceType.Subscription ||
           price.type === PriceType.SinglePayment

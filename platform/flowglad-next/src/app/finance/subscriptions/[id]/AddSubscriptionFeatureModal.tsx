@@ -67,10 +67,11 @@ export const AddSubscriptionFeatureModal = ({
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
-      title="Add subscription feature"
+      title="Grant Feature"
       formSchema={addSubscriptionFeatureFormSchema}
       defaultValues={defaultValues}
       onSubmit={handleSubmit}
+      submitButtonText="Grant Feature"
       allowContentOverflow
     >
       <AddSubscriptionFeatureItemFormFields

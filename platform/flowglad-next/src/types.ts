@@ -526,6 +526,7 @@ export enum CancellationReason {
   UpgradedToPaid = 'upgraded_to_paid',
   CustomerRequest = 'customer_request',
   NonPayment = 'non_payment',
+  PricingModelMigration = 'pricing_model_migration',
   Other = 'other',
 }
 

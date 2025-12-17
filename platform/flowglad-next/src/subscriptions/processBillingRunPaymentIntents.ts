@@ -1,5 +1,4 @@
 import type Stripe from 'stripe'
-import { adminTransaction } from '@/db/adminTransaction'
 import type {
   BillingPeriodTransitionLedgerCommand,
   LedgerCommand,
@@ -12,6 +11,7 @@ import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Organization } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { User } from '@/db/schema/users'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
@@ -26,7 +26,6 @@ import {
   selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
 } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
-  safelyUpdateInvoiceStatus,
   selectInvoiceById,
   selectInvoices,
   updateInvoice,
@@ -40,10 +39,7 @@ import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
-import {
-  safelyUpdateSubscriptionStatus,
-  updateSubscription,
-} from '@/db/tableMethods/subscriptionMethods'
+import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { DbTransaction } from '@/db/types'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
@@ -84,10 +80,6 @@ type PaymentIntentEvent =
   | Stripe.PaymentIntentProcessingEvent
   | Stripe.PaymentIntentRequiresActionEvent
 
-type PaymentIntentForBillingRunInput =
-  | PaymentIntentEvent
-  | Stripe.PaymentIntent
-
 const paymentIntentStatusToBillingRunStatus: Record<
   Stripe.PaymentIntent.Status,
   BillingRunStatus
@@ -109,6 +101,14 @@ interface BillingRunNotificationParams {
   payment: Payment.Record
   organizationMemberUsers: User.Record[]
   invoiceLineItems: InvoiceLineItem.Record[]
+}
+
+interface ProcessOutcomeForBillingRunParams {
+  input: PaymentIntentEvent | Stripe.PaymentIntent
+  adjustmentParams?: {
+    newSubscriptionItems?: SubscriptionItem.Record[]
+    adjustmentDate?: Date | number
+  }
 }
 
 const processSucceededNotifications = async (
@@ -204,7 +204,7 @@ const processAwaitingPaymentConfirmationNotifications = async (
 }
 
 export const processOutcomeForBillingRun = async (
-  input: PaymentIntentForBillingRunInput,
+  params: ProcessOutcomeForBillingRunParams,
   transaction: DbTransaction
 ): Promise<
   TransactionOutput<{
@@ -215,6 +215,7 @@ export const processOutcomeForBillingRun = async (
     processingSkipped?: boolean
   }>
 > => {
+  const { input, adjustmentParams } = params
   const event = 'type' in input ? input.data.object : input
   const timestamp = 'type' in input ? input.created : event.created
 
@@ -452,7 +453,9 @@ export const processOutcomeForBillingRun = async (
         result: canceledSubscription,
         eventsToInsert: cancelEvents,
       } = await cancelSubscriptionImmediately(
-        subscription,
+        {
+          subscription,
+        },
         transaction
       )
 

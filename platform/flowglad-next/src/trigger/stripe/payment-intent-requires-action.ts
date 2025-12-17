@@ -17,7 +17,7 @@ export const stripePaymentIntentRequiresActionTask = task({
       return comprehensiveAdminTransaction(
         async ({ transaction }) => {
           return await processOutcomeForBillingRun(
-            payload,
+            { input: payload },
             transaction
           )
         }

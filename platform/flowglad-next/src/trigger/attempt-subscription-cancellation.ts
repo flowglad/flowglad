@@ -34,7 +34,9 @@ export const attemptSubscriptionCancellationTask = task({
     const canceledSubscription = await comprehensiveAdminTransaction(
       async ({ transaction }) => {
         return cancelSubscriptionImmediately(
-          subscription,
+          {
+            subscription,
+          },
           transaction
         )
       }

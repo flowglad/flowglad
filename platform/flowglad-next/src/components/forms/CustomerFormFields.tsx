@@ -1,5 +1,4 @@
 import { useFormContext } from 'react-hook-form'
-import PricingModelSelect from '@/components/forms/PricingModelSelect'
 import {
   FormControl,
   FormField,
@@ -63,10 +62,6 @@ const CustomerFormFields = () => {
             <FormMessage />
           </FormItem>
         )}
-      />
-      <PricingModelSelect
-        name="customer.pricingModelId"
-        control={form.control}
       />
     </div>
   )

@@ -14,7 +14,7 @@ const getClassNameForStatus = (status: InvoiceStatus): string => {
     case InvoiceStatus.Open:
       return 'bg-blue-100 text-blue-800'
     case InvoiceStatus.Paid:
-      return 'bg-green-100 text-green-800'
+      return 'bg-jade-background text-jade-foreground'
     case InvoiceStatus.Uncollectible:
       return 'bg-yellow-100 text-yellow-800'
     case InvoiceStatus.Void:

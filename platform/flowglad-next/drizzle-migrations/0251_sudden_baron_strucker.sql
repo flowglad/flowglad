@@ -1,0 +1,1 @@
+ALTER TABLE "subscriptions" ADD COLUMN "do_not_charge" boolean DEFAULT false;

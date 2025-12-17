@@ -1,5 +1,14 @@
 # @flowglad/react
 
+## 0.15.1
+
+### Patch Changes
+
+- bb9b89e: - create product checkout interface cleanup
+  - add currentSubscription to useBilling
+- Updated dependencies [bb9b89e]
+  - @flowglad/shared@0.15.1
+
 ## 0.15.0
 
 ### Minor Changes

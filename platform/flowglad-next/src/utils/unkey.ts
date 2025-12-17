@@ -1,5 +1,6 @@
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api'
-import { Unkey, verifyKey } from '@unkey/api'
+import { Unkey } from '@unkey/api'
+import type { V2KeysVerifyKeyResponseData } from '@unkey/api/models/components'
 import {
   type ApiKey,
   apiKeyMetadataSchema,
@@ -15,6 +16,17 @@ import {
   setApiKeyVerificationResult,
 } from './redis'
 
+export type VerifyApiKeyResultData = V2KeysVerifyKeyResponseData & {
+  ownerId?: string
+  environment?: string
+  requestId?: string
+}
+
+export type VerifyApiKeyResult = {
+  result: VerifyApiKeyResultData | undefined
+  error: unknown | undefined
+}
+
 export const unkey = () =>
   new Unkey({
     rootKey: core.IS_TEST
@@ -22,7 +34,9 @@ export const unkey = () =>
       : core.envVariable('UNKEY_ROOT_KEY'),
   })
 
-export const verifyApiKey = async (apiKey: string) => {
+export const verifyApiKey = async (
+  apiKey: string
+): Promise<VerifyApiKeyResult> => {
   const tracer = trace.getTracer('api-key-verification')
 
   return tracer.startActiveSpan(
@@ -83,11 +97,27 @@ export const verifyApiKey = async (apiKey: string) => {
           has_root_key: !!core.envVariable('UNKEY_ROOT_KEY'),
         })
 
-        const verificationResult = await verifyKey({
+        const verificationResponse = await unkey().keys.verifyKey({
           key: apiKey,
-          apiId: unkeyApiId,
         })
         const unkeyDuration = Date.now() - unkeyStartTime
+
+        // Convert to the expected format with result/error structure
+        const resultData: VerifyApiKeyResultData = {
+          ...verificationResponse.data,
+          ownerId: verificationResponse.data.identity?.externalId,
+          // Extract environment from key prefix if not in meta
+          environment:
+            (verificationResponse.data.meta?.environment as
+              | string
+              | undefined) ||
+            (apiKey.includes('_live_') ? 'live' : 'test'),
+          requestId: verificationResponse.meta.requestId,
+        }
+        const verificationResult: VerifyApiKeyResult = {
+          result: resultData,
+          error: undefined,
+        }
 
         // Log the full response for debugging
         if (!verificationResult.result?.valid) {
@@ -166,7 +196,7 @@ interface CreateApiKeyResult {
 }
 
 type UnkeyInput = Parameters<
-  ReturnType<typeof unkey>['keys']['create']
+  ReturnType<typeof unkey>['keys']['createKey']
 >[0]
 
 export const secretApiKeyInputToUnkeyInput = (
@@ -184,7 +214,6 @@ export const secretApiKeyInputToUnkeyInput = (
   return {
     apiId: core.envVariable('UNKEY_API_ID'),
     name: `${organization.id} / ${apiEnvironment} / ${params.name}`,
-    environment: apiEnvironment,
     expires: params.expiresAt
       ? new Date(params.expiresAt).getTime()
       : undefined,
@@ -205,11 +234,9 @@ export const createSecretApiKey = async (
   }
 
   const unkeyInput = secretApiKeyInputToUnkeyInput(params)
-  const { result, error } = await unkey().keys.create(unkeyInput)
+  const createResponse = await unkey().keys.createKey(unkeyInput)
 
-  if (error) {
-    throw error
-  }
+  const result = createResponse.data
 
   const livemode = params.apiEnvironment === 'live'
   /**
@@ -263,7 +290,7 @@ export const replaceSecretApiKey = async (
 }
 
 export const deleteApiKey = async (keyId: string) => {
-  await unkey().keys.delete({
+  await unkey().keys.deleteKey({
     keyId,
   })
 }
@@ -281,8 +308,7 @@ export const parseUnkeyMeta =
       return firstUnkeyMetaResult.data
     }
 
-    // @ts-expect-error object is not typed
-    const metaType = rawUnkeyMeta.type
+    const metaType = (rawUnkeyMeta as { type?: string }).type
 
     // If there's an explicit type that's not Secret, reject it
     if (metaType && metaType !== FlowgladApiKeyType.Secret) {

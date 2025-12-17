@@ -14,7 +14,7 @@ export const stripePaymentIntentCanceledTask = task({
       return comprehensiveAdminTransaction(
         async ({ transaction }) => {
           return await processOutcomeForBillingRun(
-            payload,
+            { input: payload },
             transaction
           )
         }

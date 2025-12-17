@@ -14,7 +14,7 @@ export type SubscriptionStatus =
 export function getStatusColor(status: SubscriptionStatus): string {
   switch (status) {
     case 'active':
-      return 'text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-900/30 dark:border-green-800'
+      return 'text-jade-foreground bg-jade-background border-jade-foreground/20'
     case 'trialing':
       return 'text-blue-700 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-900/30 dark:border-blue-800'
     case 'past_due':
