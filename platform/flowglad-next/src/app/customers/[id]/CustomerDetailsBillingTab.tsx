@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import { InvoicesDataTable } from '@/app/finance/invoices/data-table'
@@ -204,28 +204,34 @@ export const CustomerBillingSubPage = ({
   }, [subscriptionsError])
 
   // Check if customer is on a free plan
-  const isOnFreePlan =
-    subscriptionsData?.items?.some(
+  const isOnFreePlan = useMemo(() => {
+    if (!subscriptionsData?.items) return false
+    return subscriptionsData.items.some(
       (item) =>
         item.subscription.isFreePlan && item.subscription.current
-    ) ?? false
+    )
+  }, [subscriptionsData])
 
   // Filter available products
-  const availableProducts = pricingModelData?.pricingModel?.products
-    ? filterAvailableSubscriptionProducts(
-        pricingModelData.pricingModel.products
-      )
-    : []
+  const availableProducts = useMemo(() => {
+    if (!pricingModelData?.pricingModel?.products) return []
+    return filterAvailableSubscriptionProducts(
+      pricingModelData.pricingModel.products
+    )
+  }, [pricingModelData])
 
   // Check if org allows multiple subscriptions
   const allowsMultipleSubscriptions =
     organization?.allowMultipleSubscriptionsPerCustomer ?? false
 
   // Determine if button should be shown
-  const hasAvailableProducts = availableProducts.length > 0
-  const canCreateSubscription =
-    isOnFreePlan || allowsMultipleSubscriptions
-  const shouldShow = hasAvailableProducts && canCreateSubscription
+  const shouldShow = useMemo(() => {
+    const hasAvailableProducts = availableProducts.length > 0
+    const canCreateSubscription =
+      isOnFreePlan || allowsMultipleSubscriptions
+
+    return hasAvailableProducts && canCreateSubscription
+  }, [availableProducts, isOnFreePlan, allowsMultipleSubscriptions])
 
   const isLoading = !pricingModelData || !subscriptionsData
   const hasError = !!pricingModelError || !!subscriptionsError
