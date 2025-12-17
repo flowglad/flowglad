@@ -104,7 +104,7 @@ export const NavUser: React.FC<NavUserProps> = ({
               'hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               isCollapsed
                 ? 'justify-center px-[7px] py-1.5'
-                : 'border border-border'
+                : 'border border-border hover:border-muted-foreground'
             )}
             data-testid="nav-user-trigger"
           >

@@ -568,14 +568,14 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = 'SidebarMenuItem'
 
 const sidebarMenuButtonVariants = cva(
-  'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded py-3 px-3 text-left text-sm font-medium outline-none ring-sidebar-ring transition-[width,height,padding,opacity] duration-150 ease opacity-80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:pl-[12px] hover:opacity-100 focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:opacity-100 data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground data-[state=open]:hover:pl-[13px] group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2.5 [&>span:last-child]:truncate group-data-[collapsible=icon]:[&>span]:opacity-0',
+  'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded py-3 px-3 text-left text-sm font-medium outline-none ring-sidebar-ring transition-[width,height,padding,opacity,color] duration-150 ease text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:pl-[12px] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:text-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground data-[state=open]:hover:pl-[13px] group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2.5 [&>span:last-child]:truncate group-data-[collapsible=icon]:[&>span]:opacity-0',
   {
     variants: {
       variant: {
         default:
-          'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:pl-[13px] hover:opacity-100',
+          'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:pl-[13px]',
         outline:
-          'bg-sidebar shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:pl-[13px] hover:opacity-100 hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]',
+          'bg-sidebar shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:pl-[13px] hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]',
       },
       size: {
         default: 'h-10 text-sm',

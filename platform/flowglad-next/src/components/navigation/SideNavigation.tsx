@@ -120,7 +120,9 @@ export const SideNavigation = () => {
           {
             title: 'Finish Setup',
             url: '/onboarding',
-            icon: () => <FinishSetupIcon color="orange" />,
+            icon: () => (
+              <FinishSetupIcon style={{ color: 'orange' }} />
+            ),
             isActive: isActive('/onboarding'),
           },
         ]
