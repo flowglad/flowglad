@@ -10,6 +10,45 @@ import { SidebarProvider } from '@/components/ui/sidebar'
 import { BusinessOnboardingStatus } from '@/types'
 import { NavUser, type NavUserProps } from './NavUser'
 
+// Mock trpc client
+vi.mock('@/app/_trpc/client', () => ({
+  trpc: {
+    organizations: {
+      create: {
+        useMutation: () => ({
+          mutateAsync: vi.fn(),
+          isPending: false,
+        }),
+      },
+    },
+    useContext: () => ({
+      organizations: {
+        getOrganizations: {
+          invalidate: vi.fn(),
+        },
+        getFocusedMembership: {
+          invalidate: vi.fn(),
+        },
+      },
+    }),
+  },
+}))
+
+// Mock authContext for CreateOrganizationModal
+vi.mock('@/contexts/authContext', () => ({
+  useAuthContext: () => ({
+    setOrganization: vi.fn(),
+  }),
+}))
+
+// Mock Next.js router for CreateOrganizationModal
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}))
+
 // Mock useOrganizationList hook
 const mockSwitchOrganization = vi.fn()
 const mockUseOrganizationList = vi.fn()

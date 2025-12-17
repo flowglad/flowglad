@@ -17,6 +17,7 @@ type MockSidebarMenuButtonProps = MockChildrenProps & {
   onClick?: () => void
   disabled?: boolean
   tooltip?: string
+  'data-testid'?: string
 }
 
 type MockImageProps = {
@@ -133,8 +134,14 @@ vi.mock('@/components/ui/sidebar', () => ({
     onClick,
     disabled,
     tooltip,
+    'data-testid': dataTestId,
   }: MockSidebarMenuButtonProps) => (
-    <button onClick={onClick} disabled={disabled} title={tooltip}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={tooltip}
+      data-testid={dataTestId}
+    >
       {children}
     </button>
   ),
