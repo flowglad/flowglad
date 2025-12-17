@@ -1,9 +1,16 @@
 import * as R from 'ramda'
-import type { CreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import {
+  type LedgerEntry,
+  ledgerEntryNulledSourceIdColumns,
+} from '@/db/schema/ledgerEntries'
 import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
+import type { UsageCredit } from '@/db/schema/usageCredits'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
+import { findOrCreateLedgerAccountsForSubscriptionAndUsageMeters } from '@/db/tableMethods/ledgerAccountMethods'
+import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
+import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
 import {
   expireSubscriptionItemFeature,
   selectSubscriptionItemFeatures,
@@ -15,13 +22,17 @@ import {
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import {
-  insertUsageCredit,
+  bulkInsertUsageCredits,
   selectUsageCredits,
 } from '@/db/tableMethods/usageCreditMethods'
 import type { DbTransaction } from '@/db/types'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
+  LedgerEntryDirection,
+  LedgerEntryStatus,
+  LedgerEntryType,
+  LedgerTransactionInitiatingSourceType,
   LedgerTransactionType,
   UsageCreditSourceReferenceType,
   UsageCreditStatus,
@@ -73,29 +84,32 @@ export const isSubscriptionItemActiveAndNonManual = (
 }
 
 /**
- * Grants prorated usage credits for subscription item features created mid-billing period.
+ * Grants prorated usage credits for subscription item features during mid-period adjustments.
+ * Uses bulk operations for consistency with billing period transition grants.
  *
- * This prevents double-granting by checking if credits were already granted at period start,
- * and only grants prorated credits for the remaining portion of the billing period.
+ * For EveryBillingPeriod features: grants prorated amount based on remaining time in period
+ * For Once features: grants full amount immediately (no proration, no expiration)
  *
- * @param params - The proration parameters
  * @param params.subscription - The subscription record
- * @param params.features - The subscription item features to potentially grant credits for
- * @param params.adjustmentDate - The date/time when the adjustment occurred
+ * @param params.features - Array of subscription item features to potentially grant credits for
+ * @param params.adjustmentDate - The date/time of the adjustment
  * @param params.transaction - The database transaction
- * @returns Array of ledger commands for the granted credits (if any)
+ * @returns Object containing granted usage credits and created ledger entries
  */
 const grantProratedCreditsForFeatures = async (params: {
   subscription: Subscription.Record
   features: SubscriptionItemFeature.Record[]
   adjustmentDate: Date | number
   transaction: DbTransaction
-}): Promise<CreditGrantRecognizedLedgerCommand[]> => {
+}): Promise<{
+  usageCredits: UsageCredit.Record[]
+  ledgerEntries: LedgerEntry.CreditGrantRecognizedRecord[]
+}> => {
   const { subscription, features, adjustmentDate, transaction } =
     params
 
   if (R.isEmpty(features)) {
-    return []
+    return { usageCredits: [], ledgerEntries: [] }
   }
 
   const currentBillingPeriod =
@@ -105,7 +119,7 @@ const grantProratedCreditsForFeatures = async (params: {
     )
 
   if (!currentBillingPeriod) {
-    return [] // No billing period = no proration needed
+    return { usageCredits: [], ledgerEntries: [] }
   }
 
   const adjustmentTimestamp = new Date(adjustmentDate).getTime()
@@ -114,7 +128,7 @@ const grantProratedCreditsForFeatures = async (params: {
     adjustmentTimestamp < currentBillingPeriod.endDate
 
   if (!isMidPeriod) {
-    return [] // Not mid-period = credits will be granted at next transition
+    return { usageCredits: [], ledgerEntries: [] }
   }
 
   // Calculate proration split
@@ -123,98 +137,167 @@ const grantProratedCreditsForFeatures = async (params: {
     currentBillingPeriod
   )
 
-  // Process only UsageCreditGrant features
+  // Filter to UsageCreditGrant features with valid data
   const creditGrantFeatures = features.filter(
-    (feature) => feature.type === FeatureType.UsageCreditGrant
+    (feature) =>
+      feature.type === FeatureType.UsageCreditGrant &&
+      feature.usageMeterId &&
+      feature.amount
   )
 
-  const ledgerCommands: CreditGrantRecognizedLedgerCommand[] = []
+  if (R.isEmpty(creditGrantFeatures)) {
+    return { usageCredits: [], ledgerEntries: [] }
+  }
 
-  for (const feature of creditGrantFeatures) {
-    if (!feature.usageMeterId || !feature.amount) {
-      continue
-    }
+  // Check for existing credits (to avoid double-granting) - batch query
+  const existingCredits = await selectUsageCredits(
+    {
+      subscriptionId: subscription.id,
+      billingPeriodId: currentBillingPeriod.id,
+      sourceReferenceId: creditGrantFeatures.map(
+        (feature) => feature.id
+      ),
+    },
+    transaction
+  )
+  const existingFeatureIds = new Set(
+    existingCredits.map(
+      (existingCredit) => existingCredit.sourceReferenceId
+    )
+  )
 
-    // Check if credits were already granted for this feature in this period
-    const existingCredits = await selectUsageCredits(
+  // Build usage credit inserts for features that don't already have credits
+  const usageCreditInserts: UsageCredit.Insert[] = creditGrantFeatures
+    .filter((feature) => !existingFeatureIds.has(feature.id))
+    .map((feature) => {
+      const isEveryBillingPeriod =
+        feature.renewalFrequency ===
+        FeatureUsageGrantFrequency.EveryBillingPeriod
+
+      const issuedAmount = isEveryBillingPeriod
+        ? Math.round(feature.amount! * split.afterPercentage)
+        : feature.amount! // Once features get full amount
+
+      return {
+        subscriptionId: subscription.id,
+        organizationId: subscription.organizationId,
+        livemode: subscription.livemode,
+        creditType: UsageCreditType.Grant,
+        sourceReferenceId: feature.id,
+        sourceReferenceType:
+          UsageCreditSourceReferenceType.ManualAdjustment,
+        billingPeriodId: currentBillingPeriod.id,
+        usageMeterId: feature.usageMeterId!,
+        paymentId: null,
+        issuedAmount,
+        issuedAt: Date.now(),
+        // EveryBillingPeriod credits expire at period end, Once credits don't expire
+        expiresAt: isEveryBillingPeriod
+          ? currentBillingPeriod.endDate
+          : null,
+        status: UsageCreditStatus.Posted,
+        notes: null,
+        metadata: null,
+      }
+    })
+    .filter((insert) => insert.issuedAmount > 0) // Skip zero-amount credits
+
+  if (R.isEmpty(usageCreditInserts)) {
+    return { usageCredits: [], ledgerEntries: [] }
+  }
+
+  // Bulk insert all usage credits
+  const usageCredits = await bulkInsertUsageCredits(
+    usageCreditInserts,
+    transaction
+  )
+
+  // Find or create ledger accounts for the usage meters
+  const usageMeterIds = R.uniq(
+    usageCredits.map((usageCredit) => usageCredit.usageMeterId)
+  )
+  const ledgerAccounts =
+    await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
       {
         subscriptionId: subscription.id,
-        billingPeriodId: currentBillingPeriod.id,
-        usageMeterId: feature.usageMeterId,
-        sourceReferenceId: feature.id,
+        usageMeterIds,
       },
       transaction
     )
+  const ledgerAccountsByMeterId = new Map(
+    ledgerAccounts.map((ledgerAccount) => [
+      ledgerAccount.usageMeterId,
+      ledgerAccount,
+    ])
+  )
 
-    if (existingCredits.length > 0) {
-      // Credits already granted at period start - don't grant again
-      continue
-    }
+  // Create a single ledger transaction for all the grants
+  const ledgerTransaction = await insertLedgerTransaction(
+    {
+      organizationId: subscription.organizationId,
+      livemode: subscription.livemode,
+      type: LedgerTransactionType.CreditGrantRecognized,
+      description: 'Mid-period adjustment credit grants',
+      metadata: null,
+      initiatingSourceType:
+        LedgerTransactionInitiatingSourceType.ManualAdjustment,
+      initiatingSourceId: subscription.id,
+      subscriptionId: subscription.id,
+    },
+    transaction
+  )
 
-    // Only grant prorated credits for EveryBillingPeriod features
-    // (Once features are granted immediately when added manually)
-    if (
-      feature.renewalFrequency ===
-      FeatureUsageGrantFrequency.EveryBillingPeriod
-    ) {
-      // Calculate prorated amount for remaining time
-      const proratedAmount = Math.round(
-        feature.amount * split.afterPercentage
-      )
+  // Build ledger entry inserts
+  const ledgerEntryInserts: LedgerEntry.CreditGrantRecognizedInsert[] =
+    usageCredits.map((usageCredit) => ({
+      ...ledgerEntryNulledSourceIdColumns,
+      ledgerTransactionId: ledgerTransaction.id,
+      ledgerAccountId: ledgerAccountsByMeterId.get(
+        usageCredit.usageMeterId
+      )!.id,
+      claimedByBillingRunId: null,
+      subscriptionId: subscription.id,
+      organizationId: subscription.organizationId,
+      status: LedgerEntryStatus.Posted,
+      livemode: subscription.livemode,
+      entryTimestamp: Date.now(),
+      metadata: {},
+      amount: usageCredit.issuedAmount,
+      direction: LedgerEntryDirection.Credit,
+      entryType: LedgerEntryType.CreditGrantRecognized,
+      discardedAt: null,
+      sourceUsageCreditId: usageCredit.id,
+      usageMeterId: usageCredit.usageMeterId,
+      billingPeriodId: currentBillingPeriod.id,
+    }))
 
-      if (proratedAmount > 0) {
-        const usageCredit = await insertUsageCredit(
-          {
-            subscriptionId: subscription.id,
-            organizationId: subscription.organizationId,
-            livemode: subscription.livemode,
-            creditType: UsageCreditType.Grant,
-            sourceReferenceId: feature.id,
-            sourceReferenceType:
-              UsageCreditSourceReferenceType.ManualAdjustment,
-            billingPeriodId: currentBillingPeriod.id,
-            usageMeterId: feature.usageMeterId,
-            paymentId: null,
-            issuedAmount: proratedAmount,
-            issuedAt: Date.now(),
-            expiresAt: currentBillingPeriod.endDate,
-            status: UsageCreditStatus.Posted,
-            notes: null,
-            metadata: null,
-          },
-          transaction
-        )
+  // Bulk insert all ledger entries
+  const ledgerEntries = await bulkInsertLedgerEntries(
+    ledgerEntryInserts,
+    transaction
+  )
 
-        const ledgerCommand: CreditGrantRecognizedLedgerCommand = {
-          type: LedgerTransactionType.CreditGrantRecognized,
-          organizationId: subscription.organizationId,
-          livemode: subscription.livemode,
-          subscriptionId: subscription.id,
-          payload: {
-            usageCredit,
-          },
-        }
-
-        ledgerCommands.push(ledgerCommand)
-      }
-    }
+  return {
+    usageCredits,
+    ledgerEntries:
+      ledgerEntries as LedgerEntry.CreditGrantRecognizedRecord[],
   }
-
-  return ledgerCommands
 }
 
 /**
- * Handles all subscription item adjustment logic for subscription adjustments.
+ * Handles subscription item adjustment logic using explicit client contract:
+ * - Items WITH `id` = keep/update the existing item
+ * - Items WITHOUT `id` = create a new item
+ * - Existing items NOT in the array = expire them
  *
- * This function uses a "heavy hand" approach for simplicity:
+ * Steps:
  * 1. Fetches all currently active subscription items for the subscription
- * 2. Matches existing non-manual items to new items by priceId + quantity + unitPrice
- * 3. Expires only non-manual items that don't match new items (allows overlapping items to persist)
- * 4. Keeps all manuallyCreated subscription items (and their features persist)
- * 5. Creates/updates subscription items from the provided list
- * 6. Creates features for newly created/updated subscription items
- * 7. Expires manual features that overlap with plan features (plan takes precedence)
- * 8. Grants prorated credits for overlapping items with credit-granting features
+ * 2. Expires non-manual items whose `id` is NOT in newSubscriptionItems
+ * 3. Keeps all manuallyCreated subscription items (preserved through adjustments)
+ * 4. Updates existing items (those with matching `id`) or creates new items (no `id`)
+ * 5. Creates features for newly created/updated subscription items
+ * 6. Expires manual features that overlap with plan features (plan takes precedence)
+ * 7. Grants prorated credits for mid-period adjustments with credit-granting features
  *
  * Note: manuallyCreated subscription items have priceId = null, unitPrice = 0, quantity = 0
  * and are preserved through adjustments. Their features are expired only if they overlap
@@ -222,19 +305,24 @@ const grantProratedCreditsForFeatures = async (params: {
  *
  * @param params - The adjustment parameters
  * @param params.subscriptionId - The subscription ID to adjust
- * @param params.newSubscriptionItems - The subscription items that should exist after adjustment (Insert format)
+ * @param params.newSubscriptionItems - Items to keep/update (with `id`) or create (without `id`)
  * @param params.adjustmentDate - The date/time when the adjustment occurs
  * @param params.transaction - The database transaction
- * @returns A promise resolving to the newly created/updated subscription items and features
+ * @returns A promise resolving to the created/updated items, features, credits, and ledger entries
  */
 export const handleSubscriptionItemAdjustment = async (params: {
   subscriptionId: string
-  newSubscriptionItems: SubscriptionItem.Insert[]
+  newSubscriptionItems: (
+    | SubscriptionItem.Insert
+    | SubscriptionItem.Record
+  )[]
   adjustmentDate: Date | number
   transaction: DbTransaction
 }): Promise<{
   createdSubscriptionItems: SubscriptionItem.Record[]
   createdFeatures: SubscriptionItemFeature.Record[]
+  usageCredits: UsageCredit.Record[]
+  ledgerEntries: LedgerEntry.CreditGrantRecognizedRecord[]
 }> => {
   const {
     subscriptionId,
@@ -252,24 +340,24 @@ export const handleSubscriptionItemAdjustment = async (params: {
     )
 
   // Separate manuallyCreated items from non-manuallyCreated items
-  const nonManuallyCreatedItems = currentlyActiveItems.filter(
+  const currentNonManuallyCreatedItems = currentlyActiveItems.filter(
     isNonManualSubscriptionItem
   )
 
-  // Match existing items to new items by priceId + quantity + unitPrice
-  // This allows overlapping items to persist (solving Issue 2: credit regranting)
-  const itemsToExpire = nonManuallyCreatedItems.filter(
-    (existingItem) => {
-      return !newSubscriptionItems.some(
-        (newItem) =>
-          newItem.priceId === existingItem.priceId &&
-          newItem.quantity === existingItem.quantity &&
-          newItem.unitPrice === existingItem.unitPrice
-      )
-    }
+  // Extract IDs from newSubscriptionItems that have them (items to keep/update)
+  // Client contract: items with id = keep/update, items without id = create
+  const newSubscriptionItemIds = new Set(
+    newSubscriptionItems
+      .map((item) => (item as SubscriptionItem.Record).id)
+      .filter(Boolean)
   )
 
-  // Expire only items that don't match (allows overlapping items to persist)
+  // Expire non-manual items whose id is NOT in newSubscriptionItems
+  // AKA existing items the client did not specify
+  const itemsToExpire = currentNonManuallyCreatedItems.filter(
+    (existingItem) => !newSubscriptionItemIds.has(existingItem.id)
+  )
+
   if (!R.isEmpty(itemsToExpire)) {
     await expireSubscriptionItems(
       itemsToExpire.map((item) => item.id),
@@ -279,37 +367,38 @@ export const handleSubscriptionItemAdjustment = async (params: {
   }
 
   // Get manual subscription item (for checking feature overlaps later)
-  const manualItems = currentlyActiveItems.filter(
+  const currentManualItems = currentlyActiveItems.filter(
     (item) => item.manuallyCreated
   )
-  const manualItem = manualItems.length > 0 ? manualItems[0] : null
+  const manualItem =
+    currentManualItems.length > 0 ? currentManualItems[0] : null
+
+  // Build a map of existing items by ID for quick lookup
+  const existingItemsById = new Map(
+    currentNonManuallyCreatedItems.map((item) => [item.id, item])
+  )
 
   // Create/update subscription items from the provided list
-  // bulkCreateOrUpdateSubscriptionItems will update existing items if they have IDs
-  // For new items without IDs, it will create them
+  // Items with id = update existing, items without id = create new
   const subscriptionItemUpserts: (
     | SubscriptionItem.Insert
     | SubscriptionItem.Update
   )[] = newSubscriptionItems.map((newItem) => {
-    // Try to find matching existing item to preserve its ID
-    const matchingExistingItem = nonManuallyCreatedItems.find(
-      (existing) =>
-        existing.priceId === newItem.priceId &&
-        existing.quantity === newItem.quantity &&
-        existing.unitPrice === newItem.unitPrice &&
-        !existing.expiredAt
-    )
+    const existingId = (newItem as SubscriptionItem.Record).id
+    const existingItem = existingId
+      ? existingItemsById.get(existingId)
+      : undefined
 
-    if (matchingExistingItem) {
-      // Return as Update to preserve the existing item
+    if (existingItem) {
+      // Return as Update to update the existing item
       return {
-        id: matchingExistingItem.id,
         ...newItem,
+        id: existingItem.id,
         subscriptionId,
-        addedDate: matchingExistingItem.addedDate, // Preserve original addedDate
+        addedDate: existingItem.addedDate, // Preserve original addedDate
       } as SubscriptionItem.Update
     } else {
-      // Return as Insert for new items
+      // Return as Insert for new items (no id provided)
       return {
         ...newItem,
         subscriptionId,
@@ -348,13 +437,14 @@ export const handleSubscriptionItemAdjustment = async (params: {
     )
 
     // Get unique featureIds from newly created plan features
-    const planFeatureIds = new Set(
+    const createdFeatureIds = new Set(
       createdFeatures.map((feature) => feature.featureId)
     )
 
     // Find manual features that overlap with plan features
     const overlappingManualFeatures = manualFeatures.filter(
-      (manualFeature) => planFeatureIds.has(manualFeature.featureId)
+      (manualFeature) =>
+        createdFeatureIds.has(manualFeature.featureId)
     )
 
     // Expire overlapping manual features (plan takes precedence)
@@ -371,20 +461,23 @@ export const handleSubscriptionItemAdjustment = async (params: {
     }
   }
 
-  // Grant prorated credits for overlapping items with credit-granting features
+  // Grant prorated credits for credit-granting features
   const subscription = await selectSubscriptionById(
     subscriptionId,
     transaction
   )
-  await grantProratedCreditsForFeatures({
-    subscription,
-    features: createdFeatures,
-    adjustmentDate,
-    transaction,
-  })
+  const { usageCredits, ledgerEntries } =
+    await grantProratedCreditsForFeatures({
+      subscription,
+      features: createdFeatures,
+      adjustmentDate,
+      transaction,
+    })
 
   return {
     createdSubscriptionItems: createdOrUpdatedSubscriptionItems,
     createdFeatures,
+    usageCredits,
+    ledgerEntries,
   }
 }
