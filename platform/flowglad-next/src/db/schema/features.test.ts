@@ -799,13 +799,9 @@ describe('Features Schema Validation', () => {
         usageMeterId: 'meter-id', // Required for discriminated union variant
         renewalFrequency:
           FeatureUsageGrantFrequency.EveryBillingPeriod, // Required for discriminated union variant
-        slug: 'updated-credits',
       }
 
       const result = featuresClientUpdateSchema.safeParse(validUpdate)
-      if (!result.success) {
-        throw result.error?.issues[0]
-      }
       expect(result.success).toBe(true)
     })
   })

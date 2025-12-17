@@ -540,6 +540,7 @@ const getTableRows = protectedProcedure
         customerId: z.string().optional(),
         organizationId: z.string().optional(),
         productName: z.string().optional(),
+        isFreePlan: z.boolean().optional(),
       })
     )
   )

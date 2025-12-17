@@ -38,6 +38,7 @@ import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpe
 import { syncSubscriptionWithActiveItems } from './adjustSubscription'
 import { generateNextBillingPeriod } from './billingIntervalHelpers'
 import { createBillingRun } from './billingRunHelpers'
+import { isSubscriptionItemActiveAndNonManual } from './subscriptionItemHelpers'
 
 interface CreateBillingPeriodParams {
   subscription: Subscription.StandardRecord
@@ -97,8 +98,9 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
   >[] = []
   if (!params.trialPeriod) {
     const subscriptionItemsToPutTowardsBillingItems =
+      // Filter out expired items and manuallyCreated items
       params.subscriptionItems.filter(
-        (item) => !item.expiredAt || item.expiredAt > Date.now()
+        isSubscriptionItemActiveAndNonManual
       )
 
     billingPeriodItemInserts =
