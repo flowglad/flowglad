@@ -18,16 +18,22 @@ if (!global.crypto) {
 // Mock window.matchMedia for tests that use responsive hooks (e.g., use-mobile)
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
+  value: (query: string) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }),
+})
+
+// Mock window.innerWidth for responsive hook tests
+Object.defineProperty(window, 'innerWidth', {
+  writable: true,
+  value: 1024,
 })
 
 // Ensure crypto is available before mocking idempotencyKeys
