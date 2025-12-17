@@ -15,6 +15,21 @@ if (!global.crypto) {
   global.crypto = webcrypto as unknown as Crypto
 }
 
+// Mock window.matchMedia for tests that use responsive hooks (e.g., use-mobile)
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+})
+
 // Ensure crypto is available before mocking idempotencyKeys
 beforeAll(() => {
   if (!global.crypto) {
