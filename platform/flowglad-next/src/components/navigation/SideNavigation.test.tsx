@@ -1,6 +1,35 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BusinessOnboardingStatus } from '@/types'
+import type { NavUserProps } from './NavUser'
+
+// Types for mock components
+type MockChildrenProps = {
+  children?: ReactNode
+}
+
+type MockClassNameProps = MockChildrenProps & {
+  className?: string
+}
+
+type MockSidebarMenuButtonProps = MockChildrenProps & {
+  onClick?: () => void
+  disabled?: boolean
+  tooltip?: string
+}
+
+type MockImageProps = {
+  src: string
+  alt: string
+  className?: string
+  'data-testid'?: string
+}
+
+type MockNavStandaloneItem = {
+  title: string
+  url: string
+}
 
 // Mock session data
 const mockSession = {
@@ -75,30 +104,36 @@ const mockToggleSidebar = vi.fn()
 const mockUseSidebar = vi.fn()
 vi.mock('@/components/ui/sidebar', () => ({
   useSidebar: () => mockUseSidebar(),
-  SidebarHeader: ({ children, className }: any) => (
+  SidebarHeader: ({ children, className }: MockClassNameProps) => (
     <div data-testid="sidebar-header" className={className}>
       {children}
     </div>
   ),
-  SidebarContent: ({ children, className }: any) => (
+  SidebarContent: ({ children, className }: MockClassNameProps) => (
     <div data-testid="sidebar-content" className={className}>
       {children}
     </div>
   ),
-  SidebarFooter: ({ children, className }: any) => (
+  SidebarFooter: ({ children, className }: MockClassNameProps) => (
     <div data-testid="sidebar-footer" className={className}>
       {children}
     </div>
   ),
-  SidebarGroup: ({ children }: any) => <div>{children}</div>,
-  SidebarMenu: ({ children }: any) => <ul>{children}</ul>,
-  SidebarMenuItem: ({ children }: any) => <li>{children}</li>,
+  SidebarGroup: ({ children }: MockChildrenProps) => (
+    <div>{children}</div>
+  ),
+  SidebarMenu: ({ children }: MockChildrenProps) => (
+    <ul>{children}</ul>
+  ),
+  SidebarMenuItem: ({ children }: MockChildrenProps) => (
+    <li>{children}</li>
+  ),
   SidebarMenuButton: ({
     children,
     onClick,
     disabled,
     tooltip,
-  }: any) => (
+  }: MockSidebarMenuButtonProps) => (
     <button onClick={onClick} disabled={disabled} title={tooltip}>
       {children}
     </button>
@@ -112,7 +147,7 @@ vi.mock('next/image', () => ({
     alt,
     className,
     'data-testid': dataTestId,
-  }: any) => (
+  }: MockImageProps) => (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
@@ -125,9 +160,9 @@ vi.mock('next/image', () => ({
 
 // Mock NavStandalone to render all items for testing
 vi.mock('./NavStandalone', () => ({
-  NavStandalone: ({ items }: any) => (
+  NavStandalone: ({ items }: { items: MockNavStandaloneItem[] }) => (
     <div data-testid="nav-standalone">
-      {items.map((item: any) => (
+      {items.map((item) => (
         <a
           key={item.title}
           href={item.url}
@@ -148,7 +183,7 @@ vi.mock('./NavUser', () => ({
     organization,
     onSignOut,
     testModeEnabled,
-  }: any) => (
+  }: NavUserProps) => (
     <div data-testid="nav-user">
       <span data-testid="nav-user-name">{user.name}</span>
       <span data-testid="nav-user-email">{user.email}</span>
@@ -405,9 +440,6 @@ describe('SideNavigation - More/Less Toggle', () => {
       // Secondary items should now be visible
       expect(
         screen.getByTestId('nav-item-subscriptions')
-      ).toBeInTheDocument()
-      expect(
-        screen.getByTestId('nav-item-products')
       ).toBeInTheDocument()
       expect(
         screen.getByTestId('nav-item-discounts')

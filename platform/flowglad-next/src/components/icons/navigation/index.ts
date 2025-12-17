@@ -2,19 +2,26 @@
  * Centralized exports for all navigation icons.
  * This file provides a single import point for icons used in the sidebar navigation.
  *
- * All icons exported from this file have consistent defaults:
+ * Lucide icons wrapped with `createNavIcon` and custom icons have consistent defaults:
  * - Size: 20px (NAV_ICON_SIZE)
  * - Stroke width: 2px (NAV_ICON_STROKE_WIDTH)
  *
+ * **Note:** Remixicon exports (e.g., `RiDiscordFill`) are raw re-exports from
+ * `@remixicon/react` and do NOT receive the `createNavIcon` defaults. When using
+ * Remixicon icons, pass explicit `size` props as needed.
+ *
  * @example
  * ```tsx
- * import { DashboardIcon, CustomersIcon, PaymentsIcon } from '@/components/icons/navigation'
+ * import { CustomersIcon, PaymentsIcon, RiDiscordFill } from '@/components/icons/navigation'
  *
- * // Icons render at 20px with 2px stroke by default
- * <DashboardIcon />
+ * // Lucide/custom icons render at 20px with 2px stroke by default
+ * <CustomersIcon />
  *
  * // Override size if needed
- * <DashboardIcon size={24} />
+ * <CustomersIcon size={24} />
+ *
+ * // Remixicon requires explicit size prop
+ * <RiDiscordFill size={20} />
  * ```
  */
 

@@ -264,7 +264,8 @@ export const SideNavigation = () => {
           {/* Finish Setup and Primary navigation items - dimmed when showMore is true */}
           <div
             className={cn(
-              showMore && 'opacity-25 transition-opacity duration-200'
+              'transition-opacity duration-200',
+              showMore && 'opacity-25'
             )}
           >
             {/* Finish Setup - Only shows when onboarding not complete */}

@@ -4,15 +4,11 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { SidebarProvider } from '@/components/ui/sidebar'
 import { BusinessOnboardingStatus } from '@/types'
 import { NavUser, type NavUserProps } from './NavUser'
-
-// Mock useSidebar hook
-const mockUseSidebar = vi.fn()
-vi.mock('@/components/ui/sidebar', () => ({
-  useSidebar: () => mockUseSidebar(),
-}))
 
 // Mock useOrganizationList hook
 const mockSwitchOrganization = vi.fn()
@@ -37,8 +33,21 @@ const defaultProps: NavUserProps = {
   testModeEnabled: false,
 }
 
-const renderNavUser = (props: Partial<NavUserProps> = {}) => {
-  return render(<NavUser {...defaultProps} {...props} />)
+type RenderOptions = {
+  props?: Partial<NavUserProps>
+  sidebarOpen?: boolean
+}
+
+const renderNavUser = ({
+  props = {},
+  sidebarOpen = true,
+}: RenderOptions = {}) => {
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <SidebarProvider open={sidebarOpen}>{children}</SidebarProvider>
+  )
+  return render(<NavUser {...defaultProps} {...props} />, {
+    wrapper: Wrapper,
+  })
 }
 
 const defaultOrganizations = [
@@ -62,7 +71,6 @@ const defaultOrganizations = [
 describe('NavUser', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockUseSidebar.mockReturnValue({ state: 'expanded' })
     mockUseOrganizationList.mockReturnValue({
       organizations: defaultOrganizations,
       currentOrganizationId: 'org-1',
@@ -84,10 +92,12 @@ describe('NavUser', () => {
 
     it('should render fallback initials when no image provided', () => {
       renderNavUser({
-        user: {
-          name: 'John Doe',
-          email: 'john@example.com',
-          image: null,
+        props: {
+          user: {
+            name: 'John Doe',
+            email: 'john@example.com',
+            image: null,
+          },
         },
       })
       const fallback = screen.getByTestId('nav-user-avatar-fallback')
@@ -96,10 +106,12 @@ describe('NavUser', () => {
 
     it('should render single initial for single name', () => {
       renderNavUser({
-        user: {
-          name: 'John',
-          email: 'john@example.com',
-          image: null,
+        props: {
+          user: {
+            name: 'John',
+            email: 'john@example.com',
+            image: null,
+          },
         },
       })
       const fallback = screen.getByTestId('nav-user-avatar-fallback')
@@ -107,8 +119,7 @@ describe('NavUser', () => {
     })
 
     it('should show full user info when sidebar is expanded', () => {
-      mockUseSidebar.mockReturnValue({ state: 'expanded' })
-      renderNavUser()
+      renderNavUser({ sidebarOpen: true })
 
       expect(screen.getByTestId('nav-user-name')).toHaveTextContent(
         'John Doe'
@@ -119,8 +130,7 @@ describe('NavUser', () => {
     })
 
     it('should show only avatar when sidebar is collapsed', () => {
-      mockUseSidebar.mockReturnValue({ state: 'collapsed' })
-      renderNavUser()
+      renderNavUser({ sidebarOpen: false })
 
       expect(
         screen.queryByTestId('nav-user-name')
@@ -204,7 +214,7 @@ describe('NavUser', () => {
 
     it('should call onSignOut when Log out is clicked', async () => {
       const mockOnSignOut = vi.fn()
-      renderNavUser({ onSignOut: mockOnSignOut })
+      renderNavUser({ props: { onSignOut: mockOnSignOut } })
 
       fireEvent.click(screen.getByTestId('nav-user-trigger'))
 
@@ -221,11 +231,13 @@ describe('NavUser', () => {
 
     it('should show Finish Setup when onboardingStatus is not FullyOnboarded', async () => {
       renderNavUser({
-        organization: {
-          id: 'org-1',
-          name: 'Acme Corp',
-          onboardingStatus:
-            BusinessOnboardingStatus.PartiallyOnboarded,
+        props: {
+          organization: {
+            id: 'org-1',
+            name: 'Acme Corp',
+            onboardingStatus:
+              BusinessOnboardingStatus.PartiallyOnboarded,
+          },
         },
       })
 
@@ -242,10 +254,12 @@ describe('NavUser', () => {
 
     it('should hide Finish Setup when onboardingStatus is FullyOnboarded', async () => {
       renderNavUser({
-        organization: {
-          id: 'org-1',
-          name: 'Acme Corp',
-          onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
+        props: {
+          organization: {
+            id: 'org-1',
+            name: 'Acme Corp',
+            onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
+          },
         },
       })
 
@@ -265,8 +279,10 @@ describe('NavUser', () => {
     it('should toggle test mode when switch is clicked', async () => {
       const mockOnTestModeToggle = vi.fn()
       renderNavUser({
-        onTestModeToggle: mockOnTestModeToggle,
-        testModeEnabled: false,
+        props: {
+          onTestModeToggle: mockOnTestModeToggle,
+          testModeEnabled: false,
+        },
       })
 
       fireEvent.click(screen.getByTestId('nav-user-trigger'))
@@ -286,7 +302,7 @@ describe('NavUser', () => {
     })
 
     it('should show test mode switch as checked when testModeEnabled is true', async () => {
-      renderNavUser({ testModeEnabled: true })
+      renderNavUser({ props: { testModeEnabled: true } })
 
       fireEvent.click(screen.getByTestId('nav-user-trigger'))
 
