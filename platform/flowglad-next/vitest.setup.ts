@@ -15,27 +15,6 @@ if (!global.crypto) {
   global.crypto = webcrypto as unknown as Crypto
 }
 
-// Mock window.matchMedia for tests that use responsive hooks (e.g., use-mobile)
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: (query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => false,
-  }),
-})
-
-// Mock window.innerWidth for responsive hook tests
-Object.defineProperty(window, 'innerWidth', {
-  writable: true,
-  value: 1024,
-})
-
 // Ensure crypto is available before mocking idempotencyKeys
 beforeAll(() => {
   if (!global.crypto) {
