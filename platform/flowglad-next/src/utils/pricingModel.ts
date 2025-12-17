@@ -53,19 +53,43 @@ import type {
 import { DestinationEnvironment } from '@/types'
 import { validateDefaultProductUpdate } from '@/utils/defaultProductValidation'
 
-const isPriceChanged = (
+export const isPriceChanged = (
   newPrice: Price.ClientInsert,
   currentPrice: Price.ClientRecord | undefined
 ): boolean => {
   if (!currentPrice) {
     return true
   }
+  // Normalize price input for comparison: use current price's values for fields not provided
+  // This avoids false positives when checking if price changed (e.g., undefined vs null)
+  // Normalize fields that we check: slug, name, isDefault, active, trialPeriodDays
+  // Use currentPrice's exact value (including undefined) to ensure strict equality comparison works
+  const priceForComparison: Price.ClientInsert = {
+    ...newPrice,
+    slug:
+      newPrice.slug !== undefined ? newPrice.slug : currentPrice.slug,
+    name:
+      newPrice.name !== undefined ? newPrice.name : currentPrice.name,
+    isDefault:
+      newPrice.isDefault !== undefined
+        ? newPrice.isDefault
+        : currentPrice.isDefault,
+    active:
+      newPrice.active !== undefined
+        ? newPrice.active
+        : currentPrice.active,
+    trialPeriodDays:
+      newPrice.trialPeriodDays !== undefined
+        ? newPrice.trialPeriodDays
+        : currentPrice.trialPeriodDays,
+  } as Price.ClientInsert
+
   // Compare all immutable/create-only fields
   const immutableFieldsChanged = priceImmutableFields.some(
     (field) => {
       const key = field as keyof Price.ClientInsert &
         keyof Price.ClientRecord
-      return newPrice[key] !== currentPrice[key]
+      return priceForComparison[key] !== currentPrice[key]
     }
   )
   if (immutableFieldsChanged) {
@@ -80,7 +104,7 @@ const isPriceChanged = (
     'slug',
   ]
   return additionalFields.some((field) => {
-    const newValue = newPrice[field]
+    const newValue = priceForComparison[field]
     const currentValue = currentPrice[field]
     // Treat null and undefined as equivalent for comparison
     if (
@@ -329,42 +353,8 @@ export const editProductTransaction = async (
     )
 
     if (price) {
-      // Price input is provided
-      // Normalize price input for comparison: use current price's values for fields not provided
-      // This avoids false positives when checking if price changed (e.g., undefined vs null)
-      // Normalize fields that isPriceChanged checks: slug, name, isDefault, active
-      // Also normalize trialPeriodDays since it's an immutable field and test might provide undefined vs null
-      // Use currentPrice's exact value (including undefined) to ensure strict equality comparison works
-      const priceForComparison: Price.ClientInsert = currentPrice
-        ? ({
-            ...price,
-            slug:
-              price.slug !== undefined
-                ? price.slug
-                : currentPrice.slug,
-            name:
-              price.name !== undefined
-                ? price.name
-                : currentPrice.name,
-            isDefault:
-              price.isDefault !== undefined
-                ? price.isDefault
-                : currentPrice.isDefault,
-            active:
-              price.active !== undefined
-                ? price.active
-                : currentPrice.active,
-            trialPeriodDays:
-              price.trialPeriodDays !== undefined
-                ? price.trialPeriodDays
-                : currentPrice.trialPeriodDays,
-          } as Price.ClientInsert)
-        : price
-      // Check if price changed using normalized price input
-      const priceChanged = isPriceChanged(
-        priceForComparison,
-        currentPrice
-      )
+      // Check if price changed (normalization is handled inside isPriceChanged)
+      const priceChanged = isPriceChanged(price, currentPrice)
 
       if (priceChanged) {
         // New price will be inserted - sync slug if product slug changed
