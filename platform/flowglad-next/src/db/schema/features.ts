@@ -105,6 +105,9 @@ export const {
 } = buildSchemas(features, {
   discriminator: 'type',
   refine: toggleFeatureSharedColumns,
+  updateRefine: {
+    slug: safeZodSanitizedString.optional(),
+  },
   client: {
     hiddenColumns: hiddenColumnsForClientSchema,
     readOnlyColumns: { organizationId: true },
@@ -117,7 +120,7 @@ export const {
  */
 const usageCreditGrantFeatureSharedColumns = {
   type: z.literal(FeatureType.UsageCreditGrant),
-  amount: z.number().int(),
+  amount: core.safeZodPositiveInteger,
   usageMeterId: z.string(),
   renewalFrequency: core.createSafeZodEnum(
     FeatureUsageGrantFrequency
@@ -137,6 +140,9 @@ export const {
 } = buildSchemas(features, {
   discriminator: 'type',
   refine: usageCreditGrantFeatureSharedColumns,
+  updateRefine: {
+    slug: safeZodSanitizedString.optional(),
+  },
   client: {
     hiddenColumns: hiddenColumnsForClientSchema,
     readOnlyColumns: { organizationId: true, livemode: true },
