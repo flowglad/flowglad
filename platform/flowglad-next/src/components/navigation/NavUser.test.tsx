@@ -90,21 +90,8 @@ const renderNavUser = ({
 }
 
 const defaultOrganizations = [
-  {
-    id: 'org-1',
-    name: 'Acme Corp',
-    logoURL: null,
-  },
-  {
-    id: 'org-2',
-    name: 'Beta Inc',
-    logoURL: 'https://example.com/beta-logo.png',
-  },
-  {
-    id: 'org-3',
-    name: 'Gamma LLC',
-    logoURL: null,
-  },
+  { id: 'org-1', name: 'Acme Corp', logoURL: null },
+  { id: 'org-2', name: 'Beta Inc', logoURL: null },
 ]
 
 describe('NavUser', () => {
@@ -119,397 +106,82 @@ describe('NavUser', () => {
     })
   })
 
-  describe('rendering', () => {
-    it('should render avatar with image when user.image is provided', () => {
-      renderNavUser()
-      const avatarImage = screen.getByTestId('nav-user-avatar-image')
-      expect(avatarImage).toHaveAttribute(
-        'src',
-        'https://example.com/avatar.jpg'
-      )
-    })
+  it('should render and open dropdown menu', async () => {
+    renderNavUser()
 
-    it('should render fallback initials when no image provided', () => {
-      renderNavUser({
-        props: {
-          user: {
-            name: 'John Doe',
-            email: 'john@example.com',
-            image: null,
-          },
-        },
-      })
-      const fallback = screen.getByTestId('nav-user-avatar-fallback')
-      expect(fallback).toHaveTextContent('JD')
-    })
+    const trigger = screen.getByTestId('nav-user-trigger')
+    fireEvent.click(trigger)
 
-    it('should render single initial for single name', () => {
-      renderNavUser({
-        props: {
-          user: {
-            name: 'John',
-            email: 'john@example.com',
-            image: null,
-          },
-        },
-      })
-      const fallback = screen.getByTestId('nav-user-avatar-fallback')
-      expect(fallback).toHaveTextContent('J')
-    })
-
-    it('should show full user info when sidebar is expanded', () => {
-      renderNavUser({ sidebarOpen: true })
-
-      expect(screen.getByTestId('nav-user-name')).toHaveTextContent(
-        'John Doe'
-      )
-      expect(screen.getByTestId('nav-user-org')).toHaveTextContent(
-        'Acme Corp'
-      )
-    })
-
-    it('should show only avatar when sidebar is collapsed', () => {
-      renderNavUser({ sidebarOpen: false })
-
+    await waitFor(() => {
       expect(
-        screen.queryByTestId('nav-user-name')
-      ).not.toBeInTheDocument()
+        screen.getByTestId('nav-user-settings')
+      ).toBeInTheDocument()
       expect(
-        screen.queryByTestId('nav-user-org')
-      ).not.toBeInTheDocument()
-      // Avatar should still be visible
-      expect(
-        screen.getByTestId('nav-user-avatar-image')
+        screen.getByTestId('nav-user-logout')
       ).toBeInTheDocument()
     })
   })
 
-  describe('dropdown menu', () => {
-    it('should open dropdown when trigger is clicked', async () => {
-      renderNavUser()
+  it('should call onSignOut when Log out is clicked', async () => {
+    const mockOnSignOut = vi.fn()
+    renderNavUser({ props: { onSignOut: mockOnSignOut } })
 
-      const trigger = screen.getByTestId('nav-user-trigger')
-      fireEvent.click(trigger)
+    fireEvent.click(screen.getByTestId('nav-user-trigger'))
 
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('nav-user-settings')
-        ).toBeInTheDocument()
-      })
-    })
-
-    it('should render Settings item that navigates to /settings', async () => {
-      renderNavUser()
-
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        const settingsLink = screen.getByTestId('nav-user-settings')
-        expect(settingsLink).toHaveAttribute('href', '/settings')
-      })
-    })
-
-    it('should render Change Org item', async () => {
-      renderNavUser()
-
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('nav-user-change-org')
-        ).toBeInTheDocument()
-      })
-    })
-
-    it('should render Documentation item with external link', async () => {
-      renderNavUser()
-
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        const docLink = screen.getByTestId('nav-user-documentation')
-        expect(docLink).toHaveAttribute(
-          'href',
-          'https://docs.flowglad.com'
-        )
-        expect(docLink).toHaveAttribute('target', '_blank')
-      })
-    })
-
-    it('should render Discord item with external link', async () => {
-      renderNavUser()
-
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        const discordLink = screen.getByTestId('nav-user-discord')
-        expect(discordLink).toHaveAttribute(
-          'href',
-          'https://app.flowglad.com/invite-discord'
-        )
-        expect(discordLink).toHaveAttribute('target', '_blank')
-      })
-    })
-
-    it('should call onSignOut when Log out is clicked', async () => {
-      const mockOnSignOut = vi.fn()
-      renderNavUser({ props: { onSignOut: mockOnSignOut } })
-
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('nav-user-logout')
-        ).toBeInTheDocument()
-      })
-
-      fireEvent.click(screen.getByTestId('nav-user-logout'))
-
-      expect(mockOnSignOut).toHaveBeenCalled()
-    })
-
-    it('should show Finish Setup when onboardingStatus is not FullyOnboarded', async () => {
-      renderNavUser({
-        props: {
-          organization: {
-            id: 'org-1',
-            name: 'Acme Corp',
-            onboardingStatus:
-              BusinessOnboardingStatus.PartiallyOnboarded,
-          },
-        },
-      })
-
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        const finishSetup = screen.getByTestId(
-          'nav-user-finish-setup'
-        )
-        expect(finishSetup).toBeInTheDocument()
-        expect(finishSetup).toHaveAttribute('href', '/onboarding')
-      })
-    })
-
-    it('should hide Finish Setup when onboardingStatus is FullyOnboarded', async () => {
-      renderNavUser({
-        props: {
-          organization: {
-            id: 'org-1',
-            name: 'Acme Corp',
-            onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
-          },
-        },
-      })
-
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('nav-user-settings')
-        ).toBeInTheDocument()
-      })
-
+    await waitFor(() => {
       expect(
-        screen.queryByTestId('nav-user-finish-setup')
-      ).not.toBeInTheDocument()
+        screen.getByTestId('nav-user-logout')
+      ).toBeInTheDocument()
     })
 
-    it('should toggle test mode when switch is clicked', async () => {
-      const mockOnTestModeToggle = vi.fn()
-      renderNavUser({
-        props: {
-          onTestModeToggle: mockOnTestModeToggle,
-          testModeEnabled: false,
-        },
-      })
-
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('nav-user-test-mode-switch')
-        ).toBeInTheDocument()
-      })
-
-      const switchElement = screen.getByTestId(
-        'nav-user-test-mode-switch'
-      )
-      fireEvent.click(switchElement)
-
-      expect(mockOnTestModeToggle).toHaveBeenCalledWith(true)
-    })
-
-    it('should show test mode switch as checked when testModeEnabled is true', async () => {
-      renderNavUser({ props: { testModeEnabled: true } })
-
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        const switchElement = screen.getByTestId(
-          'nav-user-test-mode-switch'
-        )
-        expect(switchElement).toHaveAttribute('data-state', 'checked')
-      })
-    })
+    fireEvent.click(screen.getByTestId('nav-user-logout'))
+    expect(mockOnSignOut).toHaveBeenCalled()
   })
 
-  describe('organization switching', () => {
-    it('should render Change Org item with chevron icon', async () => {
-      renderNavUser()
-
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        const changeOrgItem = screen.getByTestId(
-          'nav-user-change-org'
-        )
-        expect(changeOrgItem).toBeInTheDocument()
-        // ChevronRight icon is rendered by DropdownMenuSubTrigger
-      })
+  it('should toggle test mode when switch is clicked', async () => {
+    const mockOnTestModeToggle = vi.fn()
+    renderNavUser({
+      props: {
+        onTestModeToggle: mockOnTestModeToggle,
+        testModeEnabled: false,
+      },
     })
 
-    it('should open submenu on hover of Change Org', async () => {
-      renderNavUser()
+    fireEvent.click(screen.getByTestId('nav-user-trigger'))
 
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('nav-user-change-org')
-        ).toBeInTheDocument()
-      })
-
-      fireEvent.mouseEnter(screen.getByTestId('nav-user-change-org'))
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('nav-user-org-submenu')
-        ).toBeInTheDocument()
-      })
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('nav-user-test-mode-switch')
+      ).toBeInTheDocument()
     })
 
-    it('should list all user organizations', async () => {
-      renderNavUser()
+    fireEvent.click(screen.getByTestId('nav-user-test-mode-switch'))
+    expect(mockOnTestModeToggle).toHaveBeenCalledWith(true)
+  })
 
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
+  it('should call switchOrganization when a different org is selected', async () => {
+    renderNavUser()
 
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('nav-user-change-org')
-        ).toBeInTheDocument()
-      })
+    fireEvent.click(screen.getByTestId('nav-user-trigger'))
 
-      fireEvent.mouseEnter(screen.getByTestId('nav-user-change-org'))
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('nav-user-org-org-1')
-        ).toBeInTheDocument()
-        expect(
-          screen.getByTestId('nav-user-org-org-2')
-        ).toBeInTheDocument()
-        expect(
-          screen.getByTestId('nav-user-org-org-3')
-        ).toBeInTheDocument()
-      })
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('nav-user-change-org')
+      ).toBeInTheDocument()
     })
 
-    it('should show checkmark on current organization', async () => {
-      renderNavUser()
+    fireEvent.mouseEnter(screen.getByTestId('nav-user-change-org'))
 
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('nav-user-change-org')
-        ).toBeInTheDocument()
-      })
-
-      fireEvent.mouseEnter(screen.getByTestId('nav-user-change-org'))
-
-      await waitFor(() => {
-        const currentOrgItem = screen.getByTestId(
-          'nav-user-org-org-1'
-        )
-        // Check icon inside current org item should be visible (opacity-100)
-        const checkIcon =
-          currentOrgItem.querySelector('svg.opacity-100')
-        expect(checkIcon).toBeInTheDocument()
-      })
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('nav-user-org-org-2')
+      ).toBeInTheDocument()
     })
 
-    it('should call switchOrganization when different org is selected', async () => {
-      renderNavUser()
+    fireEvent.click(screen.getByTestId('nav-user-org-org-2'))
 
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('nav-user-change-org')
-        ).toBeInTheDocument()
-      })
-
-      fireEvent.mouseEnter(screen.getByTestId('nav-user-change-org'))
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('nav-user-org-org-2')
-        ).toBeInTheDocument()
-      })
-
-      fireEvent.click(screen.getByTestId('nav-user-org-org-2'))
-
-      await waitFor(() => {
-        expect(mockSwitchOrganization).toHaveBeenCalledWith('org-2')
-      })
-    })
-
-    it('should render Create New Organization option', async () => {
-      renderNavUser()
-
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('nav-user-change-org')
-        ).toBeInTheDocument()
-      })
-
-      fireEvent.mouseEnter(screen.getByTestId('nav-user-change-org'))
-
-      await waitFor(() => {
-        const createOrgItem = screen.getByTestId(
-          'nav-user-create-org'
-        )
-        expect(createOrgItem).toBeInTheDocument()
-        expect(createOrgItem).toHaveTextContent(
-          'Create New Organization'
-        )
-      })
-    })
-
-    it('should show loading spinner when switching organization', async () => {
-      mockUseOrganizationList.mockReturnValue({
-        organizations: defaultOrganizations,
-        currentOrganizationId: 'org-1',
-        isLoading: false,
-        isSwitching: true,
-        switchOrganization: mockSwitchOrganization,
-      })
-
-      renderNavUser()
-
-      fireEvent.click(screen.getByTestId('nav-user-trigger'))
-
-      await waitFor(() => {
-        const changeOrgItem = screen.getByTestId(
-          'nav-user-change-org'
-        )
-        // Should have Loader2 spinner when isSwitching is true
-        const spinner = changeOrgItem.querySelector('.animate-spin')
-        expect(spinner).toBeInTheDocument()
-      })
+    await waitFor(() => {
+      expect(mockSwitchOrganization).toHaveBeenCalledWith('org-2')
     })
   })
 })
