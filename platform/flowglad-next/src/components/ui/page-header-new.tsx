@@ -175,9 +175,9 @@ export function PageHeaderNew({
 
           {/* Optional description */}
           {description && (
-            <div className="font-sans font-medium text-sm text-muted-foreground leading-5 whitespace-nowrap">
+            <p className="font-sans font-medium text-sm text-muted-foreground leading-5 whitespace-nowrap">
               {description}
-            </div>
+            </p>
           )}
         </div>
       )}
