@@ -23,8 +23,7 @@ export const FAQSearch = () => {
       search: "what is flowglad billing",
       body: (
         <>
-          Flowglad is a billing system you embed into your app so you can sell plans/prices and gate features based on a
-          customer's billing state.
+          Flowglad is a payments provider that both processes your payments and allows you to gate feature access based on a customer's billing state.
         </>
       ),
     },
@@ -71,7 +70,7 @@ export const FAQSearch = () => {
       search: "server factory utils/flowglad.ts scope customer",
       body: (
         <>
-          The Quickstart recommends creating a reusable factory (for example <code>utils/flowglad.ts</code>) so you can scope
+          The Quickstart recommends creating a reusable factory (for example <code>lib/flowglad.ts</code>) so you can scope
           Flowglad calls to the current customer.
         </>
       ),
@@ -125,8 +124,8 @@ export const FAQSearch = () => {
       search: "useBilling checkFeatureAccess feature slug loading",
       body: (
         <>
-          Use <code>useBilling()</code> in the frontend and call <code>checkFeatureAccess('your-feature-slug')</code>. Make sure
-          you handle the “not loaded yet” state first.
+          On the frontend: use <code>useBilling()</code> in the frontend and call <code>checkFeatureAccess('your-feature-slug')</code>. Make sure
+          you handle the “not loaded yet” state first. On the backend: use <code>flowglad(customerId).getBilling()</code> and call <code>checkFeatureAccess('your-feature-slug')</code> as returned by the result.
         </>
       ),
     },
