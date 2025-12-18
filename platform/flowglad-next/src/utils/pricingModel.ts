@@ -22,6 +22,7 @@ import {
   bulkInsertPrices,
   insertPrice,
   safelyInsertPrice,
+  safelyUpdatePrice,
   selectPrices,
   selectPricesAndProductsByProductWhere,
 } from '@/db/tableMethods/priceMethods'
@@ -52,19 +53,43 @@ import type {
 import { DestinationEnvironment } from '@/types'
 import { validateDefaultProductUpdate } from '@/utils/defaultProductValidation'
 
-const isPriceChanged = (
+export const isPriceChanged = (
   newPrice: Price.ClientInsert,
   currentPrice: Price.ClientRecord | undefined
 ): boolean => {
   if (!currentPrice) {
     return true
   }
+  // Normalize price input for comparison: use current price's values for fields not provided
+  // This avoids false positives when checking if price changed (e.g., undefined vs null)
+  // Normalize fields that we check: slug, name, isDefault, active, trialPeriodDays
+  // Use currentPrice's exact value (including undefined) to ensure strict equality comparison works
+  const priceForComparison: Price.ClientInsert = {
+    ...newPrice,
+    slug:
+      newPrice.slug !== undefined ? newPrice.slug : currentPrice.slug,
+    name:
+      newPrice.name !== undefined ? newPrice.name : currentPrice.name,
+    isDefault:
+      newPrice.isDefault !== undefined
+        ? newPrice.isDefault
+        : currentPrice.isDefault,
+    active:
+      newPrice.active !== undefined
+        ? newPrice.active
+        : currentPrice.active,
+    trialPeriodDays:
+      newPrice.trialPeriodDays !== undefined
+        ? newPrice.trialPeriodDays
+        : currentPrice.trialPeriodDays,
+  } as Price.ClientInsert
+
   // Compare all immutable/create-only fields
   const immutableFieldsChanged = priceImmutableFields.some(
     (field) => {
       const key = field as keyof Price.ClientInsert &
         keyof Price.ClientRecord
-      return newPrice[key] !== currentPrice[key]
+      return priceForComparison[key] !== currentPrice[key]
     }
   )
   if (immutableFieldsChanged) {
@@ -79,7 +104,16 @@ const isPriceChanged = (
     'slug',
   ]
   return additionalFields.some((field) => {
-    return newPrice[field] !== currentPrice[field]
+    const newValue = priceForComparison[field]
+    const currentValue = currentPrice[field]
+    // Treat null and undefined as equivalent for comparison
+    if (
+      (newValue == null && currentValue == null) ||
+      newValue === currentValue
+    ) {
+      return false
+    }
+    return true
   })
 }
 
@@ -271,6 +305,13 @@ export const editProductTransaction = async (
     throw new Error('Product not found')
   }
 
+  // Check if product slug is being mutated
+  // Compare slug values, treating null and undefined as equivalent
+  const existingSlug = existingProduct.slug ?? null
+  const newSlug = product.slug ?? null
+  const isSlugMutating =
+    product.slug !== undefined && newSlug !== existingSlug
+
   // If default product, always force active=true on edit to auto-correct bad states
   const isDefaultProduct = existingProduct.default
   const enforcedProduct = isDefaultProduct
@@ -302,8 +343,7 @@ export const editProductTransaction = async (
    * Don't attempt to update prices for default products,
    * quietly skip over it if it's a default product
    */
-  if (price && !isDefaultProduct) {
-    // Forbid creating additional prices for default products
+  if (!isDefaultProduct) {
     const existingPrices = await selectPrices(
       { productId: product.id },
       transaction
@@ -311,17 +351,47 @@ export const editProductTransaction = async (
     const currentPrice = existingPrices.find(
       (p) => p.active && p.isDefault
     )
-    if (isPriceChanged(price, currentPrice)) {
-      const organization = await selectOrganizationById(
-        organizationId,
-        transaction
-      )
-      await safelyInsertPrice(
+
+    if (price) {
+      // Check if price changed (normalization is handled inside isPriceChanged)
+      const priceChanged = isPriceChanged(price, currentPrice)
+
+      if (priceChanged) {
+        // New price will be inserted - sync slug if product slug changed
+        const organization = await selectOrganizationById(
+          organizationId,
+          transaction
+        )
+        await safelyInsertPrice(
+          {
+            ...price,
+            slug: isSlugMutating
+              ? updatedProduct.slug
+              : (price.slug ?? currentPrice?.slug ?? null),
+            livemode,
+            currency: organization.defaultCurrency,
+            externalId: null,
+          },
+          transaction
+        )
+      } else if (isSlugMutating && currentPrice) {
+        // No new price inserted (immutable fields unchanged), but product slug changed - update existing price slug
+        await safelyUpdatePrice(
+          {
+            id: currentPrice.id,
+            type: currentPrice.type,
+            slug: updatedProduct.slug,
+          },
+          transaction
+        )
+      }
+    } else if (isSlugMutating && currentPrice) {
+      // No price input provided, but product slug changed - update existing price slug
+      await safelyUpdatePrice(
         {
-          ...price,
-          livemode,
-          currency: organization.defaultCurrency,
-          externalId: null,
+          id: currentPrice.id,
+          type: currentPrice.type,
+          slug: updatedProduct.slug,
         },
         transaction
       )
