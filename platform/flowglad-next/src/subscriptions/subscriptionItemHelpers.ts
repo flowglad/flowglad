@@ -108,7 +108,12 @@ const grantProratedCreditsForFeatures = async (params: {
   const { subscription, features, adjustmentDate, transaction } =
     params
 
-  if (R.isEmpty(features)) {
+  // Filter to UsageCreditGrant features with usageMeterId
+  const creditGrantFeatures = features.filter(
+    (feature) => feature.type === FeatureType.UsageCreditGrant
+  )
+
+  if (R.isEmpty(creditGrantFeatures)) {
     return { usageCredits: [], ledgerEntries: [] }
   }
 
@@ -136,18 +141,6 @@ const grantProratedCreditsForFeatures = async (params: {
     adjustmentDate,
     currentBillingPeriod
   )
-
-  // Filter to UsageCreditGrant features with valid data
-  const creditGrantFeatures = features.filter(
-    (feature) =>
-      feature.type === FeatureType.UsageCreditGrant &&
-      feature.usageMeterId &&
-      feature.amount
-  )
-
-  if (R.isEmpty(creditGrantFeatures)) {
-    return { usageCredits: [], ledgerEntries: [] }
-  }
 
   // Check for existing credits (to avoid double-granting) - batch query
   const existingCredits = await selectUsageCredits(
@@ -367,6 +360,8 @@ export const handleSubscriptionItemAdjustment = async (params: {
   }
 
   // Get manual subscription item (for checking feature overlaps later)
+  // We only check the first manually created susbcription item because
+  // there should only ever be one of these (at the current moment)
   const currentManualItems = currentlyActiveItems.filter(
     (item) => item.manuallyCreated
   )
