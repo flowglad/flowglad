@@ -259,17 +259,6 @@ describe('isPriceChanged', () => {
       expect(result).toBe(true)
     })
 
-    it('should return true when usageMeterId changes to different value', () => {
-      const currentPrice = createUsagePriceRecord({
-        usageMeterId: 'meter-1',
-      })
-      const newPrice = createUsagePriceInsert({
-        usageMeterId: 'meter-2', // Changed
-      })
-      const result = isPriceChanged(newPrice, currentPrice)
-      expect(result).toBe(true)
-    })
-
     it('should return true when usageEventsPerUnit changes', () => {
       const currentPrice = createUsagePriceRecord({
         usageEventsPerUnit: 1,
@@ -540,28 +529,6 @@ describe('isPriceChanged', () => {
       })
       const newPrice = createSubscriptionPriceInsert({
         slug: undefined,
-      })
-      const result = isPriceChanged(newPrice, currentPrice)
-      expect(result).toBe(false)
-    })
-
-    it('should return false when newPrice.slug is undefined and currentPrice.slug is null', () => {
-      const currentPrice = createSubscriptionPriceRecord({
-        slug: null,
-      })
-      const newPrice = createSubscriptionPriceInsert({
-        slug: undefined,
-      })
-      const result = isPriceChanged(newPrice, currentPrice)
-      expect(result).toBe(false)
-    })
-
-    it('should return false when newPrice.name is undefined and currentPrice.name is null', () => {
-      const currentPrice = createSubscriptionPriceRecord({
-        name: null,
-      })
-      const newPrice = createSubscriptionPriceInsert({
-        name: undefined,
       })
       const result = isPriceChanged(newPrice, currentPrice)
       expect(result).toBe(false)

@@ -3320,7 +3320,6 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       const newPrice = finalPrices.find(
         (p) => p.unitPrice === modifiedPrice.unitPrice
       )
-      expect(newPrice).toBeDefined()
       expect(newPrice?.slug).toBe('new-product-slug')
     })
 
@@ -3572,7 +3571,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
         }
       )
       // Verify the price slug remains unchanged (or null if it was null)
-      expect(updatedPrice?.slug).toBeDefined()
+      expect(updatedPrice?.slug).not.toBe('new-default-slug')
     })
 
     it('should sync slug when product slug changes from null to a value', async () => {
