@@ -13,7 +13,6 @@ const flowglad = (
 ) => {
   return new FlowgladServer({
     baseURL: 'https://app.flowglad.com',
-    apiKey: process.env.FLOWGLAD_SECRET_KEY || 'sk_test_...',
     customerExternalId,
     getCustomerDetails: async (externalId) => {
       return {
@@ -28,24 +27,16 @@ export async function POST(
   request: Request,
   context?: { params?: { path?: string[] } }
 ) {
-  console.log('=== FLOWGLAD API ROUTE HIT ===')
-  console.log('URL:', request.url)
-  console.log('Method:', request.method)
-  console.log('Context:', context)
-  console.log('Params:', context?.params)
-
   try {
     // WORKAROUND 1: Extract path from URL instead of params
     const url = new URL(request.url)
     const pathStr = url.pathname.replace('/api/flowglad/', '')
     const path = pathStr.split('/').filter(Boolean)
-    console.log('Extracted path from URL:', path)
 
     // WORKAROUND 2: Get user from custom headers instead of session
     const userId = request.headers.get('x-user-id')
     const userEmail = request.headers.get('x-user-email')
     const userName = request.headers.get('x-user-name')
-    console.log('User from headers:', { userId, userEmail, userName })
 
     if (!userId) {
       console.log('No user ID in headers, returning 401')
