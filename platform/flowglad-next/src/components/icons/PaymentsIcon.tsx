@@ -1,28 +1,47 @@
 import type { LucideIcon, LucideProps } from 'lucide-react'
 import React from 'react'
+import { cn } from '@/lib/utils'
+import {
+  NAV_ICON_SIZE,
+  NAV_ICON_STROKE_WIDTH,
+} from './navigation/createNavIcon'
 
+/**
+ * Custom payments/receipt icon for navigation.
+ * Uses 24x24 viewBox for consistency with Lucide icons.
+ */
 export const PaymentsIcon: LucideIcon = React.forwardRef<
   SVGSVGElement,
   LucideProps
->(({ className, ...props }, ref) => (
-  <svg
-    ref={ref}
-    width="20"
-    height="20"
-    viewBox="0 0 20 20"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className={className}
-    {...props}
-  >
-    <path
-      d="M7.77791 10.5566C7.77791 10.5566 9.02987 11.1122 10.0001 11.1122C10.9704 11.1122 12.2224 10.5566 12.2224 10.5566M2.5 16.25V4.375C2.5 4.20924 2.56585 4.05027 2.68306 3.93306C2.80027 3.81585 2.95924 3.75 3.125 3.75H16.875C17.0408 3.75 17.1997 3.81585 17.3169 3.93306C17.4342 4.05027 17.5 4.20924 17.5 4.375V16.25L15 15L12.5 16.25L10 15L7.5 16.25L5 15L2.5 16.25Z"
-      stroke="currentColor"
-      strokeWidth="2.25"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-))
+>(
+  (
+    {
+      className,
+      size = NAV_ICON_SIZE,
+      strokeWidth = NAV_ICON_STROKE_WIDTH,
+      ...props
+    },
+    ref
+  ) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={cn('shrink-0', className)}
+      {...props}
+    >
+      <path
+        d="M9.333 12.668C9.333 12.668 10.836 13.334 12 13.334C13.164 13.334 14.667 12.668 14.667 12.668M3 19.5V5.25C3 5.05109 3.07902 4.86032 3.21967 4.71967C3.36032 4.57902 3.55109 4.5 3.75 4.5H20.25C20.4489 4.5 20.6397 4.57902 20.7803 4.71967C20.921 4.86032 21 5.05109 21 5.25V19.5L18 18L15 19.5L12 18L9 19.5L6 18L3 19.5Z"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+)
 
 PaymentsIcon.displayName = 'PaymentsIcon'

@@ -2,7 +2,14 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import { sentenceCase } from 'change-case'
-import { Check, Hourglass, Rewind, RotateCcw, X } from 'lucide-react'
+import {
+  Check,
+  ExternalLink,
+  Hourglass,
+  Rewind,
+  RotateCcw,
+  X,
+} from 'lucide-react'
 import * as React from 'react'
 import { Badge } from '@/components/ui/badge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
@@ -13,7 +20,7 @@ import {
 } from '@/components/ui/enhanced-data-table-actions-menu'
 import type { Payment } from '@/db/schema/payments'
 import { PaymentStatus } from '@/types'
-import { formatDate } from '@/utils/core'
+import core, { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import RefundPaymentModal from './RefundPaymentModal'
 import RetryPaymentModal from './RetryPaymentModal'
@@ -54,6 +61,13 @@ function PaymentActionsMenu({
   const [isRefundOpen, setIsRefundOpen] = React.useState(false)
   const [isRetryOpen, setIsRetryOpen] = React.useState(false)
   const actionItems: ActionMenuItem[] = []
+  const invoiceUrl = `${core.NEXT_PUBLIC_APP_URL}/invoice/view/${payment.organizationId}/${payment.invoiceId}`
+  actionItems.push({
+    label: 'View Invoice',
+    icon: <ExternalLink className="h-4 w-4" />,
+    handler: () =>
+      window.open(invoiceUrl, '_blank', 'noopener,noreferrer'),
+  })
   actionItems.push({
     label: 'Refund Payment',
     icon: <Rewind className="h-4 w-4" />,
