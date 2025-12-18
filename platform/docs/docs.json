@@ -40,7 +40,8 @@
             "pages": [
               "quickstart",
               "integrate-by-prompt",
-              "integrate-by-http"
+              "integrate-by-http",
+              "faq"
             ]
           },
           {
