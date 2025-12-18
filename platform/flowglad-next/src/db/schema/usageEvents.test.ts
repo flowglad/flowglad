@@ -410,8 +410,6 @@ describe('usageEvents schema - nullable priceId', () => {
       transactionId: `txn_null_price_${core.nanoid()}`,
     })
 
-    expect(usageEvent).toBeDefined()
-    expect(usageEvent.id).toBeDefined()
     expect(usageEvent.priceId).toBeNull()
     expect(usageEvent.usageMeterId).toBe(usageMeter.id)
     expect(usageEvent.amount).toBe(100)
@@ -430,7 +428,6 @@ describe('usageEvents schema - nullable priceId', () => {
       transactionId: `txn_null_meter1_${core.nanoid()}`,
     })
 
-    expect(usageEvent1).toBeDefined()
     expect(usageEvent1.priceId).toBeNull()
     expect(usageEvent1.usageMeterId).toBe(usageMeter.id)
 
@@ -445,7 +442,6 @@ describe('usageEvents schema - nullable priceId', () => {
       transactionId: `txn_null_meter2_${core.nanoid()}`,
     })
 
-    expect(usageEvent2).toBeDefined()
     expect(usageEvent2.priceId).toBeNull()
     expect(usageEvent2.usageMeterId).toBe(usageMeter2.id)
   })
