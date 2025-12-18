@@ -32,6 +32,7 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type { SubscriptionStatus } from '@/types'
+import core from '@/utils/core'
 import type { DbTransaction } from '../types'
 import { isSubscriptionCurrent } from './subscriptionMethods'
 
@@ -109,7 +110,7 @@ export const selectUsageEventsTableRowData =
 
       const priceIds = usageEventsData
         .map((usageEvent) => usageEvent.priceId)
-        .filter((id): id is string => id !== null && id !== undefined)
+        .filter((id): id is string => !core.isNil(id))
 
       // Query 1: Get customers
       const customerResults = await transaction
