@@ -1,14 +1,5 @@
 import { sql } from 'drizzle-orm'
-import {
-  integer,
-  jsonb,
-  pgPolicy,
-  pgTable,
-  text,
-  timestamp,
-} from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
-import * as R from 'ramda'
+import { integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { customers } from '@/db/schema/customers'
@@ -40,7 +31,7 @@ import { usageMetersClientSelectSchema } from './usageMeters'
 
 const TABLE_NAME = 'usage_events'
 
-const usageEventPriceMustMatchUsageMeter = sql`"price_id" in (select "id" from "prices" where "prices"."usage_meter_id" = "usage_meter_id")`
+const usageEventPriceMustMatchUsageMeter = sql`"price_id" IS NULL OR "price_id" in (select "id" from "prices" where "prices"."usage_meter_id" = "usage_meter_id")`
 
 const usageEventSubscriptionMustMatchCustomer = sql`"subscription_id" in (select "id" from "subscriptions" where "subscriptions"."customer_id" = "customer_id")`
 
@@ -67,7 +58,7 @@ export const usageEvents = pgTable(
       .notNull()
       .defaultNow(),
     transactionId: text('transaction_id').notNull(),
-    priceId: notNullStringForeignKey('price_id', prices),
+    priceId: nullableStringForeignKey('price_id', prices),
     properties: jsonb('properties'),
   },
   (table) => {

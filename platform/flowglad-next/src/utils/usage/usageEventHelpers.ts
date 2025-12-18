@@ -126,6 +126,12 @@ export const ingestAndProcessUsageEvent = async (
   transaction: DbTransaction
 ): Promise<TransactionOutput<{ usageEvent: UsageEvent.Record }>> => {
   const usageEventInput = input.usageEvent
+  // FIXME: Handle nullable priceId - usage events can now have null priceId
+  if (!usageEventInput.priceId) {
+    throw new Error(
+      'priceId is required. Support for usage events without prices will be added in a future update.'
+    )
+  }
   const billingPeriod =
     await selectCurrentBillingPeriodForSubscription(
       usageEventInput.subscriptionId,

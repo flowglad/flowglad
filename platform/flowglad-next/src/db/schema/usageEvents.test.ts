@@ -6,13 +6,13 @@ import {
   setupPaymentMethod,
   setupPrice,
   setupSubscription,
+  setupUsageEvent,
   setupUsageMeter,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
-import { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
 import type { Subscription } from '@/db/schema/subscriptions'
@@ -341,5 +341,112 @@ describe('usage_events RLS policies', () => {
 
     // Should return empty results due to livemode policy
     expect(result).toHaveLength(0)
+  })
+})
+
+describe('usageEvents schema - nullable priceId', () => {
+  let orgData: Awaited<ReturnType<typeof setupOrg>>
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
+  let usageMeter: UsageMeter.Record
+  let usageMeter2: UsageMeter.Record
+  let price: Price.Record
+  let subscription: Subscription.Record
+
+  beforeEach(async () => {
+    orgData = await setupOrg()
+    customer = await setupCustomer({
+      organizationId: orgData.organization.id,
+    })
+    paymentMethod = await setupPaymentMethod({
+      organizationId: orgData.organization.id,
+      customerId: customer.id,
+      type: PaymentMethodType.Card,
+    })
+
+    usageMeter = await setupUsageMeter({
+      organizationId: orgData.organization.id,
+      name: 'Test Usage Meter',
+      pricingModelId: orgData.pricingModel.id,
+    })
+
+    usageMeter2 = await setupUsageMeter({
+      organizationId: orgData.organization.id,
+      name: 'Test Usage Meter 2',
+      pricingModelId: orgData.pricingModel.id,
+    })
+
+    price = await setupPrice({
+      productId: orgData.product.id,
+      name: 'Test Usage Price',
+      type: PriceType.Usage,
+      unitPrice: 10,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+      usageMeterId: usageMeter.id,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: orgData.organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Active,
+    })
+  })
+
+  it('should allow creating usage event with null priceId', async () => {
+    // setup: create usage meter, subscription
+    // expectation: can create usage event with priceId: null
+    const usageEvent = await setupUsageEvent({
+      organizationId: orgData.organization.id,
+      customerId: customer.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter.id,
+      amount: 100,
+      priceId: null,
+      transactionId: `txn_null_price_${core.nanoid()}`,
+    })
+
+    expect(usageEvent).toBeDefined()
+    expect(usageEvent.id).toBeDefined()
+    expect(usageEvent.priceId).toBeNull()
+    expect(usageEvent.usageMeterId).toBe(usageMeter.id)
+    expect(usageEvent.amount).toBe(100)
+  })
+
+  it('should allow null priceId regardless of usage meter', async () => {
+    // setup: create usage meter, subscription
+    // expectation: can create event with priceId: null for any usage meter
+    const usageEvent1 = await setupUsageEvent({
+      organizationId: orgData.organization.id,
+      customerId: customer.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter.id,
+      amount: 100,
+      priceId: null,
+      transactionId: `txn_null_meter1_${core.nanoid()}`,
+    })
+
+    expect(usageEvent1).toBeDefined()
+    expect(usageEvent1.priceId).toBeNull()
+    expect(usageEvent1.usageMeterId).toBe(usageMeter.id)
+
+    // Also test with a different meter
+    const usageEvent2 = await setupUsageEvent({
+      organizationId: orgData.organization.id,
+      customerId: customer.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter2.id,
+      amount: 200,
+      priceId: null,
+      transactionId: `txn_null_meter2_${core.nanoid()}`,
+    })
+
+    expect(usageEvent2).toBeDefined()
+    expect(usageEvent2.priceId).toBeNull()
+    expect(usageEvent2.usageMeterId).toBe(usageMeter2.id)
   })
 })

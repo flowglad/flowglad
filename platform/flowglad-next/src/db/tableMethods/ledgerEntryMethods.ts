@@ -36,7 +36,6 @@ import {
 } from '../schema/usageMeters'
 import { createDateNotPassedFilter } from '../tableUtils'
 import type { DbTransaction } from '../types'
-import { selectUsageCredits } from './usageCreditMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof ledgerEntries,
@@ -492,6 +491,12 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
           `Price information not found for usage event ${usageEventId}`
         )
       }
+      // FIXME: Handle nullable priceId - usage events can now have null priceId
+      if (!priceInfo.priceId) {
+        throw new Error(
+          `Usage event ${usageEventId} has null priceId. Handling of events without prices is not yet implemented.`
+        )
+      }
       const key = `${priceInfo.usageMeterId}-${priceInfo.priceId}`
 
       if (!entriesByUsageMeterIdAndPriceId.has(key)) {
@@ -518,6 +523,11 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     }
   >()
   validatedUsageEventsWithPrices.forEach((event) => {
+    // FIXME: Handle nullable priceId - usage events can now have null priceId
+    if (!event.priceId) {
+      // Skip events without prices for now
+      return
+    }
     const key = `${event.usageMeterId}-${event.priceId}`
     const item = {
       usageMeterId: event.usageMeterId,
