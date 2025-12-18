@@ -140,7 +140,7 @@ app.post('/api/flowglad/*', flowgladHandler)
 
 ### Passport.js Example
 
-```ts src/utils/flowglad.ts
+```ts src/lib/flowglad.ts
 import { FlowgladServer } from '@flowglad/server'
 import type { Request } from 'express'
 
@@ -171,7 +171,7 @@ export const flowgladServerConstructor = (req: Request) => {
 
 ### JWT Auth Example
 
-```ts src/utils/flowglad.ts
+```ts src/lib/flowglad.ts
 import { FlowgladServer } from '@flowglad/server'
 import type { Request } from 'express'
 import jwt from 'jsonwebtoken'
@@ -211,7 +211,7 @@ export const flowgladServerConstructor = (req: Request) => {
 
 ### Session-Based Auth Example
 
-```ts src/utils/flowglad.ts
+```ts src/lib/flowglad.ts
 import { FlowgladServer } from '@flowglad/server'
 import type { Request } from 'express'
 
