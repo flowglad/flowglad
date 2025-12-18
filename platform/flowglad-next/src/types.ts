@@ -682,6 +682,7 @@ export interface OnboardingChecklistItem {
   title: string
   description: string
   completed: boolean
+  inReview?: boolean
   action?: string
   type?: OnboardingItemType
 }

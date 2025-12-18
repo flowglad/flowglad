@@ -1,5 +1,5 @@
 'use client'
-import { Check, Copy } from 'lucide-react'
+import { Check, Clock, Copy } from 'lucide-react'
 import { useState } from 'react'
 import Markdown from 'react-markdown'
 import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
@@ -37,6 +37,7 @@ const OnboardingItemDescriptionLabel = ({
 
 const OnboardingStatusRow = ({
   completed,
+  inReview,
   title,
   description,
   action,
@@ -70,6 +71,15 @@ const OnboardingStatusRow = ({
                 <div className="rounded-full bg-green-600 text-white p-2">
                   <Check size={20} strokeWidth={2} />
                 </div>
+              </div>
+            ) : inReview ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="rounded-full bg-yellow-500 text-white p-2">
+                  <Clock size={20} strokeWidth={2} />
+                </div>
+                <p className="text-sm text-muted-foreground text-center">
+                  We're currently reviewing your account.
+                </p>
               </div>
             ) : (
               actionNode || (
@@ -271,6 +281,7 @@ const OnboardingStatusTable = ({
         <OnboardingStatusRow
           key={item.title}
           completed={item.completed}
+          inReview={item.inReview}
           title={`${index + 3}. ${item.title}`}
           description={item.description}
           action={item.action}

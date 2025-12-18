@@ -14,7 +14,7 @@ export const OrganizationOnboardingCompletedNotificationEmail = ({
 
   return (
     <EmailLayout
-      previewText={`Enable payouts for ${organizationName}`}
+      previewText={`Live payments pending review for ${organizationName}`}
       variant="organization"
     >
       <Img
@@ -29,8 +29,8 @@ export const OrganizationOnboardingCompletedNotificationEmail = ({
         variant="organization"
       />
       <Paragraph variant="organization">
-        We&apos;re reviewing your account and hope to have livemode
-        payments enabled soon. We will reach out if we need anything
+        We&apos;re reviewing your account and hope to enable live
+        payments for you soon. We will reach out if we need anything
         from you.
       </Paragraph>
 
