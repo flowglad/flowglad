@@ -1,11 +1,21 @@
 import { FlowgladServer } from '@flowglad/server'
 import type { BetterAuthPlugin } from 'better-auth'
+import { getSessionFromCtx } from 'better-auth/api'
 import {
   createAuthEndpoint,
   createAuthMiddleware,
 } from 'better-auth/plugins'
 
-export interface FlowgladBetterAuthPluginOptions {
+type InnerSession = {
+  user: {
+    id: string
+    name?: string | null
+    email?: string | null
+    organizationId?: string | null
+  }
+}
+
+export type FlowgladBetterAuthPluginOptions = {
   /**
    * Optional API key. If not provided, reads from FLOWGLAD_SECRET_KEY environment variable.
    */
@@ -30,14 +40,7 @@ export interface FlowgladBetterAuthPluginOptions {
    * - Which ID to use (user.id, org.id, custom mapping)
    * - How to get name/email (from user, org, or custom logic)
    */
-  getCustomer?: (session: {
-    user: {
-      id: string
-      name?: string | null
-      email?: string | null
-      organizationId?: string | null
-    }
-  }) => Promise<{
+  getCustomer?: (session: InnerSession) => Promise<{
     externalId: string
     name: string
     email: string
@@ -65,16 +68,8 @@ export interface FlowgladBetterAuthPluginOptions {
  * Helper function to get default customer info from Better Auth session
  */
 const getDefaultCustomer = async (
-  session: {
-    user: {
-      id: string
-      name?: string | null
-      email?: string | null
-      organizationId?: string | null
-    }
-  },
-  customerType: 'user' | 'organization',
-  context?: unknown
+  session: InnerSession,
+  customerType: 'user' | 'organization'
 ): Promise<{
   externalId: string
   name: string
@@ -112,34 +107,36 @@ const getDefaultCustomer = async (
  */
 const createFlowgladCustomer = async (
   options: FlowgladBetterAuthPluginOptions,
-  session: {
-    user: {
-      id: string
-      name?: string | null
-      email?: string | null
-      organizationId?: string | null
-    }
-  },
-  context?: unknown
+  session: InnerSession
 ): Promise<void> => {
   const customerType = options.customerType || 'user'
 
   // Get customer info - use custom function if provided, otherwise use defaults
   const customerInfo = options.getCustomer
     ? await options.getCustomer(session)
-    : await getDefaultCustomer(session, customerType, context)
+    : await getDefaultCustomer(session, customerType)
 
   // Create Flowglad customer
-  const flowgladServer = new FlowgladServer({
+  const apiKey = options.apiKey || process.env.FLOWGLAD_SECRET_KEY
+  const flowgladServerConfig: {
+    customerExternalId: string
+    getCustomerDetails: () => Promise<{ name: string; email: string }>
+    apiKey?: string
+    baseURL?: string
+  } = {
     customerExternalId: customerInfo.externalId,
     getCustomerDetails: async () => ({
       name: customerInfo.name,
       email: customerInfo.email,
     }),
-    // Read from env var if not provided
-    apiKey: options.apiKey || process.env.FLOWGLAD_SECRET_KEY,
-    baseURL: options.baseURL,
-  })
+  }
+  if (apiKey) {
+    flowgladServerConfig.apiKey = apiKey
+  }
+  if (options.baseURL) {
+    flowgladServerConfig.baseURL = options.baseURL
+  }
+  const flowgladServer = new FlowgladServer(flowgladServerConfig)
 
   // This will find or create the customer
   await flowgladServer.findOrCreateCustomer()
@@ -147,20 +144,33 @@ const createFlowgladCustomer = async (
 
 export const flowgladPlugin = (
   options: FlowgladBetterAuthPluginOptions
-): BetterAuthPlugin => {
+) => {
   return {
     id: 'flowglad',
     endpoints: {
-      helloWorld: createAuthEndpoint(
-        '/flowglad/hello-world',
+      getExternalId: createAuthEndpoint(
+        '/flowglad/get-external-id',
         {
           method: 'GET',
+          metadata: {
+            isAction: true,
+          },
         },
         async (ctx) => {
+          const session = await getSessionFromCtx(ctx)
+          if (!session) {
+            return ctx.json({
+              externalId: null,
+            })
+          }
+          const organizationId: string | undefined =
+            session.session.activeOrganizationId
+          const externalId =
+            options.customerType === 'organization' && organizationId
+              ? organizationId
+              : session.session.userId
           return ctx.json({
-            message: 'Hello from Flowglad Better Auth Plugin!',
-            timestamp: new Date().toISOString(),
-            pluginId: 'flowglad',
+            externalId,
           })
         }
       ),
@@ -194,7 +204,7 @@ export const flowgladPlugin = (
             }
 
             // Create a session-like object from the returned user data
-            const session = {
+            const session: InnerSession = {
               user: {
                 id: returned.user.id,
                 name: returned.user.name || null,
@@ -210,11 +220,7 @@ export const flowgladPlugin = (
             }
 
             try {
-              await createFlowgladCustomer(
-                options,
-                session,
-                ctx.context
-              )
+              await createFlowgladCustomer(options, session)
             } catch (error) {
               // Log error but don't fail the sign-up process
               console.error(
@@ -255,7 +261,7 @@ export const flowgladPlugin = (
             }
 
             // Create a session-like object with organization ID
-            const orgSession = {
+            const orgSession: InnerSession = {
               user: {
                 id: session.user.id,
                 name: session.user.name || null,
@@ -271,11 +277,7 @@ export const flowgladPlugin = (
             }
 
             try {
-              await createFlowgladCustomer(
-                options,
-                orgSession,
-                ctx.context
-              )
+              await createFlowgladCustomer(options, orgSession)
             } catch (error) {
               // Log error but don't fail the organization creation process
               console.error(
@@ -288,4 +290,16 @@ export const flowgladPlugin = (
       ],
     },
   } satisfies BetterAuthPlugin
+}
+
+/**
+ *
+ * @param session - Better Auth session
+ * @returns Customer external ID
+ */
+export const getCustomerExternalId = (session: InnerSession) => {
+  if (session.user.organizationId) {
+    return session.user.organizationId
+  }
+  return session.user.id
 }

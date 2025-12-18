@@ -34,15 +34,11 @@
         "zod": "4.1.5",
       },
       "devDependencies": {
-        "better-auth": "1.3.32",
         "typescript": "5.8.2",
       },
       "peerDependencies": {
-        "better-auth": "^1.0.0",
+        "better-auth": "^1.3.17",
       },
-      "optionalPeers": [
-        "better-auth",
-      ],
     },
     "packages/express": {
       "name": "@flowglad/express",

@@ -7,7 +7,7 @@ export const flowglad = (customerExternalId: string) => {
     // rm for production
     baseURL: 'http://localhost:3000',
     customerExternalId,
-    getCustomerDetails: async (customerExternalId) => {
+    getCustomerDetails: async () => {
       const session = await auth.api.getSession({
         headers: await headers(),
       })
