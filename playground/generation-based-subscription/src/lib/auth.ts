@@ -32,6 +32,7 @@ const auth = betterAuth({
     usePlural: true,
     schema: betterAuthSchema,
   }),
+  // @ts-expect-error - better-auth plugin type incompatibility with exactOptionalPropertyTypes
   plugins: [nextCookies(), flowgladPlugin(flowgladConfig)],
 })
 

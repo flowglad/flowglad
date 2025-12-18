@@ -103,52 +103,250 @@ export class FlowgladServer {
   public findOrCreateCustomer = async (): Promise<
     FlowgladNode.Customers.CustomerRetrieveResponse['customer']
   > => {
+    console.log('[findOrCreateCustomer] Starting function execution')
+    console.log('[findOrCreateCustomer] scopedParams:', {
+      hasScopedParams: !!this.scopedParams,
+      customerExternalId: this.scopedParams?.customerExternalId,
+    })
+
     let customer:
       | FlowgladNode.Customers.CustomerRetrieveResponse['customer']
       | null = null
+
     try {
+      console.log(
+        '[findOrCreateCustomer] Attempting to retrieve existing customer via getCustomer()'
+      )
       const getResult = await this.getCustomer()
+      console.log('[findOrCreateCustomer] getCustomer() succeeded:', {
+        customerId: getResult.customer?.id,
+        customerExternalId: getResult.customer?.externalId,
+        customerEmail: getResult.customer?.email,
+        customerName: getResult.customer?.name,
+        getResult,
+      })
       customer = getResult.customer
+      console.log(
+        '[findOrCreateCustomer] Customer retrieved successfully, skipping creation'
+      )
     } catch (error) {
+      console.log(
+        '[findOrCreateCustomer] getCustomer() failed, error details:',
+        {
+          error: error,
+          errorMessage:
+            error instanceof Error ? error.message : String(error),
+          errorStack:
+            error instanceof Error ? error.stack : undefined,
+          errorType: error?.constructor?.name,
+          errorCode: (error as any)?.error?.code,
+          fullErrorObject: JSON.stringify(
+            error,
+            Object.getOwnPropertyNames(error)
+          ),
+        }
+      )
+
       const errorCode = (error as any)?.error?.code
+      console.log(
+        '[findOrCreateCustomer] Extracted errorCode:',
+        errorCode
+      )
+
       if (errorCode === 'NOT_FOUND') {
+        console.log(
+          '[findOrCreateCustomer] Error is NOT_FOUND, proceeding to create customer'
+        )
+        console.log('[findOrCreateCustomer] Checking scopedParams:', {
+          hasScopedParams: !!this.scopedParams,
+        })
+
         if (this.scopedParams) {
-          const customerDetails =
-            await this.scopedParams.getCustomerDetails(
-              this.scopedParams.customerExternalId
-            )
-          const createResult = await this.createCustomer({
-            customer: {
-              email: customerDetails.email,
-              name: customerDetails.name,
-              externalId: this.scopedParams.customerExternalId,
-            },
-          })
-          customer = createResult.data.customer
-        } else {
-          const session = await getSessionFromParams(
-            this.createHandlerParams,
-            undefined
+          console.log(
+            '[findOrCreateCustomer] Using scopedParams path'
           )
-          if (!session) {
-            throw new Error('User not authenticated')
+          console.log(
+            '[findOrCreateCustomer] Calling getCustomerDetails with:',
+            {
+              customerExternalId:
+                this.scopedParams.customerExternalId,
+            }
+          )
+
+          try {
+            const customerDetails =
+              await this.scopedParams.getCustomerDetails(
+                this.scopedParams.customerExternalId
+              )
+            console.log(
+              '[findOrCreateCustomer] getCustomerDetails succeeded:',
+              {
+                email: customerDetails.email,
+                name: customerDetails.name,
+              }
+            )
+
+            const createParams = {
+              customer: {
+                email: customerDetails.email,
+                name: customerDetails.name,
+                externalId: this.scopedParams.customerExternalId,
+              },
+            }
+            console.log(
+              '[findOrCreateCustomer] Creating customer with params:',
+              createParams
+            )
+
+            const createResult =
+              await this.createCustomer(createParams)
+            console.log(
+              '[findOrCreateCustomer] createCustomer succeeded:',
+              {
+                customerId: createResult.data.customer?.id,
+                customerExternalId:
+                  createResult.data.customer?.externalId,
+                customerEmail: createResult.data.customer?.email,
+                customerName: createResult.data.customer?.name,
+                createResult,
+              }
+            )
+            customer = createResult.data.customer
+          } catch (createError) {
+            console.log(
+              '[findOrCreateCustomer] Error during scopedParams customer creation:',
+              {
+                error: createError,
+                errorMessage:
+                  createError instanceof Error
+                    ? createError.message
+                    : String(createError),
+                errorStack:
+                  createError instanceof Error
+                    ? createError.stack
+                    : undefined,
+                errorType: createError?.constructor?.name,
+                fullErrorObject: JSON.stringify(
+                  createError,
+                  Object.getOwnPropertyNames(createError)
+                ),
+              }
+            )
+            throw createError
           }
-          const createResult = await this.createCustomer({
-            customer: {
-              email: session.email,
-              name: session.name,
-              externalId: session.externalId,
-            },
-          })
-          customer = createResult.data.customer
+        } else {
+          console.log(
+            '[findOrCreateCustomer] Using session-based path (no scopedParams)'
+          )
+          console.log(
+            '[findOrCreateCustomer] Retrieving session from params'
+          )
+
+          try {
+            const session = await getSessionFromParams(
+              this.createHandlerParams,
+              undefined
+            )
+            console.log(
+              '[findOrCreateCustomer] getSessionFromParams result:',
+              {
+                hasSession: !!session,
+                sessionExternalId: session?.externalId,
+                sessionEmail: session?.email,
+                sessionName: session?.name,
+              }
+            )
+
+            if (!session) {
+              console.log(
+                '[findOrCreateCustomer] Session is null, throwing authentication error'
+              )
+              throw new Error('User not authenticated')
+            }
+
+            const createParams = {
+              customer: {
+                email: session.email,
+                name: session.name,
+                externalId: session.externalId,
+              },
+            }
+            console.log(
+              '[findOrCreateCustomer] Creating customer with params:',
+              createParams
+            )
+
+            const createResult =
+              await this.createCustomer(createParams)
+            console.log(
+              '[findOrCreateCustomer] createCustomer succeeded:',
+              {
+                customerId: createResult.data.customer?.id,
+                customerExternalId:
+                  createResult.data.customer?.externalId,
+                customerEmail: createResult.data.customer?.email,
+                customerName: createResult.data.customer?.name,
+              }
+            )
+            customer = createResult.data.customer
+          } catch (createError) {
+            console.log(
+              '[findOrCreateCustomer] Error during session-based customer creation:',
+              {
+                error: createError,
+                errorMessage:
+                  createError instanceof Error
+                    ? createError.message
+                    : String(createError),
+                errorStack:
+                  createError instanceof Error
+                    ? createError.stack
+                    : undefined,
+                errorType: createError?.constructor?.name,
+                fullErrorObject: JSON.stringify(
+                  createError,
+                  Object.getOwnPropertyNames(createError)
+                ),
+              }
+            )
+            throw createError
+          }
         }
       } else {
+        console.log(
+          '[findOrCreateCustomer] Error code is not NOT_FOUND, re-throwing error'
+        )
+        console.log(
+          '[findOrCreateCustomer] Non-NOT_FOUND error details:',
+          {
+            errorCode,
+            error: error,
+            errorMessage:
+              error instanceof Error ? error.message : String(error),
+          }
+        )
         throw error
       }
     }
+
+    console.log('[findOrCreateCustomer] Final customer state:', {
+      hasCustomer: !!customer,
+      customerId: customer?.id,
+      customerExternalId: customer?.externalId,
+      customerEmail: customer?.email,
+      customerName: customer?.name,
+    })
+
     if (!customer) {
+      console.log(
+        '[findOrCreateCustomer] ERROR: Customer is null after all operations'
+      )
       throw new Error('Customer not found')
     }
+
+    console.log(
+      '[findOrCreateCustomer] Function completed successfully, returning customer'
+    )
     return customer
   }
 
