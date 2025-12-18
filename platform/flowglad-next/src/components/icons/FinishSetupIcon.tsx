@@ -1,30 +1,33 @@
 import type { LucideIcon, LucideProps } from 'lucide-react'
 import React from 'react'
+import { cn } from '@/lib/utils'
+import { NAV_ICON_SIZE } from './navigation/createNavIcon'
 
 /**
  * A half-filled circle icon representing "Finish Setup" / progress state.
- * Matches the 20x20px sizing convention used in nav icons.
+ * Uses 24x24 viewBox for consistency with Lucide icons.
+ * Note: This is a filled icon, not stroked, so strokeWidth is not used.
  */
 export const FinishSetupIcon: LucideIcon = React.forwardRef<
   SVGSVGElement,
   LucideProps
->(({ className, ...props }, ref) => (
+>(({ className, size = NAV_ICON_SIZE, ...props }, ref) => (
   <svg
     ref={ref}
-    width="20"
-    height="20"
-    viewBox="0 0 20 20"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    className={className}
+    className={cn('shrink-0', className)}
     {...props}
   >
     <path
-      d="M16.6665 9.99996C16.6665 6.31806 13.6817 3.33329 9.99984 3.33329C6.31794 3.33329 3.33317 6.31806 3.33317 9.99996C3.33317 13.6819 6.31794 16.6666 9.99984 16.6666C13.6817 16.6666 16.6665 13.6819 16.6665 9.99996ZM18.3332 9.99996C18.3332 14.6023 14.6022 18.3333 9.99984 18.3333C5.39746 18.3333 1.6665 14.6023 1.6665 9.99996C1.6665 5.39759 5.39746 1.66663 9.99984 1.66663C14.6022 1.66663 18.3332 5.39759 18.3332 9.99996Z"
+      d="M20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12ZM22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
       fill="currentColor"
     />
     <path
-      d="M14.9998 9.99996C14.9998 12.7614 12.7613 15 9.99984 15L9.99979 4.99996C12.7612 4.99996 14.9998 7.23854 14.9998 9.99996Z"
+      d="M18 12C18 15.3137 15.3137 18 12 18L12 6C15.3137 6 18 8.68629 18 12Z"
       fill="currentColor"
     />
   </svg>
