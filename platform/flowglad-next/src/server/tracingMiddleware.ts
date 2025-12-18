@@ -64,7 +64,7 @@ export function createTracingMiddleware() {
               })
             }
             const service = apiKey ? 'api' : 'webapp'
-            // Log request start
+            // Log request start - pass span explicitly for trace context
             logger.info(
               `[${requestId}] 🟡 TRPC Request: ${type} ${path}`,
               {
@@ -81,6 +81,7 @@ export function createTracingMiddleware() {
                   : user
                     ? 'user'
                     : 'none',
+                span, // Pass span explicitly for trace correlation
               }
             )
 
@@ -102,6 +103,7 @@ export function createTracingMiddleware() {
                   type,
                   path,
                   duration_ms: duration,
+                  span, // Pass span explicitly for trace correlation
                 }
               )
 
@@ -171,6 +173,7 @@ export function createTracingMiddleware() {
                   error_code: errorCode,
                   duration_ms: duration,
                   organization_id: organizationId,
+                  span, // Pass span explicitly for trace correlation
                 }
               )
 

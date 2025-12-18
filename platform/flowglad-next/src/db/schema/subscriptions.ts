@@ -80,7 +80,18 @@ const columns = {
   ),
   cancellationReason: text('cancellation_reason'),
   replacedBySubscriptionId: text('replaced_by_subscription_id'),
+  /**
+   * Indicates whether the subscription's underlying price is a free plan (based on `price.unitPrice === 0`, not `subscriptionItem.unitPrice === 0`).
+   * Subscriptions created with `doNotCharge: true` will have `isFreePlan: false` intentionally.
+   * This flag indicates the price's nature, not whether it's currently being charged.
+   */
   isFreePlan: boolean('is_free_plan').default(false),
+  /**
+   * When true, indicates that this subscription should never be charged, even if it has a payment method.
+   * This is immutable after creation. Subscriptions with doNotCharge=true can be Active
+   * without payment methods and will skip all billing runs.
+   */
+  doNotCharge: boolean('do_not_charge').default(false),
   priceId: nullableStringForeignKey('price_id', prices),
   runBillingAtPeriodStart: boolean(
     'run_billing_at_period_start'
@@ -201,6 +212,7 @@ export const {
     },
     createOnlyColumns: {
       customerId: true,
+      doNotCharge: true,
     },
   },
   entityName: 'StandardSubscription',
@@ -229,6 +241,7 @@ export const {
     },
     createOnlyColumns: {
       customerId: true,
+      doNotCharge: true,
     },
   },
   entityName: 'NonRenewingSubscription',

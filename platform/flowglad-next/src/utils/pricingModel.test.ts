@@ -25,7 +25,9 @@ import {
 import type { Product } from '@/db/schema/products'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
+  insertPrice,
   selectPriceById,
   selectPrices,
   selectPricesAndProductsByProductWhere,
@@ -35,6 +37,7 @@ import {
   selectPricingModels,
 } from '@/db/tableMethods/pricingModelMethods'
 import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
+import { selectProductById } from '@/db/tableMethods/productMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import type { AuthenticatedTransactionParams } from '@/db/types'
 import {
@@ -3136,5 +3139,655 @@ describe('editProductTransaction - Price Updates', () => {
     const finalPriceCount = finalPrices.length
 
     expect(finalPriceCount).toBe(initialPriceCount)
+  })
+})
+
+describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
+  let organizationId: string
+  let pricingModelId: string
+  let defaultProductId: string
+  let defaultPriceId: string
+  let regularProductId: string
+  let regularPriceId: string
+  let apiKeyToken: string
+  const livemode = true
+
+  beforeEach(async () => {
+    // Set up organization and pricing model with default product
+    const result = await setupOrg()
+
+    organizationId = result.organization.id
+    pricingModelId = result.pricingModel.id
+    defaultProductId = result.product.id
+    defaultPriceId = result.price.id
+
+    // Create a regular (non-default) product and price for testing
+    const regularSetup = await adminTransaction(
+      async ({ transaction }) => {
+        const product = await setupProduct({
+          organizationId,
+          livemode,
+          pricingModelId,
+          name: 'Regular Product',
+          slug: 'old-product-slug',
+        })
+        const price = await setupPrice({
+          productId: product.id,
+          name: 'Regular Price',
+          livemode,
+          isDefault: true,
+          type: PriceType.Subscription,
+          unitPrice: 5000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          slug: 'old-price-slug',
+        })
+        return { product, price }
+      }
+    )
+
+    regularProductId = regularSetup.product.id
+    regularPriceId = regularSetup.price.id
+
+    // Set up API key for authenticated transaction
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    if (!apiKey.token) {
+      throw new Error('API key token not found')
+    }
+    apiKeyToken = apiKey.token
+  })
+
+  describe('when product slug is mutating', () => {
+    it('should update active default price slug when no price input is provided', async () => {
+      // Update product with new slug, no price input
+      await authenticatedTransaction(
+        async ({ userId, transaction, livemode, organizationId }) => {
+          return await editProductTransaction(
+            {
+              product: {
+                id: regularProductId,
+                name: 'Updated Regular Product',
+                slug: 'new-product-slug',
+                active: true,
+                default: false,
+              },
+            },
+            { userId, transaction, livemode, organizationId }
+          )
+        },
+        { apiKey: apiKeyToken }
+      )
+
+      // Verify product slug is updated
+      const updatedProduct = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectProductById(
+            regularProductId,
+            transaction
+          )
+        }
+      )
+      expect(updatedProduct?.slug).toBe('new-product-slug')
+
+      // Verify active default price slug is updated
+      const updatedPrice = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPriceById(regularPriceId, transaction)
+        }
+      )
+      expect(updatedPrice?.slug).toBe('new-product-slug')
+
+      // Verify no new price record is created
+      const finalPrices = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPrices(
+            { productId: regularProductId },
+            transaction
+          )
+        }
+      )
+      expect(finalPrices.length).toBe(1)
+    })
+
+    it('should set new price slug to product slug when price input is provided', async () => {
+      const currentPrice = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPriceById(regularPriceId, transaction)
+        }
+      )
+      if (!currentPrice) {
+        throw new Error('Price not found')
+      }
+
+      // Update product with new slug AND provide price input with different slug
+      const modifiedPrice: Price.ClientInsert = {
+        productId: regularProductId,
+        type: PriceType.Subscription,
+        unitPrice: currentPrice.unitPrice + 2000, // Change immutable field to trigger insertion
+        intervalUnit: currentPrice.intervalUnit ?? IntervalUnit.Month,
+        intervalCount: currentPrice.intervalCount ?? 1,
+        isDefault: currentPrice.isDefault,
+        name: currentPrice.name ?? undefined,
+        trialPeriodDays: currentPrice.trialPeriodDays ?? undefined,
+        usageEventsPerUnit: null,
+        usageMeterId: null,
+        active: currentPrice.active,
+        slug: 'different-slug', // This should be overridden
+      }
+
+      await authenticatedTransaction(
+        async ({ userId, transaction, livemode, organizationId }) => {
+          return await editProductTransaction(
+            {
+              product: {
+                id: regularProductId,
+                name: 'Updated Regular Product',
+                slug: 'new-product-slug',
+                active: true,
+                default: false,
+              },
+              price: modifiedPrice,
+            },
+            { userId, transaction, livemode, organizationId }
+          )
+        },
+        { apiKey: apiKeyToken }
+      )
+
+      // Verify product slug is updated
+      const updatedProduct = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectProductById(
+            regularProductId,
+            transaction
+          )
+        }
+      )
+      expect(updatedProduct?.slug).toBe('new-product-slug')
+
+      // Verify new price is inserted with product slug (not the slug from price input)
+      const finalPrices = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPrices(
+            { productId: regularProductId },
+            transaction
+          )
+        }
+      )
+      const newPrice = finalPrices.find(
+        (p) => p.unitPrice === modifiedPrice.unitPrice
+      )
+      expect(newPrice?.slug).toBe('new-product-slug')
+    })
+
+    it('should not update price slug when product slug is not changing', async () => {
+      // Update product name but keep same slug, no price input
+      await authenticatedTransaction(
+        async ({ userId, transaction, livemode, organizationId }) => {
+          return await editProductTransaction(
+            {
+              product: {
+                id: regularProductId,
+                name: 'Updated Product Name',
+                slug: 'old-product-slug', // Same slug
+                active: true,
+                default: false,
+              },
+            },
+            { userId, transaction, livemode, organizationId }
+          )
+        },
+        { apiKey: apiKeyToken }
+      )
+
+      // Verify product name is updated but slug remains same
+      const updatedProduct = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectProductById(
+            regularProductId,
+            transaction
+          )
+        }
+      )
+      expect(updatedProduct?.name).toBe('Updated Product Name')
+      expect(updatedProduct?.slug).toBe('old-product-slug')
+
+      // Verify price slug remains unchanged
+      const updatedPrice = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPriceById(regularPriceId, transaction)
+        }
+      )
+      expect(updatedPrice?.slug).toBe('old-price-slug')
+
+      // Verify no new price record is created
+      const finalPrices = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPrices(
+            { productId: regularProductId },
+            transaction
+          )
+        }
+      )
+      expect(finalPrices.length).toBe(1)
+    })
+
+    it('should handle slug update when product has multiple prices', async () => {
+      // Create an inactive price (must use insertPrice directly since safelyInsertPrice always creates active prices)
+      const inactivePrice = await adminTransaction(
+        async ({ transaction }) => {
+          const organization = await selectOrganizationById(
+            organizationId,
+            transaction
+          )
+          return await insertPrice(
+            {
+              productId: regularProductId,
+              name: 'Inactive Price',
+              livemode,
+              isDefault: false,
+              active: false,
+              type: PriceType.Subscription,
+              unitPrice: 3000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              slug: 'inactive-price-slug',
+              currency: organization.defaultCurrency,
+              externalId: null,
+              usageEventsPerUnit: null,
+              usageMeterId: null,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Update product slug
+      await authenticatedTransaction(
+        async ({ userId, transaction, livemode, organizationId }) => {
+          return await editProductTransaction(
+            {
+              product: {
+                id: regularProductId,
+                name: 'Updated Regular Product',
+                slug: 'new-slug',
+                active: true,
+                default: false,
+              },
+            },
+            { userId, transaction, livemode, organizationId }
+          )
+        },
+        { apiKey: apiKeyToken }
+      )
+
+      // Verify product slug is updated
+      const updatedProduct = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectProductById(
+            regularProductId,
+            transaction
+          )
+        }
+      )
+      expect(updatedProduct?.slug).toBe('new-slug')
+
+      // Verify active default price slug is updated
+      const updatedActivePrice = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPriceById(regularPriceId, transaction)
+        }
+      )
+      expect(updatedActivePrice?.slug).toBe('new-slug')
+
+      // Verify inactive price slug remains unchanged
+      const updatedInactivePrice = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPriceById(inactivePrice.id, transaction)
+        }
+      )
+      expect(updatedInactivePrice?.slug).toBe('inactive-price-slug')
+    })
+
+    it('should respect price slug uniqueness constraint', async () => {
+      // Create another product in the same pricing model with a price that has a slug
+      const otherProduct = await adminTransaction(
+        async ({ transaction }) => {
+          const product = await setupProduct({
+            organizationId,
+            livemode,
+            pricingModelId,
+            name: 'Other Product',
+            slug: 'other-product',
+          })
+          const price = await setupPrice({
+            productId: product.id,
+            name: 'Other Price',
+            livemode,
+            isDefault: true,
+            type: PriceType.Subscription,
+            unitPrice: 6000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            slug: 'target-slug',
+          })
+          return { product, price }
+        }
+      )
+
+      // Try to update product slug to conflict with existing price slug
+      await expect(
+        authenticatedTransaction(
+          async ({
+            userId,
+            transaction,
+            livemode,
+            organizationId,
+          }) => {
+            return await editProductTransaction(
+              {
+                product: {
+                  id: regularProductId,
+                  name: 'Updated Regular Product',
+                  slug: 'target-slug', // This conflicts with other product's price slug
+                  active: true,
+                  default: false,
+                },
+              },
+              { userId, transaction, livemode, organizationId }
+            )
+          },
+          { apiKey: apiKeyToken }
+        )
+      ).rejects.toThrow()
+
+      // Verify product slug was not updated
+      const updatedProduct = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectProductById(
+            regularProductId,
+            transaction
+          )
+        }
+      )
+      expect(updatedProduct?.slug).toBe('old-product-slug')
+
+      // Verify price slug was not updated
+      const updatedPrice = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPriceById(regularPriceId, transaction)
+        }
+      )
+      expect(updatedPrice?.slug).toBe('old-price-slug')
+    })
+
+    it('should not sync slug for default products', async () => {
+      // Use the default product from setupOrg (already exists in beforeEach)
+      // Try to update default product slug (should be blocked by existing validation)
+      await expect(
+        authenticatedTransaction(
+          async ({
+            userId,
+            transaction,
+            livemode,
+            organizationId,
+          }) => {
+            return await editProductTransaction(
+              {
+                product: {
+                  id: defaultProductId,
+                  name: 'Updated Default Product',
+                  slug: 'new-default-slug',
+                  active: true,
+                  default: true,
+                },
+              },
+              { userId, transaction, livemode, organizationId }
+            )
+          },
+          { apiKey: apiKeyToken }
+        )
+      ).rejects.toThrow()
+
+      // Verify product slug was not updated
+      const updatedProduct = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectProductById(
+            defaultProductId,
+            transaction
+          )
+        }
+      )
+      // The default product from setupOrg doesn't have a slug initially, so we just verify it wasn't set
+      expect(updatedProduct?.slug).not.toBe('new-default-slug')
+
+      // Verify price slug was not updated
+      const updatedPrice = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPriceById(defaultPriceId, transaction)
+        }
+      )
+      // Verify the price slug remains unchanged (or null if it was null)
+      expect(updatedPrice?.slug).not.toBe('new-default-slug')
+    })
+
+    it('should sync slug when product slug changes from null to a value', async () => {
+      // Create product with null slug
+      const productWithNullSlug = await adminTransaction(
+        async ({ transaction }) => {
+          return await setupProduct({
+            organizationId,
+            livemode,
+            pricingModelId,
+            name: 'Product Without Slug',
+            slug: undefined,
+          })
+        }
+      )
+
+      const priceWithSlug = await adminTransaction(
+        async ({ transaction }) => {
+          return await setupPrice({
+            productId: productWithNullSlug.id,
+            name: 'Price',
+            livemode,
+            isDefault: true,
+            type: PriceType.Subscription,
+            unitPrice: 4000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            slug: 'existing-price-slug',
+          })
+        }
+      )
+
+      // Update product slug from null to a value
+      await authenticatedTransaction(
+        async ({ userId, transaction, livemode, organizationId }) => {
+          return await editProductTransaction(
+            {
+              product: {
+                id: productWithNullSlug.id,
+                name: 'Product Without Slug',
+                slug: 'new-product-slug',
+                active: true,
+                default: false,
+              },
+            },
+            { userId, transaction, livemode, organizationId }
+          )
+        },
+        { apiKey: apiKeyToken }
+      )
+
+      // Verify product slug is updated
+      const updatedProduct = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectProductById(
+            productWithNullSlug.id,
+            transaction
+          )
+        }
+      )
+      expect(updatedProduct?.slug).toBe('new-product-slug')
+
+      // Verify active default price slug is updated
+      const updatedPrice = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPriceById(priceWithSlug.id, transaction)
+        }
+      )
+      expect(updatedPrice?.slug).toBe('new-product-slug')
+    })
+
+    it('should sync slug when price input causes new price insertion', async () => {
+      const currentPrice = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPriceById(regularPriceId, transaction)
+        }
+      )
+      if (!currentPrice) {
+        throw new Error('Price not found')
+      }
+
+      // Update product slug AND provide price input that changes immutable fields
+      const modifiedPrice: Price.ClientInsert = {
+        productId: regularProductId,
+        type: PriceType.Subscription,
+        unitPrice: currentPrice.unitPrice + 3000, // Change immutable field
+        intervalUnit: currentPrice.intervalUnit ?? IntervalUnit.Month,
+        intervalCount: currentPrice.intervalCount ?? 1,
+        isDefault: currentPrice.isDefault,
+        name: currentPrice.name ?? undefined,
+        trialPeriodDays: currentPrice.trialPeriodDays ?? undefined,
+        usageEventsPerUnit: null,
+        usageMeterId: null,
+        active: currentPrice.active,
+      }
+
+      await authenticatedTransaction(
+        async ({ userId, transaction, livemode, organizationId }) => {
+          return await editProductTransaction(
+            {
+              product: {
+                id: regularProductId,
+                name: 'Updated Regular Product',
+                slug: 'new-slug',
+                active: true,
+                default: false,
+              },
+              price: modifiedPrice,
+            },
+            { userId, transaction, livemode, organizationId }
+          )
+        },
+        { apiKey: apiKeyToken }
+      )
+
+      // Verify product slug is updated
+      const updatedProduct = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectProductById(
+            regularProductId,
+            transaction
+          )
+        }
+      )
+      expect(updatedProduct?.slug).toBe('new-slug')
+
+      // Verify new price is inserted with product slug
+      const finalPrices = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPrices(
+            { productId: regularProductId },
+            transaction
+          )
+        }
+      )
+      const newPrice = finalPrices.find(
+        (p) => p.unitPrice === modifiedPrice.unitPrice
+      )
+      expect(newPrice).toBeDefined()
+      expect(newPrice?.slug).toBe('new-slug')
+    })
+
+    it('should update existing price slug when price input does not cause new price insertion', async () => {
+      const currentPrice = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPriceById(regularPriceId, transaction)
+        }
+      )
+      if (!currentPrice) {
+        throw new Error('Price not found')
+      }
+
+      // Update product slug AND provide price input that does NOT change immutable fields or other important fields
+      const modifiedPrice: Price.ClientInsert = {
+        productId: regularProductId,
+        type: PriceType.Subscription,
+        unitPrice: currentPrice.unitPrice, // Same - immutable field unchanged
+        intervalUnit: currentPrice.intervalUnit ?? IntervalUnit.Month, // Same
+        intervalCount: currentPrice.intervalCount ?? 1, // Same
+        isDefault: currentPrice.isDefault,
+        name: currentPrice.name ?? null, // Same - no change
+        trialPeriodDays: currentPrice.trialPeriodDays ?? undefined,
+        usageEventsPerUnit: null,
+        usageMeterId: null,
+        active: currentPrice.active,
+        // Note: slug is not provided, but will be synced to product slug if product slug changes
+      }
+
+      await authenticatedTransaction(
+        async ({ userId, transaction, livemode, organizationId }) => {
+          return await editProductTransaction(
+            {
+              product: {
+                id: regularProductId,
+                name: 'Updated Regular Product',
+                slug: 'new-slug',
+                active: true,
+                default: false,
+              },
+              price: modifiedPrice,
+            },
+            { userId, transaction, livemode, organizationId }
+          )
+        },
+        { apiKey: apiKeyToken }
+      )
+
+      // Verify product slug is updated
+      const updatedProduct = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectProductById(
+            regularProductId,
+            transaction
+          )
+        }
+      )
+      expect(updatedProduct?.slug).toBe('new-slug')
+
+      // Verify no new price was inserted
+      const finalPrices = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPrices(
+            { productId: regularProductId },
+            transaction
+          )
+        }
+      )
+      expect(finalPrices.length).toBe(1)
+
+      // Verify existing active price slug is updated
+      const updatedPrice = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPriceById(regularPriceId, transaction)
+        }
+      )
+      expect(updatedPrice?.slug).toBe('new-slug')
+    })
   })
 })

@@ -24,7 +24,6 @@ describe('subscriptionsRouteConfigs', () => {
     it('should map POST /subscriptions to subscriptions.create procedure', () => {
       const routeConfig = findRouteConfig('POST /subscriptions')
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.create')
       expect(routeConfig!.pattern.test('subscriptions')).toBe(true)
 
@@ -40,8 +39,6 @@ describe('subscriptionsRouteConfigs', () => {
 
     it('should accept customerExternalId in POST /subscriptions request body', () => {
       const routeConfig = findRouteConfig('POST /subscriptions')
-
-      expect(routeConfig).toBeDefined()
 
       // Test with customerExternalId instead of customerId
       const testBodyWithExternalId = {
@@ -74,7 +71,6 @@ describe('subscriptionsRouteConfigs', () => {
     it('should map PUT /subscriptions/:id to subscriptions.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /subscriptions/:id')
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.update')
       expect(routeConfig!.pattern.test('subscriptions/test-id')).toBe(
         true
@@ -96,7 +92,6 @@ describe('subscriptionsRouteConfigs', () => {
     it('should map GET /subscriptions/:id to subscriptions.get procedure', () => {
       const routeConfig = findRouteConfig('GET /subscriptions/:id')
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.get')
       expect(routeConfig!.pattern.test('subscriptions/test-id')).toBe(
         true
@@ -110,7 +105,6 @@ describe('subscriptionsRouteConfigs', () => {
     it('should map GET /subscriptions to subscriptions.list procedure', () => {
       const routeConfig = findRouteConfig('GET /subscriptions')
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.list')
       expect(routeConfig!.pattern.test('subscriptions')).toBe(true)
 
@@ -122,7 +116,6 @@ describe('subscriptionsRouteConfigs', () => {
     it('should map DELETE /subscriptions/:id to subscriptions.delete procedure', () => {
       const routeConfig = findRouteConfig('DELETE /subscriptions/:id')
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.delete')
       expect(routeConfig!.pattern.test('subscriptions/test-id')).toBe(
         true
@@ -140,7 +133,6 @@ describe('subscriptionsRouteConfigs', () => {
         'POST /subscriptions/:id/adjust'
       )
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.adjust')
       expect(
         routeConfig!.pattern.test('subscriptions/test-id/adjust')
@@ -160,9 +152,7 @@ describe('subscriptionsRouteConfigs', () => {
       const fullMatch = routeConfig!.pattern.exec(
         'subscriptions/test-id/adjust'
       )
-      const result = routeConfig!.mapParams(
-        fullMatch!.slice(1) as any
-      )
+      const result = routeConfig!.mapParams(fullMatch!.slice(1))
       expect(result).toEqual({ id: 'test-id' })
     })
 
@@ -171,7 +161,6 @@ describe('subscriptionsRouteConfigs', () => {
         'POST /subscriptions/:id/cancel'
       )
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.cancel')
       expect(
         routeConfig!.pattern.test('subscriptions/test-id/cancel')
@@ -191,9 +180,35 @@ describe('subscriptionsRouteConfigs', () => {
       const fullMatch = routeConfig!.pattern.exec(
         'subscriptions/test-id/cancel'
       )
-      const result = routeConfig!.mapParams(
-        fullMatch!.slice(1) as any
+      const result = routeConfig!.mapParams(fullMatch!.slice(1))
+      expect(result).toEqual({ id: 'test-id' })
+    })
+
+    it('should map POST /subscriptions/:id/uncancel to subscriptions.uncancel procedure', () => {
+      const routeConfig = findRouteConfig(
+        'POST /subscriptions/:id/uncancel'
       )
+
+      expect(routeConfig!.procedure).toBe('subscriptions.uncancel')
+      expect(
+        routeConfig!.pattern.test('subscriptions/test-id/uncancel')
+      ).toBe(true)
+
+      // Test that it doesn't match other patterns
+      expect(routeConfig!.pattern.test('subscriptions/test-id')).toBe(
+        false
+      )
+      expect(
+        routeConfig!.pattern.test(
+          'subscriptions/test-id/uncancel/extra'
+        )
+      ).toBe(false)
+
+      // Test mapParams - simulate route handler behavior by slicing the matches
+      const fullMatch = routeConfig!.pattern.exec(
+        'subscriptions/test-id/uncancel'
+      )
+      const result = routeConfig!.mapParams(fullMatch!.slice(1))
       expect(result).toEqual({ id: 'test-id' })
     })
   })
@@ -261,6 +276,20 @@ describe('subscriptionsRouteConfigs', () => {
         false
       )
       expect(cancelConfig!.pattern.test('subscriptions')).toBe(false)
+
+      // Uncancel pattern should match 'subscriptions/abc123/uncancel'
+      const uncancelConfig = findRouteConfig(
+        'POST /subscriptions/:id/uncancel'
+      )
+      expect(
+        uncancelConfig!.pattern.test('subscriptions/abc123/uncancel')
+      ).toBe(true)
+      expect(
+        uncancelConfig!.pattern.test('subscriptions/abc123')
+      ).toBe(false)
+      expect(uncancelConfig!.pattern.test('subscriptions')).toBe(
+        false
+      )
     })
 
     it('should extract correct matches from URL paths', () => {
@@ -309,6 +338,16 @@ describe('subscriptionsRouteConfigs', () => {
       )
       expect(cancelMatches).not.toBeNull()
       expect(cancelMatches![1]).toBe('test-id') // First capture group
+
+      // Test Subscriptions uncancel pattern extraction
+      const uncancelConfig = findRouteConfig(
+        'POST /subscriptions/:id/uncancel'
+      )
+      const uncancelMatches = uncancelConfig!.pattern.exec(
+        'subscriptions/test-id/uncancel'
+      )
+      expect(uncancelMatches).not.toBeNull()
+      expect(uncancelMatches![1]).toBe('test-id') // First capture group
 
       // Test Subscriptions list pattern (no captures)
       const listConfig = findRouteConfig('GET /subscriptions')
@@ -379,9 +418,7 @@ describe('subscriptionsRouteConfigs', () => {
       const fullMatch = routeConfig!.pattern.exec(
         'subscriptions/subscription-adjust-123/adjust'
       )
-      const result = routeConfig!.mapParams(
-        fullMatch!.slice(1) as any
-      )
+      const result = routeConfig!.mapParams(fullMatch!.slice(1))
 
       expect(result).toEqual({
         id: 'subscription-adjust-123',
@@ -397,12 +434,26 @@ describe('subscriptionsRouteConfigs', () => {
       const fullMatch = routeConfig!.pattern.exec(
         'subscriptions/subscription-cancel-456/cancel'
       )
-      const result = routeConfig!.mapParams(
-        fullMatch!.slice(1) as any
-      )
+      const result = routeConfig!.mapParams(fullMatch!.slice(1))
 
       expect(result).toEqual({
         id: 'subscription-cancel-456',
+      })
+    })
+
+    it('should correctly map URL parameters for subscriptions uncancel requests', () => {
+      const routeConfig = findRouteConfig(
+        'POST /subscriptions/:id/uncancel'
+      )
+
+      // Simulate route handler behavior by slicing the matches
+      const fullMatch = routeConfig!.pattern.exec(
+        'subscriptions/subscription-uncancel-789/uncancel'
+      )
+      const result = routeConfig!.mapParams(fullMatch!.slice(1))
+
+      expect(result).toEqual({
+        id: 'subscription-uncancel-789',
       })
     })
 
@@ -460,9 +511,10 @@ describe('subscriptionsRouteConfigs', () => {
       // Check that custom routes exist
       expect(routeKeys).toContain('POST /subscriptions/:id/adjust') // custom adjust
       expect(routeKeys).toContain('POST /subscriptions/:id/cancel') // custom cancel
+      expect(routeKeys).toContain('POST /subscriptions/:id/uncancel') // custom uncancel
 
-      // Check that we have exactly 7 routes (5 CRUD + 2 custom)
-      expect(routeKeys).toHaveLength(7)
+      // Check that we have exactly 8 routes (5 CRUD + 3 custom)
+      expect(routeKeys).toHaveLength(8)
     })
 
     it('should have consistent id parameter usage', () => {
@@ -472,26 +524,27 @@ describe('subscriptionsRouteConfigs', () => {
         'DELETE /subscriptions/:id',
         'POST /subscriptions/:id/adjust',
         'POST /subscriptions/:id/cancel',
+        'POST /subscriptions/:id/uncancel',
       ]
 
       idRoutes.forEach((routeKey) => {
         const config = findRouteConfig(routeKey)
 
-        // For adjust and cancel routes, use full match array; for others use sliced
+        // For adjust, cancel, and uncancel routes, use full match array; for others use sliced
         if (
           routeKey.includes('adjust') ||
-          routeKey.includes('cancel')
+          routeKey.includes('cancel') ||
+          routeKey.includes('uncancel')
         ) {
           const path = routeKey.includes('adjust')
             ? 'subscriptions/test-id/adjust'
-            : 'subscriptions/test-id/cancel'
+            : routeKey.includes('uncancel')
+              ? 'subscriptions/test-id/uncancel'
+              : 'subscriptions/test-id/cancel'
           const fullMatch = config!.pattern.exec(path)
-          const result = config!.mapParams(
-            fullMatch!.slice(1) as any,
-            {
-              someData: 'value',
-            }
-          )
+          const result = config!.mapParams(fullMatch!.slice(1), {
+            someData: 'value',
+          })
           expect(result).toHaveProperty('id', 'test-id')
         } else {
           // Standard routes use sliced array
@@ -526,6 +579,7 @@ describe('subscriptionsRouteConfigs', () => {
         'DELETE /subscriptions/:id': 'subscriptions.delete',
         'POST /subscriptions/:id/adjust': 'subscriptions.adjust',
         'POST /subscriptions/:id/cancel': 'subscriptions.cancel',
+        'POST /subscriptions/:id/uncancel': 'subscriptions.uncancel',
       }
 
       Object.entries(expectedMappings).forEach(
@@ -564,14 +618,14 @@ describe('subscriptionsRouteConfigs', () => {
       const customRoutes = [
         'POST /subscriptions/:id/adjust',
         'POST /subscriptions/:id/cancel',
+        'POST /subscriptions/:id/uncancel',
       ]
 
       customRoutes.forEach((route) => {
         expect(routeKeys).toContain(route)
         const config = findRouteConfig(route)
-        expect(config).toBeDefined()
         expect(config!.procedure).toMatch(
-          /^subscriptions\.(adjust|cancel)$/
+          /^subscriptions\.(adjust|cancel|uncancel)$/
         )
       })
 
@@ -684,6 +738,83 @@ describe('subscriptionsRouteConfigs', () => {
             'Either priceId or priceSlug must be provided, but not both'
           )
         })
+      })
+    })
+
+    describe('doNotCharge validation', () => {
+      const baseValidInputWithCustomer = {
+        customerId: 'cus-123',
+        priceId: 'price-123',
+      }
+
+      it('should accept doNotCharge without payment methods', () => {
+        const result = createSubscriptionInputSchema.parse({
+          ...baseValidInputWithCustomer,
+          doNotCharge: true,
+        })
+        expect(result.doNotCharge).toBe(true)
+        expect(result.defaultPaymentMethodId).toBeUndefined()
+        expect(result.backupPaymentMethodId).toBeUndefined()
+      })
+
+      it('should reject when doNotCharge is true and defaultPaymentMethodId is provided', () => {
+        expect(() => {
+          createSubscriptionInputSchema.parse({
+            ...baseValidInputWithCustomer,
+            doNotCharge: true,
+            defaultPaymentMethodId: 'pm_123',
+          })
+        }).toThrow(
+          'Payment methods cannot be provided when doNotCharge is true. Payment methods are not needed since no charges will be made.'
+        )
+      })
+
+      it('should reject when doNotCharge is true and backupPaymentMethodId is provided', () => {
+        expect(() => {
+          createSubscriptionInputSchema.parse({
+            ...baseValidInputWithCustomer,
+            doNotCharge: true,
+            backupPaymentMethodId: 'pm_456',
+          })
+        }).toThrow(
+          'Payment methods cannot be provided when doNotCharge is true. Payment methods are not needed since no charges will be made.'
+        )
+      })
+
+      it('should reject when doNotCharge is true and both payment methods are provided', () => {
+        expect(() => {
+          createSubscriptionInputSchema.parse({
+            ...baseValidInputWithCustomer,
+            doNotCharge: true,
+            defaultPaymentMethodId: 'pm_123',
+            backupPaymentMethodId: 'pm_456',
+          })
+        }).toThrow(
+          'Payment methods cannot be provided when doNotCharge is true. Payment methods are not needed since no charges will be made.'
+        )
+      })
+
+      it('should accept payment methods when doNotCharge is false', () => {
+        const result = createSubscriptionInputSchema.parse({
+          ...baseValidInputWithCustomer,
+          doNotCharge: false,
+          defaultPaymentMethodId: 'pm_123',
+          backupPaymentMethodId: 'pm_456',
+        })
+        expect(result.doNotCharge).toBe(false)
+        expect(result.defaultPaymentMethodId).toBe('pm_123')
+        expect(result.backupPaymentMethodId).toBe('pm_456')
+      })
+
+      it('should accept payment methods when doNotCharge is undefined', () => {
+        const result = createSubscriptionInputSchema.parse({
+          ...baseValidInputWithCustomer,
+          defaultPaymentMethodId: 'pm_123',
+          backupPaymentMethodId: 'pm_456',
+        })
+        expect(result.doNotCharge).toBe(false) // defaults to false
+        expect(result.defaultPaymentMethodId).toBe('pm_123')
+        expect(result.backupPaymentMethodId).toBe('pm_456')
       })
     })
   })

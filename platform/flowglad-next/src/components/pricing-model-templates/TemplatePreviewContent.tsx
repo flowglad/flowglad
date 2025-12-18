@@ -302,10 +302,11 @@ export function TemplatePreviewContent({
             htmlFor="is-default"
             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
           >
-            Default
+            Make Default
           </label>
-          <p className="text-xs text-muted-foreground">
-            Make this the default pricing model for new customers.
+          <p className="text-sm text-muted-foreground">
+            New customers will be assigned to this pricing model by
+            default.
           </p>
         </div>
       </div>

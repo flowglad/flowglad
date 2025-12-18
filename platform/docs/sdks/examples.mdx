@@ -11,9 +11,9 @@ This page provides complete examples and common integration patterns for Flowgla
 
 ### Generation-based Subscription
 
-A Next.js app with authentication and billing interation, demonstrating a pricing model with subscription, single-payment, and usage.
+A Next.js app with authentication and billing integration, demonstrating a pricing model with subscription, single-payment, and usage.
 
-**Location:** [examples/generation-based-subscription](https://github.com/flowglad/flowglad/tree/main/examples/generation-based-subscription)
+**Location:** [examples/generation-based-subscription](https://github.com/flowglad/examples/tree/main/generation-based-subscription)
 
 **Features:**
 - Next.js App Router
@@ -31,6 +31,48 @@ A Next.js app with authentication and billing interation, demonstrating a pricin
 - `src/app/api/flowglad/[...path]/route.ts` - Flowglad routeHandler
 - `src/app/api/usage-events/route.ts` - Route for usage event creation
 - `src/components/pricing-cards-grid.tsx` - Pricing page with useBilling
+
+### Tiered Usage-Gated Subscription
+
+A Next.js app demonstrating tiered subscription plans with usage limits and feature access by tier. Similar to ChatGPT's pricing model, with different quotas, context windows, and capabilities varying by plan level.
+
+**Location:** [examples/tiered-usage-gated-subscription](https://github.com/flowglad/examples/tree/main/tiered-usage-gated-subscription)
+
+**Features:**
+- Next.js App Router
+- Tiered subscription plans with usage gates
+- Feature access by subscription tier
+- Usage credit grants that renew monthly
+- Multiple usage meters with tiered limits
+- Individual to multi-seat plan support
+
+**Key Files:**
+- `pricing.yaml` - Pricing model with tiered usage limits
+- `src/lib/flowglad.ts` - Flowglad server setup
+- `src/app/layout.tsx` - FlowgladProvider setup
+- `src/app/api/flowglad/[...path]/route.ts` - Flowglad routeHandler
+- Usage balance checking and tier-based feature gating
+
+### Usage Limit Subscription
+
+A Next.js app demonstrating a hybrid subscription + usage model. Subscriptions include monthly usage credits that renew each billing period, with optional overage billing. Perfect for API-intensive products like Cursor.
+
+**Location:** [examples/usage-limit-subscription](https://github.com/flowglad/examples/tree/main/usage-limit-subscription)
+
+**Features:**
+- Next.js App Router
+- Hybrid subscription + metered usage model
+- Monthly usage credits that renew automatically
+- Optional on-demand credit purchases
+- Overage billing when credits are exhausted
+- Multiple tiered plans with different usage limits
+
+**Key Files:**
+- `pricing.yaml` - Pricing model with usage limits and overage
+- `src/lib/flowglad.ts` - Flowglad server setup
+- `src/app/layout.tsx` - FlowgladProvider setup
+- `src/app/api/flowglad/[...path]/route.ts` - Flowglad routeHandler
+- Usage balance tracking and overage handling
 
 ## Complete Integration Examples
 

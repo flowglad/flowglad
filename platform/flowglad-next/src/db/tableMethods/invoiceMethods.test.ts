@@ -15,7 +15,6 @@ import {
   InvoiceType,
   PriceType,
 } from '@/types'
-import core from '@/utils/core'
 import { selectInvoicesTableRowData } from './invoiceMethods'
 
 describe('selectInvoicesTableRowData', () => {
@@ -23,15 +22,21 @@ describe('selectInvoicesTableRowData', () => {
   let org2Id: string
   let customer1Id: string
   let customer2Id: string
+  let customer3Id: string
+  let customerOtherOrgId: string
   let invoice1Id: string
   let invoice2Id: string
   let invoice3Id: string
+  let invoice1Number: string
+  let invoice2Number: string
+  let invoice3Number: string
   let priceId: string
 
   beforeEach(async () => {
     // Set up organizations
     const { organization: org1, pricingModel } = await setupOrg()
-    const { organization: org2 } = await setupOrg()
+    const { organization: org2, pricingModel: pricingModel2 } =
+      await setupOrg()
     org1Id = org1.id
     org2Id = org2.id
 
@@ -58,11 +63,25 @@ describe('selectInvoicesTableRowData', () => {
     })
     priceId = price.id
 
-    // Set up customers
-    const customer1 = await setupCustomer({ organizationId: org1Id })
-    const customer2 = await setupCustomer({ organizationId: org2Id })
+    // Set up customers with specific names for search testing
+    const customer1 = await setupCustomer({
+      organizationId: org1Id,
+      name: 'Alice Smith',
+      email: 'alice@example.com',
+    })
+    const customer2 = await setupCustomer({
+      organizationId: org1Id,
+      name: 'Bob Jones',
+      email: 'bob@example.com',
+    })
+    const customer3 = await setupCustomer({
+      organizationId: org1Id,
+      name: 'Charlie Brown',
+      email: 'charlie@example.com',
+    })
     customer1Id = customer1.id
     customer2Id = customer2.id
+    customer3Id = customer3.id
 
     // Set up invoices
     const invoice1 = await setupInvoice({
@@ -73,15 +92,15 @@ describe('selectInvoicesTableRowData', () => {
       type: InvoiceType.Purchase,
     })
     const invoice2 = await setupInvoice({
-      customerId: customer1Id,
+      customerId: customer2Id,
       organizationId: org1Id,
       status: InvoiceStatus.Paid,
       priceId,
       type: InvoiceType.Purchase,
     })
     const invoice3 = await setupInvoice({
-      customerId: customer2Id,
-      organizationId: org2Id,
+      customerId: customer3Id,
+      organizationId: org1Id,
       status: InvoiceStatus.Open,
       priceId,
       type: InvoiceType.Purchase,
@@ -89,11 +108,54 @@ describe('selectInvoicesTableRowData', () => {
     invoice1Id = invoice1.id
     invoice2Id = invoice2.id
     invoice3Id = invoice3.id
+    invoice1Number = invoice1.invoiceNumber
+    invoice2Number = invoice2.invoiceNumber
+    invoice3Number = invoice3.invoiceNumber
+
+    // Set up second organization with customer having same name for isolation testing
+    const productOtherOrg = await setupProduct({
+      organizationId: org2Id,
+      name: 'Test Product Other',
+      livemode: true,
+      pricingModelId: pricingModel2.id,
+    })
+
+    const priceOtherOrg = await setupPrice({
+      productId: productOtherOrg.id,
+      name: 'Test Price Other',
+      type: PriceType.Subscription,
+      unitPrice: 1000,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+      currency: CurrencyCode.USD,
+    })
+
+    const customerOtherOrg = await setupCustomer({
+      organizationId: org2Id,
+      name: 'Alice Smith', // Same name as customer1 to test isolation
+      email: 'alice-other@example.com',
+    })
+    customerOtherOrgId = customerOtherOrg.id
+
+    const invoiceOtherOrg = await setupInvoice({
+      customerId: customerOtherOrgId,
+      organizationId: org2Id,
+      status: InvoiceStatus.Open,
+      priceId: priceOtherOrg.id,
+      type: InvoiceType.Purchase,
+    })
 
     // Set up line items
     await setupInvoiceLineItem({ invoiceId: invoice1Id, priceId })
     await setupInvoiceLineItem({ invoiceId: invoice1Id, priceId })
     await setupInvoiceLineItem({ invoiceId: invoice2Id, priceId })
+    await setupInvoiceLineItem({
+      invoiceId: invoiceOtherOrg.id,
+      priceId: priceOtherOrg.id,
+    })
   })
 
   it('should return correct pagination metadata when there are more results', async () => {
@@ -101,6 +163,9 @@ describe('selectInvoicesTableRowData', () => {
       return selectInvoicesTableRowData({
         input: {
           pageSize: 2,
+          filters: {
+            organizationId: org1Id,
+          },
         },
         transaction,
       })
@@ -124,7 +189,7 @@ describe('selectInvoicesTableRowData', () => {
       })
     })
 
-    expect(result.items.length).toBe(2)
+    expect(result.items.length).toBe(3)
     expect(result.hasNextPage).toBe(false)
     expect(result.endCursor).toBeDefined()
   })
@@ -288,5 +353,200 @@ describe('selectInvoicesTableRowData', () => {
       'name',
       expect.any(String)
     )
+  })
+
+  describe('search functionality', () => {
+    it('should search by invoice ID, invoice number, or customer name (case-insensitive, trims whitespace)', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Test invoice ID search
+        const resultById = await selectInvoicesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: invoice1Id,
+            filters: { organizationId: org1Id },
+          },
+          transaction,
+        })
+        expect(resultById.items.length).toBe(1)
+        expect(resultById.items[0].invoice.id).toBe(invoice1Id)
+        expect(resultById.total).toBe(1)
+
+        // Test invoice number search
+        const resultByNumber = await selectInvoicesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: invoice2Number,
+            filters: { organizationId: org1Id },
+          },
+          transaction,
+        })
+        expect(resultByNumber.items.length).toBe(1)
+        expect(resultByNumber.items[0].invoice.id).toBe(invoice2Id)
+        expect(resultByNumber.items[0].invoice.invoiceNumber).toBe(
+          invoice2Number
+        )
+        expect(resultByNumber.total).toBe(1)
+
+        // Test partial customer name search (case-insensitive)
+        const resultByName = await selectInvoicesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: 'alice',
+            filters: { organizationId: org1Id },
+          },
+          transaction,
+        })
+        expect(resultByName.items.length).toBe(1)
+        expect(resultByName.items[0].invoice.id).toBe(invoice1Id)
+        expect(resultByName.items[0].customer.name).toBe(
+          'Alice Smith'
+        )
+        expect(resultByName.total).toBe(1)
+
+        // Test case-insensitive search
+        const resultCaseInsensitive =
+          await selectInvoicesTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'CHARLIE',
+              filters: { organizationId: org1Id },
+            },
+            transaction,
+          })
+        expect(resultCaseInsensitive.items.length).toBe(1)
+        expect(resultCaseInsensitive.items[0].customer.name).toBe(
+          'Charlie Brown'
+        )
+
+        // Test whitespace trimming
+        const resultTrimmed = await selectInvoicesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: '  alice  ',
+            filters: { organizationId: org1Id },
+          },
+          transaction,
+        })
+        expect(resultTrimmed.items.length).toBe(1)
+        expect(resultTrimmed.items[0].invoice.id).toBe(invoice1Id)
+      })
+    })
+
+    it('should ignore empty or whitespace-only search queries', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const resultEmpty = await selectInvoicesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: '',
+            filters: { organizationId: org1Id },
+          },
+          transaction,
+        })
+
+        const resultWhitespace = await selectInvoicesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: '   ',
+            filters: { organizationId: org1Id },
+          },
+          transaction,
+        })
+
+        const resultUndefined = await selectInvoicesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: undefined,
+            filters: { organizationId: org1Id },
+          },
+          transaction,
+        })
+
+        // All should return all 3 invoices for org1
+        expect(resultEmpty.items.length).toBe(3)
+        expect(resultEmpty.total).toBe(3)
+        expect(resultWhitespace.items.length).toBe(3)
+        expect(resultWhitespace.total).toBe(3)
+        expect(resultUndefined.items.length).toBe(3)
+        expect(resultUndefined.total).toBe(3)
+      })
+    })
+
+    it('should only return invoices for the specified organization when searching', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Search for "Alice" - should only return invoice1 from org1, not invoice from org2
+        const result = await selectInvoicesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: 'alice',
+            filters: { organizationId: org1Id },
+          },
+          transaction,
+        })
+
+        expect(result.items.length).toBe(1)
+        expect(result.items[0].invoice.id).toBe(invoice1Id)
+        expect(result.items[0].invoice.organizationId).toBe(org1Id)
+        expect(result.total).toBe(1)
+      })
+    })
+
+    it('should combine search with existing filters', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Search by customer name and filter by status
+        const resultWithStatus = await selectInvoicesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: 'alice',
+            filters: {
+              organizationId: org1Id,
+              status: InvoiceStatus.Open,
+            },
+          },
+          transaction,
+        })
+        expect(resultWithStatus.items.length).toBe(1)
+        expect(resultWithStatus.items[0].invoice.id).toBe(invoice1Id)
+        expect(resultWithStatus.items[0].invoice.status).toBe(
+          InvoiceStatus.Open
+        )
+        expect(resultWithStatus.total).toBe(1)
+
+        // Search by customer name and filter by different status (should return empty)
+        const resultWithDifferentStatus =
+          await selectInvoicesTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: {
+                organizationId: org1Id,
+                status: InvoiceStatus.Paid,
+              },
+            },
+            transaction,
+          })
+        expect(resultWithDifferentStatus.items.length).toBe(0)
+        expect(resultWithDifferentStatus.total).toBe(0)
+
+        // Search by invoice number and filter by customerId
+        const resultWithCustomerId = await selectInvoicesTableRowData(
+          {
+            input: {
+              pageSize: 10,
+              searchQuery: invoice2Number,
+              filters: {
+                organizationId: org1Id,
+                customerId: customer2Id,
+              },
+            },
+            transaction,
+          }
+        )
+        expect(resultWithCustomerId.items.length).toBe(1)
+        expect(resultWithCustomerId.items[0].invoice.id).toBe(
+          invoice2Id
+        )
+        expect(resultWithCustomerId.total).toBe(1)
+      })
+    })
   })
 })

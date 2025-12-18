@@ -49,3 +49,47 @@ export const cancelSubscription: SubRouteHandler<
     }
   }
 }
+
+export const uncancelSubscription: SubRouteHandler<
+  FlowgladActionKey.UncancelSubscription
+> = async (params, flowgladServer: FlowgladServer) => {
+  let error:
+    | { code: string; json: Record<string, unknown> }
+    | undefined
+  let status: number
+  const data: SubRouteHandlerResultData<FlowgladActionKey.UncancelSubscription> =
+    {}
+  if (params.method !== HTTPMethod.POST) {
+    error = {
+      code: 'Method not allowed',
+      json: {},
+    }
+    status = 405
+    return {
+      data,
+      status,
+      error,
+    }
+  }
+  let subscription: Flowglad.Subscriptions.SubscriptionUncancelResponse
+  try {
+    subscription = await flowgladServer.uncancelSubscription(
+      params.data
+    )
+    return {
+      data: subscription,
+      status: 200,
+    }
+  } catch (error) {
+    return {
+      data: {},
+      status: 500,
+      error: {
+        code: 'subscription_uncancel_failed',
+        json: {
+          message: (error as Error).message,
+        },
+      },
+    }
+  }
+}

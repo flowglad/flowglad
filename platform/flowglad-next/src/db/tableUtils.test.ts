@@ -1,4 +1,4 @@
-import { and as drizzleAnd, eq, inArray, sql } from 'drizzle-orm'
+import { and as drizzleAnd, eq, inArray, or, sql } from 'drizzle-orm'
 import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
@@ -12,7 +12,13 @@ import type { ApiKey } from '@/db/schema/apiKeys'
 import { nulledPriceColumns, type Price } from '@/db/schema/prices'
 import { CurrencyCode, PriceType } from '@/types'
 import { core } from '@/utils/core'
-import { customers } from './schema/customers'
+import {
+  type Customer,
+  customers,
+  customersInsertSchema,
+  customersSelectSchema,
+  customersUpdateSchema,
+} from './schema/customers'
 import {
   type PricingModel,
   pricingModels,
@@ -28,9 +34,12 @@ import {
   updateProduct,
 } from './tableMethods/productMethods'
 import {
+  buildWhereClauses,
+  createCursorPaginatedSelectFunction,
   decodeCursor,
   encodeCursor,
   metadataSchema,
+  sanitizeBaseTableFilters,
   whereClauseFromObject,
 } from './tableUtils'
 
@@ -153,6 +162,9 @@ describe('createCursorPaginatedSelectFunction', () => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
+            filters: {
+              organizationId,
+            },
           },
           transaction,
         })
@@ -166,6 +178,9 @@ describe('createCursorPaginatedSelectFunction', () => {
           input: {
             pageSize: 5,
             pageAfter: firstPage.endCursor!,
+            filters: {
+              organizationId,
+            },
           },
           transaction,
         })
@@ -295,6 +310,9 @@ describe('createCursorPaginatedSelectFunction', () => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
+            filters: {
+              organizationId,
+            },
           },
           transaction,
         })
@@ -308,6 +326,9 @@ describe('createCursorPaginatedSelectFunction', () => {
           input: {
             pageSize: 5,
             pageAfter: firstPage.endCursor!,
+            filters: {
+              organizationId,
+            },
           },
           transaction,
         })
@@ -336,6 +357,9 @@ describe('createCursorPaginatedSelectFunction', () => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
+            filters: {
+              organizationId,
+            },
           },
           transaction,
         })
@@ -349,6 +373,9 @@ describe('createCursorPaginatedSelectFunction', () => {
           input: {
             pageSize: 5,
             pageAfter: firstPage.endCursor!,
+            filters: {
+              organizationId,
+            },
           },
           transaction,
         })
@@ -362,6 +389,9 @@ describe('createCursorPaginatedSelectFunction', () => {
           input: {
             pageSize: 5,
             pageBefore: secondPage.startCursor!,
+            filters: {
+              organizationId,
+            },
           },
           transaction,
         })
@@ -603,6 +633,7 @@ describe('createCursorPaginatedSelectFunction', () => {
             goToFirst: true,
             filters: {
               email: 'nonexistent@example.com',
+              organizationId,
             },
           },
           transaction,
@@ -625,6 +656,7 @@ describe('createCursorPaginatedSelectFunction', () => {
             goToLast: true,
             filters: {
               email: 'nonexistent@example.com',
+              organizationId,
             },
           },
           transaction,
@@ -770,6 +802,286 @@ describe('createCursorPaginatedSelectFunction', () => {
     )
 
     expect(goToFirstWithCursor.items).toEqual(normalGoToFirst.items)
+  })
+
+  // Tests for buildAdditionalSearchClause and buildAdditionalFilterClause
+  describe('buildAdditionalSearchClause and buildAdditionalFilterClause', () => {
+    let testOrgId: string
+    let testCustomer1: Customer.Record
+    let testCustomer2: Customer.Record
+    let testCustomer3: Customer.Record
+
+    beforeEach(async () => {
+      const { organization } = await setupOrg()
+      testOrgId = organization.id
+
+      // Create test customers with different names
+      testCustomer1 = await setupCustomer({
+        organizationId: testOrgId,
+        name: 'Alice Smith',
+        email: 'alice@example.com',
+      })
+
+      testCustomer2 = await setupCustomer({
+        organizationId: testOrgId,
+        name: 'Bob Jones',
+        email: 'bob@example.com',
+      })
+
+      testCustomer3 = await setupCustomer({
+        organizationId: testOrgId,
+        name: 'Charlie Brown',
+        email: 'charlie@example.com',
+      })
+    })
+
+    describe('buildAdditionalSearchClause', () => {
+      it('should apply buildAdditionalSearchClause with OR semantics', async () => {
+        // Create a test function that searches by customer ID or name
+        const testSelectFunction =
+          createCursorPaginatedSelectFunction(
+            customers,
+            {
+              selectSchema: customersSelectSchema,
+              insertSchema: customersInsertSchema,
+              updateSchema: customersUpdateSchema,
+              tableName: 'customers',
+            },
+            customersSelectSchema,
+            undefined, // no enrichment
+            [customers.email], // base search on email
+            ({ searchQuery }) => {
+              // Additional search: match by customer ID or name
+              return or(
+                eq(customers.id, searchQuery),
+                sql`${customers.name} ilike ${`%${searchQuery}%`}`
+              )
+            }
+          )
+
+        // Search for customer ID - should find via additional search clause
+        const resultById = await adminTransaction(
+          async ({ transaction }) => {
+            return testSelectFunction({
+              input: {
+                pageSize: 10,
+                searchQuery: testCustomer1.id,
+                filters: { organizationId: testOrgId },
+              },
+              transaction,
+            })
+          }
+        )
+
+        expect(resultById.items.length).toBe(1)
+        expect(resultById.items[0].id).toBe(testCustomer1.id)
+        expect(resultById.items[0].name).toBe('Alice Smith')
+
+        // Search for name - should find via additional search clause
+        const resultByName = await adminTransaction(
+          async ({ transaction }) => {
+            return testSelectFunction({
+              input: {
+                pageSize: 10,
+                searchQuery: 'Alice',
+                filters: { organizationId: testOrgId },
+              },
+              transaction,
+            })
+          }
+        )
+
+        expect(resultByName.items.length).toBe(1)
+        expect(resultByName.items[0].id).toBe(testCustomer1.id)
+        expect(resultByName.items[0].name).toBe('Alice Smith')
+
+        // Search for email - should find via base search
+        const resultByEmail = await adminTransaction(
+          async ({ transaction }) => {
+            return testSelectFunction({
+              input: {
+                pageSize: 10,
+                searchQuery: 'bob@example.com',
+                filters: { organizationId: testOrgId },
+              },
+              transaction,
+            })
+          }
+        )
+
+        expect(resultByEmail.items.length).toBe(1)
+        expect(resultByEmail.items[0].id).toBe(testCustomer2.id)
+        expect(resultByEmail.items[0].email).toBe('bob@example.com')
+        expect(resultByEmail.items[0].name).toBe('Bob Jones')
+      })
+    })
+
+    describe('buildAdditionalFilterClause', () => {
+      it('should apply buildAdditionalFilterClause with AND semantics', async () => {
+        // Create a test function that filters by a custom field
+        const testSelectFunction =
+          createCursorPaginatedSelectFunction(
+            customers,
+            {
+              selectSchema: customersSelectSchema,
+              insertSchema: customersInsertSchema,
+              updateSchema: customersUpdateSchema,
+              tableName: 'customers',
+            },
+            customersSelectSchema,
+            undefined, // no enrichment
+            undefined, // no base search
+            undefined, // no additional search
+            async ({ filters }) => {
+              // Additional filter: filter by name containing a substring
+              const nameFilter =
+                filters &&
+                typeof filters === 'object' &&
+                'nameContains' in filters
+                  ? (filters as Record<string, unknown>).nameContains
+                  : undefined
+
+              if (nameFilter && typeof nameFilter === 'string') {
+                return sql`${customers.name} ilike ${`%${nameFilter}%`}`
+              }
+              return undefined
+            }
+          )
+
+        // Filter by nameContains - should only return matching customers
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return testSelectFunction({
+              input: {
+                pageSize: 10,
+                filters: {
+                  organizationId: testOrgId,
+                  nameContains: 'Smith', // This is not a base table column, handled by additional filter
+                } as Record<string, unknown>,
+              },
+              transaction,
+            })
+          }
+        )
+
+        expect(result.items.length).toBe(1)
+        expect(result.items[0].id).toBe(testCustomer1.id)
+        expect(result.items[0].name).toBe('Alice Smith')
+      })
+
+      it('should sanitize filters to ignore unknown base table keys', async () => {
+        // Create a test function with additional filter clause
+        const testSelectFunction =
+          createCursorPaginatedSelectFunction(
+            customers,
+            {
+              selectSchema: customersSelectSchema,
+              insertSchema: customersInsertSchema,
+              updateSchema: customersUpdateSchema,
+              tableName: 'customers',
+            },
+            customersSelectSchema,
+            undefined,
+            undefined,
+            undefined,
+            async ({ filters }) => {
+              // Additional filter handles cross-table field
+              const nameContains =
+                filters &&
+                typeof filters === 'object' &&
+                'nameContains' in filters
+                  ? (filters as Record<string, unknown>).nameContains
+                  : undefined
+
+              if (nameContains && typeof nameContains === 'string') {
+                return sql`${customers.name} ilike ${`%${nameContains}%`}`
+              }
+              return undefined
+            }
+          )
+
+        // Pass filters with both known (organizationId) and unknown (nameContains) keys
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return testSelectFunction({
+              input: {
+                pageSize: 10,
+                filters: {
+                  organizationId: testOrgId,
+                  nameContains: 'Brown', // Unknown to base table, handled by additional filter
+                  unknownField: 'should be ignored', // Should be ignored
+                } as Record<string, unknown>,
+              },
+              transaction,
+            })
+          }
+        )
+
+        // Should only return customer with name containing 'Brown'
+        expect(result.items.length).toBe(1)
+        expect(result.items[0].id).toBe(testCustomer3.id)
+        expect(result.items[0].name).toBe('Charlie Brown')
+      })
+    })
+
+    describe('buildAdditionalSearchClause and buildAdditionalFilterClause together', () => {
+      it('should combine buildAdditionalSearchClause and buildAdditionalFilterClause', async () => {
+        // Create a test function with both additional search and filter
+        const testSelectFunction =
+          createCursorPaginatedSelectFunction(
+            customers,
+            {
+              selectSchema: customersSelectSchema,
+              insertSchema: customersInsertSchema,
+              updateSchema: customersUpdateSchema,
+              tableName: 'customers',
+            },
+            customersSelectSchema,
+            undefined,
+            [customers.email], // base search
+            ({ searchQuery }) => {
+              // Additional search: match by name
+              return sql`${customers.name} ilike ${`%${searchQuery}%`}`
+            },
+            async ({ filters }) => {
+              // Additional filter: filter by name containing a substring
+              const nameContains =
+                filters &&
+                typeof filters === 'object' &&
+                'nameContains' in filters
+                  ? (filters as Record<string, unknown>).nameContains
+                  : undefined
+
+              if (nameContains && typeof nameContains === 'string') {
+                return sql`${customers.name} ilike ${`%${nameContains}%`}`
+              }
+              return undefined
+            }
+          )
+
+        // Search for 'Alice' (should match via additional search) AND filter by nameContains 'Smith'
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return testSelectFunction({
+              input: {
+                pageSize: 10,
+                searchQuery: 'Alice',
+                filters: {
+                  organizationId: testOrgId,
+                  nameContains: 'Smith',
+                } as Record<string, unknown>,
+              },
+              transaction,
+            })
+          }
+        )
+
+        // Should return customer that matches both search (Alice) and filter (Smith)
+        expect(result.items.length).toBe(1)
+        expect(result.items[0].id).toBe(testCustomer1.id)
+        expect(result.items[0].name).toBe('Alice Smith')
+      })
+    })
   })
 })
 
@@ -1934,5 +2246,250 @@ describe('metadataSchema', () => {
     const result = metadataSchema.safeParse({})
     expect(result.success).toBe(true)
     expect(result.data).toEqual({})
+  })
+})
+
+describe('sanitizeBaseTableFilters', () => {
+  it('should return undefined when filters is undefined', () => {
+    const result = sanitizeBaseTableFilters(customers, undefined)
+    expect(result).toBeUndefined()
+  })
+
+  it('should return undefined when filters is empty object', () => {
+    const result = sanitizeBaseTableFilters(customers, {})
+    expect(result).toBeUndefined()
+  })
+
+  it('should return only base table columns when filters contains valid keys', () => {
+    const filters = {
+      organizationId: 'org-123',
+      email: 'test@example.com',
+    }
+    const result = sanitizeBaseTableFilters(customers, filters)
+    expect(result).toEqual({
+      organizationId: 'org-123',
+      email: 'test@example.com',
+    })
+  })
+
+  it('should filter out cross-table fields that are not on the base table', () => {
+    const filters = {
+      organizationId: 'org-123',
+      email: 'test@example.com',
+      productName: 'Premium Plan', // Cross-table field, not on customers table
+      nameContains: 'Smith', // Cross-table field, not on customers table
+    } as Record<string, unknown>
+    const result = sanitizeBaseTableFilters(customers, filters)
+    expect(result).toEqual({
+      organizationId: 'org-123',
+      email: 'test@example.com',
+    })
+    expect(result).not.toHaveProperty('productName')
+    expect(result).not.toHaveProperty('nameContains')
+  })
+
+  it('should return undefined when all filters are cross-table fields', () => {
+    const filters = {
+      productName: 'Premium Plan',
+      nameContains: 'Smith',
+      unknownField: 'value',
+    } as Record<string, unknown>
+    const result = sanitizeBaseTableFilters(customers, filters)
+    expect(result).toBeUndefined()
+  })
+
+  it('should include valid keys and omit invalid keys', () => {
+    const filters = {
+      organizationId: 'org-123',
+      livemode: true,
+      invalidKey: 'should be filtered',
+      anotherInvalidKey: 123,
+    } as Record<string, unknown>
+    const result = sanitizeBaseTableFilters(customers, filters)
+    expect(result).toEqual({
+      organizationId: 'org-123',
+      livemode: true,
+    })
+    expect(result).not.toHaveProperty('invalidKey')
+    expect(result).not.toHaveProperty('anotherInvalidKey')
+  })
+
+  it('should work with different table types', () => {
+    // Test with a different table (pricingModels)
+    const filters = {
+      organizationId: 'org-123',
+      name: 'Test Model',
+      invalidField: 'should be filtered',
+    } as Record<string, unknown>
+    const result = sanitizeBaseTableFilters(pricingModels, filters)
+    expect(result).toEqual({
+      organizationId: 'org-123',
+      name: 'Test Model',
+    })
+    expect(result).not.toHaveProperty('invalidField')
+  })
+})
+
+describe('buildWhereClauses', () => {
+  let organizationId: string
+  let customer1: Customer.Record
+  let customer2: Customer.Record
+  let customer3: Customer.Record
+
+  beforeEach(async () => {
+    const { organization } = await setupOrg()
+    organizationId = organization.id
+
+    customer1 = await setupCustomer({
+      organizationId,
+      email: 'alice@example.com',
+      name: 'Alice Smith',
+      livemode: true,
+    })
+    customer2 = await setupCustomer({
+      organizationId,
+      email: 'bob@test.com',
+      name: 'Bob Jones',
+      livemode: false,
+    })
+    customer3 = await setupCustomer({
+      organizationId,
+      email: 'charlie@example.com',
+      name: 'Charlie Brown',
+      livemode: true,
+    })
+  })
+
+  it('should return undefined when no filters or search provided', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await buildWhereClauses(
+        customers,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        transaction
+      )
+
+      expect(result.whereClauses).toBeUndefined()
+    })
+  })
+
+  it('should filter by base table columns and sanitize cross-table fields', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const filters = {
+        organizationId,
+        livemode: true,
+        email: customer1.email,
+        productName: 'Premium Plan', // Cross-table field, should be ignored
+      } as Record<string, unknown>
+
+      const { whereClauses } = await buildWhereClauses(
+        customers,
+        filters,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        transaction
+      )
+
+      const results = await transaction
+        .select()
+        .from(customers)
+        .where(whereClauses)
+
+      expect(results.length).toBe(1)
+      expect(results[0].id).toBe(customer1.id)
+    })
+  })
+
+  it('should search across searchable columns', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const { whereClauses } = await buildWhereClauses(
+        customers,
+        { organizationId },
+        'alice',
+        [customers.email, customers.name],
+        undefined,
+        undefined,
+        transaction
+      )
+
+      const results = await transaction
+        .select()
+        .from(customers)
+        .where(whereClauses)
+
+      expect(results.length).toBe(1)
+      expect(results[0].id).toBe(customer1.id)
+    })
+  })
+
+  it('should combine base filters with additional filter clauses using AND', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const { whereClauses } = await buildWhereClauses(
+        customers,
+        { organizationId },
+        undefined,
+        undefined,
+        async () => eq(customers.livemode, true),
+        undefined,
+        transaction
+      )
+
+      const results = await transaction
+        .select()
+        .from(customers)
+        .where(whereClauses)
+
+      expect(results.length).toBe(2)
+      expect(results.every((c) => c.livemode === true)).toBe(true)
+    })
+  })
+
+  it('should combine base search with additional search using OR', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const { whereClauses } = await buildWhereClauses(
+        customers,
+        { organizationId },
+        'bob',
+        [customers.email],
+        undefined,
+        async () => sql`${customers.name} ILIKE ${'%bob%'}`,
+        transaction
+      )
+
+      const results = await transaction
+        .select()
+        .from(customers)
+        .where(whereClauses)
+
+      expect(results.length).toBe(1)
+      expect(results[0].id).toBe(customer2.id)
+    })
+  })
+
+  it('should combine all clauses with AND logic', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const { whereClauses } = await buildWhereClauses(
+        customers,
+        { organizationId, livemode: true },
+        'alice',
+        [customers.email],
+        async () => sql`${customers.name} IS NOT NULL`,
+        undefined,
+        transaction
+      )
+
+      const results = await transaction
+        .select()
+        .from(customers)
+        .where(whereClauses)
+
+      expect(results.length).toBe(1)
+      expect(results[0].id).toBe(customer1.id)
+    })
   })
 })

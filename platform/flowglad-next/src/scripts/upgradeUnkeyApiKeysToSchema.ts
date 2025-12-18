@@ -1,26 +1,23 @@
 /* eslint-disable no-console */
-/* 
+/*
 run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/upgradeUnkeyApiKeysToSchema.ts
 */
 
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import {
-  billingPortalApiKeyMetadataSchema,
-  secretApiKeyMetadataSchema,
-} from '@/db/schema/apiKeys'
+import { secretApiKeyMetadataSchema } from '@/db/schema/apiKeys'
 import { FlowgladApiKeyType } from '@/types'
 import { core } from '@/utils/core'
 import { unkey } from '@/utils/unkey'
 import runScript from './scriptRunner'
 
 async function upgradeUnkeyApiKeysToSchema(db: PostgresJsDatabase) {
-  let allKeys: {
-    id: string
+  let allKeys: Array<{
+    keyId: string
     meta?: {
       [key: string]: unknown
     }
-  }[] = []
+  }> = []
   let cursor
   do {
     const response = await unkey().apis.listKeys({
@@ -28,9 +25,8 @@ async function upgradeUnkeyApiKeysToSchema(db: PostgresJsDatabase) {
       limit: 100,
       cursor,
     })
-    if (!response.result) break
-    allKeys = [...allKeys, ...response.result.keys]
-    cursor = response.result.cursor
+    allKeys = [...allKeys, ...response.data]
+    cursor = response.pagination?.cursor
   } while (cursor)
   const unkeyKeys = { result: { keys: allKeys } }
 
@@ -45,17 +41,7 @@ async function upgradeUnkeyApiKeysToSchema(db: PostgresJsDatabase) {
       )
       if (!metaParseResult.success) {
         console.error(
-          `Invalid secret key metadata for ${key.id}: ${metaParseResult.error}`
-        )
-      }
-    } else if (
-      key.meta?.type === FlowgladApiKeyType.BillingPortalToken
-    ) {
-      const metaParseResult =
-        billingPortalApiKeyMetadataSchema.safeParse(key.meta)
-      if (!metaParseResult.success) {
-        console.error(
-          `Invalid billing portal key metadata for ${key.id}: ${metaParseResult.error}`
+          `Invalid secret key metadata for ${key.keyId}: ${metaParseResult.error}`
         )
       }
     }

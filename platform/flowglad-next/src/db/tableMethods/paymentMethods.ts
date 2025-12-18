@@ -1,11 +1,13 @@
 import {
   and,
   count,
-  desc,
   eq,
+  exists,
   gte,
+  ilike,
   inArray,
   lte,
+  or,
   sql,
 } from 'drizzle-orm'
 import {
@@ -14,7 +16,6 @@ import {
   paymentsInsertSchema,
   paymentsPaginatedTableRowDataSchema,
   paymentsSelectSchema,
-  paymentsTableRowDataSchema,
   paymentsUpdateSchema,
   type RevenueDataItem,
 } from '@/db/schema/payments'
@@ -34,7 +35,6 @@ import type { DbTransaction } from '@/db/types'
 import { PaymentStatus } from '@/types'
 import { getCurrentMonthStartTimestamp } from '@/utils/core'
 import { customers } from '../schema/customers'
-import { invoices } from '../schema/invoices'
 import {
   type PaymentMethod,
   paymentMethods,
@@ -408,6 +408,53 @@ export const selectPaymentsCursorPaginatedWithTableRowData =
         payment,
         customer: customersById.get(payment.customerId)!,
       }))
+    },
+    // searchableColumns: undefined (no direct column search)
+    undefined,
+    /**
+     * Additional search clause handler for payments table.
+     * Enables searching payments by:
+     * - Exact payment ID match
+     * - Customer name (case-insensitive partial match via ILIKE)
+     *
+     * @param searchQuery - The search query string from the user
+     * @param transaction - Database transaction for building subqueries
+     * @returns SQL condition for OR-ing with other search filters, or undefined if query is empty
+     */
+    ({ searchQuery, transaction }) => {
+      // Early return if search query is not provided
+      if (!searchQuery) return undefined
+
+      // Normalize the search query by trimming whitespace
+      const trimmedQuery =
+        typeof searchQuery === 'string'
+          ? searchQuery.trim()
+          : searchQuery
+
+      // Only apply search filter if query is non-empty after trimming
+      if (!trimmedQuery) return undefined
+
+      // IMPORTANT: Do NOT await this query. By not awaiting, we keep it as a query builder
+      // object that Drizzle can embed into the SQL as a subquery. If we await it, it would
+      // execute immediately and return data, which we can't use in the EXISTS clause.
+      const customerSubquery = transaction
+        .select({ id: sql`1` })
+        .from(customers)
+        .where(
+          and(
+            eq(customers.id, payments.customerId),
+            ilike(customers.name, sql`'%' || ${trimmedQuery} || '%'`)
+          )
+        )
+        // LIMIT 1 is included for clarity - EXISTS automatically stops after finding the first matching row.
+        .limit(1)
+
+      return or(
+        // Match payments by exact ID
+        eq(payments.id, trimmedQuery),
+        // Match payments where customer name contains the search query
+        exists(customerSubquery)
+      )
     }
   )
 

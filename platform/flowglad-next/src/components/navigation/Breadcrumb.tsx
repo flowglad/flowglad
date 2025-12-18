@@ -10,7 +10,7 @@ import { usePathname } from 'next/navigation'
  * This allows certain parts of a URL to become navigable links in the breadcrumb.
  */
 const pathMap: Record<string, string> = {
-  products: '/store/products',
+  products: '/pricing-models',
   payments: '/finance/payments',
   subscriptions: '/finance/subscriptions',
 }
@@ -93,14 +93,47 @@ const noCrumbList = [
   'settings',
 ]
 
+interface BreadcrumbProps {
+  /** Custom label to display instead of deriving from URL */
+  label?: string
+  /** Click handler for the breadcrumb */
+  onClick?: () => void
+}
+
 /**
- * Constructs and displays the entire breadcrumb trail based on the current page's URL pathname.
- * It parses the pathname, filters out non-crumbable segments, and then maps the remaining
- * segments to individual `BreadcrumbComponent` instances.
+ * Constructs and displays the entire breadcrumb trail based on the current page's URL pathname,
+ * or renders a custom breadcrumb when label and onClick are provided.
+ * @param props - Optional label and onClick for custom breadcrumb behavior
  * @returns A container with the fully assembled breadcrumb trail.
  */
-const Breadcrumb = () => {
+const Breadcrumb = ({ label, onClick }: BreadcrumbProps) => {
   const pathname = usePathname()
+
+  // If custom label and onClick are provided, render a single custom breadcrumb
+  if (label && onClick) {
+    return (
+      <div
+        className="flex items-center text-sm text-foreground"
+        data-testid="breadcrumb-container"
+      >
+        <button
+          onClick={onClick}
+          className="flex items-center text-sm text-foreground hover:opacity-70 transition-opacity cursor-pointer"
+          data-testid="breadcrumb-item"
+          type="button"
+        >
+          <ChevronLeft
+            size={14}
+            className="mr-1"
+            data-testid="breadcrumb-left-icon"
+          />
+          {label}
+        </button>
+      </div>
+    )
+  }
+
+  // Default behavior: derive breadcrumb from URL pathname
   const pathSegments = pathname.split('/').filter(Boolean)
   const crumbableSubsegments = pathSegments
     .slice(0, -1)

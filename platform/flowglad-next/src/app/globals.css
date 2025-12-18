@@ -220,7 +220,7 @@
     --sidebar-ring: 35 15.2% 40.2%;
     --jade-foreground: 153 48% 83%;
     --jade-muted-foreground: 152 45% 66%;
-    --jade-background: 152 39% 31%;
+    --jade-background: 152 39% 31% / 33%;
   }
 }
 

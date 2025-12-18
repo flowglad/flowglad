@@ -29,6 +29,7 @@ import {
   safelyUpdatePaymentForRefund,
   safelyUpdatePaymentStatus,
   selectPaymentById,
+  selectPaymentsCursorPaginatedWithTableRowData,
   selectRevenueDataForOrganization,
 } from './paymentMethods'
 
@@ -1577,6 +1578,545 @@ describe('selectRevenueDataForOrganization', () => {
 
       expect(revenueData).toBeInstanceOf(Array)
       expect(revenueData.length).toBe(0) // Expect an empty array
+    })
+  })
+})
+
+describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
+  let organization: Organization.Record
+  let organization2: Organization.Record
+  let customer1: Customer.Record
+  let customer2: Customer.Record
+  let customer3: Customer.Record
+  let customerOtherOrg: Customer.Record
+  let invoice1: Invoice.Record
+  let invoice2: Invoice.Record
+  let invoice3: Invoice.Record
+  let invoiceOtherOrg: Invoice.Record
+  let payment1: Payment.Record
+  let payment2: Payment.Record
+  let payment3: Payment.Record
+  let paymentOtherOrg: Payment.Record
+  let price: Price.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    price = orgData.price
+
+    // Setup customers with different names for search testing
+    customer1 = await setupCustomer({
+      organizationId: organization.id,
+      name: 'Alice Smith',
+      email: 'alice@example.com',
+      livemode: true,
+    })
+
+    customer2 = await setupCustomer({
+      organizationId: organization.id,
+      name: 'Bob Jones',
+      email: 'bob@example.com',
+      livemode: true,
+    })
+
+    customer3 = await setupCustomer({
+      organizationId: organization.id,
+      name: 'Charlie Brown',
+      email: 'charlie@example.com',
+      livemode: true,
+    })
+
+    // Setup invoices
+    invoice1 = await setupInvoice({
+      customerId: customer1.id,
+      organizationId: organization.id,
+      priceId: price.id,
+      livemode: true,
+    })
+
+    invoice2 = await setupInvoice({
+      customerId: customer2.id,
+      organizationId: organization.id,
+      priceId: price.id,
+      livemode: true,
+    })
+
+    invoice3 = await setupInvoice({
+      customerId: customer3.id,
+      organizationId: organization.id,
+      priceId: price.id,
+      livemode: true,
+    })
+
+    // Setup payments
+    payment1 = await setupPayment({
+      stripeChargeId: `ch_${nanoid()}`,
+      status: PaymentStatus.Succeeded,
+      amount: 1000,
+      livemode: true,
+      customerId: customer1.id,
+      organizationId: organization.id,
+      invoiceId: invoice1.id,
+      paymentMethod: PaymentMethodType.Card,
+    })
+
+    payment2 = await setupPayment({
+      stripeChargeId: `ch_${nanoid()}`,
+      status: PaymentStatus.Succeeded,
+      amount: 2000,
+      livemode: true,
+      customerId: customer2.id,
+      organizationId: organization.id,
+      invoiceId: invoice2.id,
+      paymentMethod: PaymentMethodType.Card,
+    })
+
+    payment3 = await setupPayment({
+      stripeChargeId: `ch_${nanoid()}`,
+      status: PaymentStatus.Failed,
+      amount: 3000,
+      livemode: true,
+      customerId: customer3.id,
+      organizationId: organization.id,
+      invoiceId: invoice3.id,
+      paymentMethod: PaymentMethodType.Card,
+    })
+
+    // Setup second organization for isolation tests
+    const orgData2 = await setupOrg()
+    organization2 = orgData2.organization
+
+    customerOtherOrg = await setupCustomer({
+      organizationId: organization2.id,
+      name: 'Alice Smith', // Same name as customer1 to test isolation
+      email: 'alice-other@example.com',
+      livemode: true,
+    })
+
+    invoiceOtherOrg = await setupInvoice({
+      customerId: customerOtherOrg.id,
+      organizationId: organization2.id,
+      priceId: orgData2.price.id,
+      livemode: true,
+    })
+
+    paymentOtherOrg = await setupPayment({
+      stripeChargeId: `ch_${nanoid()}`,
+      status: PaymentStatus.Succeeded,
+      amount: 5000,
+      livemode: true,
+      customerId: customerOtherOrg.id,
+      organizationId: organization2.id,
+      invoiceId: invoiceOtherOrg.id,
+      paymentMethod: PaymentMethodType.Card,
+    })
+  })
+
+  describe('search functionality', () => {
+    it('should search by payment ID or customer name (case-insensitive, trims whitespace)', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Test payment ID search
+        const resultById =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: payment1.id,
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultById.items.length).toBe(1)
+        expect(resultById.items[0].payment.id).toBe(payment1.id)
+        expect(resultById.total).toBe(1)
+
+        // Test partial customer name search (case-insensitive)
+        const resultByName =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultByName.items.length).toBe(1)
+        expect(resultByName.items[0].payment.id).toBe(payment1.id)
+        expect(resultByName.items[0].customer.name).toBe(
+          'Alice Smith'
+        )
+
+        // Test case-insensitive search
+        const resultCaseInsensitive =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'CHARLIE',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultCaseInsensitive.items.length).toBe(1)
+        expect(resultCaseInsensitive.items[0].customer.name).toBe(
+          'Charlie Brown'
+        )
+
+        // Test whitespace trimming
+        const resultTrimmed =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: '  alice  ',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultTrimmed.items.length).toBe(1)
+        expect(resultTrimmed.items[0].payment.id).toBe(payment1.id)
+      })
+    })
+
+    it('should ignore empty or whitespace-only search queries', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const resultEmpty =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: '',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        const resultWhitespace =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: '   ',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        const resultUndefined =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: undefined,
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        // All should return all 3 payments
+        expect(resultEmpty.items.length).toBe(3)
+        expect(resultEmpty.total).toBe(3)
+        expect(resultWhitespace.items.length).toBe(3)
+        expect(resultWhitespace.total).toBe(3)
+        expect(resultUndefined.items.length).toBe(3)
+        expect(resultUndefined.total).toBe(3)
+      })
+    })
+
+    it('should only return payments for the specified organization', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Search for "Alice" - should only return payment1, not paymentOtherOrg
+        const result =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        expect(result.items.length).toBe(1)
+        expect(result.items[0].payment.id).toBe(payment1.id)
+        expect(result.items[0].payment.organizationId).toBe(
+          organization.id
+        )
+        expect(result.total).toBe(1)
+      })
+    })
+
+    it('should work with status filters', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Search with status filter
+        const result =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'charlie',
+              filters: {
+                organizationId: organization.id,
+                status: PaymentStatus.Failed,
+              },
+            },
+            transaction,
+          })
+
+        expect(result.items.length).toBe(1)
+        expect(result.items[0].payment.id).toBe(payment3.id)
+        expect(result.items[0].payment.status).toBe(
+          PaymentStatus.Failed
+        )
+        expect(result.total).toBe(1)
+
+        // Search with different status - should return no results
+        const resultNoMatch =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: {
+                organizationId: organization.id,
+                status: PaymentStatus.Failed,
+              },
+            },
+            transaction,
+          })
+
+        expect(resultNoMatch.items.length).toBe(0)
+        expect(resultNoMatch.total).toBe(0)
+      })
+    })
+
+    it('should work with customerId filters', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Search with customerId filter
+        const result =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: {
+                organizationId: organization.id,
+                customerId: customer1.id,
+              },
+            },
+            transaction,
+          })
+
+        expect(result.items.length).toBe(1)
+        expect(result.items[0].payment.id).toBe(payment1.id)
+        expect(result.items[0].payment.customerId).toBe(customer1.id)
+        expect(result.total).toBe(1)
+
+        // Search with different customerId - should return no results
+        const resultNoMatch =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: {
+                organizationId: organization.id,
+                customerId: customer2.id,
+              },
+            },
+            transaction,
+          })
+
+        expect(resultNoMatch.items.length).toBe(0)
+        expect(resultNoMatch.total).toBe(0)
+      })
+    })
+
+    it('should return empty results when no payments match search query', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'David',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        expect(result.items.length).toBe(0)
+        expect(result.total).toBe(0)
+      })
+    })
+
+    it('should return empty results when payment ID does not exist', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentId = `pay_${nanoid()}`
+        const result =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: nonExistentId,
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        expect(result.items.length).toBe(0)
+        expect(result.total).toBe(0)
+      })
+    })
+
+    it('should handle multiple payments with same customer name', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create another payment for customer1
+        const payment1b = await setupPayment({
+          stripeChargeId: `ch_${nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 1500,
+          livemode: true,
+          customerId: customer1.id,
+          organizationId: organization.id,
+          invoiceId: invoice1.id,
+          paymentMethod: PaymentMethodType.Card,
+        })
+
+        const result =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        expect(result.items.length).toBe(2)
+        expect(result.total).toBe(2)
+        const paymentIds = result.items.map((item) => item.payment.id)
+        expect(paymentIds).toContain(payment1.id)
+        expect(paymentIds).toContain(payment1b.id)
+      })
+    })
+
+    it('should return correct total count when searching', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create additional payments for Alice
+        await setupPayment({
+          stripeChargeId: `ch_${nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 1500,
+          livemode: true,
+          customerId: customer1.id,
+          organizationId: organization.id,
+          invoiceId: invoice1.id,
+          paymentMethod: PaymentMethodType.Card,
+        })
+
+        const result =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        expect(result.items.length).toBe(2)
+        expect(result.total).toBe(2)
+      })
+    })
+
+    it('should maintain pagination when searching', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create multiple payments for Alice to test pagination
+        const payments = []
+        for (let i = 0; i < 5; i++) {
+          payments.push(
+            await setupPayment({
+              stripeChargeId: `ch_${nanoid()}`,
+              status: PaymentStatus.Succeeded,
+              amount: 1000 + i * 100,
+              livemode: true,
+              customerId: customer1.id,
+              organizationId: organization.id,
+              invoiceId: invoice1.id,
+              paymentMethod: PaymentMethodType.Card,
+            })
+          )
+        }
+
+        const result =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 3,
+              searchQuery: 'alice',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        expect(result.items.length).toBe(3)
+        expect(result.total).toBeGreaterThanOrEqual(3)
+        expect(result.endCursor).toBeDefined()
+      })
+    })
+
+    it('should return enriched data (payment + customer) when searching', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        expect(result.items.length).toBe(1)
+        expect(result.items[0].payment).toBeDefined()
+        expect(result.items[0].customer).toBeDefined()
+        expect(result.items[0].payment.id).toBe(payment1.id)
+        expect(result.items[0].customer.id).toBe(customer1.id)
+        expect(result.items[0].customer.name).toBe('Alice Smith')
+      })
+    })
+
+    it('should find payments by customer name with special characters', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create a customer with special characters in the name
+        const specialCustomer = await setupCustomer({
+          organizationId: organization.id,
+          name: "O'Brien & Co.",
+          email: 'special@example.com',
+          livemode: true,
+        })
+
+        const specialInvoice = await setupInvoice({
+          customerId: specialCustomer.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+
+        const specialPayment = await setupPayment({
+          stripeChargeId: `ch_${nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 1000,
+          livemode: true,
+          customerId: specialCustomer.id,
+          organizationId: organization.id,
+          invoiceId: specialInvoice.id,
+          paymentMethod: PaymentMethodType.Card,
+        })
+
+        // Search for the customer by name with special characters
+        const result =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: "O'Brien",
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        // Should find the payment for the customer with special characters
+        expect(result.items.length).toBe(1)
+        expect(result.items[0].payment.id).toBe(specialPayment.id)
+        expect(result.items[0].customer.name).toBe("O'Brien & Co.")
+      })
     })
   })
 })

@@ -6,6 +6,7 @@ export type {
   CreateSubscriptionParams,
   CreateUsageEventParams,
   FlowgladActionValidatorMap,
+  UncancelSubscriptionParams,
 } from './actions'
 
 export {
@@ -16,6 +17,7 @@ export {
   createSubscriptionSchema,
   createUsageEventSchema,
   flowgladActionValidators,
+  uncancelSubscriptionSchema,
   updateCustomerSchema,
 } from './actions'
 export * from './types/catalog'

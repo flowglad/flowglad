@@ -16,9 +16,7 @@
     "type-check": "tsc --noEmit",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
-    "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
-    "link:packages": "yalc add @flowglad/nextjs @flowglad/react @flowglad/server @flowglad/shared @flowglad/types && yalc update && bun install --force && yalc update",
-    "unlink:packages": "yalc remove --all && bun install"
+    "db:studio": "drizzle-kit studio --config=drizzle.config.ts"
   },
   "dependencies": {
     "@flowglad/better-auth": "workspace:*",
@@ -36,7 +34,7 @@
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
     "lucide-react": "^0.548.0",
-    "next": "15.5.6",
+    "next": "15.5.9",
     "pg": "^8.16.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",

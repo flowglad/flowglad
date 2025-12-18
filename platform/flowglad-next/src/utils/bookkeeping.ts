@@ -146,83 +146,6 @@ export const updateInvoiceStatusToReflectLatestPayment = async (
 // Original implementation moved to ./bookkeeping/invoices.ts to avoid circular dependency
 export { createInitialInvoiceForPurchase } from './bookkeeping/invoices'
 
-/**
- * Create a purchase that is not yet completed
- * @param payload
- * @param param1
- * @returns
- */
-export const createOpenPurchase = async (
-  payload: Purchase.ClientInsert,
-  { transaction, userId, livemode }: AuthenticatedTransactionParams
-) => {
-  const results = await selectMembershipAndOrganizations(
-    {
-      userId,
-      focused: true,
-    },
-    transaction
-  )
-  const membershipsAndOrganization = results[0]
-  const [{ price }] =
-    await selectPriceProductAndOrganizationByPriceWhere(
-      { id: payload.priceId },
-      transaction
-    )
-
-  let customer = await selectCustomerById(
-    payload.customerId,
-    transaction
-  )
-
-  const stripePaymentIntentId: string | null = null
-  const purchaseInsert: Purchase.Insert = {
-    ...payload,
-    organizationId: membershipsAndOrganization.organization.id,
-    status: PurchaseStatus.Open,
-    livemode,
-  }
-  const purchase = await insertPurchase(purchaseInsert, transaction)
-
-  /**
-   * For subscription purchases, we need to create a Stripe subscription
-   * and then create an invoice for the payment.
-   */
-  if (price.type === PriceType.Subscription) {
-    if (!customer.stripeCustomerId) {
-      const stripeCustomer = await createStripeCustomer({
-        email: customer.email!,
-        name: customer.name!,
-        livemode,
-      })
-      customer = await updateCustomer(
-        {
-          id: customer.id,
-          stripeCustomerId: stripeCustomer.id,
-          billingAddress: customer.billingAddress,
-        },
-        transaction
-      )
-    }
-  }
-
-  /**
-   * If the purchase is a single payment or installments,
-   * we need to create an invoice for the payment.
-   * Subscriptions need to have their invoices created AFTER the subscription is created
-   */
-  if (price.type === PriceType.SinglePayment) {
-    const { invoice, invoiceLineItems } =
-      await createInitialInvoiceForPurchase(
-        {
-          purchase,
-        },
-        transaction
-      )
-  }
-  return purchase
-}
-
 export const purchaseSubscriptionFieldsUpdated = (
   purchase: Purchase.Record,
   payload: Purchase.Update
@@ -354,7 +277,13 @@ export const createCustomerBookkeeping = async (
     transaction
   )
   if (!customer.stripeCustomerId) {
-    const stripeCustomer = await createStripeCustomer(customer)
+    const stripeCustomer = await createStripeCustomer({
+      email: customer.email,
+      name: customer.name,
+      organizationId: customer.organizationId,
+      livemode: customer.livemode,
+      createdBy: 'createCustomerBookkeeping',
+    })
     customer = await updateCustomer(
       {
         id: customer.id,

@@ -1,15 +1,13 @@
 import type { Session } from '@supabase/supabase-js'
-import { verifyKey } from '@unkey/api'
 import type { User } from 'better-auth'
-import { and, asc, desc, eq, or, sql } from 'drizzle-orm'
+import { and, desc, eq, or } from 'drizzle-orm'
 import type { JwtPayload } from 'jsonwebtoken'
-import { headers } from 'next/headers'
 import { z } from 'zod'
 import { FlowgladApiKeyType } from '@/types'
-import { auth, getSession } from '@/utils/auth'
+import { getSession } from '@/utils/auth'
 import core from '@/utils/core'
 import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
-import { parseUnkeyMeta } from '@/utils/unkey'
+import { parseUnkeyMeta, unkey } from '@/utils/unkey'
 import { adminTransaction } from './adminTransaction'
 import db from './client'
 import type { ApiKey } from './schema/apiKeys'
@@ -27,6 +25,7 @@ export interface JWTClaim extends JwtPayload {
   email: string
   role: string
   organization_id: string
+  auth_type: 'api_key' | 'webapp'
 }
 
 interface KeyVerifyResult {
@@ -38,17 +37,12 @@ interface KeyVerifyResult {
 }
 
 const userIdFromUnkeyMeta = (meta: ApiKey.ApiKeyMetadata) => {
-  switch (meta.type) {
-    case FlowgladApiKeyType.Secret:
-      return (meta as ApiKey.SecretMetadata).userId
-    case FlowgladApiKeyType.BillingPortalToken:
-      return (meta as ApiKey.BillingPortalMetadata)
-        .stackAuthHostedBillingUserId
-    default:
-      throw new Error(
-        `userIdFromUnkeyMeta: received invalid API key type`
-      )
+  if (meta.type !== FlowgladApiKeyType.Secret) {
+    throw new Error(
+      `userIdFromUnkeyMeta: received invalid API key type`
+    )
   }
+  return meta.userId
 }
 /**
  * Returns the userId of the user associated with the key, or undefined if the key is invalid.
@@ -57,22 +51,29 @@ const userIdFromUnkeyMeta = (meta: ApiKey.ApiKeyMetadata) => {
  */
 async function keyVerify(key: string): Promise<KeyVerifyResult> {
   if (!core.IS_TEST) {
-    const { result, error } = await verifyKey({
+    const verificationResponse = await unkey().keys.verifyKey({
       key,
-      apiId: core.envVariable('UNKEY_API_ID'),
     })
-    if (error) {
-      throw error
-    }
+    const result = verificationResponse.data
     if (!result) {
       throw new Error('No result for provided API key')
     }
     const meta = parseUnkeyMeta(result.meta)
+    const ownerId = result.identity?.externalId
+    if (!ownerId) {
+      throw new Error(
+        'No ownerId found in API key verification result'
+      )
+    }
+    // Extract environment from key prefix (sk_live_ or sk_test_)
+    const environment =
+      (result.meta?.environment as string | undefined) ||
+      (key.includes('_live_') ? 'live' : 'test')
     return {
       keyType: meta.type,
       userId: userIdFromUnkeyMeta(meta),
-      ownerId: result.ownerId as string,
-      environment: result.environment as string,
+      ownerId,
+      environment,
       metadata: meta,
     }
   }
@@ -122,6 +123,19 @@ interface DatabaseAuthenticationInfo {
   jwtClaim: JWTClaim
 }
 
+/**
+ * Creates authentication info for a Secret API key.
+ *
+ * Sets `auth_type: 'api_key'` in JWT claims, which allows API keys to bypass
+ * the membership `focused` check in RLS policies. This is necessary because
+ * API keys are scoped to a specific organization and should work regardless
+ * of which organization the user has focused in the webapp.
+ *
+ * @param verifyKeyResult - The verified API key result containing:
+ *   - `userId`: The user who created/owns the API key (extracted from metadata)
+ *   - `ownerId`: The organization ID this API key belongs to
+ * @returns Database authentication info with JWT claims set for API key auth
+ */
 export async function dbAuthInfoForSecretApiKeyResult(
   verifyKeyResult: KeyVerifyResult
 ): Promise<DatabaseAuthenticationInfo> {
@@ -153,6 +167,7 @@ export async function dbAuthInfoForSecretApiKeyResult(
     email: 'apiKey@example.com',
     session_id: 'mock_session_123',
     organization_id: verifyKeyResult.ownerId,
+    auth_type: 'api_key',
     user_metadata: {
       id: userId,
       user_metadata: {},
@@ -166,94 +181,6 @@ export async function dbAuthInfoForSecretApiKeyResult(
       },
     },
     app_metadata: { provider: 'apiKey' },
-  }
-  return {
-    userId,
-    livemode,
-    jwtClaim,
-  }
-}
-
-export async function dbAuthInfoForBillingPortalApiKeyResult(
-  verifyKeyResult: KeyVerifyResult
-): Promise<DatabaseAuthenticationInfo> {
-  if (
-    verifyKeyResult.keyType !== FlowgladApiKeyType.BillingPortalToken
-  ) {
-    throw new Error(
-      `dbAuthInfoForBillingPortalApiKey: received invalid API key type: ${verifyKeyResult.keyType}`
-    )
-  }
-  const livemode = verifyKeyResult.environment === 'live'
-  const billingMetadata =
-    verifyKeyResult.metadata as ApiKey.BillingPortalMetadata
-  if (!billingMetadata) {
-    throw new Error(
-      `dbAuthInfoForBillingPortalApiKey: received invalid API key metadata: ${verifyKeyResult.metadata}`
-    )
-  }
-  if (!billingMetadata.organizationId) {
-    throw new Error(
-      `dbAuthInfoForBillingPortalApiKey: received invalid API key metadata: ${verifyKeyResult.metadata}`
-    )
-  }
-  if (!billingMetadata.stackAuthHostedBillingUserId) {
-    throw new Error(
-      `dbAuthInfoForBillingPortalApiKey: received invalid API key metadata: ${verifyKeyResult.metadata}`
-    )
-  }
-  const [customer] = await db
-    .select()
-    .from(customers)
-    .where(
-      and(
-        eq(customers.organizationId, billingMetadata.organizationId),
-        eq(
-          customers.stackAuthHostedBillingUserId,
-          billingMetadata.stackAuthHostedBillingUserId
-        )
-      )
-    )
-  if (!customer) {
-    throw new Error(
-      `Billing Portal Authentication Error: No customer found with externalId ${verifyKeyResult.ownerId}.`
-    )
-  }
-  const membershipsForOrganization = await db
-    .select()
-    .from(memberships)
-    .innerJoin(users, eq(memberships.userId, users.id))
-    .where(
-      and(eq(memberships.organizationId, customer.organizationId))
-    )
-    .orderBy(asc(memberships.createdAt))
-
-  if (membershipsForOrganization.length === 0) {
-    throw new Error(
-      `Billing Portal Authentication Error: No memberships found for organization ${verifyKeyResult.ownerId}.`
-    )
-  }
-  const userId = membershipsForOrganization[0].users.id
-  const jwtClaim: JWTClaim = {
-    role: 'merchant',
-    sub: userId,
-    email: 'apiKey@example.com',
-    user_metadata: {
-      id: userId,
-      user_metadata: {},
-      aud: 'stub',
-      email: 'apiKey@example.com',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      role: 'merchant',
-      app_metadata: {
-        provider: 'apiKey',
-      },
-    },
-    organization_id: customer.organizationId,
-    app_metadata: {
-      provider: 'apiKey',
-    },
   }
   return {
     userId,
@@ -334,6 +261,7 @@ export const dbInfoForCustomerBillingPortal = async ({
       sub: user.id,
       email: user.email!,
       organization_id: customer.organizationId,
+      auth_type: 'webapp',
       user_metadata: {
         id: user.id,
         user_metadata: {},
@@ -361,6 +289,9 @@ export const dbInfoForCustomerBillingPortal = async ({
  * is present in the billing portal cookie state:
  * - If no customer organization ID: authenticates as merchant using focused membership
  * - If customer organization ID exists: authenticates as customer for billing portal
+ *
+ * Sets `auth_type: 'webapp'` in JWT claims, which means RLS policies will enforce
+ * the membership `focused` check (unlike API key auth which bypasses it).
  *
  * @param user - The Better Auth user making the request
  * @param __testOnlyOrganizationId - Optional test organization ID override
@@ -391,10 +322,11 @@ export async function databaseAuthenticationInfoForWebappRequest(
       .limit(1)
     const userId = focusedMembership?.memberships.userId
     const livemode = focusedMembership?.memberships.livemode ?? false
-    const jwtClaim = {
+    const jwtClaim: JWTClaim = {
       role: 'merchant',
       sub: userId,
       email: user.email,
+      auth_type: 'webapp',
       user_metadata: {
         id: userId,
         user_metadata: {},
@@ -409,7 +341,7 @@ export async function databaseAuthenticationInfoForWebappRequest(
       },
       organization_id:
         focusedMembership?.memberships.organizationId ?? '',
-      app_metadata: { provider: 'apiKey' },
+      app_metadata: { provider: 'webapp' },
     }
     return {
       userId,
@@ -435,16 +367,12 @@ export async function databaseAuthenticationInfoForApiKeyResult(
   if (!verifyKeyResult.ownerId) {
     throw new Error('Invalid API key, no ownerId')
   }
-  switch (verifyKeyResult.keyType) {
-    case FlowgladApiKeyType.Secret:
-      return dbAuthInfoForSecretApiKeyResult(verifyKeyResult)
-    case FlowgladApiKeyType.BillingPortalToken:
-      return dbAuthInfoForBillingPortalApiKeyResult(verifyKeyResult)
-    default:
-      throw new Error(
-        `databaseAuthenticationInfoForApiKey: received invalid API key type: ${verifyKeyResult.keyType}`
-      )
+  if (verifyKeyResult.keyType !== FlowgladApiKeyType.Secret) {
+    throw new Error(
+      `databaseAuthenticationInfoForApiKey: received invalid API key type: ${verifyKeyResult.keyType}`
+    )
   }
+  return dbAuthInfoForSecretApiKeyResult(verifyKeyResult)
 }
 
 export async function getDatabaseAuthenticationInfo(params: {

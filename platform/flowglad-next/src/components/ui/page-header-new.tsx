@@ -1,5 +1,6 @@
 import { ChevronLeft, MoreHorizontal } from 'lucide-react'
 import type { ReactNode } from 'react'
+import React from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from './button'
 import {
@@ -64,8 +65,8 @@ interface PageHeaderNewProps {
   onBreadcrumbClick?: () => void
   /** Status badges to display below title */
   badges?: StatusBadge[]
-  /** Optional description text */
-  description?: string
+  /** Optional description text or element */
+  description?: ReactNode
   /** Action buttons to display */
   actions?: PageHeaderAction[]
   /** Show more menu button */
@@ -92,8 +93,7 @@ export function PageHeaderNew({
       className={cn(
         'flex flex-col items-start justify-center w-full',
         'border-b border-border',
-        // TODO: Revert px-0 to px-4 once global page layout redesign is completed
-        'px-0 pt-4 pb-0',
+        'px-4 pt-20 pb-0',
         className
       )}
       style={{
@@ -106,7 +106,7 @@ export function PageHeaderNew({
       }}
     >
       {/* Headline wrapper */}
-      <div className="flex flex-col gap-0.5 items-start w-full">
+      <div className="flex flex-col gap-1 items-start w-full">
         {/* Breadcrumb navigation */}
         {breadcrumb && onBreadcrumbClick ? (
           <button
@@ -149,7 +149,7 @@ export function PageHeaderNew({
                   badge.variant === 'active' &&
                     'text-[hsl(var(--jade-muted-foreground))]',
                   badge.variant === 'muted' &&
-                    'text-muted-foreground opacity-80',
+                    'text-muted-foreground',
                   badge.variant === 'destructive' &&
                     'text-destructive',
                   badge.variant === 'warning' &&
@@ -175,9 +175,9 @@ export function PageHeaderNew({
 
           {/* Optional description */}
           {description && (
-            <p className="font-sans font-medium text-sm text-muted-foreground opacity-80 leading-5 whitespace-nowrap">
+            <div className="font-sans font-medium text-sm text-muted-foreground leading-5 whitespace-nowrap">
               {description}
-            </p>
+            </div>
           )}
         </div>
       )}

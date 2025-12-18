@@ -43,11 +43,14 @@ export const selectDiscountsPaginated = createPaginatedSelectFunction(
   config
 )
 
-const enrichmentFunction = async (
-  data: z.infer<typeof discountsSelectSchema>[],
+// Extract the core redemption count calculation logic
+const getRedemptionCountsMap = async (
+  discountIds: string[],
   transaction: DbTransaction
-) => {
-  const discountIds = data.map((discount) => discount.id)
+): Promise<Map<string, number>> => {
+  if (discountIds.length === 0) {
+    return new Map()
+  }
 
   const redemptionCounts = await transaction
     .select({
@@ -58,14 +61,42 @@ const enrichmentFunction = async (
     .where(inArray(discountRedemptions.discountId, discountIds))
     .groupBy(discountRedemptions.discountId)
 
-  const redemptionCountMap = new Map(
+  return new Map(
     redemptionCounts.map((item) => [item.discountId, item.count])
+  )
+}
+
+// Export function to add redemption count directly to discount objects (for list endpoint)
+export const enrichDiscountsWithRedemptionCounts = async (
+  discounts: z.infer<typeof discountsSelectSchema>[],
+  transaction: DbTransaction
+) => {
+  const discountIds = discounts.map((discount) => discount.id)
+  const redemptionCountMap = await getRedemptionCountsMap(
+    discountIds,
+    transaction
+  )
+
+  return discounts.map((discount) => ({
+    ...discount,
+    redemptionCount: redemptionCountMap.get(discount.id) || 0,
+  }))
+}
+
+// Keep existing enrichmentFunction for getTableRowsProcedure (returns { discount, redemptionCount })
+const enrichmentFunction = async (
+  data: z.infer<typeof discountsSelectSchema>[],
+  transaction: DbTransaction
+) => {
+  const discountIds = data.map((discount) => discount.id)
+  const redemptionCountMap = await getRedemptionCountsMap(
+    discountIds,
+    transaction
   )
 
   return data.map((discount) => ({
     discount,
-    discountRedemptionsCount:
-      redemptionCountMap.get(discount.id) || 0,
+    redemptionCount: redemptionCountMap.get(discount.id) || 0,
   }))
 }
 

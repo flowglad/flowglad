@@ -16,6 +16,7 @@ import {
   createProductCheckoutSessionSchema,
   createUsageEventSchema,
   type SubscriptionExperimentalFields,
+  type UncancelSubscriptionParams,
 } from '@flowglad/shared'
 import { getSessionFromParams } from './serverUtils'
 import type {
@@ -368,6 +369,12 @@ export class FlowgladServer {
     return await this.flowgladNode.customers.create(params)
   }
 
+  /**
+   * Create a checkout session.
+   * You can provide either `priceId` or `priceSlug` (but not both).
+   * @param params - Checkout session parameters. Must include either `priceId` or `priceSlug`, plus `successUrl` and `cancelUrl`.
+   * @returns The created checkout session with a URL for redirecting the customer.
+   */
   public createCheckoutSession = async (
     params: CreateProductCheckoutSessionParams
   ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
@@ -378,31 +385,17 @@ export class FlowgladServer {
     if (!session) {
       throw new Error('User not authenticated')
     }
-    let priceId: string
-    if (params.priceId) {
-      priceId = params.priceId
-    } else if (params.priceSlug) {
-      const billing = await this.getBilling()
-      const price = billing.getPrice(params.priceSlug)
-      if (!price) {
-        throw new Error('Price not found')
-      }
-      priceId = price.id
-    } else {
-      throw new Error('Price ID or price slug must be provided')
-    }
+
     const parsedParams = createProductCheckoutSessionSchema.parse({
       ...params,
       type: 'product',
-      priceId,
       customerExternalId: session.externalId,
     })
+
     return this.flowgladNode.checkoutSessions.create({
       checkoutSession: {
         ...parsedParams,
-        // FIXME: need to hard code these to make types pass
         type: 'product',
-        priceId,
         customerExternalId: session.externalId,
       },
     })
@@ -472,16 +465,52 @@ export class FlowgladServer {
   ): Promise<FlowgladNode.Subscriptions.SubscriptionCancelResponse> => {
     const { subscription } =
       await this.flowgladNode.subscriptions.retrieve(params.id)
-    if (subscription.status === 'canceled') {
-      throw new Error('Subscription is already canceled')
-    }
+
     const { customer } = await this.getCustomer()
     if (subscription.customerId !== customer.id) {
       throw new Error('Subscription is not owned by the current user')
     }
+
+    if (subscription.status === 'canceled') {
+      throw new Error('Subscription is already canceled')
+    }
+
     return this.flowgladNode.subscriptions.cancel(params.id, {
       cancellation:
         params.cancellation as FlowgladNode.Subscriptions.SubscriptionCancelParams['cancellation'],
+    })
+  }
+
+  /**
+   * Uncancel a subscription that is scheduled for cancellation.
+   *
+   * @param params - Parameters containing the subscription ID to uncancel
+   * @returns The uncanceled subscription
+   * @throws {Error} If the subscription is not owned by the authenticated customer
+   *
+   * Note: This method is idempotent. If the subscription is not in 'cancellation_scheduled'
+   * status, it returns the subscription without modification.
+   */
+  public uncancelSubscription = async (
+    params: UncancelSubscriptionParams
+  ): Promise<FlowgladNode.Subscriptions.SubscriptionUncancelResponse> => {
+    const { subscription } =
+      await this.flowgladNode.subscriptions.retrieve(params.id)
+
+    const { customer } = await this.getCustomer()
+    if (subscription.customerId !== customer.id) {
+      throw new Error('Subscription is not owned by the current user')
+    }
+
+    // Validation: Check if subscription is scheduled to cancel
+    if (subscription.status !== 'cancellation_scheduled') {
+      // Idempotent: silently succeed if not scheduled to cancel
+      return { subscription }
+    }
+
+    // Pass an empty body to ensure Content-Type: application/json is set
+    return this.flowgladNode.subscriptions.uncancel(params.id, {
+      body: {},
     })
   }
 
@@ -495,7 +524,6 @@ export class FlowgladServer {
       customerId: customer.id,
     }
     // const parsedParams = createSubscriptionSchema.parse(rawParams)
-    // @ts-expect-error
     return this.flowgladNode.subscriptions.create(rawParams)
   }
 

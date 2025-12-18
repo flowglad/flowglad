@@ -8,6 +8,7 @@ export enum FlowgladActionKey {
   CreateAddPaymentMethodCheckoutSession = 'checkout-sessions/create-add-payment-method',
   CreateActivateSubscriptionCheckoutSession = 'checkout-sessions/create-activate-subscription',
   CancelSubscription = 'subscriptions/cancel',
+  UncancelSubscription = 'subscriptions/uncancel',
   CreateSubscription = 'subscriptions/create',
   UpdateCustomer = 'customers/update',
 }
@@ -98,5 +99,5 @@ export type BillingWithChecks = CustomerRetrieveBillingResponse & {
 }
 
 export type SubscriptionExperimentalFields =
-  | FlowgladNode.CustomerRetrieveBillingResponse.NonRenewingSubscriptionDetails.Experimental
-  | FlowgladNode.CustomerRetrieveBillingResponse.StandardSubscriptionDetails.Experimental
+  | FlowgladNode.NonRenewingSubscriptionDetails.Experimental
+  | FlowgladNode.StandardSubscriptionDetails.Experimental

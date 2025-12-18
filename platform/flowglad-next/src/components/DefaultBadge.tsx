@@ -4,7 +4,7 @@ const DefaultBadge = () => {
   return (
     <Badge
       variant="secondary"
-      className="bg-green-100 text-green-800"
+      className="bg-jade-background text-jade-foreground"
     >
       Default
     </Badge>

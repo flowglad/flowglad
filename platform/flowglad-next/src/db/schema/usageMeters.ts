@@ -23,7 +23,7 @@ import {
   tableBase,
 } from '@/db/tableUtils'
 import { PriceType, UsageMeterAggregationType } from '@/types'
-import core from '@/utils/core'
+import core, { safeZodSanitizedString } from '@/utils/core'
 
 const TABLE_NAME = 'usage_meters'
 
@@ -84,6 +84,12 @@ const columnRefinements = {
     .describe(
       'The type of aggregation to perform on the usage meter. Defaults to "sum", which aggregates all the usage event amounts for the billing period. "count_distinct_properties" counts the number of distinct properties in the billing period for a given meter.'
     ),
+  name: safeZodSanitizedString.describe(
+    'The name of the usage meter'
+  ),
+  slug: safeZodSanitizedString.describe(
+    'The slug of the usage meter'
+  ),
 }
 
 const hiddenColumns = {

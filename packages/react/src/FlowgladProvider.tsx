@@ -16,7 +16,7 @@ const queryClient = new QueryClient()
 export interface LoadedFlowgladProviderProps {
   children: React.ReactNode
   requestConfig?: RequestConfig
-  serverRoute?: string
+  baseURL?: string
   loadBilling: boolean
 }
 
@@ -44,13 +44,15 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
     )
   }
 
-  const { serverRoute, loadBilling, requestConfig, children } =
+  const { baseURL, loadBilling, requestConfig, children } =
     props as LoadedFlowgladProviderProps
-  validateUrl(serverRoute, 'serverRoute', true)
+  if (baseURL) {
+    validateUrl(baseURL, 'baseURL', true)
+  }
   return (
     <QueryClientProvider client={queryClient}>
       <FlowgladContextProvider
-        serverRoute={serverRoute}
+        baseURL={baseURL}
         loadBilling={loadBilling}
         requestConfig={requestConfig}
       >

@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/react",
-  "version": "0.14.0",
+  "version": "0.15.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -15,7 +15,7 @@
     "build:declarations": "tsc -p tsconfig.declarations.json"
   },
   "dependencies": {
-    "@flowglad/node": "0.23.0",
+    "@flowglad/node": "0.24.0",
     "@flowglad/shared": "workspace:*",
     "@tanstack/react-query": "5.66.0",
     "clsx": "2.1.1",

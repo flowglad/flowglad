@@ -2,13 +2,12 @@ import { FlowgladServer } from '@flowglad/nextjs/server'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 
-// Use betterAuth adapter for FlowgladServer
 export const flowglad = (customerExternalId: string) => {
-  console.log('flowglad.customerExternalId', customerExternalId)
   return new FlowgladServer({
-    customerExternalId,
+    // rm for production
     baseURL: 'http://localhost:3000',
-    getCustomerDetails: async () => {
+    customerExternalId,
+    getCustomerDetails: async (customerExternalId) => {
       const session = await auth.api.getSession({
         headers: await headers(),
       })
@@ -16,8 +15,8 @@ export const flowglad = (customerExternalId: string) => {
         throw new Error('User not authenticated')
       }
       return {
-        email: session.user.email,
-        name: session.user.name,
+        email: session.user.email || '',
+        name: session.user.name || '',
       }
     },
   })

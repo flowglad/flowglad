@@ -15,7 +15,7 @@ bun add @flowglad/nextjs
 ## Requirements
 
 - React 18 or 19
-- Next.js 14 or 15
+- Next.js 14, 15, or 16
 
 ## Usage
 
@@ -59,7 +59,7 @@ import { FlowgladProvider } from '@flowglad/nextjs';
 export default function RootLayout({ children }) {
   return (
     <FlowgladProvider
-      serverRoute="/api/flowglad" // Your Flowglad API route
+      baseURL="https://your-app.com" // Base URL of your app (optional, defaults to relative /api/flowglad)
       loadBilling={true} // Set to true to load billing data
     >
       {children}

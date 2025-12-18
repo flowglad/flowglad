@@ -4,7 +4,7 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
+import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 
 export const stripePaymentIntentRequiresActionTask = task({
   id: 'stripe-payment-intent-requires-action',
@@ -16,8 +16,8 @@ export const stripePaymentIntentRequiresActionTask = task({
     if ('billingRunId' in metadata) {
       return comprehensiveAdminTransaction(
         async ({ transaction }) => {
-          return await processPaymentIntentEventForBillingRun(
-            payload,
+          return await processOutcomeForBillingRun(
+            { input: payload },
             transaction
           )
         }

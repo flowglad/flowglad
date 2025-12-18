@@ -59,16 +59,15 @@ export function ExpandSection({
         <div
           className={cn(
             'box-border flex flex-col gap-2.5 items-start w-full',
-            // TODO: Revert px-0 to px-4 once global page layout redesign is completed
-            isExpanded ? 'pb-1 pt-4 px-0' : 'pt-4 px-0 pb-0'
+            isExpanded ? 'pb-1 pt-4 px-4' : 'pt-4 px-4 pb-0'
           )}
         >
           <CollapsibleTrigger asChild>
             <button
               type="button"
-              className="group bg-transparent box-border flex h-9 items-center justify-between px-3 py-2 rounded w-full hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="group bg-transparent box-border flex h-9 items-center justify-between gap-2 px-3 py-2 rounded w-full hover:bg-accent hover:text-accent-foreground transition-colors"
             >
-              <span className="font-sans font-medium text-base text-foreground leading-6">
+              <span className="font-sans font-medium text-base text-foreground leading-6 truncate min-w-0">
                 {title}
               </span>
               <div className="rounded-[4px] border border-border bg-background transition-colors group-hover:border-muted-foreground">
@@ -86,8 +85,7 @@ export function ExpandSection({
         <CollapsibleContent
           className={cn(
             'box-border flex flex-col gap-2 items-start pb-4 pt-0 w-full',
-            // TODO: Revert px-0 to px-4 once global page layout redesign is completed
-            contentPadding && 'px-0'
+            contentPadding && 'px-4'
           )}
         >
           {children}

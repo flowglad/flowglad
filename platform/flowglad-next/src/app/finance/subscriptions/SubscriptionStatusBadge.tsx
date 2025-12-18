@@ -5,7 +5,8 @@ import { SubscriptionStatus } from '@/types'
 import core from '@/utils/core'
 
 const subscriptionStatusColors: Record<SubscriptionStatus, string> = {
-  [SubscriptionStatus.Active]: 'bg-green-100 text-green-800',
+  [SubscriptionStatus.Active]:
+    'bg-jade-background text-jade-foreground',
   [SubscriptionStatus.Canceled]: 'bg-red-100 text-red-800',
   [SubscriptionStatus.CancellationScheduled]:
     'bg-red-100 text-red-800',

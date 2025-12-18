@@ -19,7 +19,6 @@ import {
   updateSubscriptionPaymentMethodSchema,
 } from '@/db/schema/subscriptions'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
-import { safelyInsertBillingRun } from '@/db/tableMethods/billingRunMethods'
 import {
   selectCustomerByExternalIdAndOrganizationId,
   selectCustomerById,
@@ -34,6 +33,7 @@ import {
 } from '@/db/tableMethods/priceMethods'
 import {
   isSubscriptionCurrent,
+  selectDistinctSubscriptionProductNames,
   selectSubscriptionById,
   selectSubscriptionCountsByStatus,
   selectSubscriptionsPaginated,
@@ -48,14 +48,18 @@ import {
 } from '@/db/tableUtils'
 import { adjustSubscription } from '@/subscriptions/adjustSubscription'
 import {
-  createBillingRunInsert,
+  createBillingRun,
   executeBillingRun,
 } from '@/subscriptions/billingRunHelpers'
-import { cancelSubscriptionProcedureTransaction } from '@/subscriptions/cancelSubscription'
+import {
+  cancelSubscriptionProcedureTransaction,
+  uncancelSubscriptionProcedureTransaction,
+} from '@/subscriptions/cancelSubscription'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
   adjustSubscriptionInputSchema,
   scheduleSubscriptionCancellationSchema,
+  uncancelSubscriptionSchema,
 } from '@/subscriptions/schemas'
 import {
   BillingPeriodStatus,
@@ -78,6 +82,9 @@ export const subscriptionsRouteConfigs = [
     routeParams: ['id'],
   }),
   trpcToRest('subscriptions.cancel', {
+    routeParams: ['id'],
+  }),
+  trpcToRest('subscriptions.uncancel', {
     routeParams: ['id'],
   }),
 ]
@@ -151,6 +158,30 @@ const cancelSubscriptionProcedure = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       cancelSubscriptionProcedureTransaction
+    )
+  )
+
+const uncancelSubscriptionProcedure = protectedProcedure
+  .meta({
+    openapi: {
+      method: 'POST',
+      path: '/api/v1/subscriptions/{id}/uncancel',
+      summary: 'Uncancel Subscription',
+      description:
+        'Reverses a scheduled subscription cancellation. The subscription must be in `cancellation_scheduled` status. This will restore the subscription to its previous status (typically `active` or `trialing`) and reschedule any billing runs that were aborted. For paid subscriptions, a valid payment method is required.',
+      tags: ['Subscriptions'],
+      protect: true,
+    },
+  })
+  .input(uncancelSubscriptionSchema)
+  .output(
+    z.object({
+      subscription: subscriptionClientSelectSchema,
+    })
+  )
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      uncancelSubscriptionProcedureTransaction
     )
   )
 
@@ -281,6 +312,13 @@ export const createSubscriptionInputSchema = z
       .describe(
         `The payment method to try if charges for the subscription fail with the default payment method.`
       ),
+    doNotCharge: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe(
+        `If true, the subscription item's unitPrice will be set to 0, resulting in no charges. The original price.unitPrice value in the price record remains unchanged.`
+      ),
     // FIXME: Consider exposing preserveBillingCycleAnchor to the API
   })
   .refine(
@@ -300,6 +338,22 @@ export const createSubscriptionInputSchema = z
       message:
         'Either priceId or priceSlug must be provided, but not both',
       path: ['priceId'],
+    }
+  )
+  .refine(
+    (data) => {
+      // If doNotCharge is true, payment methods should not be provided
+      if (data.doNotCharge) {
+        return (
+          !data.defaultPaymentMethodId && !data.backupPaymentMethodId
+        )
+      }
+      return true
+    },
+    {
+      message:
+        'Payment methods cannot be provided when doNotCharge is true. Payment methods are not needed since no charges will be made.',
+      path: ['doNotCharge'],
     }
   )
 
@@ -430,6 +484,7 @@ const createSubscriptionProcedure = protectedProcedure
             backupPaymentMethod,
             livemode: ctx.livemode,
             autoStart: true,
+            doNotCharge: input.doNotCharge,
             // FIXME: Uncomment if we decide to expose preserveBillingCycleAnchor in the API
             // preserveBillingCycleAnchor: input.preserveBillingCycleAnchor ?? false,
           },
@@ -484,6 +539,8 @@ const getTableRows = protectedProcedure
         status: z.nativeEnum(SubscriptionStatus).optional(),
         customerId: z.string().optional(),
         organizationId: z.string().optional(),
+        productName: z.string().optional(),
+        isFreePlan: z.boolean().optional(),
       })
     )
   )
@@ -580,6 +637,15 @@ const retryBillingRunProcedure = protectedProcedure
           billingPeriod.subscriptionId,
           transaction
         )
+
+        if (subscription.doNotCharge) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Cannot retry billing for doNotCharge subscriptions',
+          })
+        }
+
         const paymentMethod = subscription.defaultPaymentMethodId
           ? await selectPaymentMethodById(
               subscription.defaultPaymentMethodId,
@@ -602,12 +668,14 @@ const retryBillingRunProcedure = protectedProcedure
           })
         }
 
-        const billingRunInsert = createBillingRunInsert({
-          billingPeriod,
-          scheduledFor: new Date(),
-          paymentMethod,
-        })
-        return safelyInsertBillingRun(billingRunInsert, transaction)
+        return createBillingRun(
+          {
+            billingPeriod,
+            scheduledFor: new Date(),
+            paymentMethod,
+          },
+          transaction
+        )
       },
       { apiKey: ctx.apiKey }
     )
@@ -623,9 +691,38 @@ const retryBillingRunProcedure = protectedProcedure
     }
   })
 
+/**
+ * Retrieves all distinct product names from subscriptions within the authenticated organization.
+ *
+ * This procedure queries all subscriptions in the organization and returns a unique list
+ * of product names associated with those subscriptions. The result is scoped to the
+ * organization associated with the provided API key.
+ *
+ * @returns An array of unique product name strings. Returns an empty array if no
+ *          subscriptions exist or no distinct product names are found.
+ */
+const listDistinctSubscriptionProductNamesProcedure =
+  protectedProcedure
+    .input(z.object({}).optional())
+    .output(z.array(z.string()))
+    .query(async ({ ctx }) => {
+      return authenticatedTransaction(
+        async ({ transaction, organizationId }) => {
+          return selectDistinctSubscriptionProductNames(
+            organizationId,
+            transaction
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    })
+
 export const subscriptionsRouter = router({
   adjust: adjustSubscriptionProcedure,
   cancel: cancelSubscriptionProcedure,
+  uncancel: uncancelSubscriptionProcedure,
   list: listSubscriptionsProcedure,
   get: getSubscriptionProcedure,
   create: createSubscriptionProcedure,
@@ -633,5 +730,7 @@ export const subscriptionsRouter = router({
   retryBillingRunProcedure,
   getTableRows,
   updatePaymentMethod: updatePaymentMethodProcedure,
+  listDistinctSubscriptionProductNames:
+    listDistinctSubscriptionProductNamesProcedure,
   addFeatureToSubscription,
 })

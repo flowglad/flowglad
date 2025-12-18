@@ -25,12 +25,25 @@ If you create a subscription without a payment method attached, you must collect
 If there is a payment method associated with a subscription on a free trial, Flowglad will attempt to charge the payment method when the trial ends. If the payment method fails, Flowglad will not activate the subscription.
 
 ### Cancel Subscriptions
-You can cancel a subscription with `useBilling`'s `cancelSubscription` from client side or with `flowgladServer`'s `cancelSubscription` from server side. You provide the subscription `id` and specify the cancellation timing-- either `immediately`, `at_end_of_current_billing_period`, or `at_future_date` and specify the `endDate` (see the cancel subscription API [body](/api-reference/subscriptions/cancel-subscription#body-cancellation) for details).
+You can cancel a subscription with `useBilling`'s `cancelSubscription` from client side or with `flowgladServer`'s `cancelSubscription` from server side. You provide the subscription `id` and specify the cancellation timing-- either `immediately` or `at_end_of_current_billing_period` (see the cancel subscription API [body](/api-reference/subscriptions/cancel-subscription#body-cancellation) for details).
+
+### Uncancel Subscriptions
+If a subscription has been scheduled for cancellation (status `cancellation_scheduled`), you can reverse the cancellation before it takes effect using `useBilling`'s `uncancelSubscription` from client side or `flowgladServer`'s `uncancelSubscription` from server side. You provide just the subscription `id`.
+
+**Requirements:**
+- The subscription must be in `cancellation_scheduled` status (cancellation timing was `at_end_of_current_billing_period`)
+- For paid subscriptions, a valid payment method must exist for the subscription. For free subscriptions, no payment method is required
+
+**Behavior:**
+- The operation is idempotent - calling it on a subscription that isn't scheduled for cancellation will silently succeed without uncanceling
+- The subscription status reverts to `active` (or `trialing` if still in trial period)
+- Any billing runs that were aborted due to the cancellation are rescheduled
+
 ### What you can do
 
 - Allow customer to complete a subscription product checkout which will create a subscription automatically.
 - Create subscriptions server-side using the Flowglad Server SDK.
-- Trigger cancellations from server or client flows.
+- Trigger cancellations and uncancellations from server or client flows.
 - Check entitlements for feature access or usage credits based on customer subscription.
 
 ### Example: Create subscription
@@ -224,6 +237,101 @@ You can cancel a subscription with `useBilling`'s `cancelSubscription` from clie
       cancellation: {
         timing: 'at_end_of_current_billing_period',
       },
+    })
+
+    return response.subscription
+  }
+  ```
+
+  </Tab>
+</Tabs>
+
+### Example: Uncancel subscription
+
+<Tabs>
+  <Tab title="Client">
+
+  ```tsx
+  'use client'
+
+  import { useState } from 'react'
+  import { useBilling } from '@flowglad/nextjs'
+
+  export function UncancelSubscriptionButton({
+    subscriptionId,
+  }: {
+    subscriptionId: string
+  }) {
+    const { uncancelSubscription } = useBilling()
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const handleUncancel = async () => {
+      setError(null)
+
+      if (!uncancelSubscription) {
+        setError('Uncancel is not available right now.')
+        return
+      }
+
+      try {
+        setIsLoading(true)
+        await uncancelSubscription({
+          id: subscriptionId,
+        })
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to uncancel subscription.'
+        )
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    return (
+      <>
+        <button onClick={handleUncancel} disabled={isLoading}>
+          {isLoading ? 'Uncanceling...' : 'Keep My Subscription'}
+        </button>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </>
+    )
+  }
+  ```
+
+  </Tab>
+  <Tab title="Server">
+
+  ```ts
+  import { FlowgladServer } from '@flowglad/server'
+  import { auth } from '@/lib/auth'
+/**
+* Note: this only demonstrates how to 
+* uncancel a subscription from your backend.
+* If you initiate the uncancel using `uncancelSubscription`
+* from your frontend, your Flowglad route handler
+* will handle this automatically
+*/
+  const flowglad = (customerExternalId: string) => {
+    // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (externalId) => {
+        const user = await db.users.findOne({ id: externalId })
+        return {
+          email: user.email,
+          name: user.name,
+        }
+      },
+    })
+  }
+
+  export async function uncancelSubscription(subscriptionId: string, customerExternalId: string) {
+    // Pass YOUR app's user/organization ID, not Flowglad's customer ID
+    const response = await flowglad(customerExternalId).uncancelSubscription({
+      id: subscriptionId,
     })
 
     return response.subscription

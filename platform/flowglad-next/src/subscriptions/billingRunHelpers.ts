@@ -18,14 +18,10 @@ import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatur
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
-import {
-  selectBillingPeriods,
-  updateBillingPeriod,
-} from '@/db/tableMethods/billingPeriodMethods'
+import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import {
   safelyInsertBillingRun,
   selectBillingRunById,
-  selectBillingRuns,
   updateBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
@@ -54,7 +50,7 @@ import {
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import type { DbTransaction } from '@/db/types'
-import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
+import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
 import {
   BillingPeriodStatus,
@@ -64,10 +60,8 @@ import {
   FeatureType,
   InvoiceStatus,
   InvoiceType,
-  LedgerTransactionType,
   PaymentStatus,
   SubscriptionItemType,
-  SubscriptionStatus,
   type UsageBillingInfo,
 } from '@/types'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
@@ -440,12 +434,16 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     billingRun.paymentMethodId,
     transaction
   )
-  const { rawOutstandingUsageCosts: usageOverages } =
+  // For doNotCharge subscriptions, skip usage overages - they're recorded but not charged
+  const { rawOutstandingUsageCosts } =
     await tabulateOutstandingUsageCosts(
       billingPeriod.subscriptionId,
       new Date(billingPeriod.endDate),
       transaction
     )
+  const usageOverages = subscription.doNotCharge
+    ? []
+    : rawOutstandingUsageCosts
   const { feeCalculation, totalDueAmount } =
     await calculateFeeAndTotalAmountDueForBillingPeriod(
       {
@@ -930,8 +928,11 @@ export const executeBillingRun = async (
       confirmationResult.status === 'requires_payment_method'
     ) {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processPaymentIntentEventForBillingRun(
-          confirmationResult,
+        return await processOutcomeForBillingRun(
+          {
+            input: confirmationResult,
+            adjustmentParams: adjustmentParams,
+          },
           transaction
         )
       })

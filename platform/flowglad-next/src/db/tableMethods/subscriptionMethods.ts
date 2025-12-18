@@ -2,7 +2,9 @@ import {
   and,
   count,
   eq,
+  exists,
   gte,
+  ilike,
   inArray,
   isNull,
   lte,
@@ -29,6 +31,7 @@ import {
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
+  type SelectConditions,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { CancellationReason, SubscriptionStatus } from '@/types'
@@ -53,6 +56,17 @@ const config: ORMMethodCreatorConfig<
   insertSchema: subscriptionsInsertSchema,
   updateSchema: subscriptionsUpdateSchema,
   tableName: 'subscriptions',
+}
+
+/**
+ * Extended filter type for subscriptions table that includes cross-table filters.
+ * The `productName` filter is not on the subscriptions table itself, but comes
+ * from the related products table via prices.
+ */
+export type SubscriptionTableFilters = SelectConditions<
+  typeof subscriptions
+> & {
+  productName?: string
 }
 
 export const selectSubscriptionById = createSelectById(
@@ -246,6 +260,96 @@ export const selectSubscriptionsTableRowData =
           customer: customerClientSelectSchema.parse(customer),
         }
       })
+    },
+    // searchableColumns: undefined (no direct column search)
+    undefined,
+    /**
+     * Additional search clause handler for subscription table.
+     * Enables searching subscriptions by:
+     * - Exact subscription ID match
+     * - Customer name (case-insensitive partial match via ILIKE)
+     *
+     * The `exists()` function wraps a subquery and returns a boolean condition:
+     * - Returns `true` if the subquery finds at least one matching row
+     * - Returns `false` if the subquery finds zero matching rows
+     * The database optimizes EXISTS subqueries to stop evaluating as soon as it finds
+     * the first matching row, making it efficient for existence checks without needing JOINs.
+     *
+     * @param searchQuery - The search query string from the user
+     * @param transaction - Database transaction for building subqueries
+     * @returns SQL condition for OR-ing with other search filters, or undefined if query is empty
+     */
+    ({ searchQuery, transaction }) => {
+      // FIXME: Consider using a JOIN in the main query builder instead of an EXISTS subquery.
+      // This would eliminate the need for the separate customer fetch in the enrichment function
+      // (lines 206-210), potentially improving performance by reducing from 2 queries to 1.
+      // This would require refactoring `createCursorPaginatedSelectFunction` to support joins
+      // in the main query.
+      // Normalize the search query by trimming whitespace
+      const trimmedQuery =
+        typeof searchQuery === 'string'
+          ? searchQuery.trim()
+          : searchQuery
+
+      // Only apply search filter if query is non-empty
+      if (!trimmedQuery) return undefined
+
+      // IMPORTANT: Do NOT await this query. By not awaiting, we keep it as a query builder
+      // object that Drizzle can embed into the SQL as a subquery. If we await it, it would
+      // execute immediately and return data, which we can't use in the EXISTS clause.
+      const customerSubquery = transaction
+        .select({ id: sql`1` })
+        .from(customers)
+        .where(
+          and(
+            eq(customers.id, subscriptions.customerId),
+            ilike(customers.name, sql`'%' || ${trimmedQuery} || '%'`)
+          )
+        )
+        // LIMIT 1 is included for clarity - EXISTS automatically stops after finding the first matching row.
+        .limit(1)
+
+      return or(
+        // Match subscriptions by exact ID
+        eq(subscriptions.id, trimmedQuery),
+        // Match subscriptions where customer name contains the search query
+        // The exists() function checks if the customerSubquery returns at least one row
+        exists(customerSubquery)
+      )
+    },
+    /**
+     * Additional filter clause handler for subscription table.
+     * Enables filtering subscriptions by product name (cross-table filter).
+     * The product name is not directly on the subscriptions table, but is
+     * accessed via the prices -> products relationship.
+     *
+     * @param filters - Filter object that may contain productName
+     * @returns SQL EXISTS subquery condition, or undefined if no product name filter
+     */
+    async ({ filters }) => {
+      // Type cast to our extended filter type that includes productName
+      const typedFilters = filters as
+        | SubscriptionTableFilters
+        | undefined
+      const productNameValue = typedFilters?.productName
+
+      // Normalize product name by trimming whitespace
+      const productName =
+        typeof productNameValue === 'string'
+          ? productNameValue.trim()
+          : undefined
+
+      // Return undefined (no filter) if product name is empty or not provided
+      if (!productName) return undefined
+
+      // Use EXISTS subquery to filter subscriptions by product name
+      // Joins prices -> products to access product name
+      return sql`exists (
+        select 1 from ${prices} p
+        inner join ${products} pr on pr.id = p.product_id
+        where p.id = ${subscriptions.priceId}
+          and pr.name = ${productName}
+      )`
     }
   )
 
@@ -360,6 +464,29 @@ export const selectSubscriptionCountsByStatus = async (
     status: item.status as SubscriptionStatus,
     count: item.count,
   }))
+}
+
+export const selectDistinctSubscriptionProductNames = async (
+  organizationId: string,
+  transaction: DbTransaction
+): Promise<string[]> => {
+  const rows = await transaction
+    .select({ name: products.name })
+    .from(subscriptions)
+    .innerJoin(prices, eq(prices.id, subscriptions.priceId))
+    .innerJoin(products, eq(products.id, prices.productId))
+    .where(eq(subscriptions.organizationId, organizationId))
+    .groupBy(products.name)
+
+  const names = rows
+    .map((r) => r.name)
+    .filter((n): n is string => !!n && n.trim().length > 0)
+  // Sort case-insensitively for stable UI ordering
+  // Using sensitivity: 'base' makes localeCompare ignore case differences
+  names.sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: 'base' })
+  )
+  return names
 }
 
 export const safelyUpdateSubscriptionsForCustomerToNewPaymentMethod =

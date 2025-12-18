@@ -195,10 +195,42 @@ type CancelSubscriptionParams = {
   id: string
   cancellation:
     | { timing: 'at_end_of_current_billing_period' }
-    | { timing: 'at_future_date'; endDate: Date }
     | { timing: 'immediately' }
 }
 ```
+
+#### `uncancelSubscription`
+
+Reverse a scheduled subscription cancellation.
+
+```typescript
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const subscription = await flowglad(userId).uncancelSubscription({
+  id: 'sub_123',
+})
+```
+
+**Parameters:**
+
+```typescript
+type UncancelSubscriptionParams = {
+  id: string
+}
+```
+
+**Behavior:**
+
+- If the subscription is not scheduled to cancel, the method will silently succeed without uncanceling (idempotent)
+- If the subscription is in a terminal state (e.g., `canceled`), the method will silently succeed without uncanceling
+- Only subscriptions in `cancellation_scheduled` status will have their cancellation reversed
+- For paid subscriptions: throws error if no payment method exists
+
+**What happens:**
+
+- Status reverts to `active` (or `trialing` if still in trial period)
+- The `cancelScheduledAt` field is cleared
+- Billing periods marked as `scheduled_to_cancel` are restored
+- Any aborted billing runs are rescheduled
 
 ### Checkout Methods
 
@@ -212,7 +244,6 @@ const checkoutSession = await flowglad(userId).createCheckoutSession({
   priceSlug: 'pro_plan',
   successUrl: 'https://example.com/success',
   cancelUrl: 'https://example.com/cancel',
-  quantity: 1,
   outputMetadata: {
     campaign: 'summer_sale',
   },

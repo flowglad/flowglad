@@ -10,7 +10,6 @@ import { adminTransaction } from '@/db/adminTransaction'
 import {
   databaseAuthenticationInfoForApiKeyResult,
   databaseAuthenticationInfoForWebappRequest,
-  dbAuthInfoForBillingPortalApiKeyResult,
   dbAuthInfoForSecretApiKeyResult,
   dbInfoForCustomerBillingPortal,
   getDatabaseAuthenticationInfo,
@@ -38,14 +37,6 @@ let secretOrg: Organization.Record
 let secretUser: User.Record
 let secretMembership: Membership.Record
 let secretClerkId: string
-
-let billingOrg: Organization.Record
-let billingUser1: User.Record
-let billingUser2: User.Record
-let billingMem1: Membership.Record
-let billingMem2: Membership.Record
-let billingCustomer: Customer.Record
-let billingPortalStackAuthUserId: string
 
 let secretApiKeyOrg: Organization.Record
 let secretApiKeyTokenLive: string
@@ -134,68 +125,6 @@ beforeEach(async () => {
     secretMembership = m as Membership.Record
   })
 
-  // Billing Portal scenario: two memberships; earliest createdAt should be chosen
-  const billingOrgSetup = await setupOrg()
-  billingOrg = billingOrgSetup.organization
-  await adminTransaction(async ({ transaction }) => {
-    const [u1] = await transaction
-      .insert(users)
-      .values({
-        id: `usr_${core.nanoid()}`,
-        email: `billing1+${core.nanoid()}@test.com`,
-        name: 'Billing Portal User 1',
-      })
-      .returning()
-    const [m1] = await transaction
-      .insert(memberships)
-      .values({
-        userId: (u1 as User.Record).id,
-        organizationId: billingOrg.id,
-        focused: false,
-        livemode: true,
-      })
-      .returning()
-
-    const [u2] = await transaction
-      .insert(users)
-      .values({
-        id: `usr_${core.nanoid()}`,
-        email: `billing2+${core.nanoid()}@test.com`,
-        name: 'Billing Portal User 2',
-      })
-      .returning()
-    const [m2] = await transaction
-      .insert(memberships)
-      .values({
-        userId: (u2 as User.Record).id,
-        organizationId: billingOrg.id,
-        focused: false,
-        livemode: true,
-      })
-      .returning()
-
-    billingUser1 = u1 as User.Record
-    billingUser2 = u2 as User.Record
-    billingMem1 = m1 as Membership.Record
-    billingMem2 = m2 as Membership.Record
-  })
-
-  billingPortalStackAuthUserId = `stack_hosted_${core.nanoid()}`
-  billingCustomer = await setupCustomer({
-    organizationId: billingOrg.id,
-    email: `bp-${core.nanoid()}@test.com`,
-    livemode: true,
-  })
-  // Update the customer to include stackAuthHostedBillingUserId
-  await adminTransaction(async ({ transaction }) => {
-    await transaction
-      .update(customers)
-      .set({
-        stackAuthHostedBillingUserId: billingPortalStackAuthUserId,
-      })
-      .where(eq(customers.id, billingCustomer.id))
-  })
-
   // Secret API key tokens for integration path using test-mode keyVerify
   const secretApiKeyOrgSetup = await setupOrg()
   secretApiKeyOrg = secretApiKeyOrgSetup.organization
@@ -227,7 +156,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     // - returned.jwtClaim.user_metadata.id equals M2.userId
     // - returned.jwtClaim.organization_id equals M2.organizationId
     // - returned.jwtClaim.email equals WebUser.email
-    // - returned.jwtClaim.app_metadata.provider equals 'apiKey' (note: surprising, but current behavior)
+    // - returned.jwtClaim.app_metadata.provider equals 'webapp' for webapp auth
     const mockBetterAuthUser = {
       id: (webUser as any).betterAuthId ?? (webUser as any).id, // ensure we pass the betterAuthId used in beforeEach
       email: (webUser as any).email,
@@ -245,7 +174,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
       webMemB.organizationId
     )
     expect(result.jwtClaim.email).toEqual((webUser as any).email)
-    expect(result.jwtClaim.app_metadata.provider).toEqual('apiKey')
+    expect(result.jwtClaim.app_metadata.provider).toEqual('webapp')
   })
 
   it('should fall back to the first membership returned when none are focused', async () => {
@@ -470,185 +399,6 @@ describe('dbAuthInfoForSecretApiKeyResult', () => {
   })
 })
 
-describe('dbAuthInfoForBillingPortalApiKeyResult', () => {
-  it('should resolve the earliest membership in the organization and derive claims', async () => {
-    // setup:
-    // - create Organization "OrgB1"
-    // - create Users U1 and U2
-    // - create Membership M1 for U1 in OrgB1 with createdAt earlier
-    // - create Membership M2 for U2 in OrgB1 with createdAt later
-    // - create Customer C with organizationId=OrgB1.id and stackAuthHostedBillingUserId=S
-    // - construct verifyKeyResult with:
-    //   - keyType=BillingPortalToken
-    //   - environment="live"
-    //   - metadata: { organizationId: OrgB1.id, stackAuthHostedBillingUserId: S }
-    // expects:
-    // - returned.userId equals U1.id (earliest by createdAt asc)
-    // - returned.livemode equals true
-    // - returned.jwtClaim.sub equals U1.id
-    // - returned.jwtClaim.user_metadata.id equals U1.id
-    // - returned.jwtClaim.organization_id equals OrgB1.id
-    // - returned.jwtClaim.app_metadata.provider equals 'apiKey'
-    const verifyKeyResult = {
-      keyType: FlowgladApiKeyType.BillingPortalToken,
-      userId: 'ignored_for_billing_portal',
-      ownerId: billingOrg.id,
-      environment: 'live',
-      metadata: {
-        type: FlowgladApiKeyType.BillingPortalToken,
-        stackAuthHostedBillingUserId: billingPortalStackAuthUserId,
-        organizationId: billingOrg.id,
-      },
-    }
-    const result = await dbAuthInfoForBillingPortalApiKeyResult(
-      verifyKeyResult as any
-    )
-    expect([billingUser1.id, billingUser2.id]).toContain(
-      result.userId
-    )
-    expect(result.livemode).toEqual(true)
-    expect([billingUser1.id, billingUser2.id]).toContain(
-      result.jwtClaim.sub
-    )
-    expect([billingUser1.id, billingUser2.id]).toContain(
-      result.jwtClaim.user_metadata.id
-    )
-    expect(result.jwtClaim.organization_id).toEqual(billingOrg.id)
-    expect(result.jwtClaim.app_metadata.provider).toEqual('apiKey')
-  })
-
-  it('should throw when no matching customer exists for the metadata', async () => {
-    // setup:
-    // - ensure no Customer exists for the given (organizationId, stackAuthHostedBillingUserId)
-    // - construct verifyKeyResult with valid-looking metadata that does not match any customer
-    // expects:
-    // - throws an error: "Billing Portal Authentication Error: No customer found with externalId ..."
-    const verifyKeyResult = {
-      keyType: FlowgladApiKeyType.BillingPortalToken,
-      userId: 'ignored',
-      ownerId: billingOrg.id,
-      environment: 'live',
-      metadata: {
-        type: FlowgladApiKeyType.BillingPortalToken,
-        stackAuthHostedBillingUserId: `missing_${core.nanoid()}`,
-        organizationId: billingOrg.id,
-      },
-    }
-    await expect(
-      dbAuthInfoForBillingPortalApiKeyResult(verifyKeyResult as any)
-    ).rejects.toThrow()
-  })
-
-  it('should throw when organization has zero memberships', async () => {
-    // setup:
-    // - create Organization "OrgB2" with zero memberships
-    // - create Customer C for OrgB2 with some stackAuthHostedBillingUserId=S
-    // - construct verifyKeyResult with metadata referencing OrgB2.id and S
-    // expects:
-    // - throws an error: "Billing Portal Authentication Error: No memberships found for organization ..."
-    const emptyOrg = (await setupOrg()).organization
-    const emptyOrgCustomer = await setupCustomer({
-      organizationId: emptyOrg.id,
-      email: `bp-empty-${core.nanoid()}@test.com`,
-      livemode: true,
-    })
-    // We don't assign stackAuthHostedBillingUserId, so metadata won't match a customer; make it match via update
-    const emptyStackHostedId = `stack_hosted_${core.nanoid()}`
-    await adminTransaction(async ({ transaction }) => {
-      await transaction
-        .update(customers)
-        .set({ stackAuthHostedBillingUserId: emptyStackHostedId })
-        .where(eq(customers.id, emptyOrgCustomer.id))
-    })
-    const verifyKeyResult = {
-      keyType: FlowgladApiKeyType.BillingPortalToken,
-      userId: 'ignored',
-      ownerId: emptyOrg.id,
-      environment: 'live',
-      metadata: {
-        type: FlowgladApiKeyType.BillingPortalToken,
-        stackAuthHostedBillingUserId: emptyStackHostedId,
-        organizationId: emptyOrg.id,
-      },
-    }
-    await expect(
-      dbAuthInfoForBillingPortalApiKeyResult(verifyKeyResult as any)
-    ).rejects.toThrow()
-  })
-
-  it('should validate metadata presence and throw on invalid metadata', async () => {
-    // setup:
-    // - construct verifyKeyResult with keyType=BillingPortalToken but missing organizationId OR missing stackAuthHostedBillingUserId in metadata
-    // expects:
-    // - throws an error indicating invalid API key metadata
-    const invalidMetaMissingOrg = {
-      keyType: FlowgladApiKeyType.BillingPortalToken,
-      userId: 'ignored',
-      ownerId: billingOrg.id,
-      environment: 'live',
-      metadata: {
-        type: FlowgladApiKeyType.BillingPortalToken,
-        stackAuthHostedBillingUserId: billingPortalStackAuthUserId,
-        // organizationId missing
-      } as unknown,
-    }
-    await expect(
-      dbAuthInfoForBillingPortalApiKeyResult(
-        invalidMetaMissingOrg as any
-      )
-    ).rejects.toThrow()
-    const invalidMetaMissingHostedId = {
-      keyType: FlowgladApiKeyType.BillingPortalToken,
-      userId: 'ignored',
-      ownerId: billingOrg.id,
-      environment: 'live',
-      metadata: {
-        type: FlowgladApiKeyType.BillingPortalToken,
-        organizationId: billingOrg.id,
-        // stackAuthHostedBillingUserId missing
-      } as unknown,
-    }
-    await expect(
-      dbAuthInfoForBillingPortalApiKeyResult(
-        invalidMetaMissingHostedId as any
-      )
-    ).rejects.toThrow()
-  })
-
-  it('should map environment to livemode correctly', async () => {
-    // setup:
-    // - create Organization and Customer and at least one Membership so that the happy path works
-    // - run twice with verifyKeyResult.environment set to "live" and "test"
-    // expects:
-    // - environment "live" -> returned.livemode === true
-    // - environment "test" -> returned.livemode === false
-    const liveResult = await dbAuthInfoForBillingPortalApiKeyResult({
-      keyType: FlowgladApiKeyType.BillingPortalToken,
-      userId: 'ignored',
-      ownerId: billingOrg.id,
-      environment: 'live',
-      metadata: {
-        type: FlowgladApiKeyType.BillingPortalToken,
-        stackAuthHostedBillingUserId: billingPortalStackAuthUserId,
-        organizationId: billingOrg.id,
-      },
-    } as any)
-    const testResult = await dbAuthInfoForBillingPortalApiKeyResult({
-      keyType: FlowgladApiKeyType.BillingPortalToken,
-      userId: 'ignored',
-      ownerId: billingOrg.id,
-      environment: 'test',
-      metadata: {
-        type: FlowgladApiKeyType.BillingPortalToken,
-        stackAuthHostedBillingUserId: billingPortalStackAuthUserId,
-        organizationId: billingOrg.id,
-      },
-    } as any)
-    expect(liveResult.livemode).toEqual(true)
-    expect(testResult.livemode).toEqual(false)
-  })
-})
-
 describe('databaseAuthenticationInfoForApiKeyResult', () => {
   it('should delegate to Secret API key flow when keyType=Secret', async () => {
     // setup:
@@ -674,34 +424,6 @@ describe('databaseAuthenticationInfoForApiKeyResult', () => {
     expect(result.jwtClaim.organization_id).toEqual(secretOrg.id)
     expect(result.userId).toEqual(secretUser.id)
     expect(result.livemode).toEqual(true)
-  })
-
-  it('should delegate to Billing Portal flow when keyType=BillingPortalToken', async () => {
-    // setup:
-    // - construct a verifyKeyResult with keyType=BillingPortalToken and valid metadata
-    // - spy on or stub the Billing Portal flow to observe invocation
-    // expects:
-    // - Billing Portal flow is called exactly once with the verifyKeyResult
-    // - return value equals what the Billing Portal flow returns
-    const verifyKeyResult = {
-      keyType: FlowgladApiKeyType.BillingPortalToken,
-      userId: 'ignored',
-      ownerId: billingOrg.id,
-      environment: 'test',
-      metadata: {
-        type: FlowgladApiKeyType.BillingPortalToken,
-        stackAuthHostedBillingUserId: billingPortalStackAuthUserId,
-        organizationId: billingOrg.id,
-      },
-    }
-    const result = await databaseAuthenticationInfoForApiKeyResult(
-      verifyKeyResult as any
-    )
-    expect(result.jwtClaim.organization_id).toEqual(billingOrg.id)
-    expect([billingUser1.id, billingUser2.id]).toContain(
-      result.userId
-    )
-    expect(result.livemode).toEqual(false)
   })
 
   it('should throw on invalid key type', async () => {
@@ -770,7 +492,7 @@ describe('getDatabaseAuthenticationInfo', () => {
 describe('subtleties and invariants across flows', () => {
   it('jwtClaim.sub should equal jwtClaim.user_metadata.id in all successful flows', async () => {
     // setup:
-    // - obtain results from the webapp flow, the Secret flow, and the Billing Portal flow in their happy paths
+    // - obtain results from the webapp flow and the Secret flow in their happy paths
     // expects:
     // - for each result, jwtClaim.sub === jwtClaim.user_metadata.id
     const mockBetterAuthUser = {
@@ -793,25 +515,11 @@ describe('subtleties and invariants across flows', () => {
         organizationId: secretOrg.id,
       },
     } as any)
-    const bpRes = await dbAuthInfoForBillingPortalApiKeyResult({
-      keyType: FlowgladApiKeyType.BillingPortalToken,
-      userId: 'ignored',
-      ownerId: billingOrg.id,
-      environment: 'live',
-      metadata: {
-        type: FlowgladApiKeyType.BillingPortalToken,
-        stackAuthHostedBillingUserId: billingPortalStackAuthUserId,
-        organizationId: billingOrg.id,
-      },
-    } as any)
     expect(webappRes.jwtClaim.sub).toEqual(
       webappRes.jwtClaim.user_metadata.id
     )
     expect(secretRes.jwtClaim.sub).toEqual(
       secretRes.jwtClaim.user_metadata.id
-    )
-    expect(bpRes.jwtClaim.sub).toEqual(
-      bpRes.jwtClaim.user_metadata.id
     )
   })
 
@@ -839,11 +547,12 @@ describe('subtleties and invariants across flows', () => {
     expect((res.jwtClaim as any).organizationId).toBeUndefined()
   })
 
-  it('provider consistency: jwtClaim.app_metadata.provider is currently "apiKey" for all paths', async () => {
+  it('provider consistency: jwtClaim.app_metadata.provider reflects auth type ("webapp" vs "apiKey")', async () => {
     // setup:
-    // - obtain results from webapp, Secret, and Billing Portal flows
+    // - obtain results from webapp and Secret flows
     // expects:
-    // - jwtClaim.app_metadata.provider equals 'apiKey' in all cases (documenting current behavior)
+    // - jwtClaim.app_metadata.provider equals 'webapp' for webapp auth
+    // - jwtClaim.app_metadata.provider equals 'apiKey' for Secret API key auth
     const mockBetterAuthUser = {
       id: (webUser as any).betterAuthId ?? (webUser as any).id,
       email: (webUser as any).email,
@@ -864,28 +573,16 @@ describe('subtleties and invariants across flows', () => {
         organizationId: secretOrg.id,
       },
     } as any)
-    const bpRes = await dbAuthInfoForBillingPortalApiKeyResult({
-      keyType: FlowgladApiKeyType.BillingPortalToken,
-      userId: 'ignored',
-      ownerId: billingOrg.id,
-      environment: 'live',
-      metadata: {
-        type: FlowgladApiKeyType.BillingPortalToken,
-        stackAuthHostedBillingUserId: billingPortalStackAuthUserId,
-        organizationId: billingOrg.id,
-      },
-    } as any)
-    expect(webappRes.jwtClaim.app_metadata.provider).toEqual('apiKey')
+    expect(webappRes.jwtClaim.app_metadata.provider).toEqual('webapp')
     expect(secretRes.jwtClaim.app_metadata.provider).toEqual('apiKey')
-    expect(bpRes.jwtClaim.app_metadata.provider).toEqual('apiKey')
   })
 
   it('session_id is present only in Secret API key flow (as currently implemented)', async () => {
     // setup:
-    // - obtain results from webapp, Secret, and Billing Portal flows
+    // - obtain results from webapp and Secret flows
     // expects:
     // - Secret flow result includes jwtClaim.session_id
-    // - webapp and Billing Portal results do not include jwtClaim.session_id
+    // - webapp result does not include jwtClaim.session_id
     const mockBetterAuthUser = {
       id: (webUser as any).betterAuthId ?? (webUser as any).id,
       email: (webUser as any).email,
@@ -906,20 +603,8 @@ describe('subtleties and invariants across flows', () => {
         organizationId: secretOrg.id,
       },
     } as any)
-    const bpRes = await dbAuthInfoForBillingPortalApiKeyResult({
-      keyType: FlowgladApiKeyType.BillingPortalToken,
-      userId: 'ignored',
-      ownerId: billingOrg.id,
-      environment: 'live',
-      metadata: {
-        type: FlowgladApiKeyType.BillingPortalToken,
-        stackAuthHostedBillingUserId: billingPortalStackAuthUserId,
-        organizationId: billingOrg.id,
-      },
-    } as any)
     expect(secretRes.jwtClaim.session_id).toBeDefined()
     expect((webappRes.jwtClaim as any).session_id).toBeUndefined()
-    expect((bpRes.jwtClaim as any).session_id).toBeUndefined()
   })
 })
 
@@ -1019,7 +704,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
 
       // Different providers
       expect(merchantResult.jwtClaim.app_metadata.provider).toBe(
-        'apiKey'
+        'webapp'
       )
       expect(customerResult.jwtClaim.app_metadata.provider).toBe(
         'customerBillingPortal'

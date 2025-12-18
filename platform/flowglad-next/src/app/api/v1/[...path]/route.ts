@@ -11,7 +11,7 @@ import {
 } from '@trpc/server/adapters/fetch'
 import type { NextRequestWithUnkeyContext } from '@unkey/nextjs'
 import { headers } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { appRouter } from '@/server'
 import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsRouter'
 import {
@@ -38,7 +38,10 @@ import { productsRouteConfigs } from '@/server/routers/productsRouter'
 import { purchasesRouteConfigs } from '@/server/routers/purchasesRouter'
 import { subscriptionItemFeaturesRouteConfigs } from '@/server/routers/subscriptionItemFeaturesRouter'
 import { subscriptionsRouteConfigs } from '@/server/routers/subscriptionsRouter'
-import { usageEventsRouteConfigs } from '@/server/routers/usageEventsRouter'
+import {
+  usageEventsBulkRouteConfig,
+  usageEventsRouteConfigs,
+} from '@/server/routers/usageEventsRouter'
 import { usageMetersRouteConfigs } from '@/server/routers/usageMetersRouter'
 import { webhooksRouteConfigs } from '@/server/routers/webhooksRouter'
 import { createApiContext } from '@/server/trpcContext'
@@ -60,6 +63,7 @@ import {
 } from '@/utils/securityTelemetry'
 import { parseUnkeyMeta, verifyApiKey } from '@/utils/unkey'
 import { searchParamsToObject } from '@/utils/url'
+import { shouldAllowEmptyBody } from '@/utils/validateRequest'
 
 interface FlowgladRESTRouteContext {
   params: Promise<{ path: string[] }>
@@ -105,6 +109,7 @@ const routes: Record<string, RouteConfig> = {
   ...setupPricingModelRouteConfig,
   ...refundPaymentRouteConfig,
   ...customerBillingRouteConfig,
+  ...usageEventsBulkRouteConfig,
   ...discountsRouteConfigs,
   ...productsRouteConfigs,
   ...subscriptionItemFeaturesRouteConfigs,
@@ -187,9 +192,17 @@ const innerHandler = async (
         const path = (await params).path.join('/')
 
         // Extract organization context
+        // Note: req.unkey has additional properties (ownerId, environment) added by verifyApiKey
+        // that aren't in the V2KeysVerifyKeyResponseBody type, so we extract them safely
         const unkeyMeta = parseUnkeyMeta(req.unkey?.meta)
+        const unkeyWithExtras = req.unkey as typeof req.unkey & {
+          ownerId?: string
+          environment?: string
+        }
         const organizationId =
-          unkeyMeta.organizationId || req.unkey?.ownerId!
+          unkeyMeta.organizationId || unkeyWithExtras.ownerId!
+        const apiEnvironment =
+          unkeyWithExtras.environment || 'unknown'
         const organizationIdSource = unkeyMeta.organizationId
           ? 'metadata'
           : 'owner_id'
@@ -210,24 +223,25 @@ const innerHandler = async (
           'organization.id': organizationId,
           'organization.id_source': organizationIdSource,
           'user.id': userId,
-          'api.environment': req.unkey?.environment || 'unknown',
+          'api.environment': apiEnvironment,
           'api.key_type': apiKeyType,
           rest_sdk_version: sdkVersion,
         })
 
         logger.info(`[${requestId}] REST API Request Started`, {
           service: 'api',
-          apiEnvironment: req.unkey?.environment as ApiEnvironment,
+          apiEnvironment: apiEnvironment as ApiEnvironment,
           request_id: requestId,
           method: req.method,
           path,
           organization_id: organizationId,
           organization_id_source: organizationIdSource,
           user_id: userId,
-          environment: req.unkey?.environment,
+          environment: apiEnvironment,
           api_key_type: apiKeyType,
           body_size_bytes: requestBodySize,
           rest_sdk_version: sdkVersion,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         // Create a new context with our parent span
@@ -261,7 +275,7 @@ const innerHandler = async (
 
           logger.warn(`[${requestId}] REST API Route Not Found`, {
             service: 'api',
-            apiEnvironment: req.unkey?.environment as ApiEnvironment,
+            apiEnvironment: apiEnvironment as ApiEnvironment,
             request_id: requestId,
             method: req.method,
             path,
@@ -284,11 +298,12 @@ const innerHandler = async (
 
         logger.info(`[${requestId}] Route matched`, {
           service: 'api',
-          apiEnvironment: req.unkey?.environment as ApiEnvironment,
+          apiEnvironment: apiEnvironment as ApiEnvironment,
           request_id: requestId,
           route_pattern: routeKey,
           procedure: route.procedure,
           matching_duration_ms: routeMatchingDuration,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         // Extract parameters from URL with telemetry
@@ -312,35 +327,49 @@ const innerHandler = async (
             })
           } catch (error) {
             inputParsingDuration = Date.now() - bodyParsingStartTime
-            parentSpan.setStatus({
-              code: SpanStatusCode.ERROR,
-              message: 'Invalid JSON in request body',
-            })
-            parentSpan.setAttributes({
-              'error.type': 'VALIDATION_ERROR',
-              'error.category': 'VALIDATION_ERROR',
-              'error.message': 'Invalid JSON in request body',
-              'http.status_code': 400,
-              'input.parsing_duration_ms': inputParsingDuration,
-              'input.body_parsed': false,
-            })
+            const path = (await params).path.join('/')
+            const contentLength = req.headers.get('content-length')
 
-            logger.error(
-              `[${requestId}] Invalid JSON in request body`,
-              {
-                service: 'api',
-                apiEnvironment: req.unkey
-                  ?.environment as ApiEnvironment,
-                request_id: requestId,
-                error: error as Error,
-                parsing_duration_ms: inputParsingDuration,
-              }
-            )
+            if (shouldAllowEmptyBody(path, contentLength)) {
+              // Allow empty body for these specific routes
+              body = {}
 
-            return NextResponse.json(
-              { error: 'Invalid JSON in request body' },
-              { status: 400 }
-            )
+              parentSpan.setAttributes({
+                'input.parsing_duration_ms': inputParsingDuration,
+                'input.body_parsed': false,
+                'input.body_empty': true,
+                'input.empty_body_allowed': true,
+              })
+            } else {
+              parentSpan.setStatus({
+                code: SpanStatusCode.ERROR,
+                message: 'Invalid JSON in request body',
+              })
+              parentSpan.setAttributes({
+                'error.type': 'VALIDATION_ERROR',
+                'error.category': 'VALIDATION_ERROR',
+                'error.message': 'Invalid JSON in request body',
+                'http.status_code': 400,
+                'input.parsing_duration_ms': inputParsingDuration,
+                'input.body_parsed': false,
+              })
+
+              logger.error(
+                `[${requestId}] Invalid JSON in request body`,
+                {
+                  service: 'api',
+                  apiEnvironment: apiEnvironment as ApiEnvironment,
+                  request_id: requestId,
+                  error: error as Error,
+                  parsing_duration_ms: inputParsingDuration,
+                }
+              )
+
+              return NextResponse.json(
+                { error: 'Invalid JSON in request body' },
+                { status: 400 }
+              )
+            }
           }
         }
 
@@ -440,8 +469,7 @@ const innerHandler = async (
               `[${requestId}] Invalid pagination parameters`,
               {
                 service: 'api',
-                apiEnvironment: req.unkey
-                  ?.environment as ApiEnvironment,
+                apiEnvironment: apiEnvironment as ApiEnvironment,
                 request_id: requestId,
                 error: error as Error,
                 queryParams: queryParamsObject,
@@ -485,7 +513,7 @@ const innerHandler = async (
             router: appRouter,
             createContext: createApiContext({
               organizationId,
-              environment: req.unkey?.environment as ApiEnvironment,
+              environment: apiEnvironment as ApiEnvironment,
             }) as unknown as FetchCreateContextFn<typeof appRouter>,
           })
         )
@@ -542,7 +570,7 @@ const innerHandler = async (
 
           logger.error(`[${requestId}] REST API Error`, {
             service: 'api',
-            apiEnvironment: req.unkey?.environment as ApiEnvironment,
+            apiEnvironment: apiEnvironment as ApiEnvironment,
             request_id: requestId,
             method: req.method,
             path,
@@ -603,18 +631,19 @@ const innerHandler = async (
 
         logger.info(`[${requestId}] REST API Success`, {
           service: 'api',
-          apiEnvironment: req.unkey?.environment as ApiEnvironment,
+          apiEnvironment: apiEnvironment as ApiEnvironment,
           request_id: requestId,
           method: req.method,
           path,
           procedure: route.procedure,
           organization_id: organizationId,
-          environment: req.unkey?.environment,
+          environment: apiEnvironment,
           total_duration_ms: totalDuration,
           response_size_bytes: responseSize,
           endpoint_category: endpointCategory,
           operation_type: operationType,
           rest_sdk_version: sdkVersion,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         return NextResponse.json(responseData)
@@ -635,15 +664,20 @@ const innerHandler = async (
           'perf.total_duration_ms': totalDuration,
         })
 
+        const errorApiEnvironment = req.unkey
+          ? (req.unkey as typeof req.unkey & { environment?: string })
+              .environment || 'unknown'
+          : 'unknown'
         logger.error(`[${requestId}] REST API Unexpected Error`, {
           service: 'api',
-          apiEnvironment: req.unkey?.environment as ApiEnvironment,
+          apiEnvironment: errorApiEnvironment as ApiEnvironment,
           request_id: requestId,
           error: error as Error,
           method: req.method,
           url: req.url,
           total_duration_ms: totalDuration,
           rest_sdk_version: sdkVersion,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         return NextResponse.json(
@@ -761,9 +795,11 @@ const withVerification = (
           })
 
           if (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error)
             authSpan.setStatus({
               code: SpanStatusCode.ERROR,
-              message: `API key verification error: ${error.message || error}`,
+              message: `API key verification error: ${errorMessage}`,
             })
             authSpan.setAttributes({
               'auth.error': 'verification_error',
@@ -856,8 +892,8 @@ const withVerification = (
                 apiKeyPrefix: keyPrefix,
                 organizationId: result.ownerId,
                 details: {
-                  remaining: result.remaining,
-                  limit: result.ratelimit?.limit,
+                  remaining: result.ratelimits?.[0]?.remaining,
+                  limit: result.ratelimits?.[0]?.limit,
                 },
               })
             } else {
@@ -906,7 +942,7 @@ const withVerification = (
             'auth.expires_at': result.expires
               ? new Date(result.expires).toISOString()
               : undefined,
-            'auth.remaining_requests': result.remaining || undefined,
+            'auth.remaining_requests': result.credits || undefined,
             'security.auth_attempts': 1,
             'security.failed_auth_count': 0,
           })
@@ -944,18 +980,23 @@ const withVerification = (
   }
 }
 
-const handlerWrapper = core.IS_TEST
-  ? innerHandler
-  : withVerification(innerHandler)
-
-const handler = handlerWrapper
-
-export {
-  handler as GET,
-  handler as POST,
-  handler as PUT,
-  handler as DELETE,
+const routeHandler = async (
+  request: NextRequest,
+  context: { params: Promise<{ path: string[] }> }
+): Promise<Response> => {
+  const handler = core.IS_TEST
+    ? innerHandler
+    : withVerification(innerHandler)
+  return handler(
+    request as NextRequestWithUnkeyContext,
+    context as FlowgladRESTRouteContext
+  )
 }
+
+export const GET = routeHandler
+export const POST = routeHandler
+export const PUT = routeHandler
+export const DELETE = routeHandler
 
 // Example Usage:
 // GET /api/v1/products - lists products

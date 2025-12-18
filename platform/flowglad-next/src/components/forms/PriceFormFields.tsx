@@ -405,26 +405,6 @@ const PriceFormFields = ({
           maintain billing consistency.
         </p>
       )}
-      {priceOnly && !hidePriceName && (
-        <FormField
-          control={control}
-          name="price.name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Price Name</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Price"
-                  {...field}
-                  value={field.value ?? ''}
-                  disabled={isDefaultProduct && isDefaultPrice}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
       {!hidePriceType && (
         <FormField
           control={control}
@@ -483,8 +463,7 @@ const PriceFormFields = ({
                 </Select>
               </FormControl>
               <FormDescription>
-                What type of payment the user will make. Cannot be
-                edited after creation.
+                What type of payment the user will make
               </FormDescription>
               <FormMessage />
             </FormItem>

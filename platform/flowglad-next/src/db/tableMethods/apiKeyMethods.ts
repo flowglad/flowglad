@@ -1,7 +1,5 @@
-import { and, desc, eq, lt } from 'drizzle-orm'
 import { z } from 'zod'
 import {
-  type ApiKey,
   apiKeys,
   apiKeysClientSelectSchema,
   apiKeysInsertSchema,
@@ -17,9 +15,6 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
-import { FlowgladApiKeyType } from '@/types'
-import core from '@/utils/core'
-import { organizations } from '../schema/organizations'
 import { zodEpochMs } from '../timestampMs'
 import { selectOrganizations } from './organizationMethods'
 
@@ -90,38 +85,3 @@ export const selectApiKeysTableRowData =
     apiKeyWithOrganizationSchema,
     enrichApiKeysWithOrganizations
   )
-
-export const safelyFilterExpiredBillingPortalApiKeys = (
-  expiredApiKeys: ApiKey.Record[]
-) => {
-  const extraSafeExpiredOnlyBillingPortalKeys = expiredApiKeys
-    .filter(
-      (key) => key.type === FlowgladApiKeyType.BillingPortalToken
-    )
-    .filter(
-      (key) =>
-        key.expiresAt &&
-        key.expiresAt < Date.now() - 7 * 24 * 60 * 60 * 1000
-    )
-  return extraSafeExpiredOnlyBillingPortalKeys
-}
-
-export const select7DaysExpiredBillingPortalApiKeys = async (
-  transaction: DbTransaction
-) => {
-  const expiredBillingPortalApiKeys = await transaction
-    .select()
-    .from(apiKeys)
-    .where(
-      and(
-        eq(apiKeys.type, FlowgladApiKeyType.BillingPortalToken),
-        lt(apiKeys.expiresAt, Date.now() - 7 * 24 * 60 * 60 * 1000)
-      )
-    )
-
-  return safelyFilterExpiredBillingPortalApiKeys(
-    expiredBillingPortalApiKeys.map((row) => {
-      return apiKeysSelectSchema.parse(row)
-    })
-  )
-}

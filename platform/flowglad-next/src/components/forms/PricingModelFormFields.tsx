@@ -1,7 +1,6 @@
 'use client'
 
 import { Controller } from 'react-hook-form'
-import { Card } from '@/components/ui/card'
 import {
   FormControl,
   FormField,
@@ -22,21 +21,46 @@ import { Switch } from '@/components/ui/switch'
 import type { CreatePricingModelInput } from '@/db/schema/pricingModels'
 import { IntervalUnit } from '@/types'
 
+/**
+ * Sentinel value representing non-renewing (one-time payment) behavior.
+ * Maps to `undefined` in the form schema.
+ */
+const NON_RENEWING_VALUE = 'none'
+
+/**
+ * Options for the consolidated "Default Product Behavior" dropdown.
+ * Combines the previous "Default Plan Behavior" cards with the "Interval" dropdown.
+ */
+const PRODUCT_BEHAVIOR_OPTIONS = [
+  { value: IntervalUnit.Day, label: 'Renews Daily' },
+  { value: IntervalUnit.Week, label: 'Renews Weekly' },
+  { value: IntervalUnit.Month, label: 'Renews Monthly' },
+  { value: IntervalUnit.Year, label: 'Renews Yearly' },
+  {
+    value: NON_RENEWING_VALUE,
+    label: 'Non-Renewing (One-Time Payments)',
+  },
+] as const
+
 export default function PricingModelFormFields({
   edit,
 }: {
   edit?: boolean
 }) {
   const form = useFormContext<CreatePricingModelInput>()
-  const isRenewing = Boolean(form.watch('defaultPlanIntervalUnit'))
-  const chooseRenewing = () => {
-    if (!form.getValues('defaultPlanIntervalUnit')) {
-      form.setValue('defaultPlanIntervalUnit', IntervalUnit.Month)
+
+  // Convert form value (IntervalUnit | undefined) to dropdown value (string)
+  const currentBehavior =
+    form.watch('defaultPlanIntervalUnit') ?? NON_RENEWING_VALUE
+
+  const handleBehaviorChange = (value: string) => {
+    if (value === NON_RENEWING_VALUE) {
+      form.setValue('defaultPlanIntervalUnit', undefined)
+    } else {
+      form.setValue('defaultPlanIntervalUnit', value as IntervalUnit)
     }
   }
-  const chooseNonRenewing = () => {
-    form.setValue('defaultPlanIntervalUnit', undefined)
-  }
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -59,95 +83,26 @@ export default function PricingModelFormFields({
         />
       </div>
       {!edit && (
-        <div>
-          <div className="text-sm font-medium text-foreground mb-1">
-            Default Plan Behavior
-          </div>
-        </div>
-      )}
-      {!edit && (
-        <div className="grid grid-cols-2 gap-3 overflow-visible">
-          <Card
-            onClick={chooseRenewing}
-            className={`cursor-pointer text-left px-4 ${
-              isRenewing
-                ? 'border-2 border-primary'
-                : 'border-border hover:border-primary/50'
-            }`}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                chooseRenewing()
-              }
-            }}
-          >
-            <div className="font-medium">Renewing</div>
-            <div className="text-sm text-muted-foreground">
-              Recurring subscription with a billing interval.
-            </div>
-          </Card>
-          <Card
-            onClick={chooseNonRenewing}
-            className={`cursor-pointer text-left px-4 ${
-              !isRenewing
-                ? 'border-2 border-primary'
-                : 'border-border hover:border-primary/50'
-            }`}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                chooseNonRenewing()
-              }
-            }}
-          >
-            <div className="font-medium">Non-renewing</div>
-            <div className="text-sm text-muted-foreground">
-              One-time payment with no renewal.
-            </div>
-          </Card>
-        </div>
-      )}
-      {!edit && isRenewing && (
-        <div className="mt-1">
-          <FormField
-            control={form.control}
-            name="defaultPlanIntervalUnit"
-            render={({ field }: any) => (
-              <FormItem>
-                <FormLabel>Interval</FormLabel>
-                <FormControl>
-                  <Select
-                    value={field.value ?? ''}
-                    onValueChange={field.onChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select interval" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={IntervalUnit.Day}>
-                        Day
-                      </SelectItem>
-                      <SelectItem value={IntervalUnit.Week}>
-                        Week
-                      </SelectItem>
-                      <SelectItem value={IntervalUnit.Month}>
-                        Month
-                      </SelectItem>
-                      <SelectItem value={IntervalUnit.Year}>
-                        Year
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormItem>
+          <FormLabel>Default Behavior</FormLabel>
+          <FormControl>
+            <Select
+              value={currentBehavior}
+              onValueChange={handleBehaviorChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select behavior" />
+              </SelectTrigger>
+              <SelectContent>
+                {PRODUCT_BEHAVIOR_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormControl>
+        </FormItem>
       )}
       {!edit && (
         <Controller
@@ -165,11 +120,11 @@ export default function PricingModelFormFields({
                   htmlFor="is-default"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                 >
-                  Default pricing model
+                  Make Default
                 </label>
-                <p className="text-xs text-muted-foreground">
-                  This become the pricing model that automatically
-                  attaches to new customers.
+                <p className="text-sm text-muted-foreground">
+                  New customers will be assigned to this pricing model
+                  by default.
                 </p>
               </div>
             </div>

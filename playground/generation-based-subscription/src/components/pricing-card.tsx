@@ -67,21 +67,12 @@ export function PricingCard({
   const handleCheckout = async () => {
     setError(null)
 
-    // Get price object from slug to get the price ID
-    const priceObj = billing.getPrice(priceSlug)
-    if (!priceObj) {
-      const errorMsg = `Price not found for "${priceSlug}". Please contact support.`
-      setError(errorMsg)
-      return
-    }
-
     setIsLoading(true)
     try {
       await billing.createCheckoutSession({
-        priceId: priceObj.id,
+        priceSlug: priceSlug,
         successUrl: `${window.location.origin}/`,
         cancelUrl: window.location.href,
-        quantity: 1,
         autoRedirect: true,
       })
     } catch (error) {

@@ -1,5 +1,34 @@
 # @flowglad/react
 
+## 0.15.1
+
+### Patch Changes
+
+- bb9b89e: - create product checkout interface cleanup
+  - add currentSubscription to useBilling
+- Updated dependencies [bb9b89e]
+  - @flowglad/shared@0.15.1
+
+## 0.15.0
+
+### Minor Changes
+
+- 562490d: - add subscription uncancel
+  - bump @flowglad/node dependency to v0.24
+
+### Patch Changes
+
+- Updated dependencies [562490d]
+  - @flowglad/shared@0.15.0
+
+## 0.14.1
+
+### Patch Changes
+
+- 8a4fa8d: @flowglad/nextjs: bump peer dependency for next to support ^16.0.0
+- Updated dependencies [8a4fa8d]
+  - @flowglad/shared@0.14.1
+
 ## 0.14.0
 
 ### Minor Changes

@@ -10,7 +10,7 @@ import {
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import core, { isNil } from '@/utils/core'
-import { safeSend } from '@/utils/email'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 
 const sendOrganizationSubscriptionCreatedNotificationTask = task({
   id: 'send-organization-subscription-created-notification',
@@ -63,7 +63,10 @@ const sendOrganizationSubscriptionCreatedNotificationTask = task({
       to: usersAndMemberships
         .map(({ user }) => user.email)
         .filter((email) => !isNil(email)),
-      subject: `New Subscription: ${customer.name} subscribed to ${subscription.name}`,
+      subject: formatEmailSubject(
+        `New Subscription: ${customer.name} subscribed to ${subscription.name}`,
+        subscription.livemode
+      ),
       react: OrganizationSubscriptionCreatedNotificationEmail({
         organizationName: organization.name,
         subscriptionName: subscription.name!,

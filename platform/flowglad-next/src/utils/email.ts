@@ -63,7 +63,7 @@ const safeTo = (email: string) =>
  * @param livemode - Whether this is a livemode (production) email
  * @returns The formatted subject line with [TEST] prefix when livemode is false
  */
-const formatEmailSubject = (
+export const formatEmailSubject = (
   subject: string,
   livemode: boolean
 ): string => {

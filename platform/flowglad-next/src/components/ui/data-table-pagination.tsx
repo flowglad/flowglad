@@ -61,7 +61,7 @@ export function DataTablePagination<TData>({
         {totalRows} {totalRows === 1 ? 'result' : 'results'}
       </div>
       {(showExportButton || !shouldHidePagination) && (
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center">
           {showExportButton && (
             <Button
               variant="outline"
@@ -82,7 +82,7 @@ export function DataTablePagination<TData>({
             </Button>
           )}
           {!shouldHidePagination && (
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-2">
               <div className="hidden">
                 <p className="text-sm font-normal text-muted-foreground">
                   Rows per page

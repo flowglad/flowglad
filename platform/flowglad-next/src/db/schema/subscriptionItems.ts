@@ -1,5 +1,11 @@
 import { sql } from 'drizzle-orm'
-import { integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+} from 'drizzle-orm/pg-core'
 import * as R from 'ramda'
 import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
@@ -43,7 +49,7 @@ const columns = {
   ),
   name: text('name'),
   addedDate: timestampWithTimezoneColumn('added_date').notNull(),
-  priceId: notNullStringForeignKey('price_id', prices),
+  priceId: nullableStringForeignKey('price_id', prices),
   unitPrice: integer('unit_price').notNull(),
   quantity: integer('quantity').notNull(),
   metadata: jsonb('metadata'),
@@ -58,6 +64,9 @@ const columns = {
    */
   externalId: text('external_id'),
   expiredAt: timestampWithTimezoneColumn('expired_at'),
+  manuallyCreated: boolean('manually_created')
+    .notNull()
+    .default(false),
 }
 
 export const subscriptionItems = pgTable(
@@ -91,7 +100,7 @@ export const subscriptionItems = pgTable(
 
 const baseColumnRefinements = {
   unitPrice: core.safeZodPositiveIntegerOrZero,
-  quantity: core.safeZodPositiveInteger,
+  quantity: core.safeZodPositiveIntegerOrZero,
   metadata: metadataSchema.nullable().optional(),
   // Accept ISO datetime strings or Date objects
   expiredAt: zodEpochMs

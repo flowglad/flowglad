@@ -1,7 +1,8 @@
-import { flowgladServer } from '@/lib/flowglad'
+import { flowglad } from '@/lib/flowglad'
 import { findUsagePriceByMeterSlug } from '@/lib/billing-helpers'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { auth } from '@/lib/auth'
 
 /**
  * POST /api/usage-events
@@ -26,7 +27,16 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const parseResult = createUsageEventSchema.safeParse(body)
-
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    })
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    const userId = session.user.id
     if (!parseResult.success) {
       return NextResponse.json(
         {
@@ -49,7 +59,7 @@ export async function POST(request: Request) {
       `usage_${Date.now()}_${Math.random().toString(36).substring(7)}`
 
     // Get billing information to extract required IDs
-    const billing = await flowgladServer.getBilling()
+    const billing = await flowglad(userId).getBilling()
 
     if (!billing.customer) {
       return NextResponse.json(
@@ -86,24 +96,11 @@ export async function POST(request: Request) {
       )
     }
 
-    const priceId = usagePrice.id
-    const usageMeterId = usagePrice.usageMeterId
-
-    if (!usageMeterId) {
-      return NextResponse.json(
-        {
-          error: `Usage price found but missing usageMeterId for meter: ${usageMeterSlug}`,
-        },
-        { status: 500 }
-      )
-    }
-
     // Create usage event with all required IDs
     // Note: customerId is automatically resolved from the session by FlowgladServer
-    const usageEvent = await flowgladServer.createUsageEvent({
+    const usageEvent = await flowglad(userId).createUsageEvent({
       subscriptionId,
-      priceId,
-      usageMeterId,
+      priceSlug: usagePrice.slug!,
       amount: amountNumber,
       transactionId: finalTransactionId,
     })

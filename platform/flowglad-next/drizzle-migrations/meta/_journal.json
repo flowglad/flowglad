@@ -1744,6 +1744,27 @@
       "when": 1764801388746,
       "tag": "0249_special_wiccan",
       "breakpoints": true
+    },
+    {
+      "idx": 250,
+      "version": "7",
+      "when": 1765036067018,
+      "tag": "0250_legal_human_torch",
+      "breakpoints": true
+    },
+    {
+      "idx": 251,
+      "version": "7",
+      "when": 1765685663064,
+      "tag": "0251_sudden_baron_strucker",
+      "breakpoints": true
+    },
+    {
+      "idx": 252,
+      "version": "7",
+      "when": 1765824908388,
+      "tag": "0252_low_dreadnoughts",
+      "breakpoints": true
     }
   ]
 }

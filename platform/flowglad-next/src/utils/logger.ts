@@ -1,6 +1,11 @@
 // utils/logger.ts
 import { log as logtailLog } from '@logtail/next'
-import { context, SpanStatusCode, trace } from '@opentelemetry/api'
+import {
+  context,
+  type Span,
+  SpanStatusCode,
+  trace,
+} from '@opentelemetry/api'
 import type {
   ApiEnvironment,
   LogData,
@@ -30,9 +35,14 @@ function enrichWithContext(
     service?: ServiceContext
     apiEnvironment?: ApiEnvironment
     apiKey?: string
+    span?: Span
   }
 ): LogData {
-  const span = trace.getActiveSpan()
+  // Try to get span from: 1) explicit param, 2) getActiveSpan(), 3) context.active()
+  const span =
+    overrides?.span ??
+    trace.getActiveSpan() ??
+    trace.getSpan(context.active())
 
   const enrichedData: LogData = {
     ...data,
@@ -56,9 +66,19 @@ function enrichWithContext(
   // Add trace context if available
   if (span) {
     const spanContext = span.spanContext()
-    enrichedData.trace_id = spanContext.traceId
-    enrichedData.span_id = spanContext.spanId
-    enrichedData.trace_flags = spanContext.traceFlags.toString()
+    const traceId = spanContext.traceId
+    const spanId = spanContext.spanId
+    const traceFlags = spanContext.traceFlags.toString()
+
+    // Better Stack expects 'span.trace_id' and 'span.span_id' at root level for the Trace ID column.
+    // Since @logtail/next wraps all data under 'fields', we use 'span.trace_id' as the field name
+    // and configure a VRL transformation in Better Stack to move it to root level:
+    //   .span.trace_id = del(.fields."span.trace_id")
+    //   .span.span_id = del(.fields."span.span_id")
+    // See: https://betterstack.com/docs/logs/tracing/intro/
+    enrichedData['span.trace_id'] = traceId
+    enrichedData['span.span_id'] = spanId
+    enrichedData.trace_flags = traceFlags
   }
 
   // Add runtime context for better filtering
@@ -71,6 +91,12 @@ function enrichWithContext(
 
 interface LoggerDataWithApiKey extends LoggerData {
   apiKey?: string
+  /**
+   * Optionally pass an explicit span to associate with this log.
+   * This is useful when logging inside a `startActiveSpan` callback
+   * where context propagation may not work automatically.
+   */
+  span?: Span
 }
 
 // Helper function to handle the common logging pattern
@@ -79,18 +105,21 @@ function logWithContext(
   message: string | Error,
   data?: LoggerDataWithApiKey
 ) {
-  const { service, apiEnvironment, apiKey, ...restData } = data || {}
+  const { service, apiEnvironment, apiKey, span, ...restData } =
+    data || {}
   const enrichedData = enrichWithContext(restData, {
     service,
     apiEnvironment,
     apiKey,
+    span,
   })
 
   if (level === 'error' && message instanceof Error) {
-    const span = trace.getActiveSpan()
-    if (span) {
-      span.recordException(message)
-      span.setStatus({
+    const activeSpan =
+      span ?? trace.getActiveSpan() ?? trace.getSpan(context.active())
+    if (activeSpan) {
+      activeSpan.recordException(message)
+      activeSpan.setStatus({
         code: SpanStatusCode.ERROR,
         message: message.message,
       })

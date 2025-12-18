@@ -13,6 +13,7 @@ import {
   constructGetProduct,
   FlowgladActionKey,
   flowgladActionValidators,
+  type UncancelSubscriptionParams,
 } from '@flowglad/shared'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import React, { createContext, useContext } from 'react'
@@ -48,6 +49,11 @@ export type LoadedFlowgladContextValues = BillingWithChecks & {
   cancelSubscription: (params: CancelSubscriptionParams) => Promise<{
     subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
   }>
+  uncancelSubscription: (
+    params: UncancelSubscriptionParams
+  ) => Promise<{
+    subscription: Flowglad.Subscriptions.SubscriptionUncancelResponse
+  }>
   createCheckoutSession: (
     params: FrontendProductCreateCheckoutSessionParams
   ) => Promise<CreateCheckoutSessionResponse>
@@ -76,7 +82,9 @@ export interface NonPresentContextValues {
   paymentMethods: []
   purchases: []
   cancelSubscription: null
+  uncancelSubscription: null
   currentSubscriptions: []
+  currentSubscription: null
 }
 
 export interface NotLoadedFlowgladContextValues
@@ -122,7 +130,9 @@ const notPresentContextValues: NonPresentContextValues = {
   paymentMethods: [],
   purchases: [],
   cancelSubscription: null,
+  uncancelSubscription: null,
   currentSubscriptions: [],
+  currentSubscription: null,
 }
 
 const FlowgladContext = createContext<FlowgladContextValues>({
@@ -143,7 +153,7 @@ type CheckoutSessionParamsBase = {
 const constructCheckoutSessionCreator =
   <TParams extends CheckoutSessionParamsBase>(
     actionKey: FlowgladActionKey,
-    flowgladRoute: string,
+    baseURL: string | undefined,
     requestConfig?: RequestConfig,
     mapPayload?: (
       params: TParams,
@@ -153,7 +163,9 @@ const constructCheckoutSessionCreator =
   async (params: TParams): Promise<CreateCheckoutSessionResponse> => {
     validateUrl(params.successUrl, 'successUrl')
     validateUrl(params.cancelUrl, 'cancelUrl')
-    validateUrl(flowgladRoute, 'flowgladRoute', true)
+    if (baseURL) {
+      validateUrl(baseURL, 'baseURL', true)
+    }
 
     const headers = requestConfig?.headers
     const { autoRedirect, ...basePayload } = params
@@ -163,6 +175,9 @@ const constructCheckoutSessionCreator =
       mapPayload?.(params, basePayload) ??
       (basePayload as Record<string, unknown>)
 
+    const flowgladRoute = baseURL
+      ? `${baseURL}/api/flowglad`
+      : '/api/flowglad'
     const response = await fetch(`${flowgladRoute}/${actionKey}`, {
       method: 'POST',
       headers: {
@@ -190,7 +205,7 @@ const constructCheckoutSessionCreator =
   }
 
 interface ConstructCancelSubscriptionParams {
-  flowgladRoute: string
+  baseURL: string | undefined
   requestConfig?: RequestConfig
   queryClient: ReturnType<typeof useQueryClient>
 }
@@ -202,9 +217,11 @@ const constructCancelSubscription =
   ): Promise<{
     subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
   }> => {
-    const { flowgladRoute, requestConfig, queryClient } =
-      constructParams
+    const { baseURL, requestConfig, queryClient } = constructParams
     const headers = requestConfig?.headers
+    const flowgladRoute = baseURL
+      ? `${baseURL}/api/flowglad`
+      : '/api/flowglad'
     const response = await fetch(
       `${flowgladRoute}/${FlowgladActionKey.CancelSubscription}`,
       {
@@ -237,12 +254,62 @@ const constructCancelSubscription =
     }
   }
 
+interface ConstructUncancelSubscriptionParams {
+  baseURL: string | undefined
+  requestConfig?: RequestConfig
+  queryClient: ReturnType<typeof useQueryClient>
+}
+
+const constructUncancelSubscription =
+  (constructParams: ConstructUncancelSubscriptionParams) =>
+  async (
+    params: UncancelSubscriptionParams
+  ): Promise<{
+    subscription: Flowglad.Subscriptions.SubscriptionUncancelResponse
+  }> => {
+    const { baseURL, requestConfig, queryClient } = constructParams
+    const headers = requestConfig?.headers
+    const flowgladRoute = baseURL
+      ? `${baseURL}/api/flowglad`
+      : '/api/flowglad'
+    const response = await fetch(
+      `${flowgladRoute}/${FlowgladActionKey.UncancelSubscription}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify(params),
+      }
+    )
+    const json: {
+      data: Flowglad.Subscriptions.SubscriptionUncancelResponse
+      error?: { code: string; json: Record<string, unknown> }
+    } = await response.json()
+    const data = json.data
+    if (json.error) {
+      console.error(
+        'FlowgladContext: Subscription uncancellation failed',
+        json
+      )
+    } else {
+      // Refetch customer billing after successful uncancellation
+      await queryClient.invalidateQueries({
+        queryKey: [FlowgladActionKey.GetCustomerBilling],
+      })
+    }
+    return {
+      subscription: data,
+    }
+  }
+
 /**
  * Configuration for all requests made to the Flowglad API
  * route.
  */
 export interface RequestConfig {
-  serverRoute?: string
+  baseURL?: string
   headers?: Record<string, string>
   /**
    * Custom fetch implementation for React Native compatibility.
@@ -254,7 +321,7 @@ export interface RequestConfig {
 
 interface CoreFlowgladContextProviderProps {
   loadBilling?: boolean
-  serverRoute?: string
+  baseURL?: string
   requestConfig?: RequestConfig
   children: React.ReactNode
 }
@@ -296,6 +363,8 @@ export const FlowgladContextProvider = (
       const requestConfig = (
         props as CoreFlowgladContextProviderProps
       ).requestConfig
+      const baseURL = (props as CoreFlowgladContextProviderProps)
+        .baseURL
       // Use custom fetch if provided (for React Native), otherwise use global fetch
       const fetchImpl =
         requestConfig?.fetch ??
@@ -305,8 +374,11 @@ export const FlowgladContextProvider = (
           'fetch is not available. In React Native environments, provide a fetch implementation via requestConfig.fetch'
         )
       }
+      const flowgladRoute = baseURL
+        ? `${baseURL}/api/flowglad`
+        : '/api/flowglad'
       const response = await fetchImpl(
-        `${props.serverRoute ?? '/api/flowglad'}/${FlowgladActionKey.GetCustomerBilling}`,
+        `${flowgladRoute}/${FlowgladActionKey.GetCustomerBilling}`,
         {
           method:
             flowgladActionValidators[
@@ -316,8 +388,15 @@ export const FlowgladContextProvider = (
           headers: requestConfig?.headers,
         }
       )
-      const data = await response.json()
-      return data
+      try {
+        const data = await response.json()
+        return data
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Flowglad: Error fetching billing:', error)
+        }
+        return null
+      }
     },
   })
 
@@ -361,6 +440,14 @@ export const FlowgladContextProvider = (
                 canceledAt: new Date().toISOString(),
               } as any,
             }),
+          uncancelSubscription: () =>
+            Promise.resolve({
+              subscription: {
+                id: 'sub_123',
+                status: 'active',
+                cancelScheduledAt: null,
+              } as any,
+            }),
           checkFeatureAccess,
           checkUsageBalance,
           getProduct,
@@ -371,6 +458,7 @@ export const FlowgladContextProvider = (
           purchases: billingData.purchases,
           invoices: billingData.invoices,
           paymentMethods: billingData.paymentMethods,
+          currentSubscription: billingData.currentSubscription,
           currentSubscriptions: billingData.currentSubscriptions,
           catalog: billingData.catalog,
           billingPortalUrl: billingData.billingPortalUrl,
@@ -383,18 +471,17 @@ export const FlowgladContextProvider = (
   }
 
   const {
-    serverRoute: serverRouteProp,
+    baseURL,
     requestConfig,
     loadBilling: loadBillingProp,
   } = props as CoreFlowgladContextProviderProps
-  const serverRoute = serverRouteProp ?? '/api/flowglad'
   const loadBilling = loadBillingProp ?? false
   // Each handler below gets its own Flowglad subroute, but still funnels through
   // the shared creator for validation and redirect behavior.
   const createCheckoutSession =
     constructCheckoutSessionCreator<FrontendProductCreateCheckoutSessionParams>(
       FlowgladActionKey.CreateCheckoutSession,
-      serverRoute,
+      baseURL,
       requestConfig,
       (_, basePayload) => ({
         ...basePayload,
@@ -405,19 +492,25 @@ export const FlowgladContextProvider = (
   const createAddPaymentMethodCheckoutSession =
     constructCheckoutSessionCreator<FrontendCreateAddPaymentMethodCheckoutSessionParams>(
       FlowgladActionKey.CreateAddPaymentMethodCheckoutSession,
-      serverRoute,
+      baseURL,
       requestConfig
     )
 
   const createActivateSubscriptionCheckoutSession =
     constructCheckoutSessionCreator<FrontendCreateActivateSubscriptionCheckoutSessionParams>(
       FlowgladActionKey.CreateActivateSubscriptionCheckoutSession,
-      serverRoute,
+      baseURL,
       requestConfig
     )
 
   const cancelSubscription = constructCancelSubscription({
-    flowgladRoute: serverRoute,
+    baseURL,
+    requestConfig,
+    queryClient,
+  })
+
+  const uncancelSubscription = constructUncancelSubscription({
+    baseURL,
     requestConfig,
     queryClient,
   })
@@ -455,6 +548,7 @@ export const FlowgladContextProvider = (
         createCheckoutSession,
         createAddPaymentMethodCheckoutSession,
         cancelSubscription,
+        uncancelSubscription,
         createActivateSubscriptionCheckoutSession,
         getProduct,
         getPrice,
@@ -471,6 +565,7 @@ export const FlowgladContextProvider = (
         reload,
         invoices: billingData.invoices,
         paymentMethods: billingData.paymentMethods,
+        currentSubscription: billingData.currentSubscription,
         currentSubscriptions: billingData.currentSubscriptions,
         billingPortalUrl: billingData.billingPortalUrl,
         pricingModel: billingData.pricingModel,

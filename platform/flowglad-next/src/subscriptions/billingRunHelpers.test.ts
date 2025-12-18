@@ -19,7 +19,6 @@ import {
   setupPayment,
   setupPaymentMethod,
   setupPrice,
-  setupProduct,
   setupProductFeature,
   setupSubscription,
   setupSubscriptionItem,
@@ -28,17 +27,16 @@ import {
   setupUsageMeter,
   teardownOrg,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
-import {
-  type OutstandingUsageCostAggregation,
-  settleInvoiceUsageCostsLedgerCommandSchema,
-} from '@/db/ledgerManager/ledgerManagerTypes'
+import { adminTransaction } from '@/db/adminTransaction'
+import { type OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
-import type { BillingRun } from '@/db/schema/billingRuns'
+import {
+  type BillingRun,
+  billingRuns,
+  billingRunsInsertSchema,
+  billingRunsSelectSchema,
+} from '@/db/schema/billingRuns'
 import type { Customer } from '@/db/schema/customers'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
@@ -52,29 +50,26 @@ import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { updateBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
-import {
-  selectBillingPeriodById,
-  updateBillingPeriod,
-} from '@/db/tableMethods/billingPeriodMethods'
+import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import {
   safelyInsertBillingRun,
   selectBillingRunById,
-  selectBillingRuns,
   updateBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
-import { insertInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
+import {
+  insertInvoiceLineItems,
+  selectInvoiceLineItems,
+} from '@/db/tableMethods/invoiceLineItemMethods'
 import {
   selectInvoiceById,
   selectInvoices,
-  updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
 import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
 import {
   aggregateBalanceForLedgerAccountFromEntries,
   selectLedgerEntries,
 } from '@/db/tableMethods/ledgerEntryMethods'
-import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import {
   safelyUpdatePaymentMethod,
@@ -91,7 +86,6 @@ import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers'
 import {
   createMockConfirmationResult,
-  createMockPaymentIntent,
   createMockPaymentIntentResponse,
 } from '@/test/helpers/stripeMocks'
 import {
@@ -117,7 +111,6 @@ import core from '@/utils/core'
 import {
   confirmPaymentIntentForBillingRun,
   createPaymentIntentForBillingRun,
-  IntentMetadataType,
   stripeIdFromObjectOrId,
 } from '@/utils/stripe'
 import {
@@ -133,7 +126,6 @@ import {
   scheduleBillingRunRetry,
   tabulateOutstandingUsageCosts,
 } from './billingRunHelpers'
-import { createSubscriptionWorkflow } from './createSubscription/workflow'
 
 // Mock Stripe functions
 vi.mock('@/utils/stripe', async (importOriginal) => {
@@ -3144,6 +3136,344 @@ describe('billingRunHelpers', async () => {
         }
       )
       expect(retryResult).toBeDefined()
+    })
+  })
+
+  describe('safelyInsertBillingRun doNotCharge Protection', () => {
+    let organization: Organization.Record
+    let pricingModel: PricingModel.Record
+    let product: Product.Record
+    let staticPrice: Price.Record
+    let customer: Customer.Record
+    let paymentMethod: PaymentMethod.Record
+    let doNotChargeSubscription: Subscription.Record
+    let doNotChargeBillingPeriod: BillingPeriod.Record
+
+    beforeEach(async () => {
+      const orgData = await setupOrg()
+      organization = orgData.organization
+      pricingModel = orgData.pricingModel
+      product = orgData.product
+      staticPrice = orgData.price
+
+      customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+
+      doNotChargeSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: staticPrice.id,
+        status: SubscriptionStatus.Active,
+        doNotCharge: true,
+      })
+
+      doNotChargeBillingPeriod = await setupBillingPeriod({
+        subscriptionId: doNotChargeSubscription.id,
+        startDate: Date.now(),
+        endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      })
+    })
+
+    afterEach(async () => {
+      if (organization) {
+        await teardownOrg({ organizationId: organization.id })
+      }
+    })
+
+    it('should throw error for doNotCharge subscriptions via safelyInsertBillingRun', async () => {
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return safelyInsertBillingRun(
+            {
+              billingPeriodId: doNotChargeBillingPeriod.id,
+              scheduledFor: Date.now(),
+              status: BillingRunStatus.Scheduled,
+              subscriptionId: doNotChargeSubscription.id,
+              paymentMethodId: paymentMethod.id,
+              livemode: doNotChargeBillingPeriod.livemode,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        'Cannot create billing run for doNotCharge subscription'
+      )
+    })
+
+    it('should throw error for doNotCharge subscriptions via createBillingRun', async () => {
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return createBillingRun(
+            {
+              billingPeriod: doNotChargeBillingPeriod,
+              paymentMethod,
+              scheduledFor: Date.now(),
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        'Cannot create billing run for doNotCharge subscription'
+      )
+    })
+
+    it('should throw error for doNotCharge subscriptions via scheduleBillingRunRetry', async () => {
+      // Create a mock billing run to retry (normally this wouldn't exist due to prevention,
+      // but we test the retry path defensively). We use a type assertion because setupBillingRun
+      // would throw for doNotCharge subscriptions (it calls safelyInsertBillingRun which throws an error).
+      const mockBillingRunForRetry = {
+        id: 'mock_billing_run_id',
+        billingPeriodId: doNotChargeBillingPeriod.id,
+        subscriptionId: doNotChargeSubscription.id,
+        paymentMethodId: paymentMethod.id,
+        scheduledFor: Date.now(),
+        status: BillingRunStatus.Failed,
+        livemode: doNotChargeBillingPeriod.livemode,
+        attemptNumber: 1,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdByCommit: null,
+        updatedByCommit: null,
+        position: 0,
+        startedAt: null,
+        completedAt: null,
+        stripePaymentIntentId: null,
+        lastPaymentIntentEventTimestamp: null,
+        isAdjustment: false,
+      } as BillingRun.Record
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return scheduleBillingRunRetry(
+            mockBillingRunForRetry,
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        'Cannot create billing run for doNotCharge subscription'
+      )
+    })
+  })
+
+  describe('doNotCharge subscriptions', () => {
+    let organization: Organization.Record
+    let pricingModel: PricingModel.Record
+    let product: Product.Record
+    let staticPrice: Price.Record
+    let customer: Customer.Record
+    let paymentMethod: PaymentMethod.Record
+    let doNotChargeSubscription: Subscription.Record
+    let billingPeriod: BillingPeriod.Record
+    let billingRun: BillingRun.Record
+    let usageMeter: UsageMeter.Record
+    let usageBasedPrice: Price.Record
+    let ledgerAccount: LedgerAccount.Record
+    let subscriptionItem: SubscriptionItem.Record
+
+    beforeEach(async () => {
+      const orgData = await setupOrg()
+      organization = orgData.organization
+      pricingModel = orgData.pricingModel
+      product = orgData.product
+      staticPrice = orgData.price
+
+      customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+
+      usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter For DoNotCharge',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+
+      usageBasedPrice = await setupPrice({
+        productId: product.id,
+        name: 'Usage Based Price For DoNotCharge',
+        type: PriceType.Usage,
+        unitPrice: 15,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
+        usageMeterId: usageMeter.id,
+      })
+
+      doNotChargeSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: staticPrice.id,
+        status: SubscriptionStatus.Active,
+        doNotCharge: true,
+      })
+
+      subscriptionItem = await setupSubscriptionItem({
+        subscriptionId: doNotChargeSubscription.id,
+        name: 'Static Subscription Item',
+        quantity: 1,
+        unitPrice: 0, // doNotCharge subscriptions have subscription items with 0 unitPrice
+        priceId: staticPrice.id,
+      })
+
+      billingPeriod = await setupBillingPeriod({
+        subscriptionId: doNotChargeSubscription.id,
+        startDate: doNotChargeSubscription.currentBillingPeriodStart!,
+        endDate: doNotChargeSubscription.currentBillingPeriodEnd!,
+        status: BillingPeriodStatus.Active,
+      })
+
+      // Set up billing period item for the static subscription
+      await setupBillingPeriodItem({
+        billingPeriodId: billingPeriod.id,
+        quantity: 1,
+        unitPrice: 0, // doNotCharge subscriptions have billing period items with 0 unitPrice (inherited from subscription items)
+        name: 'Static Subscription Item',
+      })
+
+      /**
+       * Defensive edge case test: In normal operation, doNotCharge subscriptions should never
+       * have billing runs created (see createSubscription/helpers.ts:maybeCreateInitialBillingPeriodAndRun
+       * and safelyInsertBillingRun which throws an error for doNotCharge subscriptions).
+       *
+       * However, this test verifies that if a billing run somehow exists for a doNotCharge subscription
+       * 1. Excluding usage overages from billing calculations
+       * 2. Calculating totalDueAmount as 0 (since subscription items have unitPrice: 0)
+       * 3. Skipping payment intent creation when amountToCharge <= 0
+       *
+       * NOTE: We use a direct database insert here because setupBillingRun would throw for doNotCharge
+       * subscriptions (it calls safelyInsertBillingRun which throws an error). This simulates the edge case
+       * where a billing run exists despite the prevention mechanism.
+       */
+      const billingRunInsert = billingRunsInsertSchema.parse({
+        billingPeriodId: billingPeriod.id,
+        scheduledFor: Date.now(),
+        status: BillingRunStatus.Scheduled,
+        subscriptionId: doNotChargeSubscription.id,
+        paymentMethodId: paymentMethod.id,
+        livemode: billingPeriod.livemode,
+        attemptNumber: 1,
+        isAdjustment: false,
+      })
+      billingRun = await adminTransaction(async ({ transaction }) => {
+        const [inserted] = await transaction
+          .insert(billingRuns)
+          .values(billingRunInsert)
+          .returning()
+        return billingRunsSelectSchema.parse(inserted)
+      })
+
+      ledgerAccount = await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: doNotChargeSubscription.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+    })
+
+    afterEach(async () => {
+      if (organization) {
+        await teardownOrg({ organizationId: organization.id })
+      }
+    })
+
+    it('should not include usage overages in billing calculations for doNotCharge subscriptions', async () => {
+      // Create usage events that would normally create overages
+      const ledgerTransaction = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: doNotChargeSubscription.id,
+        type: LedgerTransactionType.UsageEventProcessed,
+      })
+
+      const usageEvent = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: doNotChargeSubscription.id,
+        usageMeterId: usageMeter.id,
+        amount: 1000,
+        priceId: usageBasedPrice.id,
+        billingPeriodId: billingPeriod.id,
+        transactionId: 'dnc_test_txn_' + Math.random(),
+        customerId: customer.id,
+      })
+
+      await setupDebitLedgerEntry({
+        organizationId: organization.id,
+        subscriptionId: doNotChargeSubscription.id,
+        ledgerAccountId: ledgerAccount.id,
+        ledgerTransactionId: ledgerTransaction.id,
+        amount: 1000,
+        entryType: LedgerEntryType.UsageCost,
+        sourceUsageEventId: usageEvent.id,
+        status: LedgerEntryStatus.Posted,
+        usageMeterId: usageMeter.id,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return executeBillingRunCalculationAndBookkeepingSteps(
+            billingRun,
+            transaction
+          )
+        }
+      )
+
+      // Verify subscription has doNotCharge flag
+      expect(result?.subscription?.doNotCharge).toBe(true)
+
+      // Verify invoice line items don't include usage items
+      const invoiceLineItems = await adminTransaction(
+        async ({ transaction }) => {
+          return selectInvoiceLineItems(
+            { invoiceId: result.invoice.id },
+            transaction
+          )
+        }
+      )
+      const usageLineItems = invoiceLineItems.filter(
+        (item) => item.type === SubscriptionItemType.Usage
+      )
+      expect(usageLineItems.length).toBe(0)
+
+      // Usage events should be recorded in ledger
+      const entries = await adminTransaction(
+        async ({ transaction }) => {
+          return selectLedgerEntries(
+            { ledgerAccountId: ledgerAccount.id },
+            transaction
+          )
+        }
+      )
+      expect(entries.length).toBe(1)
+      expect(entries[0].amount).toBe(1000)
+
+      // Verify usage costs exist but were excluded from billing
+      const { rawOutstandingUsageCosts } = await adminTransaction(
+        async ({ transaction }) => {
+          return tabulateOutstandingUsageCosts(
+            doNotChargeSubscription.id,
+            billingPeriod.endDate,
+            transaction
+          )
+        }
+      )
+
+      expect(rawOutstandingUsageCosts.length).toBe(1)
+      // Check the individual cost entry (we set up 1000 in the test)
+      expect(rawOutstandingUsageCosts[0]!.balance).toBe(1000)
+
+      // Finally, verify totalDueAmount excludes usage costs
+      // Since billing period item has unitPrice: 0 and usage costs are excluded, totalDueAmount should be 0
+      expect(result.totalDueAmount).toBe(0)
     })
   })
 })

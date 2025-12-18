@@ -1,20 +1,11 @@
 import { sql } from 'drizzle-orm'
-import {
-  boolean,
-  jsonb,
-  pgPolicy,
-  pgTable,
-  text,
-} from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
-import * as R from 'ramda'
+import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
   billingAddressSchema,
   organizations,
 } from '@/db/schema/organizations'
 import {
-  clientWriteOmitsConstructor,
   constructGinIndex,
   constructIndex,
   constructUniqueIndex,
@@ -24,12 +15,10 @@ import {
   createPaginatedTableRowOutputSchema,
   createSupabaseWebhookSchema,
   enableCustomerReadPolicy,
-  hiddenColumnsForClientSchema,
   livemodePolicy,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
-  ommittedColumnsForInsertSchema,
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
@@ -175,6 +164,7 @@ export const editCustomerInputSchema = z.object({
   customer: customerClientUpdateSchema.omit({
     externalId: true,
     id: true,
+    pricingModelId: true,
   }),
   externalId: z.string(),
 })

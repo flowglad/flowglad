@@ -526,6 +526,7 @@ export enum CancellationReason {
   UpgradedToPaid = 'upgraded_to_paid',
   CustomerRequest = 'customer_request',
   NonPayment = 'non_payment',
+  PricingModelMigration = 'pricing_model_migration',
   Other = 'other',
 }
 
@@ -701,7 +702,6 @@ export type LoggerData = LogData & {
 export enum FlowgladApiKeyType {
   Publishable = 'publishable',
   Secret = 'secret',
-  BillingPortalToken = 'hosted_billing_portal',
 }
 
 export enum StripeConnectContractType {
@@ -749,7 +749,6 @@ export enum InvoiceType {
 export enum SubscriptionCancellationArrangement {
   Immediately = 'immediately',
   AtEndOfCurrentBillingPeriod = 'at_end_of_current_billing_period',
-  AtFutureDate = 'at_future_date',
 }
 
 export enum SubscriptionCancellationRefundPolicy {

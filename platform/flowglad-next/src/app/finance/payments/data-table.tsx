@@ -1,19 +1,17 @@
 'use client'
 
 import {
-  type ColumnFiltersState,
   type ColumnSizingState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  type SortingState,
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
+import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { FilterButtonGroup } from '@/components/ui/filter-button-group'
@@ -56,6 +54,8 @@ export function PaymentsDataTable({
 }: PaymentsDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(300)
 
   const {
     pageIndex,
@@ -71,7 +71,7 @@ export function PaymentsDataTable({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
-    // ⚠️ NO searchQuery - payments table doesn't have backend search support
+    searchQuery,
     useQuery: trpc.payments.getTableRows.useQuery,
   })
 
@@ -82,10 +82,13 @@ export function PaymentsDataTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey])
 
-  // Client-side features (Shadcn patterns)
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] =
-    React.useState<ColumnFiltersState>([])
+  // Reset to first page when debounced search changes
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
+
+  // Client-side visibility/sizing (sorting handled server-side)
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>(() =>
       hiddenColumns.reduce(
@@ -106,12 +109,11 @@ export function PaymentsDataTable({
       minSize: 20,
       maxSize: 500,
     },
+    enableSorting: false, // Disable header sorting UI/interactions
     manualPagination: true, // Server-side pagination
-    manualSorting: false, // Client-side sorting on current page
-    manualFiltering: false, // Client-side filtering on current page
+    manualSorting: true, // Disable client-side sorting
+    manualFiltering: true, // Disable client-side filtering
     pageCount: Math.ceil((data?.total || 0) / currentPageSize),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
     onPaginationChange: (updater) => {
@@ -131,11 +133,7 @@ export function PaymentsDataTable({
       }
     },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     state: {
-      sorting,
-      columnFilters,
       columnVisibility,
       columnSizing,
       pagination: { pageIndex, pageSize: currentPageSize },
@@ -144,8 +142,8 @@ export function PaymentsDataTable({
 
   return (
     <div className="w-full">
-      {/* Toolbar WITHOUT search */}
-      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
+      {/* Enhanced toolbar */}
+      <div className="flex flex-wrap items-center justify-between pt-4 pb-3 gap-4 min-w-0">
         {/* Title and/or Filter buttons on the left */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
           {title && <h3 className="text-lg truncate">{title}</h3>}
@@ -158,8 +156,19 @@ export function PaymentsDataTable({
           )}
         </div>
 
-        {/* View options on the right */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        {/* View options and search */}
+        <div className="flex items-center gap-2 flex-wrap flex-shrink-0 justify-end">
+          <CollapsibleSearch
+            value={inputValue}
+            onChange={setInputValue}
+            // Customer name search is redundant when customer context is already scoped by filters.
+            placeholder={
+              filters.customerId || filters.subscriptionId
+                ? 'Search payment_id...'
+                : 'Customer or payment_id...'
+            }
+            isLoading={isFetching}
+          />
           <DataTableViewOptions table={table} />
         </div>
       </div>

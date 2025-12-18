@@ -1,9 +1,5 @@
-import { format } from 'date-fns'
-import { CalendarIcon } from 'lucide-react'
 import type React from 'react'
 import { useFormContext } from 'react-hook-form'
-import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
 import {
   FormControl,
   FormField,
@@ -11,11 +7,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Label } from '@/components/ui/label'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import {
   RadioGroup,
   RadioGroupItem,
@@ -35,16 +26,11 @@ const options = [
     value:
       SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
   },
-  {
-    label: 'At Future Date',
-    value: SubscriptionCancellationArrangement.AtFutureDate,
-  },
 ]
 
 const CancelSubscriptionFormFields: React.FC = () => {
-  const { control, watch } =
+  const { control } =
     useFormContext<ScheduleSubscriptionCancellationParams>()
-  const selectedArrangement = watch('cancellation.timing')
 
   return (
     <div className={cn('flex flex-col gap-3')}>
@@ -79,54 +65,6 @@ const CancelSubscriptionFormFields: React.FC = () => {
           </FormItem>
         )}
       />
-      {selectedArrangement ===
-        SubscriptionCancellationArrangement.AtFutureDate && (
-        <FormField
-          name="cancellation.endDate"
-          control={control}
-          render={({ field, fieldState }) => (
-            <FormItem>
-              <FormControl>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full justify-start text-left font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {field.value
-                        ? format(field.value, 'PPP')
-                        : 'Select date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-auto p-0"
-                    align="start"
-                  >
-                    <Calendar
-                      mode="single"
-                      selected={
-                        field.value
-                          ? new Date(field.value)
-                          : undefined
-                      }
-                      onSelect={(date) =>
-                        field.onChange(date?.getTime())
-                      }
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
     </div>
   )
 }

@@ -1,12 +1,8 @@
 'use client'
 import {
-  type ColumnFiltersState,
   type ColumnSizingState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  type SortingState,
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
@@ -14,7 +10,9 @@ import { Plus } from 'lucide-react'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { Button } from '@/components/ui/button'
+import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { FilterButtonGroup } from '@/components/ui/filter-button-group'
@@ -59,6 +57,8 @@ export function InvoicesDataTable({
 }: InvoicesDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(300)
 
   const {
     pageIndex,
@@ -75,6 +75,7 @@ export function InvoicesDataTable({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
+    searchQuery,
     useQuery: trpc.invoices.getTableRows.useQuery,
   })
 
@@ -85,10 +86,13 @@ export function InvoicesDataTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey])
 
-  // Client-side features (Shadcn patterns)
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] =
-    React.useState<ColumnFiltersState>([])
+  // Reset to first page when debounced search changes
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
+
+  // Client-side sorting/filtering removed; handled server-side
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>(() =>
       hiddenColumns.reduce(
@@ -122,14 +126,14 @@ export function InvoicesDataTable({
       minSize: 20,
       maxSize: 500,
     },
+    enableSorting: false, // Disable header sorting UI/interactions
     manualPagination: true, // Server-side pagination
-    manualSorting: false, // Client-side sorting on current page
-    manualFiltering: false, // Client-side filtering on current page
+    manualSorting: true, // Disable client-side sorting
+    manualFiltering: true, // Disable client-side filtering
     pageCount: Math.ceil((data?.total || 0) / currentPageSize),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
+    // no client sorting/filter callbacks
     onColumnSizingChange: setColumnSizing,
+    onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: (updater) => {
       const newPagination =
         typeof updater === 'function'
@@ -147,11 +151,7 @@ export function InvoicesDataTable({
       }
     },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     state: {
-      sorting,
-      columnFilters,
       columnVisibility,
       columnSizing,
       columnOrder,
@@ -162,7 +162,7 @@ export function InvoicesDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar */}
-      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
+      <div className="flex flex-wrap items-center justify-between pt-4 pb-3 gap-4 min-w-0">
         {/* Title and/or Filter buttons on the left */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
           {title && <h3 className="text-lg truncate">{title}</h3>}
@@ -175,8 +175,18 @@ export function InvoicesDataTable({
           )}
         </div>
 
-        {/* Controls on the right */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        {/* View options and search */}
+        <div className="flex items-center gap-2 flex-wrap flex-shrink-0 justify-end">
+          <CollapsibleSearch
+            value={inputValue}
+            onChange={setInputValue}
+            placeholder={
+              filters.customerId || filters.subscriptionId
+                ? 'inv_id or number...'
+                : 'Customer or invoice...'
+            }
+            isLoading={isFetching}
+          />
           <DataTableViewOptions table={table} />
           {onCreateInvoice && (
             <Button onClick={onCreateInvoice}>

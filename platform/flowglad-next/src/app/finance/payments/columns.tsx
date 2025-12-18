@@ -2,7 +2,14 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import { sentenceCase } from 'change-case'
-import { Check, Hourglass, Rewind, RotateCcw, X } from 'lucide-react'
+import {
+  Check,
+  ExternalLink,
+  Hourglass,
+  Rewind,
+  RotateCcw,
+  X,
+} from 'lucide-react'
 import * as React from 'react'
 import { Badge } from '@/components/ui/badge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
@@ -13,7 +20,7 @@ import {
 } from '@/components/ui/enhanced-data-table-actions-menu'
 import type { Payment } from '@/db/schema/payments'
 import { PaymentStatus } from '@/types'
-import { formatDate } from '@/utils/core'
+import core, { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import RefundPaymentModal from './RefundPaymentModal'
 import RetryPaymentModal from './RetryPaymentModal'
@@ -26,8 +33,8 @@ const PaymentStatusBadge = ({
   let className: string = 'bg-gray-100 text-gray-800'
   let icon: React.ReactNode = null
   if (status === PaymentStatus.Succeeded) {
-    className = 'bg-green-100 text-green-800'
-    icon = <Check className="w-3 h-3 mr-1" />
+    className = 'bg-jade-background text-jade-foreground'
+    icon = <Check className="w-3 h-3 mr-1 text-jade-foreground" />
   } else if (status === PaymentStatus.Processing) {
     className = 'bg-yellow-100 text-yellow-800'
     icon = <Hourglass className="w-3 h-3 mr-1" />
@@ -54,6 +61,13 @@ function PaymentActionsMenu({
   const [isRefundOpen, setIsRefundOpen] = React.useState(false)
   const [isRetryOpen, setIsRetryOpen] = React.useState(false)
   const actionItems: ActionMenuItem[] = []
+  const invoiceUrl = `${core.NEXT_PUBLIC_APP_URL}/invoice/view/${payment.organizationId}/${payment.invoiceId}`
+  actionItems.push({
+    label: 'View Invoice',
+    icon: <ExternalLink className="h-4 w-4" />,
+    handler: () =>
+      window.open(invoiceUrl, '_blank', 'noopener,noreferrer'),
+  })
   actionItems.push({
     label: 'Refund Payment',
     icon: <Rewind className="h-4 w-4" />,

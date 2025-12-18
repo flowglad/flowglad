@@ -7,7 +7,7 @@ import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMetho
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
-import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
+import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 import { InvoiceStatus } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
@@ -31,8 +31,8 @@ export const stripePaymentIntentSucceededTask = task({
     if ('billingRunId' in metadata) {
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
-          return await processPaymentIntentEventForBillingRun(
-            payload,
+          return await processOutcomeForBillingRun(
+            { input: payload },
             transaction
           )
         }

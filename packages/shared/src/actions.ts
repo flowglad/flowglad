@@ -45,7 +45,11 @@ export const createActivateSubscriptionCheckoutSessionSchema =
     targetSubscriptionId: z.string(),
   })
 
-export type CreateProductCheckoutSessionParams = z.infer<
+/**
+ * Use z.input to get the type before any transformations (like default values) are applied by the schema.
+ * This keeps fields like `quantity` optional in the input type, even if the schema applies defaults.
+ */
+export type CreateProductCheckoutSessionParams = z.input<
   typeof createProductCheckoutSessionSchema
 >
 export type CreateAddPaymentMethodCheckoutSessionParams = z.infer<
@@ -63,7 +67,6 @@ const subscriptionCancellationTiming: Record<
   SubscriptionCancellationArrangement
 > = {
   AtEndOfCurrentBillingPeriod: 'at_end_of_current_billing_period',
-  AtFutureDate: 'at_future_date',
   Immediately: 'immediately',
 }
 
@@ -74,10 +77,6 @@ const cancellationParametersSchema = z.discriminatedUnion('timing', [
     ),
   }),
   z.object({
-    timing: z.literal(subscriptionCancellationTiming.AtFutureDate),
-    endDate: z.date(),
-  }),
-  z.object({
     timing: z.literal(subscriptionCancellationTiming.Immediately),
   }),
 ])
@@ -85,6 +84,10 @@ const cancellationParametersSchema = z.discriminatedUnion('timing', [
 export const cancelSubscriptionSchema = z.object({
   id: z.string(),
   cancellation: cancellationParametersSchema,
+})
+
+export const uncancelSubscriptionSchema = z.object({
+  id: z.string(),
 })
 
 const baseUsageEventFields = z.object({
@@ -118,6 +121,10 @@ export type CancelSubscriptionParams = z.infer<
   typeof cancelSubscriptionSchema
 >
 
+export type UncancelSubscriptionParams = z.infer<
+  typeof uncancelSubscriptionSchema
+>
+
 const createSubscriptionCoreSchema = z.object({
   customerId: z.string(),
   quantity: z.number().optional(),
@@ -128,12 +135,18 @@ const createSubscriptionCoreSchema = z.object({
     .describe(
       `Epoch time in milliseconds of when the trial ends. If not provided, defaults to startDate + the associated price's trialPeriodDays`
     ),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  metadata: z
+    .record(
+      z.string(),
+      z.union([z.string(), z.number(), z.boolean()])
+    )
+    .optional(),
   name: z.string().optional(),
   backupPaymentMethodId: z.string().optional(),
   defaultPaymentMethodId: z.string().optional(),
   interval: z.enum(['day', 'week', 'month', 'year']).optional(),
   intervalCount: z.number().optional(),
+  doNotCharge: z.boolean().optional().default(false),
 })
 
 const createSubscriptionWithPriceId =
@@ -153,7 +166,11 @@ export const createSubscriptionSchema = z.union([
   createSubscriptionWithPriceSlug,
 ])
 
-export type CreateSubscriptionParams = z.infer<
+/**
+ * Use z.input to get the type before any transformations (like default values) are applied by the schema.
+ * This keeps fields like `doNotCharge` optional in the input type, even if the schema applies defaults.
+ */
+export type CreateSubscriptionParams = z.input<
   typeof createSubscriptionSchema
 >
 
@@ -215,6 +232,10 @@ export const flowgladActionValidators = {
   [FlowgladActionKey.CancelSubscription]: {
     method: HTTPMethod.POST,
     inputValidator: cancelSubscriptionSchema,
+  },
+  [FlowgladActionKey.UncancelSubscription]: {
+    method: HTTPMethod.POST,
+    inputValidator: uncancelSubscriptionSchema,
   },
   [FlowgladActionKey.CreateSubscription]: {
     method: HTTPMethod.POST,

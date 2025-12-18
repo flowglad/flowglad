@@ -29,7 +29,10 @@ export const createAppRouterRouteHandler = (
         req.method === 'GET'
           ? Object.fromEntries(req.nextUrl.searchParams)
           : undefined,
-      body: req.method !== 'GET' ? await req.json() : undefined,
+      body:
+        req.method !== 'GET'
+          ? await req.json().catch(() => ({}))
+          : undefined,
     })
     return NextResponse.json(
       {

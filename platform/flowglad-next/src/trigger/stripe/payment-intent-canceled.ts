@@ -1,7 +1,7 @@
 import { logger, task } from '@trigger.dev/sdk'
 import type Stripe from 'stripe'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
+import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 
 export const stripePaymentIntentCanceledTask = task({
   id: 'stripe-payment-intent-canceled',
@@ -13,8 +13,8 @@ export const stripePaymentIntentCanceledTask = task({
     if ('billingRunId' in metadata) {
       return comprehensiveAdminTransaction(
         async ({ transaction }) => {
-          return await processPaymentIntentEventForBillingRun(
-            payload,
+          return await processOutcomeForBillingRun(
+            { input: payload },
             transaction
           )
         }

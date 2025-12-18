@@ -1,7 +1,7 @@
 import { snakeCase } from 'change-case'
 import { sql } from 'drizzle-orm'
 import * as R from 'ramda'
-import { nanoid, z } from 'zod'
+import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import db from '@/db/client'
 import { type ApiKey, apiKeys } from '@/db/schema/apiKeys'
@@ -10,19 +10,14 @@ import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { countries } from '@/db/schema/countries'
-import { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import type { Discount } from '@/db/schema/discounts'
 import type { Feature } from '@/db/schema/features'
 import type { invoicesInsertSchema } from '@/db/schema/invoices'
 import {
   type LedgerEntry,
-  ledgerEntries,
   ledgerEntryNulledSourceIdColumns,
 } from '@/db/schema/ledgerEntries'
-import {
-  type LedgerTransaction,
-  ledgerTransactions,
-} from '@/db/schema/ledgerTransactions'
+import { type LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import { memberships } from '@/db/schema/memberships'
 import type { BillingAddress } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
@@ -34,16 +29,10 @@ import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatur
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { subscriptionMeterPeriodCalculations } from '@/db/schema/subscriptionMeterPeriodCalculations'
 import type { Subscription } from '@/db/schema/subscriptions'
-import {
-  type UsageCreditApplication,
-  usageCreditApplications,
-} from '@/db/schema/usageCreditApplications'
+import { type UsageCreditApplication } from '@/db/schema/usageCreditApplications'
 import type { usageCreditBalanceAdjustments } from '@/db/schema/usageCreditBalanceAdjustments'
-import {
-  type UsageCredit,
-  usageCredits,
-} from '@/db/schema/usageCredits'
-import { type UsageEvent, usageEvents } from '@/db/schema/usageEvents'
+import { type UsageCredit } from '@/db/schema/usageCredits'
+import { type UsageEvent } from '@/db/schema/usageEvents'
 import { users } from '@/db/schema/users'
 import { insertBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
 import {
@@ -433,7 +422,7 @@ export const teardownOrg = async ({
 export const setupSubscription = async (params: {
   organizationId: string
   customerId: string
-  paymentMethodId?: string
+  paymentMethodId?: string | null
   defaultPaymentMethodId?: string
   priceId: string
   interval?: IntervalUnit
@@ -453,7 +442,16 @@ export const setupSubscription = async (params: {
   canceledAt?: number | null
   metadata?: any
   billingCycleAnchorDate?: number
+  doNotCharge?: boolean
 }): Promise<Subscription.Record> => {
+  if (
+    params.doNotCharge &&
+    (params.paymentMethodId || params.defaultPaymentMethodId)
+  ) {
+    throw new Error(
+      'doNotCharge subscriptions cannot have payment methods'
+    )
+  }
   const status = params.status ?? SubscriptionStatus.Active
   return adminTransaction(async ({ transaction }) => {
     const price = await selectPriceById(params.priceId, transaction)
@@ -490,6 +488,7 @@ export const setupSubscription = async (params: {
           startDate: Date.now(),
           renews: false,
           isFreePlan: params.isFreePlan ?? false,
+          doNotCharge: params.doNotCharge ?? false,
           cancellationReason: params.cancellationReason ?? null,
           replacedBySubscriptionId:
             params.replacedBySubscriptionId ?? null,
@@ -542,6 +541,7 @@ export const setupSubscription = async (params: {
           cancellationReason: params.cancellationReason ?? null,
           replacedBySubscriptionId:
             params.replacedBySubscriptionId ?? null,
+          doNotCharge: params.doNotCharge ?? false,
         },
         transaction
       )) as Subscription.StandardRecord
@@ -592,8 +592,8 @@ export const setupBillingRun = async ({
   billingPeriodId: string
   paymentMethodId: string
   subscriptionId: string
-}) => {
-  return adminTransaction(async ({ transaction }) => {
+}): Promise<BillingRun.Record> => {
+  return await adminTransaction(async ({ transaction }) => {
     return safelyInsertBillingRun(
       {
         billingPeriodId,

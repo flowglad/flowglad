@@ -53,7 +53,6 @@ const handleCheckout = async (product) => {
       priceId: product.defaultPrice.id, // Or a specific price ID
       successUrl: `${window.location.origin}/checkout-success`, // Your success page
       cancelUrl: window.location.href, // Where to return on cancellation
-      quantity: 1,
       autoRedirect: true, // Automatically redirect to Flowglad Checkout after creation
       type: 'product',
     })

@@ -1,5 +1,9 @@
-import type { BillingWithChecks } from '@flowglad/shared'
-import type { Price, UsageMeter, Product } from '@flowglad/types'
+import type {
+  BillingWithChecks,
+  Price,
+  UsageMeter,
+  Product,
+} from '@flowglad/nextjs'
 
 type UsageMeterSlug = 'fast_generations' | 'hd_video_minutes'
 
