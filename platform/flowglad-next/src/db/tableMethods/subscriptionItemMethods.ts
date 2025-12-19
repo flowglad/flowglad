@@ -133,13 +133,24 @@ export const bulkCreateOrUpdateSubscriptionItems = async (
   ) as SubscriptionItem.Insert[]
 
   // Verify all items exist before attempting to update them
-  for (const item of itemsWithIds) {
-    try {
-      await selectSubscriptionItemById(item.id, transaction)
-    } catch (error) {
-      throw new Error(
-        `Cannot update subscription item with id ${item.id} because it is non-existent`
+  if (itemsWithIds.length > 0) {
+    const existingItems = await transaction
+      .select({ id: subscriptionItems.id })
+      .from(subscriptionItems)
+      .where(
+        inArray(
+          subscriptionItems.id,
+          itemsWithIds.map((item) => item.id)
+        )
       )
+
+    const existingIds = new Set(existingItems.map((item) => item.id))
+    for (const item of itemsWithIds) {
+      if (!existingIds.has(item.id)) {
+        throw new Error(
+          `Cannot update subscription item with id ${item.id} because it is non-existent`
+        )
+      }
     }
   }
 
