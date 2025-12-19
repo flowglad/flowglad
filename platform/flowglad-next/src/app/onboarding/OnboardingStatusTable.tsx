@@ -67,17 +67,17 @@ const OnboardingStatusRow = ({
         {actionNode || action ? (
           <div className="flex flex-col">
             {completed ? (
-              <div className="flex justify-center">
+              <div className="flex justify-start">
                 <div className="rounded-full bg-green-600 text-white p-2">
                   <Check size={20} strokeWidth={2} />
                 </div>
               </div>
             ) : inReview ? (
-              <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-col items-start gap-3">
                 <div className="rounded-full bg-yellow-500 text-white p-2">
                   <Clock size={20} strokeWidth={2} />
                 </div>
-                <p className="text-sm text-muted-foreground text-center">
+                <p className="text-sm text-muted-foreground">
                   We're currently reviewing your account.
                 </p>
               </div>
