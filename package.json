@@ -4,7 +4,6 @@
   "license": "MIT",
   "version": "0.0.0",
   "scripts": {
-    "embed-docs": "tsx scripts/embedDocs.ts",
     "randombytes": "tsx scripts/randomBytes.ts",
     "test": "bunx turbo run test",
     "format": "biome format --write .",
@@ -26,9 +25,6 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@turbopuffer/turbopuffer": "^1.0.0",
-    "dotenv": "^16.0.0",
-    "openai": "^4.0.0",
     "tsx": "4.17.0"
   },
   "devDependencies": {
@@ -40,8 +36,8 @@
     "@types/react-dom": "19.0.0",
     "conventional-changelog-cli": "^5.0.0",
     "husky": "^9.1.7",
-    "react": "19.0.1",
-    "react-dom": "19.0.1",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
     "tsup": "8.3.6",
     "turbo": "^2.4.4",
     "typescript": "5.8.2"

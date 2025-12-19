@@ -20,6 +20,10 @@ import React, { createContext, useContext } from 'react'
 import { devError } from './lib/utils'
 import { validateUrl } from './utils'
 
+const getFlowgladRoute = (baseURL?: string): string => {
+  return baseURL ? `${baseURL}/api/flowglad` : '/api/flowglad'
+}
+
 export type FrontendProductCreateCheckoutSessionParams =
   CreateProductCheckoutSessionParams & {
     autoRedirect?: boolean
@@ -175,9 +179,7 @@ const constructCheckoutSessionCreator =
       mapPayload?.(params, basePayload) ??
       (basePayload as Record<string, unknown>)
 
-    const flowgladRoute = baseURL
-      ? `${baseURL}/api/flowglad`
-      : '/api/flowglad'
+    const flowgladRoute = getFlowgladRoute(baseURL)
     const response = await fetch(`${flowgladRoute}/${actionKey}`, {
       method: 'POST',
       headers: {
@@ -219,9 +221,7 @@ const constructCancelSubscription =
   }> => {
     const { baseURL, requestConfig, queryClient } = constructParams
     const headers = requestConfig?.headers
-    const flowgladRoute = baseURL
-      ? `${baseURL}/api/flowglad`
-      : '/api/flowglad'
+    const flowgladRoute = getFlowgladRoute(baseURL)
     const response = await fetch(
       `${flowgladRoute}/${FlowgladActionKey.CancelSubscription}`,
       {
@@ -269,9 +269,7 @@ const constructUncancelSubscription =
   }> => {
     const { baseURL, requestConfig, queryClient } = constructParams
     const headers = requestConfig?.headers
-    const flowgladRoute = baseURL
-      ? `${baseURL}/api/flowglad`
-      : '/api/flowglad'
+    const flowgladRoute = getFlowgladRoute(baseURL)
     const response = await fetch(
       `${flowgladRoute}/${FlowgladActionKey.UncancelSubscription}`,
       {
@@ -374,9 +372,7 @@ export const FlowgladContextProvider = (
           'fetch is not available. In React Native environments, provide a fetch implementation via requestConfig.fetch'
         )
       }
-      const flowgladRoute = baseURL
-        ? `${baseURL}/api/flowglad`
-        : '/api/flowglad'
+      const flowgladRoute = getFlowgladRoute(baseURL)
       const response = await fetchImpl(
         `${flowgladRoute}/${FlowgladActionKey.GetCustomerBilling}`,
         {
