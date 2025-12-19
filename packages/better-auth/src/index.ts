@@ -80,11 +80,11 @@ const getDefaultCustomer = async (
     if (!orgId) {
       throw new Error('Organization ID not found in session')
     }
-    // For organizations, we'd need to query the db, but for now use session data
-    // Users can provide custom getCustomer function for org-specific logic
+    // For organizations, use organization ID as externalId
+    // Use user's name/email as fallback (users can provide custom getCustomer for org-specific logic)
     return {
       externalId: orgId,
-      name: session.user.name || '',
+      name: session.user.name || 'Organization',
       email: session.user.email || '',
     }
   }
@@ -140,6 +140,29 @@ const createFlowgladCustomer = async (
 
   // This will find or create the customer
   await flowgladServer.findOrCreateCustomer()
+}
+
+/**
+ * Helper function to create Flowglad customer for an organization
+ * Can be called directly when organization is created programmatically
+ */
+export const createFlowgladCustomerForOrganization = async (
+  options: FlowgladBetterAuthPluginOptions,
+  organizationId: string,
+  userId: string,
+  userEmail: string,
+  userName?: string | null
+): Promise<void> => {
+  const session: InnerSession = {
+    user: {
+      id: userId,
+      email: userEmail,
+      name: userName || null,
+      organizationId,
+    },
+  }
+
+  await createFlowgladCustomer(options, session)
 }
 
 export const flowgladPlugin = (
@@ -243,20 +266,28 @@ export const flowgladPlugin = (
                   organization?: {
                     id?: string
                     name?: string
-                    email?: string
+                    slug?: string
+                  }
+                  member?: {
+                    userId?: string
+                    organizationId?: string
                   }
                 }
               | undefined
 
             if (!returned?.organization?.id) {
-              // No organization created, skip
               return
             }
 
             // Get session from context to get user info
             const session = ctx.context.session
             if (!session?.user) {
-              // No session available, skip
+              return
+            }
+
+            // Only create Flowglad customer if customerType is 'organization'
+            const customerType = options.customerType || 'user'
+            if (customerType !== 'organization') {
               return
             }
 
@@ -268,12 +299,6 @@ export const flowgladPlugin = (
                 email: session.user.email || null,
                 organizationId: returned.organization.id,
               },
-            }
-
-            // Only create Flowglad customer if customerType is 'organization'
-            const customerType = options.customerType || 'user'
-            if (customerType !== 'organization') {
-              return
             }
 
             try {
@@ -290,16 +315,4 @@ export const flowgladPlugin = (
       ],
     },
   } satisfies BetterAuthPlugin
-}
-
-/**
- *
- * @param session - Better Auth session
- * @returns Customer external ID
- */
-export const getCustomerExternalId = (session: InnerSession) => {
-  if (session.user.organizationId) {
-    return session.user.organizationId
-  }
-  return session.user.id
 }

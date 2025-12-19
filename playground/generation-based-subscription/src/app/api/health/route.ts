@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 
-export function GET(): NextResponse {
-  console.log('auth.api.helloWorld')
+export async function GET(): Promise<NextResponse> {
   return NextResponse.json({ status: 'ok' })
 }

@@ -6,13 +6,17 @@ import { headers } from 'next/headers'
 
 export const { GET, POST } = nextRouteHandler({
   flowglad,
-  getCustomerExternalId: async (req) => {
-    const session = await auth.api.getSession({
+  getCustomerExternalId: async () => {
+    // Use the Flowglad plugin's getExternalId endpoint to get the correct external ID
+    // This handles the customerType configuration (user vs organization)
+    const { externalId } = await auth.api.getExternalId({
       headers: await headers(),
     })
-    if (!session?.user) {
-      throw new Error('User not authenticated')
+
+    if (!externalId) {
+      throw new Error('Unable to determine customer external ID')
     }
-    return session.user.id
+
+    return externalId
   },
 })
