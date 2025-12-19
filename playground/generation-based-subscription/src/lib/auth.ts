@@ -6,7 +6,7 @@ import { betterAuthSchema } from '@/server/db/schema'
 import {
   flowgladPlugin,
   type FlowgladBetterAuthPluginOptions,
-} from '@flowglad/better-auth'
+} from '@flowglad/nextjs/better-auth'
 
 const betterAuthSecret = process.env.BETTER_AUTH_SECRET
 if (!betterAuthSecret) {
