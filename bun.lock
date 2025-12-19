@@ -25,21 +25,6 @@
         "typescript": "5.8.2",
       },
     },
-    "packages/better-auth": {
-      "name": "@flowglad/better-auth",
-      "version": "0.15.0",
-      "dependencies": {
-        "@flowglad/server": "workspace:*",
-        "@flowglad/shared": "workspace:*",
-        "zod": "4.1.5",
-      },
-      "devDependencies": {
-        "typescript": "5.8.2",
-      },
-      "peerDependencies": {
-        "better-auth": "^1.3.17",
-      },
-    },
     "packages/express": {
       "name": "@flowglad/express",
       "version": "0.15.1",
@@ -169,7 +154,6 @@
       "name": "@flowglad/playground-generation-based-subscription",
       "version": "1.0.0",
       "dependencies": {
-        "@flowglad/better-auth": "workspace:*",
         "@flowglad/nextjs": "workspace:*",
         "@radix-ui/react-dropdown-menu": "^2.1.16",
         "@radix-ui/react-progress": "^1.1.8",
@@ -377,8 +361,6 @@
     "@floating-ui/react-dom": ["@floating-ui/react-dom@2.1.6", "", { "dependencies": { "@floating-ui/dom": "^1.7.4" }, "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0" } }, "sha512-4JX6rEatQEvlmgU80wZyq9RT96HZJa88q8hp0pBd+LrczeDI4o6uA2M+uvxngVHo4Ihr8uibXxH6+70zhAFrVw=="],
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
-
-    "@flowglad/better-auth": ["@flowglad/better-auth@workspace:packages/better-auth"],
 
     "@flowglad/express": ["@flowglad/express@workspace:packages/express"],
 

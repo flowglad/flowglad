@@ -53,7 +53,7 @@ export type FlowgladBetterAuthPluginOptions = {
  * @example
  * ```ts
  * import { betterAuth } from "better-auth"
- * import { flowgladPlugin } from "@flowglad/better-auth-plugin"
+ * import { flowgladPlugin } from "@flowglad/server/better-auth"
  *
  * export const auth = betterAuth({
  *   plugins: [
