@@ -209,6 +209,7 @@ describe('Pay as You Go Workflow E2E', () => {
             usageEvent: {
               subscriptionId: subscription.id,
               priceId: usagePrice.id,
+              usageMeterId: usageMeter.id,
               amount: 100,
               transactionId: staticTransctionId,
               properties: {},
@@ -247,6 +248,7 @@ describe('Pay as You Go Workflow E2E', () => {
             usageEvent: {
               subscriptionId: subscription.id,
               priceId: usagePrice.id,
+              usageMeterId: usageMeter.id,
               amount: 100,
               transactionId: staticTransctionId,
               properties: {},
@@ -399,6 +401,7 @@ describe('Pay as You Go Workflow E2E', () => {
             usageEvent: {
               subscriptionId: subscription.id,
               priceId: usagePrice.id,
+              usageMeterId: usageMeter.id,
               amount: 100,
               transactionId: newTransactionId,
               properties: {},

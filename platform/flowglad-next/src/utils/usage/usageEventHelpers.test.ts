@@ -19,18 +19,16 @@ import {
 } from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
-import type { LedgerAccount } from '@/db/schema/ledgerAccounts'
 import type { LedgerEntry } from '@/db/schema/ledgerEntries'
 import type { LedgerTransaction } from '@/db/schema/ledgerTransactions'
-// Schema imports
 import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { CreateUsageEventInput } from '@/db/schema/usageEvents'
+import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import {
   CurrencyCode,
   IntervalUnit,
@@ -51,14 +49,15 @@ describe('usageEventHelpers', () => {
   let usagePrice: Price.Record
   let mainSubscription: Subscription.Record
   let mainBillingPeriod: BillingPeriod.Record
-  let ledgerAccount: LedgerAccount.Record
   let organization: Organization.Record
+  let usageMeter: UsageMeter.Record
   beforeEach(async () => {
     await adminTransaction(async ({ transaction }) => {
       const orgSetup = await setupOrg()
       organization = orgSetup.organization
       customer = await setupCustomer({
         organizationId: organization.id,
+        pricingModelId: orgSetup.pricingModel.id,
       })
       paymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
@@ -67,7 +66,7 @@ describe('usageEventHelpers', () => {
 
       const defaultPricingModelForOrg = orgSetup.pricingModel
       const defaultProductForOrg = orgSetup.product
-      const usageMeter = await setupUsageMeter({
+      usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Test Usage Meter',
         livemode: true,
@@ -92,12 +91,6 @@ describe('usageEventHelpers', () => {
         paymentMethodId: paymentMethod.id,
         priceId: usagePrice.id,
       })
-      ledgerAccount = await setupLedgerAccount({
-        subscriptionId: mainSubscription.id,
-        usageMeterId: usageMeter.id,
-        livemode: true,
-        organizationId: organization.id,
-      })
 
       const now = new Date()
       const endDate = new Date(now)
@@ -115,6 +108,7 @@ describe('usageEventHelpers', () => {
     it('should ingest and process a new usage event correctly (happy path)', async () => {
       const usageEventDetails: CreateUsageEventInput['usageEvent'] = {
         priceId: usagePrice.id,
+        usageMeterId: usagePrice.usageMeterId!,
         subscriptionId: mainSubscription.id,
         transactionId: `txn_${core.nanoid()}`,
         amount: 10,
@@ -186,6 +180,7 @@ describe('usageEventHelpers', () => {
       const initialEventDetails: CreateUsageEventInput['usageEvent'] =
         {
           priceId: usagePrice.id,
+          usageMeterId: usagePrice.usageMeterId!,
           subscriptionId: mainSubscription.id,
           transactionId,
           amount: 5,
@@ -303,6 +298,7 @@ describe('usageEventHelpers', () => {
             input: {
               usageEvent: {
                 priceId: usagePrice.id,
+                usageMeterId: usagePrice.usageMeterId!,
                 subscriptionId: sub2.id,
                 transactionId: sharedTransactionId,
                 amount: 1,
@@ -317,6 +313,7 @@ describe('usageEventHelpers', () => {
       const usageEventDetailsMainSub: CreateUsageEventInput['usageEvent'] =
         {
           priceId: usagePrice.id,
+          usageMeterId: usagePrice.usageMeterId!,
           subscriptionId: mainSubscription.id,
           transactionId: sharedTransactionId,
           amount: 1,
@@ -341,6 +338,7 @@ describe('usageEventHelpers', () => {
       const propsPresentDetails: CreateUsageEventInput['usageEvent'] =
         {
           priceId: usagePrice.id,
+          usageMeterId: usagePrice.usageMeterId!,
           subscriptionId: mainSubscription.id,
           transactionId: `txn_props_${core.nanoid()}`,
           amount: 1,
@@ -365,6 +363,7 @@ describe('usageEventHelpers', () => {
       const propsAbsentDetails: CreateUsageEventInput['usageEvent'] =
         {
           priceId: usagePrice.id,
+          usageMeterId: usagePrice.usageMeterId!,
           subscriptionId: mainSubscription.id,
           transactionId: `txn_no_props_${core.nanoid()}`,
           amount: 1,
@@ -389,6 +388,7 @@ describe('usageEventHelpers', () => {
       const datePresentDetails: CreateUsageEventInput['usageEvent'] =
         {
           priceId: usagePrice.id,
+          usageMeterId: usagePrice.usageMeterId!,
           subscriptionId: mainSubscription.id,
           transactionId: `txn_date_${core.nanoid()}`,
           amount: 1,
@@ -410,6 +410,7 @@ describe('usageEventHelpers', () => {
 
       const dateAbsentDetails: CreateUsageEventInput['usageEvent'] = {
         priceId: usagePrice.id,
+        usageMeterId: usagePrice.usageMeterId!,
         subscriptionId: mainSubscription.id,
         transactionId: `txn_no_date_${core.nanoid()}`,
         amount: 1,
@@ -432,6 +433,7 @@ describe('usageEventHelpers', () => {
     it('should handle livemode input correctly (true and false)', async () => {
       const liveTrueDetails: CreateUsageEventInput['usageEvent'] = {
         priceId: usagePrice.id,
+        usageMeterId: usagePrice.usageMeterId!,
         subscriptionId: mainSubscription.id,
         transactionId: `txn_live_${core.nanoid()}`,
         amount: 1,
@@ -490,6 +492,7 @@ describe('usageEventHelpers', () => {
       })
       const liveFalseDetails: CreateUsageEventInput['usageEvent'] = {
         priceId: usagePrice.id,
+        usageMeterId: usagePrice.usageMeterId!,
         subscriptionId: testmodeSubscription.id,
         transactionId: `txn_test_${core.nanoid()}`,
         amount: 1,
@@ -593,6 +596,7 @@ describe('usageEventHelpers', () => {
       // Test 1: First event with unique properties should emit ledger command
       const firstEventDetails: CreateUsageEventInput['usageEvent'] = {
         priceId: distinctPrice.id,
+        usageMeterId: distinctPrice.usageMeterId!,
         subscriptionId: distinctSubscription.id,
         transactionId: `txn_distinct_1_${core.nanoid()}`,
         amount: 1,
@@ -645,6 +649,7 @@ describe('usageEventHelpers', () => {
       const secondEventDetails: CreateUsageEventInput['usageEvent'] =
         {
           priceId: distinctPrice.id,
+          usageMeterId: distinctPrice.usageMeterId!,
           subscriptionId: distinctSubscription.id,
           transactionId: `txn_distinct_2_${core.nanoid()}`,
           amount: 1,
@@ -701,6 +706,7 @@ describe('usageEventHelpers', () => {
       // Test 3: Third event with different properties should emit ledger command
       const thirdEventDetails: CreateUsageEventInput['usageEvent'] = {
         priceId: distinctPrice.id,
+        usageMeterId: distinctPrice.usageMeterId!,
         subscriptionId: distinctSubscription.id,
         transactionId: `txn_distinct_3_${core.nanoid()}`,
         amount: 1,
@@ -744,6 +750,43 @@ describe('usageEventHelpers', () => {
       )
       expect(thirdLedgerTransactions.length).toBe(1)
     })
+
+    it('should throw error when usageMeterId from different pricing model is provided directly', async () => {
+      // Create a usage meter in a different organization
+      const otherOrgUsageMeter = await adminTransaction(
+        async ({ transaction }) => {
+          const orgSetup = await setupOrg()
+          const testUsageMeter = await setupUsageMeter({
+            organizationId: orgSetup.organization.id,
+            name: 'Other Org Usage Meter',
+            livemode: true,
+            pricingModelId: orgSetup.pricingModel.id,
+          })
+          return testUsageMeter
+        }
+      )
+
+      const input: CreateUsageEventInput = {
+        usageEvent: {
+          subscriptionId: mainSubscription.id, // Belongs to original org
+          usageMeterId: otherOrgUsageMeter.id, // Belongs to different org
+          priceId: null, // No priceId when usageMeterId is provided directly
+          amount: 100,
+          transactionId: `txn_wrong_pricing_model_${core.nanoid()}`,
+        },
+      }
+
+      await expect(
+        comprehensiveAdminTransaction(async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input, livemode: true },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        `Usage meter ${otherOrgUsageMeter.id} not found for this customer's pricing model`
+      )
+    })
   })
 
   describe('createUsageEventWithSlugSchema', () => {
@@ -763,6 +806,8 @@ describe('usageEventHelpers', () => {
         })
         expect(result.usageEvent.priceId).toBe('price-123')
         expect(result.usageEvent.priceSlug).toBeUndefined()
+        expect(result.usageEvent.usageMeterId).toBeUndefined()
+        expect(result.usageEvent.usageMeterSlug).toBeUndefined()
       })
 
       it('should accept priceSlug only', () => {
@@ -774,6 +819,36 @@ describe('usageEventHelpers', () => {
         })
         expect(result.usageEvent.priceSlug).toBe('price-slug-123')
         expect(result.usageEvent.priceId).toBeUndefined()
+        expect(result.usageEvent.usageMeterId).toBeUndefined()
+        expect(result.usageEvent.usageMeterSlug).toBeUndefined()
+      })
+
+      it('should accept usageMeterId only', () => {
+        const result = createUsageEventWithSlugSchema.parse({
+          usageEvent: {
+            ...baseValidInput,
+            usageMeterId: 'usage-meter-123',
+          },
+        })
+        expect(result.usageEvent.usageMeterId).toBe('usage-meter-123')
+        expect(result.usageEvent.priceId).toBeUndefined()
+        expect(result.usageEvent.priceSlug).toBeUndefined()
+        expect(result.usageEvent.usageMeterSlug).toBeUndefined()
+      })
+
+      it('should accept usageMeterSlug only', () => {
+        const result = createUsageEventWithSlugSchema.parse({
+          usageEvent: {
+            ...baseValidInput,
+            usageMeterSlug: 'usage-meter-slug-123',
+          },
+        })
+        expect(result.usageEvent.usageMeterSlug).toBe(
+          'usage-meter-slug-123'
+        )
+        expect(result.usageEvent.priceId).toBeUndefined()
+        expect(result.usageEvent.priceSlug).toBeUndefined()
+        expect(result.usageEvent.usageMeterId).toBeUndefined()
       })
     })
 
@@ -788,7 +863,79 @@ describe('usageEventHelpers', () => {
             },
           })
         }).toThrow(
-          'Either priceId or priceSlug must be provided, but not both'
+          'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+        )
+      })
+
+      it('should reject when both priceId and usageMeterId are provided', () => {
+        expect(() => {
+          createUsageEventWithSlugSchema.parse({
+            usageEvent: {
+              ...baseValidInput,
+              priceId: 'price-123',
+              usageMeterId: 'usage-meter-123',
+            },
+          })
+        }).toThrow(
+          'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+        )
+      })
+
+      it('should reject when both priceSlug and usageMeterSlug are provided', () => {
+        expect(() => {
+          createUsageEventWithSlugSchema.parse({
+            usageEvent: {
+              ...baseValidInput,
+              priceSlug: 'price-slug-123',
+              usageMeterSlug: 'usage-meter-slug-123',
+            },
+          })
+        }).toThrow(
+          'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+        )
+      })
+
+      it('should reject when priceId and usageMeterSlug are provided', () => {
+        expect(() => {
+          createUsageEventWithSlugSchema.parse({
+            usageEvent: {
+              ...baseValidInput,
+              priceId: 'price-123',
+              usageMeterSlug: 'usage-meter-slug-123',
+            },
+          })
+        }).toThrow(
+          'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+        )
+      })
+
+      it('should reject when priceSlug and usageMeterId are provided', () => {
+        expect(() => {
+          createUsageEventWithSlugSchema.parse({
+            usageEvent: {
+              ...baseValidInput,
+              priceSlug: 'price-slug-123',
+              usageMeterId: 'usage-meter-123',
+            },
+          })
+        }).toThrow(
+          'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+        )
+      })
+
+      it('should reject when all four identifiers are provided', () => {
+        expect(() => {
+          createUsageEventWithSlugSchema.parse({
+            usageEvent: {
+              ...baseValidInput,
+              priceId: 'price-123',
+              priceSlug: 'price-slug-123',
+              usageMeterId: 'usage-meter-123',
+              usageMeterSlug: 'usage-meter-slug-123',
+            },
+          })
+        }).toThrow(
+          'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
         )
       })
 
@@ -800,7 +947,7 @@ describe('usageEventHelpers', () => {
             },
           })
         }).toThrow(
-          'Either priceId or priceSlug must be provided, but not both'
+          'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
         )
       })
     })
@@ -990,7 +1137,132 @@ describe('usageEventHelpers', () => {
           )
         })
       ).rejects.toThrow(
-        'Either priceId or priceSlug must be provided'
+        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+      )
+    })
+
+    it('should resolve usageMeterId to usage event with null priceId', async () => {
+      const input = {
+        usageEvent: {
+          subscriptionId: mainSubscription.id,
+          usageMeterId: usageMeter.id,
+          amount: 100,
+          transactionId: `txn_resolve_um_id_${core.nanoid()}`,
+        },
+      }
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return resolveUsageEventInput(input, transaction)
+        }
+      )
+
+      expect(result.usageEvent.usageMeterId).toBe(usageMeter.id)
+      expect(result.usageEvent.priceId).toBeNull()
+      expect(result.usageEvent).not.toHaveProperty('usageMeterSlug')
+    })
+
+    it('should resolve usageMeterSlug to usageMeterId with null priceId', async () => {
+      // First, we need to set up a usage meter with a slug
+      const usageMeterWithSlug = await adminTransaction(
+        async ({ transaction }) => {
+          const orgSetup = await setupOrg()
+          const testCustomer = await setupCustomer({
+            organizationId: orgSetup.organization.id,
+            pricingModelId: orgSetup.pricingModel.id,
+          })
+          const testPaymentMethod = await setupPaymentMethod({
+            organizationId: orgSetup.organization.id,
+            customerId: testCustomer.id,
+          })
+          const testUsageMeter = await setupUsageMeter({
+            organizationId: orgSetup.organization.id,
+            name: 'Test Usage Meter with Slug',
+            livemode: true,
+            pricingModelId: orgSetup.pricingModel.id,
+            slug: 'test-usage-meter-slug',
+          })
+          const testSubscription = await setupSubscription({
+            organizationId: orgSetup.organization.id,
+            customerId: testCustomer.id,
+            paymentMethodId: testPaymentMethod.id,
+            priceId: usagePrice.id, // Use existing price
+          })
+          return { testUsageMeter, testSubscription, testCustomer }
+        }
+      )
+
+      const input = {
+        usageEvent: {
+          subscriptionId: usageMeterWithSlug.testSubscription.id,
+          usageMeterSlug: 'test-usage-meter-slug',
+          amount: 100,
+          transactionId: `txn_resolve_um_slug_${core.nanoid()}`,
+        },
+      }
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return resolveUsageEventInput(input, transaction)
+        }
+      )
+
+      expect(result.usageEvent.usageMeterId).toBe(
+        usageMeterWithSlug.testUsageMeter.id
+      )
+      expect(result.usageEvent.priceId).toBeNull()
+      expect(result.usageEvent).not.toHaveProperty('usageMeterSlug')
+    })
+
+    it('should throw NOT_FOUND error when usageMeterId does not exist in customer pricing model', async () => {
+      // Create a usage meter in a different organization
+      const otherOrgUsageMeter = await adminTransaction(
+        async ({ transaction }) => {
+          const orgSetup = await setupOrg()
+          const testUsageMeter = await setupUsageMeter({
+            organizationId: orgSetup.organization.id,
+            name: 'Other Org Usage Meter',
+            livemode: true,
+            pricingModelId: orgSetup.pricingModel.id,
+          })
+          return testUsageMeter
+        }
+      )
+
+      const input = {
+        usageEvent: {
+          subscriptionId: mainSubscription.id, // Belongs to original org
+          usageMeterId: otherOrgUsageMeter.id, // Belongs to different org
+          amount: 100,
+          transactionId: `txn_wrong_org_um_${core.nanoid()}`,
+        },
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return resolveUsageEventInput(input, transaction)
+        })
+      ).rejects.toThrow(
+        `Usage meter ${otherOrgUsageMeter.id} not found for this customer's pricing model`
+      )
+    })
+
+    it('should throw NOT_FOUND error when usageMeterSlug does not exist', async () => {
+      const input = {
+        usageEvent: {
+          subscriptionId: mainSubscription.id,
+          usageMeterSlug: 'non-existent-usage-meter-slug',
+          amount: 100,
+          transactionId: `txn_not_found_um_slug_${core.nanoid()}`,
+        },
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return resolveUsageEventInput(input, transaction)
+        })
+      ).rejects.toThrow(
+        "Usage meter with slug non-existent-usage-meter-slug not found for this customer's pricing model"
       )
     })
   })

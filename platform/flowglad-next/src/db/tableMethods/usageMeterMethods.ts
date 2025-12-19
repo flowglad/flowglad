@@ -1,9 +1,3 @@
-import { eq } from 'drizzle-orm'
-import * as R from 'ramda'
-import {
-  pricingModels,
-  pricingModelsSelectSchema,
-} from '@/db/schema/pricingModels'
 import {
   type UsageMeter,
   usageMeters,
@@ -12,7 +6,10 @@ import {
   usageMetersTableRowDataSchema,
   usageMetersUpdateSchema,
 } from '@/db/schema/usageMeters'
-import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
+import {
+  selectPricingModelForCustomer,
+  selectPricingModels,
+} from '@/db/tableMethods/pricingModelMethods'
 import {
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
@@ -22,10 +19,9 @@ import {
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
-  SelectConditions,
-  whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { selectCustomerById } from './customerMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof usageMeters,
@@ -118,3 +114,35 @@ export const selectUsageMetersCursorPaginated =
       })
     }
   )
+
+/**
+ * Select a usage meter by slug and customerId (uses the customer's pricing model)
+ *
+ * @param params - Object containing slug and customerId
+ * @param transaction - Database transaction
+ * @returns The usage meter client record if found, null otherwise
+ * @throws {Error} If the customer's pricing model cannot be found (e.g., no default pricing model exists for the organization)
+ */
+export const selectUsageMeterBySlugAndCustomerId = async (
+  params: { slug: string; customerId: string },
+  transaction: DbTransaction
+): Promise<UsageMeter.ClientRecord | null> => {
+  // First, get the customer to determine their pricing model
+  const customer = await selectCustomerById(
+    params.customerId,
+    transaction
+  )
+
+  // Get the pricing model for the customer (includes usage meters)
+  const pricingModel = await selectPricingModelForCustomer(
+    customer,
+    transaction
+  )
+
+  // Search through usage meters in the pricing model to find one with matching slug
+  const usageMeter = pricingModel.usageMeters.find(
+    (meter) => meter.slug === params.slug
+  )
+
+  return usageMeter ?? null
+}
