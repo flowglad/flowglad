@@ -10,6 +10,7 @@ import { invoiceUpdatedTask } from '@/trigger/supabase/invoice-updated'
 import { memberInsertedTask } from '@/trigger/supabase/member-inserted'
 import { organizationUpdatedTask } from '@/trigger/supabase/organization-updated'
 import {
+  type SupabaseDatabaseUpdatePayload,
   type SupabaseInsertPayload,
   SupabasePayloadType,
   type SupabaseUpdatePayload,
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
       break
     case `organizations:${SupabasePayloadType.UPDATE}`:
       await organizationUpdatedTask.trigger(
-        payload as SupabaseUpdatePayload<Organization.Record>
+        payload as SupabaseDatabaseUpdatePayload<Organization.Record>
       )
       break
     default:

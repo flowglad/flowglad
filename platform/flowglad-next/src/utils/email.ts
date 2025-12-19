@@ -492,7 +492,7 @@ export const sendOrganizationOnboardingCompletedNotificationEmail =
       from: 'Flowglad <notifications@flowglad.com>',
       to: to.map(safeTo),
       bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
-      subject: `Enable Payouts for ${organizationName}`,
+      subject: `Live payments pending review for ${organizationName}`,
       react: await OrganizationOnboardingCompletedNotificationEmail({
         organizationName,
       }),
