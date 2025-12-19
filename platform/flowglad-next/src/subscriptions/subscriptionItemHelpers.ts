@@ -168,8 +168,8 @@ const grantProratedCreditsForFeatures = async (params: {
         FeatureUsageGrantFrequency.EveryBillingPeriod
 
       const issuedAmount = isEveryBillingPeriod
-        ? Math.round(feature.amount! * split.afterPercentage)
-        : feature.amount! // Once features get full amount
+        ? Math.round(feature.amount * split.afterPercentage)
+        : feature.amount // Once features get full amount
 
       return {
         subscriptionId: subscription.id,
@@ -312,7 +312,7 @@ export const handleSubscriptionItemAdjustment = async (params: {
   adjustmentDate: Date | number
   transaction: DbTransaction
 }): Promise<{
-  createdSubscriptionItems: SubscriptionItem.Record[]
+  createdOrUpdatedSubscriptionItems: SubscriptionItem.Record[]
   createdFeatures: SubscriptionItemFeature.Record[]
   usageCredits: UsageCredit.Record[]
   ledgerEntries: LedgerEntry.CreditGrantRecognizedRecord[]
@@ -360,7 +360,7 @@ export const handleSubscriptionItemAdjustment = async (params: {
   }
 
   // Get manual subscription item (for checking feature overlaps later)
-  // We only check the first manually created susbcription item because
+  // We only check the first manually created subscription item because
   // there should only ever be one of these (at the current moment)
   const currentManualItems = currentlyActiveItems.filter(
     (item) => item.manuallyCreated
@@ -470,7 +470,7 @@ export const handleSubscriptionItemAdjustment = async (params: {
     })
 
   return {
-    createdSubscriptionItems: createdOrUpdatedSubscriptionItems,
+    createdOrUpdatedSubscriptionItems,
     createdFeatures,
     usageCredits,
     ledgerEntries,

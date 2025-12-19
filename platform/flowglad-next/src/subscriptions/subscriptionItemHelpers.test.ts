@@ -479,6 +479,40 @@ describe('subscriptionItemHelpers', () => {
         })
       })
 
+      it('should throw when provided ID does not exist in current items', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          // Provide an ID that doesn't exist in current subscription items
+          const fakeId = 'sub_item_fake_id_12345'
+          const newSubscriptionItems: (
+            | SubscriptionItem.Insert
+            | SubscriptionItem.Record
+          )[] = [
+            {
+              id: fakeId, // This ID doesn't exist
+              subscriptionId: subscription.id,
+              name: 'New Item with Fake ID',
+              quantity: 1,
+              unitPrice: 2000,
+              priceId: price.id,
+              livemode: true,
+              addedDate: now,
+              type: SubscriptionItemType.Static,
+            } as SubscriptionItem.Record,
+          ]
+
+          await expect(
+            handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems,
+              adjustmentDate: now,
+              transaction,
+            })
+          ).rejects.toThrow(
+            `Cannot update subscription item with id ${fakeId} because it is non-existent`
+          )
+        })
+      })
+
       it('should preserve manual subscription items during adjustments', async () => {
         // Create a manual subscription item
         const manualItem = await adminTransaction(
@@ -922,11 +956,15 @@ describe('subscriptionItemHelpers', () => {
           })
 
           // Verify subscription item was created
-          expect(result.createdSubscriptionItems.length).toBe(1)
-          expect(result.createdSubscriptionItems[0].name).toBe(
-            'Period Start Item'
-          )
-          expect(result.createdSubscriptionItems[0].quantity).toBe(2)
+          expect(
+            result.createdOrUpdatedSubscriptionItems.length
+          ).toBe(1)
+          expect(
+            result.createdOrUpdatedSubscriptionItems[0].name
+          ).toBe('Period Start Item')
+          expect(
+            result.createdOrUpdatedSubscriptionItems[0].quantity
+          ).toBe(2)
 
           // Verify features were created for the new item
           expect(result.createdFeatures.length).toBeGreaterThan(0)
@@ -1152,6 +1190,107 @@ describe('subscriptionItemHelpers', () => {
           )
         })
       })
+
+      it('should not expire Once feature credits when subscription item expires', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          // Create a Once feature
+          const onceFeature = await setupUsageCreditGrantFeature({
+            organizationId: orgData.organization.id,
+            name: 'Once Feature',
+            renewalFrequency: FeatureUsageGrantFrequency.Once,
+            amount: 500,
+            usageMeterId: usageMeter.id,
+            livemode: true,
+            pricingModelId: orgData.pricingModel.id,
+          })
+
+          const onceProductFeature = await setupProductFeature({
+            organizationId: orgData.organization.id,
+            productId: product.id,
+            featureId: onceFeature.id,
+          })
+
+          // Create subscription item with Once feature
+          const itemWithOnceFeature = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            name: 'Item with Once Feature',
+            quantity: 1,
+            unitPrice: 1000,
+            priceId: price.id,
+            addedDate: itemAddedDate,
+          })
+
+          const onceFeatureRecord =
+            await setupSubscriptionItemFeature({
+              subscriptionItemId: itemWithOnceFeature.id,
+              featureId: onceFeature.id,
+              productFeatureId: onceProductFeature.id,
+              usageMeterId: usageMeter.id,
+              amount: 500,
+            })
+
+          // Grant credits for the Once feature
+          const onceCredit = await setupUsageCredit({
+            organizationId: orgData.organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            billingPeriodId: billingPeriod.id,
+            issuedAmount: 500,
+            creditType: UsageCreditType.Grant,
+            sourceReferenceId: onceFeatureRecord.id,
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.ManualAdjustment,
+            status: UsageCreditStatus.Posted,
+            expiresAt: null, // Once credits don't expire
+          })
+
+          // Now expire the subscription item by adjusting to a new item
+          const newSubscriptionItems: SubscriptionItem.Insert[] = [
+            {
+              subscriptionId: subscription.id,
+              name: 'Replacement Item',
+              quantity: 1,
+              unitPrice: 2000,
+              priceId: price.id,
+              livemode: true,
+              addedDate: now,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          await handleSubscriptionItemAdjustment({
+            subscriptionId: subscription.id,
+            newSubscriptionItems,
+            adjustmentDate: now,
+            transaction,
+          })
+
+          // Verify the subscription item was expired
+          const allItems = await selectSubscriptionItems(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+          const expiredItem = allItems.find(
+            (item) => item.id === itemWithOnceFeature.id
+          )
+          expect(expiredItem?.expiredAt).toBe(now)
+
+          // But the Once feature credit should still be valid (not expired)
+          const creditsAfter = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              sourceReferenceId: onceFeatureRecord.id,
+            },
+            transaction
+          )
+          expect(creditsAfter.length).toBe(1)
+          expect(creditsAfter[0].id).toBe(onceCredit.id)
+          expect(creditsAfter[0].expiresAt).toBeNull() // Once credits never expire
+          expect(creditsAfter[0].status).toBe(
+            UsageCreditStatus.Posted
+          )
+        })
+      })
     })
 
     describe('edge cases', () => {
@@ -1164,7 +1303,7 @@ describe('subscriptionItemHelpers', () => {
             transaction,
           })
 
-          expect(result.createdSubscriptionItems).toEqual([])
+          expect(result.createdOrUpdatedSubscriptionItems).toEqual([])
           expect(result.createdFeatures).toEqual([])
 
           // Original item should be expired since no new items match it
@@ -1215,10 +1354,12 @@ describe('subscriptionItemHelpers', () => {
             transaction,
           })
 
-          expect(result.createdSubscriptionItems.length).toBe(1)
-          expect(result.createdSubscriptionItems[0].priceId).toBe(
-            price.id
-          )
+          expect(
+            result.createdOrUpdatedSubscriptionItems.length
+          ).toBe(1)
+          expect(
+            result.createdOrUpdatedSubscriptionItems[0].priceId
+          ).toBe(price.id)
         })
       })
 
@@ -1303,6 +1444,158 @@ describe('subscriptionItemHelpers', () => {
 
           expect(expiredItem1?.expiredAt).toBe(now)
           expect(expiredItem3?.expiredAt).toBe(now)
+        })
+      })
+
+      it('should create separate items for duplicate new items without IDs', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const newPrice = await setupPrice({
+            productId: product.id,
+            name: 'Test Price',
+            type: PriceType.Subscription,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+          })
+
+          // Two identical items without IDs (quantity 1 each)
+          const twoIdenticalItems: SubscriptionItem.Insert[] = [
+            {
+              subscriptionId: subscription.id,
+              name: 'Item A',
+              quantity: 1,
+              unitPrice: newPrice.unitPrice,
+              priceId: newPrice.id,
+              livemode: true,
+              addedDate: now,
+              type: SubscriptionItemType.Static,
+            },
+            {
+              subscriptionId: subscription.id,
+              name: 'Item A', // Same name, same price
+              quantity: 1,
+              unitPrice: newPrice.unitPrice,
+              priceId: newPrice.id,
+              livemode: true,
+              addedDate: now,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          const result = await handleSubscriptionItemAdjustment({
+            subscriptionId: subscription.id,
+            newSubscriptionItems: twoIdenticalItems,
+            adjustmentDate: now,
+            transaction,
+          })
+
+          // Should create 2 separate subscription item records
+          expect(
+            result.createdOrUpdatedSubscriptionItems.length
+          ).toBe(2)
+          expect(
+            result.createdOrUpdatedSubscriptionItems[0].id
+          ).not.toBe(result.createdOrUpdatedSubscriptionItems[1].id)
+
+          // Should create 2 feature records (one per item)
+          expect(result.createdFeatures.length).toBe(2)
+
+          // Should grant credits for both items
+          const credits = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              billingPeriodId: billingPeriod.id,
+              sourceReferenceType:
+                UsageCreditSourceReferenceType.ManualAdjustment,
+            },
+            transaction
+          )
+
+          // Total credits should be 2x the feature amount (one per item, each with quantity 1)
+          const totalCredits = credits.reduce(
+            (sum, credit) => sum + credit.issuedAmount,
+            0
+          )
+          expect(totalCredits).toBe(100) // 50 per item × 2 items (prorated)
+        })
+      })
+
+      it('should account for quantity when creating subscription items', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const newPrice = await setupPrice({
+            productId: product.id,
+            name: 'Test Price',
+            type: PriceType.Subscription,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+          })
+
+          const oneItemQuantityTwo: SubscriptionItem.Insert[] = [
+            {
+              subscriptionId: subscription.id,
+              name: 'Item B',
+              quantity: 2, // Quantity 2 instead of 2 separate items
+              unitPrice: newPrice.unitPrice,
+              priceId: newPrice.id,
+              livemode: true,
+              addedDate: now,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          const result = await handleSubscriptionItemAdjustment({
+            subscriptionId: subscription.id,
+            newSubscriptionItems: oneItemQuantityTwo,
+            adjustmentDate: now,
+            transaction,
+          })
+
+          // Should create 1 subscription item record with quantity 2
+          expect(
+            result.createdOrUpdatedSubscriptionItems.length
+          ).toBe(1)
+          expect(
+            result.createdOrUpdatedSubscriptionItems[0].quantity
+          ).toBe(2)
+
+          // Should create 1 feature record with amount × quantity
+          expect(result.createdFeatures.length).toBe(1)
+          expect(result.createdFeatures[0].amount).toBe(200) // 100 × quantity 2
+
+          // Should grant credits accounting for quantity
+          const credits = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              billingPeriodId: billingPeriod.id,
+              sourceReferenceType:
+                UsageCreditSourceReferenceType.ManualAdjustment,
+            },
+            transaction
+          )
+
+          // Total credits should be 2x the feature amount (prorated)
+          const totalCredits = credits.reduce(
+            (sum, credit) => sum + credit.issuedAmount,
+            0
+          )
+          expect(totalCredits).toBe(100) // 200 × 0.5 (prorated) = 100
+
+          // Verify the structure: one credit record with prorated amount
+          const creditsFromAdjustment = credits.filter(
+            (credit) =>
+              credit.sourceReferenceType ===
+              UsageCreditSourceReferenceType.ManualAdjustment
+          )
+          expect(creditsFromAdjustment.length).toBe(1)
         })
       })
     })
