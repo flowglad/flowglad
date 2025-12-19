@@ -14,7 +14,7 @@ Flowglad offers three distinct types of checkout sessions, each tailored to diff
 - **Activate Subscription**: You use this when a subscription already exists, but the customer still needs to provide payment details and formally start billing. It will prompt the customer to add or confirm a payment method, pay any outstanding invoices tied to the subscription, and transition the subscription from a pending/credit state to “active,” establishing the billing cycle anchor.
 
 ### Customer Association
-When creating checkout sessions from the SDK, the authenticated customer's ID will be linked automatically to the checkout sesion.
+When creating checkout sessions from the SDK, the authenticated customer's ID will be linked automatically to the checkout session.
 Associating a checkout session with an existing customer record ensures that all billing activities are correctly attributed and avoids potential data discrepancies or the creation of duplicate customer profiles.
 To create anonymous checkout sessions, you can call the [create checkout session API](/api-reference/checkout-sessions/create-checkout-session#option-2) directly with `anonymous` field set to true.
 
