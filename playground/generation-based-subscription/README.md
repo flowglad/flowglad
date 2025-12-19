@@ -80,7 +80,7 @@ Fill in the required values in `.env.local`:
 
 If using Docker: 
 ```bash
-docker compose -f docker-compose.yml up --build
+bun db:setup
 ```
 
 Generate and run database migrations:
