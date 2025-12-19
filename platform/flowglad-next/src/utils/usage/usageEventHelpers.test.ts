@@ -787,6 +787,47 @@ describe('usageEventHelpers', () => {
         `Usage meter ${otherOrgUsageMeter.id} not found for this customer's pricing model`
       )
     })
+
+    it('should successfully create usage event when priceId is null and valid usageMeterId is provided directly', async () => {
+      const input: CreateUsageEventInput = {
+        usageEvent: {
+          subscriptionId: mainSubscription.id,
+          usageMeterId: usageMeter.id, // Valid usage meter from customer's pricing model
+          priceId: null, // No priceId when usageMeterId is provided directly
+          amount: 100,
+          transactionId: `txn_direct_usage_meter_${core.nanoid()}`,
+          properties: { test_property: 'direct_usage_meter_test' },
+        },
+      }
+
+      const { usageEvent: createdUsageEvent } =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return ingestAndProcessUsageEvent(
+              { input, livemode: true },
+              transaction
+            )
+          }
+        )
+
+      expect(createdUsageEvent.priceId).toBeNull()
+      expect(createdUsageEvent.usageMeterId).toBe(usageMeter.id)
+      expect(createdUsageEvent.subscriptionId).toBe(
+        mainSubscription.id
+      )
+      expect(createdUsageEvent.customerId).toBe(customer.id)
+      expect(createdUsageEvent.amount).toBe(100)
+      expect(createdUsageEvent.billingPeriodId).toBe(
+        mainBillingPeriod.id
+      )
+      expect(createdUsageEvent.livemode).toBe(true)
+      expect(createdUsageEvent.properties).toEqual({
+        test_property: 'direct_usage_meter_test',
+      })
+      expect(createdUsageEvent.transactionId).toBe(
+        input.usageEvent.transactionId
+      )
+    })
   })
 
   describe('createUsageEventWithSlugSchema', () => {
@@ -1182,11 +1223,23 @@ describe('usageEventHelpers', () => {
             pricingModelId: orgSetup.pricingModel.id,
             slug: 'test-usage-meter-slug',
           })
+          const testPrice = await setupPrice({
+            productId: orgSetup.product.id,
+            name: 'Test Usage Price',
+            type: PriceType.Usage,
+            unitPrice: 10,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            currency: CurrencyCode.USD,
+            usageMeterId: testUsageMeter.id,
+          })
           const testSubscription = await setupSubscription({
             organizationId: orgSetup.organization.id,
             customerId: testCustomer.id,
             paymentMethodId: testPaymentMethod.id,
-            priceId: usagePrice.id, // Use existing price
+            priceId: testPrice.id,
           })
           return { testUsageMeter, testSubscription, testCustomer }
         }

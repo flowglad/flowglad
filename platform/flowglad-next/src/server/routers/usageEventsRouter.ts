@@ -305,7 +305,6 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
         }
 
         // Resolve identifiers for all events
-        // Events can have: priceId, priceSlug, usageMeterId, or usageMeterSlug
         const resolvedUsageEvents =
           usageInsertsWithoutBillingPeriodId.map(
             (usageEvent, index) => {
@@ -343,22 +342,6 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
                 }
                 usageMeterId = resolvedUsageMeterId
                 priceId = null // When usage meter identifiers are used, priceId is null
-              }
-
-              // Validate that exactly one identifier type is provided
-              const hasPriceId = priceId !== null
-              const hasUsageMeterId = usageMeterId !== undefined
-
-              if (!hasPriceId && !hasUsageMeterId) {
-                throw new Error(
-                  `Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided for event at index ${index}`
-                )
-              }
-
-              if (hasPriceId && hasUsageMeterId) {
-                throw new Error(
-                  `Cannot provide both price identifier (priceId or priceSlug) and usage meter identifier (usageMeterId or usageMeterSlug) for event at index ${index}`
-                )
               }
 
               // Omit slug fields and set resolved identifiers

@@ -121,7 +121,6 @@ export const selectUsageMetersCursorPaginated =
  * @param params - Object containing slug and customerId
  * @param transaction - Database transaction
  * @returns The usage meter client record if found, null otherwise
- * @throws {Error} If the customer's pricing model cannot be found (e.g., no default pricing model exists for the organization)
  */
 export const selectUsageMeterBySlugAndCustomerId = async (
   params: { slug: string; customerId: string },
@@ -132,6 +131,10 @@ export const selectUsageMeterBySlugAndCustomerId = async (
     params.customerId,
     transaction
   )
+
+  if (!customer) {
+    throw new Error(`Customer ${params.customerId} not found`)
+  }
 
   // Get the pricing model for the customer (includes usage meters)
   const pricingModel = await selectPricingModelForCustomer(
