@@ -245,6 +245,11 @@ export const ingestAndProcessUsageEvent = async (
         `Price ${price.id} is not a usage price. Please provide a usage price id to create a usage event.`
       )
     }
+    if (!price.usageMeterId) {
+      throw new Error(
+        `Price ${price.id} does not have a usage meter associated with it.`
+      )
+    }
     usageMeterId = price.usageMeterId
   } else {
     // When priceId is null, usageMeterId must be provided in the input
