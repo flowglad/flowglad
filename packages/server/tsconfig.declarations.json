@@ -18,6 +18,7 @@
     "src/index.headless.ts",
     "src/index.headless.browser.ts",
     "src/better-auth.ts",
+    "src/express/index.ts",
     "src/**/*.d.ts"
   ]
 }
