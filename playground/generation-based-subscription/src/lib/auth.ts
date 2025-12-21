@@ -32,7 +32,10 @@ const auth = betterAuth({
     usePlural: true,
     schema: betterAuthSchema,
   }),
-  plugins: [flowgladPlugin(flowgladConfig)],
+  plugins: [
+    organization(), // Uncomment to test better auth plugin with organization flowglad customer
+    flowgladPlugin(flowgladConfig),
+  ],
 })
 
 export { auth }
