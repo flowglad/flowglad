@@ -180,6 +180,12 @@ export const flowgladPlugin = (
           },
         },
         async (ctx) => {
+          if (!ctx.headers || !ctx.headers.get) {
+            throw new Error(
+              'Flowglad Better Auth Plugin: Headers are required for getExternalId().\n' +
+                'Usage: await auth.api.getExternalId({ headers: await headers() })'
+            )
+          }
           const session = await getSessionFromCtx(ctx)
           if (!session) {
             return ctx.json({
