@@ -4,6 +4,16 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "better-auth": [
+        "./dist/types/better-auth.d.ts"
+      ],
+      "express": [
+        "./dist/types/express/index.d.ts"
+      ]
+    }
+  },
   "files": [
     "dist"
   ],
