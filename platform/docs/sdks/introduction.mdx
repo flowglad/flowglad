@@ -43,8 +43,8 @@ New to Flowglad? Start with our [Quickstart Guide](/quickstart) for a step-by-st
   <Card title="Server SDK" icon="server" href="/sdks/server">
     Core server-side SDK for any Node.js application
   </Card>
-  <Card title="Express SDK" icon="node" href="/sdks/express">
-    Express middleware and route handlers for Node.js backends
+  <Card title="Express Integration" icon="node" href="/sdks/express">
+    Express middleware and route handlers (via @flowglad/server/express)
   </Card>
 </CardGroup>
 
@@ -66,8 +66,8 @@ Use **@flowglad/react** + **@flowglad/server**:
 
 ### For Express Backends
 
-Use **@flowglad/express**:
-- @flowglad/express provides Express router for Flowglad REST endpoints
+Use **@flowglad/server** with the `/express` subpath:
+- `@flowglad/server/express` provides Express router for Flowglad REST endpoints
 
 ### For Other Node.js Backends
 
@@ -86,7 +86,7 @@ bun add @flowglad/react @flowglad/server
 ```
 
 ```bash Express
-bun add @flowglad/express @flowglad/server
+bun add @flowglad/server express
 ```
 
 ```bash Node.js
@@ -101,8 +101,8 @@ All Flowglad SDKs are available on NPM:
 
 - [@flowglad/nextjs](https://www.npmjs.com/package/@flowglad/nextjs)
 - [@flowglad/react](https://www.npmjs.com/package/@flowglad/react)
-- [@flowglad/express](https://www.npmjs.com/package/@flowglad/express)
-- [@flowglad/server](https://www.npmjs.com/package/@flowglad/server)
+- [@flowglad/server](https://www.npmjs.com/package/@flowglad/server) (includes Express utilities via `/express` subpath)
+- ~~[@flowglad/express](https://www.npmjs.com/package/@flowglad/express)~~ (deprecated, use `@flowglad/server/express` instead)
 
 ## Example Projects
 

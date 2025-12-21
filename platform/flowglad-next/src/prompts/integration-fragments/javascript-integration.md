@@ -63,10 +63,11 @@ Use **@flowglad/react**, which has the `useBilling` hook.
 </FlowgladProvider>
 ```
 ### Express
-- For Express backends, use **@flowglad/express**
+- For Express backends, use **@flowglad/server** with the `/express` subpath
 
 ```ts
-import { createFlowgladExpressRouter, FlowgladServer } from '@flowglad/express'
+import { createFlowgladExpressRouter } from '@flowglad/server/express'
+import { FlowgladServer } from '@flowglad/server'
 
 export const flowgladRouter = createFlowgladExpressRouter({
   flowgladServerConstructor: req => {

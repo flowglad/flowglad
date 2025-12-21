@@ -57,7 +57,7 @@ Note: the Flowglad SDKs are currently for Typescript only. The current latest ve
 
 Here's what they should install depending on their project:
 - Next.js: @flowglad/nextjs
-- Express: @flowglad/express
+- Express: @flowglad/server (use the /express subpath import)
 - React: @flowglad/react (note: if they're using Next.js, DO NOT INSTALL @flowglad/react - just use @flowglad/nextjs as it includes /react as a dependency)
 - Any non-Express, non-Next.js Typescript backend: @flowglad/server (note: if they're using Express or Next.js - just use the respective packages, DO NOT INSTALL @flowglad/server as it includes @flowglad/server as a dependency)
 
