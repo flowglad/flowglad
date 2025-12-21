@@ -59,7 +59,7 @@ Here's what they should install depending on their project:
 - Next.js: @flowglad/nextjs
 - Express: @flowglad/server (use the /express subpath import)
 - React: @flowglad/react (note: if they're using Next.js, DO NOT INSTALL @flowglad/react - just use @flowglad/nextjs as it includes /react as a dependency)
-- Any non-Express, non-Next.js Typescript backend: @flowglad/server (note: if they're using Express or Next.js - just use the respective packages, DO NOT INSTALL @flowglad/server as it includes @flowglad/server as a dependency)
+- Any other Typescript backend: @flowglad/server (note: if they're using Next.js, just use @flowglad/nextjs - DO NOT INSTALL @flowglad/server separately as @flowglad/nextjs includes it as a dependency)
 
 If you are integrating Flowglad from a **local monorepo** instead of npm, you may instead use `"file:..."` or workspace references. Adjust the versions/paths accordingly.
 
