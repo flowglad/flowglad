@@ -40,7 +40,6 @@ import {
   PaymentMethodType,
 } from '@/types'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
-import { getIntentStatus } from '@/utils/bookkeeping/intentStatus'
 import core from '@/utils/core'
 import { generateOpenApiMetas } from '@/utils/openapi'
 
@@ -176,14 +175,6 @@ const listCheckoutSessionsProcedure = protectedProcedure
     )
   })
 
-export const getIntentStatusProcedure = protectedProcedure
-  .input(getIntentStatusInputSchema)
-  .query(async ({ input, ctx }) => {
-    return adminTransaction(async ({ transaction }) => {
-      return getIntentStatus(input, transaction)
-    })
-  })
-
 /***
  * We need to isolate payment method type updates from other checkout session updates
  * to prevent race conditions caused by Link.
@@ -261,7 +252,6 @@ export const checkoutSessionsRouter = router({
   update: updateCheckoutSession,
   get: getCheckoutSessionProcedure,
   list: listCheckoutSessionsProcedure,
-  getIntentStatus: getIntentStatusProcedure,
   public: {
     setPaymentMethodType: setPaymentMethodTypeProcedure,
     setCustomerEmail: setCustomerEmailProcedure,
