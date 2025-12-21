@@ -9,6 +9,7 @@
   "updateInternalDependencies": "patch",
   "ignore": [
     "@flowglad/playground-express",
-    "@flowglad/playground-generation-based-subscription"
+    "@flowglad/playground-generation-based-subscription",
+    "@flowglad/playground-react-native"
   ]
 }

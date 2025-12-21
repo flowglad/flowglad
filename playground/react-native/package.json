@@ -1,5 +1,5 @@
 {
-  "name": "flowglad-rn-example",
+  "name": "@flowglad/playground-react-native",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
