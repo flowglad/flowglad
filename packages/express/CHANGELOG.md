@@ -1,5 +1,9 @@
 # @flowglad/express
 
+> **⚠️ This package is deprecated.** Please use `@flowglad/server/express` instead.
+>
+> See https://docs.flowglad.com/sdks/express for migration guide.
+
 ## 0.15.1
 
 ### Patch Changes
