@@ -1,12 +1,12 @@
 {
-  "version": "7",
-  "dialect": "postgresql",
+  "version": "6",
+  "dialect": "pg",
   "entries": [
     {
       "idx": 0,
       "version": "7",
-      "when": 1762366685322,
-      "tag": "0000_dizzy_micromax",
+      "when": 1766095346387,
+      "tag": "0000_nosy_gamora",
       "breakpoints": true
     }
   ]

@@ -135,6 +135,7 @@
     "drizzle-zod": "0.8.3",
     "embla-carousel-react": "^8.6.0",
     "html2canvas": "^1.4.1",
+    "hono": "^4.11.1",
     "jose": "6.0.10",
     "json-to-pretty-yaml": "^1.2.2",
     "jsonwebtoken": "^9.0.2",

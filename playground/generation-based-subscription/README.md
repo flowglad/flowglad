@@ -78,6 +78,11 @@ Fill in the required values in `.env.local`:
 
 ### 4. Set Up Database
 
+If using Docker: 
+```bash
+bun db:setup
+```
+
 Generate and run database migrations:
 
 ```bash

@@ -1,13 +1,5 @@
 import { sql } from 'drizzle-orm'
-import {
-  integer,
-  jsonb,
-  pgPolicy,
-  pgTable,
-  text,
-  timestamp,
-} from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import { integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
   constructIndex,
@@ -15,18 +7,12 @@ import {
   livemodePolicy,
   merchantPolicy,
   nullableStringForeignKey,
-  ommittedColumnsForInsertSchema,
   pgEnumColumn,
   type SelectConditions,
   tableBase,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
-import {
-  EventCategory,
-  EventNoun,
-  EventRetentionPolicy,
-  FlowgladEventType,
-} from '@/types'
+import { EventNoun, FlowgladEventType } from '@/types'
 import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 import { organizations } from './organizations'
