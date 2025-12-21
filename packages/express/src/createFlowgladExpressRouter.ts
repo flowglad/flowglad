@@ -5,7 +5,7 @@ import type {
 import { type Request, type RequestHandler, Router } from 'express'
 import { createExpressRouteHandler } from './createFlowgladExpressRouteHandler'
 
-interface CreateFlowgladExpressRouterOptions
+export interface CreateFlowgladExpressRouterOptions
   extends Omit<RequestHandlerOptions, 'flowgladServer'> {
   flowgladServerConstructor: (
     req: Request

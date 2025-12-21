@@ -1,6 +1,7 @@
 {
   "name": "@flowglad/express",
   "version": "0.15.1",
+  "deprecated": "This package is deprecated. Use @flowglad/server/express instead. See https://docs.flowglad.com/sdks/express for migration guide.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
