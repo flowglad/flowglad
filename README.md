@@ -80,7 +80,7 @@ Flowglad integrates seamlessly with your authentication system and requires only
 Create a utility to generate your Flowglad server instance. Pass your own customer/user/organization IDs—Flowglad never requires its own customer IDs to be managed in your app:
 
 ```ts
-// utils/flowglad.ts
+// lib/flowglad.ts
 import { FlowgladServer } from '@flowglad/nextjs/server'
 
 export const flowglad = (customerExternalId: string) => {

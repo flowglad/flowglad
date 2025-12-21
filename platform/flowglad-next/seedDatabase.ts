@@ -1727,7 +1727,7 @@ export const setupUsageEvent = async (
     subscriptionId: string
     usageMeterId: string
     amount: number
-    priceId: string
+    priceId?: string | null
     transactionId: string
     customerId: string
   }

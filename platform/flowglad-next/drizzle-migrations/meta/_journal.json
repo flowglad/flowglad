@@ -1765,6 +1765,13 @@
       "when": 1765824908388,
       "tag": "0252_low_dreadnoughts",
       "breakpoints": true
+    },
+    {
+      "idx": 253,
+      "version": "7",
+      "when": 1766069970238,
+      "tag": "0253_damp_dagger",
+      "breakpoints": true
     }
   ]
 }

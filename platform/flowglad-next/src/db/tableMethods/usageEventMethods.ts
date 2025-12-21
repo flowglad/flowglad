@@ -32,6 +32,7 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type { SubscriptionStatus } from '@/types'
+import core from '@/utils/core'
 import type { DbTransaction } from '../types'
 import { isSubscriptionCurrent } from './subscriptionMethods'
 
@@ -109,7 +110,7 @@ export const selectUsageEventsTableRowData =
 
       const priceIds = usageEventsData
         .map((usageEvent) => usageEvent.priceId)
-        .filter((id): id is string => id !== null)
+        .filter((id): id is string => !core.isNil(id))
 
       // Query 1: Get customers
       const customerResults = await transaction
@@ -165,47 +166,58 @@ export const selectUsageEventsTableRowData =
         ])
       )
 
-      return usageEventsData.map((usageEvent) => {
-        const customer = customersById.get(usageEvent.customerId)
-        const subscription = subscriptionsById.get(
-          usageEvent.subscriptionId
-        )
-        const usageMeter = usageMetersById.get(
-          usageEvent.usageMeterId
-        )
-        const price = pricesById.get(usageEvent.priceId)
-
-        if (!customer || !subscription || !usageMeter || !price) {
-          throw new Error(
-            `Missing related data for usage event ${usageEvent.id}`
+      return usageEventsData
+        .map((usageEvent) => {
+          const customer = customersById.get(usageEvent.customerId)
+          const subscription = subscriptionsById.get(
+            usageEvent.subscriptionId
           )
-        }
-
-        // Transform database records to client records
-        const customerClient =
-          customerClientSelectSchema.parse(customer)
-        const subscriptionWithCurrent = {
-          ...subscription,
-          current: isSubscriptionCurrent(
-            subscription.status as SubscriptionStatus,
-            subscription.cancellationReason
-          ),
-        }
-        const subscriptionClient =
-          subscriptionClientSelectSchema.parse(
-            subscriptionWithCurrent
+          const usageMeter = usageMetersById.get(
+            usageEvent.usageMeterId
           )
-        const usageMeterClient =
-          usageMetersClientSelectSchema.parse(usageMeter)
-        const priceClient = pricesClientSelectSchema.parse(price)
+          const price = usageEvent.priceId
+            ? pricesById.get(usageEvent.priceId)
+            : null
 
-        return {
-          usageEvent,
-          customer: customerClient,
-          subscription: subscriptionClient,
-          usageMeter: usageMeterClient,
-          price: priceClient,
-        }
-      })
+          if (!customer || !subscription || !usageMeter) {
+            throw new Error(
+              `Missing related data for usage event ${usageEvent.id}`
+            )
+          }
+          // FIXME: Handle nullable priceId - usage events can now have null priceId
+          // For now, skip events without prices since the return schema doesn't support nullable prices yet
+          if (!usageEvent.priceId || !price) {
+            return null
+          }
+
+          // Transform database records to client records
+          const customerClient =
+            customerClientSelectSchema.parse(customer)
+          const subscriptionWithCurrent = {
+            ...subscription,
+            current: isSubscriptionCurrent(
+              subscription.status as SubscriptionStatus,
+              subscription.cancellationReason
+            ),
+          }
+          const subscriptionClient =
+            subscriptionClientSelectSchema.parse(
+              subscriptionWithCurrent
+            )
+          const usageMeterClient =
+            usageMetersClientSelectSchema.parse(usageMeter)
+          const priceClient = pricesClientSelectSchema.parse(price)
+
+          return {
+            usageEvent,
+            customer: customerClient,
+            subscription: subscriptionClient,
+            usageMeter: usageMeterClient,
+            price: priceClient,
+          }
+        })
+        .filter(
+          (item): item is NonNullable<typeof item> => item !== null
+        )
     }
   )

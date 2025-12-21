@@ -11,6 +11,7 @@ import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceM
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectUsers } from '@/db/tableMethods/userMethods'
 import {
+  BusinessOnboardingStatus,
   FlowgladApiKeyType,
   type OnboardingChecklistItem,
   OnboardingItemType,
@@ -144,6 +145,10 @@ const OnboardingPage = async () => {
       title: 'Enable Payments',
       description: 'Set up Stripe Connect to process payments',
       completed: organization.payoutsEnabled,
+      inReview:
+        organization.onboardingStatus ===
+          BusinessOnboardingStatus.FullyOnboarded &&
+        !organization.payoutsEnabled,
       action: 'Connect',
       type: OnboardingItemType.Stripe,
     },
