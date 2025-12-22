@@ -76,7 +76,7 @@ jobs:
       # Setup Node.js and configure npm registry authentication
       # NPM_TOKEN secret must be set in repository settings
       - name: Setup Node.js
-        uses: actions/setup-node@9ced9a43a244f3ac94f13bfd896db8c8f30da67a # v3
+        uses: actions/setup-node@v6.1.0
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
