@@ -62,12 +62,42 @@ describe('validateSetupPricingModelInput', () => {
     )
 
     invalidInput.products = invalidInput.products.map(
-      (product: any) => ({
-        ...product,
-        prices: product.prices.filter(
+      (product: any) => {
+        const nonUsagePrices = product.prices.filter(
           (price: any) => price.type !== PriceType.Usage
-        ),
-      })
+        )
+        // Ensure product still has at least one active default price
+        if (nonUsagePrices.length === 0) {
+          return {
+            ...product,
+            prices: [
+              {
+                type: PriceType.Subscription,
+                slug: 'dummy-price',
+                isDefault: true,
+                unitPrice: 0,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                usageMeterId: null,
+                usageEventsPerUnit: null,
+                active: true,
+              },
+            ],
+          }
+        }
+        // Ensure at least one remaining price is active and default
+        const hasActiveDefault = nonUsagePrices.some(
+          (p: any) => p.active && p.isDefault
+        )
+        if (!hasActiveDefault && nonUsagePrices.length > 0) {
+          nonUsagePrices[0].active = true
+          nonUsagePrices[0].isDefault = true
+        }
+        return {
+          ...product,
+          prices: nonUsagePrices,
+        }
+      }
     )
 
     expect(() =>

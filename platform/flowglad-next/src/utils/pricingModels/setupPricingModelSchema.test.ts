@@ -363,4 +363,269 @@ describe('setupPricingModelSchema', () => {
       }
     })
   })
+
+  describe('product price requirement validation', () => {
+    it('should reject when a product has no prices', () => {
+      const input = createMinimalValidInput()
+      input.products = [
+        {
+          product: {
+            name: 'Product Without Price',
+            slug: 'no-price',
+            active: true,
+            default: false,
+          },
+          prices: [], // Empty prices array should fail
+          features: [],
+        },
+      ]
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain('>=1')
+      }
+    })
+
+    it('should reject when no price has both active=true and isDefault=true', () => {
+      const input = createMinimalValidInput()
+      input.products = [
+        {
+          product: {
+            name: 'Product',
+            slug: 'product',
+            active: true,
+            default: false,
+          },
+          prices: [
+            {
+              type: PriceType.Subscription,
+              slug: 'price-1',
+              isDefault: false, // Not default
+              unitPrice: 1000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              active: true,
+            },
+          ],
+          features: [],
+        },
+      ]
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain(
+          'exactly one'
+        )
+      }
+    })
+
+    it('should reject when multiple prices have both active=true and isDefault=true', () => {
+      const input = createMinimalValidInput()
+      input.products = [
+        {
+          product: {
+            name: 'Product',
+            slug: 'product',
+            active: true,
+            default: false,
+          },
+          prices: [
+            {
+              type: PriceType.Subscription,
+              slug: 'price-1',
+              isDefault: true,
+              unitPrice: 1000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              active: true, // Active AND default
+            },
+            {
+              type: PriceType.Subscription,
+              slug: 'price-2',
+              isDefault: true,
+              unitPrice: 2000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              active: true, // Also active AND default - this is NOT allowed
+            },
+          ],
+          features: [],
+        },
+      ]
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain(
+          'exactly one'
+        )
+      }
+    })
+
+    it('should reject when default price is inactive and no other price is active+default', () => {
+      const input = createMinimalValidInput()
+      input.products = [
+        {
+          product: {
+            name: 'Product',
+            slug: 'product',
+            active: true,
+            default: false,
+          },
+          prices: [
+            {
+              type: PriceType.Subscription,
+              slug: 'price-1',
+              isDefault: true,
+              unitPrice: 1000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              active: false, // Default but inactive
+            },
+            {
+              type: PriceType.Subscription,
+              slug: 'price-2',
+              isDefault: false,
+              unitPrice: 2000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              active: true, // Active but not default
+            },
+          ],
+          features: [],
+        },
+      ]
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain(
+          'exactly one'
+        )
+      }
+    })
+
+    it('should accept when product has one active default price', () => {
+      const input = createMinimalValidInput()
+      input.products = [
+        {
+          product: {
+            name: 'Product 1',
+            slug: 'product-1',
+            active: true,
+            default: false,
+          },
+          prices: [
+            {
+              type: PriceType.Subscription,
+              slug: 'price-1',
+              isDefault: true,
+              unitPrice: 1000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              active: true,
+            },
+          ],
+          features: [],
+        },
+        {
+          product: {
+            name: 'Product 2',
+            slug: 'product-2',
+            active: true,
+            default: false,
+          },
+          prices: [
+            {
+              type: PriceType.SinglePayment,
+              slug: 'price-2',
+              isDefault: true,
+              unitPrice: 5000,
+              active: true,
+            },
+          ],
+          features: [],
+        },
+      ]
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(true)
+    })
+
+    it('should accept when a product has multiple prices with one active default', () => {
+      const input = createMinimalValidInput()
+      input.products[0].prices = [
+        {
+          type: PriceType.Subscription,
+          slug: 'monthly',
+          isDefault: true,
+          unitPrice: 1000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+          active: true, // Active AND default
+        },
+        {
+          type: PriceType.Subscription,
+          slug: 'yearly',
+          isDefault: false,
+          unitPrice: 10000,
+          intervalUnit: IntervalUnit.Year,
+          intervalCount: 1,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+          active: true, // Active but not default - this is fine
+        },
+      ]
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(true)
+    })
+
+    it('should accept when product has inactive non-default price alongside active default price', () => {
+      const input = createMinimalValidInput()
+      input.products[0].prices = [
+        {
+          type: PriceType.Subscription,
+          slug: 'active-default',
+          isDefault: true,
+          unitPrice: 1000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+          active: true, // This satisfies the requirement
+        },
+        {
+          type: PriceType.Subscription,
+          slug: 'inactive-non-default',
+          isDefault: false,
+          unitPrice: 2000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+          active: false, // Inactive and not default - this is fine
+        },
+      ]
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(true)
+    })
+  })
 })

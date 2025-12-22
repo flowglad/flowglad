@@ -47,7 +47,19 @@ describe('externalIdFromProductData', () => {
         singularQuantityLabel: null,
         pluralQuantityLabel: null,
       },
-      prices: [],
+      prices: [
+        {
+          type: PriceType.Subscription,
+          slug: 'test-price',
+          isDefault: true,
+          unitPrice: 1000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+          active: true,
+        },
+      ],
       features: [],
     }
     const expected = hashData(
@@ -70,7 +82,19 @@ describe('externalIdFromProductData', () => {
         singularQuantityLabel: null,
         pluralQuantityLabel: null,
       },
-      prices: [],
+      prices: [
+        {
+          type: PriceType.Subscription,
+          slug: 'test-price',
+          isDefault: true,
+          unitPrice: 1000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+          active: true,
+        },
+      ],
       features: [],
     }
     const h1 = externalIdFromProductData(dummy, 'pricingModelId')
@@ -125,7 +149,19 @@ describe('setupPricingModelTransaction (integration)', () => {
             singularQuantityLabel: null,
             pluralQuantityLabel: null,
           },
-          prices: [],
+          prices: [
+            {
+              type: PriceType.Subscription,
+              slug: 'p-price',
+              isDefault: true,
+              unitPrice: 1000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              active: true,
+            },
+          ],
           features: ['f1'],
         },
       ],
@@ -181,7 +217,7 @@ describe('setupPricingModelTransaction (integration)', () => {
             {
               type: PriceType.Subscription,
               slug: 'ps',
-              isDefault: false,
+              isDefault: true,
               name: 'Test Price',
               usageMeterId: null,
               trialPeriodDays: null,
@@ -395,7 +431,19 @@ describe('setupPricingModelTransaction (integration)', () => {
               singularQuantityLabel: null,
               pluralQuantityLabel: null,
             },
-            prices: [],
+            prices: [
+              {
+                type: PriceType.Subscription,
+                slug: 'default-1-price',
+                isDefault: true,
+                unitPrice: 0,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                usageMeterId: null,
+                usageEventsPerUnit: null,
+                active: true,
+              },
+            ],
             features: [],
           },
           {
@@ -409,7 +457,19 @@ describe('setupPricingModelTransaction (integration)', () => {
               singularQuantityLabel: null,
               pluralQuantityLabel: null,
             },
-            prices: [],
+            prices: [
+              {
+                type: PriceType.Subscription,
+                slug: 'default-2-price',
+                isDefault: true,
+                unitPrice: 0,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                usageMeterId: null,
+                usageEventsPerUnit: null,
+                active: true,
+              },
+            ],
             features: [],
           },
         ],

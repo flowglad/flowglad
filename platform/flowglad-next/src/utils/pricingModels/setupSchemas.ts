@@ -102,12 +102,26 @@ export type SetupPricingModelProductPriceInput = z.infer<
   typeof setupPricingModelProductPriceInputSchema
 >
 
+const hasExactlyOneActiveDefaultPrice = (
+  prices: Array<{ active?: boolean; isDefault?: boolean }>
+) => {
+  return (
+    prices.filter((price) => price.active && price.isDefault)
+      .length === 1
+  )
+}
+
 const setupPricingModelProductInputSchema = z.object({
   product: productPricingModelSetupSchema.describe(
     'The product to add to the pricingModel. Must be a subset of the products in the pricingModel.'
   ),
   prices: z
     .array(setupPricingModelProductPriceInputSchema)
+    .min(1)
+    .refine(hasExactlyOneActiveDefaultPrice, {
+      message:
+        'Product must have exactly one price with active=true and isDefault=true',
+    })
     .describe(
       'The prices to add to the product. Must be a subset of the prices in the pricingModel.'
     ),
