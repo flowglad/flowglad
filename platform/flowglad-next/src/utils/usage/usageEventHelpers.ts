@@ -85,6 +85,12 @@ export const resolveUsageEventInput = async (
 
   // Early return if usageMeterId is already provided
   if (input.usageEvent.usageMeterId) {
+    // Performance optimization: We use selectUsageMeterById + compare pricingModelId
+    // instead of selectPricingModelForCustomer. This uses 3 queries with minimal data vs
+    // 5+ queries fetching the entire pricing model. Bulk insert uses selectPricingModelForCustomer
+    // because it already loads/caches the pricing model for slug resolution, so reusing it
+    // adds no extra queries. Single events don't need the full model, so the lighter approach is more efficient.
+
     // First get the subscription to determine the customerId (needed for validation)
     const subscription = await selectSubscriptionById(
       input.usageEvent.subscriptionId,
