@@ -5,19 +5,19 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import {
+  ChevronDown,
+  ChevronUp,
   CustomersIcon,
   DollarSign,
   FinishSetupIcon,
   FlowgladLogomark,
   Gauge,
-  MoreIcon,
   PanelLeft,
   PanelRight,
   PaymentsIcon,
   ShoppingCart,
   SubscriptionsIcon,
   Tag,
-  X,
 } from '@/components/icons/navigation'
 import {
   SidebarContent,
@@ -286,7 +286,7 @@ export const SideNavigation = () => {
                   tooltip={showMore ? 'Less' : 'More'}
                   data-testid="more-less-toggle"
                 >
-                  {showMore ? <X /> : <MoreIcon />}
+                  {showMore ? <ChevronUp /> : <ChevronDown />}
                   <span>{showMore ? 'Less' : 'More'}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -294,7 +294,9 @@ export const SideNavigation = () => {
           </SidebarGroup>
 
           {/* Secondary navigation items - visible when showMore is true */}
-          {showMore && <NavStandalone items={secondaryItems} />}
+          {showMore && (
+            <NavStandalone items={secondaryItems} indented />
+          )}
         </div>
         <div className="flex-1" />
       </SidebarContent>
