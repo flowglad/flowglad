@@ -16,8 +16,14 @@ on:
     types: [closed]
     branches:
       - main
-    if: >
-      (github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && (contains(github.event.pull_request.title, 'chore: version packages') || contains(github.event.pull_request.labels.*.name, 'release'))))
+  # Allow manual dispatch from GitHub UI with branch selection
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to publish from'
+        required: true
+        type: string
+        default: 'main'
 
 permissions:
   id-token: write # Required for OIDC
@@ -26,11 +32,11 @@ permissions:
 jobs:
   publish:
     # Only run if:
-    # - The PR was actually merged (not just closed)
-    # - AND the PR title contains "chore: version packages" OR has "release" label
+    # - Manual dispatch (workflow_dispatch), OR
+    # - The PR was actually merged (not just closed) AND the PR title contains "chore: version packages" OR has "release" label
     # This ensures we only publish when the version PR is merged, not other PRs
     if: >
-      github.event.pull_request.merged == true && (contains(github.event.pull_request.title, 'chore: version packages') || contains(github.event.pull_request.labels.*.name, 'release'))
+      github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && (contains(github.event.pull_request.title, 'chore: version packages') || contains(github.event.pull_request.labels.*.name, 'release')))
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -38,10 +44,11 @@ jobs:
     steps:
       # Checkout the merge commit (not the PR head) to ensure we publish from the actual commit that landed on main
       # This prevents publishing from a different commit than what was merged
+      # For manual dispatch, use the selected branch input
       - name: Checkout repository
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
         with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
 
       # Setup Bun package manager (matches packageManager field in package.json)
