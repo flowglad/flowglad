@@ -5,7 +5,11 @@ import { flowglad } from '../utils/flowglad'
 export const flowgladRouter = expressRouter({
   getCustomerExternalId: async (req: Request) => {
     // Extract from req.query, req.user, etc.
-    return req.query.externalId as string
+    const externalId = req.query.externalId
+    if (typeof externalId !== 'string') {
+      throw new Error('externalId query parameter is required')
+    }
+    return externalId
   },
   flowglad,
 })
