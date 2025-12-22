@@ -101,16 +101,41 @@ const baseUsageEventFields = z.object({
 const usageEventWithPriceId = baseUsageEventFields.extend({
   priceId: z.string(),
   priceSlug: z.never().optional(), // Explicitly disallow
+  usageMeterId: z.never().optional(), // Explicitly disallow
+  usageMeterSlug: z.never().optional(), // Explicitly disallow
 })
 
 const usageEventWithPriceSlug = baseUsageEventFields.extend({
   priceSlug: z.string(),
   priceId: z.never().optional(), // Explicitly disallow
+  usageMeterId: z.never().optional(), // Explicitly disallow
+  usageMeterSlug: z.never().optional(), // Explicitly disallow
 })
 
+const usageEventWithUsageMeterId = baseUsageEventFields.extend({
+  usageMeterId: z.string(),
+  priceId: z.never().optional(), // Explicitly disallow
+  priceSlug: z.never().optional(), // Explicitly disallow
+  usageMeterSlug: z.never().optional(), // Explicitly disallow
+})
+
+const usageEventWithUsageMeterSlug = baseUsageEventFields.extend({
+  usageMeterSlug: z.string(),
+  priceId: z.never().optional(), // Explicitly disallow
+  priceSlug: z.never().optional(), // Explicitly disallow
+  usageMeterId: z.never().optional(), // Explicitly disallow
+})
+
+/**
+ * Schema for creating a usage event. You must provide exactly one identifier:
+ * - `priceId` or `priceSlug`: For price-based usage tracking
+ * - `usageMeterId` or `usageMeterSlug`: For usage meter-based tracking
+ */
 export const createUsageEventSchema = z.union([
   usageEventWithPriceId,
   usageEventWithPriceSlug,
+  usageEventWithUsageMeterId,
+  usageEventWithUsageMeterSlug,
 ])
 
 export type CreateUsageEventParams = z.infer<
