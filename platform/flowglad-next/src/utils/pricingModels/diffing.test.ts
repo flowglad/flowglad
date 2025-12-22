@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { diffSluggedResources, type SluggedResource } from './diffing'
 
+type SlugAndName = SluggedResource<{ name: string }>
+
 describe('diffSluggedResources', () => {
   it('should identify resources to remove when slug exists only in existing', () => {
     // Setup: existing has 'foo' and 'bar', proposed only has 'bar'
-    const existing: SluggedResource<{ name: string }>[] = [
+    const existing: SlugAndName[] = [
       { slug: 'foo', name: 'Foo' },
       { slug: 'bar', name: 'Bar' },
     ]
-    const proposed: SluggedResource<{ name: string }>[] = [
-      { slug: 'bar', name: 'Bar' },
-    ]
+    const proposed: SlugAndName[] = [{ slug: 'bar', name: 'Bar' }]
 
     const result = diffSluggedResources(existing, proposed)
 
@@ -23,10 +23,8 @@ describe('diffSluggedResources', () => {
 
   it('should identify resources to create when slug exists only in proposed', () => {
     // Setup: existing only has 'foo', proposed has 'foo' and 'bar'
-    const existing: SluggedResource<{ name: string }>[] = [
-      { slug: 'foo', name: 'Foo' },
-    ]
-    const proposed: SluggedResource<{ name: string }>[] = [
+    const existing: SlugAndName[] = [{ slug: 'foo', name: 'Foo' }]
+    const proposed: SlugAndName[] = [
       { slug: 'foo', name: 'Foo' },
       { slug: 'bar', name: 'Bar' },
     ]
@@ -42,12 +40,8 @@ describe('diffSluggedResources', () => {
 
   it('should identify resources to update when slug exists in both', () => {
     // Setup: both have 'foo' with different names
-    const existing: SluggedResource<{ name: string }>[] = [
-      { slug: 'foo', name: 'Old' },
-    ]
-    const proposed: SluggedResource<{ name: string }>[] = [
-      { slug: 'foo', name: 'New' },
-    ]
+    const existing: SlugAndName[] = [{ slug: 'foo', name: 'Old' }]
+    const proposed: SlugAndName[] = [{ slug: 'foo', name: 'New' }]
 
     const result = diffSluggedResources(existing, proposed)
 
@@ -63,10 +57,8 @@ describe('diffSluggedResources', () => {
 
   it('should handle empty existing array', () => {
     // Setup: no existing resources, proposed has 'foo'
-    const existing: SluggedResource<{ name: string }>[] = []
-    const proposed: SluggedResource<{ name: string }>[] = [
-      { slug: 'foo', name: 'Foo' },
-    ]
+    const existing: SlugAndName[] = []
+    const proposed: SlugAndName[] = [{ slug: 'foo', name: 'Foo' }]
 
     const result = diffSluggedResources(existing, proposed)
 
@@ -78,10 +70,8 @@ describe('diffSluggedResources', () => {
 
   it('should handle empty proposed array', () => {
     // Setup: existing has 'foo', no proposed resources
-    const existing: SluggedResource<{ name: string }>[] = [
-      { slug: 'foo', name: 'Foo' },
-    ]
-    const proposed: SluggedResource<{ name: string }>[] = []
+    const existing: SlugAndName[] = [{ slug: 'foo', name: 'Foo' }]
+    const proposed: SlugAndName[] = []
 
     const result = diffSluggedResources(existing, proposed)
 
@@ -93,12 +83,8 @@ describe('diffSluggedResources', () => {
 
   it('should handle completely different slugs as remove + create', () => {
     // Setup: existing has 'foo', proposed has 'bar'
-    const existing: SluggedResource<{ name: string }>[] = [
-      { slug: 'foo', name: 'Foo' },
-    ]
-    const proposed: SluggedResource<{ name: string }>[] = [
-      { slug: 'bar', name: 'Bar' },
-    ]
+    const existing: SlugAndName[] = [{ slug: 'foo', name: 'Foo' }]
+    const proposed: SlugAndName[] = [{ slug: 'bar', name: 'Bar' }]
 
     const result = diffSluggedResources(existing, proposed)
 
