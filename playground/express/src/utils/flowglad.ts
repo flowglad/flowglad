@@ -1,15 +1,23 @@
-import { FlowgladServer } from '@flowglad/express'
-import type { Request } from 'express'
+import { FlowgladServer } from '@flowglad/server'
 
-export const flowgladServer = (req: Request) => {
-  const query = req.query
+/**
+ * Factory function that creates a scoped FlowgladServer instance for a specific customer.
+ *
+ * @param customerExternalId - The customer's external ID from your app's database
+ * @returns A FlowgladServer instance scoped to that customer
+ */
+export const flowglad = (customerExternalId: string) => {
   return new FlowgladServer({
     baseURL: 'http://localhost:3000',
-    getRequestingCustomer: async () => {
+    customerExternalId,
+    getCustomerDetails: async () => {
+      // In production, fetch from your database:
+      // const user = await db.users.findOne({ id: customerExternalId })
+      // return { email: user.email, name: user.name }
+
       return {
-        externalId: query.externalId as string,
-        email: query.email as string,
-        name: query.name as string,
+        email: '', // Would need to fetch from DB
+        name: '',
       }
     },
   })
