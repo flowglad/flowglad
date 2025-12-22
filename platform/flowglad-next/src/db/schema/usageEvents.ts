@@ -174,7 +174,6 @@ const columnRefinements = {
 const readOnlyColumns = {
   livemode: true,
   billingPeriodId: true,
-  usageMeterId: true,
   customerId: true,
 } as const
 
@@ -184,13 +183,22 @@ const createOnlyColumns = {
   transactionId: true,
 } as const
 
+export const USAGE_EVENT_PRICE_ID_DESCRIPTION =
+  'The internal ID of the price. Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided.'
+export const USAGE_EVENT_PRICE_SLUG_DESCRIPTION =
+  'The slug of the price. Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided.'
+export const USAGE_EVENT_USAGE_METER_ID_DESCRIPTION =
+  'The internal ID of the usage meter. Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided.'
+export const USAGE_EVENT_USAGE_METER_SLUG_DESCRIPTION =
+  'The slug of the usage meter. Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided.'
+
 export const {
   select: usageEventsSelectSchema,
   insert: usageEventsInsertSchema,
   update: usageEventsUpdateSchema,
   client: {
     select: usageEventsClientSelectSchema,
-    insert: usageEventsClientInsertSchema,
+    insert: baseUsageEventsClientInsertSchema,
     update: usageEventsClientUpdateSchema,
   },
 } = buildSchemas(usageEvents, {
@@ -204,6 +212,46 @@ export const {
   },
   entityName: 'UsageEvent',
 })
+
+// Make usageMeterId optional and add slug support with validation
+// This schema allows exactly one of: priceId, priceSlug, usageMeterId, or usageMeterSlug
+export const usageEventsClientInsertSchema =
+  baseUsageEventsClientInsertSchema
+    .omit({ priceId: true, usageMeterId: true })
+    .extend({
+      priceId: z
+        .string()
+        .optional()
+        .describe(USAGE_EVENT_PRICE_ID_DESCRIPTION),
+      priceSlug: z
+        .string()
+        .optional()
+        .describe(USAGE_EVENT_PRICE_SLUG_DESCRIPTION),
+      usageMeterId: z
+        .string()
+        .optional()
+        .describe(USAGE_EVENT_USAGE_METER_ID_DESCRIPTION),
+      usageMeterSlug: z
+        .string()
+        .optional()
+        .describe(USAGE_EVENT_USAGE_METER_SLUG_DESCRIPTION),
+    })
+    .refine(
+      (data) => {
+        const identifiers = [
+          data.priceId,
+          data.priceSlug,
+          data.usageMeterId,
+          data.usageMeterSlug,
+        ].filter(Boolean)
+        return identifiers.length === 1
+      },
+      {
+        message:
+          'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided',
+        path: ['priceId'],
+      }
+    )
 
 export namespace UsageEvent {
   export type Insert = z.infer<typeof usageEventsInsertSchema>
@@ -224,43 +272,35 @@ export namespace UsageEvent {
   >
 }
 
-export const createUsageEventSchema = z.object({
-  usageEvent: usageEventsClientInsertSchema,
+// Schema for resolved usage event input (after slug resolution)
+// After resolution, priceSlug/usageMeterSlug are removed.
+// usageMeterId is always present (either from input or derived from priceId).
+// priceId is set when a price identifier was provided, or null when a usage meter identifier was provided.
+export const createUsageEventResolvedSchema = z.object({
+  usageEvent: baseUsageEventsClientInsertSchema
+    .omit({ priceId: true, usageMeterId: true })
+    .extend({
+      usageMeterId: z
+        .string()
+        .describe(
+          'Always present after resolution - either from input or derived from priceId'
+        ),
+      priceId: z
+        .string()
+        .nullable()
+        .describe(
+          'Set when price identifier provided, null when usage meter identifier provided'
+        ),
+    }),
 })
 
 export type CreateUsageEventInput = z.infer<
-  typeof createUsageEventSchema
+  typeof createUsageEventResolvedSchema
 >
 
-export const USAGE_EVENT_PRICE_ID_DESCRIPTION =
-  'The internal ID of the price. If not provided, priceSlug is required.'
-export const USAGE_EVENT_PRICE_SLUG_DESCRIPTION =
-  'The slug of the price. If not provided, priceId is required.'
-
-// Schema for individual usage event that allows either priceId or priceSlug
-const usageEventWithSlugSchema = usageEventsClientInsertSchema
-  .omit({ priceId: true })
-  .extend({
-    priceId: z
-      .string()
-      .optional()
-      .describe(USAGE_EVENT_PRICE_ID_DESCRIPTION),
-    priceSlug: z
-      .string()
-      .optional()
-      .describe(USAGE_EVENT_PRICE_SLUG_DESCRIPTION),
-  })
-  .refine(
-    (data) => (data.priceId ? !data.priceSlug : !!data.priceSlug),
-    {
-      message:
-        'Either priceId or priceSlug must be provided, but not both',
-      path: ['priceId'],
-    }
-  )
-
+// Schema for bulk insert - uses the same slug-aware schema
 export const bulkInsertUsageEventsSchema = z.object({
-  usageEvents: z.array(usageEventWithSlugSchema),
+  usageEvents: z.array(usageEventsClientInsertSchema),
 })
 
 export type BulkInsertUsageEventsInput = z.infer<
