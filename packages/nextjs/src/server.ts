@@ -13,7 +13,6 @@ export {
   verifyWebhook,
   WebhookVerificationError,
 } from '@flowglad/server'
-export { createAppRouterRouteHandler } from './createAppRouterRouteHandler'
 export { createPagesRouterRouteHandler } from './createPagesRouterRouteHandler'
 export {
   type NextRouteHandlerOptions,
