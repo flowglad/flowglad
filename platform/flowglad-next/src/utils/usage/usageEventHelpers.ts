@@ -11,7 +11,6 @@ import {
   selectPriceById,
   selectPriceBySlugAndCustomerId,
 } from '@/db/tableMethods/priceMethods'
-import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import {
   insertUsageEvent,
@@ -88,8 +87,7 @@ export const resolveUsageEventInput = async (
     // Performance optimization: We use selectUsageMeterById + compare pricingModelId
     // instead of selectPricingModelForCustomer. This uses 3 queries with minimal data vs
     // 5+ queries fetching the entire pricing model. Bulk insert uses selectPricingModelForCustomer
-    // because it already loads/caches the pricing model for slug resolution, so reusing it
-    // adds no extra queries. Single events don't need the full model, so the lighter approach is more efficient.
+    // because it already caches the pricing model for slug resolution, so reusing it adds no extra queries.
 
     // First get the subscription to determine the customerId (needed for validation)
     const subscription = await selectSubscriptionById(
@@ -279,17 +277,29 @@ export const ingestAndProcessUsageEvent = async (
       subscription.customerId,
       transaction
     )
-    const pricingModel = await selectPricingModelForCustomer(
-      customer,
-      transaction
-    )
 
-    // Validate that the usage meter exists in the customer's pricing model
-    const usageMeter = pricingModel.usageMeters.find(
-      (meter) => meter.id === usageMeterId
-    )
+    // Validate that the customer has a pricing model ID
+    if (!customer.pricingModelId) {
+      throw new Error(
+        `Customer ${customer.id} does not have a pricing model associated`
+      )
+    }
 
-    if (!usageMeter) {
+    let usageMeter
+    try {
+      usageMeter = await selectUsageMeterById(
+        usageMeterId,
+        transaction
+      )
+    } catch (error) {
+      // If we can't fetch the usage meter (RLS blocked or doesn't exist),
+      throw new Error(
+        `Usage meter ${usageMeterId} not found for this customer's pricing model`
+      )
+    }
+
+    // Validate that the usage meter belongs to the customer's pricing model
+    if (usageMeter.pricingModelId !== customer.pricingModelId) {
       throw new Error(
         `Usage meter ${usageMeterId} not found for this customer's pricing model`
       )
