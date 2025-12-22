@@ -20,6 +20,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { CheckCircle2 } from 'lucide-react'
 
 // Mock images to cycle through
 const mockImages = [
@@ -150,6 +151,15 @@ export function HomeClient() {
   )
   const hasOptionalTopUps = !!billing.checkFeatureAccess(
     'optional_credit_top_ups'
+  )
+
+  // Check if customer has purchased top-up products by product slug
+  // This is a bit of a strange use case, but is just demonstrating how to use the hasPurchased function
+  const hasPurchasedFastGenTopUp = billing.hasPurchased(
+    'fast_generation_top_ups'
+  )
+  const hasPurchasedHDVideoTopUp = billing.hasPurchased(
+    'hd_video_minute_top_ups'
   )
 
   // Calculate progress for usage meters - get slug from price using priceId
@@ -592,10 +602,15 @@ export function HomeClient() {
                               handlePurchaseFastGenerationTopUp
                             }
                             variant="secondary"
-                            className="w-full transition-transform hover:-translate-y-px"
+                            className="w-full transition-transform hover:-translate-y-px relative"
                             disabled={!hasOptionalTopUps}
                           >
-                            Buy Fast Generations ($4.00 for 80)
+                            <span className="flex items-center justify-center gap-2">
+                              Buy Fast Generations ($4.00 for 80)
+                              {hasPurchasedFastGenTopUp && (
+                                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              )}
+                            </span>
                           </Button>
                         </span>
                       </TooltipTrigger>
@@ -613,10 +628,15 @@ export function HomeClient() {
                           <Button
                             onClick={handlePurchaseHDVideoTopUp}
                             variant="secondary"
-                            className="w-full transition-transform hover:-translate-y-px"
+                            className="w-full transition-transform hover:-translate-y-px relative"
                             disabled={!hasOptionalTopUps}
                           >
-                            Buy HD Video Minutes ($10.00 for 10 min)
+                            <span className="flex items-center justify-center gap-2">
+                              Buy HD Video Minutes ($10.00 for 10 min)
+                              {hasPurchasedHDVideoTopUp && (
+                                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              )}
+                            </span>
                           </Button>
                         </span>
                       </TooltipTrigger>
