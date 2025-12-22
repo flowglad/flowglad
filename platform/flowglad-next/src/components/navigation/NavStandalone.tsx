@@ -40,7 +40,7 @@ export function NavStandalone({
               asChild
               tooltip={item.title}
               isActive={item.isActive}
-              className={cn(indented && 'pl-4')}
+              className={cn(indented && 'pl-5')}
             >
               <Link href={item.url} prefetch={true}>
                 {item.icon && <item.icon />}
