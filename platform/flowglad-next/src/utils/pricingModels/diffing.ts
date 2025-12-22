@@ -5,10 +5,24 @@
  * (features, products, usage meters) to identify what needs to be created, updated, or removed.
  */
 
+import type { SetupPricingModelInput } from './setupSchemas'
+
 /**
  * A resource with a slug identifier.
  */
 export type SluggedResource<T> = T & { slug: string }
+
+/**
+ * Input type for feature diffing - extracted from SetupPricingModelInput.
+ */
+export type FeatureDiffInput =
+  SetupPricingModelInput['features'][number]
+
+/**
+ * Input type for usage meter diffing - extracted from SetupPricingModelInput.
+ */
+export type UsageMeterDiffInput =
+  SetupPricingModelInput['usageMeters'][number]
 
 /**
  * Result of diffing two arrays of slugged resources.
@@ -107,4 +121,56 @@ export const diffSluggedResources = <T extends { slug: string }>(
     toCreate,
     toUpdate,
   }
+}
+
+/**
+ * Diffs feature arrays to identify which features need to be removed, created, or updated.
+ *
+ * Features are compared by their slug field. The function uses the generic
+ * `diffSluggedResources` utility to perform the comparison.
+ *
+ * @param existing - Array of existing features
+ * @param proposed - Array of proposed features
+ * @returns A DiffResult containing features to remove, create, and update
+ *
+ * @example
+ * ```typescript
+ * const existing = [{ slug: 'feature-a', name: 'Feature A', type: 'toggle', active: true }]
+ * const proposed = [{ slug: 'feature-a', name: 'Feature A Updated', type: 'toggle', active: true }]
+ * const diff = diffFeatures(existing, proposed)
+ * // diff.toUpdate will contain the feature with name change
+ * ```
+ */
+export const diffFeatures = (
+  existing: FeatureDiffInput[],
+  proposed: FeatureDiffInput[]
+): DiffResult<FeatureDiffInput> => {
+  return diffSluggedResources(existing, proposed)
+}
+
+/**
+ * Diffs usage meter arrays to identify which usage meters need to be removed, created, or updated.
+ *
+ * Usage meters are compared by their slug field. The function uses the generic
+ * `diffSluggedResources` utility to perform the comparison.
+ *
+ * Note: Usage meter removal is not allowed and will cause validation errors in later stages.
+ *
+ * @param existing - Array of existing usage meters
+ * @param proposed - Array of proposed usage meters
+ * @returns A DiffResult containing usage meters to remove, create, and update
+ *
+ * @example
+ * ```typescript
+ * const existing = [{ slug: 'api-calls', name: 'API Calls', aggregationType: 'sum' }]
+ * const proposed = [{ slug: 'api-calls', name: 'API Requests', aggregationType: 'sum' }]
+ * const diff = diffUsageMeters(existing, proposed)
+ * // diff.toUpdate will contain the usage meter with name change
+ * ```
+ */
+export const diffUsageMeters = (
+  existing: UsageMeterDiffInput[],
+  proposed: UsageMeterDiffInput[]
+): DiffResult<UsageMeterDiffInput> => {
+  return diffSluggedResources(existing, proposed)
 }
