@@ -17,13 +17,14 @@ export const createAppRouterRouteHandler = (
   // This is a legacy API - new code should use nextRouteHandler instead
   const handler = requestHandler({
     getCustomerExternalId: async () => {
-      // Legacy API doesn't extract customer ID from request
-      // This will fail at runtime if the server needs customer ID
-      throw new Error(
-        'Legacy API: FlowgladServer must be constructed with customerExternalId'
-      )
+      // Legacy API uses a pre-constructed server, so customer ID extraction
+      // is not needed. Return a dummy value since flowglad() ignores it anyway.
+      return 'legacy-server'
     },
-    flowglad: async () => flowgladServer,
+    flowglad: async () => {
+      // Ignore customerExternalId parameter - return the pre-constructed server
+      return flowgladServer
+    },
     ...options,
   })
 

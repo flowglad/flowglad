@@ -6,6 +6,31 @@ import {
 } from '../requestHandler'
 
 /**
+ * Normalizes Express query parameters by:
+ * 1. Converting array values to their first element (Express can provide array for repeated params)
+ * 2. Removing undefined values
+ * 3. Ensuring all values are strings
+ *
+ * @param query - The raw query object from Express request
+ * @returns A normalized query object with single string values
+ */
+const normalizeQueryParameters = (
+  query: Request['query']
+): Record<string, string> => {
+  return Object.fromEntries(
+    Object.entries(query)
+      .map(([key, value]) => [
+        key,
+        Array.isArray(value) ? value[0] : String(value),
+      ])
+      .filter(
+        (entry): entry is [string, string] =>
+          entry[1] !== undefined && entry[1] !== 'undefined'
+      )
+  )
+}
+
+/**
  * Options for creating an Express router with scoped FlowgladServer instances.
  */
 export interface ExpressRouterOptions
@@ -45,7 +70,7 @@ export const expressRouter = (
         method: req.method as HTTPMethod,
         query:
           req.method === 'GET'
-            ? (req.query as Record<string, string>)
+            ? normalizeQueryParameters(req.query)
             : undefined,
         body: req.method !== 'GET' ? req.body : undefined,
       },
