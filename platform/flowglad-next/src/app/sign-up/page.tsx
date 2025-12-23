@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { type FieldErrors, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import ErrorLabel from '@/components/ErrorLabel'
@@ -85,9 +85,9 @@ export default function SignUp() {
     })
   }
 
-  const onError = (errs: any) => {
-    const first = Object.values(errs)[0] as any
-    const message = first?.message ?? 'Validation failed'
+  const onError = (errs: FieldErrors<SignupValues>) => {
+    const firstError = Object.values(errs)[0]
+    const message = firstError?.message ?? 'Validation failed'
     toast.error(String(message))
   }
 
@@ -176,6 +176,7 @@ export default function SignUp() {
               )}
             >
               <Button
+                type="button"
                 variant="outline"
                 className={cn('w-full gap-2')}
                 disabled={loading}

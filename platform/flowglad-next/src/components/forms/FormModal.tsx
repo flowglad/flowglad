@@ -406,13 +406,6 @@ const FormModal = <T extends FieldValues>({
     <FormProvider {...form}>
       <form
         onSubmit={handleSubmit(async (data) => {
-          const parsed = formSchema.safeParse(data)
-          if (!parsed.success) {
-            reset(data, { keepIsSubmitted: false })
-            return form.setError('root', {
-              message: parsed.error.message,
-            })
-          }
           try {
             await onSubmit(data)
             router.refresh()
