@@ -22,6 +22,7 @@ import { FeatureType, SubscriptionItemType } from '@/types'
 import {
   insertFeature,
   selectFeatures,
+  selectFeaturesTableRowData,
   updateFeatureTransaction,
 } from './featureMethods'
 import { selectProductFeatures } from './productFeatureMethods'
@@ -538,6 +539,94 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
         expect(productFeatures[0].expiredAt).toBe(initialExpiredAt)
       })
+    })
+  })
+})
+
+describe('selectFeaturesTableRowData search', () => {
+  it('should search by name, slug, or exact ID (case-insensitive, trims whitespace)', async () => {
+    const { organization, pricingModel } = await setupOrg()
+
+    const feature = await setupToggleFeature({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Premium Feature',
+      slug: 'premium-feature-slug',
+      livemode: true,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      // Search by name (case-insensitive)
+      const byName = await selectFeaturesTableRowData({
+        input: {
+          pageSize: 10,
+          searchQuery: 'PREMIUM',
+          filters: { organizationId: organization.id },
+        },
+        transaction,
+      })
+      expect(
+        byName.items.some((i) => i.feature.id === feature.id)
+      ).toBe(true)
+
+      // Search by slug
+      const bySlug = await selectFeaturesTableRowData({
+        input: {
+          pageSize: 10,
+          searchQuery: 'premium-feature',
+          filters: { organizationId: organization.id },
+        },
+        transaction,
+      })
+      expect(
+        bySlug.items.some((i) => i.feature.id === feature.id)
+      ).toBe(true)
+
+      // Search by exact ID with whitespace trimming
+      const byId = await selectFeaturesTableRowData({
+        input: {
+          pageSize: 10,
+          searchQuery: `  ${feature.id}  `,
+          filters: { organizationId: organization.id },
+        },
+        transaction,
+      })
+      expect(byId.items.length).toBe(1)
+      expect(byId.items[0].feature.id).toBe(feature.id)
+    })
+  })
+
+  it('should return all features when search query is empty or undefined', async () => {
+    const { organization, pricingModel } = await setupOrg()
+
+    await setupToggleFeature({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Feature',
+      livemode: true,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const resultEmpty = await selectFeaturesTableRowData({
+        input: {
+          pageSize: 10,
+          searchQuery: '',
+          filters: { organizationId: organization.id },
+        },
+        transaction,
+      })
+
+      const resultUndefined = await selectFeaturesTableRowData({
+        input: {
+          pageSize: 10,
+          searchQuery: undefined,
+          filters: { organizationId: organization.id },
+        },
+        transaction,
+      })
+
+      expect(resultEmpty.items.length).toBeGreaterThanOrEqual(1)
+      expect(resultEmpty.total).toBe(resultUndefined.total)
     })
   })
 })

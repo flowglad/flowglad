@@ -333,4 +333,87 @@ describe('usageMeterMethods', () => {
       )
     })
   })
+
+  describe('selectUsageMetersCursorPaginated search', () => {
+    it('should search by name, slug, or exact ID (case-insensitive, trims whitespace)', async () => {
+      const meter = await setupUsageMeter({
+        organizationId,
+        pricingModelId,
+        name: 'API Calls Meter',
+        slug: 'api-calls-meter',
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        // Search by name (case-insensitive)
+        const byName = await selectUsageMetersCursorPaginated({
+          input: {
+            pageSize: 10,
+            searchQuery: 'API CALLS',
+            filters: { organizationId },
+          },
+          transaction,
+        })
+        expect(
+          byName.items.some((i) => i.usageMeter.id === meter.id)
+        ).toBe(true)
+
+        // Search by slug
+        const bySlug = await selectUsageMetersCursorPaginated({
+          input: {
+            pageSize: 10,
+            searchQuery: 'api-calls',
+            filters: { organizationId },
+          },
+          transaction,
+        })
+        expect(
+          bySlug.items.some((i) => i.usageMeter.id === meter.id)
+        ).toBe(true)
+
+        // Search by exact ID with whitespace trimming
+        const byId = await selectUsageMetersCursorPaginated({
+          input: {
+            pageSize: 10,
+            searchQuery: `  ${meter.id}  `,
+            filters: { organizationId },
+          },
+          transaction,
+        })
+        expect(byId.items.length).toBe(1)
+        expect(byId.items[0].usageMeter.id).toBe(meter.id)
+      })
+    })
+
+    it('should return all usage meters when search query is empty or undefined', async () => {
+      await setupUsageMeter({
+        organizationId,
+        pricingModelId,
+        name: 'Test Meter',
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const resultEmpty = await selectUsageMetersCursorPaginated({
+          input: {
+            pageSize: 10,
+            searchQuery: '',
+            filters: { organizationId },
+          },
+          transaction,
+        })
+
+        const resultUndefined =
+          await selectUsageMetersCursorPaginated({
+            input: {
+              pageSize: 10,
+              searchQuery: undefined,
+              filters: { organizationId },
+            },
+            transaction,
+          })
+
+        expect(resultEmpty.items.length).toBeGreaterThanOrEqual(1)
+        expect(resultEmpty.total).toBe(resultUndefined.total)
+      })
+    })
+  })
 })
