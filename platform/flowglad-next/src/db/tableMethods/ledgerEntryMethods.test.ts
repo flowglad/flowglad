@@ -33,6 +33,7 @@ import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import {
+  CurrencyCode,
   IntervalUnit,
   LedgerEntryDirection,
   LedgerEntryStatus,
@@ -43,9 +44,11 @@ import {
   PriceType,
   RefundStatus,
   SubscriptionStatus,
+  UsageBillingInfo,
   UsageCreditType,
 } from '@/types'
 import { core } from '@/utils/core'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import {
   type LedgerEntry,
   ledgerEntryNulledSourceIdColumns,
@@ -3286,18 +3289,19 @@ describe('ledgerEntryMethods', () => {
 
         expect(result).toHaveLength(1)
         const billingInfo = result[0]
-        expect(billingInfo.priceId).toBeNull()
-        expect(billingInfo.unitPrice).toBe(0)
-        expect(billingInfo.usageEventsPerUnit).toBe(1)
-        expect(billingInfo.usageMeterId).toBe(usageMeter.id)
-        expect(billingInfo.balance).toBe(100)
-        expect(billingInfo.name).toBe(
-          `Usage: ${usageMeter.name} (no price)`
-        )
-        expect(billingInfo.usageMeterIdPriceId).toBe(
-          `${usageMeter.id}-null`
-        )
-        expect(billingInfo.usageEventIds).toContain(usageEvent.id)
+        expect(billingInfo).toEqual<UsageBillingInfo>({
+          priceId: null,
+          unitPrice: 0,
+          usageEventsPerUnit: 1,
+          usageMeterId: usageMeter.id,
+          balance: 100,
+          name: `Usage: ${usageMeter.name} (no price)`,
+          usageMeterIdPriceId: `${usageMeter.id}-null`,
+          usageEventIds: expect.arrayContaining([usageEvent.id]),
+          ledgerAccountId: ledgerAccount.id,
+          livemode: true,
+          description: `priceId: null, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds: ${usageEvent.id}`,
+        })
       })
     })
 
@@ -3357,17 +3361,19 @@ describe('ledgerEntryMethods', () => {
 
         expect(result).toHaveLength(1)
         const billingInfo = result[0]
-        expect(billingInfo.priceId).toBe(usageBasedPrice.id)
-        expect(billingInfo.unitPrice).toBe(10)
-        expect(billingInfo.usageEventsPerUnit).toBe(1)
-        expect(billingInfo.usageMeterId).toBe(usageMeter.id)
-        expect(billingInfo.balance).toBe(50)
-        expect(billingInfo.name).toContain('Usage:')
-        expect(billingInfo.name).toContain(usageMeter.name)
-        expect(billingInfo.usageMeterIdPriceId).toBe(
-          `${usageMeter.id}-${usageBasedPrice.id}`
-        )
-        expect(billingInfo.usageEventIds).toContain(usageEvent.id)
+        expect(billingInfo).toEqual<UsageBillingInfo>({
+          priceId: usageBasedPrice.id,
+          unitPrice: 10,
+          usageEventsPerUnit: 1,
+          usageMeterId: usageMeter.id,
+          balance: 50,
+          name: `Usage: ${usageMeter.name} at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(organization.defaultCurrency as CurrencyCode, 10)} per 1`,
+          usageMeterIdPriceId: `${usageMeter.id}-${usageBasedPrice.id}`,
+          usageEventIds: expect.arrayContaining([usageEvent.id]),
+          ledgerAccountId: ledgerAccount.id,
+          livemode: true,
+          description: `priceId: ${usageBasedPrice.id}, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 10, usageEventIds: ${usageEvent.id}`,
+        })
       })
     })
 
@@ -3459,22 +3465,37 @@ describe('ledgerEntryMethods', () => {
         )
         const withoutPrice = result.find((r) => r.priceId === null)
 
-        expect(withPrice?.balance).toBe(50)
-        expect(withPrice?.unitPrice).toBe(10)
-        expect(withPrice?.usageEventsPerUnit).toBe(1)
-        expect(withPrice?.usageEventIds).toContain(
-          usageEventWithPrice.id
-        )
+        expect(withPrice).toEqual<UsageBillingInfo>({
+          priceId: usageBasedPrice.id,
+          unitPrice: 10,
+          usageEventsPerUnit: 1,
+          usageMeterId: usageMeter.id,
+          balance: 50,
+          name: `Usage: ${usageMeter.name} at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(organization.defaultCurrency as CurrencyCode, 10)} per 1`,
+          usageMeterIdPriceId: `${usageMeter.id}-${usageBasedPrice.id}`,
+          usageEventIds: expect.arrayContaining([
+            usageEventWithPrice.id,
+          ]),
+          ledgerAccountId: ledgerAccount.id,
+          livemode: true,
+          description: `priceId: ${usageBasedPrice.id}, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 10, usageEventIds: ${usageEventWithPrice.id}`,
+        })
 
-        expect(withoutPrice?.balance).toBe(100)
-        expect(withoutPrice?.unitPrice).toBe(0)
-        expect(withoutPrice?.usageEventsPerUnit).toBe(1)
-        expect(withoutPrice?.usageEventIds).toContain(
-          usageEventWithoutPrice.id
-        )
-        expect(withoutPrice?.name).toBe(
-          `Usage: ${usageMeter.name} (no price)`
-        )
+        expect(withoutPrice).toEqual<UsageBillingInfo>({
+          priceId: null,
+          unitPrice: 0,
+          usageEventsPerUnit: 1,
+          usageMeterId: usageMeter.id,
+          balance: 100,
+          name: `Usage: ${usageMeter.name} (no price)`,
+          usageMeterIdPriceId: `${usageMeter.id}-null`,
+          usageEventIds: expect.arrayContaining([
+            usageEventWithoutPrice.id,
+          ]),
+          ledgerAccountId: ledgerAccount.id,
+          livemode: true,
+          description: `priceId: null, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds: ${usageEventWithoutPrice.id}`,
+        })
       })
     })
 
@@ -3546,16 +3567,26 @@ describe('ledgerEntryMethods', () => {
 
         expect(result).toHaveLength(1)
         const billingInfo = result[0]
-        expect(billingInfo.priceId).toBeNull()
-        expect(billingInfo.unitPrice).toBe(0)
-        expect(billingInfo.usageEventsPerUnit).toBe(1)
-        expect(billingInfo.balance).toBe(300) // 100 + 200
-        expect(billingInfo.usageMeterIdPriceId).toBe(
-          `${usageMeter.id}-null`
-        )
-        expect(billingInfo.usageEventIds).toContain(usageEvent1.id)
-        expect(billingInfo.usageEventIds).toContain(usageEvent2.id)
-        expect(billingInfo.usageEventIds.length).toBe(2)
+        expect(billingInfo).toEqual<UsageBillingInfo>({
+          priceId: null,
+          unitPrice: 0,
+          usageEventsPerUnit: 1,
+          usageMeterId: usageMeter.id,
+          balance: 300, // 100 + 200
+          name: `Usage: ${usageMeter.name} (no price)`,
+          usageMeterIdPriceId: `${usageMeter.id}-null`,
+          usageEventIds: expect.arrayContaining([
+            usageEvent1.id,
+            usageEvent2.id,
+          ]),
+          ledgerAccountId: ledgerAccount.id,
+          livemode: true,
+          description: expect.stringContaining(
+            `priceId: null, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds:`
+          ),
+        })
+        expect(billingInfo.description).toContain(usageEvent1.id)
+        expect(billingInfo.description).toContain(usageEvent2.id)
       })
     })
   })
