@@ -6,7 +6,6 @@ import { sentenceCase } from 'change-case'
 import { Link, Mail, Pencil } from 'lucide-react'
 import * as React from 'react'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import EditInvoiceModal from '@/components/forms/EditInvoiceModal'
 import SendInvoiceReminderEmailModal from '@/components/forms/SendInvoiceReminderEmailModal'
 // UI components last
 import { Badge } from '@/components/ui/badge'
@@ -112,14 +111,6 @@ function InvoiceActionsMenu({
 
   return (
     <EnhancedDataTableActionsMenu items={actionItems}>
-      <EditInvoiceModal
-        isOpen={isEditOpen}
-        setIsOpen={setIsEditOpen}
-        invoiceAndLineItems={{
-          invoice: invoice,
-          invoiceLineItems: invoiceLineItems,
-        }}
-      />
       <SendInvoiceReminderEmailModal
         isOpen={isSendReminderEmailOpen}
         setIsOpen={setIsSendReminderEmailOpen}

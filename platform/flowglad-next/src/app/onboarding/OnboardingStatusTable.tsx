@@ -3,17 +3,14 @@ import { Check, Clock, Copy } from 'lucide-react'
 import { useState } from 'react'
 import Markdown from 'react-markdown'
 import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
-import NounVerbModal from '@/components/forms/NounVerbModal'
 import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestStripeConnectOnboardingLinkModal'
 import { CursorLogo } from '@/components/icons/CursorLogo'
 import { Button } from '@/components/ui/button'
 import type { Country } from '@/db/schema/countries'
 import { cn } from '@/lib/utils'
 import {
-  Nouns,
   type OnboardingChecklistItem,
   OnboardingItemType,
-  Verbs,
 } from '@/types'
 import core from '@/utils/core'
 
@@ -181,15 +178,6 @@ const OnboardingStatusTable = ({
   secretApiKey: string
   pricingModelsCount: number
 }) => {
-  const [isNounVerbModalOpen, setIsNounVerbModalOpen] =
-    useState(false)
-  const [nounVerb, setNounVerb] = useState<
-    | {
-        noun: Nouns
-        verb: Verbs
-      }
-    | undefined
-  >(undefined)
   const [
     isRequestStripeConnectOnboardingLinkModalOpen,
     setIsRequestStripeConnectOnboardingLinkModalOpen,
@@ -291,17 +279,6 @@ const OnboardingStatusTable = ({
               setIsRequestStripeConnectOnboardingLinkModalOpen(true)
               return
             }
-
-            if (item.type === OnboardingItemType.Product) {
-              setNounVerb({ noun: Nouns.Product, verb: Verbs.Create })
-            }
-            if (item.type === OnboardingItemType.Discount) {
-              setNounVerb({
-                noun: Nouns.Discount,
-                verb: Verbs.Create,
-              })
-            }
-            setIsNounVerbModalOpen(true)
           }}
         />
       ))}
@@ -353,11 +330,6 @@ const OnboardingStatusTable = ({
             </div>
           </div>
         }
-      />
-      <NounVerbModal
-        isOpen={isNounVerbModalOpen}
-        setIsOpen={setIsNounVerbModalOpen}
-        nounVerb={nounVerb}
       />
       <RequestStripeConnectOnboardingLinkModal
         isOpen={isRequestStripeConnectOnboardingLinkModalOpen}
