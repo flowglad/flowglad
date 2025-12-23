@@ -73,7 +73,6 @@ function InvoiceActionsMenu({
   invoice: Invoice.ClientRecord
   invoiceLineItems: InvoiceLineItem.ClientRecord[]
 }) {
-  const [isEditOpen, setIsEditOpen] = React.useState(false)
   const [isSendReminderEmailOpen, setIsSendReminderEmailOpen] =
     React.useState(false)
 
@@ -90,15 +89,6 @@ function InvoiceActionsMenu({
     icon: <Link className="h-4 w-4" />,
     handler: copyInvoiceUrlHandler,
   })
-
-  // Edit invoice - only if not in terminal state
-  if (!invoiceIsInTerminalState(invoice)) {
-    actionItems.push({
-      label: 'Edit invoice',
-      icon: <Pencil className="h-4 w-4" />,
-      handler: () => setIsEditOpen(true),
-    })
-  }
 
   // Send reminder email - only for draft or open invoices
   if (invoice.status === 'draft' || invoice.status === 'open') {
