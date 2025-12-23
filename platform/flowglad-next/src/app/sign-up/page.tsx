@@ -36,7 +36,6 @@ export default function SignUp() {
     resolver: zodResolver(signupSchema),
     mode: 'onSubmit',
   })
-  console.log('Current errors:', errors) // Logs on every render
 
   const [image, setImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(
