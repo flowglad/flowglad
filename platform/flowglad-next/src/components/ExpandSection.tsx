@@ -20,6 +20,8 @@ interface ExpandSectionProps {
   className?: string
   /** Whether to add horizontal padding to content (default: true) */
   contentPadding?: boolean
+  /** Whether to show a dashed border on top (default: false) */
+  borderTop?: boolean
 }
 
 /**
@@ -34,8 +36,12 @@ export function ExpandSection({
   defaultExpanded = false,
   className,
   contentPadding = true,
+  borderTop = false,
 }: ExpandSectionProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
+
+  const dashedBorderImage =
+    'repeating-linear-gradient(to right, hsl(var(--border)) 0, hsl(var(--border)) 4px, transparent 4px, transparent 8px)'
 
   return (
     <Collapsible
@@ -43,15 +49,19 @@ export function ExpandSection({
       onOpenChange={setIsExpanded}
       className={cn(
         'border-b border-border relative w-full',
+        borderTop && 'border-t',
         className
       )}
       style={{
         borderBottomStyle: 'dashed',
         borderBottomWidth: '1px',
+        ...(borderTop && {
+          borderTopStyle: 'dashed',
+          borderTopWidth: '1px',
+        }),
         borderImageSlice: 1,
         borderImageRepeat: 'round',
-        borderImageSource:
-          'repeating-linear-gradient(to right, hsl(var(--border)) 0, hsl(var(--border)) 4px, transparent 4px, transparent 8px)',
+        borderImageSource: dashedBorderImage,
       }}
     >
       <div className="flex flex-col items-start w-full">

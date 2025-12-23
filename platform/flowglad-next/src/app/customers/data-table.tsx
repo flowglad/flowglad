@@ -191,7 +191,7 @@ export function CustomersDataTable({
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between pt-4 pb-3 px-2 gap-4 min-w-0">
+      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
           {title && <h3 className="text-lg truncate">{title}</h3>}
         </div>
