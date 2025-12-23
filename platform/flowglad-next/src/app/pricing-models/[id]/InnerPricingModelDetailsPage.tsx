@@ -279,6 +279,7 @@ function InnerPricingModelDetailsPage({
                     icon: <Check className="h-3.5 w-3.5" />,
                     label: 'Default',
                     variant: 'active' as const,
+                    tooltip: 'Assigned to new customers by default',
                   },
                 ]
               : []

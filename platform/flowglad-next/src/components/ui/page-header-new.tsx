@@ -45,6 +45,8 @@ interface StatusBadge {
   icon?: ReactNode
   label: ReactNode
   variant?: 'active' | 'muted' | 'destructive' | 'warning'
+  /** Optional tooltip text to display on hover */
+  tooltip?: string
 }
 
 interface PageHeaderAction {
@@ -137,41 +139,60 @@ export function PageHeaderNew({
       {/* Status badges and description */}
       {(badges.length > 0 || description) && (
         <div className="flex flex-wrap items-center gap-2 w-full px-0 py-2">
-          {badges.map((badge, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-2 whitespace-nowrap"
-            >
-              {/* Badge */}
-              <div
-                className={cn(
-                  'flex items-center justify-center gap-1 px-0 py-0.5 rounded',
-                  badge.variant === 'active' &&
-                    'text-[hsl(var(--jade-muted-foreground))]',
-                  badge.variant === 'muted' &&
-                    'text-muted-foreground',
-                  badge.variant === 'destructive' &&
-                    'text-destructive',
-                  badge.variant === 'warning' &&
-                    'text-yellow-600 dark:text-yellow-400'
-                )}
-              >
-                {badge.icon && (
-                  <div className="w-[14px] h-[14px] flex items-center justify-center">
-                    {badge.icon}
-                  </div>
-                )}
-                <span className="font-sans font-medium text-sm leading-[1.2]">
-                  {badge.label}
-                </span>
-              </div>
+          <TooltipProvider delayDuration={300}>
+            {badges.map((badge, index) => {
+              const badgeContent = (
+                <div
+                  className={cn(
+                    'flex items-center justify-center gap-1 px-0 py-0.5 rounded',
+                    badge.variant === 'active' &&
+                      'text-[hsl(var(--jade-muted-foreground))]',
+                    badge.variant === 'muted' &&
+                      'text-muted-foreground',
+                    badge.variant === 'destructive' &&
+                      'text-destructive',
+                    badge.variant === 'warning' &&
+                      'text-yellow-600 dark:text-yellow-400'
+                  )}
+                >
+                  {badge.icon && (
+                    <div className="w-[14px] h-[14px] flex items-center justify-center">
+                      {badge.icon}
+                    </div>
+                  )}
+                  <span className="font-sans font-medium text-sm leading-[1.2]">
+                    {badge.label}
+                  </span>
+                </div>
+              )
 
-              {/* Separator (if not last badge or if description follows) */}
-              {(index < badges.length - 1 || description) && (
-                <div className="h-[22px] w-px bg-muted-foreground opacity-10" />
-              )}
-            </div>
-          ))}
+              return (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 whitespace-nowrap"
+                >
+                  {/* Badge with optional tooltip */}
+                  {badge.tooltip ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        {badgeContent}
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <p>{badge.tooltip}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    badgeContent
+                  )}
+
+                  {/* Separator (if not last badge or if description follows) */}
+                  {(index < badges.length - 1 || description) && (
+                    <div className="h-[22px] w-px bg-muted-foreground opacity-10" />
+                  )}
+                </div>
+              )
+            })}
+          </TooltipProvider>
 
           {/* Optional description */}
           {description && (
