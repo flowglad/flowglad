@@ -411,7 +411,8 @@ describe('usageMeterMethods', () => {
             transaction,
           })
 
-        expect(resultEmpty.items.length).toBeGreaterThanOrEqual(1)
+        expect(resultEmpty.items.length).toBe(1)
+        expect(resultUndefined.items.length).toBe(1)
         expect(resultEmpty.total).toBe(resultUndefined.total)
       })
     })
