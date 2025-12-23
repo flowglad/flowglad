@@ -81,7 +81,7 @@ function CopyableField({
       <Tooltip>
         <TooltipTrigger asChild>
           <div
-            className="inline-flex items-center gap-2 cursor-pointer group"
+            className="inline-flex items-center gap-1 cursor-pointer group"
             onClick={handleCopy}
             role="button"
             tabIndex={0}
@@ -93,14 +93,14 @@ function CopyableField({
             }}
             aria-label={`Copy ${label}`}
           >
-            <span className="font-sans font-medium text-sm leading-5 text-muted-foreground group-hover:underline transition-colors">
-              {displayText ?? value}
-            </span>
             {copied ? (
               <Check className="h-3.5 w-3.5 text-[hsl(var(--jade-muted-foreground))] flex-shrink-0" />
             ) : (
               <Copy className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
             )}
+            <span className="font-sans font-medium text-sm leading-5 text-muted-foreground group-hover:underline transition-colors">
+              {displayText ?? value}
+            </span>
           </div>
         </TooltipTrigger>
         <TooltipContent side="bottom">

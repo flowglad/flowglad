@@ -44,7 +44,7 @@ function CopyableField({
 
   return (
     <div
-      className="inline-flex items-center gap-2 cursor-pointer group"
+      className="inline-flex items-center gap-1 cursor-pointer group"
       onClick={handleCopy}
       role="button"
       tabIndex={0}
@@ -57,14 +57,14 @@ function CopyableField({
       aria-label={`Copy ${label}`}
       title={`Click to copy ${label}`}
     >
-      <span className="font-sans font-normal text-base leading-6 text-foreground group-hover:underline transition-colors">
-        {value}
-      </span>
       {copied ? (
         <Check className="h-4 w-4 text-[hsl(var(--jade-muted-foreground))] flex-shrink-0" />
       ) : (
         <Copy className="h-4 w-4 text-foreground flex-shrink-0" />
       )}
+      <span className="font-sans font-normal text-base leading-6 text-foreground group-hover:underline transition-colors">
+        {value}
+      </span>
     </div>
   )
 }

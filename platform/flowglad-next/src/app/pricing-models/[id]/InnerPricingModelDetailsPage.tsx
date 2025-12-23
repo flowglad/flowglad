@@ -1,21 +1,20 @@
 'use client'
 import {
+  Check,
   Copy,
   Download,
-  Ellipsis,
   Pencil,
-  Plus,
   Sparkles,
   Star,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import { CustomersDataTable } from '@/app/customers/data-table'
 import { ProductsDataTable } from '@/app/products/data-table'
 import { UsageMetersDataTable } from '@/app/usage-meters/data-table'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
-import DefaultBadge from '@/components/DefaultBadge'
 import { FeaturesDataTable } from '@/components/features/data-table'
 import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
 import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
@@ -24,20 +23,97 @@ import CreateProductModal from '@/components/forms/CreateProductModal'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import { PricingModelIntegrationGuideModal } from '@/components/forms/PricingModelIntegrationGuideModal'
 import SetPricingModelAsDefaultModal from '@/components/forms/SetPricingModelAsDefaultModal'
-import InternalPageContainer from '@/components/InternalPageContainer'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
+import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import { MoreIcon } from '@/components/icons/MoreIcon'
 import PopoverMenu, {
   type PopoverMenuItem,
 } from '@/components/PopoverMenu'
-import { Button } from '@/components/ui/button'
-import { PageHeader } from '@/components/ui/page-header'
+import { PageHeaderNew } from '@/components/ui/page-header-new'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { TableHeader } from '@/components/ui/table-header'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { PricingModel } from '@/db/schema/pricingModels'
+
+/**
+ * Copyable field component for displaying values with a copy button.
+ */
+function CopyableField({
+  value,
+  label,
+  displayText,
+}: {
+  value: string
+  label: string
+  displayText?: string
+}) {
+  const [copied, setCopied] = useState(false)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      timeoutRef.current = setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      console.error('Failed to copy:', error)
+    }
+  }
+
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className="inline-flex items-center gap-1 cursor-pointer group"
+            onClick={handleCopy}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                handleCopy()
+              }
+            }}
+            aria-label={`Copy ${label}`}
+          >
+            {copied ? (
+              <Check className="h-3.5 w-3.5 text-[hsl(var(--jade-muted-foreground))] flex-shrink-0" />
+            ) : (
+              <Copy className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            )}
+            <span className="font-sans font-medium text-sm leading-5 text-muted-foreground group-hover:underline transition-colors">
+              {displayText ?? value}
+            </span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p className="font-sans">{value}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
 
 export type InnerPricingModelDetailsPageProps = {
   pricingModel: PricingModel.ClientRecord
@@ -46,9 +122,11 @@ export type InnerPricingModelDetailsPageProps = {
 function InnerPricingModelDetailsPage({
   pricingModel,
 }: InnerPricingModelDetailsPageProps) {
+  const router = useRouter()
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCloneOpen, setIsCloneOpen] = useState(false)
   const [isSetDefaultOpen, setIsSetDefaultOpen] = useState(false)
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [isCreateProductModalOpen, setIsCreateProductModalOpen] =
     useState(false)
   const [isCreateCustomerModalOpen, setIsCreateCustomerModalOpen] =
@@ -140,64 +218,109 @@ function InnerPricingModelDetailsPage({
 
   const moreMenuItems: PopoverMenuItem[] = [
     {
-      label: 'Duplicate',
-      handler: () => setIsCloneOpen(true),
-      icon: <Copy className="h-4 w-4" />,
+      label: 'Integrate',
+      handler: () => {
+        setIsMoreMenuOpen(false)
+        setIsGetIntegrationGuideModalOpen(true)
+      },
+      icon: <Sparkles className="h-4 w-4" />,
     },
     ...(!pricingModel.isDefault
       ? [
           {
-            label: 'Set Default',
-            handler: () => setIsSetDefaultOpen(true),
+            label: 'Set as Default',
+            handler: () => {
+              setIsMoreMenuOpen(false)
+              setIsSetDefaultOpen(true)
+            },
             icon: <Star className="h-4 w-4" />,
           },
         ]
       : []),
     {
-      label: 'Export as YAML',
-      handler: () => exportPricingModelHandler(),
-      icon: <Download className="h-4 w-4" />,
+      label: 'Edit Name',
+      handler: () => {
+        setIsMoreMenuOpen(false)
+        setIsEditOpen(true)
+      },
+      icon: <Pencil className="h-4 w-4" />,
     },
     {
-      label: 'Integrate via Prompt',
-      handler: () => setIsGetIntegrationGuideModalOpen(true),
-      icon: <Sparkles className="h-4 w-4" />,
+      label: 'Duplicate',
+      handler: () => {
+        setIsMoreMenuOpen(false)
+        setIsCloneOpen(true)
+      },
+      icon: <Copy className="h-4 w-4" />,
+    },
+    {
+      label: 'Export',
+      handler: () => {
+        setIsMoreMenuOpen(false)
+        exportPricingModelHandler()
+      },
+      icon: <Download className="h-4 w-4" />,
     },
   ]
 
   return (
-    <InternalPageContainer>
-      <div className="w-full flex flex-col gap-6">
-        <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
-          <Breadcrumb />
-          <div className="flex flex-row items-center justify-between">
-            <div className="flex flex-row items-center gap-2 min-w-0 overflow-hidden mr-4">
-              <PageHeader
-                title={pricingModel.name}
-                className="truncate whitespace-nowrap overflow-hidden text-ellipsis"
+    <InnerPageContainerNew>
+      <div className="w-full relative flex flex-col justify-center pb-6">
+        <PageHeaderNew
+          title={pricingModel.name}
+          breadcrumb="Pricing"
+          onBreadcrumbClick={() => router.push('/pricing-models')}
+          badges={
+            pricingModel.isDefault
+              ? [
+                  {
+                    icon: <Check className="h-3.5 w-3.5" />,
+                    label: 'Default',
+                    variant: 'active' as const,
+                  },
+                ]
+              : []
+          }
+          description={
+            <div className="flex items-center gap-2">
+              <CopyableField
+                value={pricingModel.id}
+                label="ID"
+                displayText="Copy ID"
               />
-              {pricingModel.isDefault && <DefaultBadge />}
-            </div>
-            <div className="flex flex-row gap-2 justify-end flex-shrink-0">
-              <Popover>
+              <div className="h-[22px] w-px bg-muted-foreground opacity-10" />
+              <Popover
+                open={isMoreMenuOpen}
+                onOpenChange={setIsMoreMenuOpen}
+              >
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Ellipsis className="rotate-90 w-4 h-6" />
-                  </Button>
+                  <div
+                    className="inline-flex items-center gap-1 cursor-pointer group"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setIsMoreMenuOpen(true)
+                      }
+                    }}
+                    aria-label="More options"
+                  >
+                    <MoreIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                    <span className="font-sans font-medium text-sm leading-5 text-muted-foreground group-hover:underline transition-colors">
+                      More options
+                    </span>
+                  </div>
                 </PopoverTrigger>
-                <PopoverContent className="w-fit p-1" align="end">
+                <PopoverContent className="w-fit p-1" align="start">
                   <PopoverMenu items={moreMenuItems} />
                 </PopoverContent>
               </Popover>
-              <Button onClick={() => setIsEditOpen(true)}>
-                <Pencil className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
             </div>
-          </div>
-        </div>
+          }
+        />
 
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 mt-6">
           <ProductsDataTable
             filters={getProductFilterForTab(activeProductFilter)}
             filterOptions={productFilterOptions}
@@ -239,6 +362,7 @@ function InnerPricingModelDetailsPage({
           />
         </div>
       </div>
+
       <EditPricingModelModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
@@ -280,7 +404,7 @@ function InnerPricingModelDetailsPage({
         setIsOpen={setIsSetDefaultOpen}
         pricingModel={pricingModel}
       />
-    </InternalPageContainer>
+    </InnerPageContainerNew>
   )
 }
 
