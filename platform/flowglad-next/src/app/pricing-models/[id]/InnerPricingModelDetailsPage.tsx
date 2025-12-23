@@ -369,26 +369,32 @@ function InnerPricingModelDetailsPage({
             ))}
           </div>
         </ExpandSection>
-        <div className="flex flex-col gap-5">
+        <ExpandSection
+          title="Usage Meters"
+          defaultExpanded={false}
+          contentPadding={false}
+        >
           <UsageMetersDataTable
-            title="Usage Meters"
             filters={{ pricingModelId: pricingModel.id }}
             onCreateUsageMeter={() =>
               setIsCreateUsageMeterModalOpen(true)
             }
             buttonVariant="outline"
           />
-        </div>
-        <div className="flex flex-col gap-5">
+        </ExpandSection>
+        <ExpandSection
+          title="Customers"
+          defaultExpanded={false}
+          contentPadding={false}
+        >
           <CustomersDataTable
-            title="Customers"
             filters={{ pricingModelId: pricingModel.id }}
             onCreateCustomer={() =>
               setIsCreateCustomerModalOpen(true)
             }
             buttonVariant="outline"
           />
-        </div>
+        </ExpandSection>
       </div>
 
       <EditPricingModelModal

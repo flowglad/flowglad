@@ -158,7 +158,7 @@ export function ProductsDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar with all improvements */}
-      <div className="flex items-center justify-between pt-4 pb-2 gap-4 min-w-0">
+      <div className="flex items-center justify-between pt-4 pb-2 px-2 gap-4 min-w-0">
         {/* Filter buttons on the left */}
         <div className="flex items-center min-w-0 flex-shrink overflow-hidden">
           {filterOptions && activeFilter && onFilterChange && (
@@ -271,7 +271,7 @@ export function ProductsDataTable({
       </Table>
 
       {/* Enhanced pagination with proper spacing */}
-      <div className="py-2">
+      <div className="py-2 px-2">
         <DataTablePagination
           table={table}
           totalCount={data?.total}
