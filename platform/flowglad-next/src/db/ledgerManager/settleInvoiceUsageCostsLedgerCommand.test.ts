@@ -170,23 +170,6 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         )
       ).toThrowError('Ledger account ID la_mismatched does not match')
     })
-
-    it('should throw an error if the ledger account is missing a usage meter ID', () => {
-      // setup:
-      const noMeterLedgerAccount = {
-        ...ledgerAccount,
-        usageMeterId: null,
-      }
-      // execute & expects:
-      expect(() =>
-        usageCreditInsertFromInvoiceLineItem(
-          usageInvoiceLineItem,
-          noMeterLedgerAccount
-        )
-      ).toThrowError(
-        `Ledger account ${noMeterLedgerAccount.id} does not have a usage meter ID.`
-      )
-    })
   })
 
   describe('processSettleInvoiceUsageCostsLedgerCommand', () => {

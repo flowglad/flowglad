@@ -194,7 +194,11 @@ export const syncSubscriptionWithActiveItems = async (
       return mostExpensive
     }
   })
-
+  if (!primaryItem.priceId) {
+    throw new Error(
+      `syncSubscriptionWithActiveItems: No price id found for primary item ${primaryItem.id}`
+    )
+  }
   // Get current subscription to preserve required fields
   const currentSubscription = await selectSubscriptionById(
     subscriptionId,
