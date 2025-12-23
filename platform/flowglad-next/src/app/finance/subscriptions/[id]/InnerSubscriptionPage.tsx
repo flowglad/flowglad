@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Copy, Plus } from 'lucide-react'
+import { Check, Copy, DollarSign, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
@@ -99,7 +99,9 @@ function CopyableField({
               <Copy className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
             )}
             <span className="font-sans font-medium text-sm leading-5 text-muted-foreground group-hover:underline transition-colors">
-              {displayText ?? value}
+              {copied && displayText
+                ? displayText.replace(/^Copy/, 'Copied')
+                : (displayText ?? value)}
             </span>
           </div>
         </TooltipTrigger>
@@ -218,6 +220,7 @@ const InnerSubscriptionPage = ({
             ...(pricingModel
               ? [
                   {
+                    icon: <DollarSign className="h-3.5 w-3.5" />,
                     label: (
                       <TooltipProvider delayDuration={300}>
                         <Tooltip>

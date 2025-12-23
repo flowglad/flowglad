@@ -103,7 +103,9 @@ function CopyableField({
               <Copy className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
             )}
             <span className="font-sans font-medium text-sm leading-5 text-muted-foreground group-hover:underline transition-colors">
-              {displayText ?? value}
+              {copied && displayText
+                ? displayText.replace(/^Copy/, 'Copied')
+                : (displayText ?? value)}
             </span>
           </div>
         </TooltipTrigger>
@@ -268,7 +270,7 @@ function InnerPricingModelDetailsPage({
       <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title={pricingModel.name}
-          breadcrumb="Pricing"
+          breadcrumb="All Pricing"
           onBreadcrumbClick={() => router.push('/pricing-models')}
           badges={
             pricingModel.isDefault

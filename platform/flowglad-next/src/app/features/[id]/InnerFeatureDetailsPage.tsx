@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Copy, X } from 'lucide-react'
+import { Check, Copy, DollarSign, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -180,6 +180,7 @@ function InnerFeatureDetailsPage({
     ...(pricingModel
       ? [
           {
+            icon: <DollarSign className="h-3.5 w-3.5" />,
             label: (
               <Link
                 href={`/pricing-models/${pricingModel.id}`}
