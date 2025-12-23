@@ -13,11 +13,14 @@ export {
   verifyWebhook,
   WebhookVerificationError,
 } from '@flowglad/server'
-export { createPagesRouterRouteHandler } from './createPagesRouterRouteHandler'
 export {
   type NextRouteHandlerOptions,
   nextRouteHandler,
 } from './nextRouteHandler'
+export {
+  type PagesRouteHandlerOptions,
+  pagesRouteHandler,
+} from './pagesRouteHandler'
 
 export {
   mcpHandlerWithFlowglad,

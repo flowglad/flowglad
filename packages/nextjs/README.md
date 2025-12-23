@@ -118,35 +118,39 @@ function BillingComponent() {
 #### App Router
 
 ```typescript
-import { createAppRouterRouteHandler } from '@flowglad/nextjs/server';
-import { FlowgladServer } from '@flowglad/nextjs/server';
+import { nextRouteHandler } from '@flowglad/nextjs/server';
+import { flowglad } from '@/lib/flowglad';
+import { verifyToken } from '@/lib/auth';
 
-// Create your FlowgladServer instance
-const flowgladServer = new FlowgladServer();
-
-// Create the route handler
-const handler = createAppRouterRouteHandler(flowgladServer);
-
-// Export the handler for the HTTP method you want to support
-export const GET = handler;
-export const POST = handler;
-// etc...
+// Create the route handler with customer ID extraction
+export const { GET, POST } = nextRouteHandler({
+  getCustomerExternalId: async (req) => {
+    const token = req.headers.get('authorization')?.split(' ')[1];
+    if (!token) throw new Error('Unauthorized');
+    const decoded = await verifyToken(token);
+    return decoded.userId;
+  },
+  flowglad,
+});
 ```
 
 #### Pages Router
 
 ```typescript
-import { createPagesRouterRouteHandler } from '@flowglad/nextjs/server';
-import { FlowgladServer } from '@flowglad/nextjs/server';
+import { pagesRouteHandler } from '@flowglad/nextjs/server';
+import { flowglad } from '@/lib/flowglad';
+import { verifyToken } from '@/lib/auth';
 
-// Create your FlowgladServer instance
-const flowgladServer = new FlowgladServer();
-
-// Create the route handler
-const handler = createPagesRouterRouteHandler(flowgladServer);
-
-// Export the handler as the default export
-export default handler;
+// Create the route handler with customer ID extraction
+export default pagesRouteHandler({
+  getCustomerExternalId: async (req) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) throw new Error('Unauthorized');
+    const decoded = await verifyToken(token);
+    return decoded.userId;
+  },
+  flowglad,
+});
 ```
 
 The route handlers will automatically:

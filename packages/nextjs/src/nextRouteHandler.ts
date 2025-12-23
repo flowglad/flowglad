@@ -91,16 +91,7 @@ type NextRouteHandler = (
  *
  * ```
  *
- * @remarks
- * Use this when:
- * - You want to scope FlowgladServer to a specific customer per request
- * - You want to define whether your customers are users or organizations
- * - You have your own auth/session mechanism to extract customer ID
- * - You need flexibility in how the customer ID is determined (JWT, headers, cookies, etc.)
- *
- * Use `createAppRouterRouteHandler` instead if you are on the deprecated FlowgladServer integration pattern:
- * - You have a single FlowgladServer instance with built-in auth (Supabase, Clerk, etc.)
- * - Your auth is handled within FlowgladServer constructor params
+ * For Pages Router, use `pagesRouteHandler` instead.
  */
 export const nextRouteHandler = (
   options: NextRouteHandlerOptions
