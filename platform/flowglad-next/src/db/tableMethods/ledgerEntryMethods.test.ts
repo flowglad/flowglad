@@ -3241,7 +3241,7 @@ describe('ledgerEntryMethods', () => {
   })
 
   describe('aggregateOutstandingBalanceForUsageCosts', () => {
-    it('should handle usage events with null priceId correctly', async () => {
+    it('should return priceId null, unitPrice 0, usageEventsPerUnit 1, and name with "(no price)" for events with null priceId', async () => {
       // Use the existing ledgerAccount from beforeEach setup
 
       const ledgerTransaction = await setupLedgerTransaction({
@@ -3301,7 +3301,7 @@ describe('ledgerEntryMethods', () => {
       })
     })
 
-    it('should handle usage events with priceId correctly (existing behavior)', async () => {
+    it('should return actual price info and formatted currency name for events with priceId', async () => {
       const usageBasedPrice = await setupPrice({
         productId: product.id,
         name: 'Test Usage Price',
@@ -3371,7 +3371,7 @@ describe('ledgerEntryMethods', () => {
       })
     })
 
-    it('should handle mixed scenario: events with and without prices', async () => {
+    it('should return separate billing info entries for events with prices and events without prices', async () => {
       const usageBasedPrice = await setupPrice({
         productId: product.id,
         name: 'Test Usage Price',

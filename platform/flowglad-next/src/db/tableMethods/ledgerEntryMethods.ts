@@ -419,6 +419,15 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
   if (usageEventIds.length === 0) {
     return []
   }
+
+  /**
+   * Usage events can be created with or without a priceId:
+   * - With priceId: Events created with priceId or priceSlug specified
+   * - Without priceId (null): Events created with usageMeterId or usageMeterSlug specified (no price)
+   *
+   * We use LEFT JOIN instead of INNER JOIN to include events without prices.
+   * This allows us to aggregate usage costs even when no price was specified at event creation time.
+   */
   const usageEventsWithPrices = await transaction
     .select({
       usageEventId: usageEvents.id,
@@ -454,7 +463,12 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
 
   const validatedUsageEventsWithPrices: ValidatedUsageEventWithPrice[] =
     usageEventsWithPrices.map((event) => {
-      // For events without prices (priceId is null), use default values
+      /**
+       * For events without prices, we apply default values:
+       * - unitPrice: 0 (no per-unit cost since no price was specified)
+       * - usageEventsPerUnit: 1 (treat each event as 1 unit for aggregation purposes)
+       * - currency: null (no currency context without a price)
+       */
       if (event.priceId === null) {
         return {
           usageEventId: event.usageEventId,
@@ -513,7 +527,18 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     })
   )
 
-  // Group by usage meter id and price id for invoice
+  /**
+   * Group ledger entries by (usageMeterId, priceId) for invoice line item aggregation.
+   *
+   * Key format: `${usageMeterId}-${priceId}`
+   * - For events with prices: `${usageMeterId}-${actualPriceId}`
+   * - For events without prices: `${usageMeterId}-null` (template string converts null to "null")
+   *
+   * This grouping ensures:
+   * 1. Events with the same price are grouped together (for invoice display)
+   * 2. Events without prices are grouped separately by usage meter
+   * 3. The string "null" in the key is safe because priceIds are nanoids (never the literal string "null")
+   */
   const entriesByUsageMeterIdAndPriceId = new Map<
     string,
     LedgerEntry.Record[]
