@@ -14,6 +14,7 @@ import {
   getProductTableRows,
   insertProduct,
   selectProductPriceAndFeaturesByProductId,
+  selectProductsCursorPaginated,
   updateProduct,
 } from './productMethods'
 import { insertUser } from './userMethods'
@@ -700,5 +701,91 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
     expect(result.prices[1].name).toBe('Price 2')
     expect(result.features).toBeDefined()
     expect(Array.isArray(result.features)).toBe(true)
+  })
+})
+
+describe('selectProductsCursorPaginated search', () => {
+  it('should search by name, slug, or exact ID (case-insensitive, trims whitespace)', async () => {
+    const { organization, pricingModel } = await setupOrg()
+
+    const product = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Premium Plan',
+      slug: `premium-slug-${core.nanoid()}`,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      // Search by name (case-insensitive)
+      const byName = await selectProductsCursorPaginated({
+        input: {
+          pageSize: 10,
+          searchQuery: 'PREMIUM',
+          filters: { organizationId: organization.id },
+        },
+        transaction,
+      })
+      expect(
+        byName.items.some((i) => i.product.id === product.id)
+      ).toBe(true)
+
+      // Search by slug
+      const bySlug = await selectProductsCursorPaginated({
+        input: {
+          pageSize: 10,
+          searchQuery: 'premium-slug',
+          filters: { organizationId: organization.id },
+        },
+        transaction,
+      })
+      expect(
+        bySlug.items.some((i) => i.product.id === product.id)
+      ).toBe(true)
+
+      // Search by exact ID with whitespace trimming
+      const byId = await selectProductsCursorPaginated({
+        input: {
+          pageSize: 10,
+          searchQuery: `  ${product.id}  `,
+          filters: { organizationId: organization.id },
+        },
+        transaction,
+      })
+      expect(byId.items.length).toBe(1)
+      expect(byId.items[0].product.id).toBe(product.id)
+    })
+  })
+
+  it('should return all products when search query is empty or undefined', async () => {
+    const { organization, pricingModel } = await setupOrg()
+
+    await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Product',
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const resultEmpty = await selectProductsCursorPaginated({
+        input: {
+          pageSize: 10,
+          searchQuery: '',
+          filters: { organizationId: organization.id },
+        },
+        transaction,
+      })
+
+      const resultUndefined = await selectProductsCursorPaginated({
+        input: {
+          pageSize: 10,
+          searchQuery: undefined,
+          filters: { organizationId: organization.id },
+        },
+        transaction,
+      })
+
+      expect(resultEmpty.items.length).toBeGreaterThanOrEqual(1)
+      expect(resultEmpty.total).toBe(resultUndefined.total)
+    })
   })
 })

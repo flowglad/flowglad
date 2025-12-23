@@ -7,6 +7,12 @@ import { useState } from 'react'
 import EditFeatureModal from '@/components/forms/EditFeatureModal'
 import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import { CopyableField } from '@/components/ui/copyable-field'
+import {
+  ContentSection,
+  HelperText,
+  SectionLabel,
+  SectionValue,
+} from '@/components/ui/detail-section'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { Feature } from '@/db/schema/features'
 import { PricingModel } from '@/db/schema/pricingModels'
@@ -18,46 +24,6 @@ interface InnerFeatureDetailsPageProps {
   feature: Feature.ClientRecord
   pricingModel: PricingModel.ClientRecord | null
   usageMeter: UsageMeter.ClientRecord | null
-}
-
-/**
- * Section label component with monospace font (Berkeley Mono style)
- */
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="font-mono font-medium text-sm text-muted-foreground leading-[1.2]">
-      {children}
-    </p>
-  )
-}
-
-/**
- * Section value component with standard font
- */
-function SectionValue({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="font-sans font-normal text-base text-foreground leading-6">
-      {children}
-    </p>
-  )
-}
-
-/**
- * Helper text component for descriptions under fields
- */
-function HelperText({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="font-sans font-normal text-sm text-muted-foreground leading-tight">
-      {children}
-    </p>
-  )
-}
-
-/**
- * Content section container component
- */
-function ContentSection({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-col gap-2 w-full">{children}</div>
 }
 
 /**
