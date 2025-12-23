@@ -35,21 +35,44 @@ export interface RequestHandlerOutput {
   error?: unknown
 }
 
-export interface RequestHandlerOptions {
-  flowgladServer: FlowgladServer
+/**
+ * Options for creating a request handler with per-request scoped FlowgladServer instances.
+ *
+ * This interface supports the customer ID extraction pattern where customer identification
+ * and FlowgladServer construction are separated for better flexibility and testability.
+ *
+ * @typeParam TRequest - The framework-specific request type (e.g., Express Request, NextRequest)
+ */
+export interface RequestHandlerOptions<TRequest> {
   /**
-   * Function to run when an error occurs.
-   * @param error - The error that occurred.
+   * Function to extract the customer external ID from the request.
+   * The customerExternalId should be from YOUR app's database (e.g., user.id or organization.id),
+   * NOT Flowglad's customer ID.
+   *
+   * @param req - The framework-specific request object
+   * @returns The customer external ID from your app's database
+   */
+  getCustomerExternalId: (req: TRequest) => Promise<string>
+  /**
+   * Function that creates a FlowgladServer instance for a specific customer.
+   * This function will be called for each request with the extracted customer ID.
+   *
+   * @param customerExternalId - The customer's external ID
+   * @returns A FlowgladServer instance scoped to that customer
+   */
+  flowglad: (
+    customerExternalId: string
+  ) => Promise<FlowgladServer> | FlowgladServer
+  /**
+   * Function to run when an error occurs during request handling.
    */
   onError?: (error: unknown) => void
   /**
    * Side effect to run before the request is processed.
-   * @returns A promise that resolves when the side effect is complete.
    */
   beforeRequest?: () => Promise<void>
   /**
    * Side effect to run after the request is processed.
-   * @returns A promise that resolves when the side effect is complete.
    */
   afterRequest?: () => Promise<void>
 }
@@ -64,19 +87,33 @@ export class RequestHandlerError extends Error {
   }
 }
 
-export const createRequestHandler = (
-  options: RequestHandlerOptions
+/**
+ * Creates a request handler that extracts customer ID and creates scoped FlowgladServer instances.
+ *
+ * @typeParam TRequest - The framework-specific request type (e.g., Express Request, NextRequest)
+ */
+export const requestHandler = <TRequest = unknown>(
+  options: RequestHandlerOptions<TRequest>
 ) => {
-  const { flowgladServer, onError, beforeRequest, afterRequest } =
-    options
+  const {
+    getCustomerExternalId,
+    flowglad,
+    onError,
+    beforeRequest,
+    afterRequest,
+  } = options
 
   return async (
-    input: RequestHandlerInput
+    input: RequestHandlerInput,
+    request: TRequest
   ): Promise<RequestHandlerOutput> => {
     try {
       if (beforeRequest) {
         await beforeRequest()
       }
+
+      const customerExternalId = await getCustomerExternalId(request)
+      const flowgladServer = await flowglad(customerExternalId)
 
       const joinedPath = input.path.join('/') as FlowgladActionKey
 

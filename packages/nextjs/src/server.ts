@@ -3,22 +3,24 @@
 // will include client modules in server code
 
 export {
-  createRequestHandler,
   FlowgladServer,
   FlowgladServerAdmin,
   RequestHandlerError,
   type RequestHandlerInput,
   type RequestHandlerOptions,
   type RequestHandlerOutput,
+  requestHandler,
   verifyWebhook,
   WebhookVerificationError,
 } from '@flowglad/server'
-export { createAppRouterRouteHandler } from './createAppRouterRouteHandler'
-export { createPagesRouterRouteHandler } from './createPagesRouterRouteHandler'
 export {
   type NextRouteHandlerOptions,
   nextRouteHandler,
 } from './nextRouteHandler'
+export {
+  type PagesRouteHandlerOptions,
+  pagesRouteHandler,
+} from './pagesRouteHandler'
 
 export {
   mcpHandlerWithFlowglad,
