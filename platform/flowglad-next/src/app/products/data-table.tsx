@@ -57,6 +57,7 @@ interface ProductsDataTableProps {
     | 'link'
     | 'secondary'
     | 'destructive'
+  hiddenColumns?: string[]
 }
 
 export function ProductsDataTable({
@@ -66,6 +67,7 @@ export function ProductsDataTable({
   activeFilter,
   onFilterChange,
   buttonVariant = 'default',
+  hiddenColumns = [],
 }: ProductsDataTableProps) {
   const router = useRouter()
 
@@ -104,7 +106,9 @@ export function ProductsDataTable({
   const [columnFilters, setColumnFilters] =
     React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>(() =>
+      Object.fromEntries(hiddenColumns.map((col) => [col, false]))
+    )
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
 

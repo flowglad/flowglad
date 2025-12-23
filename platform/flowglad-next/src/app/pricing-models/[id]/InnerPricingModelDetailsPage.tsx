@@ -4,6 +4,7 @@ import {
   Copy,
   Download,
   Pencil,
+  Plus,
   Sparkles,
   Star,
 } from 'lucide-react'
@@ -15,7 +16,7 @@ import { CustomersDataTable } from '@/app/customers/data-table'
 import { ProductsDataTable } from '@/app/products/data-table'
 import { UsageMetersDataTable } from '@/app/usage-meters/data-table'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
-import { FeaturesDataTable } from '@/components/features/data-table'
+import { ExpandSection } from '@/components/ExpandSection'
 import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
 import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
@@ -24,6 +25,7 @@ import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import { PricingModelIntegrationGuideModal } from '@/components/forms/PricingModelIntegrationGuideModal'
 import SetPricingModelAsDefaultModal from '@/components/forms/SetPricingModelAsDefaultModal'
 import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import { ItemFeature } from '@/components/ItemFeature'
 import { MoreIcon } from '@/components/icons/MoreIcon'
 import PopoverMenu, {
   type PopoverMenuItem,
@@ -40,7 +42,32 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import type { Feature } from '@/db/schema/features'
 import type { PricingModel } from '@/db/schema/pricingModels'
+import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
+
+/**
+ * Formats the description for a feature item based on its type and renewal frequency.
+ */
+function formatFeatureDescription(
+  feature: Feature.ClientRecord
+): string | undefined {
+  if (
+    feature.type !== FeatureType.UsageCreditGrant ||
+    feature.amount == null
+  ) {
+    return undefined
+  }
+
+  if (
+    feature.renewalFrequency ===
+    FeatureUsageGrantFrequency.EveryBillingPeriod
+  ) {
+    return `${feature.amount.toLocaleString()} total credits, every billing period`
+  } else {
+    return `${feature.amount.toLocaleString()} total credits, one-time`
+  }
+}
 
 /**
  * Copyable field component for displaying values with a copy button.
@@ -145,8 +172,6 @@ function InnerPricingModelDetailsPage({
   ] = useState(false)
   const [activeProductFilter, setActiveProductFilter] =
     useState<string>('active')
-  const [activeFeatureFilter, setActiveFeatureFilter] =
-    useState<string>('active')
   const {
     data: exportPricingModelData,
     refetch,
@@ -160,6 +185,14 @@ function InnerPricingModelDetailsPage({
     }
   )
 
+  // Fetch features for this pricing model
+  const { data: featuresData } = trpc.features.getTableRows.useQuery({
+    filters: {
+      pricingModelId: pricingModel.id,
+      active: true,
+    },
+  })
+
   // Filter options for the button group
   const productFilterOptions = [
     { value: 'all', label: 'All' },
@@ -167,26 +200,7 @@ function InnerPricingModelDetailsPage({
     { value: 'inactive', label: 'Inactive' },
   ]
 
-  const featureFilterOptions = [
-    { value: 'all', label: 'All' },
-    { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
-  ]
-
   const getProductFilterForTab = (tab: string) => {
-    const baseFilter = { pricingModelId: pricingModel.id }
-
-    if (tab === 'all') {
-      return baseFilter
-    }
-
-    return {
-      ...baseFilter,
-      active: tab === 'active',
-    }
-  }
-
-  const getFeatureFilterForTab = (tab: string) => {
     const baseFilter = { pricingModelId: pricingModel.id }
 
     if (tab === 'all') {
@@ -331,19 +345,30 @@ function InnerPricingModelDetailsPage({
             onFilterChange={setActiveProductFilter}
             onCreateProduct={() => setIsCreateProductModalOpen(true)}
             buttonVariant="outline"
+            hiddenColumns={['slug', 'productId']}
           />
         </div>
-        <div className="flex flex-col gap-5">
-          <FeaturesDataTable
-            title="Features"
-            filters={getFeatureFilterForTab(activeFeatureFilter)}
-            filterOptions={featureFilterOptions}
-            activeFilter={activeFeatureFilter}
-            onFilterChange={setActiveFeatureFilter}
-            onCreateFeature={() => setIsCreateFeatureModalOpen(true)}
-            buttonVariant="outline"
-          />
-        </div>
+        <ExpandSection title="Features" defaultExpanded={false}>
+          <div className="flex flex-col gap-1 w-full">
+            <ItemFeature
+              icon={Plus}
+              onClick={() => setIsCreateFeatureModalOpen(true)}
+            >
+              Create Feature
+            </ItemFeature>
+            {featuresData?.items?.map((featureRow) => (
+              <ItemFeature
+                key={featureRow.feature.id}
+                href={`/features/${featureRow.feature.id}`}
+                description={formatFeatureDescription(
+                  featureRow.feature
+                )}
+              >
+                {featureRow.feature.name}
+              </ItemFeature>
+            ))}
+          </div>
+        </ExpandSection>
         <div className="flex flex-col gap-5">
           <UsageMetersDataTable
             title="Usage Meters"
