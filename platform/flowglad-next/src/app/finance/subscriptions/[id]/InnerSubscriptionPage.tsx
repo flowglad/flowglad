@@ -1,15 +1,16 @@
 'use client'
 
-import { Check, Copy, Plus } from 'lucide-react'
+import { Check, DollarSign, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { CustomerCardNew } from '@/components/CustomerCardNew'
 import { ExpandSection } from '@/components/ExpandSection'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
 import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import { ItemFeature } from '@/components/ItemFeature'
 import { ProductCard } from '@/components/ProductCard'
+import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import {
   Tooltip,
@@ -36,80 +37,6 @@ import { formatBillingPeriod, getCurrencyParts } from '@/utils/stripe'
 import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
 import { BillingHistorySection } from './BillingHistorySection'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
-
-/**
- * Copyable field component for displaying values with a copy button.
- * Based on Figma design - copy icon is always visible.
- */
-function CopyableField({
-  value,
-  label,
-  displayText,
-}: {
-  value: string
-  label: string
-  displayText?: string
-}) {
-  const [copied, setCopied] = useState(false)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  )
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-    }
-  }, [])
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(value)
-      setCopied(true)
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-      timeoutRef.current = setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      console.error('Failed to copy:', error)
-    }
-  }
-
-  return (
-    <TooltipProvider delayDuration={300}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div
-            className="inline-flex items-center gap-2 cursor-pointer group"
-            onClick={handleCopy}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                handleCopy()
-              }
-            }}
-            aria-label={`Copy ${label}`}
-          >
-            <span className="font-sans font-medium text-sm leading-5 text-muted-foreground group-hover:underline transition-colors">
-              {displayText ?? value}
-            </span>
-            {copied ? (
-              <Check className="h-3.5 w-3.5 text-[hsl(var(--jade-muted-foreground))] flex-shrink-0" />
-            ) : (
-              <Copy className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-            )}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">
-          <p className="font-sans">{value}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  )
-}
 
 /**
  * Formats the description for a feature item based on its type and renewal frequency.
@@ -224,8 +151,9 @@ const InnerSubscriptionPage = ({
                           <TooltipTrigger asChild>
                             <Link
                               href={`/pricing-models/${pricingModel.id}`}
-                              className="hover:underline hover:text-foreground transition-colors"
+                              className="inline-flex items-center gap-1 group/pricing hover:underline hover:text-foreground transition-colors"
                             >
+                              <DollarSign className="h-3.5 w-3.5 group-hover/pricing:text-foreground transition-colors" />
                               {pricingModel.name}
                             </Link>
                           </TooltipTrigger>

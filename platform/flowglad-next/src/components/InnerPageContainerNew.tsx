@@ -20,6 +20,8 @@ const InnerPageContainerNew = ({
       <div
         className="h-full w-full max-w-[38rem] mx-auto flex gap-8"
         style={{
+          borderLeftStyle: 'dashed',
+          borderLeftWidth: '1px',
           borderRightStyle: 'dashed',
           borderRightWidth: '1px',
           borderImageSlice: 1,
