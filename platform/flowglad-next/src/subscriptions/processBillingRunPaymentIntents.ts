@@ -64,6 +64,7 @@ import {
   dateFromStripeTimestamp,
   stripeIdFromObjectOrId,
 } from '@/utils/stripe'
+import { syncSubscriptionWithActiveItems } from './adjustSubscription'
 import {
   calculateFeeAndTotalAmountDueForBillingPeriod,
   isFirstPayment,
@@ -72,6 +73,7 @@ import {
   scheduleBillingRunRetry,
 } from './billingRunHelpers'
 import { cancelSubscriptionImmediately } from './cancelSubscription'
+import { handleSubscriptionItemAdjustment } from './subscriptionItemHelpers'
 
 type PaymentIntentEvent =
   | Stripe.PaymentIntentSucceededEvent
@@ -106,8 +108,8 @@ interface BillingRunNotificationParams {
 interface ProcessOutcomeForBillingRunParams {
   input: PaymentIntentEvent | Stripe.PaymentIntent
   adjustmentParams?: {
-    newSubscriptionItems?: SubscriptionItem.Record[]
-    adjustmentDate?: Date | number
+    newSubscriptionItems: SubscriptionItem.Record[]
+    adjustmentDate: Date | number
   }
 }
 
@@ -406,6 +408,29 @@ export const processOutcomeForBillingRun = async (
 
   // Re-Select Invoice after changes have been made
   invoice = await selectInvoiceById(invoice.id, transaction)
+
+  // Handle subscription item adjustments after successful payment
+  if (
+    billingRun.isAdjustment &&
+    adjustmentParams &&
+    billingRunStatus === BillingRunStatus.Succeeded
+  ) {
+    await handleSubscriptionItemAdjustment({
+      subscriptionId: subscription.id,
+      newSubscriptionItems: adjustmentParams.newSubscriptionItems,
+      adjustmentDate: adjustmentParams.adjustmentDate,
+      transaction,
+    })
+
+    // Sync subscription record with updated items
+    await syncSubscriptionWithActiveItems(
+      {
+        subscriptionId: subscription.id,
+        currentTime: adjustmentParams.adjustmentDate,
+      },
+      transaction
+    )
+  }
 
   const usersAndMemberships =
     await selectMembershipsAndUsersByMembershipWhere(
