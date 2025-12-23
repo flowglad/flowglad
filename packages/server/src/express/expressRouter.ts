@@ -8,7 +8,7 @@ import {
 /**
  * Normalizes Express query parameters by:
  * 1. Converting array values to their first element (Express can provide array for repeated params)
- * 2. Removing undefined values
+ * 2. Removing undefined values and nested objects (Express can parse nested query strings like `?foo[bar]=baz` into objects)
  * 3. Ensuring all values are strings
  *
  * @param query - The raw query object from Express request
@@ -21,11 +21,17 @@ const normalizeQueryParameters = (
     Object.entries(query)
       .map(([key, value]) => [
         key,
-        Array.isArray(value) ? value[0] : String(value),
+        Array.isArray(value)
+          ? value[0]
+          : typeof value === 'object' && value !== null
+            ? null // Skip nested objects
+            : String(value),
       ])
       .filter(
         (entry): entry is [string, string] =>
-          entry[1] !== undefined && entry[1] !== 'undefined'
+          entry[1] !== null &&
+          entry[1] !== undefined &&
+          entry[1] !== 'undefined'
       )
   )
 }
