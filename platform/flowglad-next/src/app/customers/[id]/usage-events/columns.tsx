@@ -15,7 +15,7 @@ export type UsageEventTableRowData = {
   customer: Customer.ClientRecord
   subscription: Subscription.ClientRecord
   usageMeter: UsageMeter.ClientRecord
-  price: Price.ClientRecord
+  price: Price.ClientRecord | null
 }
 
 export const columns: ColumnDef<UsageEventTableRowData>[] = [
@@ -101,10 +101,13 @@ export const columns: ColumnDef<UsageEventTableRowData>[] = [
   },
   {
     id: 'priceId',
-    accessorFn: (row) => row.price.id,
+    accessorFn: (row) => row.price?.id ?? null,
     header: 'Price',
     cell: ({ row }) => {
-      const priceId = row.getValue('priceId') as string
+      const priceId = row.getValue('priceId') as string | null
+      if (!priceId) {
+        return <div className="text-muted-foreground">-</div>
+      }
       return (
         <div onClick={(e) => e.stopPropagation()}>
           <DataTableCopyableCell copyText={priceId}>

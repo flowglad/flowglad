@@ -166,58 +166,58 @@ export const selectUsageEventsTableRowData =
         ])
       )
 
-      return usageEventsData
-        .map((usageEvent) => {
-          const customer = customersById.get(usageEvent.customerId)
-          const subscription = subscriptionsById.get(
-            usageEvent.subscriptionId
-          )
-          const usageMeter = usageMetersById.get(
-            usageEvent.usageMeterId
-          )
-          const price = usageEvent.priceId
-            ? pricesById.get(usageEvent.priceId)
-            : null
-
-          if (!customer || !subscription || !usageMeter) {
-            throw new Error(
-              `Missing related data for usage event ${usageEvent.id}`
-            )
-          }
-          // FIXME: Handle nullable priceId - usage events can now have null priceId
-          // For now, skip events without prices since the return schema doesn't support nullable prices yet
-          if (!usageEvent.priceId || !price) {
-            return null
-          }
-
-          // Transform database records to client records
-          const customerClient =
-            customerClientSelectSchema.parse(customer)
-          const subscriptionWithCurrent = {
-            ...subscription,
-            current: isSubscriptionCurrent(
-              subscription.status as SubscriptionStatus,
-              subscription.cancellationReason
-            ),
-          }
-          const subscriptionClient =
-            subscriptionClientSelectSchema.parse(
-              subscriptionWithCurrent
-            )
-          const usageMeterClient =
-            usageMetersClientSelectSchema.parse(usageMeter)
-          const priceClient = pricesClientSelectSchema.parse(price)
-
-          return {
-            usageEvent,
-            customer: customerClient,
-            subscription: subscriptionClient,
-            usageMeter: usageMeterClient,
-            price: priceClient,
-          }
-        })
-        .filter(
-          (item): item is NonNullable<typeof item> => item !== null
+      return usageEventsData.map((usageEvent) => {
+        const customer = customersById.get(usageEvent.customerId)
+        const subscription = subscriptionsById.get(
+          usageEvent.subscriptionId
         )
+        const usageMeter = usageMetersById.get(
+          usageEvent.usageMeterId
+        )
+        const price = usageEvent.priceId
+          ? pricesById.get(usageEvent.priceId)
+          : null
+
+        if (!customer || !subscription || !usageMeter) {
+          throw new Error(
+            `Missing related data for usage event ${usageEvent.id}`
+          )
+        }
+        // pricesById only contains prices that passed the INNER JOIN with products.
+        // If priceId exists but price is missing, the price's product doesn't exist (data integrity issue).
+        if (usageEvent.priceId && !price) {
+          throw new Error(
+            `Price not found for usage event ${usageEvent.id} with priceId ${usageEvent.priceId}`
+          )
+        }
+
+        // Transform database records to client records
+        const customerClient =
+          customerClientSelectSchema.parse(customer)
+        const subscriptionWithCurrent = {
+          ...subscription,
+          current: isSubscriptionCurrent(
+            subscription.status as SubscriptionStatus,
+            subscription.cancellationReason
+          ),
+        }
+        const subscriptionClient =
+          subscriptionClientSelectSchema.parse(
+            subscriptionWithCurrent
+          )
+        const usageMeterClient =
+          usageMetersClientSelectSchema.parse(usageMeter)
+        const priceClient = price
+          ? pricesClientSelectSchema.parse(price)
+          : null
+
+        return {
+          usageEvent,
+          customer: customerClient,
+          subscription: subscriptionClient,
+          usageMeter: usageMeterClient,
+          price: priceClient,
+        }
+      })
     }
   )

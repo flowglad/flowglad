@@ -332,7 +332,7 @@ export const usageEventsTableRowDataSchema = z.object({
   customer: customerClientSelectSchema,
   subscription: subscriptionClientSelectSchema,
   usageMeter: usageMetersClientSelectSchema,
-  price: pricesClientSelectSchema,
+  price: pricesClientSelectSchema.nullable(),
 })
 
 // Paginated table row input schema
