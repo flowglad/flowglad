@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
-import { selectUsageMeterById } from '@/db/tableMethods/usageMeterMethods'
+import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import InnerUsageMeterDetailsPage from './InnerUsageMeterDetailsPage'
 
 interface UsageMeterPageProps {
@@ -13,21 +13,13 @@ const UsageMeterPage = async ({ params }: UsageMeterPageProps) => {
 
   const { usageMeter, pricingModel } = await authenticatedTransaction(
     async ({ transaction }) => {
-      let usageMeter
-      try {
-        usageMeter = await selectUsageMeterById(id, transaction)
-      } catch (error) {
-        // Only treat "not found" errors as expected; let other DB failures propagate
-        if (
-          error instanceof Error &&
-          error.message.includes('No usage_meters found')
-        ) {
-          return {
-            usageMeter: null,
-            pricingModel: null,
-          }
-        }
-        throw error
+      const [usageMeter] = await selectUsageMeters(
+        { id },
+        transaction
+      )
+
+      if (!usageMeter) {
+        return { usageMeter: null, pricingModel: null }
       }
 
       const [pricingModel] = await selectPricingModels(
