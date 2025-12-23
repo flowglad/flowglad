@@ -610,11 +610,6 @@ export enum PurchaseStatus {
   Fraudulent = 'fraudulent',
 }
 
-export enum PurchaseAccessSessionSource {
-  EmailVerification = 'email_verification',
-  CheckoutSession = 'checkout_session',
-}
-
 export enum FlowRunStatus {
   Completed = 'completed',
   Failed = 'failed',

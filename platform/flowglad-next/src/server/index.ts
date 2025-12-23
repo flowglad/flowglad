@@ -1,13 +1,6 @@
-import { createLink } from '@/server/mutations/createLink'
-import { deleteFileProcedure } from '@/server/mutations/deleteFile'
-import { deleteLinkProcedure } from '@/server/mutations/deleteLink'
-import { updateFile } from '@/server/mutations/editFile'
-import { updateLink } from '@/server/mutations/editLink'
 import { generateDescription } from '@/server/mutations/generateDescription'
 import { getPresignedURL } from '@/server/mutations/getPresignedURL'
 import { pong } from '@/server/mutations/pong'
-import { getProperNouns } from '@/server/queries/getProperNouns'
-import { createFile } from './mutations/createFile'
 import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
 import { logout } from './mutations/logout'
 import { setReferralSelection } from './mutations/setReferralSelection'
@@ -38,18 +31,6 @@ import { usageMetersRouter } from './routers/usageMetersRouter'
 import { webhooksRouter } from './routers/webhooksRouter'
 import { router } from './trpc'
 
-const filesRouter = router({
-  create: createFile,
-  update: updateFile,
-  delete: deleteFileProcedure,
-})
-
-const linksRouter = router({
-  create: createLink,
-  update: updateLink,
-  delete: deleteLinkProcedure,
-})
-
 // Main router with resource-based structure
 export const appRouter = router({
   payments: paymentsRouter,
@@ -60,8 +41,6 @@ export const appRouter = router({
   customers: customersRouter,
   organizations: organizationsRouter,
   discounts: discountsRouter,
-  files: filesRouter,
-  links: linksRouter,
   invoiceLineItems: invoiceLineItemsRouter,
   invoices: invoicesRouter,
   countries: countriesRouter,
@@ -71,7 +50,6 @@ export const appRouter = router({
     ping,
     pong,
     generateDescription,
-    getProperNouns,
     getPresignedURL,
     toggleTestMode,
     inviteUserToOrganization,

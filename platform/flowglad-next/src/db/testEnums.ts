@@ -14,7 +14,6 @@ import { organizations } from '@/db/schema/organizations'
 import { paymentMethods } from '@/db/schema/paymentMethods'
 import { payments } from '@/db/schema/payments'
 import { prices } from '@/db/schema/prices'
-import { purchaseAccessSessions } from '@/db/schema/purchaseAccessSessions'
 import { purchases } from '@/db/schema/purchases'
 import { refunds } from '@/db/schema/refunds'
 import { subscriptionMeterPeriodCalculations } from '@/db/schema/subscriptionMeterPeriodCalculations'
@@ -32,9 +31,7 @@ import {
   CurrencyCode,
   DiscountAmountType,
   DiscountDuration,
-  EventCategory,
   EventNoun,
-  EventRetentionPolicy,
   FeatureType,
   FeatureUsageGrantFrequency,
   FeeCalculationType,
@@ -49,7 +46,6 @@ import {
   PaymentMethodType,
   PaymentStatus,
   PriceType,
-  PurchaseAccessSessionSource,
   PurchaseStatus,
   RefundStatus,
   StripeConnectContractType,
@@ -201,14 +197,6 @@ export const testDatabaseEnums = async (
     discountRedemptions,
     discountRedemptions.duration,
     DiscountDuration,
-    transaction
-  )
-
-  // PurchaseAccessSessions table
-  await testEnumColumn(
-    purchaseAccessSessions,
-    purchaseAccessSessions.source,
-    PurchaseAccessSessionSource,
     transaction
   )
 
