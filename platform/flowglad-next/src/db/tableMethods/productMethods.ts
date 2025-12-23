@@ -29,7 +29,6 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import { groupBy } from '@/utils/core'
-import type { ProperNoun } from '../schema/properNouns'
 import type { DbTransaction } from '../types'
 import { selectMembershipAndOrganizations } from './membershipMethods'
 import {
@@ -59,18 +58,6 @@ export const selectProducts = createSelectFunction(products, config)
 export const insertProduct = createInsertFunction(products, config)
 
 export const updateProduct = createUpdateFunction(products, config)
-
-export const productToProperNounUpsert = (
-  product: Product.Record
-): ProperNoun.Insert => {
-  return {
-    name: product.name,
-    entityId: product.id,
-    entityType: 'product',
-    organizationId: product.organizationId,
-    livemode: product.livemode,
-  }
-}
 
 export const selectProductsPaginated = createPaginatedSelectFunction(
   products,

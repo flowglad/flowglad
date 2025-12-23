@@ -11,7 +11,7 @@ export type LocalDeleteMutation = (params: {
 }) => Promise<void>
 
 export type ServerMutation = ReturnType<
-  typeof trpc.files.delete.useMutation
+  typeof trpc.discounts.delete.useMutation
 >['mutateAsync']
 
 export interface DeleteModalProps {
