@@ -13,7 +13,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 
 export interface ModalInterfaceProps {
@@ -34,6 +33,19 @@ import {
 } from '@/components/ui/drawer'
 import { cn } from '@/lib/utils'
 import core from '@/utils/core'
+
+/**
+ * Type-safe wrapper for zodResolver that works with ZodType<T>.
+ *
+ * ZodType<T> has `unknown` as the input type, while zodResolver expects
+ * FieldValues as input. This wrapper handles the type mismatch safely.
+ */
+function createZodResolver<T extends FieldValues>(
+  schema: z.ZodType<T>
+): ReturnType<typeof zodResolver> {
+  // Type assertion is safe because form data from react-hook-form is always FieldValues-compatible
+  return zodResolver(schema as Parameters<typeof zodResolver>[0])
+}
 
 const useShouldRenderContent = ({
   isOpen,
@@ -73,7 +85,7 @@ const useShouldRenderContent = ({
 interface FormModalProps<T extends FieldValues>
   extends ModalInterfaceProps {
   onSuccess?: () => void
-  formSchema: z.ZodSchema<T>
+  formSchema: z.ZodType<T>
   defaultValues: DefaultValues<T>
   onSubmit: (data: T) => void
   title: string
@@ -201,7 +213,7 @@ export const NestedFormModal = <T extends FieldValues>({
           !wide && !extraWide && 'sm:max-w-md'
         )}
       >
-        <DialogHeader className="flex-shrink-0">
+        <DialogHeader className="shrink-0">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div
@@ -224,7 +236,7 @@ export const NestedFormModal = <T extends FieldValues>({
           </div>
         </div>
         {footer && (
-          <DialogFooter className="flex-shrink-0 pt-4">
+          <DialogFooter className="shrink-0 pt-4">
             {footer}
           </DialogFooter>
         )}
@@ -253,44 +265,7 @@ const FormModal = <T extends FieldValues>({
   const id = useId()
   const router = useRouter()
   const form = useForm<T>({
-    resolver: async (data, context, options) => {
-      try {
-        // @ts-expect-error
-        return await zodResolver(formSchema)(data, context, options)
-      } catch (error) {
-        // Catch any errors thrown by zodResolver
-        // This prevents unhandled errors from escaping to React's error boundary
-        console.error('Form validation error:', error)
-        const fieldErrors: Record<string, any> = {}
-        if (error && typeof error === 'object' && 'issues' in error) {
-          const zodError = error as any
-          zodError.issues?.forEach((issue: any) => {
-            const path = issue.path.join('.')
-            if (path) {
-              fieldErrors[path] = {
-                type: 'manual',
-                message: issue.message,
-              }
-            }
-          })
-        }
-        return {
-          values: {},
-          errors:
-            Object.keys(fieldErrors).length > 0
-              ? fieldErrors
-              : {
-                  root: {
-                    type: 'manual',
-                    message:
-                      error instanceof Error
-                        ? error.message
-                        : 'Validation failed',
-                  },
-                },
-        }
-      }
-    },
+    resolver: createZodResolver(formSchema),
     defaultValues,
   })
   const {
@@ -376,7 +351,7 @@ const FormModal = <T extends FieldValues>({
           !wide && !extraWide && 'sm:max-w-md'
         )}
       >
-        <DialogHeader className="flex-shrink-0">
+        <DialogHeader className="shrink-0">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div
@@ -399,7 +374,7 @@ const FormModal = <T extends FieldValues>({
           </div>
         </div>
         {!hideFooter && footer && (
-          <DialogFooter className="flex-shrink-0 pt-4">
+          <DialogFooter className="shrink-0 pt-4">
             {footer}
           </DialogFooter>
         )}
