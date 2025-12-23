@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import * as R from 'ramda'
 import { z } from 'zod'
 import {
@@ -222,6 +223,22 @@ export const selectProductsCursorPaginated =
         prices: pricesByProductId[product.id] ?? [],
         pricingModel: pricingModelsById[product.pricingModelId]?.[0],
       }))
+    },
+    // Searchable columns for ILIKE search on name and slug
+    [products.name, products.slug],
+    /**
+     * Additional search clause for exact ID match.
+     * Combined with base name/slug search via OR.
+     */
+    ({ searchQuery }) => {
+      const trimmedQuery =
+        typeof searchQuery === 'string'
+          ? searchQuery.trim()
+          : searchQuery
+
+      if (!trimmedQuery) return undefined
+
+      return eq(products.id, trimmedQuery)
     }
   )
 

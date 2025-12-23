@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import {
   type UsageMeter,
   usageMeters,
@@ -112,6 +113,22 @@ export const selectUsageMetersCursorPaginated =
           },
         }
       })
+    },
+    // Searchable columns for ILIKE search on name and slug
+    [usageMeters.name, usageMeters.slug],
+    /**
+     * Additional search clause for exact ID match.
+     * Combined with base name/slug search via OR.
+     */
+    ({ searchQuery }) => {
+      const trimmedQuery =
+        typeof searchQuery === 'string'
+          ? searchQuery.trim()
+          : searchQuery
+
+      if (!trimmedQuery) return undefined
+
+      return eq(usageMeters.id, trimmedQuery)
     }
   )
 
