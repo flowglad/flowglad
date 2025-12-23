@@ -20,7 +20,7 @@ export const constructCheckFeatureAccess = (
     experimental?: SubscriptionExperimentalFields
   }[]
 ) => {
-  return (
+  const checkFeatureAccess = (
     featureSlug: string,
     refinementParams?: {
       subscriptionId?: string
@@ -60,6 +60,7 @@ export const constructCheckFeatureAccess = (
     }
     return featureItem.type === 'toggle'
   }
+  return checkFeatureAccess
 }
 
 export const constructCheckUsageBalance = (
@@ -68,7 +69,7 @@ export const constructCheckUsageBalance = (
     experimental?: SubscriptionExperimentalFields
   }[]
 ) => {
-  return (
+  const checkUsageBalance = (
     usageMeterSlug: string,
     refinementParams?: {
       subscriptionId?: string
@@ -102,6 +103,7 @@ export const constructCheckUsageBalance = (
     }
     return usageMeterBalance
   }
+  return checkUsageBalance
 }
 
 export const constructGetProduct = (
@@ -128,4 +130,39 @@ export const constructGetPrice = (
     return pricesBySlug.get(priceSlug) ?? null
   }
   return getPrice
+}
+
+export const constructHasPurchased = (
+  catalog: FlowgladNode.CustomerRetrieveBillingResponse['catalog'],
+  purchases: FlowgladNode.CustomerRetrieveBillingResponse['purchases']
+) => {
+  const productsBySlug = new Map(
+    catalog.products.map((product) => [product.slug, product])
+  )
+
+  // Create a set of all purchased price IDs for quick lookup
+  const purchasedPriceIds = new Set(
+    (purchases ?? []).map((purchase) => purchase.priceId)
+  )
+
+  /**
+   * @experimental
+   * Checks if a customer has purchased a specific product, based on the product's slug
+   * @param productSlug - The slug of the product to check
+   * @returns True if the customer has purchased the product, false otherwise
+   */
+  const hasPurchased = (productSlug: string): boolean => {
+    const product = productsBySlug.get(productSlug)
+
+    if (!product) {
+      return false
+    }
+
+    // Check if any of the product's prices have been purchased
+    return product.prices.some((price) =>
+      purchasedPriceIds.has(price.id)
+    )
+  }
+
+  return hasPurchased
 }

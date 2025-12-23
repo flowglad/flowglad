@@ -11,6 +11,7 @@ import {
   constructCheckUsageBalance,
   constructGetPrice,
   constructGetProduct,
+  constructHasPurchased,
   FlowgladActionKey,
   flowgladActionValidators,
   type UncancelSubscriptionParams,
@@ -78,6 +79,7 @@ export interface NonPresentContextValues {
   createActivateSubscriptionCheckoutSession: null
   checkFeatureAccess: null
   checkUsageBalance: null
+  hasPurchased: null
   pricingModel: null
   billingPortalUrl: null
   reload: null
@@ -126,6 +128,7 @@ const notPresentContextValues: NonPresentContextValues = {
   createActivateSubscriptionCheckoutSession: null,
   checkFeatureAccess: null,
   checkUsageBalance: null,
+  hasPurchased: null,
   pricingModel: null,
   billingPortalUrl: null,
   reload: null,
@@ -406,6 +409,10 @@ export const FlowgladContextProvider = (
     const checkUsageBalance = constructCheckUsageBalance(
       billingData.currentSubscriptions ?? []
     )
+    const hasPurchased = constructHasPurchased(
+      billingData.catalog,
+      billingData.purchases
+    )
 
     return (
       <FlowgladContext.Provider
@@ -446,6 +453,7 @@ export const FlowgladContextProvider = (
             }),
           checkFeatureAccess,
           checkUsageBalance,
+          hasPurchased,
           getProduct,
           getPrice,
           reload: () => Promise.resolve(),
@@ -537,6 +545,10 @@ export const FlowgladContextProvider = (
       }
       const getProduct = constructGetProduct(billingData.catalog)
       const getPrice = constructGetPrice(billingData.catalog)
+      const hasPurchased = constructHasPurchased(
+        billingData.catalog,
+        billingData.purchases
+      )
       value = {
         loaded: true,
         loadBilling,
@@ -548,6 +560,7 @@ export const FlowgladContextProvider = (
         createActivateSubscriptionCheckoutSession,
         getProduct,
         getPrice,
+        hasPurchased,
         checkFeatureAccess: constructCheckFeatureAccess(
           billingData.currentSubscriptions ?? []
         ),

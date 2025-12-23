@@ -152,16 +152,18 @@ export const NavUser: React.FC<NavUserProps> = ({
           sideOffset={8}
         >
           <DropdownMenuGroup>
-            <DropdownMenuItem asChild>
-              <Link
-                href="/settings"
-                className="flex items-center gap-2"
-                data-testid="nav-user-settings"
-              >
-                <SettingsIcon className="h-4 w-4" />
-                <span>Settings</span>
-              </Link>
-            </DropdownMenuItem>
+            {showFinishSetup && (
+              <DropdownMenuItem asChild>
+                <Link
+                  href="/onboarding"
+                  className="flex items-center gap-2"
+                  data-testid="nav-user-finish-setup"
+                >
+                  <FinishSetupIcon className="h-4 w-4 text-yellow-500" />
+                  <span>Finish Setup</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger
                 className="flex items-center gap-2"
@@ -225,18 +227,35 @@ export const NavUser: React.FC<NavUserProps> = ({
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
-            {showFinishSetup && (
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/onboarding"
-                  className="flex items-center gap-2"
-                  data-testid="nav-user-finish-setup"
-                >
-                  <FinishSetupIcon className="h-4 w-4 text-yellow-500" />
-                  <span>Finish Setup</span>
-                </Link>
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault()
+              }}
+              className="flex items-center justify-between"
+              data-testid="nav-user-test-mode"
+            >
+              <div className="flex items-center gap-2">
+                <Flag className="h-4 w-4" />
+                <span>Test Mode</span>
+              </div>
+              <Switch
+                checked={testModeEnabled}
+                onCheckedChange={onTestModeToggle}
+                aria-label="Toggle test mode"
+                data-testid="nav-user-test-mode-switch"
+                className="scale-75"
+              />
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link
+                href="/settings"
+                className="flex items-center gap-2"
+                data-testid="nav-user-settings"
+              >
+                <SettingsIcon className="h-4 w-4" />
+                <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
@@ -267,25 +286,6 @@ export const NavUser: React.FC<NavUserProps> = ({
               </a>
             </DropdownMenuItem>
           </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-            }}
-            className="flex items-center justify-between"
-            data-testid="nav-user-test-mode"
-          >
-            <div className="flex items-center gap-2">
-              <Flag className="h-4 w-4" />
-              <span>Test Mode</span>
-            </div>
-            <Switch
-              checked={testModeEnabled}
-              onCheckedChange={onTestModeToggle}
-              aria-label="Toggle test mode"
-              data-testid="nav-user-test-mode-switch"
-            />
-          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={onSignOut}

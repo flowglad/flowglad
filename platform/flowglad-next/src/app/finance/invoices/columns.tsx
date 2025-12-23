@@ -6,7 +6,6 @@ import { sentenceCase } from 'change-case'
 import { Link, Mail, Pencil } from 'lucide-react'
 import * as React from 'react'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import EditInvoiceModal from '@/components/forms/EditInvoiceModal'
 import SendInvoiceReminderEmailModal from '@/components/forms/SendInvoiceReminderEmailModal'
 // UI components last
 import { Badge } from '@/components/ui/badge'
@@ -74,7 +73,6 @@ function InvoiceActionsMenu({
   invoice: Invoice.ClientRecord
   invoiceLineItems: InvoiceLineItem.ClientRecord[]
 }) {
-  const [isEditOpen, setIsEditOpen] = React.useState(false)
   const [isSendReminderEmailOpen, setIsSendReminderEmailOpen] =
     React.useState(false)
 
@@ -92,15 +90,6 @@ function InvoiceActionsMenu({
     handler: copyInvoiceUrlHandler,
   })
 
-  // Edit invoice - only if not in terminal state
-  if (!invoiceIsInTerminalState(invoice)) {
-    actionItems.push({
-      label: 'Edit invoice',
-      icon: <Pencil className="h-4 w-4" />,
-      handler: () => setIsEditOpen(true),
-    })
-  }
-
   // Send reminder email - only for draft or open invoices
   if (invoice.status === 'draft' || invoice.status === 'open') {
     actionItems.push({
@@ -112,14 +101,6 @@ function InvoiceActionsMenu({
 
   return (
     <EnhancedDataTableActionsMenu items={actionItems}>
-      <EditInvoiceModal
-        isOpen={isEditOpen}
-        setIsOpen={setIsEditOpen}
-        invoiceAndLineItems={{
-          invoice: invoice,
-          invoiceLineItems: invoiceLineItems,
-        }}
-      />
       <SendInvoiceReminderEmailModal
         isOpen={isSendReminderEmailOpen}
         setIsOpen={setIsSendReminderEmailOpen}
