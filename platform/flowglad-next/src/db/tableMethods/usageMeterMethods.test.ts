@@ -1,13 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  setupCustomer,
   setupOrg,
   setupPricingModel,
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import { updatePricingModel } from './pricingModelMethods'
 import {
   insertUsageMeter,
   selectUsageMeterById,
+  selectUsageMeterBySlugAndCustomerId,
   selectUsageMeters,
   selectUsageMetersCursorPaginated,
   selectUsageMetersPaginated,
@@ -18,13 +21,17 @@ describe('usageMeterMethods', () => {
   let organizationId: string
   let pricingModelId: string
   let pricingModelName: string
+  let defaultPricingModelId: string
 
   beforeEach(async () => {
-    const { organization } = await setupOrg()
+    const { organization, pricingModel } = await setupOrg()
     organizationId = organization.id
-    const pricingModel = await setupPricingModel({ organizationId })
-    pricingModelId = pricingModel.id
-    pricingModelName = pricingModel.name
+    defaultPricingModelId = pricingModel.id // This is the default pricing model
+    const nonDefaultPricingModel = await setupPricingModel({
+      organizationId,
+    })
+    pricingModelId = nonDefaultPricingModel.id
+    pricingModelName = nonDefaultPricingModel.name
   })
 
   describe('selectUsageMeterById', () => {
@@ -246,6 +253,84 @@ describe('usageMeterMethods', () => {
           })
         })
       ).rejects.toThrow()
+    })
+  })
+
+  describe('selectUsageMeterBySlugAndCustomerId', () => {
+    it('should return the correct usage meter when slug matches', async () => {
+      const customer = await setupCustomer({
+        organizationId,
+      })
+      // Use the default pricing model since customer will use it
+      const meter = await setupUsageMeter({
+        organizationId,
+        name: 'Test Meter',
+        pricingModelId: defaultPricingModelId,
+        slug: 'test-meter',
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectUsageMeterBySlugAndCustomerId(
+          { slug: 'test-meter', customerId: customer.id },
+          transaction
+        )
+        expect(result).not.toBeNull()
+        expect(result!.id).toBe(meter.id)
+        expect(result!.slug).toBe('test-meter')
+        expect(result!.name).toBe('Test Meter')
+      })
+    })
+
+    it('should return null when no matching slug exists', async () => {
+      const customer = await setupCustomer({
+        organizationId,
+      })
+      // Use the default pricing model since customer will use it
+      await setupUsageMeter({
+        organizationId,
+        name: 'Test Meter',
+        pricingModelId: defaultPricingModelId,
+        slug: 'test-meter',
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectUsageMeterBySlugAndCustomerId(
+          { slug: 'non-existent-slug', customerId: customer.id },
+          transaction
+        )
+        expect(result).toBeNull()
+      })
+    })
+
+    it("should throw an error when customer's pricing model cannot be found", async () => {
+      // Create a customer in an organization without a default pricing model
+      const orgWithoutDefault = await setupOrg()
+      // Update the default pricing model to be non-default (removes the default)
+      await adminTransaction(async ({ transaction }) => {
+        await updatePricingModel(
+          {
+            id: orgWithoutDefault.pricingModel.id,
+            isDefault: false,
+          },
+          transaction
+        )
+      })
+
+      const customer = await setupCustomer({
+        organizationId: orgWithoutDefault.organization.id,
+        // pricingModelId is undefined by default, which forces default lookup
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return selectUsageMeterBySlugAndCustomerId(
+            { slug: 'any-slug', customerId: customer.id },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        `No default pricing model found for organization ${orgWithoutDefault.organization.id}`
+      )
     })
   })
 })

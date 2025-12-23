@@ -238,6 +238,21 @@ describe('createUsageEventSchema', () => {
     expect(result.success).toBe(true)
   })
 
+  it('accepts valid input with usageMeterId', () => {
+    const input = { ...validBaseParams, usageMeterId: 'meter_123' }
+    const result = createUsageEventSchema.safeParse(input)
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts valid input with usageMeterSlug', () => {
+    const input = {
+      ...validBaseParams,
+      usageMeterSlug: 'my-meter-slug',
+    }
+    const result = createUsageEventSchema.safeParse(input)
+    expect(result.success).toBe(true)
+  })
+
   it('rejects input with both priceId and priceSlug', () => {
     const input = {
       ...validBaseParams,
@@ -248,7 +263,57 @@ describe('createUsageEventSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rejects input with neither priceId nor priceSlug', () => {
+  it('rejects input with both usageMeterId and usageMeterSlug', () => {
+    const input = {
+      ...validBaseParams,
+      usageMeterId: 'meter_123',
+      usageMeterSlug: 'my-meter-slug',
+    }
+    const result = createUsageEventSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with priceId and usageMeterId', () => {
+    const input = {
+      ...validBaseParams,
+      priceId: 'price_123',
+      usageMeterId: 'meter_123',
+    }
+    const result = createUsageEventSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with priceId and usageMeterSlug', () => {
+    const input = {
+      ...validBaseParams,
+      priceId: 'price_123',
+      usageMeterSlug: 'my-meter-slug',
+    }
+    const result = createUsageEventSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with priceSlug and usageMeterId', () => {
+    const input = {
+      ...validBaseParams,
+      priceSlug: 'my-price-slug',
+      usageMeterId: 'meter_123',
+    }
+    const result = createUsageEventSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with priceSlug and usageMeterSlug', () => {
+    const input = {
+      ...validBaseParams,
+      priceSlug: 'my-price-slug',
+      usageMeterSlug: 'my-meter-slug',
+    }
+    const result = createUsageEventSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with neither priceId, priceSlug, usageMeterId, nor usageMeterSlug', () => {
     const result = createUsageEventSchema.safeParse(validBaseParams)
     expect(result.success).toBe(false)
   })
