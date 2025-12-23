@@ -1,7 +1,4 @@
-import {
-  createRequestHandler,
-  type FlowgladServer,
-} from '@flowglad/server'
+import { type FlowgladServer, requestHandler } from '@flowglad/server'
 import type { HTTPMethod } from '@flowglad/shared'
 import { type NextRequest, NextResponse } from 'next/server'
 
@@ -94,16 +91,7 @@ type NextRouteHandler = (
  *
  * ```
  *
- * @remarks
- * Use this when:
- * - You want to scope FlowgladServer to a specific customer per request
- * - You want to define whether your customers are users or organizations
- * - You have your own auth/session mechanism to extract customer ID
- * - You need flexibility in how the customer ID is determined (JWT, headers, cookies, etc.)
- *
- * Use `createAppRouterRouteHandler` instead if you are on the deprecated FlowgladServer integration pattern:
- * - You have a single FlowgladServer instance with built-in auth (Supabase, Clerk, etc.)
- * - Your auth is handled within FlowgladServer constructor params
+ * For Pages Router, use `pagesRouteHandler` instead.
  */
 export const nextRouteHandler = (
   options: NextRouteHandlerOptions
@@ -126,15 +114,10 @@ export const nextRouteHandler = (
     }: { params: Promise<{ path: string[] }> | { path: string[] } }
   ): Promise<NextResponse> => {
     try {
-      // Extract customer ID from request
-      const customerExternalId = await getCustomerExternalId(req)
-
-      // Create scoped FlowgladServer instance for this customer
-      const flowgladServer = await flowglad(customerExternalId)
-
-      // Create request handler with the scoped server
-      const handler = createRequestHandler({
-        flowgladServer,
+      // Create request handler with customer ID extraction and FlowgladServer factory
+      const handler = requestHandler({
+        getCustomerExternalId,
+        flowglad,
         onError,
         beforeRequest,
         afterRequest,
@@ -144,18 +127,21 @@ export const nextRouteHandler = (
       // in Next.js 14 params is a plain object, in Next.js 15 params is a Promise (breaking change)
       const resolvedParams = 'then' in params ? await params : params
       const { path } = resolvedParams
-      const result = await handler({
-        path,
-        method: req.method as HTTPMethod,
-        query:
-          req.method === 'GET'
-            ? Object.fromEntries(req.nextUrl.searchParams)
-            : undefined,
-        body:
-          req.method !== 'GET'
-            ? await req.json().catch(() => ({}))
-            : undefined,
-      })
+      const result = await handler(
+        {
+          path,
+          method: req.method as HTTPMethod,
+          query:
+            req.method === 'GET'
+              ? Object.fromEntries(req.nextUrl.searchParams)
+              : undefined,
+          body:
+            req.method !== 'GET'
+              ? await req.json().catch(() => ({}))
+              : undefined,
+        },
+        req
+      )
 
       return NextResponse.json(
         {

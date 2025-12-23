@@ -1,5 +1,5 @@
 'use client'
-import { Ellipsis, Pencil } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
@@ -7,17 +7,8 @@ import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import EditProductModal from '@/components/forms/EditProductModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
-import PopoverMenu, {
-  type PopoverMenuItem,
-} from '@/components/PopoverMenu'
-import { Button } from '@/components/ui/button'
-import { PageHeader } from '@/components/ui/page-header'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import { CopyableField } from '@/components/ui/copyable-field'
+import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
@@ -50,62 +41,90 @@ function InternalProductDetailsPage(
     window.open(productURL, '_blank')
   }
 
-  const moreMenuItems: PopoverMenuItem[] = [
-    {
-      label: 'Copy Link',
-      handler: () => copyPurchaseLinkHandler(),
-      disabled: product.default,
-      helperText: product.default
-        ? 'Cannot copy checkout link for default products. Default products are automatically assigned to customers.'
-        : undefined,
-    },
-    {
-      label: 'Preview',
-      handler: () => previewProductHandler(),
-      disabled: product.default,
-      helperText: product.default
-        ? 'Cannot preview checkout for default products. Default products are automatically assigned to customers.'
-        : undefined,
-    },
-  ]
-
   const handleBreadcrumbClick = () => {
     router.push(`/pricing-models/${pricingModel.id}`)
   }
 
+  // Build badges array
+  const badges = [
+    {
+      icon: (
+        <Check
+          className="w-full h-full stroke-current"
+          strokeWidth={3}
+        />
+      ),
+      label: 'Active',
+      variant: 'active' as const,
+    },
+    ...(product.default
+      ? [
+          {
+            label: 'Default Product',
+            variant: 'muted' as const,
+            tooltip:
+              'Default products are automatically assigned to customers.',
+          },
+        ]
+      : []),
+  ]
+
+  // Build actions array
+  const actions = [
+    {
+      label: 'Edit',
+      onClick: () => setIsEditOpen(true),
+      variant: 'secondary' as const,
+    },
+    {
+      label: 'Copy Link',
+      onClick: () => copyPurchaseLinkHandler(),
+      disabled: product.default,
+      disabledTooltip: product.default
+        ? 'Cannot copy checkout link for default products.'
+        : undefined,
+      variant: 'secondary' as const,
+    },
+    {
+      label: 'Preview',
+      onClick: () => previewProductHandler(),
+      disabled: product.default,
+      disabledTooltip: product.default
+        ? 'Cannot preview checkout for default products.'
+        : undefined,
+      variant: 'secondary' as const,
+    },
+  ]
+
   return (
     <InternalPageContainer>
       <div className="w-full flex flex-col gap-6">
-        <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
-          <Breadcrumb
-            label={pricingModel.name}
-            onClick={handleBreadcrumbClick}
-          />
-          <div className="flex flex-row items-center justify-between">
-            <div className="min-w-0 overflow-hidden mr-4">
-              <PageHeader
-                title={product.name}
-                className="truncate whitespace-nowrap overflow-hidden text-ellipsis"
+        <PageHeaderNew
+          title={product.name}
+          breadcrumb={pricingModel.name}
+          onBreadcrumbClick={handleBreadcrumbClick}
+          badges={badges}
+          description={
+            <div className="flex items-center gap-2">
+              <CopyableField
+                value={product.id}
+                label="ID"
+                displayText="Copy ID"
               />
+              {product.slug && (
+                <>
+                  <div className="h-[22px] w-px bg-muted-foreground opacity-10" />
+                  <CopyableField
+                    value={product.slug}
+                    label="Slug"
+                    displayText="Copy Slug"
+                  />
+                </>
+              )}
             </div>
-            <div className="flex flex-row gap-2 justify-end flex-shrink-0">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Ellipsis className="rotate-90 w-4 h-6" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-fit p-1" align="end">
-                  <PopoverMenu items={moreMenuItems} />
-                </PopoverContent>
-              </Popover>
-              <Button onClick={() => setIsEditOpen(true)}>
-                <Pencil className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-            </div>
-          </div>
-        </div>
+          }
+          actions={actions}
+        />
         <div className="w-full min-w-40 flex flex-col gap-4">
           <div className="min-w-40 flex flex-col gap-5 pb-5">
             <DateRangeRevenueChart

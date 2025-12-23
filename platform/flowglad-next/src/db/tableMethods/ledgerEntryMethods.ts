@@ -419,6 +419,15 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
   if (usageEventIds.length === 0) {
     return []
   }
+
+  /**
+   * Usage events can be created with or without a priceId:
+   * - With priceId: Events created with priceId or priceSlug specified
+   * - Without priceId (null): Events created with usageMeterId or usageMeterSlug specified (no price)
+   *
+   * We use LEFT JOIN instead of INNER JOIN to include events without prices.
+   * This allows us to aggregate usage costs even when no price was specified at event creation time.
+   */
   const usageEventsWithPrices = await transaction
     .select({
       usageEventId: usageEvents.id,
@@ -435,50 +444,101 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
       usageMeters,
       eq(usageEvents.usageMeterId, usageMeters.id)
     )
-    .innerJoin(prices, eq(usageEvents.priceId, prices.id))
+    // LEFT JOIN allows events without prices (priceId is null)
+    .leftJoin(prices, eq(usageEvents.priceId, prices.id))
     .where(inArray(usageEvents.id, usageEventIds))
 
-  // To avoid downstream type issue with usageEventsPerUnit
-  // Validate that all prices are usage prices (usageEventsPerUnit must be non-null)
-  type ValidatedUsageEventWithPrice = Omit<
-    (typeof usageEventsWithPrices)[number],
-    'usageEventsPerUnit'
-  > & {
+  // Type for usage events with validated price info
+  // For events without prices (priceId is null), we use default values
+  type ValidatedUsageEventWithPrice = {
+    usageEventId: string
+    priceId: string | null
     usageEventsPerUnit: number
+    unitPrice: number
+    livemode: boolean
+    usageMeterName: string
+    currency: string | null
+    usageMeterId: string
   }
 
   const validatedUsageEventsWithPrices: ValidatedUsageEventWithPrice[] =
     usageEventsWithPrices.map((event) => {
+      /**
+       * For events without prices, we apply default values:
+       * - unitPrice: 0 (no per-unit cost since no price was specified)
+       * - usageEventsPerUnit: 1 (treat each event as 1 unit for aggregation purposes)
+       * - currency: null (no currency context without a price)
+       */
+      if (event.priceId === null) {
+        return {
+          usageEventId: event.usageEventId,
+          priceId: null,
+          usageEventsPerUnit: 1, // Default to 1 for events without prices
+          unitPrice: 0, // Events without prices have $0 cost
+          livemode: event.livemode,
+          usageMeterName: event.usageMeterName,
+          currency: null, // No currency for events without prices
+          usageMeterId: event.usageMeterId,
+        }
+      }
+      // For events with prices, validate that it's a usage price
       if (event.usageEventsPerUnit === null) {
         throw new Error(
-          `Usage event ${event.usageEventId} is associated with price ${event.priceId} which has null usageEventsPerUnit. Usage events must be associated with usage prices.`
+          `Usage event ${event.usageEventId} references price ${event.priceId}, but the price was not found or is not a usage price (has null usageEventsPerUnit).`
+        )
+      }
+      if (event.unitPrice === null) {
+        throw new Error(
+          `Usage event ${event.usageEventId} is associated with price ${event.priceId} which has null unitPrice.`
         )
       }
       return {
-        ...event,
+        usageEventId: event.usageEventId,
+        priceId: event.priceId,
         usageEventsPerUnit: event.usageEventsPerUnit,
+        unitPrice: event.unitPrice,
+        livemode: event.livemode,
+        usageMeterName: event.usageMeterName,
+        currency: event.currency,
+        usageMeterId: event.usageMeterId,
       }
     })
 
   const priceInfoByUsageEventId = new Map(
-    validatedUsageEventsWithPrices.map((item) => [
-      item.usageEventId,
-      {
-        usageMeterId: item.usageMeterId,
-        priceId: item.priceId,
-        usageEventsPerUnit: item.usageEventsPerUnit,
-        unitPrice: item.unitPrice,
-        livemode: item.livemode,
-        name:
-          'Usage: ' +
-          item.usageMeterName +
-          ` at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(item.currency as CurrencyCode, item.unitPrice)} per ${item.usageEventsPerUnit}`,
-        description: `usageEventId: ${item.usageEventId}, priceId: ${item.priceId}, usageEventsPerUnit: ${item.usageEventsPerUnit}, unitPrice: ${item.unitPrice}`,
-      },
-    ])
+    validatedUsageEventsWithPrices.map((item) => {
+      // For events without prices, use a simple name without currency formatting
+      const name =
+        item.priceId === null
+          ? `Usage: ${item.usageMeterName} (no price)`
+          : `Usage: ${item.usageMeterName} at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(item.currency as CurrencyCode, item.unitPrice)} per ${item.usageEventsPerUnit}`
+
+      return [
+        item.usageEventId,
+        {
+          usageMeterId: item.usageMeterId,
+          priceId: item.priceId,
+          usageEventsPerUnit: item.usageEventsPerUnit,
+          unitPrice: item.unitPrice,
+          livemode: item.livemode,
+          name,
+          description: `usageEventId: ${item.usageEventId}, priceId: ${item.priceId}, usageEventsPerUnit: ${item.usageEventsPerUnit}, unitPrice: ${item.unitPrice}`,
+        },
+      ] as const
+    })
   )
 
-  // Group by usage meter id and price id for invoice
+  /**
+   * Group ledger entries by (usageMeterId, priceId) for invoice line item aggregation.
+   *
+   * Key format: `${usageMeterId}-${priceId}`
+   * - For events with prices: `${usageMeterId}-${actualPriceId}`
+   * - For events without prices: `${usageMeterId}-null` (template string converts null to "null")
+   *
+   * This grouping ensures:
+   * 1. Events with the same price are grouped together (for invoice display)
+   * 2. Events without prices are grouped separately by usage meter
+   * 3. The string "null" in the key is safe because priceIds are nanoids (never the literal string "null")
+   */
   const entriesByUsageMeterIdAndPriceId = new Map<
     string,
     LedgerEntry.Record[]
@@ -491,12 +551,7 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
           `Price information not found for usage event ${usageEventId}`
         )
       }
-      // FIXME: Handle nullable priceId - usage events can now have null priceId
-      if (!priceInfo.priceId) {
-        throw new Error(
-          `Usage event ${usageEventId} has null priceId. Handling of events without prices is not yet implemented.`
-        )
-      }
+      // Template string converts null to "null", which is safe since priceIds are never the literal string "null"
       const key = `${priceInfo.usageMeterId}-${priceInfo.priceId}`
 
       if (!entriesByUsageMeterIdAndPriceId.has(key)) {
@@ -513,7 +568,7 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     string,
     {
       usageMeterId: string
-      priceId: string
+      priceId: string | null
       usageEventsPerUnit: number
       unitPrice: number
       livemode: boolean
@@ -523,35 +578,28 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     }
   >()
   validatedUsageEventsWithPrices.forEach((event) => {
-    // FIXME: Handle nullable priceId - usage events can now have null priceId
-    if (!event.priceId) {
-      // Skip events without prices for now
-      return
-    }
+    // Template string converts null to "null", which is safe since priceIds are nanoids (never the literal string "null")
     const key = `${event.usageMeterId}-${event.priceId}`
+
+    // For events without prices, use a simple name without currency formatting
+    const name =
+      event.priceId === null
+        ? `Usage: ${event.usageMeterName} (no price)`
+        : `Usage: ${event.usageMeterName} at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(event.currency as CurrencyCode, event.unitPrice)} per ${event.usageEventsPerUnit}`
+
     const item = {
       usageMeterId: event.usageMeterId,
       priceId: event.priceId,
       usageEventsPerUnit: event.usageEventsPerUnit,
       unitPrice: event.unitPrice,
       livemode: event.livemode,
-      name:
-        'Usage: ' +
-        event.usageMeterName +
-        ` at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(event.currency as CurrencyCode, event.unitPrice)} per ${event.usageEventsPerUnit}`,
+      name,
       description: `priceId: ${event.priceId}, usageMeterId: ${event.usageMeterId}, usageEventsPerUnit: ${event.usageEventsPerUnit}, unitPrice: ${event.unitPrice}, usageEventIds: ${event.usageEventId}`,
       usageEventIds: [event.usageEventId],
     }
     if (!priceInfoByUsageMeterIdAndPriceId.has(key)) {
       priceInfoByUsageMeterIdAndPriceId.set(key, item)
     } else {
-      const shallowOmit = (obj: any, fields: string[]) => {
-        const clone = { ...obj }
-        for (const field of fields) {
-          delete clone[field]
-        }
-        return clone
-      }
       // we omit ['usageEventIds', 'description'] first before comparison
       // because those fields get appended to the priceInfoByUsageMeterIdAndPriceId item
       // as we encounter more usage event entries with the same (usage meter id, price id).

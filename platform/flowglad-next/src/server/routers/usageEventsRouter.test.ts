@@ -352,7 +352,7 @@ describe('usageEventsRouter', () => {
         expect(enrichedEvent.customer.id).toBe(customer1.id)
         expect(enrichedEvent.subscription.id).toBe(subscription1.id)
         expect(enrichedEvent.usageMeter.id).toBe(usageMeter1.id)
-        expect(enrichedEvent.price.id).toBe(price1.id)
+        expect(enrichedEvent.price?.id).toBe(price1.id)
       })
     })
 

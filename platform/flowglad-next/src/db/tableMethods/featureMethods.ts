@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import {
   type Feature,
@@ -95,10 +96,10 @@ export const selectFeaturesTableRowData =
     config,
     featuresTableRowOutputSchema,
     async (
-      features: Feature.Record[],
+      featuresData: Feature.Record[],
       transaction: DbTransaction
     ) => {
-      const pricingModelIds = features.map(
+      const pricingModelIds = featuresData.map(
         (feature) => feature.pricingModelId
       )
       const pricingModels = await selectPricingModels(
@@ -111,13 +112,29 @@ export const selectFeaturesTableRowData =
           pricingModel,
         ])
       )
-      return features.map((feature) => ({
+      return featuresData.map((feature) => ({
         feature,
         pricingModel: {
           id: pricingModelsById.get(feature.pricingModelId)!.id,
           name: pricingModelsById.get(feature.pricingModelId)!.name,
         },
       }))
+    },
+    // Searchable columns for ILIKE search on name and slug
+    [features.name, features.slug],
+    /**
+     * Additional search clause for exact ID match.
+     * Combined with base name/slug search via OR.
+     */
+    ({ searchQuery }) => {
+      const trimmedQuery =
+        typeof searchQuery === 'string'
+          ? searchQuery.trim()
+          : searchQuery
+
+      if (!trimmedQuery) return undefined
+
+      return eq(features.id, trimmedQuery)
     }
   )
 

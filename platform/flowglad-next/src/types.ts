@@ -1017,13 +1017,18 @@ export type TelemetryEntityType =
 
 export type UsageBillingInfo = {
   /**
-   * Key of form `${usageMeterId}-${priceId}`
+   * Key of form `${usageMeterId}-${priceId}` where priceId may be 'null' for events without prices
    */
   usageMeterIdPriceId: string
   usageMeterId: string
   ledgerAccountId: string
   balance: number
-  priceId: string
+  /**
+   * The price ID associated with these usage events.
+   * When null, the usage events were created without a price (using usageMeterId/usageMeterSlug).
+   * Events without prices will have unitPrice: 0 and usageEventsPerUnit: 1
+   */
+  priceId: string | null
   usageEventsPerUnit: number
   unitPrice: number
   livemode: boolean
