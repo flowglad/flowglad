@@ -11,6 +11,7 @@ import {
   setupOrg,
   setupPayment,
   setupPaymentMethod,
+  setupPrice,
   setupRefund,
   setupSubscription,
   setupUsageCredit,
@@ -32,12 +33,14 @@ import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import {
+  IntervalUnit,
   LedgerEntryDirection,
   LedgerEntryStatus,
   LedgerEntryType,
   LedgerTransactionType,
   PaymentMethodType,
   PaymentStatus,
+  PriceType,
   RefundStatus,
   SubscriptionStatus,
   UsageCreditType,
@@ -50,6 +53,7 @@ import {
 import {
   aggregateAvailableBalanceForUsageCredit,
   aggregateBalanceForLedgerAccountFromEntries,
+  aggregateOutstandingBalanceForUsageCosts,
   bulkInsertLedgerEntries,
 } from './ledgerEntryMethods'
 
@@ -3232,6 +3236,326 @@ describe('ledgerEntryMethods', () => {
         expect(balanceInfo.expiresAt).toEqual(
           pastExpiryDate.getTime()
         ) // Critical check
+      })
+    })
+  })
+
+  describe('aggregateOutstandingBalanceForUsageCosts', () => {
+    it('should handle usage events with null priceId correctly', async () => {
+      // Use the existing ledgerAccount from beforeEach setup
+
+      const ledgerTransaction = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.UsageEventProcessed,
+      })
+
+      const usageEvent = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        amount: 5,
+        priceId: null,
+        billingPeriodId: billingPeriod.id,
+        transactionId: 'dummy_txn_null_price_' + Math.random(),
+        customerId: customer.id,
+        usageDate: Date.now(),
+      })
+
+      await setupDebitLedgerEntry({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerTransactionId: ledgerTransaction.id,
+        ledgerAccountId: ledgerAccount.id,
+        amount: 100,
+        entryType: LedgerEntryType.UsageCost,
+        sourceUsageEventId: usageEvent.id,
+        status: LedgerEntryStatus.Posted,
+        usageMeterId: usageMeter.id,
+        entryTimestamp: billingPeriod.endDate - 1000,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await aggregateOutstandingBalanceForUsageCosts(
+          {
+            ledgerAccountId: ledgerAccount.id,
+          },
+          billingPeriod.endDate,
+          transaction
+        )
+
+        expect(result).toHaveLength(1)
+        const billingInfo = result[0]
+        expect(billingInfo.priceId).toBeNull()
+        expect(billingInfo.unitPrice).toBe(0)
+        expect(billingInfo.usageEventsPerUnit).toBe(1)
+        expect(billingInfo.usageMeterId).toBe(usageMeter.id)
+        expect(billingInfo.balance).toBe(100)
+        expect(billingInfo.name).toBe(
+          `Usage: ${usageMeter.name} (no price)`
+        )
+        expect(billingInfo.usageMeterIdPriceId).toBe(
+          `${usageMeter.id}-null`
+        )
+        expect(billingInfo.usageEventIds).toContain(usageEvent.id)
+      })
+    })
+
+    it('should handle usage events with priceId correctly (existing behavior)', async () => {
+      const usageBasedPrice = await setupPrice({
+        productId: product.id,
+        name: 'Test Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 10,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
+        usageMeterId: usageMeter.id,
+      })
+
+      const ledgerTransaction = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.UsageEventProcessed,
+      })
+
+      const usageEvent = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        amount: 5,
+        priceId: usageBasedPrice.id,
+        billingPeriodId: billingPeriod.id,
+        transactionId: 'dummy_txn_with_price_' + Math.random(),
+        customerId: customer.id,
+        usageDate: Date.now(),
+      })
+
+      await setupDebitLedgerEntry({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerTransactionId: ledgerTransaction.id,
+        ledgerAccountId: ledgerAccount.id,
+        amount: 50,
+        entryType: LedgerEntryType.UsageCost,
+        sourceUsageEventId: usageEvent.id,
+        status: LedgerEntryStatus.Posted,
+        usageMeterId: usageMeter.id,
+        entryTimestamp: billingPeriod.endDate - 1000,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await aggregateOutstandingBalanceForUsageCosts(
+          {
+            ledgerAccountId: ledgerAccount.id,
+          },
+          billingPeriod.endDate,
+          transaction
+        )
+
+        expect(result).toHaveLength(1)
+        const billingInfo = result[0]
+        expect(billingInfo.priceId).toBe(usageBasedPrice.id)
+        expect(billingInfo.unitPrice).toBe(10)
+        expect(billingInfo.usageEventsPerUnit).toBe(1)
+        expect(billingInfo.usageMeterId).toBe(usageMeter.id)
+        expect(billingInfo.balance).toBe(50)
+        expect(billingInfo.name).toContain('Usage:')
+        expect(billingInfo.name).toContain(usageMeter.name)
+        expect(billingInfo.usageMeterIdPriceId).toBe(
+          `${usageMeter.id}-${usageBasedPrice.id}`
+        )
+        expect(billingInfo.usageEventIds).toContain(usageEvent.id)
+      })
+    })
+
+    it('should handle mixed scenario: events with and without prices', async () => {
+      const usageBasedPrice = await setupPrice({
+        productId: product.id,
+        name: 'Test Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 10,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
+        usageMeterId: usageMeter.id,
+      })
+
+      const ledgerTransaction = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.UsageEventProcessed,
+      })
+
+      // Event with price
+      const usageEventWithPrice = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        amount: 5,
+        priceId: usageBasedPrice.id,
+        billingPeriodId: billingPeriod.id,
+        transactionId: 'dummy_txn_with_price_' + Math.random(),
+        customerId: customer.id,
+        usageDate: Date.now(),
+      })
+
+      // Event without price
+      const usageEventWithoutPrice = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        amount: 3,
+        priceId: null,
+        billingPeriodId: billingPeriod.id,
+        transactionId: 'dummy_txn_null_price_' + Math.random(),
+        customerId: customer.id,
+        usageDate: Date.now(),
+      })
+
+      await setupDebitLedgerEntry({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerTransactionId: ledgerTransaction.id,
+        ledgerAccountId: ledgerAccount.id,
+        amount: 50,
+        entryType: LedgerEntryType.UsageCost,
+        sourceUsageEventId: usageEventWithPrice.id,
+        status: LedgerEntryStatus.Posted,
+        usageMeterId: usageMeter.id,
+        entryTimestamp: billingPeriod.endDate - 1000,
+      })
+
+      await setupDebitLedgerEntry({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerTransactionId: ledgerTransaction.id,
+        ledgerAccountId: ledgerAccount.id,
+        amount: 100,
+        entryType: LedgerEntryType.UsageCost,
+        sourceUsageEventId: usageEventWithoutPrice.id,
+        status: LedgerEntryStatus.Posted,
+        usageMeterId: usageMeter.id,
+        entryTimestamp: billingPeriod.endDate - 1000,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await aggregateOutstandingBalanceForUsageCosts(
+          {
+            ledgerAccountId: ledgerAccount.id,
+          },
+          billingPeriod.endDate,
+          transaction
+        )
+
+        expect(result).toHaveLength(2)
+
+        const withPrice = result.find(
+          (r) => r.priceId === usageBasedPrice.id
+        )
+        const withoutPrice = result.find((r) => r.priceId === null)
+
+        expect(withPrice?.balance).toBe(50)
+        expect(withPrice?.unitPrice).toBe(10)
+        expect(withPrice?.usageEventsPerUnit).toBe(1)
+        expect(withPrice?.usageEventIds).toContain(
+          usageEventWithPrice.id
+        )
+
+        expect(withoutPrice?.balance).toBe(100)
+        expect(withoutPrice?.unitPrice).toBe(0)
+        expect(withoutPrice?.usageEventsPerUnit).toBe(1)
+        expect(withoutPrice?.usageEventIds).toContain(
+          usageEventWithoutPrice.id
+        )
+        expect(withoutPrice?.name).toBe(
+          `Usage: ${usageMeter.name} (no price)`
+        )
+      })
+    })
+
+    it('should group multiple events with null priceId under the same key', async () => {
+      const ledgerTransaction = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.UsageEventProcessed,
+      })
+
+      const usageEvent1 = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        amount: 5,
+        priceId: null,
+        billingPeriodId: billingPeriod.id,
+        transactionId: 'dummy_txn_null_1_' + Math.random(),
+        customerId: customer.id,
+        usageDate: Date.now(),
+      })
+
+      const usageEvent2 = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        amount: 3,
+        priceId: null,
+        billingPeriodId: billingPeriod.id,
+        transactionId: 'dummy_txn_null_2_' + Math.random(),
+        customerId: customer.id,
+        usageDate: Date.now(),
+      })
+
+      await setupDebitLedgerEntry({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerTransactionId: ledgerTransaction.id,
+        ledgerAccountId: ledgerAccount.id,
+        amount: 100,
+        entryType: LedgerEntryType.UsageCost,
+        sourceUsageEventId: usageEvent1.id,
+        status: LedgerEntryStatus.Posted,
+        usageMeterId: usageMeter.id,
+        entryTimestamp: billingPeriod.endDate - 1000,
+      })
+
+      await setupDebitLedgerEntry({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerTransactionId: ledgerTransaction.id,
+        ledgerAccountId: ledgerAccount.id,
+        amount: 200,
+        entryType: LedgerEntryType.UsageCost,
+        sourceUsageEventId: usageEvent2.id,
+        status: LedgerEntryStatus.Posted,
+        usageMeterId: usageMeter.id,
+        entryTimestamp: billingPeriod.endDate - 1000,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await aggregateOutstandingBalanceForUsageCosts(
+          {
+            ledgerAccountId: ledgerAccount.id,
+          },
+          billingPeriod.endDate,
+          transaction
+        )
+
+        expect(result).toHaveLength(1)
+        const billingInfo = result[0]
+        expect(billingInfo.priceId).toBeNull()
+        expect(billingInfo.unitPrice).toBe(0)
+        expect(billingInfo.usageEventsPerUnit).toBe(1)
+        expect(billingInfo.balance).toBe(300) // 100 + 200
+        expect(billingInfo.usageMeterIdPriceId).toBe(
+          `${usageMeter.id}-null`
+        )
+        expect(billingInfo.usageEventIds).toContain(usageEvent1.id)
+        expect(billingInfo.usageEventIds).toContain(usageEvent2.id)
+        expect(billingInfo.usageEventIds.length).toBe(2)
       })
     })
   })
