@@ -1,100 +1,19 @@
 'use client'
-import { Check, Copy } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import EditProductModal from '@/components/forms/EditProductModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
+import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import { PricesDataTable } from './prices/data-table'
-
-/**
- * Copyable field component for displaying values with a copy button.
- * Based on Figma design - copy icon is always visible.
- */
-function CopyableField({
-  value,
-  label,
-  displayText,
-}: {
-  value: string
-  label: string
-  displayText?: string
-}) {
-  const [copied, setCopied] = useState(false)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  )
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-    }
-  }, [])
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(value)
-      setCopied(true)
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-      timeoutRef.current = setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      console.error('Failed to copy:', error)
-    }
-  }
-
-  return (
-    <TooltipProvider delayDuration={300}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div
-            className="inline-flex items-center gap-1 cursor-pointer group"
-            onClick={handleCopy}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                handleCopy()
-              }
-            }}
-            aria-label={`Copy ${label}`}
-          >
-            {copied ? (
-              <Check className="h-3.5 w-3.5 text-[hsl(var(--jade-muted-foreground))] flex-shrink-0" />
-            ) : (
-              <Copy className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-            )}
-            <span className="font-sans font-medium text-sm leading-5 text-muted-foreground group-hover:underline transition-colors">
-              {copied && displayText
-                ? displayText.replace(/^Copy/, 'Copied')
-                : (displayText ?? value)}
-            </span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">
-          <p className="font-sans">{value}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  )
-}
 
 export type InternalProductDetailsPageProps = {
   product: Product.ClientRecord
