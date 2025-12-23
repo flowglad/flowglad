@@ -28,8 +28,8 @@ interface PricingModelIntegrationGuideParams {
 const hasTrials = (
   pricingModelData: SetupPricingModelInput
 ): boolean => {
-  return pricingModelData.products.some((product) =>
-    product.prices.some((price) => (price.trialPeriodDays ?? 0) > 0)
+  return pricingModelData.products.some(
+    (product) => (product.price.trialPeriodDays ?? 0) > 0
   )
 }
 

@@ -79,8 +79,8 @@ const priceOptionalFieldSchema = {
   slug: safeZodSanitizedString.optional(),
 } as const
 
-export const setupPricingModelProductPriceInputSchema =
-  z.discriminatedUnion('type', [
+export const setupPricingModelProductPriceInputSchema = z
+  .discriminatedUnion('type', [
     subscriptionPriceClientInsertSchema.omit(omitProductId).extend({
       ...priceOptionalFieldSchema,
     }),
@@ -97,34 +97,24 @@ export const setupPricingModelProductPriceInputSchema =
         ...priceOptionalFieldSchema,
       }),
   ])
+  .refine(
+    (price) => price.active === true && price.isDefault === true,
+    {
+      message: 'Price must have active=true and isDefault=true',
+    }
+  )
 
 export type SetupPricingModelProductPriceInput = z.infer<
   typeof setupPricingModelProductPriceInputSchema
 >
 
-const hasExactlyOneActiveDefaultPrice = (
-  prices: Array<{ active?: boolean; isDefault?: boolean }>
-) => {
-  return (
-    prices.filter((price) => price.active && price.isDefault)
-      .length === 1
-  )
-}
-
 const setupPricingModelProductInputSchema = z.object({
   product: productPricingModelSetupSchema.describe(
     'The product to add to the pricingModel. Must be a subset of the products in the pricingModel.'
   ),
-  prices: z
-    .array(setupPricingModelProductPriceInputSchema)
-    .min(1)
-    .refine(hasExactlyOneActiveDefaultPrice, {
-      message:
-        'Product must have exactly one price with active=true and isDefault=true',
-    })
-    .describe(
-      'The prices to add to the product. Must be a subset of the prices in the pricingModel.'
-    ),
+  price: setupPricingModelProductPriceInputSchema.describe(
+    'The price for the product. Must have active=true and isDefault=true.'
+  ),
   features: z
     .array(z.string())
     .describe(
@@ -243,7 +233,7 @@ export const validateSetupPricingModelInput = (
   )
   const pricesBySlug = core.groupBy(
     R.propOr(null, 'slug'),
-    parsed.products.flatMap((p) => p.prices)
+    parsed.products.map((p) => p.price)
   )
   const usagePriceMeterSlugs = new Set<string>()
   parsed.products.forEach((product) => {
@@ -265,35 +255,32 @@ export const validateSetupPricingModelInput = (
       }
     })
 
-    // Validate prices
-    product.prices.forEach((price) => {
-      if (!price.slug) {
+    // Validate price
+    const price = product.price
+    if (!price.slug) {
+      throw new Error(
+        `Price slug is required. Received ${JSON.stringify(price)}`
+      )
+    }
+    if (price.type === PriceType.Usage) {
+      if (!price.usageMeterSlug) {
         throw new Error(
-          `Price slug is required. Received ${JSON.stringify(price)}`
+          `Usage meter slug is required for usage price`
         )
       }
-      if (price.type === PriceType.Usage) {
-        if (!price.usageMeterSlug) {
-          throw new Error(
-            `Usage meter slug is required for usage price`
-          )
-        }
-        const usageArr = usageMetersBySlug[price.usageMeterSlug] || []
-        const usageMeter = usageArr[0]
-        if (!usageMeter) {
-          throw new Error(
-            `Usage meter with slug ${price.usageMeterSlug} does not exist`
-          )
-        }
-        usagePriceMeterSlugs.add(price.usageMeterSlug)
-      }
-      const priceSlugs = pricesBySlug[price.slug]
-      if (priceSlugs && priceSlugs.length > 1) {
+      const usageArr = usageMetersBySlug[price.usageMeterSlug] || []
+      const usageMeter = usageArr[0]
+      if (!usageMeter) {
         throw new Error(
-          `Price with slug ${price.slug} already exists`
+          `Usage meter with slug ${price.usageMeterSlug} does not exist`
         )
       }
-    })
+      usagePriceMeterSlugs.add(price.usageMeterSlug)
+    }
+    const priceSlugs = pricesBySlug[price.slug]
+    if (priceSlugs && priceSlugs.length > 1) {
+      throw new Error(`Price with slug ${price.slug} already exists`)
+    }
   })
   const usageMeterSlugs = Object.keys(usageMetersBySlug)
   usageMeterSlugs.forEach((slug) => {

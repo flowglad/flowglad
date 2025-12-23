@@ -58,9 +58,7 @@ describe('Pricing Model Templates', () => {
         )
 
         // Get all prices from all products
-        const allPrices = products.flatMap(
-          (product) => product.prices
-        )
+        const allPrices = products.map((product) => product.price)
 
         // For each usage meter, verify at least one usage type price exists
         usageMeterSlugs.forEach((meterSlug) => {

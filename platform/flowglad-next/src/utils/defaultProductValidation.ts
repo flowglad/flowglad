@@ -166,31 +166,25 @@ export const isDefaultProductFieldUpdateAllowed = (
 
 /**
  * Validates that a product is a valid default product
- * Default products must have exactly one price with amount 0
+ * Default products must have a price with amount 0
  */
 export const validateDefaultProductSchema = (product: {
   name: string
   slug?: string
-  prices: Array<{
+  price: {
     amount: number
     type: PriceType
     slug?: string
     trialDays?: number
-  }>
-}) => {
-  // Exactly one price and it must be the default price
-  if (!product.prices || product.prices.length !== 1) {
-    throw new Error('Default products must have exactly one price')
   }
-  const price = product.prices[0]
-
+}) => {
   // Check price is zero
-  if (price.amount !== 0) {
+  if (product.price.amount !== 0) {
     throw new Error('Default products must have zero price')
   }
 
   // Check no trials
-  if (price.trialDays && price.trialDays > 0) {
+  if (product.price.trialDays && product.price.trialDays > 0) {
     throw new Error('Default products cannot have trials')
   }
 }

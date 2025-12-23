@@ -144,63 +144,76 @@ export async function getPricingModelSetupData(
   // Transform products with prices (omit pricingModelId from product, productId from prices)
   const transformedProducts = productsWithPrices.map(
     ({ prices, ...product }) => {
-      const transformedPrices = prices
-        .filter((price) => price.active && price.isDefault)
-        .map((price) => {
-          // Base price fields common to all price types
-          const basePrice = {
-            name: price.name ?? undefined,
-            slug: price.slug ?? undefined,
-            unitPrice: price.unitPrice,
-            isDefault: price.isDefault,
-            active: price.active,
-          }
+      // Find the single active default price
+      const activeDefaultPrice = prices.find(
+        (price) => price.active && price.isDefault
+      )
 
-          if (price.type === PriceType.Usage) {
-            if (!price.usageMeterId) {
-              throw new Error(
-                `Price ${price.id} is a Usage price but has no usageMeterId`
-              )
-            }
-            const usageMeterSlug = usageMeterIdToSlug.get(
-              price.usageMeterId
-            )
-            if (!usageMeterSlug) {
-              throw new Error(
-                `Usage meter with ID ${price.usageMeterId} not found`
-              )
-            }
-            return {
-              ...basePrice,
-              type: PriceType.Usage as const,
-              usageMeterSlug,
-              intervalCount: price.intervalCount!,
-              intervalUnit: price.intervalUnit!,
-              usageEventsPerUnit: price.usageEventsPerUnit!,
-              trialPeriodDays: null,
-            }
-          } else if (price.type === PriceType.Subscription) {
-            return {
-              ...basePrice,
-              type: PriceType.Subscription as const,
-              intervalCount: price.intervalCount!,
-              intervalUnit: price.intervalUnit!,
-              trialPeriodDays: price.trialPeriodDays ?? undefined,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-            }
-          } else if (price.type === PriceType.SinglePayment) {
-            return {
-              ...basePrice,
-              type: PriceType.SinglePayment as const,
-              trialPeriodDays: price.trialPeriodDays ?? undefined,
-            }
-          } else {
-            throw new Error(
-              `Unknown price type: ${(price as any).type}`
-            )
-          }
-        })
+      if (!activeDefaultPrice) {
+        throw new Error(
+          `Product ${product.name} has no active default price`
+        )
+      }
+
+      // Base price fields common to all price types
+      const basePrice = {
+        name: activeDefaultPrice.name ?? undefined,
+        slug: activeDefaultPrice.slug ?? undefined,
+        unitPrice: activeDefaultPrice.unitPrice,
+        isDefault: activeDefaultPrice.isDefault,
+        active: activeDefaultPrice.active,
+      }
+
+      let transformedPrice
+
+      if (activeDefaultPrice.type === PriceType.Usage) {
+        if (!activeDefaultPrice.usageMeterId) {
+          throw new Error(
+            `Price ${activeDefaultPrice.id} is a Usage price but has no usageMeterId`
+          )
+        }
+        const usageMeterSlug = usageMeterIdToSlug.get(
+          activeDefaultPrice.usageMeterId
+        )
+        if (!usageMeterSlug) {
+          throw new Error(
+            `Usage meter with ID ${activeDefaultPrice.usageMeterId} not found`
+          )
+        }
+        transformedPrice = {
+          ...basePrice,
+          type: PriceType.Usage as const,
+          usageMeterSlug,
+          intervalCount: activeDefaultPrice.intervalCount!,
+          intervalUnit: activeDefaultPrice.intervalUnit!,
+          usageEventsPerUnit: activeDefaultPrice.usageEventsPerUnit!,
+          trialPeriodDays: null,
+        }
+      } else if (activeDefaultPrice.type === PriceType.Subscription) {
+        transformedPrice = {
+          ...basePrice,
+          type: PriceType.Subscription as const,
+          intervalCount: activeDefaultPrice.intervalCount!,
+          intervalUnit: activeDefaultPrice.intervalUnit!,
+          trialPeriodDays:
+            activeDefaultPrice.trialPeriodDays ?? undefined,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+        }
+      } else if (
+        activeDefaultPrice.type === PriceType.SinglePayment
+      ) {
+        transformedPrice = {
+          ...basePrice,
+          type: PriceType.SinglePayment as const,
+          trialPeriodDays:
+            activeDefaultPrice.trialPeriodDays ?? undefined,
+        }
+      } else {
+        throw new Error(
+          `Unknown price type: ${(activeDefaultPrice as any).type}`
+        )
+      }
 
       return {
         product: {
@@ -215,7 +228,7 @@ export async function getPricingModelSetupData(
           pluralQuantityLabel:
             product.pluralQuantityLabel ?? undefined,
         },
-        prices: transformedPrices,
+        price: transformedPrice,
         features: featureSlugsByProductId.get(product.id) || [],
       }
     }
