@@ -1772,6 +1772,13 @@
       "when": 1766069970238,
       "tag": "0253_damp_dagger",
       "breakpoints": true
+    },
+    {
+      "idx": 254,
+      "version": "7",
+      "when": 1766512800451,
+      "tag": "0254_nostalgic_imperial_guard",
+      "breakpoints": true
     }
   ]
 }
