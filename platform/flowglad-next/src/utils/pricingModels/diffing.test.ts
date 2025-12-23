@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { diffSluggedResources, type SluggedResource } from './diffing'
+import { FeatureType, UsageMeterAggregationType } from '@/types'
+import {
+  diffFeatures,
+  diffSluggedResources,
+  diffUsageMeters,
+  type FeatureDiffInput,
+  type SluggedResource,
+  type UsageMeterDiffInput,
+} from './diffing'
 
 type SlugAndName = SluggedResource<{ name: string }>
 
@@ -180,4 +188,242 @@ describe('diffSluggedResources', () => {
     expect(result.toUpdate).toHaveLength(1)
     expect(result.toUpdate[0].existing.slug).toBe('minimal')
   })
+})
+
+describe('diffFeatures', () => {
+  it('should use diffSluggedResources to compute diff', () => {
+    // Setup: existing has feature, proposed is empty
+    const existing: FeatureDiffInput[] = [
+      {
+        slug: 'foo',
+        name: 'Foo Feature',
+        description: 'A test feature',
+        type: FeatureType.Toggle,
+        active: true,
+      },
+    ]
+    const proposed: FeatureDiffInput[] = []
+
+    const result = diffFeatures(existing, proposed)
+
+    // Expectation: toRemove contains the feature
+    expect(result.toRemove).toHaveLength(1)
+    expect(result.toRemove[0].slug).toBe('foo')
+    expect(result.toCreate).toEqual([])
+    expect(result.toUpdate).toEqual([])
+  })
+
+  it('should handle feature updates', () => {
+    // Setup: existing and proposed both have same slug but different name
+    const existing: FeatureDiffInput[] = [
+      {
+        slug: 'foo',
+        name: 'Old Name',
+        description: 'A test feature',
+        type: FeatureType.Toggle,
+        active: true,
+      },
+    ]
+    const proposed: FeatureDiffInput[] = [
+      {
+        slug: 'foo',
+        name: 'New Name',
+        description: 'A test feature',
+        type: FeatureType.Toggle,
+        active: true,
+      },
+    ]
+
+    const result = diffFeatures(existing, proposed)
+
+    // Expectation: toUpdate contains the feature with name change
+    expect(result.toRemove).toEqual([])
+    expect(result.toCreate).toEqual([])
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].existing.name).toBe('Old Name')
+    expect(result.toUpdate[0].proposed.name).toBe('New Name')
+  })
+
+  it('should handle feature creation', () => {
+    // Setup: proposed has new feature not in existing
+    const existing: FeatureDiffInput[] = []
+    const proposed: FeatureDiffInput[] = [
+      {
+        slug: 'new-feature',
+        name: 'New Feature',
+        description: 'A new feature',
+        type: FeatureType.Toggle,
+        active: true,
+      },
+    ]
+
+    const result = diffFeatures(existing, proposed)
+
+    // Expectation: toCreate contains the new feature
+    expect(result.toRemove).toEqual([])
+    expect(result.toCreate).toHaveLength(1)
+    expect(result.toCreate[0].slug).toBe('new-feature')
+    expect(result.toUpdate).toEqual([])
+  })
+
+  it('should handle mixed changes for features', () => {
+    // Setup: remove one, update one, create one
+    const existing: FeatureDiffInput[] = [
+      {
+        slug: 'remove-me',
+        name: 'Remove',
+        description: 'Will be removed',
+        type: FeatureType.Toggle,
+        active: true,
+      },
+      {
+        slug: 'update-me',
+        name: 'Old',
+        description: 'Will be updated',
+        type: FeatureType.Toggle,
+        active: true,
+      },
+    ]
+    const proposed: FeatureDiffInput[] = [
+      {
+        slug: 'update-me',
+        name: 'New',
+        description: 'Will be updated',
+        type: FeatureType.Toggle,
+        active: false,
+      },
+      {
+        slug: 'create-me',
+        name: 'Create',
+        description: 'Will be created',
+        type: FeatureType.Toggle,
+        active: true,
+      },
+    ]
+
+    const result = diffFeatures(existing, proposed)
+
+    // Expectations
+    expect(result.toRemove).toHaveLength(1)
+    expect(result.toRemove[0].slug).toBe('remove-me')
+    expect(result.toCreate).toHaveLength(1)
+    expect(result.toCreate[0].slug).toBe('create-me')
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].existing.name).toBe('Old')
+    expect(result.toUpdate[0].proposed.name).toBe('New')
+  })
+
+  // TODO: after validation is implemented, add tests for permitted feature update fields
+})
+
+describe('diffUsageMeters', () => {
+  it('should use diffSluggedResources to compute diff', () => {
+    // Setup: existing has usage meter, proposed is empty
+    const existing: UsageMeterDiffInput[] = [
+      {
+        slug: 'foo',
+        name: 'Foo Meter',
+        aggregationType: UsageMeterAggregationType.Sum,
+      },
+    ]
+    const proposed: UsageMeterDiffInput[] = []
+
+    const result = diffUsageMeters(existing, proposed)
+
+    // Expectation: toRemove contains the usage meter
+    expect(result.toRemove).toHaveLength(1)
+    expect(result.toRemove[0].slug).toBe('foo')
+    expect(result.toCreate).toEqual([])
+    expect(result.toUpdate).toEqual([])
+  })
+
+  it('should handle usage meter updates', () => {
+    // Setup: existing and proposed both have same slug but different name
+    const existing: UsageMeterDiffInput[] = [
+      {
+        slug: 'foo',
+        name: 'Old Name',
+        aggregationType: UsageMeterAggregationType.Sum,
+      },
+    ]
+    const proposed: UsageMeterDiffInput[] = [
+      {
+        slug: 'foo',
+        name: 'New Name',
+        aggregationType: UsageMeterAggregationType.Sum,
+      },
+    ]
+
+    const result = diffUsageMeters(existing, proposed)
+
+    // Expectation: toUpdate contains the usage meter with name change
+    expect(result.toRemove).toEqual([])
+    expect(result.toCreate).toEqual([])
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].existing.name).toBe('Old Name')
+    expect(result.toUpdate[0].proposed.name).toBe('New Name')
+  })
+
+  it('should handle usage meter creation', () => {
+    // Setup: proposed has new usage meter not in existing
+    const existing: UsageMeterDiffInput[] = []
+    const proposed: UsageMeterDiffInput[] = [
+      {
+        slug: 'new-meter',
+        name: 'New Meter',
+        aggregationType:
+          UsageMeterAggregationType.CountDistinctProperties,
+      },
+    ]
+
+    const result = diffUsageMeters(existing, proposed)
+
+    // Expectation: toCreate contains the new usage meter
+    expect(result.toRemove).toEqual([])
+    expect(result.toCreate).toHaveLength(1)
+    expect(result.toCreate[0].slug).toBe('new-meter')
+    expect(result.toUpdate).toEqual([])
+  })
+
+  it('should handle mixed changes for usage meters', () => {
+    // Setup: remove one, update one, create one
+    const existing: UsageMeterDiffInput[] = [
+      {
+        slug: 'remove-me',
+        name: 'Remove',
+        aggregationType: UsageMeterAggregationType.Sum,
+      },
+      {
+        slug: 'update-me',
+        name: 'Old',
+        aggregationType: UsageMeterAggregationType.Sum,
+      },
+    ]
+    const proposed: UsageMeterDiffInput[] = [
+      {
+        slug: 'update-me',
+        name: 'New',
+        aggregationType:
+          UsageMeterAggregationType.CountDistinctProperties,
+      },
+      {
+        slug: 'create-me',
+        name: 'Create',
+        aggregationType: UsageMeterAggregationType.Sum,
+      },
+    ]
+
+    const result = diffUsageMeters(existing, proposed)
+
+    // Expectations
+    expect(result.toRemove).toHaveLength(1)
+    expect(result.toRemove[0].slug).toBe('remove-me')
+    expect(result.toCreate).toHaveLength(1)
+    expect(result.toCreate[0].slug).toBe('create-me')
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].existing.name).toBe('Old')
+    expect(result.toUpdate[0].proposed.name).toBe('New')
+  })
+
+  // TODO: after validation is implemented, add tests for permitted usage meter update fields
 })
