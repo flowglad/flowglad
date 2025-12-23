@@ -46,6 +46,7 @@ interface CustomersDataTableProps {
     | 'link'
     | 'secondary'
     | 'destructive'
+  hiddenColumns?: string[]
 }
 
 export function CustomersDataTable({
@@ -53,6 +54,7 @@ export function CustomersDataTable({
   title,
   onCreateCustomer,
   buttonVariant = 'default',
+  hiddenColumns = [],
 }: CustomersDataTableProps) {
   const router = useRouter()
 
@@ -97,7 +99,9 @@ export function CustomersDataTable({
 
   // Client-side sorting/filtering removed; handled server-side
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>(() =>
+      Object.fromEntries(hiddenColumns.map((col) => [col, false]))
+    )
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
   const [isExporting, setIsExporting] = React.useState(false)
@@ -191,7 +195,7 @@ export function CustomersDataTable({
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
+      <div className="flex items-center justify-between pt-4 pb-3 px-2 gap-4 min-w-0">
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
           {title && <h3 className="text-lg truncate">{title}</h3>}
         </div>
@@ -298,7 +302,7 @@ export function CustomersDataTable({
       </Table>
 
       {/* Enterprise pagination with built-in selection count */}
-      <div className="py-2">
+      <div className="py-2 px-2">
         <DataTablePagination
           table={table}
           totalCount={data?.total}

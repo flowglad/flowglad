@@ -1,5 +1,12 @@
 'use client'
-import { Check, Copy, Download, Sparkles, Star } from 'lucide-react'
+import {
+  Check,
+  Copy,
+  Download,
+  Pencil,
+  Sparkles,
+  Star,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -214,6 +221,14 @@ function InnerPricingModelDetailsPage({
 
   const moreMenuItems: PopoverMenuItem[] = [
     {
+      label: 'Edit name',
+      handler: () => {
+        setIsMoreMenuOpen(false)
+        setIsEditOpen(true)
+      },
+      icon: <Pencil className="h-4 w-4" />,
+    },
+    {
       label: 'Integrate',
       handler: () => {
         setIsMoreMenuOpen(false)
@@ -258,6 +273,7 @@ function InnerPricingModelDetailsPage({
           title={pricingModel.name}
           breadcrumb="All Pricing"
           onBreadcrumbClick={() => router.push('/pricing-models')}
+          className="pb-4"
           badges={
             pricingModel.isDefault
               ? [
@@ -307,13 +323,6 @@ function InnerPricingModelDetailsPage({
               </Popover>
             </div>
           }
-          actions={[
-            {
-              label: 'Edit',
-              onClick: () => setIsEditOpen(true),
-              variant: 'secondary',
-            },
-          ]}
         />
 
         <ExpandSection
@@ -329,6 +338,7 @@ function InnerPricingModelDetailsPage({
             onFilterChange={setActiveProductFilter}
             onCreateProduct={() => setIsCreateProductModalOpen(true)}
             buttonVariant="outline"
+            hiddenColumns={['productId', 'slug']}
           />
         </ExpandSection>
         <ExpandSection
@@ -343,6 +353,7 @@ function InnerPricingModelDetailsPage({
             onFilterChange={setActiveFeatureFilter}
             onCreateFeature={() => setIsCreateFeatureModalOpen(true)}
             buttonVariant="outline"
+            hiddenColumns={['slug', 'id']}
           />
         </ExpandSection>
         <ExpandSection
@@ -369,6 +380,7 @@ function InnerPricingModelDetailsPage({
               setIsCreateCustomerModalOpen(true)
             }
             buttonVariant="outline"
+            hiddenColumns={['payments', 'createdAt', 'customerId']}
           />
         </ExpandSection>
       </div>
