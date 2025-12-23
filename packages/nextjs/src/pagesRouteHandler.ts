@@ -52,11 +52,26 @@ export interface PagesRouteHandlerOptions {
   /**
    * Side effect to run before the request is processed.
    */
-  beforeRequest?: () => Promise<void>
+  beforeRequest?: (
+    req: NextApiRequest,
+    context: {
+      path: string[]
+      method: HTTPMethod
+      query?: Record<string, string>
+      body?: unknown
+    }
+  ) => Promise<void>
   /**
    * Side effect to run after the request is processed.
    */
-  afterRequest?: () => Promise<void>
+  afterRequest?: (
+    req: NextApiRequest,
+    result: {
+      status: number
+      data?: unknown
+      error?: unknown
+    }
+  ) => Promise<void>
 }
 
 /**
@@ -107,20 +122,38 @@ export interface PagesRouteHandlerOptions {
 export const pagesRouteHandler = (
   options: PagesRouteHandlerOptions
 ): ((req: NextApiRequest, res: NextApiResponse) => Promise<void>) => {
-  const handler = requestHandler<NextApiRequest>(options)
+  const { beforeRequest, afterRequest, ...requestHandlerOptions } =
+    options
+  const handler = requestHandler<NextApiRequest>(
+    requestHandlerOptions
+  )
 
   return async (req: NextApiRequest, res: NextApiResponse) => {
+    const path = req.query.path as string[]
+    const method = req.method as HTTPMethod
+    const query =
+      req.method === 'GET'
+        ? normalizeQueryParameters(req.query)
+        : undefined
+    const body = req.method !== 'GET' ? req.body : undefined
+
+    let result: {
+      status: number
+      data?: unknown
+      error?: unknown
+    } | null = null
+
     try {
-      const path = req.query.path as string[]
-      const result = await handler(
+      if (beforeRequest) {
+        await beforeRequest(req, { path, method, query, body })
+      }
+
+      result = await handler(
         {
           path,
-          method: req.method as HTTPMethod,
-          query:
-            req.method === 'GET'
-              ? normalizeQueryParameters(req.query)
-              : undefined,
-          body: req.method !== 'GET' ? req.body : undefined,
+          method,
+          query,
+          body,
         },
         req
       )
@@ -131,7 +164,8 @@ export const pagesRouteHandler = (
       })
     } catch (error) {
       options.onError?.(error)
-      res.status(500).json({
+      const errorResult = {
+        status: 500,
         error: {
           message:
             error instanceof Error
@@ -139,7 +173,16 @@ export const pagesRouteHandler = (
               : 'Internal server error',
         },
         data: null,
+      }
+      res.status(errorResult.status).json({
+        error: errorResult.error,
+        data: errorResult.data,
       })
+      result = errorResult
+    } finally {
+      if (afterRequest && result) {
+        await afterRequest(req, result)
+      }
     }
   }
 }
