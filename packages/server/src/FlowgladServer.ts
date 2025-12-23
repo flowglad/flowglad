@@ -11,6 +11,7 @@ import {
   constructCheckUsageBalance,
   constructGetPrice,
   constructGetProduct,
+  constructHasPurchased,
   createActivateSubscriptionCheckoutSessionSchema,
   createAddPaymentMethodCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
@@ -98,6 +99,10 @@ export class FlowgladServer {
       ),
       getProduct: constructGetProduct(rawBilling.catalog),
       getPrice: constructGetPrice(rawBilling.catalog),
+      hasPurchased: constructHasPurchased(
+        rawBilling.catalog,
+        rawBilling.purchases
+      ),
     }
   }
 

@@ -96,6 +96,14 @@ export type BillingWithChecks = CustomerRetrieveBillingResponse & {
    * @returns The price, or null if the price is not found
    */
   getPrice: (priceSlug: string) => Price | null
+
+  /**
+   * @experimental
+   * Checks if a customer has purchased a specific product, based on the product's slug
+   * @param productSlug - The slug of the product to check
+   * @returns True if the customer has purchased the product, false otherwise
+   */
+  hasPurchased: (productSlug: string) => boolean
 }
 
 export type SubscriptionExperimentalFields =

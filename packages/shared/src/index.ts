@@ -42,5 +42,6 @@ export {
   constructCheckUsageBalance,
   constructGetPrice,
   constructGetProduct,
+  constructHasPurchased,
   getBaseURL,
 } from './utils'
