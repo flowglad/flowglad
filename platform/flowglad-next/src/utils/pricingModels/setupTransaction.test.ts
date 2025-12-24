@@ -665,7 +665,8 @@ describe('setupPricingModelTransaction (integration)', () => {
               intervalUnit: IntervalUnit.Month,
               intervalCount: 1,
               unitPrice: 100,
-              currency: 'INVALID_CURRENCY' as any, // Invalid currency
+              // @ts-expect-error Testing invalid currency value for validation
+              currency: 'INVALID_CURRENCY',
             },
             features: [],
           },

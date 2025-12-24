@@ -283,7 +283,6 @@ describe('getPricingModelSetupData', () => {
       (p) => p.product.slug === 'api-usage'
     )
     expect(apiUsageProduct).toBeDefined()
-    expect(apiUsageProduct?.price).toBeDefined()
     const apiUsagePrice = apiUsageProduct?.price
     expect(apiUsagePrice?.type).toBe(PriceType.Usage)
     if (apiUsagePrice?.type === PriceType.Usage) {
@@ -298,8 +297,6 @@ describe('getPricingModelSetupData', () => {
     const storageUsageProduct = fetchedData.products.find(
       (p) => p.product.slug === 'storage-usage'
     )
-    expect(storageUsageProduct).toBeDefined()
-    expect(storageUsageProduct?.price).toBeDefined()
     const storageUsagePrice = storageUsageProduct?.price
     expect(storageUsagePrice?.type).toBe(PriceType.Usage)
     if (storageUsagePrice?.type === PriceType.Usage) {
@@ -315,7 +312,6 @@ describe('getPricingModelSetupData', () => {
       (p) => p.product.slug === 'addon'
     )
     expect(addonProduct).toBeDefined()
-    expect(addonProduct?.price).toBeDefined()
     const singlePaymentPrice = addonProduct?.price
     expect(singlePaymentPrice?.type).toBe(PriceType.SinglePayment)
 
@@ -451,7 +447,6 @@ describe('getPricingModelSetupData', () => {
     expect(fetchedProduct).toBeDefined()
 
     // Verify only the active default price is included
-    expect(fetchedProduct?.price).toBeDefined()
     expect(fetchedProduct?.price?.slug).toBe('active-default-price')
     expect(fetchedProduct?.price?.isDefault).toBe(true)
     expect(fetchedProduct?.price?.active).toBe(true)
