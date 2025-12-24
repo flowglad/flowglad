@@ -1,4 +1,5 @@
 import { useFormContext } from 'react-hook-form'
+import { z } from 'zod'
 import {
   FormControl,
   FormField,
@@ -8,6 +9,26 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import type { Customer } from '@/db/schema/customers'
+
+/**
+ * Zod schemas for customer form validation
+ */
+const nameSchema = z
+  .string()
+  .min(2, `Please enter the customer's full name`)
+
+const emailSchema = z
+  .string()
+  .email('Please enter a valid email address')
+
+export const customerSchema = z.object({
+  customer: z.object({
+    name: nameSchema,
+    email: emailSchema,
+  }),
+})
+
+export type CustomerFormValues = z.infer<typeof customerSchema>
 
 const CustomerFormFields = () => {
   const form = useFormContext<{
@@ -19,14 +40,6 @@ const CustomerFormFields = () => {
       <FormField
         control={form.control}
         name="customer.name"
-        rules={{
-          required: true,
-          validate: (value) => {
-            if (value && value.length < 2) {
-              return `Please enter the customer's full name`
-            }
-          },
-        }}
         render={({ field }) => (
           <FormItem>
             <FormLabel>Customer Name</FormLabel>
@@ -40,19 +53,6 @@ const CustomerFormFields = () => {
       <FormField
         control={form.control}
         name="customer.email"
-        rules={{
-          required: true,
-          validate: (value) => {
-            if (
-              value &&
-              !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(
-                value
-              )
-            ) {
-              return 'Please enter a valid email address'
-            }
-          },
-        }}
         render={({ field }) => (
           <FormItem>
             <FormLabel>Customer Email</FormLabel>
