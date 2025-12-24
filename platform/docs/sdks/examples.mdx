@@ -278,7 +278,7 @@ const flowglad = (customerExternalId: string) => {
   })
 }
 
-+const flowgladServerConstructor = async (req: Request) => {
+const flowgladServerConstructor = async (req: Request) => {
   // Extract customerExternalId from your auth/session
   // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
   const token = req.headers.authorization?.replace('Bearer ', '')
