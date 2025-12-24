@@ -34,9 +34,6 @@ jobs:
         run: bun run install-packages --no-progress
       - name: Generate OpenAPI spec
         run: bunx tsx src/scripts/openApiDoc.ts openapi-temp.json --skip-env-pull
-        env:
-          NODE_ENV: production
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - name: Check for OpenAPI differences
         uses: oasdiff/oasdiff-action/diff@main
         with:
