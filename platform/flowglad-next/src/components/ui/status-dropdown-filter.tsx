@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, ChevronDown } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import * as React from 'react'
 import {
   DropdownMenu,
@@ -69,13 +69,8 @@ function StatusDropdownFilter({
             <DropdownMenuRadioItem
               key={option.value}
               value={option.value}
-              className="relative flex cursor-pointer select-none items-center rounded py-1.5 pl-8 pr-2 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+              className="cursor-pointer"
             >
-              <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                {value === option.value && (
-                  <Check className="h-4 w-4" />
-                )}
-              </span>
               {option.label}
             </DropdownMenuRadioItem>
           ))}
