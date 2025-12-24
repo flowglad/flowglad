@@ -40,3 +40,6 @@ playground/react-native/prisma/database.sqlite
 
 # Git worktrees
 .conductor
+
+# openapi diffing
+temp-openapi**.json

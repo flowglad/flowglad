@@ -30,7 +30,8 @@
     "shadcn:build": "shadcn build --output 'public/ui'",
     "validate:registry": "bun run src/scripts/validate-registry.ts",
     "test:telemetry": "bun run scripts/verify-telemetry.ts",
-    "openapi:generate": "bun run src/scripts/openApiDoc.ts"
+    "openapi:generate": "bun run src/scripts/openApiDoc.ts",
+    "openapi:generate-diffables": "bun src/scripts/makeOpenApiDiffable.ts openapi.json temp-openapi__diffable.json && bun src/scripts/openApiDoc.ts temp-openapi-head.json && bun src/scripts/makeOpenApiDiffable.ts temp-openapi-head.json"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.69",
@@ -182,20 +183,21 @@
     "tailwind-variants": "^0.2.1",
     "tailwindcss-animate": "1.0.7",
     "tippy.js": "^6.3.7",
-    "trpc-to-openapi": "3.0.1",
+    "trpc-to-openapi": "3.1.0",
     "tsx": "^4.17.0",
     "undici": "^7.10.0",
     "vaul": "1.1.2",
     "ws": "8.18.3",
     "yaml": "^2.8.1",
     "zod": "4.1.5",
-    "zod-openapi": "5.4.0"
+    "zod-openapi": "5.4.5"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
     "@babel/preset-env": "^7.24.0",
     "@babel/preset-react": "^7.25.9",
     "@babel/preset-typescript": "^7.26.0",
+    "@biomejs/biome": "^2.3.8",
     "@sentry/esbuild-plugin": "^2.23.1",
     "@testing-library/dom": "10.4.0",
     "@testing-library/jest-dom": "6.6.3",
@@ -210,7 +212,6 @@
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.0",
     "@vitejs/plugin-react": "4.3.4",
-    "@biomejs/biome": "^2.3.8",
     "autoprefixer": "^10.4.20",
     "babel-plugin-syntax-trailing-function-commas": "^6.22.0",
     "chalk": "5.6.2",
@@ -221,6 +222,7 @@
     "jsdom": "26.1.0",
     "msw": "^2.7.0",
     "node-loader": "^2.1.0",
+    "patch-package": "^8.0.1",
     "postcss": "^8",
     "require-in-the-middle": "7.4.0",
     "tailwindcss": "^3.4.1",
