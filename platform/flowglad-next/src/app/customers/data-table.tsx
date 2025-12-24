@@ -15,9 +15,8 @@ import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { Button } from '@/components/ui/button'
-import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
+import { InlineSearch } from '@/components/ui/inline-search'
 import {
   Table,
   TableBody,
@@ -53,7 +52,7 @@ export function CustomersDataTable({
   filters = {},
   title,
   onCreateCustomer,
-  buttonVariant = 'default',
+  buttonVariant = 'secondary',
   hiddenColumns = [],
 }: CustomersDataTableProps) {
   const router = useRouter()
@@ -195,24 +194,29 @@ export function CustomersDataTable({
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between pt-4 pb-3 px-2 gap-4 min-w-0">
-        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && <h3 className="text-lg truncate">{title}</h3>}
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <CollapsibleSearch
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 pt-1 pb-2 px-4">
+        {/* Title row */}
+        {title && (
+          <div>
+            <h3 className="text-lg truncate">{title}</h3>
+          </div>
+        )}
+        {/* Redesigned toolbar matching Figma specs */}
+        <div className="flex items-center gap-1">
+          <InlineSearch
             value={inputValue}
             onChange={setInputValue}
-            placeholder="Name, email, cust_id..."
-            disabled={isLoading}
+            placeholder="Search customers..."
             isLoading={isFetching}
+            disabled={isLoading}
+            className="flex-1"
           />
-          <DataTableViewOptions table={table} />
           {onCreateCustomer && (
             <Button
               onClick={onCreateCustomer}
               variant={buttonVariant}
+              size="sm"
             >
               <Plus className="w-4 h-4 mr-2" />
               Create Customer

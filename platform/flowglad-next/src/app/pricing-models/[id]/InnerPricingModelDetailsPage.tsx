@@ -249,8 +249,8 @@ function InnerPricingModelDetailsPage({
             activeFilter={activeProductFilter}
             onFilterChange={setActiveProductFilter}
             onCreateProduct={() => setIsCreateProductModalOpen(true)}
-            buttonVariant="outline"
-            hiddenColumns={['productId', 'slug']}
+            buttonVariant="secondary"
+            hiddenColumns={['productId', 'slug', 'status']}
           />
         </ExpandSection>
         <ExpandSection
@@ -264,8 +264,8 @@ function InnerPricingModelDetailsPage({
             activeFilter={activeFeatureFilter}
             onFilterChange={setActiveFeatureFilter}
             onCreateFeature={() => setIsCreateFeatureModalOpen(true)}
-            buttonVariant="outline"
-            hiddenColumns={['slug', 'id']}
+            buttonVariant="secondary"
+            hiddenColumns={['slug', 'id', 'status']}
           />
         </ExpandSection>
         <ExpandSection
@@ -278,7 +278,7 @@ function InnerPricingModelDetailsPage({
             onCreateUsageMeter={() =>
               setIsCreateUsageMeterModalOpen(true)
             }
-            buttonVariant="outline"
+            buttonVariant="secondary"
           />
         </ExpandSection>
         <ExpandSection
@@ -291,7 +291,7 @@ function InnerPricingModelDetailsPage({
             onCreateCustomer={() =>
               setIsCreateCustomerModalOpen(true)
             }
-            buttonVariant="outline"
+            buttonVariant="secondary"
             hiddenColumns={['payments', 'createdAt', 'customerId']}
           />
         </ExpandSection>

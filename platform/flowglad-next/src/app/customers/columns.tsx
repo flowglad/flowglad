@@ -102,7 +102,7 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     id: 'name',
     accessorFn: (row) => row.customer.name,
-    header: 'Name',
+    header: 'Customer',
     cell: ({ row }) => (
       <div className="truncate" title={row.getValue('name')}>
         {row.getValue('name')}

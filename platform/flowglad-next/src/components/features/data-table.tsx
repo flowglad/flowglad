@@ -16,10 +16,11 @@ import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { Button } from '@/components/ui/button'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
-import { FilterButtonGroup } from '@/components/ui/filter-button-group'
+import { InlineSearch } from '@/components/ui/inline-search'
+import { StatusDropdownFilter } from '@/components/ui/status-dropdown-filter'
 import {
   Table,
   TableBody,
@@ -59,10 +60,14 @@ export function FeaturesDataTable({
   filterOptions,
   activeFilter,
   onFilterChange,
-  buttonVariant = 'default',
+  buttonVariant = 'secondary',
   hiddenColumns = [],
 }: FeaturesDataTableProps) {
   const router = useRouter()
+
+  // Server-side search with debounce
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(300)
 
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -79,6 +84,7 @@ export function FeaturesDataTable({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
+    searchQuery: searchQuery,
     useQuery: trpc.features.getTableRows.useQuery,
   })
 
@@ -88,6 +94,12 @@ export function FeaturesDataTable({
     goToFirstPage()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey])
+
+  // Reset to first page when debounced search changes
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
 
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -149,39 +161,40 @@ export function FeaturesDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar */}
-      <div className="flex flex-col gap-3 pt-4 pb-2 px-2">
+      <div className="flex flex-col gap-3 pt-1 pb-2 px-4">
         {/* Title row */}
         {title && (
           <div>
             <h3 className="text-lg truncate">{title}</h3>
           </div>
         )}
-        {/* Filter buttons and controls row */}
-        <div className="flex items-center justify-between gap-4 min-w-0">
-          {/* Filter buttons on the left */}
-          <div className="flex items-center min-w-0 flex-shrink overflow-hidden">
-            {filterOptions && activeFilter && onFilterChange && (
-              <FilterButtonGroup
-                options={filterOptions}
-                value={activeFilter}
-                onValueChange={onFilterChange}
-              />
-            )}
-          </div>
-
-          {/* Controls on the right */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <DataTableViewOptions table={table} />
-            {onCreateFeature && (
-              <Button
-                onClick={onCreateFeature}
-                variant={buttonVariant}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Feature
-              </Button>
-            )}
-          </div>
+        {/* Redesigned toolbar matching Figma specs */}
+        <div className="flex items-center gap-1">
+          <InlineSearch
+            value={inputValue}
+            onChange={setInputValue}
+            placeholder="Search features..."
+            isLoading={isFetching}
+            disabled={isLoading}
+            className="flex-1"
+          />
+          {filterOptions && activeFilter && onFilterChange && (
+            <StatusDropdownFilter
+              value={activeFilter}
+              onChange={onFilterChange}
+              options={filterOptions}
+            />
+          )}
+          {onCreateFeature && (
+            <Button
+              onClick={onCreateFeature}
+              variant={buttonVariant}
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Feature
+            </Button>
+          )}
         </div>
       </div>
 
@@ -293,7 +306,9 @@ export function FeaturesDataTable({
         <DataTablePagination
           table={table}
           totalCount={data?.total}
-          isFiltered={Object.keys(filters).length > 0}
+          isFiltered={
+            !!searchQuery || Object.keys(filters).length > 0
+          }
           filteredCount={data?.total}
         />
       </div>
