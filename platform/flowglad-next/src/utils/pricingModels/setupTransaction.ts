@@ -57,12 +57,12 @@ export const setupPricingModelTransaction = async (
     validateDefaultProductSchema({
       name: defaultProduct.product.name,
       slug: defaultProduct.product.slug || undefined,
-      prices: defaultProduct.prices.map((p) => ({
-        amount: p.unitPrice,
-        type: p.type,
-        slug: p.slug || undefined,
-        trialDays: p.trialPeriodDays || undefined,
-      })),
+      price: {
+        amount: defaultProduct.price.unitPrice,
+        type: defaultProduct.price.type,
+        slug: defaultProduct.price.slug || undefined,
+        trialDays: defaultProduct.price.trialPeriodDays || undefined,
+      },
     })
   }
 
@@ -176,7 +176,7 @@ export const setupPricingModelTransaction = async (
     products.map((product) => [product.externalId, product])
   )
 
-  const priceInserts: Price.Insert[] = input.products.flatMap(
+  const priceInserts: Price.Insert[] = input.products.map(
     (product) => {
       const productId = productsByExternalId.get(
         externalIdFromProductData(product, pricingModel.id)
@@ -184,80 +184,79 @@ export const setupPricingModelTransaction = async (
       if (!productId) {
         throw new Error(`Product ${product.product.name} not found`)
       }
-      return product.prices.map((price) => {
-        switch (price.type) {
-          case PriceType.Usage: {
-            const usageMeterId = usageMetersBySlug.get(
-              price.usageMeterSlug
-            )?.id
-            if (!usageMeterId) {
-              throw new Error(
-                `Usage meter ${price.usageMeterSlug} not found`
-              )
-            }
-            return {
-              type: PriceType.Usage,
-              name: price.name ?? null,
-              slug: price.slug ?? null,
-              unitPrice: price.unitPrice,
-              isDefault: price.isDefault,
-              active: price.active,
-              intervalCount: price.intervalCount,
-              intervalUnit: price.intervalUnit,
-              trialPeriodDays: price.trialPeriodDays,
-              usageEventsPerUnit: price.usageEventsPerUnit,
-              currency: organization.defaultCurrency,
-              productId,
-              livemode,
-              externalId: null,
-              usageMeterId,
-            }
+      const price = product.price
+      switch (price.type) {
+        case PriceType.Usage: {
+          const usageMeterId = usageMetersBySlug.get(
+            price.usageMeterSlug
+          )?.id
+          if (!usageMeterId) {
+            throw new Error(
+              `Usage meter ${price.usageMeterSlug} not found`
+            )
+          }
+          return {
+            type: PriceType.Usage,
+            name: price.name ?? null,
+            slug: price.slug ?? null,
+            unitPrice: price.unitPrice,
+            isDefault: price.isDefault,
+            active: price.active,
+            intervalCount: price.intervalCount,
+            intervalUnit: price.intervalUnit,
+            trialPeriodDays: price.trialPeriodDays,
+            usageEventsPerUnit: price.usageEventsPerUnit,
+            currency: organization.defaultCurrency,
+            productId,
+            livemode,
+            externalId: null,
+            usageMeterId,
+          }
+        }
+
+        case PriceType.Subscription:
+          return {
+            type: PriceType.Subscription,
+            name: price.name ?? null,
+            slug: price.slug ?? null,
+            unitPrice: price.unitPrice,
+            isDefault: price.isDefault,
+            active: price.active,
+            intervalCount: price.intervalCount,
+            intervalUnit: price.intervalUnit,
+            trialPeriodDays: price.trialPeriodDays,
+            usageEventsPerUnit: price.usageEventsPerUnit,
+            currency: organization.defaultCurrency,
+            productId,
+            livemode,
+            externalId: null,
+            usageMeterId: null,
           }
 
-          case PriceType.Subscription:
-            return {
-              type: PriceType.Subscription,
-              name: price.name ?? null,
-              slug: price.slug ?? null,
-              unitPrice: price.unitPrice,
-              isDefault: price.isDefault,
-              active: price.active,
-              intervalCount: price.intervalCount,
-              intervalUnit: price.intervalUnit,
-              trialPeriodDays: price.trialPeriodDays,
-              usageEventsPerUnit: price.usageEventsPerUnit,
-              currency: organization.defaultCurrency,
-              productId,
-              livemode,
-              externalId: null,
-              usageMeterId: null,
-            }
+        case PriceType.SinglePayment:
+          return {
+            type: PriceType.SinglePayment,
+            name: price.name ?? null,
+            slug: price.slug ?? null,
+            unitPrice: price.unitPrice,
+            isDefault: price.isDefault,
+            active: price.active,
+            intervalCount: null,
+            intervalUnit: null,
+            trialPeriodDays: price.trialPeriodDays,
+            usageEventsPerUnit: price.usageEventsPerUnit,
+            currency: organization.defaultCurrency,
+            productId,
+            livemode,
+            externalId: null,
+            usageMeterId: null,
+          }
 
-          case PriceType.SinglePayment:
-            return {
-              type: PriceType.SinglePayment,
-              name: price.name ?? null,
-              slug: price.slug ?? null,
-              unitPrice: price.unitPrice,
-              isDefault: price.isDefault,
-              active: price.active,
-              intervalCount: null,
-              intervalUnit: null,
-              trialPeriodDays: price.trialPeriodDays,
-              usageEventsPerUnit: price.usageEventsPerUnit,
-              currency: organization.defaultCurrency,
-              productId,
-              livemode,
-              externalId: null,
-              usageMeterId: null,
-            }
-
-          default:
-            throw new Error(
-              `Unknown or unhandled price type on price: ${price}`
-            )
-        }
-      })
+        default:
+          throw new Error(
+            `Unknown or unhandled price type on price: ${price}`
+          )
+      }
     }
   )
 

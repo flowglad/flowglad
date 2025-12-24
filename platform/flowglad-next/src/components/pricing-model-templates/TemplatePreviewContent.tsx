@@ -90,17 +90,12 @@ export function TemplatePreviewContent({
   const getDefaultPrice = (
     product: (typeof template.input.products)[0]
   ) => {
-    const monthlyPrice = product.prices.find(
-      (p) =>
-        p.intervalUnit === IntervalUnit.Month && p.intervalCount === 1
-    )
-    const defaultPrice = product.prices.find((p) => p.isDefault)
-    return monthlyPrice || defaultPrice || product.prices[0]
+    return product.price
   }
 
   // Get the appropriate suffix for a price based on its type and product labels
   const getPriceSuffix = (
-    price: (typeof template.input.products)[0]['prices'][0],
+    price: (typeof template.input.products)[0]['price'],
     product: (typeof template.input.products)[0]
   ) => {
     if (price.type === PriceType.Usage) {
@@ -203,27 +198,26 @@ export function TemplatePreviewContent({
                   {/* Expanded Details */}
                   {isExpanded && (
                     <div className="px-6 pb-3 flex flex-col gap-2.5">
-                      {/* Prices List - Show all prices from all products in the group */}
-                      {group.products.flatMap((product) =>
-                        product.prices.map(
-                          (price: (typeof product.prices)[0]) => (
-                            <div
-                              key={price.slug}
-                              className="flex gap-2.5 items-start w-full"
-                            >
-                              <div className="flex gap-2.5 items-center py-0.5 px-0">
-                                <Check className="h-3.5 w-3.5 text-accent-foreground flex-shrink-0" />
-                              </div>
-                              <span className="flex-1 min-w-0 text-sm text-accent-foreground">
-                                {formatCurrency(
-                                  price.unitPrice
-                                ).replace('.00', '')}
-                                {getPriceSuffix(price, product)}
-                              </span>
+                      {/* Prices List - Show price from each product in the group */}
+                      {group.products.map((product) => {
+                        const price = product.price
+                        return (
+                          <div
+                            key={price.slug}
+                            className="flex gap-2.5 items-start w-full"
+                          >
+                            <div className="flex gap-2.5 items-center py-0.5 px-0">
+                              <Check className="h-3.5 w-3.5 text-accent-foreground flex-shrink-0" />
                             </div>
-                          )
+                            <span className="flex-1 min-w-0 text-sm text-accent-foreground">
+                              {formatCurrency(
+                                price.unitPrice
+                              ).replace('.00', '')}
+                              {getPriceSuffix(price, product)}
+                            </span>
+                          </div>
                         )
-                      )}
+                      })}
 
                       {/* Features List - Use features from first product (all products in group should have same features) */}
                       {firstProduct.features.map(

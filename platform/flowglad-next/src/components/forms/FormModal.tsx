@@ -255,7 +255,7 @@ const FormModal = <T extends FieldValues>({
   const form = useForm<T>({
     resolver: async (data, context, options) => {
       try {
-        // @ts-ignore
+        // @ts-expect-error
         return await zodResolver(formSchema)(data, context, options)
       } catch (error) {
         // Catch any errors thrown by zodResolver
