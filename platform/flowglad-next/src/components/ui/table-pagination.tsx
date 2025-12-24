@@ -43,7 +43,12 @@ export function TablePagination({
           size="sm"
           onClick={() => onPageChange(pageIndex - 1)}
           disabled={!canGoPrevious}
-          style={total <= 10 ? { opacity: 0 } : undefined}
+          className={
+            pageIndex === 0
+              ? 'opacity-0 disabled:opacity-0 pointer-events-none'
+              : ''
+          }
+          aria-hidden={pageIndex === 0}
         >
           Previous
         </Button>
@@ -52,7 +57,6 @@ export function TablePagination({
           size="sm"
           onClick={() => onPageChange(pageIndex + 1)}
           disabled={!canGoNext}
-          style={total <= 10 ? { opacity: 0 } : undefined}
         >
           Next
         </Button>

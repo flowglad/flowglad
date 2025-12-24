@@ -17,9 +17,9 @@ const customerCardVariants = cva(
     variants: {
       variant: {
         default:
-          'gap-3 px-4 py-2 border border-border rounded-[6px] bg-card-50 hover:bg-card shadow-realistic-sm',
+          'gap-3 px-4 py-2 border border-border rounded-[6px] bg-card-muted hover:bg-card shadow-realistic-sm',
         simple:
-          'gap-2 px-3 py-2 border border-border rounded-[6px] bg-card-50 hover:bg-card hover:border-muted-foreground shadow-realistic-sm',
+          'gap-2 px-3 py-2 border border-border rounded-[6px] bg-card-muted hover:bg-card hover:border-muted-foreground shadow-realistic-sm',
       },
     },
     defaultVariants: {
