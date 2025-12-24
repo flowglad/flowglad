@@ -454,6 +454,33 @@ export enum SupabasePayloadType {
   DELETE = 'DELETE',
 }
 
+/**
+ * Utility type to convert camelCase string to snake_case
+ * Example: "payoutsEnabled" -> "payouts_enabled"
+ */
+type CamelToSnakeCase<S extends string> =
+  S extends `${infer T}${infer U}`
+    ? `${T extends Capitalize<T> ? '_' : ''}${Lowercase<T>}${CamelToSnakeCase<U>}`
+    : S
+
+/**
+ * Recursively converts all keys in an object from camelCase to snake_case
+ * This matches how Supabase sends database records in webhooks
+ */
+export type KeysToSnakeCase<T> = {
+  [K in keyof T as CamelToSnakeCase<string & K>]: T[K] extends object
+    ? T[K] extends Array<infer U>
+      ? Array<KeysToSnakeCase<U>>
+      : KeysToSnakeCase<T[K]>
+    : T[K]
+}
+
+/**
+ * Represents a database record with snake_case field names
+ * Use this type for Supabase webhook payloads that come directly from the database
+ */
+export type SupabaseDatabaseRecord<T> = KeysToSnakeCase<T>
+
 export interface SupabaseInsertPayload<T = object> {
   type: SupabasePayloadType.INSERT
   table: string
@@ -467,6 +494,18 @@ export interface SupabaseUpdatePayload<T = object> {
   schema: string
   record: T
   old_record: T
+}
+
+/**
+ * Supabase webhook payload with database records converted to snake_case
+ * Use this when you need to access database field names directly (e.g., payouts_enabled)
+ */
+export interface SupabaseDatabaseUpdatePayload<T = object> {
+  type: SupabasePayloadType.UPDATE
+  table: string
+  schema: string
+  record: SupabaseDatabaseRecord<T>
+  old_record: SupabaseDatabaseRecord<T>
 }
 
 /**
@@ -569,11 +608,6 @@ export enum PurchaseStatus {
   Refunded = 'refunded',
   PartialRefund = 'partial_refund',
   Fraudulent = 'fraudulent',
-}
-
-export enum PurchaseAccessSessionSource {
-  EmailVerification = 'email_verification',
-  CheckoutSession = 'checkout_session',
 }
 
 export enum FlowRunStatus {
@@ -682,6 +716,7 @@ export interface OnboardingChecklistItem {
   title: string
   description: string
   completed: boolean
+  inReview?: boolean
   action?: string
   type?: OnboardingItemType
 }
@@ -982,13 +1017,18 @@ export type TelemetryEntityType =
 
 export type UsageBillingInfo = {
   /**
-   * Key of form `${usageMeterId}-${priceId}`
+   * Key of form `${usageMeterId}-${priceId}` where priceId may be 'null' for events without prices
    */
   usageMeterIdPriceId: string
   usageMeterId: string
   ledgerAccountId: string
   balance: number
-  priceId: string
+  /**
+   * The price ID associated with these usage events.
+   * When null, the usage events were created without a price (using usageMeterId/usageMeterSlug).
+   * Events without prices will have unitPrice: 0 and usageEventsPerUnit: 1
+   */
+  priceId: string | null
   usageEventsPerUnit: number
   unitPrice: number
   livemode: boolean

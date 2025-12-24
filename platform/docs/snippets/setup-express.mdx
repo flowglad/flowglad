@@ -3,18 +3,22 @@
 <CodeGroup>
 
 ```bash npm
-npm install @flowglad/express
+npm install @flowglad/server express
 ```
 
 ```bash yarn
-yarn add @flowglad/express
+yarn add @flowglad/server express
 ```
 
 ```bash bun
-bun add @flowglad/express
+bun add @flowglad/server express
 ```
 
 </CodeGroup>
+
+<Note>
+  Express is an optional peer dependency of `@flowglad/server`. Install it alongside the server package to use Express utilities.
+</Note>
 
 ## Quick Start
 
@@ -26,8 +30,8 @@ FLOWGLAD_SECRET_KEY="sk_test_..."
 
 ### 2. Create Flowglad Server Factory Function
 
-```ts src/utils/flowglad.ts
-import { FlowgladServer } from '@flowglad/express'
+```ts src/lib/flowglad.ts
+import { FlowgladServer } from '@flowglad/server'
 
 // Factory that creates a FlowgladServer for a specific customer
 export const flowglad = (customerExternalId: string) => {
@@ -63,7 +67,7 @@ export const flowgladServerConstructor = (req: Request) => {
 
 ```ts Using Router (Recommended)
 import express from 'express'
-import { createFlowgladExpressRouter } from '@flowglad/express'
+import { createFlowgladExpressRouter } from '@flowglad/server/express'
 import { flowgladServerConstructor } from './utils/flowglad'
 
 const app = express()
@@ -83,7 +87,7 @@ app.listen(3000, () => {
 
 ```ts Using Route Handler
 import express from 'express'
-import { createExpressRouteHandler } from '@flowglad/express'
+import { createExpressRouteHandler } from '@flowglad/server/express'
 import { flowgladServerConstructor } from './utils/flowglad'
 
 const app = express()

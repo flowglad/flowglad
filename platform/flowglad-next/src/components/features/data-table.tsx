@@ -49,6 +49,7 @@ interface FeaturesDataTableProps {
     | 'link'
     | 'secondary'
     | 'destructive'
+  hiddenColumns?: string[]
 }
 
 export function FeaturesDataTable({
@@ -59,6 +60,7 @@ export function FeaturesDataTable({
   activeFilter,
   onFilterChange,
   buttonVariant = 'default',
+  hiddenColumns = [],
 }: FeaturesDataTableProps) {
   const router = useRouter()
 
@@ -92,7 +94,9 @@ export function FeaturesDataTable({
   const [columnFilters, setColumnFilters] =
     React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>(() =>
+      Object.fromEntries(hiddenColumns.map((col) => [col, false]))
+    )
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
 
@@ -145,7 +149,7 @@ export function FeaturesDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar */}
-      <div className="flex flex-col gap-3 pt-4 pb-2">
+      <div className="flex flex-col gap-3 pt-4 pb-2 px-2">
         {/* Title row */}
         {title && (
           <div>
@@ -285,7 +289,7 @@ export function FeaturesDataTable({
       </Table>
 
       {/* Pagination */}
-      <div className="py-2">
+      <div className="py-2 px-2">
         <DataTablePagination
           table={table}
           totalCount={data?.total}

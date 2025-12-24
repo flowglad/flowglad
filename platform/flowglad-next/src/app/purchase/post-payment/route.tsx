@@ -18,13 +18,11 @@ import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
 import { generateInvoicePdfIdempotently } from '@/trigger/generate-invoice-pdf'
 import { generatePaymentReceiptPdfIdempotently } from '@/trigger/generate-receipt-pdf'
-import { PurchaseAccessSessionSource } from '@/types'
 import { processNonPaymentCheckoutSession } from '@/utils/bookkeeping/processNonPaymentCheckoutSession'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { processSetupIntentSucceeded } from '@/utils/bookkeeping/processSetupIntent'
 import { deleteCheckoutSessionCookie } from '@/utils/checkoutSessionState'
 import { isNil } from '@/utils/core'
-import { createPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
 import {
   getPaymentIntent,
   getSetupIntent,
@@ -333,15 +331,6 @@ export const GET = async (request: NextRequest) => {
             },
             transaction
           )
-        await createPurchaseAccessSession(
-          {
-            purchaseId,
-            source: PurchaseAccessSessionSource.CheckoutSession,
-            autoGrant: true,
-            livemode: product.livemode,
-          },
-          transaction
-        )
         return { product }
       }
     )

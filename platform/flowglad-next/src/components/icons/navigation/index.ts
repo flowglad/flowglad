@@ -36,7 +36,9 @@ export {
 // Lucide icons wrapped with navigation defaults
 import {
   BookOpen as LucideBookOpen,
+  ChevronDown as LucideChevronDown,
   ChevronsUpDown as LucideChevronsUpDown,
+  ChevronUp as LucideChevronUp,
   DollarSign as LucideDollarSign,
   ExternalLink as LucideExternalLink,
   Flag as LucideFlag,
@@ -55,6 +57,11 @@ import { createNavIcon } from './createNavIcon'
 
 // Navigation-ready Lucide icons with standard 20px size and 2px stroke
 export const BookOpen = createNavIcon(LucideBookOpen, 'BookOpen')
+export const ChevronDown = createNavIcon(
+  LucideChevronDown,
+  'ChevronDown'
+)
+export const ChevronUp = createNavIcon(LucideChevronUp, 'ChevronUp')
 export const ChevronsUpDown = createNavIcon(
   LucideChevronsUpDown,
   'ChevronsUpDown'

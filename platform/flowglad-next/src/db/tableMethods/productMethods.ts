@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import * as R from 'ramda'
 import { z } from 'zod'
 import {
@@ -29,7 +30,6 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import { groupBy } from '@/utils/core'
-import type { ProperNoun } from '../schema/properNouns'
 import type { DbTransaction } from '../types'
 import { selectMembershipAndOrganizations } from './membershipMethods'
 import {
@@ -59,18 +59,6 @@ export const selectProducts = createSelectFunction(products, config)
 export const insertProduct = createInsertFunction(products, config)
 
 export const updateProduct = createUpdateFunction(products, config)
-
-export const productToProperNounUpsert = (
-  product: Product.Record
-): ProperNoun.Insert => {
-  return {
-    name: product.name,
-    entityId: product.id,
-    entityType: 'product',
-    organizationId: product.organizationId,
-    livemode: product.livemode,
-  }
-}
 
 export const selectProductsPaginated = createPaginatedSelectFunction(
   products,
@@ -235,6 +223,22 @@ export const selectProductsCursorPaginated =
         prices: pricesByProductId[product.id] ?? [],
         pricingModel: pricingModelsById[product.pricingModelId]?.[0],
       }))
+    },
+    // Searchable columns for ILIKE search on name and slug
+    [products.name, products.slug],
+    /**
+     * Additional search clause for exact ID match.
+     * Combined with base name/slug search via OR.
+     */
+    ({ searchQuery }) => {
+      const trimmedQuery =
+        typeof searchQuery === 'string'
+          ? searchQuery.trim()
+          : searchQuery
+
+      if (!trimmedQuery) return undefined
+
+      return eq(products.id, trimmedQuery)
     }
   )
 

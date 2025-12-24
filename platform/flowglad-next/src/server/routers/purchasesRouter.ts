@@ -18,7 +18,6 @@ import {
 } from '@/db/tableUtils'
 import { confirmCheckoutSession } from '@/server/mutations/confirmCheckoutSession'
 import { editCheckoutSession } from '@/server/mutations/editCheckoutSession'
-import { requestPurchaseAccessSession } from '@/server/mutations/requestPurchaseAccessSession'
 import { protectedProcedure, router } from '@/server/trpc'
 import { PurchaseStatus } from '@/types'
 import { generateOpenApiMetas } from '@/utils/openapi'
@@ -70,7 +69,6 @@ export const purchasesRouter = router({
   // Purchase session management
   updateSession: editCheckoutSession,
   confirmSession: confirmCheckoutSession,
-  requestAccess: requestPurchaseAccessSession,
   // Table rows for internal UI
   getTableRows,
 })

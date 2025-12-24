@@ -1,0 +1,219 @@
+---
+title: "Frequently Asked Questions"
+description: "Common questions and troubleshooting tips for integrating Flowglad."
+---
+
+export const FAQSearch = () => {
+  const [query, setQuery] = useState("");
+
+  const items = [
+    {
+      title: "Why don't I have a live API key yet?",
+      search: "live api key verification checks pending live mode production",
+      body: (
+        <>
+          Flowglad may need to run verification checks on your account before live API keys are enabled.
+          In many cases, your live key becomes available within a few hours. If it's taking longer than expected,
+          contact support so they can check your verification status.
+        </>
+      ),
+    },
+    {
+      title: "What is Flowglad (in one sentence)?",
+      search: "what is flowglad billing",
+      body: (
+        <>
+          Flowglad is a payments provider that both processes your payments and allows you to gate feature access based on a customer's billing state.
+        </>
+      ),
+    },
+    {
+      title: "What do I need to add to my environment variables?",
+      search: "env environment variables FLOWGLAD_SECRET_KEY .env",
+      body: (
+        <>
+          Set <code>FLOWGLAD_SECRET_KEY</code> in your environment (for example in <code>.env</code>).
+        </>
+      ),
+    },
+    {
+      title: "What package do I install for Next.js?",
+      search: "install nextjs package @flowglad/nextjs bun add npm",
+      body: (
+        <>
+          For Next.js, install <code>@flowglad/nextjs</code> (the docs show a <code>bun add</code> example).
+        </>
+      ),
+    },
+    {
+      title: "What is customerExternalId and what should I use for it?",
+      search: "customerExternalId user.id organization.id team.id b2b b2c",
+      body: (
+        <>
+          <code>customerExternalId</code> is the ID from <strong>your app's database</strong> (not Flowglad's customer ID).
+          Use <code>user.id</code> for B2C apps, or <code>organization.id</code>/<code>team.id</code> for B2B.
+        </>
+      ),
+    },
+    {
+      title: "What is getCustomerDetails?",
+      search: "getCustomerDetails name email fetch customer details",
+      body: (
+        <>
+          It's a function you provide that returns customer details (like name and email) from <strong>your</strong> database
+          given your <code>customerExternalId</code>.
+        </>
+      ),
+    },
+    {
+      title: "Where do I put the Flowglad “server factory” function?",
+      search: "server factory utils/flowglad.ts scope customer",
+      body: (
+        <>
+          The Quickstart recommends creating a reusable factory (for example <code>lib/flowglad.ts</code>) so you can scope
+          Flowglad calls to the current customer.
+        </>
+      ),
+    },
+    {
+      title: "What is the “server route” and why do I need it?",
+      search: "server route api handler /api/flowglad [...path] secret key",
+      body: (
+        <>
+          The server route is your API handler (commonly <code>/api/flowglad/[...path]</code>) that talks to Flowglad using your
+          secret key, so your frontend never sees the secret.
+        </>
+      ),
+    },
+    {
+      title: "I mounted the handler somewhere else — what do I change?",
+      search: "mounted handler custom route serverRoute FlowgladProvider",
+      body: (
+        <>
+          Pass the custom path via the <code>serverRoute</code> prop on <code>&lt;FlowgladProvider /&gt;</code> so the client knows
+          where to call.
+        </>
+      ),
+    },
+    {
+      title: "Why am I getting 404s for /api/flowglad/... ?",
+      search: "404 api flowglad route.ts app router serverRoute integrate by http post",
+      body: (
+        <>
+          Usually one of these:
+          <ul>
+            <li>The handler file isn't at <code>app/api/flowglad/[...path]/route.ts</code> (App Router).</li>
+            <li>You mounted at a different path but didn't set <code>serverRoute</code>.</li>
+            <li>You're integrating “by HTTP” but your endpoint doesn't accept POST for read actions.</li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      title: "If I integrate “by HTTP”, why does everything use POST (even reads)?",
+      search: "integrate by http post reads react sdk response { data, error }",
+      body: (
+        <>
+          The docs explain the React SDK always sends POST requests and expects a response shaped like{" "}
+          <code>{"{ data, error? }"}</code>, even for read actions.{" "}
+          <a href="https://docs.flowglad.com/integrate-by-http">See Integrate by HTTP → Implement the Sub-routes</a>.
+        </>
+      ),
+    },
+    {
+      title: "How do I check if a customer can use a paid feature?",
+      search: "useBilling checkFeatureAccess feature slug loading",
+      body: (
+        <>
+          On the frontend: use <code>useBilling()</code> in the frontend and call <code>checkFeatureAccess('your-feature-slug')</code>. Make sure
+          you handle the “not loaded yet” state first. On the backend: use <code>flowglad(customerId).getBilling()</code> and call <code>checkFeatureAccess('your-feature-slug')</code> as returned by the result.
+        </>
+      ),
+    },
+    {
+      title: "How do checkout sessions work?",
+      search: "checkout sessions hosted checkout purchases add payment method activate subscription",
+      body: (
+        <>
+          Checkout sessions launch hosted Flowglad checkout pages to complete customer transactions (purchases, adding payment
+          methods, or activating an existing subscription).
+        </>
+      ),
+    },
+    {
+      title: "What types of checkout sessions exist?",
+      search: "product checkout add payment method activate subscription types",
+      body: (
+        <>
+          Flowglad supports three types:
+          <ul>
+            <li><strong>Product checkout</strong> (purchase a price)</li>
+            <li><strong>Add payment method</strong></li>
+            <li><strong>Activate subscription</strong> (when a subscription exists but needs payment details to begin billing)</li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      title: "Can checkout sessions be anonymous?",
+      search: "anonymous checkout sessions anonymous true sdk api",
+      body: (
+        <>
+          Yes. The docs note SDK-created sessions auto-associate to the authenticated customer, but you can create anonymous
+          checkout sessions by calling the API directly with <code>anonymous: true</code>.
+        </>
+      ),
+    },
+    {
+      title: "Can a customer have multiple subscriptions?",
+      search: "multiple subscriptions allow_multiple_subscriptions_per_customer",
+      body: (
+        <>
+          By default, Flowglad is “one current subscription per customer.” If you need multiple, you can enable{" "}
+          <code>allow_multiple_subscriptions_per_customer</code> at the organization level in the dashboard.
+        </>
+      ),
+    },
+  ];
+
+  const q = query.trim().toLowerCase();
+  const filtered = !q
+    ? items
+    : items.filter((it) => `${it.title} ${it.search}`.toLowerCase().includes(q));
+
+  return (
+    <div>
+      <div style={{ marginBottom: 12 }}>
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search FAQs..."
+          style={{
+            width: "100%",
+            padding: "10px 12px",
+            borderRadius: 10,
+            border: "1px solid rgba(255,255,255,0.15)",
+            background: "transparent",
+            fontSize: 14,
+          }}
+        />
+      </div>
+
+      <div>
+        {filtered.map((it, idx) => (
+          <div key={it.title} style={{ marginBottom: idx === filtered.length - 1 ? 0 : 8 }}>
+            <Accordion title={it.title}>{it.body}</Accordion>
+          </div>
+        ))}
+
+        {filtered.length === 0 && (
+          <div style={{ padding: 12, borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)" }}>
+            No matches. Try a different keyword.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+<FAQSearch />

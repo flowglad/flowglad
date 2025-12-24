@@ -1,17 +1,22 @@
 ---
-title: "@flowglad/express"
+title: "Express Integration"
 description: "Express middleware and route handlers for Flowglad integration"
 ---
 
 import ExpressSetup from '/snippets/setup-express.mdx'
 
+<Warning>
+  **Deprecated Package**: The `@flowglad/express` package is deprecated.
+  Use `@flowglad/server/express` instead. See [migration guide](#migration-from-flowgladexpress) below.
+</Warning>
+
 <Info>
-  NPM Package: [@flowglad/express](https://www.npmjs.com/package/@flowglad/express)
+  Express utilities are available via [@flowglad/server](https://www.npmjs.com/package/@flowglad/server) using the `/express` subpath export.
 </Info>
 
 ## Overview
 
-The Express SDK provides middleware and route handlers for integrating Flowglad into your Express.js applications. It works seamlessly with the Flowglad Server SDK to handle billing operations.
+The Express integration provides middleware and route handlers for integrating Flowglad into your Express.js applications. It works seamlessly with the Flowglad Server SDK to handle billing operations.
 
 <ExpressSetup />
 
@@ -51,7 +56,7 @@ interface CreateFlowgladExpressRouterOptions {
 
 ```ts
 import express, { type Request } from 'express'
-import { createFlowgladExpressRouter } from '@flowglad/express'
+import { createFlowgladExpressRouter } from '@flowglad/server/express'
 import { FlowgladServer } from '@flowglad/server'
 import { requireAuth } from './middleware/auth'
 
@@ -120,7 +125,7 @@ interface CreateFlowgladExpressRouteHandlerOptions {
 
 ```ts
 import express from 'express'
-import { createExpressRouteHandler } from '@flowglad/express'
+import { createExpressRouteHandler } from '@flowglad/server/express'
 import { FlowgladServer } from '@flowglad/server'
 
 const app = express()
@@ -140,7 +145,7 @@ app.post('/api/flowglad/*', flowgladHandler)
 
 ### Passport.js Example
 
-```ts src/utils/flowglad.ts
+```ts src/lib/flowglad.ts
 import { FlowgladServer } from '@flowglad/server'
 import type { Request } from 'express'
 
@@ -171,7 +176,7 @@ export const flowgladServerConstructor = (req: Request) => {
 
 ### JWT Auth Example
 
-```ts src/utils/flowglad.ts
+```ts src/lib/flowglad.ts
 import { FlowgladServer } from '@flowglad/server'
 import type { Request } from 'express'
 import jwt from 'jsonwebtoken'
@@ -211,7 +216,7 @@ export const flowgladServerConstructor = (req: Request) => {
 
 ### Session-Based Auth Example
 
-```ts src/utils/flowglad.ts
+```ts src/lib/flowglad.ts
 import { FlowgladServer } from '@flowglad/server'
 import type { Request } from 'express'
 
@@ -246,7 +251,7 @@ Here's a full Express application with Flowglad integration:
 ```ts src/index.ts
 import express, { type Request } from 'express'
 import session from 'express-session'
-import { createFlowgladExpressRouter } from '@flowglad/express'
+import { createFlowgladExpressRouter } from '@flowglad/server/express'
 import { FlowgladServer } from '@flowglad/server'
 
 const app = express()
@@ -364,6 +369,39 @@ app.use((err, req, res, next) => {
 ## Example Project
 
 For a complete working example, see our [Express playground project](https://github.com/flowglad/flowglad/tree/main/playground/express).
+
+## Migration from @flowglad/express
+
+The `@flowglad/express` package is deprecated. All Express utilities are now available via `@flowglad/server/express`.
+
+### Installation
+
+**Before:**
+```bash
+npm install @flowglad/express
+```
+
+**After:**
+```bash
+npm install @flowglad/server express
+```
+
+### Import Changes
+
+**Before:**
+```ts
+import { createFlowgladExpressRouter, FlowgladServer } from '@flowglad/express'
+```
+
+**After:**
+```ts
+import { createFlowgladExpressRouter } from '@flowglad/server/express'
+import { FlowgladServer } from '@flowglad/server'
+```
+
+### API Compatibility
+
+The API is fully compatible. No changes are required to your route handlers or middleware configuration - just update the import paths.
 
 ## Next Steps
 

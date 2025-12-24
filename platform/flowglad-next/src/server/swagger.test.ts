@@ -1070,7 +1070,7 @@ describe('Swagger Configuration', () => {
         const priceIdDesc =
           usageEventSchema?.properties?.priceId?.description || ''
         expect(priceIdDesc).toBe(
-          'The internal ID of the price. If not provided, priceSlug is required.'
+          'The internal ID of the price. Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided.'
         )
       })
 
@@ -1088,7 +1088,7 @@ describe('Swagger Configuration', () => {
         const priceSlugDesc =
           usageEventSchema?.properties?.priceSlug?.description || ''
         expect(priceSlugDesc).toBe(
-          'The slug of the price. If not provided, priceId is required.'
+          'The slug of the price. Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided.'
         )
       })
     })
@@ -1141,7 +1141,7 @@ describe('Swagger Configuration', () => {
           usageEventsArrayItems?.properties?.priceId?.description ||
           ''
         expect(priceIdDesc).toBe(
-          'The internal ID of the price. If not provided, priceSlug is required.'
+          'The internal ID of the price. Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided.'
         )
       })
 
@@ -1155,24 +1155,24 @@ describe('Swagger Configuration', () => {
           usageEventsArrayItems?.properties?.priceSlug?.description ||
           ''
         expect(priceSlugDesc).toBe(
-          'The slug of the price. If not provided, priceId is required.'
+          'The slug of the price. Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided.'
         )
       })
 
       it('should have descriptions explaining mutual exclusivity', () => {
-        // Verify priceId description mentions the requirement
+        // Verify priceId description mentions mutual exclusivity
         const priceIdDesc =
           usageEventsArrayItems?.properties?.priceId?.description ||
           ''
-        expect(priceIdDesc).toContain('If not provided')
-        expect(priceIdDesc).toContain('priceSlug is required')
+        expect(priceIdDesc).toContain('Exactly one of')
+        expect(priceIdDesc).toContain('must be provided')
 
-        // Verify priceSlug description mentions the requirement
+        // Verify priceSlug description mentions mutual exclusivity
         const priceSlugDesc =
           usageEventsArrayItems?.properties?.priceSlug?.description ||
           ''
-        expect(priceSlugDesc).toContain('If not provided')
-        expect(priceSlugDesc).toContain('priceId is required')
+        expect(priceSlugDesc).toContain('Exactly one of')
+        expect(priceSlugDesc).toContain('must be provided')
       })
     })
   })

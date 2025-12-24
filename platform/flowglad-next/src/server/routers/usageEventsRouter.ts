@@ -5,6 +5,7 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
+import type { Price } from '@/db/schema/prices'
 import {
   bulkInsertUsageEventsSchema,
   type UsageEvent,
@@ -15,10 +16,9 @@ import {
   usageEventsPaginatedTableRowOutputSchema,
 } from '@/db/schema/usageEvents'
 import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingPeriodMethods'
-import {
-  selectPriceBySlugAndCustomerId,
-  selectPrices,
-} from '@/db/tableMethods/priceMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectPrices } from '@/db/tableMethods/priceMethods'
+import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import {
   bulkInsertOrDoNothingUsageEventsByTransactionId,
@@ -98,7 +98,7 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
       path: '/api/v1/usage-events/bulk',
       summary: 'Bulk Insert Usage Events',
       description:
-        'Create multiple usage events in a single request. Supports both priceId and priceSlug for each event.',
+        'Create multiple usage events in a single request. Supports priceId, priceSlug, usageMeterId, or usageMeterSlug for each event. Exactly one identifier type must be provided per event.',
       tags: ['Usage Events'],
     },
   })
@@ -148,58 +148,103 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
           ])
         )
 
-        // Batch resolve price slugs to price IDs
-        // First, collect all events that need slug resolution, grouped by customer
-        const eventsWithSlugs: Array<{
+        type SlugResolutionEvent = {
           index: number
           slug: string
           customerId: string
-        }> = []
+        }
+        // Batch resolve price slugs to price IDs and usage meter slugs to usage meter IDs
+        // First, collect all events that need slug resolution, grouped by customer
+        const eventsWithPriceSlugs: SlugResolutionEvent[] = []
+        const eventsWithUsageMeterSlugs: SlugResolutionEvent[] = []
 
         usageInsertsWithoutBillingPeriodId.forEach(
           (usageEvent, index) => {
-            if (usageEvent.priceSlug) {
-              const subscription = subscriptionsMap.get(
-                usageEvent.subscriptionId
+            const subscription = subscriptionsMap.get(
+              usageEvent.subscriptionId
+            )
+            if (!subscription) {
+              throw new Error(
+                `Subscription ${usageEvent.subscriptionId} not found for usage event at index ${index}`
               )
-              if (!subscription) {
-                throw new Error(
-                  `Subscription ${usageEvent.subscriptionId} not found for usage event at index ${index}`
-                )
-              }
-              eventsWithSlugs.push({
+            }
+
+            if (usageEvent.priceSlug) {
+              eventsWithPriceSlugs.push({
                 index,
                 slug: usageEvent.priceSlug,
+                customerId: subscription.customerId,
+              })
+            }
+
+            if (usageEvent.usageMeterSlug) {
+              eventsWithUsageMeterSlugs.push({
+                index,
+                slug: usageEvent.usageMeterSlug,
                 customerId: subscription.customerId,
               })
             }
           }
         )
 
+        // Cache pricing models by customerId to avoid duplicate lookups
+        const pricingModelCache = new Map<
+          string,
+          Awaited<ReturnType<typeof selectPricingModelForCustomer>>
+        >()
+
+        const getPricingModelForCustomer = async (
+          customerId: string
+        ) => {
+          if (!pricingModelCache.has(customerId)) {
+            const customer = await selectCustomerById(
+              customerId,
+              transaction
+            )
+            const pricingModel = await selectPricingModelForCustomer(
+              customer,
+              transaction
+            )
+            pricingModelCache.set(customerId, pricingModel)
+          }
+          return pricingModelCache.get(customerId)!
+        }
+
         // Batch lookup prices by slug for each unique customer-slug combination
         const slugToPriceIdMap = new Map<string, string>()
 
-        if (eventsWithSlugs.length > 0) {
+        if (eventsWithPriceSlugs.length > 0) {
           // Group by customer and collect unique slugs per customer
           const customerSlugsMap = new Map<string, Set<string>>()
 
-          eventsWithSlugs.forEach(({ customerId, slug }) => {
+          eventsWithPriceSlugs.forEach(({ customerId, slug }) => {
             if (!customerSlugsMap.has(customerId)) {
               customerSlugsMap.set(customerId, new Set())
             }
             customerSlugsMap.get(customerId)!.add(slug)
           })
 
-          // Perform batch lookups for each customer
+          // Perform batch lookups for each customer using cached pricing models
           for (const [
             customerId,
             slugs,
           ] of customerSlugsMap.entries()) {
+            const pricingModel =
+              await getPricingModelForCustomer(customerId)
+
             for (const slug of slugs) {
-              const price = await selectPriceBySlugAndCustomerId(
-                { slug, customerId },
-                transaction
-              )
+              // Search through all products in the pricing model to find a price with the matching slug
+              let price: Price.ClientRecord | null = null
+
+              for (const product of pricingModel.products) {
+                const foundPrice = product.prices.find(
+                  (p) => p.slug === slug
+                )
+                if (foundPrice) {
+                  price = foundPrice
+                  break
+                }
+              }
 
               if (!price) {
                 throw new TRPCError({
@@ -215,73 +260,149 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
           }
         }
 
-        // Resolve priceIds for all events (either already present or resolved from slug)
+        // Batch lookup usage meters by slug for each unique customer-slug combination
+        const slugToUsageMeterIdMap = new Map<string, string>()
+
+        if (eventsWithUsageMeterSlugs.length > 0) {
+          // Group by customer and collect unique slugs per customer
+          const customerSlugsMap = new Map<string, Set<string>>()
+
+          eventsWithUsageMeterSlugs.forEach(
+            ({ customerId, slug }) => {
+              if (!customerSlugsMap.has(customerId)) {
+                customerSlugsMap.set(customerId, new Set())
+              }
+              customerSlugsMap.get(customerId)!.add(slug)
+            }
+          )
+
+          // Perform batch lookups for each customer using cached pricing models
+          for (const [
+            customerId,
+            slugs,
+          ] of customerSlugsMap.entries()) {
+            const pricingModel =
+              await getPricingModelForCustomer(customerId)
+
+            for (const slug of slugs) {
+              // Search through usage meters in the pricing model to find one with matching slug
+              const usageMeter = pricingModel.usageMeters.find(
+                (meter) => meter.slug === slug
+              )
+
+              if (!usageMeter) {
+                throw new TRPCError({
+                  code: 'NOT_FOUND',
+                  message: `Usage meter with slug ${slug} not found for customer's pricing model`,
+                })
+              }
+
+              // Create a composite key for customer-slug combination
+              const key = `${customerId}:${slug}`
+              slugToUsageMeterIdMap.set(key, usageMeter.id)
+            }
+          }
+        }
+
+        // Resolve identifiers for all events
         const resolvedUsageEvents =
           usageInsertsWithoutBillingPeriodId.map(
             (usageEvent, index) => {
-              let priceId = usageEvent.priceId
+              const subscription = subscriptionsMap.get(
+                usageEvent.subscriptionId
+              )!
+
+              let priceId: string | null = usageEvent.priceId ?? null
+              let usageMeterId: string | undefined =
+                usageEvent.usageMeterId
 
               // If priceSlug is provided, resolve it
               if (usageEvent.priceSlug) {
-                const subscription = subscriptionsMap.get(
-                  usageEvent.subscriptionId
-                )!
                 const key = `${subscription.customerId}:${usageEvent.priceSlug}`
-                priceId = slugToPriceIdMap.get(key)
+                const resolvedPriceId = slugToPriceIdMap.get(key)
 
-                if (!priceId) {
+                if (!resolvedPriceId) {
                   throw new Error(
                     `Failed to resolve price slug ${usageEvent.priceSlug} for event at index ${index}`
                   )
                 }
+                priceId = resolvedPriceId
               }
 
-              if (!priceId) {
-                throw new Error(
-                  `No priceId or priceSlug provided for event at index ${index}`
-                )
+              // If usageMeterSlug is provided, resolve it
+              if (usageEvent.usageMeterSlug) {
+                const key = `${subscription.customerId}:${usageEvent.usageMeterSlug}`
+                const resolvedUsageMeterId =
+                  slugToUsageMeterIdMap.get(key)
+
+                if (!resolvedUsageMeterId) {
+                  throw new Error(
+                    `Failed to resolve usage meter slug ${usageEvent.usageMeterSlug} for event at index ${index}`
+                  )
+                }
+                usageMeterId = resolvedUsageMeterId
+                priceId = null // When usage meter identifiers are used, priceId is null
               }
 
+              // Omit slug fields and set resolved identifiers
+              const { priceSlug, usageMeterSlug, ...rest } =
+                usageEvent
               return {
-                ...usageEvent,
+                ...rest,
                 priceId,
+                usageMeterId,
               }
             }
           )
 
+        // Fetch prices only for events that have a priceId
         const uniquePriceIds = [
           ...new Set(
-            resolvedUsageEvents.map(
-              (usageEvent) => usageEvent.priceId
-            )
-          ),
-        ]
-        const prices = await selectPrices(
-          {
-            id: uniquePriceIds,
-          },
-          transaction
-        )
-        const pricesMap = new Map(
-          prices.map((price) => [price.id, price])
-        )
-
-        prices.forEach((price) => {
-          if (price.type !== PriceType.Usage) {
-            throw new Error(
-              `Received a usage event insert with priceId ${price.id}, which is not a usage price. Please ensure all priceIds provided are usage prices.`
-            )
-          }
-        })
-
-        // Fetch usage meters to check aggregation types
-        const uniqueUsageMeterIds = [
-          ...new Set(
-            prices
-              .map((price) => price.usageMeterId)
+            resolvedUsageEvents
+              .map((usageEvent) => usageEvent.priceId)
               .filter((id): id is string => id !== null)
           ),
         ]
+        const pricesMap = new Map<
+          string,
+          Awaited<ReturnType<typeof selectPrices>>[0]
+        >()
+
+        if (uniquePriceIds.length > 0) {
+          const prices = await selectPrices(
+            {
+              id: uniquePriceIds,
+            },
+            transaction
+          )
+
+          prices.forEach((price) => {
+            pricesMap.set(price.id, price)
+            if (price.type !== PriceType.Usage) {
+              throw new Error(
+                `Received a usage event insert with priceId ${price.id}, which is not a usage price. Please ensure all priceIds provided are usage prices.`
+              )
+            }
+          })
+        }
+
+        // Collect all usage meter IDs (from prices and direct usage meter identifiers)
+        const usageMeterIdsFromPrices = Array.from(pricesMap.values())
+          .map((price) => price.usageMeterId)
+          .filter((id): id is string => id !== null)
+
+        const usageMeterIdsFromEvents = resolvedUsageEvents
+          .map((usageEvent) => usageEvent.usageMeterId)
+          .filter((id): id is string => id !== undefined)
+
+        const uniqueUsageMeterIds = [
+          ...new Set([
+            ...usageMeterIdsFromPrices,
+            ...usageMeterIdsFromEvents,
+          ]),
+        ]
+
+        // Fetch usage meters to check aggregation types
         const usageMeters = await selectUsageMeters(
           {
             id: uniqueUsageMeterIds,
@@ -291,6 +412,67 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
         const usageMetersMap = new Map(
           usageMeters.map((meter) => [meter.id, meter])
         )
+
+        // Validate usage meter IDs that were provided directly (not from prices)
+        // They must exist in the customer's pricing model
+        // Batch validation by customer to reduce database queries
+        const eventsWithDirectUsageMeters = resolvedUsageEvents
+          .map((usageEvent, index) => ({
+            usageEvent,
+            index,
+          }))
+          .filter(
+            ({ usageEvent }) =>
+              usageEvent.priceId === null && usageEvent.usageMeterId
+          )
+
+        if (eventsWithDirectUsageMeters.length > 0) {
+          // Group by customer to batch pricing model lookups
+          const customerEventsMap = new Map<
+            string,
+            Array<{ usageMeterId: string; index: number }>
+          >()
+
+          eventsWithDirectUsageMeters.forEach(
+            ({ usageEvent, index }) => {
+              const subscription = subscriptionsMap.get(
+                usageEvent.subscriptionId
+              )!
+              const customerId = subscription.customerId
+
+              if (!customerEventsMap.has(customerId)) {
+                customerEventsMap.set(customerId, [])
+              }
+
+              customerEventsMap.get(customerId)!.push({
+                usageMeterId: usageEvent.usageMeterId!,
+                index,
+              })
+            }
+          )
+
+          // Batch validate for each customer using cached pricing models
+          for (const [
+            customerId,
+            events,
+          ] of customerEventsMap.entries()) {
+            const pricingModel =
+              await getPricingModelForCustomer(customerId)
+
+            const pricingModelUsageMeterIds = new Set(
+              pricingModel.usageMeters.map((meter) => meter.id)
+            )
+
+            for (const { usageMeterId, index } of events) {
+              if (!pricingModelUsageMeterIds.has(usageMeterId)) {
+                throw new TRPCError({
+                  code: 'NOT_FOUND',
+                  message: `Usage meter ${usageMeterId} not found for this customer's pricing model at index ${index}`,
+                })
+              }
+            }
+          }
+        }
 
         const usageInsertsWithBillingPeriodId: UsageEvent.Insert[] =
           resolvedUsageEvents.map((usageEvent, index) => {
@@ -307,20 +489,34 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
               usageEvent.subscriptionId
             )
 
-            const price = pricesMap.get(usageEvent.priceId)
-            if (!price) {
+            // Determine usageMeterId - either from price or directly provided
+            let finalUsageMeterId: string
+
+            if (usageEvent.priceId) {
+              // When priceId is provided, get usageMeterId from the price
+              const price = pricesMap.get(usageEvent.priceId)
+              if (!price) {
+                throw new Error(
+                  `Price ${usageEvent.priceId} not found for usage event at index ${index}`
+                )
+              }
+              if (!price.usageMeterId) {
+                throw new Error(
+                  `Usage meter not found for price ${usageEvent.priceId} at index ${index}`
+                )
+              }
+              finalUsageMeterId = price.usageMeterId
+            } else if (usageEvent.usageMeterId) {
+              // When usageMeterId is provided directly, use it
+              finalUsageMeterId = usageEvent.usageMeterId
+            } else {
               throw new Error(
-                `Price ${usageEvent.priceId} not found for usage event at index ${index}`
-              )
-            }
-            if (!price.usageMeterId) {
-              throw new Error(
-                `Usage meter not found for price ${usageEvent.priceId} at index ${index}`
+                `Either priceId or usageMeterId must be provided for usage event at index ${index}`
               )
             }
 
             // Check if usage meter requires billing period (CountDistinctProperties)
-            const usageMeter = usageMetersMap.get(price.usageMeterId)
+            const usageMeter = usageMetersMap.get(finalUsageMeterId)
             if (
               usageMeter?.aggregationType ===
               UsageMeterAggregationType.CountDistinctProperties
@@ -338,7 +534,7 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
               ...(billingPeriod
                 ? { billingPeriodId: billingPeriod.id }
                 : {}),
-              usageMeterId: price.usageMeterId,
+              usageMeterId: finalUsageMeterId,
               usageDate: usageEvent.usageDate
                 ? usageEvent.usageDate
                 : Date.now(),

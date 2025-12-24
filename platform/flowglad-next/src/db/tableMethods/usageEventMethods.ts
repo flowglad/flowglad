@@ -32,6 +32,7 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type { SubscriptionStatus } from '@/types'
+import core from '@/utils/core'
 import type { DbTransaction } from '../types'
 import { isSubscriptionCurrent } from './subscriptionMethods'
 
@@ -109,7 +110,7 @@ export const selectUsageEventsTableRowData =
 
       const priceIds = usageEventsData
         .map((usageEvent) => usageEvent.priceId)
-        .filter((id): id is string => id !== null)
+        .filter((id): id is string => !core.isNil(id))
 
       // Query 1: Get customers
       const customerResults = await transaction
@@ -173,11 +174,20 @@ export const selectUsageEventsTableRowData =
         const usageMeter = usageMetersById.get(
           usageEvent.usageMeterId
         )
-        const price = pricesById.get(usageEvent.priceId)
+        const price = usageEvent.priceId
+          ? pricesById.get(usageEvent.priceId)
+          : null
 
-        if (!customer || !subscription || !usageMeter || !price) {
+        if (!customer || !subscription || !usageMeter) {
           throw new Error(
             `Missing related data for usage event ${usageEvent.id}`
+          )
+        }
+        // pricesById only contains prices that passed the INNER JOIN with products.
+        // If priceId exists but price is missing, the price's product doesn't exist (data integrity issue).
+        if (usageEvent.priceId && !price) {
+          throw new Error(
+            `Price not found for usage event ${usageEvent.id} with priceId ${usageEvent.priceId}`
           )
         }
 
@@ -197,7 +207,9 @@ export const selectUsageEventsTableRowData =
           )
         const usageMeterClient =
           usageMetersClientSelectSchema.parse(usageMeter)
-        const priceClient = pricesClientSelectSchema.parse(price)
+        const priceClient = price
+          ? pricesClientSelectSchema.parse(price)
+          : null
 
         return {
           usageEvent,

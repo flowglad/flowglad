@@ -11,6 +11,7 @@ import {
   constructCheckUsageBalance,
   constructGetPrice,
   constructGetProduct,
+  constructHasPurchased,
   FlowgladActionKey,
   flowgladActionValidators,
   type UncancelSubscriptionParams,
@@ -19,6 +20,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import React, { createContext, useContext } from 'react'
 import { devError } from './lib/utils'
 import { validateUrl } from './utils'
+
+const getFlowgladRoute = (baseURL?: string): string => {
+  return baseURL ? `${baseURL}/api/flowglad` : '/api/flowglad'
+}
 
 export type FrontendProductCreateCheckoutSessionParams =
   CreateProductCheckoutSessionParams & {
@@ -74,6 +79,7 @@ export interface NonPresentContextValues {
   createActivateSubscriptionCheckoutSession: null
   checkFeatureAccess: null
   checkUsageBalance: null
+  hasPurchased: null
   pricingModel: null
   billingPortalUrl: null
   reload: null
@@ -122,6 +128,7 @@ const notPresentContextValues: NonPresentContextValues = {
   createActivateSubscriptionCheckoutSession: null,
   checkFeatureAccess: null,
   checkUsageBalance: null,
+  hasPurchased: null,
   pricingModel: null,
   billingPortalUrl: null,
   reload: null,
@@ -175,9 +182,7 @@ const constructCheckoutSessionCreator =
       mapPayload?.(params, basePayload) ??
       (basePayload as Record<string, unknown>)
 
-    const flowgladRoute = baseURL
-      ? `${baseURL}/api/flowglad`
-      : '/api/flowglad'
+    const flowgladRoute = getFlowgladRoute(baseURL)
     const response = await fetch(`${flowgladRoute}/${actionKey}`, {
       method: 'POST',
       headers: {
@@ -219,9 +224,7 @@ const constructCancelSubscription =
   }> => {
     const { baseURL, requestConfig, queryClient } = constructParams
     const headers = requestConfig?.headers
-    const flowgladRoute = baseURL
-      ? `${baseURL}/api/flowglad`
-      : '/api/flowglad'
+    const flowgladRoute = getFlowgladRoute(baseURL)
     const response = await fetch(
       `${flowgladRoute}/${FlowgladActionKey.CancelSubscription}`,
       {
@@ -269,9 +272,7 @@ const constructUncancelSubscription =
   }> => {
     const { baseURL, requestConfig, queryClient } = constructParams
     const headers = requestConfig?.headers
-    const flowgladRoute = baseURL
-      ? `${baseURL}/api/flowglad`
-      : '/api/flowglad'
+    const flowgladRoute = getFlowgladRoute(baseURL)
     const response = await fetch(
       `${flowgladRoute}/${FlowgladActionKey.UncancelSubscription}`,
       {
@@ -374,9 +375,7 @@ export const FlowgladContextProvider = (
           'fetch is not available. In React Native environments, provide a fetch implementation via requestConfig.fetch'
         )
       }
-      const flowgladRoute = baseURL
-        ? `${baseURL}/api/flowglad`
-        : '/api/flowglad'
+      const flowgladRoute = getFlowgladRoute(baseURL)
       const response = await fetchImpl(
         `${flowgladRoute}/${FlowgladActionKey.GetCustomerBilling}`,
         {
@@ -409,6 +408,10 @@ export const FlowgladContextProvider = (
     )
     const checkUsageBalance = constructCheckUsageBalance(
       billingData.currentSubscriptions ?? []
+    )
+    const hasPurchased = constructHasPurchased(
+      billingData.catalog,
+      billingData.purchases
     )
 
     return (
@@ -450,6 +453,7 @@ export const FlowgladContextProvider = (
             }),
           checkFeatureAccess,
           checkUsageBalance,
+          hasPurchased,
           getProduct,
           getPrice,
           reload: () => Promise.resolve(),
@@ -541,6 +545,10 @@ export const FlowgladContextProvider = (
       }
       const getProduct = constructGetProduct(billingData.catalog)
       const getPrice = constructGetPrice(billingData.catalog)
+      const hasPurchased = constructHasPurchased(
+        billingData.catalog,
+        billingData.purchases
+      )
       value = {
         loaded: true,
         loadBilling,
@@ -552,6 +560,7 @@ export const FlowgladContextProvider = (
         createActivateSubscriptionCheckoutSession,
         getProduct,
         getPrice,
+        hasPurchased,
         checkFeatureAccess: constructCheckFeatureAccess(
           billingData.currentSubscriptions ?? []
         ),

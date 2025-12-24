@@ -1,13 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  setupCustomer,
   setupOrg,
   setupPricingModel,
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import { updatePricingModel } from './pricingModelMethods'
 import {
   insertUsageMeter,
   selectUsageMeterById,
+  selectUsageMeterBySlugAndCustomerId,
   selectUsageMeters,
   selectUsageMetersCursorPaginated,
   selectUsageMetersPaginated,
@@ -18,13 +21,17 @@ describe('usageMeterMethods', () => {
   let organizationId: string
   let pricingModelId: string
   let pricingModelName: string
+  let defaultPricingModelId: string
 
   beforeEach(async () => {
-    const { organization } = await setupOrg()
+    const { organization, pricingModel } = await setupOrg()
     organizationId = organization.id
-    const pricingModel = await setupPricingModel({ organizationId })
-    pricingModelId = pricingModel.id
-    pricingModelName = pricingModel.name
+    defaultPricingModelId = pricingModel.id // This is the default pricing model
+    const nonDefaultPricingModel = await setupPricingModel({
+      organizationId,
+    })
+    pricingModelId = nonDefaultPricingModel.id
+    pricingModelName = nonDefaultPricingModel.name
   })
 
   describe('selectUsageMeterById', () => {
@@ -246,6 +253,168 @@ describe('usageMeterMethods', () => {
           })
         })
       ).rejects.toThrow()
+    })
+  })
+
+  describe('selectUsageMeterBySlugAndCustomerId', () => {
+    it('should return the correct usage meter when slug matches', async () => {
+      const customer = await setupCustomer({
+        organizationId,
+      })
+      // Use the default pricing model since customer will use it
+      const meter = await setupUsageMeter({
+        organizationId,
+        name: 'Test Meter',
+        pricingModelId: defaultPricingModelId,
+        slug: 'test-meter',
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectUsageMeterBySlugAndCustomerId(
+          { slug: 'test-meter', customerId: customer.id },
+          transaction
+        )
+        expect(result).not.toBeNull()
+        expect(result!.id).toBe(meter.id)
+        expect(result!.slug).toBe('test-meter')
+        expect(result!.name).toBe('Test Meter')
+      })
+    })
+
+    it('should return null when no matching slug exists', async () => {
+      const customer = await setupCustomer({
+        organizationId,
+      })
+      // Use the default pricing model since customer will use it
+      await setupUsageMeter({
+        organizationId,
+        name: 'Test Meter',
+        pricingModelId: defaultPricingModelId,
+        slug: 'test-meter',
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectUsageMeterBySlugAndCustomerId(
+          { slug: 'non-existent-slug', customerId: customer.id },
+          transaction
+        )
+        expect(result).toBeNull()
+      })
+    })
+
+    it("should throw an error when customer's pricing model cannot be found", async () => {
+      // Create a customer in an organization without a default pricing model
+      const orgWithoutDefault = await setupOrg()
+      // Update the default pricing model to be non-default (removes the default)
+      await adminTransaction(async ({ transaction }) => {
+        await updatePricingModel(
+          {
+            id: orgWithoutDefault.pricingModel.id,
+            isDefault: false,
+          },
+          transaction
+        )
+      })
+
+      const customer = await setupCustomer({
+        organizationId: orgWithoutDefault.organization.id,
+        // pricingModelId is undefined by default, which forces default lookup
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return selectUsageMeterBySlugAndCustomerId(
+            { slug: 'any-slug', customerId: customer.id },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        `No default pricing model found for organization ${orgWithoutDefault.organization.id}`
+      )
+    })
+  })
+
+  describe('selectUsageMetersCursorPaginated search', () => {
+    it('should search by name, slug, or exact ID (case-insensitive, trims whitespace)', async () => {
+      const meter = await setupUsageMeter({
+        organizationId,
+        pricingModelId,
+        name: 'API Calls Meter',
+        slug: 'api-calls-meter',
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        // Search by name (case-insensitive)
+        const byName = await selectUsageMetersCursorPaginated({
+          input: {
+            pageSize: 10,
+            searchQuery: 'API CALLS',
+            filters: { organizationId },
+          },
+          transaction,
+        })
+        expect(
+          byName.items.some((i) => i.usageMeter.id === meter.id)
+        ).toBe(true)
+
+        // Search by slug
+        const bySlug = await selectUsageMetersCursorPaginated({
+          input: {
+            pageSize: 10,
+            searchQuery: 'api-calls',
+            filters: { organizationId },
+          },
+          transaction,
+        })
+        expect(
+          bySlug.items.some((i) => i.usageMeter.id === meter.id)
+        ).toBe(true)
+
+        // Search by exact ID with whitespace trimming
+        const byId = await selectUsageMetersCursorPaginated({
+          input: {
+            pageSize: 10,
+            searchQuery: `  ${meter.id}  `,
+            filters: { organizationId },
+          },
+          transaction,
+        })
+        expect(byId.items.length).toBe(1)
+        expect(byId.items[0].usageMeter.id).toBe(meter.id)
+      })
+    })
+
+    it('should return all usage meters when search query is empty or undefined', async () => {
+      await setupUsageMeter({
+        organizationId,
+        pricingModelId,
+        name: 'Test Meter',
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const resultEmpty = await selectUsageMetersCursorPaginated({
+          input: {
+            pageSize: 10,
+            searchQuery: '',
+            filters: { organizationId },
+          },
+          transaction,
+        })
+
+        const resultUndefined =
+          await selectUsageMetersCursorPaginated({
+            input: {
+              pageSize: 10,
+              searchQuery: undefined,
+              filters: { organizationId },
+            },
+            transaction,
+          })
+
+        expect(resultEmpty.items.length).toBe(1)
+        expect(resultUndefined.items.length).toBe(1)
+        expect(resultEmpty.total).toBe(resultUndefined.total)
+      })
     })
   })
 })

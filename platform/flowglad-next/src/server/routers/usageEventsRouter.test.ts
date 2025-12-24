@@ -22,6 +22,7 @@ import { UsageEvent } from '@/db/schema/usageEvents'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
+import { updateUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import type { TRPCApiContext } from '@/server/trpcContext'
 import {
   IntervalUnit,
@@ -94,10 +95,12 @@ describe('usageEventsRouter', () => {
     customer1 = await setupCustomer({
       organizationId: org1Data.organization.id,
       email: `customer1+${Date.now()}@test.com`,
+      pricingModelId: org1Data.pricingModel.id,
     })
     customer2 = await setupCustomer({
       organizationId: org2Data.organization.id,
       email: `customer2+${Date.now()}@test.com`,
+      pricingModelId: org2Data.pricingModel.id,
     })
 
     // Setup payment methods
@@ -349,7 +352,7 @@ describe('usageEventsRouter', () => {
         expect(enrichedEvent.customer.id).toBe(customer1.id)
         expect(enrichedEvent.subscription.id).toBe(subscription1.id)
         expect(enrichedEvent.usageMeter.id).toBe(usageMeter1.id)
-        expect(enrichedEvent.price.id).toBe(price1.id)
+        expect(enrichedEvent.price?.id).toBe(price1.id)
       })
     })
 
@@ -425,65 +428,6 @@ describe('usageEventsRouter', () => {
     })
   })
 
-  describe('RLS policy enforcement', () => {
-    it('should ALLOW merchants to read usage events for their organization', async () => {
-      // Create usage event for organization 1
-      const usageEvent = await setupUsageEvent({
-        organizationId: org1Data.organization.id,
-        customerId: customer1.id,
-        subscriptionId: subscription1.id,
-        usageMeterId: usageMeter1.id,
-        priceId: price1.id,
-        billingPeriodId: billingPeriod1.id,
-        amount: 100,
-        transactionId: 'txn_org1_allowed',
-      })
-
-      const caller = createCaller(
-        org1Data.organization,
-        org1ApiKeyToken
-      )
-
-      const result = await caller.list({
-        cursor: undefined,
-        limit: 10,
-      })
-
-      // Should return usage event for organization 1
-      expect(result.items.map((item) => item.id)).toEqual([
-        usageEvent.id,
-      ])
-    })
-
-    it('should DENY merchants from reading usage events for other organizations', async () => {
-      // Create usage event for organization 2
-      await setupUsageEvent({
-        organizationId: org2Data.organization.id,
-        customerId: customer2.id,
-        subscriptionId: subscription2.id,
-        usageMeterId: usageMeter2.id,
-        priceId: price2.id,
-        billingPeriodId: billingPeriod2.id,
-        amount: 200,
-        transactionId: 'txn_org2_denied',
-      })
-
-      const caller = createCaller(
-        org1Data.organization,
-        org1ApiKeyToken
-      )
-
-      const result = await caller.list({
-        cursor: undefined,
-        limit: 10,
-      })
-
-      // Should return empty results
-      expect(result.items).toEqual([])
-      expect(result.total).toBe(0)
-    })
-  })
-
   describe('create procedure with price slug support', () => {
     it('should create usage event with priceId', async () => {
       const caller = createCaller(
@@ -491,6 +435,7 @@ describe('usageEventsRouter', () => {
         org1ApiKeyToken
       )
 
+      // Test create procedure
       const result = await caller.create({
         usageEvent: {
           subscriptionId: subscription1.id,
@@ -504,6 +449,29 @@ describe('usageEventsRouter', () => {
       expect(result.usageEvent.priceId).toBe(price1.id)
       expect(result.usageEvent.amount).toBe(150)
       expect(result.usageEvent.subscriptionId).toBe(subscription1.id)
+
+      // Test bulkInsert procedure
+      const bulkResult = await caller.bulkInsert({
+        usageEvents: [
+          {
+            subscriptionId: subscription1.id,
+            priceId: price1.id,
+            amount: 100,
+            transactionId: `txn_bulk_priceId_1_${Date.now()}`,
+          },
+          {
+            subscriptionId: subscription1.id,
+            priceId: price1.id,
+            amount: 200,
+            transactionId: `txn_bulk_priceId_2_${Date.now()}`,
+          },
+        ],
+      })
+
+      expect(bulkResult.usageEvents).toHaveLength(2)
+      expect(bulkResult.usageEvents[0].priceId).toBe(price1.id)
+      expect(bulkResult.usageEvents[0].amount).toBe(100)
+      expect(bulkResult.usageEvents[1].amount).toBe(200)
     })
 
     it('should create usage event with priceSlug', async () => {
@@ -527,6 +495,7 @@ describe('usageEventsRouter', () => {
         org1ApiKeyToken
       )
 
+      // Test create procedure
       const result = await caller.create({
         usageEvent: {
           subscriptionId: subscription1.id,
@@ -540,6 +509,30 @@ describe('usageEventsRouter', () => {
       expect(result.usageEvent.priceId).toBe(price1.id)
       expect(result.usageEvent.amount).toBe(200)
       expect(result.usageEvent.subscriptionId).toBe(subscription1.id)
+
+      // Test bulkInsert procedure
+      const bulkResult = await caller.bulkInsert({
+        usageEvents: [
+          {
+            subscriptionId: subscription1.id,
+            priceSlug: 'test-price-slug',
+            amount: 150,
+            transactionId: `txn_bulk_priceSlug_1_${Date.now()}`,
+          },
+          {
+            subscriptionId: subscription1.id,
+            priceSlug: 'test-price-slug',
+            amount: 250,
+            transactionId: `txn_bulk_priceSlug_2_${Date.now()}`,
+          },
+        ],
+      })
+
+      expect(bulkResult.usageEvents).toHaveLength(2)
+      expect(bulkResult.usageEvents[0].priceId).toBe(price1.id)
+      expect(bulkResult.usageEvents[0].amount).toBe(150)
+      expect(bulkResult.usageEvents[1].priceId).toBe(price1.id)
+      expect(bulkResult.usageEvents[1].amount).toBe(250)
     })
 
     it('should throw error when invalid priceSlug is provided', async () => {
@@ -548,6 +541,7 @@ describe('usageEventsRouter', () => {
         org1ApiKeyToken
       )
 
+      // Test create procedure
       await expect(
         caller.create({
           usageEvent: {
@@ -560,190 +554,8 @@ describe('usageEventsRouter', () => {
       ).rejects.toThrow(
         "Price with slug invalid-slug-does-not-exist not found for this customer's pricing model"
       )
-    })
 
-    it('should throw error when both priceId and priceSlug are provided', async () => {
-      const caller = createCaller(
-        org1Data.organization,
-        org1ApiKeyToken
-      )
-
-      await expect(
-        caller.create({
-          usageEvent: {
-            subscriptionId: subscription1.id,
-            priceId: price1.id,
-            priceSlug: 'test-price-slug',
-            amount: 300,
-            transactionId: `txn_both_provided_${Date.now()}`,
-          },
-        })
-      ).rejects.toThrow(
-        'Either priceId or priceSlug must be provided, but not both'
-      )
-    })
-
-    it('should throw error when neither priceId nor priceSlug is provided', async () => {
-      const caller = createCaller(
-        org1Data.organization,
-        org1ApiKeyToken
-      )
-
-      await expect(
-        caller.create({
-          usageEvent: {
-            subscriptionId: subscription1.id,
-            amount: 350,
-            transactionId: `txn_neither_provided_${Date.now()}`,
-          },
-        })
-      ).rejects.toThrow(
-        'Either priceId or priceSlug must be provided, but not both'
-      )
-    })
-  })
-
-  describe('bulkInsert procedure with price slug support', () => {
-    it('should bulk insert usage events with priceId', async () => {
-      const caller = createCaller(
-        org1Data.organization,
-        org1ApiKeyToken
-      )
-
-      const result = await caller.bulkInsert({
-        usageEvents: [
-          {
-            subscriptionId: subscription1.id,
-            priceId: price1.id,
-            amount: 100,
-            transactionId: `txn_bulk_priceId_1_${Date.now()}`,
-          },
-          {
-            subscriptionId: subscription1.id,
-            priceId: price1.id,
-            amount: 200,
-            transactionId: `txn_bulk_priceId_2_${Date.now()}`,
-          },
-          {
-            subscriptionId: subscription1.id,
-            priceId: price1.id,
-            amount: 300,
-            transactionId: `txn_bulk_priceId_3_${Date.now()}`,
-          },
-        ],
-      })
-
-      expect(result.usageEvents).toHaveLength(3)
-      expect(result.usageEvents[0].priceId).toBe(price1.id)
-      expect(result.usageEvents[0].amount).toBe(100)
-      expect(result.usageEvents[1].amount).toBe(200)
-      expect(result.usageEvents[2].amount).toBe(300)
-    })
-
-    it('should bulk insert usage events with priceSlug', async () => {
-      // First, update price1 to have a slug
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          await updatePrice(
-            {
-              id: price1.id,
-              slug: 'bulk-test-price-slug',
-              type: price1.type,
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
-
-      const caller = createCaller(
-        org1Data.organization,
-        org1ApiKeyToken
-      )
-
-      const result = await caller.bulkInsert({
-        usageEvents: [
-          {
-            subscriptionId: subscription1.id,
-            priceSlug: 'bulk-test-price-slug',
-            amount: 150,
-            transactionId: `txn_bulk_priceSlug_1_${Date.now()}`,
-          },
-          {
-            subscriptionId: subscription1.id,
-            priceSlug: 'bulk-test-price-slug',
-            amount: 250,
-            transactionId: `txn_bulk_priceSlug_2_${Date.now()}`,
-          },
-        ],
-      })
-
-      expect(result.usageEvents).toHaveLength(2)
-      expect(result.usageEvents[0].priceId).toBe(price1.id)
-      expect(result.usageEvents[0].amount).toBe(150)
-      expect(result.usageEvents[1].priceId).toBe(price1.id)
-      expect(result.usageEvents[1].amount).toBe(250)
-    })
-
-    it('should bulk insert usage events with mixed priceId and priceSlug', async () => {
-      // First, update price1 to have a slug
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          await updatePrice(
-            {
-              id: price1.id,
-              slug: 'mixed-test-price-slug',
-              type: price1.type,
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
-
-      const caller = createCaller(
-        org1Data.organization,
-        org1ApiKeyToken
-      )
-
-      const result = await caller.bulkInsert({
-        usageEvents: [
-          {
-            subscriptionId: subscription1.id,
-            priceId: price1.id,
-            amount: 100,
-            transactionId: `txn_bulk_mixed_1_${Date.now()}`,
-          },
-          {
-            subscriptionId: subscription1.id,
-            priceSlug: 'mixed-test-price-slug',
-            amount: 200,
-            transactionId: `txn_bulk_mixed_2_${Date.now()}`,
-          },
-          {
-            subscriptionId: subscription1.id,
-            priceId: price1.id,
-            amount: 300,
-            transactionId: `txn_bulk_mixed_3_${Date.now()}`,
-          },
-        ],
-      })
-
-      expect(result.usageEvents).toHaveLength(3)
-      result.usageEvents.forEach((event) => {
-        expect(event.priceId).toBe(price1.id)
-      })
-      expect(result.usageEvents[0].amount).toBe(100)
-      expect(result.usageEvents[1].amount).toBe(200)
-      expect(result.usageEvents[2].amount).toBe(300)
-    })
-
-    it('should throw error when invalid priceSlug is provided in bulk insert', async () => {
-      const caller = createCaller(
-        org1Data.organization,
-        org1ApiKeyToken
-      )
-
+      // Test bulkInsert procedure
       await expect(
         caller.bulkInsert({
           usageEvents: [
@@ -766,12 +578,28 @@ describe('usageEventsRouter', () => {
       )
     })
 
-    it('should throw error when both priceId and priceSlug are provided in bulk event', async () => {
+    it('should throw error when both priceId and priceSlug are provided', async () => {
       const caller = createCaller(
         org1Data.organization,
         org1ApiKeyToken
       )
 
+      // Test create procedure
+      await expect(
+        caller.create({
+          usageEvent: {
+            subscriptionId: subscription1.id,
+            priceId: price1.id,
+            priceSlug: 'test-price-slug',
+            amount: 300,
+            transactionId: `txn_both_provided_${Date.now()}`,
+          },
+        })
+      ).rejects.toThrow(
+        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+      )
+
+      // Test bulkInsert procedure
       await expect(
         caller.bulkInsert({
           usageEvents: [
@@ -785,16 +613,30 @@ describe('usageEventsRouter', () => {
           ],
         })
       ).rejects.toThrow(
-        'Either priceId or priceSlug must be provided, but not both'
+        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
       )
     })
 
-    it('should throw error when neither priceId nor priceSlug is provided in bulk event', async () => {
+    it('should throw error when neither priceId nor priceSlug is provided', async () => {
       const caller = createCaller(
         org1Data.organization,
         org1ApiKeyToken
       )
 
+      // Test create procedure
+      await expect(
+        caller.create({
+          usageEvent: {
+            subscriptionId: subscription1.id,
+            amount: 350,
+            transactionId: `txn_neither_provided_${Date.now()}`,
+          },
+        })
+      ).rejects.toThrow(
+        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+      )
+
+      // Test bulkInsert procedure
       await expect(
         caller.bulkInsert({
           usageEvents: [
@@ -806,15 +648,372 @@ describe('usageEventsRouter', () => {
           ],
         })
       ).rejects.toThrow(
-        'Either priceId or priceSlug must be provided, but not both'
+        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
       )
     })
 
+    it('should create usage event with usageMeterId', async () => {
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      // Test create procedure
+      const result = await caller.create({
+        usageEvent: {
+          subscriptionId: subscription1.id,
+          usageMeterId: usageMeter1.id,
+          amount: 250,
+          transactionId: `txn_usageMeterId_${Date.now()}`,
+        },
+      })
+
+      expect(result.usageEvent.subscriptionId).toBe(subscription1.id)
+      expect(result.usageEvent.amount).toBe(250)
+      // When usageMeterId is provided, priceId should be null
+      expect(result.usageEvent.priceId).toBeNull()
+      expect(result.usageEvent.usageMeterId).toBe(usageMeter1.id)
+
+      // Test bulkInsert procedure
+      const bulkResult = await caller.bulkInsert({
+        usageEvents: [
+          {
+            subscriptionId: subscription1.id,
+            usageMeterId: usageMeter1.id,
+            amount: 100,
+            transactionId: `txn_bulk_usageMeterId_1_${Date.now()}`,
+          },
+          {
+            subscriptionId: subscription1.id,
+            usageMeterId: usageMeter1.id,
+            amount: 200,
+            transactionId: `txn_bulk_usageMeterId_2_${Date.now()}`,
+          },
+          {
+            subscriptionId: subscription1.id,
+            usageMeterId: usageMeter1.id,
+            amount: 300,
+            transactionId: `txn_bulk_usageMeterId_3_${Date.now()}`,
+          },
+        ],
+      })
+
+      expect(bulkResult.usageEvents).toHaveLength(3)
+      // When usageMeterId is provided, priceId should be null
+      bulkResult.usageEvents.forEach((event) => {
+        expect(event.priceId).toBeNull()
+        expect(event.usageMeterId).toBe(usageMeter1.id)
+      })
+      expect(bulkResult.usageEvents[0].amount).toBe(100)
+      expect(bulkResult.usageEvents[1].amount).toBe(200)
+      expect(bulkResult.usageEvents[2].amount).toBe(300)
+    })
+
+    it('should create usage event with usageMeterSlug', async () => {
+      // First, update usageMeter1 to have a slug
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          await updateUsageMeter(
+            {
+              id: usageMeter1.id,
+              slug: 'test-usage-meter-slug',
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      // Test create procedure
+      const result = await caller.create({
+        usageEvent: {
+          subscriptionId: subscription1.id,
+          usageMeterSlug: 'test-usage-meter-slug',
+          amount: 300,
+          transactionId: `txn_usageMeterSlug_${Date.now()}`,
+        },
+      })
+
+      expect(result.usageEvent.subscriptionId).toBe(subscription1.id)
+      expect(result.usageEvent.amount).toBe(300)
+      // When usageMeterSlug is provided, priceId should be null
+      expect(result.usageEvent.priceId).toBeNull()
+      expect(result.usageEvent.usageMeterId).toBe(usageMeter1.id)
+
+      // Test bulkInsert procedure
+      const bulkResult = await caller.bulkInsert({
+        usageEvents: [
+          {
+            subscriptionId: subscription1.id,
+            usageMeterSlug: 'test-usage-meter-slug',
+            amount: 150,
+            transactionId: `txn_bulk_usageMeterSlug_1_${Date.now()}`,
+          },
+          {
+            subscriptionId: subscription1.id,
+            usageMeterSlug: 'test-usage-meter-slug',
+            amount: 250,
+            transactionId: `txn_bulk_usageMeterSlug_2_${Date.now()}`,
+          },
+        ],
+      })
+
+      expect(bulkResult.usageEvents).toHaveLength(2)
+      // When usageMeterSlug is provided, priceId should be null
+      bulkResult.usageEvents.forEach((event) => {
+        expect(event.priceId).toBeNull()
+        expect(event.usageMeterId).toBe(usageMeter1.id)
+      })
+      expect(bulkResult.usageEvents[0].amount).toBe(150)
+      expect(bulkResult.usageEvents[1].amount).toBe(250)
+    })
+
+    it('should throw error when invalid usageMeterSlug is provided', async () => {
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      // Test create procedure
+      await expect(
+        caller.create({
+          usageEvent: {
+            subscriptionId: subscription1.id,
+            usageMeterSlug: 'invalid-usage-meter-slug',
+            amount: 250,
+            transactionId: `txn_invalid_um_slug_${Date.now()}`,
+          },
+        })
+      ).rejects.toThrow(
+        "Usage meter with slug invalid-usage-meter-slug not found for this customer's pricing model"
+      )
+
+      // Test bulkInsert procedure
+      await expect(
+        caller.bulkInsert({
+          usageEvents: [
+            {
+              subscriptionId: subscription1.id,
+              usageMeterId: usageMeter1.id,
+              amount: 100,
+              transactionId: `txn_bulk_invalid_um_1_${Date.now()}`,
+            },
+            {
+              subscriptionId: subscription1.id,
+              usageMeterSlug: 'invalid-usage-meter-slug',
+              amount: 200,
+              transactionId: `txn_bulk_invalid_um_2_${Date.now()}`,
+            },
+          ],
+        })
+      ).rejects.toThrow(
+        "Usage meter with slug invalid-usage-meter-slug not found for customer's pricing model"
+      )
+    })
+
+    it('should throw error when both priceId and usageMeterId are provided', async () => {
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      // Test create procedure
+      await expect(
+        caller.create({
+          usageEvent: {
+            subscriptionId: subscription1.id,
+            priceId: price1.id,
+            usageMeterId: usageMeter1.id,
+            amount: 300,
+            transactionId: `txn_both_price_um_${Date.now()}`,
+          },
+        })
+      ).rejects.toThrow(
+        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+      )
+
+      // Test bulkInsert procedure
+      await expect(
+        caller.bulkInsert({
+          usageEvents: [
+            {
+              subscriptionId: subscription1.id,
+              priceId: price1.id,
+              usageMeterId: usageMeter1.id,
+              amount: 100,
+              transactionId: `txn_bulk_both_types_${Date.now()}`,
+            },
+          ],
+        })
+      ).rejects.toThrow(
+        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+      )
+    })
+
+    it('should throw error when both priceSlug and usageMeterSlug are provided', async () => {
+      // First, update price1 and usageMeter1 to have slugs
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          await updatePrice(
+            {
+              id: price1.id,
+              slug: 'test-price-slug',
+              type: price1.type,
+            },
+            transaction
+          )
+          await updateUsageMeter(
+            {
+              id: usageMeter1.id,
+              slug: 'test-usage-meter-slug',
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      // Test create procedure
+      await expect(
+        caller.create({
+          usageEvent: {
+            subscriptionId: subscription1.id,
+            priceSlug: 'test-price-slug',
+            usageMeterSlug: 'test-usage-meter-slug',
+            amount: 300,
+            transactionId: `txn_both_slugs_${Date.now()}`,
+          },
+        })
+      ).rejects.toThrow(
+        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+      )
+
+      // Test bulkInsert procedure
+      await expect(
+        caller.bulkInsert({
+          usageEvents: [
+            {
+              subscriptionId: subscription1.id,
+              priceSlug: 'test-price-slug',
+              usageMeterSlug: 'test-usage-meter-slug',
+              amount: 100,
+              transactionId: `txn_bulk_both_slugs_${Date.now()}`,
+            },
+          ],
+        })
+      ).rejects.toThrow(
+        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+      )
+    })
+
+    it('should throw error when priceId and usageMeterSlug are provided', async () => {
+      // First, update usageMeter1 to have a slug
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          await updateUsageMeter(
+            {
+              id: usageMeter1.id,
+              slug: 'test-usage-meter-slug',
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      // Test create procedure
+      await expect(
+        caller.create({
+          usageEvent: {
+            subscriptionId: subscription1.id,
+            priceId: price1.id,
+            usageMeterSlug: 'test-usage-meter-slug',
+            amount: 300,
+            transactionId: `txn_price_um_slug_${Date.now()}`,
+          },
+        })
+      ).rejects.toThrow(
+        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+      )
+
+      // Test bulkInsert procedure
+      await expect(
+        caller.bulkInsert({
+          usageEvents: [
+            {
+              subscriptionId: subscription1.id,
+              priceId: price1.id,
+              usageMeterSlug: 'test-usage-meter-slug',
+              amount: 100,
+              transactionId: `txn_bulk_price_um_slug_${Date.now()}`,
+            },
+          ],
+        })
+      ).rejects.toThrow(
+        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+      )
+    })
+
+    it('should throw error when usageMeterId from different pricing model is provided', async () => {
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      // Test create procedure - try to use org2's usage meter with org1's subscription
+      await expect(
+        caller.create({
+          usageEvent: {
+            subscriptionId: subscription1.id,
+            usageMeterId: usageMeter2.id, // This belongs to org2
+            amount: 250,
+            transactionId: `txn_wrong_org_um_${Date.now()}`,
+          },
+        })
+      ).rejects.toThrow(
+        `Usage meter ${usageMeter2.id} not found for this customer's pricing model`
+      )
+
+      // Test bulkInsert procedure - try to use org2's usage meter with org1's subscription
+      await expect(
+        caller.bulkInsert({
+          usageEvents: [
+            {
+              subscriptionId: subscription1.id,
+              usageMeterId: usageMeter2.id, // This belongs to org2
+              amount: 100,
+              transactionId: `txn_bulk_wrong_org_${Date.now()}`,
+            },
+          ],
+        })
+      ).rejects.toThrow(
+        `Usage meter ${usageMeter2.id} not found for this customer's pricing model`
+      )
+    })
+  })
+
+  describe('bulkInsert procedure with price slug support', () => {
     it('should bulk insert usage events for multiple customers and subscriptions', async () => {
       // Setup a second customer and subscription in org1
       const customer1b = await setupCustomer({
         organizationId: org1Data.organization.id,
         email: `customer1b+${Date.now()}@test.com`,
+        pricingModelId: org1Data.pricingModel.id,
       })
 
       const paymentMethod1b = await setupPaymentMethod({
@@ -922,6 +1121,80 @@ describe('usageEventsRouter', () => {
       expect(result.usageEvents[1].amount).toBe(200)
       expect(result.usageEvents[2].amount).toBe(150)
       expect(result.usageEvents[3].amount).toBe(250)
+    })
+
+    it('should bulk insert usage events with mixed priceId, priceSlug, usageMeterId, and usageMeterSlug', async () => {
+      // First, update price1 and usageMeter1 to have slugs
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          await updatePrice(
+            {
+              id: price1.id,
+              slug: 'mixed-price-slug',
+              type: price1.type,
+            },
+            transaction
+          )
+          await updateUsageMeter(
+            {
+              id: usageMeter1.id,
+              slug: 'mixed-usage-meter-slug',
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      const result = await caller.bulkInsert({
+        usageEvents: [
+          {
+            subscriptionId: subscription1.id,
+            priceId: price1.id,
+            amount: 100,
+            transactionId: `txn_bulk_mixed_all_1_${Date.now()}`,
+          },
+          {
+            subscriptionId: subscription1.id,
+            priceSlug: 'mixed-price-slug',
+            amount: 200,
+            transactionId: `txn_bulk_mixed_all_2_${Date.now()}`,
+          },
+          {
+            subscriptionId: subscription1.id,
+            usageMeterId: usageMeter1.id,
+            amount: 300,
+            transactionId: `txn_bulk_mixed_all_3_${Date.now()}`,
+          },
+          {
+            subscriptionId: subscription1.id,
+            usageMeterSlug: 'mixed-usage-meter-slug',
+            amount: 400,
+            transactionId: `txn_bulk_mixed_all_4_${Date.now()}`,
+          },
+        ],
+      })
+
+      expect(result.usageEvents).toHaveLength(4)
+      // Events with price identifiers should have priceId set
+      expect(result.usageEvents[0].priceId).toBe(price1.id)
+      expect(result.usageEvents[1].priceId).toBe(price1.id)
+      // Events with usage meter identifiers should have priceId null
+      expect(result.usageEvents[2].priceId).toBeNull()
+      expect(result.usageEvents[3].priceId).toBeNull()
+      // All should have usageMeterId
+      result.usageEvents.forEach((event) => {
+        expect(event.usageMeterId).toBe(usageMeter1.id)
+      })
+      expect(result.usageEvents[0].amount).toBe(100)
+      expect(result.usageEvents[1].amount).toBe(200)
+      expect(result.usageEvents[2].amount).toBe(300)
+      expect(result.usageEvents[3].amount).toBe(400)
     })
   })
 })

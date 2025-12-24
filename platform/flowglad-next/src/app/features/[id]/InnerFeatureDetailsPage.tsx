@@ -1,11 +1,18 @@
 'use client'
 
-import { Check, Copy, X } from 'lucide-react'
+import { Check, DollarSign, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import EditFeatureModal from '@/components/forms/EditFeatureModal'
 import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import { CopyableField } from '@/components/ui/copyable-field'
+import {
+  ContentSection,
+  HelperText,
+  SectionLabel,
+  SectionValue,
+} from '@/components/ui/detail-section'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { Feature } from '@/db/schema/features'
 import { PricingModel } from '@/db/schema/pricingModels'
@@ -17,96 +24,6 @@ interface InnerFeatureDetailsPageProps {
   feature: Feature.ClientRecord
   pricingModel: PricingModel.ClientRecord | null
   usageMeter: UsageMeter.ClientRecord | null
-}
-
-/**
- * Copyable field component for displaying values with a copy button.
- * Based on Figma design - copy icon is always visible.
- */
-function CopyableField({
-  value,
-  label,
-}: {
-  value: string
-  label: string
-}) {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(value)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      console.error('Failed to copy:', error)
-    }
-  }
-
-  return (
-    <div
-      className="inline-flex items-center gap-2 cursor-pointer group"
-      onClick={handleCopy}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          handleCopy()
-        }
-      }}
-      aria-label={`Copy ${label}`}
-      title={`Click to copy ${label}`}
-    >
-      <span className="font-sans font-normal text-base leading-6 text-foreground group-hover:underline transition-colors">
-        {value}
-      </span>
-      {copied ? (
-        <Check className="h-4 w-4 text-[hsl(var(--jade-muted-foreground))] flex-shrink-0" />
-      ) : (
-        <Copy className="h-4 w-4 text-foreground flex-shrink-0" />
-      )}
-    </div>
-  )
-}
-
-/**
- * Section label component with monospace font (Berkeley Mono style)
- */
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="font-mono font-medium text-sm text-muted-foreground leading-[1.2]">
-      {children}
-    </p>
-  )
-}
-
-/**
- * Section value component with standard font
- */
-function SectionValue({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="font-sans font-normal text-base text-foreground leading-6">
-      {children}
-    </p>
-  )
-}
-
-/**
- * Helper text component for descriptions under fields
- */
-function HelperText({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="font-sans font-normal text-sm text-muted-foreground leading-tight">
-      {children}
-    </p>
-  )
-}
-
-/**
- * Content section container component
- */
-function ContentSection({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-col gap-2 w-full">{children}</div>
 }
 
 /**
@@ -180,6 +97,7 @@ function InnerFeatureDetailsPage({
     ...(pricingModel
       ? [
           {
+            icon: <DollarSign className="h-3.5 w-3.5" />,
             label: (
               <Link
                 href={`/pricing-models/${pricingModel.id}`}

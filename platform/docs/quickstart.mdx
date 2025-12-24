@@ -6,7 +6,7 @@ description: "Process your first payment in 3 minutes"
 This guide will show you how set up Flowglad in your app. It's optimized for Next.js, but it can be adapted for any React \+ Node.js application.
 
 <Note>
-  Looking for detailed SDK documentation? Check out our [**SDK documentation**](/sdks/introduction) for comprehensive guides on [@flowglad/nextjs](/sdks/nextjs), [@flowglad/react](/sdks/react), [@flowglad/express](/sdks/express), and more.
+  Looking for detailed SDK documentation? Check out our [**SDK documentation**](/sdks/introduction) for comprehensive guides on [@flowglad/nextjs](/sdks/nextjs), [@flowglad/react](/sdks/react), [Express integration](/sdks/express), and more.
 </Note>
 
 ## 1. Sign Up For Flowglad
@@ -48,7 +48,7 @@ Do this in a file that can be imported wherever you need to access billing data,
 
 <CodeGroup>
 
-```ts utils/flowglad.ts
+```ts lib/flowglad.ts
 import { FlowgladServer } from '@flowglad/nextjs/server'
 
 export const flowglad = (customerExternalId: string) => {
@@ -225,8 +225,8 @@ Flowglad integrates seamlessly with your auth provider. Read more about auth opt
 
 <Info>
   You can mount Flowglad's handler at a different route, but you'll
-  need to specify it via the `serverRoute` prop in `
-            <FlowgladProvider />` in your React app.
+  need to specify it via the `baseURL` prop in `
+            <FlowgladProvider />` in your React app. Flowglad will automatically append `/api/flowglad` to the baseURL when making requests.
 </Info>
 
 ## 5. Set up React

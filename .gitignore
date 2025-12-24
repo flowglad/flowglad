@@ -35,5 +35,8 @@ pnpm-lock.yaml
 
 .workspace-deps-backup.json
 
+database.sqlite
+playground/react-native/prisma/database.sqlite
+
 # Git worktrees
 .conductor

@@ -10,10 +10,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { cn } from '@/lib/utils'
 
 export function NavStandalone({
   items,
   title,
+  indented = false,
 }: {
   items: {
     title: string
@@ -22,6 +24,11 @@ export function NavStandalone({
     isActive?: boolean
   }[]
   title?: string
+  /**
+   * When true, applies left padding to each button
+   * for sub-navigation visual hierarchy
+   */
+  indented?: boolean
 }) {
   return (
     <SidebarGroup>
@@ -33,6 +40,7 @@ export function NavStandalone({
               asChild
               tooltip={item.title}
               isActive={item.isActive}
+              className={cn(indented && 'pl-5')}
             >
               <Link href={item.url} prefetch={true}>
                 {item.icon && <item.icon />}

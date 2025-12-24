@@ -477,9 +477,9 @@ describe('selectUsageEventsTableRowData', () => {
     })
   })
 
-  it('should return enriched data with all related records', async () => {
-    // Create 3 usage events for organization 1
-    const createdEvents = []
+  it('should return enriched data with all related records, including events with and without prices', async () => {
+    // Create multiple usage events with prices
+    const eventsWithPrice: UsageEvent.Record[] = []
     for (let i = 0; i < 3; i++) {
       const event = await setupUsageEvent({
         organizationId: org1Data.organization.id,
@@ -489,10 +489,22 @@ describe('selectUsageEventsTableRowData', () => {
         priceId: price1.id,
         billingPeriodId: billingPeriod1.id,
         amount: 100 + i,
-        transactionId: `txn_enriched_${i}`,
+        transactionId: `txn_with_price_${i}_${Date.now()}`,
       })
-      createdEvents.push(event)
+      eventsWithPrice.push(event)
     }
+
+    // Create usage events without prices
+    const eventWithoutPrice = await setupUsageEvent({
+      organizationId: org1Data.organization.id,
+      customerId: customer1.id,
+      subscriptionId: subscription1.id,
+      usageMeterId: usageMeter1.id,
+      priceId: null,
+      billingPeriodId: billingPeriod1.id,
+      amount: 200,
+      transactionId: `txn_without_price_${Date.now()}`,
+    })
 
     // Call selectUsageEventsTableRowData with org1 API key
     const result = await authenticatedTransaction(
@@ -507,29 +519,59 @@ describe('selectUsageEventsTableRowData', () => {
       { apiKey: org1ApiKeyToken }
     )
 
-    // Should return 3 enriched usage events - verify by specific IDs
-    expect(result.total).toBe(3)
+    // Should return 4 enriched usage events (3 with prices, 1 without)
+    expect(result.total).toBe(4)
     expect(result.hasNextPage).toBe(false)
 
     const returnedEventIds = result.items.map(
       (item) => item.usageEvent.id
     )
-    const expectedEventIds = createdEvents.map((event) => event.id)
+    const expectedEventIds = [
+      ...eventsWithPrice.map((e) => e.id),
+      eventWithoutPrice.id,
+    ]
     expect(returnedEventIds.sort()).toEqual(expectedEventIds.sort())
 
-    // Each event should have customer, subscription, usageMeter, price data
+    // Verify all events have correct enriched data
     result.items.forEach((enrichedEvent) => {
-      expect(enrichedEvent.usageEvent).toBeDefined()
-      expect(enrichedEvent.customer).toBeDefined()
-      expect(enrichedEvent.subscription).toBeDefined()
-      expect(enrichedEvent.usageMeter).toBeDefined()
-      expect(enrichedEvent.price).toBeDefined()
+      // Verify usage event fields
+      expect(enrichedEvent.usageEvent.customerId).toBe(customer1.id)
+      expect(enrichedEvent.usageEvent.subscriptionId).toBe(
+        subscription1.id
+      )
+      expect(enrichedEvent.usageEvent.usageMeterId).toBe(
+        usageMeter1.id
+      )
 
-      // Verify the data matches our setup
+      // Verify related records match the usage event
       expect(enrichedEvent.customer.id).toBe(customer1.id)
+      expect(enrichedEvent.customer.id).toBe(
+        enrichedEvent.usageEvent.customerId
+      )
       expect(enrichedEvent.subscription.id).toBe(subscription1.id)
+      expect(enrichedEvent.subscription.id).toBe(
+        enrichedEvent.usageEvent.subscriptionId
+      )
       expect(enrichedEvent.usageMeter.id).toBe(usageMeter1.id)
-      expect(enrichedEvent.price.id).toBe(price1.id)
+      expect(enrichedEvent.usageMeter.id).toBe(
+        enrichedEvent.usageEvent.usageMeterId
+      )
+
+      // Verify price handling - events with prices should have price data, events without should have null
+      if (
+        eventsWithPrice.some(
+          (e) => e.id === enrichedEvent.usageEvent.id
+        )
+      ) {
+        expect(enrichedEvent.price?.id).toBe(price1.id)
+        expect(enrichedEvent.price?.id).toBe(
+          enrichedEvent.usageEvent.priceId
+        )
+      } else {
+        expect(enrichedEvent.usageEvent.priceId).toBeNull()
+        expect(enrichedEvent.usageEvent.amount).toBe(200)
+        expect(enrichedEvent.price).toBeNull()
+      }
     })
   })
 })

@@ -56,7 +56,6 @@ import {
   products,
   productsSelectSchema,
 } from '../schema/products'
-import type { ProperNoun } from '../schema/properNouns'
 
 const config: ORMMethodCreatorConfig<
   typeof purchases,
@@ -257,18 +256,6 @@ export const createCustomerInputSchema = z.object({
 export type CreateCustomerInputSchema = z.infer<
   typeof createCustomerInputSchema
 >
-
-export const purchaseToProperNounUpsert = (
-  purchase: Purchase.Record
-): ProperNoun.Insert => {
-  return {
-    entityId: purchase.id,
-    entityType: 'purchase',
-    name: purchase.name,
-    organizationId: purchase.organizationId,
-    livemode: purchase.livemode,
-  }
-}
 
 export const bulkInsertPurchases = async (
   purchaseInserts: Purchase.Insert[],

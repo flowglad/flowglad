@@ -35,10 +35,10 @@ Copy the the prompt below and execute it. For a conventional Next.js app, it sho
 
 ```mdx
 Please set up billing for our app according to the following instructions:
-
+1. Create a `flowglad.ts` file in /lib, that looks like this:
 1. Create a `flowglad.ts` file in /utils, that looks like this:
 
-`// utils/flowglad.ts
+`// lib/flowglad.ts
 import { FlowgladServer } from '@flowglad/nextjs/server'
 
 export const flowglad = (customerExternalId: string) => {
