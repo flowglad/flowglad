@@ -36,10 +36,7 @@ export function getIntervalString(
  */
 export function getTemplateCounts(input: SetupPricingModelInput) {
   const productCount = input.products.length
-  const priceCount = input.products.reduce(
-    (sum, p) => sum + p.prices.length,
-    0
-  )
+  const priceCount = input.products.length // Each product has one price
   const featureCount = input.features.length
   const usageMeterCount = input.usageMeters.length
 

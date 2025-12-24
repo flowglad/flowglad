@@ -17,19 +17,17 @@ describe('setupPricingModelSchema', () => {
           active: true,
           default: false,
         },
-        prices: [
-          {
-            type: PriceType.Subscription,
-            slug: 'test-price',
-            isDefault: true,
-            unitPrice: 1000,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
-            active: true,
-          },
-        ],
+        price: {
+          type: PriceType.Subscription,
+          slug: 'test-price',
+          isDefault: true,
+          unitPrice: 1000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+          active: true,
+        },
         features: [],
       },
     ],
@@ -98,19 +96,17 @@ describe('setupPricingModelSchema', () => {
             active: true,
             default: false,
           },
-          prices: [
-            {
-              type: PriceType.Subscription,
-              slug: 'price-1',
-              isDefault: true,
-              unitPrice: 1000,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              active: true,
-            },
-          ],
+          price: {
+            type: PriceType.Subscription,
+            slug: 'price-1',
+            isDefault: true,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            active: true,
+          },
           features: [],
         },
         {
@@ -120,19 +116,17 @@ describe('setupPricingModelSchema', () => {
             active: true,
             default: false,
           },
-          prices: [
-            {
-              type: PriceType.Subscription,
-              slug: 'price-2',
-              isDefault: true,
-              unitPrice: 2000,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              active: true,
-            },
-          ],
+          price: {
+            type: PriceType.Subscription,
+            slug: 'price-2',
+            isDefault: true,
+            unitPrice: 2000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            active: true,
+          },
           features: [],
         },
       ]
@@ -156,19 +150,17 @@ describe('setupPricingModelSchema', () => {
             active: true,
             default: false,
           },
-          prices: [
-            {
-              type: PriceType.Subscription,
-              slug: 'price-1',
-              isDefault: true,
-              unitPrice: 1000,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              active: true,
-            },
-          ],
+          price: {
+            type: PriceType.Subscription,
+            slug: 'price-1',
+            isDefault: true,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            active: true,
+          },
           features: [],
         },
         {
@@ -178,19 +170,17 @@ describe('setupPricingModelSchema', () => {
             active: true,
             default: false,
           },
-          prices: [
-            {
-              type: PriceType.Subscription,
-              slug: 'price-2',
-              isDefault: true,
-              unitPrice: 2000,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              active: true,
-            },
-          ],
+          price: {
+            type: PriceType.Subscription,
+            slug: 'price-2',
+            isDefault: true,
+            unitPrice: 2000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            active: true,
+          },
           features: [],
         },
       ]
@@ -212,20 +202,18 @@ describe('setupPricingModelSchema', () => {
         },
       ]
       // Add a usage price so the meter is valid
-      input.products[0].prices = [
-        {
-          type: PriceType.Usage,
-          slug: 'usage-price',
-          isDefault: true,
-          unitPrice: 100,
-          usageMeterSlug: 'duplicate-slug',
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          trialPeriodDays: null,
-          usageEventsPerUnit: 1,
-          active: true,
-        },
-      ]
+      input.products[0].price = {
+        type: PriceType.Usage,
+        slug: 'usage-price',
+        isDefault: true,
+        unitPrice: 100,
+        usageMeterSlug: 'duplicate-slug',
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        trialPeriodDays: null,
+        usageEventsPerUnit: 1,
+        active: true,
+      }
 
       const result = setupPricingModelSchema.safeParse(input)
       expect(result.success).toBe(false)
@@ -248,33 +236,19 @@ describe('setupPricingModelSchema', () => {
           name: 'Usage Meter 2',
         },
       ]
-      // Add usage prices so the meters are valid
-      input.products[0].prices = [
-        {
-          type: PriceType.Usage,
-          slug: 'usage-price-1',
-          isDefault: true,
-          unitPrice: 100,
-          usageMeterSlug: 'meter-1',
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          trialPeriodDays: null,
-          usageEventsPerUnit: 1,
-          active: true,
-        },
-        {
-          type: PriceType.Usage,
-          slug: 'usage-price-2',
-          isDefault: false,
-          unitPrice: 200,
-          usageMeterSlug: 'meter-2',
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          trialPeriodDays: null,
-          usageEventsPerUnit: 1,
-          active: true,
-        },
-      ]
+      // Add usage price so the meter is valid (can only reference one meter per product now)
+      input.products[0].price = {
+        type: PriceType.Usage,
+        slug: 'usage-price-1',
+        isDefault: true,
+        unitPrice: 100,
+        usageMeterSlug: 'meter-1',
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        trialPeriodDays: null,
+        usageEventsPerUnit: 1,
+        active: true,
+      }
 
       const result = setupPricingModelSchema.safeParse(input)
       expect(result.success).toBe(true)
@@ -361,6 +335,72 @@ describe('setupPricingModelSchema', () => {
       if (result.success) {
         expect(result.data.name).toBe('Test Model')
       }
+    })
+  })
+
+  describe('product price requirement validation', () => {
+    it('should reject when price has active=false', () => {
+      const input = createMinimalValidInput()
+      input.products[0].price = {
+        type: PriceType.Subscription,
+        slug: 'price-1',
+        isDefault: true,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+        active: false, // Invalid
+      }
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain(
+          'active=true'
+        )
+      }
+    })
+
+    it('should reject when price has isDefault=false', () => {
+      const input = createMinimalValidInput()
+      input.products[0].price = {
+        type: PriceType.Subscription,
+        slug: 'price-1',
+        isDefault: false, // Invalid
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+        active: true,
+      }
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain(
+          'isDefault=true'
+        )
+      }
+    })
+
+    it('should accept when price has both active=true and isDefault=true', () => {
+      const input = createMinimalValidInput()
+      input.products[0].price = {
+        type: PriceType.Subscription,
+        slug: 'price-1',
+        isDefault: true,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+        active: true,
+      }
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(true)
     })
   })
 })

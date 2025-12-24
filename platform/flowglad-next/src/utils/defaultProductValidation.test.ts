@@ -9,14 +9,12 @@ describe('defaultProductValidation', () => {
       const product = {
         name: 'Free Plan',
         slug: 'free-plan',
-        prices: [
-          {
-            amount: 0,
-            type: PriceType.SinglePayment,
-            slug: 'free',
-            trialDays: 0,
-          },
-        ],
+        price: {
+          amount: 0,
+          type: PriceType.SinglePayment,
+          slug: 'free',
+          trialDays: 0,
+        },
       }
 
       expect(() =>
@@ -28,14 +26,12 @@ describe('defaultProductValidation', () => {
       const product = {
         name: 'Paid Plan',
         slug: 'paid-plan',
-        prices: [
-          {
-            amount: 1000,
-            type: PriceType.SinglePayment,
-            slug: 'paid',
-            trialDays: 0,
-          },
-        ],
+        price: {
+          amount: 1000,
+          type: PriceType.SinglePayment,
+          slug: 'paid',
+          trialDays: 0,
+        },
       }
 
       expect(() => validateDefaultProductSchema(product)).toThrow(
@@ -43,43 +39,16 @@ describe('defaultProductValidation', () => {
       )
     })
 
-    it('should fail for product with multiple prices', () => {
-      const product = {
-        name: 'Multi Price Plan',
-        slug: 'multi-price',
-        prices: [
-          {
-            amount: 0,
-            type: PriceType.SinglePayment,
-            slug: 'free',
-            trialDays: 0,
-          },
-          {
-            amount: 1000,
-            type: PriceType.SinglePayment,
-            slug: 'paid',
-            trialDays: 0,
-          },
-        ],
-      }
-
-      expect(() => validateDefaultProductSchema(product)).toThrow(
-        'Default products must have exactly one price'
-      )
-    })
-
     it('should fail for product with trial days', () => {
       const product = {
         name: 'Trial Plan',
         slug: 'trial-plan',
-        prices: [
-          {
-            amount: 0,
-            type: PriceType.SinglePayment,
-            slug: 'trial',
-            trialDays: 7,
-          },
-        ],
+        price: {
+          amount: 0,
+          type: PriceType.SinglePayment,
+          slug: 'trial',
+          trialDays: 7,
+        },
       }
 
       expect(() => validateDefaultProductSchema(product)).toThrow(

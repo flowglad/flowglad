@@ -27,19 +27,17 @@ describe('validateSetupPricingModelInput', () => {
           active: true,
           default: false,
         },
-        prices: [
-          {
-            type: PriceType.Subscription,
-            slug: 'test-price',
-            isDefault: true,
-            unitPrice: 1000,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
-            active: true,
-          },
-        ],
+        price: {
+          type: PriceType.Subscription,
+          slug: 'test-price',
+          isDefault: true,
+          unitPrice: 1000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+          active: true,
+        },
         features: [],
       },
     ],
@@ -62,12 +60,40 @@ describe('validateSetupPricingModelInput', () => {
     )
 
     invalidInput.products = invalidInput.products.map(
-      (product: any) => ({
-        ...product,
-        prices: product.prices.filter(
+      (product: any) => {
+        const prices = Array.isArray(product.prices)
+          ? product.prices
+          : [product.price]
+        const nonUsagePrice = prices.find(
           (price: any) => price.type !== PriceType.Usage
-        ),
-      })
+        )
+        // If no non-usage price, create a dummy one
+        if (!nonUsagePrice) {
+          return {
+            ...product,
+            price: {
+              type: PriceType.Subscription,
+              slug: 'dummy-price',
+              isDefault: true,
+              unitPrice: 0,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              active: true,
+            },
+          }
+        }
+        // Return the non-usage price (ensuring it's active and default)
+        return {
+          ...product,
+          price: {
+            ...nonUsagePrice,
+            active: true,
+            isDefault: true,
+          },
+        }
+      }
     )
 
     expect(() =>
@@ -150,20 +176,18 @@ describe('validateSetupPricingModelInput', () => {
       ]
       input.products[0].features = ['credit-feature']
       // Add a usage price so the meter is valid
-      input.products[0].prices = [
-        {
-          type: PriceType.Usage,
-          slug: 'usage-price',
-          isDefault: true,
-          unitPrice: 100,
-          usageMeterSlug: 'test-meter',
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          trialPeriodDays: null,
-          usageEventsPerUnit: 1,
-          active: true,
-        },
-      ]
+      input.products[0].price = {
+        type: PriceType.Usage,
+        slug: 'usage-price',
+        isDefault: true,
+        unitPrice: 100,
+        usageMeterSlug: 'test-meter',
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        trialPeriodDays: null,
+        usageEventsPerUnit: 1,
+        active: true,
+      }
 
       expect(() =>
         validateSetupPricingModelInput(input)
@@ -174,19 +198,17 @@ describe('validateSetupPricingModelInput', () => {
   describe('price slug requirement', () => {
     it('should throw when a price is missing a slug', () => {
       const input = createMinimalValidInput()
-      input.products[0].prices = [
-        {
-          type: PriceType.Subscription,
-          isDefault: true,
-          unitPrice: 1000,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
-          active: true,
-          // slug is intentionally omitted to test runtime validation
-        },
-      ]
+      input.products[0].price = {
+        type: PriceType.Subscription,
+        isDefault: true,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+        active: true,
+        // slug is intentionally omitted to test runtime validation
+      }
 
       expect(() => validateSetupPricingModelInput(input)).toThrow(
         /Price slug is required/
@@ -195,19 +217,17 @@ describe('validateSetupPricingModelInput', () => {
 
     it('should accept when all prices have slugs', () => {
       const input = createMinimalValidInput()
-      input.products[0].prices = [
-        {
-          type: PriceType.Subscription,
-          slug: 'test-price',
-          isDefault: true,
-          unitPrice: 1000,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
-          active: true,
-        },
-      ]
+      input.products[0].price = {
+        type: PriceType.Subscription,
+        slug: 'test-price',
+        isDefault: true,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+        active: true,
+      }
 
       expect(() =>
         validateSetupPricingModelInput(input)
@@ -224,19 +244,17 @@ describe('validateSetupPricingModelInput', () => {
           name: 'Test Meter',
         },
       ]
-      input.products[0].prices = [
-        {
-          type: PriceType.Usage,
-          slug: 'usage-price',
-          isDefault: true,
-          unitPrice: 100,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          trialPeriodDays: null,
-          usageEventsPerUnit: 1,
-          active: true,
-        } as any,
-      ]
+      input.products[0].price = {
+        type: PriceType.Usage,
+        slug: 'usage-price',
+        isDefault: true,
+        unitPrice: 100,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        trialPeriodDays: null,
+        usageEventsPerUnit: 1,
+        active: true,
+      } as any
 
       // Schema validation will catch this first, so we expect a ZodError
       expect(() => validateSetupPricingModelInput(input)).toThrow()
@@ -250,20 +268,18 @@ describe('validateSetupPricingModelInput', () => {
           name: 'Test Meter',
         },
       ]
-      input.products[0].prices = [
-        {
-          type: PriceType.Usage,
-          slug: 'usage-price',
-          isDefault: true,
-          unitPrice: 100,
-          usageMeterSlug: 'test-meter',
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          trialPeriodDays: null,
-          usageEventsPerUnit: 1,
-          active: true,
-        },
-      ]
+      input.products[0].price = {
+        type: PriceType.Usage,
+        slug: 'usage-price',
+        isDefault: true,
+        unitPrice: 100,
+        usageMeterSlug: 'test-meter',
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        trialPeriodDays: null,
+        usageEventsPerUnit: 1,
+        active: true,
+      }
 
       expect(() =>
         validateSetupPricingModelInput(input)
@@ -274,20 +290,18 @@ describe('validateSetupPricingModelInput', () => {
   describe('usage meter existence for usage prices', () => {
     it('should throw when a usage price references a non-existent usage meter', () => {
       const input = createMinimalValidInput()
-      input.products[0].prices = [
-        {
-          type: PriceType.Usage,
-          slug: 'usage-price',
-          isDefault: true,
-          unitPrice: 100,
-          usageMeterSlug: 'non-existent-meter',
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          trialPeriodDays: null,
-          usageEventsPerUnit: 1,
-          active: true,
-        },
-      ]
+      input.products[0].price = {
+        type: PriceType.Usage,
+        slug: 'usage-price',
+        isDefault: true,
+        unitPrice: 100,
+        usageMeterSlug: 'non-existent-meter',
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        trialPeriodDays: null,
+        usageEventsPerUnit: 1,
+        active: true,
+      }
 
       expect(() => validateSetupPricingModelInput(input)).toThrow(
         'Usage meter with slug non-existent-meter does not exist'
@@ -302,20 +316,18 @@ describe('validateSetupPricingModelInput', () => {
           name: 'Test Meter',
         },
       ]
-      input.products[0].prices = [
-        {
-          type: PriceType.Usage,
-          slug: 'usage-price',
-          isDefault: true,
-          unitPrice: 100,
-          usageMeterSlug: 'test-meter',
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          trialPeriodDays: null,
-          usageEventsPerUnit: 1,
-          active: true,
-        },
-      ]
+      input.products[0].price = {
+        type: PriceType.Usage,
+        slug: 'usage-price',
+        isDefault: true,
+        unitPrice: 100,
+        usageMeterSlug: 'test-meter',
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        trialPeriodDays: null,
+        usageEventsPerUnit: 1,
+        active: true,
+      }
 
       expect(() =>
         validateSetupPricingModelInput(input)
@@ -334,19 +346,17 @@ describe('validateSetupPricingModelInput', () => {
             active: true,
             default: false,
           },
-          prices: [
-            {
-              type: PriceType.Subscription,
-              slug: 'duplicate-price-slug',
-              isDefault: true,
-              unitPrice: 1000,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              active: true,
-            },
-          ],
+          price: {
+            type: PriceType.Subscription,
+            slug: 'duplicate-price-slug',
+            isDefault: true,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            active: true,
+          },
           features: [],
         },
         {
@@ -356,19 +366,17 @@ describe('validateSetupPricingModelInput', () => {
             active: true,
             default: false,
           },
-          prices: [
-            {
-              type: PriceType.Subscription,
-              slug: 'duplicate-price-slug',
-              isDefault: true,
-              unitPrice: 2000,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              active: true,
-            },
-          ],
+          price: {
+            type: PriceType.Subscription,
+            slug: 'duplicate-price-slug',
+            isDefault: true,
+            unitPrice: 2000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            active: true,
+          },
           features: [],
         },
       ]
@@ -388,19 +396,17 @@ describe('validateSetupPricingModelInput', () => {
             active: true,
             default: false,
           },
-          prices: [
-            {
-              type: PriceType.Subscription,
-              slug: 'price-1',
-              isDefault: true,
-              unitPrice: 1000,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              active: true,
-            },
-          ],
+          price: {
+            type: PriceType.Subscription,
+            slug: 'price-1',
+            isDefault: true,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            active: true,
+          },
           features: [],
         },
         {
@@ -410,19 +416,17 @@ describe('validateSetupPricingModelInput', () => {
             active: true,
             default: false,
           },
-          prices: [
-            {
-              type: PriceType.Subscription,
-              slug: 'price-2',
-              isDefault: true,
-              unitPrice: 2000,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              active: true,
-            },
-          ],
+          price: {
+            type: PriceType.Subscription,
+            slug: 'price-2',
+            isDefault: true,
+            unitPrice: 2000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            active: true,
+          },
           features: [],
         },
       ]
@@ -493,20 +497,18 @@ describe('validateSetupPricingModelInput', () => {
       ]
       input.products[0].features = ['credit-feature']
       // Add a usage price so the meter is valid
-      input.products[0].prices = [
-        {
-          type: PriceType.Usage,
-          slug: 'usage-price',
-          isDefault: true,
-          unitPrice: 100,
-          usageMeterSlug: 'test-meter',
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          trialPeriodDays: null,
-          usageEventsPerUnit: 1,
-          active: true,
-        },
-      ]
+      input.products[0].price = {
+        type: PriceType.Usage,
+        slug: 'usage-price',
+        isDefault: true,
+        unitPrice: 100,
+        usageMeterSlug: 'test-meter',
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        trialPeriodDays: null,
+        usageEventsPerUnit: 1,
+        active: true,
+      }
 
       expect(() =>
         validateSetupPricingModelInput(input)
@@ -517,19 +519,17 @@ describe('validateSetupPricingModelInput', () => {
   describe('price type validation', () => {
     it('should accept subscription prices with required fields', () => {
       const input = createMinimalValidInput()
-      input.products[0].prices = [
-        {
-          type: PriceType.Subscription,
-          slug: 'subscription-price',
-          isDefault: true,
-          unitPrice: 1000,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
-          active: true,
-        },
-      ]
+      input.products[0].price = {
+        type: PriceType.Subscription,
+        slug: 'subscription-price',
+        isDefault: true,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+        active: true,
+      }
 
       expect(() =>
         validateSetupPricingModelInput(input)
@@ -538,15 +538,13 @@ describe('validateSetupPricingModelInput', () => {
 
     it('should accept single payment prices with required fields', () => {
       const input = createMinimalValidInput()
-      input.products[0].prices = [
-        {
-          type: PriceType.SinglePayment,
-          slug: 'single-payment-price',
-          isDefault: true,
-          unitPrice: 5000,
-          active: true,
-        },
-      ]
+      input.products[0].price = {
+        type: PriceType.SinglePayment,
+        slug: 'single-payment-price',
+        isDefault: true,
+        unitPrice: 5000,
+        active: true,
+      }
 
       expect(() =>
         validateSetupPricingModelInput(input)
@@ -561,20 +559,18 @@ describe('validateSetupPricingModelInput', () => {
           name: 'Test Meter',
         },
       ]
-      input.products[0].prices = [
-        {
-          type: PriceType.Usage,
-          slug: 'usage-price',
-          isDefault: true,
-          unitPrice: 100,
-          usageMeterSlug: 'test-meter',
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          trialPeriodDays: null,
-          usageEventsPerUnit: 1,
-          active: true,
-        },
-      ]
+      input.products[0].price = {
+        type: PriceType.Usage,
+        slug: 'usage-price',
+        isDefault: true,
+        unitPrice: 100,
+        usageMeterSlug: 'test-meter',
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        trialPeriodDays: null,
+        usageEventsPerUnit: 1,
+        active: true,
+      }
 
       expect(() =>
         validateSetupPricingModelInput(input)
@@ -585,20 +581,18 @@ describe('validateSetupPricingModelInput', () => {
   describe('currency validation', () => {
     it('should reject invalid currency codes', () => {
       const input = createMinimalValidInput()
-      input.products[0].prices = [
-        {
-          type: PriceType.Subscription,
-          slug: 'test-price',
-          isDefault: true,
-          unitPrice: 1000,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
-          active: true,
-          currency: 'INVALID' as CurrencyCode,
-        },
-      ]
+      input.products[0].price = {
+        type: PriceType.Subscription,
+        slug: 'test-price',
+        isDefault: true,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+        active: true,
+        currency: 'INVALID' as CurrencyCode,
+      }
 
       const result = setupPricingModelSchema.safeParse(input)
       expect(result.success).toBe(false)
@@ -609,20 +603,18 @@ describe('validateSetupPricingModelInput', () => {
 
     it('should accept valid currency codes when provided', () => {
       const input = createMinimalValidInput()
-      input.products[0].prices = [
-        {
-          type: PriceType.Subscription,
-          slug: 'test-price',
-          isDefault: true,
-          unitPrice: 1000,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
-          active: true,
-          currency: CurrencyCode.USD,
-        },
-      ]
+      input.products[0].price = {
+        type: PriceType.Subscription,
+        slug: 'test-price',
+        isDefault: true,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+        active: true,
+        currency: CurrencyCode.USD,
+      }
 
       expect(() =>
         validateSetupPricingModelInput(input)
