@@ -29,7 +29,8 @@
     "seed:countries": "bun run src/scripts/seed-countries.ts",
     "shadcn:build": "shadcn build --output 'public/ui'",
     "validate:registry": "bun run src/scripts/validate-registry.ts",
-    "test:telemetry": "bun run scripts/verify-telemetry.ts"
+    "test:telemetry": "bun run scripts/verify-telemetry.ts",
+    "openapi:generate": "bun run src/scripts/openApiDoc.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.69",
