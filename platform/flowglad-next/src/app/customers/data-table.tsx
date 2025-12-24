@@ -202,41 +202,47 @@ export function CustomersDataTable({
             <h3 className="text-lg truncate">{title}</h3>
           </div>
         )}
-        {/* Redesigned toolbar matching Figma specs */}
-        <div className="flex items-center gap-1">
+        {/* Redesigned toolbar - responsive: 2 rows on mobile, 1 row on desktop */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-1">
+          {/* Search input - full width on mobile, flex-1 on desktop */}
           <InlineSearch
             value={inputValue}
             onChange={setInputValue}
             placeholder="Search customers..."
             isLoading={isFetching}
             disabled={isLoading}
-            className="flex-1"
+            className="w-full sm:flex-1"
           />
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleExport}
-            disabled={
-              !hasResults || isLoading || isFetching || isExporting
-            }
-          >
-            {isExporting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            {isExporting ? 'Exporting...' : 'Export'}
-          </Button>
-          {onCreateCustomer && (
+          {/* Buttons row - full width on mobile, auto on desktop */}
+          <div className="flex items-center gap-1 w-full sm:w-auto">
             <Button
-              onClick={onCreateCustomer}
-              variant={buttonVariant}
+              variant="secondary"
               size="sm"
+              onClick={handleExport}
+              disabled={
+                !hasResults || isLoading || isFetching || isExporting
+              }
+              className="flex-1 sm:flex-none"
             >
-              <Plus className="w-4 h-4" />
-              Create Customer
+              {isExporting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {isExporting ? 'Exporting...' : 'Export'}
             </Button>
-          )}
+            {onCreateCustomer && (
+              <Button
+                onClick={onCreateCustomer}
+                variant={buttonVariant}
+                size="sm"
+                className="flex-1 sm:flex-none"
+              >
+                <Plus className="w-4 h-4" />
+                Create Customer
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

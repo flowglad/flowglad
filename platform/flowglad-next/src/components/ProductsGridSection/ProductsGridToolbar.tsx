@@ -31,10 +31,9 @@ interface ProductsGridToolbarProps {
 /**
  * Toolbar component for ProductsGridSection.
  *
- * Matches the Figma design with:
- * - InlineSearch (flex-1 to fill space)
- * - StatusDropdownFilter (optional)
- * - Create button with Plus icon (optional)
+ * Responsive layout:
+ * - Mobile: 2 rows - search on top (full width), buttons on bottom (full width, equally spaced)
+ * - Desktop: Single row - search (flex-1), filter dropdown, create button
  */
 export function ProductsGridToolbar({
   searchValue,
@@ -48,38 +47,50 @@ export function ProductsGridToolbar({
   isLoading,
   isFetching,
 }: ProductsGridToolbarProps) {
+  const hasButtons =
+    (filterOptions && filterValue !== undefined && onFilterChange) ||
+    onCreateClick
+
   return (
-    <div className="flex items-center gap-1 w-full">
+    <div className="flex flex-col gap-2 w-full sm:flex-row sm:items-center sm:gap-1">
+      {/* Search input - full width on mobile, flex-1 on desktop */}
       <InlineSearch
         value={searchValue}
         onChange={onSearchChange}
         placeholder={searchPlaceholder}
         isLoading={isFetching}
         disabled={isLoading}
-        className="flex-1"
+        className="w-full sm:flex-1"
       />
 
-      {filterOptions &&
-        filterValue !== undefined &&
-        onFilterChange && (
-          <StatusDropdownFilter
-            value={filterValue}
-            onChange={onFilterChange}
-            options={filterOptions}
-            disabled={isLoading}
-          />
-        )}
+      {/* Buttons row - full width on mobile, auto on desktop */}
+      {hasButtons && (
+        <div className="flex items-center gap-1 w-full sm:w-auto">
+          {filterOptions &&
+            filterValue !== undefined &&
+            onFilterChange && (
+              <StatusDropdownFilter
+                value={filterValue}
+                onChange={onFilterChange}
+                options={filterOptions}
+                disabled={isLoading}
+                className="flex-1 sm:flex-none"
+              />
+            )}
 
-      {onCreateClick && (
-        <Button
-          onClick={onCreateClick}
-          variant="secondary"
-          size="sm"
-          disabled={isLoading}
-        >
-          <Plus className="w-4 h-4" />
-          {createButtonText}
-        </Button>
+          {onCreateClick && (
+            <Button
+              onClick={onCreateClick}
+              variant="secondary"
+              size="sm"
+              disabled={isLoading}
+              className="flex-1 sm:flex-none"
+            >
+              <Plus className="w-4 h-4" />
+              {createButtonText}
+            </Button>
+          )}
+        </div>
       )}
     </div>
   )

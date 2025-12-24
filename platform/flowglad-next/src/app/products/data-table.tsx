@@ -162,34 +162,46 @@ export function ProductsDataTable({
     },
   })
 
+  const hasButtons =
+    (filterOptions && activeFilter && onFilterChange) ||
+    onCreateProduct
+
   return (
     <div className="w-full">
-      {/* Redesigned toolbar matching Figma specs */}
-      <div className="flex items-center gap-1 pt-1 pb-2 px-4">
+      {/* Redesigned toolbar - responsive: 2 rows on mobile, 1 row on desktop */}
+      <div className="flex flex-col gap-2 pt-1 pb-2 px-4 sm:flex-row sm:items-center sm:gap-1">
+        {/* Search input - full width on mobile, flex-1 on desktop */}
         <InlineSearch
           value={inputValue}
           onChange={setInputValue}
           placeholder="Search products..."
           isLoading={isFetching}
           disabled={isLoading}
-          className="flex-1"
+          className="w-full sm:flex-1"
         />
-        {filterOptions && activeFilter && onFilterChange && (
-          <StatusDropdownFilter
-            value={activeFilter}
-            onChange={onFilterChange}
-            options={filterOptions}
-          />
-        )}
-        {onCreateProduct && (
-          <Button
-            onClick={onCreateProduct}
-            variant={buttonVariant}
-            size="sm"
-          >
-            <Plus className="w-4 h-4" />
-            Create Product
-          </Button>
+        {/* Buttons row - full width on mobile, auto on desktop */}
+        {hasButtons && (
+          <div className="flex items-center gap-1 w-full sm:w-auto">
+            {filterOptions && activeFilter && onFilterChange && (
+              <StatusDropdownFilter
+                value={activeFilter}
+                onChange={onFilterChange}
+                options={filterOptions}
+                className="flex-1 sm:flex-none"
+              />
+            )}
+            {onCreateProduct && (
+              <Button
+                onClick={onCreateProduct}
+                variant={buttonVariant}
+                size="sm"
+                className="flex-1 sm:flex-none"
+              >
+                <Plus className="w-4 h-4" />
+                Create Product
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
