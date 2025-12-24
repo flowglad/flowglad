@@ -276,7 +276,7 @@ describe('getPricingModelSetupData', () => {
       (p) => p.product.slug === 'pro'
     )
     expect(proProduct).toBeDefined()
-    expect(proProduct?.price).toBeDefined()
+    expect(proProduct?.price?.type).toBe(PriceType.Subscription)
 
     // Verify API Usage product
     const apiUsageProduct = fetchedData.products.find(
