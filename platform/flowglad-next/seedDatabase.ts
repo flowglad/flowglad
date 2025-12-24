@@ -2140,6 +2140,7 @@ export const setupUsageCreditBalanceAdjustment = async (
     adjustmentType: string
     amountAdjusted: number
     currency: CurrencyCode
+    usageMeterId: string
     reason: string
   }
 ): Promise<typeof usageCreditBalanceAdjustments.$inferSelect> => {

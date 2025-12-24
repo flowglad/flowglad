@@ -10,6 +10,7 @@ import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { organizations } from '@/db/schema/organizations'
 import { usageCredits } from '@/db/schema/usageCredits'
+import { usageMeters } from '@/db/schema/usageMeters'
 import { users } from '@/db/schema/users'
 import {
   constructIndex,
@@ -35,6 +36,10 @@ export const usageCreditBalanceAdjustments = pgTable(
     organizationId: notNullStringForeignKey(
       'organization_id',
       organizations
+    ),
+    usageMeterId: notNullStringForeignKey(
+      'usage_meter_id',
+      usageMeters
     ),
     adjustedUsageCreditId: notNullStringForeignKey(
       'adjusted_usage_credit_id',
