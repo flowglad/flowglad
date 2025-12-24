@@ -391,6 +391,7 @@ app.get('/api/premium-data', requireFeature('premium_feature'), (req, res) => {
 ```ts
 import { flowglad } from './flowglad'
 
+// Example: Track usage with price (for billing)
 export async function trackAPICall(
   endpoint: string,
   customerExternalId: string,
@@ -400,6 +401,26 @@ export async function trackAPICall(
   await flowglad(customerExternalId).createUsageEvent({
     subscriptionId: 'sub_123',
     priceSlug: 'price_usage_meter',
+    amount: quantity,
+    transactionId: `${endpoint}:${Date.now()}`,
+    usageDate: Date.now(),
+    properties: {
+      endpoint,
+      requestedAt: new Date().toISOString(),
+    },
+  })
+}
+
+// Example: Track usage without price (for tracking only)
+export async function trackAPICallNoBilling(
+  endpoint: string,
+  customerExternalId: string,
+  quantity: number = 1
+) {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  await flowglad(customerExternalId).createUsageEvent({
+    subscriptionId: 'sub_123',
+    usageMeterSlug: 'api_calls',
     amount: quantity,
     transactionId: `${endpoint}:${Date.now()}`,
     usageDate: Date.now(),
