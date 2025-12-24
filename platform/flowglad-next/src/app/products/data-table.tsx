@@ -187,7 +187,7 @@ export function ProductsDataTable({
             variant={buttonVariant}
             size="sm"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4" />
             Create Product
           </Button>
         )}
@@ -273,7 +273,7 @@ export function ProductsDataTable({
       </Table>
 
       {/* Enhanced pagination with proper spacing */}
-      <div className="py-2 px-2">
+      <div className="py-2 px-4">
         <DataTablePagination
           table={table}
           totalCount={data?.total}
@@ -281,6 +281,7 @@ export function ProductsDataTable({
             !!searchQuery || Object.keys(filters).length > 0
           }
           filteredCount={data?.total}
+          entityName="product"
         />
       </div>
     </div>

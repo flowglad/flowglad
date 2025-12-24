@@ -47,7 +47,7 @@ function StatusDropdownFilter({
       <DropdownMenuTrigger
         disabled={disabled}
         className={cn(
-          'h-8 gap-1 rounded bg-accent px-3',
+          'h-8 rounded bg-accent px-3',
           'text-sm font-medium',
           'inline-flex items-center',
           'hover:bg-accent/80',

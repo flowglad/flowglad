@@ -176,7 +176,7 @@ export function UsageMetersDataTable({
               variant={buttonVariant}
               size="sm"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Create Usage Meter
             </Button>
           )}
@@ -287,7 +287,7 @@ export function UsageMetersDataTable({
       </Table>
 
       {/* Pagination */}
-      <div className="py-2 px-2">
+      <div className="py-2 px-4">
         <DataTablePagination
           table={table}
           totalCount={data?.total}
@@ -295,6 +295,7 @@ export function UsageMetersDataTable({
             !!searchQuery || Object.keys(filters).length > 0
           }
           filteredCount={data?.total}
+          entityName="usage meter"
         />
       </div>
     </div>

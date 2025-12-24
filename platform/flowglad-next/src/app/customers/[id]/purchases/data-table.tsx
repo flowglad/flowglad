@@ -209,6 +209,7 @@ export function PurchasesDataTable({
           totalCount={data?.total}
           isFiltered={Object.keys(filters).length > 0}
           filteredCount={data?.total}
+          entityName="purchase"
         />
       </div>
     </div>

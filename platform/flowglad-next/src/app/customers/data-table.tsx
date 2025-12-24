@@ -7,7 +7,7 @@ import {
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
-import { Plus } from 'lucide-react'
+import { Download, Loader2, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { toast } from 'sonner'
@@ -212,13 +212,28 @@ export function CustomersDataTable({
             disabled={isLoading}
             className="flex-1"
           />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleExport}
+            disabled={
+              !hasResults || isLoading || isFetching || isExporting
+            }
+          >
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            {isExporting ? 'Exporting...' : 'Export'}
+          </Button>
           {onCreateCustomer && (
             <Button
               onClick={onCreateCustomer}
               variant={buttonVariant}
               size="sm"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Create Customer
             </Button>
           )}
@@ -306,7 +321,7 @@ export function CustomersDataTable({
       </Table>
 
       {/* Enterprise pagination with built-in selection count */}
-      <div className="py-2 px-2">
+      <div className="py-2 px-4">
         <DataTablePagination
           table={table}
           totalCount={data?.total}
@@ -314,9 +329,7 @@ export function CustomersDataTable({
             !!searchQuery || Object.keys(filters).length > 0
           }
           filteredCount={data?.total}
-          onExport={handleExport}
-          exportDisabled={!hasResults || isLoading || isFetching}
-          exportLoading={isExporting}
+          entityName="customer"
         />
       </div>
     </div>

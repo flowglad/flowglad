@@ -149,7 +149,7 @@ export function OrganizationMembersDataTable({
           <DataTableViewOptions table={table} />
           {onInviteMember && (
             <Button onClick={onInviteMember} variant={buttonVariant}>
-              <UserPlus className="w-4 h-4 mr-2" />
+              <UserPlus className="w-4 h-4" />
               Invite Teammate
             </Button>
           )}
@@ -228,6 +228,7 @@ export function OrganizationMembersDataTable({
           totalCount={data?.total}
           isFiltered={Object.keys(filters).length > 0}
           filteredCount={data?.total}
+          entityName="teammate"
         />
       </div>
     </div>

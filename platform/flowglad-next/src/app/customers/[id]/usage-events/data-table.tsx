@@ -210,6 +210,7 @@ export function UsageEventsDataTable({
           totalCount={data?.total}
           isFiltered={Object.keys(filters).length > 0}
           filteredCount={data?.total}
+          entityName="usage event"
         />
       </div>
     </div>

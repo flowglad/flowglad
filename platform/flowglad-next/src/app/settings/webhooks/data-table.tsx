@@ -149,7 +149,7 @@ export function WebhooksDataTable({
           <DataTableViewOptions table={table} />
           {onCreateWebhook && (
             <Button onClick={onCreateWebhook} variant={buttonVariant}>
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Create Webhook
             </Button>
           )}
@@ -228,6 +228,7 @@ export function WebhooksDataTable({
           totalCount={data?.total}
           isFiltered={Object.keys(filters).length > 0}
           filteredCount={data?.total}
+          entityName="webhook"
         />
       </div>
     </div>

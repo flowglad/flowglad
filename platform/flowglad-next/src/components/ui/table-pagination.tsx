@@ -1,4 +1,3 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface TablePaginationProps {
@@ -29,7 +28,7 @@ export function TablePagination({
 
   return (
     <div className="flex items-center justify-between py-3">
-      <p className="text-sm text-muted-foreground/50 font-mono">
+      <p className="text-sm text-muted-foreground/50">
         {isLoading || isFetching ? (
           <span>Loading...</span>
         ) : total === 0 ? null : (
@@ -40,24 +39,22 @@ export function TablePagination({
       </p>
       <div className="flex items-center space-x-2">
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={() => onPageChange(pageIndex - 1)}
           disabled={!canGoPrevious}
           style={total <= 10 ? { opacity: 0 } : undefined}
         >
-          <ChevronLeft className="h-4 w-4" />
           Previous
         </Button>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={() => onPageChange(pageIndex + 1)}
           disabled={!canGoNext}
           style={total <= 10 ? { opacity: 0 } : undefined}
         >
           Next
-          <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
     </div>

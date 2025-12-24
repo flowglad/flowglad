@@ -190,7 +190,7 @@ export function InvoicesDataTable({
           <DataTableViewOptions table={table} />
           {onCreateInvoice && (
             <Button onClick={onCreateInvoice}>
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Create Invoice
             </Button>
           )}
@@ -289,6 +289,7 @@ export function InvoicesDataTable({
           totalCount={data?.total}
           isFiltered={Object.keys(filters).length > 0}
           filteredCount={data?.total}
+          entityName="invoice"
         />
       </div>
     </div>
