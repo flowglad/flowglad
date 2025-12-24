@@ -12,12 +12,14 @@ import {
   type VisibilityState,
 } from '@tanstack/react-table'
 import { Plus } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { Button } from '@/components/ui/button'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
+import { InlineSearch } from '@/components/ui/inline-search'
 import {
   Table,
   TableBody,
@@ -50,8 +52,14 @@ export function UsageMetersDataTable({
   filters = {},
   title,
   onCreateUsageMeter,
-  buttonVariant = 'default',
+  buttonVariant = 'secondary',
 }: UsageMetersDataTableProps) {
+  const router = useRouter()
+
+  // Server-side search with debounce
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(300)
+
   // Dynamic page size state (REQUIRED for server-side pagination)
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
 
@@ -70,6 +78,7 @@ export function UsageMetersDataTable({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters,
+    searchQuery: searchQuery,
     useQuery: trpc.usageMeters.getTableRows.useQuery,
   })
 
@@ -79,6 +88,12 @@ export function UsageMetersDataTable({
     goToFirstPage()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey])
+
+  // Reset to first page when debounced search changes
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
 
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -138,21 +153,30 @@ export function UsageMetersDataTable({
   return (
     <div className="w-full">
       {/* Toolbar */}
-      <div className="flex items-center justify-between pt-4 pb-3 px-2 gap-4 min-w-0">
-        {/* Title on the left (for detail pages) */}
-        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && <h3 className="text-lg truncate">{title}</h3>}
-        </div>
-
-        {/* Controls on the right */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <DataTableViewOptions table={table} />
+      <div className="flex flex-col gap-3 pt-1 pb-2 px-4">
+        {/* Title row (for detail pages) */}
+        {title && (
+          <div>
+            <h3 className="text-lg truncate">{title}</h3>
+          </div>
+        )}
+        {/* Redesigned toolbar matching Figma specs */}
+        <div className="flex items-center gap-1">
+          <InlineSearch
+            value={inputValue}
+            onChange={setInputValue}
+            placeholder="Search usage meters..."
+            isLoading={isFetching}
+            disabled={isLoading}
+            className="flex-1"
+          />
           {onCreateUsageMeter && (
             <Button
               onClick={onCreateUsageMeter}
               variant={buttonVariant}
+              size="sm"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Create Usage Meter
             </Button>
           )}
@@ -194,21 +218,61 @@ export function UsageMetersDataTable({
               </TableCell>
             </TableRow>
           ) : table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                className={isFetching ? 'opacity-50' : ''}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            table.getRowModel().rows.map((row) => {
+              const navigateToUsageMeter = () => {
+                router.push(
+                  `/usage-meters/${row.original.usageMeter.id}`
+                )
+              }
+              return (
+                <TableRow
+                  key={row.id}
+                  className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
+                  tabIndex={0}
+                  role="link"
+                  onClick={(e) => {
+                    const target = e.target
+                    if (!(target instanceof Element)) {
+                      return
+                    }
+                    if (
+                      target.closest('button') ||
+                      target.closest('[role="checkbox"]') ||
+                      target.closest('input[type="checkbox"]')
+                    ) {
+                      return
+                    }
+                    navigateToUsageMeter()
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      const target = e.target
+                      if (!(target instanceof Element)) {
+                        return
+                      }
+                      if (
+                        target.closest('button') ||
+                        target.closest('[role="checkbox"]') ||
+                        target.closest('input[type="checkbox"]')
+                      ) {
+                        return
+                      }
+                      e.preventDefault()
+                      navigateToUsageMeter()
+                    }
+                  }}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              )
+            })
           ) : (
             <TableRow>
               <TableCell
@@ -223,12 +287,15 @@ export function UsageMetersDataTable({
       </Table>
 
       {/* Pagination */}
-      <div className="py-2 px-2">
+      <div className="py-2 px-4">
         <DataTablePagination
           table={table}
           totalCount={data?.total}
-          isFiltered={Object.keys(filters).length > 0}
+          isFiltered={
+            !!searchQuery || Object.keys(filters).length > 0
+          }
           filteredCount={data?.total}
+          entityName="usage meter"
         />
       </div>
     </div>

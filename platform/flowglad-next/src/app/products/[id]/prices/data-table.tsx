@@ -154,7 +154,7 @@ export function PricesDataTable({
           <DataTableViewOptions table={table} />
           {onCreatePrice && (
             <Button onClick={onCreatePrice} variant={buttonVariant}>
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               New Price
             </Button>
           )}
@@ -233,6 +233,7 @@ export function PricesDataTable({
           totalCount={data?.total}
           isFiltered={Object.keys(filters).length > 0}
           filteredCount={data?.total}
+          entityName="price"
         />
       </div>
     </div>

@@ -1,10 +1,5 @@
 import type { Table } from '@tanstack/react-table'
-import {
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  Loader2,
-} from 'lucide-react'
+import { Download, Loader2 } from 'lucide-react'
 import React from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -25,6 +20,8 @@ interface DataTablePaginationProps<TData> {
   exportDisabled?: boolean
   exportLoading?: boolean
   exportLabel?: string
+  /** Entity name to display (e.g., "customer", "product"). Defaults to "result" */
+  entityName?: string
 }
 
 export function DataTablePagination<TData>({
@@ -36,6 +33,7 @@ export function DataTablePagination<TData>({
   exportDisabled = false,
   exportLoading = false,
   exportLabel = 'Export CSV',
+  entityName = 'result',
 }: DataTablePaginationProps<TData>) {
   // Determine the correct count to display
   // Priority: filteredCount (when filtered) > totalCount (server-side) > client-side count
@@ -57,8 +55,8 @@ export function DataTablePagination<TData>({
 
   return (
     <div className="flex items-center justify-between gap-3">
-      <div className="text-muted-foreground flex-1 text-sm font-mono">
-        {totalRows} {totalRows === 1 ? 'result' : 'results'}
+      <div className="text-muted-foreground flex-1 text-sm">
+        {totalRows} {totalRows === 1 ? entityName : `${entityName}s`}
       </div>
       {(showExportButton || !shouldHidePagination) && (
         <div className="flex items-center">
@@ -114,24 +112,22 @@ export function DataTablePagination<TData>({
               </div>
               <div className="flex items-center space-x-2">
                 <Button
-                  variant="outline"
-                  size="icon"
-                  className="size-8"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8"
                   onClick={() => table.previousPage()}
                   disabled={!table.getCanPreviousPage()}
                 >
-                  <span className="sr-only">Go to previous page</span>
-                  <ChevronLeft />
+                  Previous
                 </Button>
                 <Button
-                  variant="outline"
-                  size="icon"
-                  className="size-8"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8"
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}
                 >
-                  <span className="sr-only">Go to next page</span>
-                  <ChevronRight />
+                  Next
                 </Button>
               </div>
             </div>

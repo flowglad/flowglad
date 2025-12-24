@@ -31,6 +31,8 @@ interface DataTableProps<TData, TValue> {
   onClickRow?: (row: TData) => void
   className?: string
   bordered?: boolean
+  /** Entity name for pagination display (e.g., "customer", "product"). Defaults to "result" */
+  entityName?: string
   pagination?: {
     pageIndex: number
     pageSize: number
@@ -47,6 +49,7 @@ export function DataTable<TData, TValue>({
   onClickRow,
   className,
   bordered = false,
+  entityName,
   pagination,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -183,6 +186,7 @@ export function DataTable<TData, TValue>({
           <DataTablePagination
             table={table}
             totalCount={pagination.total}
+            entityName={entityName}
           />
         </div>
       )}
