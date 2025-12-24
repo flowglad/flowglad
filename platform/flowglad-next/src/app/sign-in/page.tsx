@@ -1,12 +1,12 @@
 'use client'
 
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Key, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import ErrorLabel from '@/components/ErrorLabel'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,8 +25,12 @@ import { authClient, signIn } from '@/utils/authClient'
 
 export default function SignIn() {
   const signInSchema = z.object({
-    email: z.string().email({ message: 'Please enter a valid email' }),
-    password: z.string().min(1, { message: 'Please enter your password' }),
+    email: z
+      .string()
+      .email({ message: 'Please enter a valid email' }),
+    password: z
+      .string()
+      .min(1, { message: 'Please enter your password' }),
   })
 
   type SigninValues = z.infer<typeof signInSchema>
@@ -88,7 +92,11 @@ export default function SignIn() {
         <CardTitle className="text-lg md:text-xl">Sign In</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit, onError)} noValidate method="post">
+        <form
+          onSubmit={handleSubmit(onSubmit, onError)}
+          noValidate
+          method="post"
+        >
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
@@ -108,7 +116,8 @@ export default function SignIn() {
                 <div
                   className={cn(
                     'ml-auto inline-block text-sm underline cursor-pointer',
-                    forgotPasswordDisabled && 'opacity-25 cursor-not-allowed'
+                    forgotPasswordDisabled &&
+                      'opacity-25 cursor-not-allowed'
                   )}
                   onClick={async (e) => {
                     if (forgotPasswordDisabled) {
