@@ -44,7 +44,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@dotenvx/dotenvx": "^1.9.1",
     "@flowglad/node": "^0.21.0",
-    "@hookform/resolvers": "3.10.0",
+    "@hookform/resolvers": "^5.1.0",
     "@logtail/next": "^0.1.7",
     "@modelcontextprotocol/sdk": "^1.13.1",
     "@momentic/js": "0.0.1-alpha.5",
