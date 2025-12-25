@@ -118,7 +118,7 @@ function InternalProductDetailsPage(
       onClick: () => setIsArchiveOpen(true),
       disabled: product.default,
       disabledTooltip: product.default
-        ? 'Cannot archive default products.'
+        ? `Cannot ${product.active ? 'archive' : 'reactivate'} default products.`
         : undefined,
       variant: 'secondary' as const,
     },

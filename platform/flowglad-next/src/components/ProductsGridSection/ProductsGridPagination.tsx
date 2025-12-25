@@ -43,7 +43,7 @@ export function ProductsGridPagination({
   isLoading,
   isFetching,
 }: ProductsGridPaginationProps) {
-  const isDisabled = isLoading ?? isFetching
+  const isDisabled = isLoading || isFetching
   const pluralizedEntityName =
     total === 1 ? entityName : `${entityName}s`
 

@@ -38,20 +38,18 @@ export function TablePagination({
         )}
       </p>
       <div className="flex items-center space-x-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onPageChange(pageIndex - 1)}
-          disabled={!canGoPrevious}
-          className={
-            pageIndex === 0
-              ? 'opacity-0 disabled:opacity-0 pointer-events-none'
-              : ''
-          }
-          aria-hidden={pageIndex === 0}
-        >
-          Previous
-        </Button>
+        {pageIndex === 0 ? (
+          <div className="w-[77px]" aria-hidden="true" />
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onPageChange(pageIndex - 1)}
+            disabled={!canGoPrevious}
+          >
+            Previous
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"
