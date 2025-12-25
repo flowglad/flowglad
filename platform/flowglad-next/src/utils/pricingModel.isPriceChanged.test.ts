@@ -46,6 +46,7 @@ const createSubscriptionPriceRecord = (
     livemode: false,
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    pricingModelId: 'test',
     ...overrides,
   }
 }
@@ -78,6 +79,7 @@ const createSinglePaymentPriceRecord = (
   return {
     id: 'price-1',
     productId: 'product-1',
+    pricingModelId: 'test',
     type: PriceType.SinglePayment,
     unitPrice: 5000,
     intervalUnit: null as null,
@@ -125,6 +127,7 @@ const createUsagePriceRecord = (
   return {
     id: 'price-1',
     productId: 'product-1',
+    pricingModelId: 'test',
     type: PriceType.Usage,
     unitPrice: 100,
     usageMeterId: 'meter-1',

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { features } from '@/db/schema/features'
 import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 import { products } from '@/db/schema/products'
 import {
   constructIndex,
@@ -35,6 +36,10 @@ export const productFeatures = pgTable(
       organizations
     ),
     expiredAt: timestampWithTimezoneColumn('expired_at'),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => {
     return [
@@ -44,6 +49,7 @@ export const productFeatures = pgTable(
       ]),
       constructIndex(TABLE_NAME, [table.productId]),
       constructIndex(TABLE_NAME, [table.organizationId]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       membershipOrganizationIdIntegrityCheckPolicy(),
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
@@ -74,6 +80,10 @@ export const productFeatures = pgTable(
   }
 ).enableRLS()
 
+const readOnlyColumns = {
+  pricingModelId: true,
+} as const
+
 export const {
   select: productFeaturesSelectSchema,
   insert: productFeaturesInsertSchema,
@@ -84,6 +94,12 @@ export const {
   },
 } = buildSchemas(productFeatures, {
   entityName: 'ProductFeature',
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
+  client: {
+    readOnlyColumns,
+  },
 })
 
 export namespace ProductFeature {

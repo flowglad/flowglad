@@ -82,6 +82,8 @@ describe('priceMethods.ts', () => {
         expect(newPrice.unitPrice).toBe(2000)
         expect(newPrice.active).toBe(true)
         expect(newPrice.isDefault).toBe(true)
+        // Verify pricingModelId is correctly derived from product
+        expect(newPrice.pricingModelId).toBe(product.pricingModelId)
       })
     })
 
@@ -123,6 +125,10 @@ describe('priceMethods.ts', () => {
         // Verify the new price is default
         expect(newDefaultPrice.active).toBe(true)
         expect(newDefaultPrice.isDefault).toBe(true)
+        // Verify pricingModelId is correctly derived from product
+        expect(newDefaultPrice.pricingModelId).toBe(
+          product.pricingModelId
+        )
 
         // Verify the previous default price is no longer default
         const updatedSecondPrice = await selectPriceById(

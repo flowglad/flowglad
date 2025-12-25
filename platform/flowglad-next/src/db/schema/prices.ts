@@ -1,9 +1,7 @@
-import { ColumnBaseConfig, ColumnDataType, sql } from 'drizzle-orm'
+import { sql } from 'drizzle-orm'
 import {
   boolean,
   integer,
-  PgColumn,
-  pgPolicy,
   pgTable,
   text,
   uniqueIndex,
@@ -31,7 +29,6 @@ import {
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
-  ommittedColumnsForInsertSchema,
   parentForeignKeyIntegrityCheckPolicy,
   pgEnumColumn,
   type SelectConditions,
@@ -41,7 +38,10 @@ import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import core from '@/utils/core'
 import { currencyCodeSchema } from '../commonZodSchema'
 import { featuresClientSelectSchema } from './features'
-import { pricingModelsClientSelectSchema } from './pricingModels'
+import {
+  pricingModels,
+  pricingModelsClientSelectSchema,
+} from './pricingModels'
 import {
   usageMeters,
   usageMetersClientSelectSchema,
@@ -49,6 +49,7 @@ import {
 
 const readOnlyColumns = {
   currency: true,
+  pricingModelId: true,
 } as const
 
 const createOnlyColumns = {
@@ -122,6 +123,10 @@ export const prices = pgTable(
       'usage_meter_id',
       usageMeters
     ),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => {
     return [
@@ -135,6 +140,7 @@ export const prices = pgTable(
         .on(table.productId)
         .where(sql`${table.isDefault}`),
       constructIndex(TABLE_NAME, [table.usageMeterId]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
         {
@@ -289,6 +295,9 @@ export const {
 } = buildSchemas(prices, {
   discriminator: 'type',
   refine: subscriptionRefine,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns,
     readOnlyColumns,
@@ -309,6 +318,9 @@ export const {
 } = buildSchemas(prices, {
   discriminator: 'type',
   refine: singlePaymentRefine,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns,
     readOnlyColumns,
@@ -329,6 +341,9 @@ export const {
 } = buildSchemas(prices, {
   discriminator: 'type',
   refine: usageRefine,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns,
     readOnlyColumns,

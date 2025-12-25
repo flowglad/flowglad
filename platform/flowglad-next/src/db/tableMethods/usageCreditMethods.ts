@@ -19,6 +19,7 @@ import { UsageCreditStatus } from '@/types'
 import type { Payment } from '../schema/payments'
 import type { UsageMeter } from '../schema/usageMeters'
 import type { DbTransaction } from '../types'
+import { derivePricingModelIdFromUsageMeter } from './usageMeterMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof usageCredits,
@@ -37,10 +38,27 @@ export const selectUsageCreditById = createSelectById(
   config
 )
 
-export const insertUsageCredit = createInsertFunction(
+const baseInsertUsageCredit = createInsertFunction(
   usageCredits,
   config
 )
+
+export const insertUsageCredit = async (
+  usageCreditInsert: UsageCredit.Insert,
+  transaction: DbTransaction
+): Promise<UsageCredit.Record> => {
+  const pricingModelId = await derivePricingModelIdFromUsageMeter(
+    usageCreditInsert.usageMeterId,
+    transaction
+  )
+  return baseInsertUsageCredit(
+    {
+      ...usageCreditInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateUsageCredit = createUpdateFunction(
   usageCredits,
@@ -52,12 +70,35 @@ export const selectUsageCredits = createSelectFunction(
   config
 )
 
-export const bulkInsertUsageCredits = createBulkInsertFunction(
+const baseBulkInsertUsageCredits = createBulkInsertFunction(
   usageCredits,
   config
 )
 
-export const bulkInsertOrDoNothingUsageCredits =
+export const bulkInsertUsageCredits = async (
+  usageCreditInserts: UsageCredit.Insert[],
+  transaction: DbTransaction
+): Promise<UsageCredit.Record[]> => {
+  // Derive pricingModelId for each usage credit
+  const usageCreditsWithPricingModelId = await Promise.all(
+    usageCreditInserts.map(async (usageCreditInsert) => {
+      const pricingModelId = await derivePricingModelIdFromUsageMeter(
+        usageCreditInsert.usageMeterId,
+        transaction
+      )
+      return {
+        ...usageCreditInsert,
+        pricingModelId,
+      }
+    })
+  )
+  return baseBulkInsertUsageCredits(
+    usageCreditsWithPricingModelId,
+    transaction
+  )
+}
+
+const baseBulkInsertOrDoNothingUsageCredits =
   createBulkInsertOrDoNothingFunction(usageCredits, config)
 
 export const bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter =
@@ -65,8 +106,22 @@ export const bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter
     usageCreditInserts: UsageCredit.Insert[],
     transaction: DbTransaction
   ) => {
-    return bulkInsertOrDoNothingUsageCredits(
-      usageCreditInserts,
+    // Derive pricingModelId for each usage credit
+    const usageCreditsWithPricingModelId = await Promise.all(
+      usageCreditInserts.map(async (usageCreditInsert) => {
+        const pricingModelId =
+          await derivePricingModelIdFromUsageMeter(
+            usageCreditInsert.usageMeterId,
+            transaction
+          )
+        return {
+          ...usageCreditInsert,
+          pricingModelId,
+        }
+      })
+    )
+    return baseBulkInsertOrDoNothingUsageCredits(
+      usageCreditsWithPricingModelId,
       [
         usageCredits.paymentId,
         usageCredits.subscriptionId,

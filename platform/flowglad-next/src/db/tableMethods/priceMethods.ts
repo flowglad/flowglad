@@ -49,7 +49,7 @@ import {
   selectPricingModelForCustomer,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
 } from './pricingModelMethods'
-import { selectProducts } from './productMethods'
+import { selectProductById, selectProducts } from './productMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof prices,
@@ -63,16 +63,67 @@ const config: ORMMethodCreatorConfig<
   tableName: 'prices',
 }
 
+/**
+ * Derives pricingModelId from a product.
+ * Used for prices and productFeatures.
+ */
+export const derivePricingModelIdFromProduct = async (
+  productId: string,
+  transaction: DbTransaction
+): Promise<string> => {
+  const product = await selectProductById(productId, transaction)
+  if (!product.pricingModelId) {
+    throw new Error(
+      `Product ${productId} does not have a pricingModelId`
+    )
+  }
+  return product.pricingModelId
+}
+
 export const selectPriceById = createSelectById(prices, config)
 
-export const bulkInsertPrices = createBulkInsertFunction(
-  prices,
-  config
-)
+const baseBulkInsertPrices = createBulkInsertFunction(prices, config)
+
+export const bulkInsertPrices = async (
+  priceInserts: Price.Insert[],
+  transaction: DbTransaction
+): Promise<Price.Record[]> => {
+  // Derive pricingModelId for each price
+  const pricesWithPricingModelId = await Promise.all(
+    priceInserts.map(async (priceInsert) => {
+      const pricingModelId = await derivePricingModelIdFromProduct(
+        priceInsert.productId,
+        transaction
+      )
+      return {
+        ...priceInsert,
+        pricingModelId,
+      }
+    })
+  )
+  return baseBulkInsertPrices(pricesWithPricingModelId, transaction)
+}
 
 export const selectPrices = createSelectFunction(prices, config)
 
-export const insertPrice = createInsertFunction(prices, config)
+const baseInsertPrice = createInsertFunction(prices, config)
+
+export const insertPrice = async (
+  priceInsert: Price.Insert,
+  transaction: DbTransaction
+): Promise<Price.Record> => {
+  const pricingModelId = await derivePricingModelIdFromProduct(
+    priceInsert.productId,
+    transaction
+  )
+  return baseInsertPrice(
+    {
+      ...priceInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updatePrice = createUpdateFunction(prices, config)
 
@@ -520,12 +571,25 @@ export const isPriceTypeSubscription = (
 const bulkInsertOrDoNothingPrices =
   createBulkInsertOrDoNothingFunction(prices, config)
 
-export const bulkInsertOrDoNothingPricesByExternalId = (
+export const bulkInsertOrDoNothingPricesByExternalId = async (
   priceInserts: Price.Insert[],
   transaction: DbTransaction
 ) => {
+  // Derive pricingModelId for each price
+  const pricesWithPricingModelId = await Promise.all(
+    priceInserts.map(async (priceInsert) => {
+      const pricingModelId = await derivePricingModelIdFromProduct(
+        priceInsert.productId,
+        transaction
+      )
+      return {
+        ...priceInsert,
+        pricingModelId,
+      }
+    })
+  )
   return bulkInsertOrDoNothingPrices(
-    priceInserts,
+    pricesWithPricingModelId,
     [prices.externalId, prices.productId],
     transaction
   )
@@ -557,10 +621,27 @@ const setPricesForProductToNonDefaultNonActive = async (
     })
 }
 
-export const dangerouslyInsertPrice = createInsertFunction(
+const baseDangerouslyInsertPrice = createInsertFunction(
   prices,
   config
 )
+
+export const dangerouslyInsertPrice = async (
+  priceInsert: Price.Insert,
+  transaction: DbTransaction
+): Promise<Price.Record> => {
+  const pricingModelId = await derivePricingModelIdFromProduct(
+    priceInsert.productId,
+    transaction
+  )
+  return baseDangerouslyInsertPrice(
+    {
+      ...priceInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const safelyInsertPrice = async (
   price: Omit<Price.Insert, 'isDefault' | 'active'>,

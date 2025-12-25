@@ -41,6 +41,26 @@ export const selectUsageMeterById = createSelectById(
   config
 )
 
+/**
+ * Derives pricingModelId from a usage meter.
+ * Used for usageEvents, usageCredits, ledgerAccounts, subscriptionMeterPeriodCalculations.
+ */
+export const derivePricingModelIdFromUsageMeter = async (
+  usageMeterId: string,
+  transaction: DbTransaction
+): Promise<string> => {
+  const usageMeter = await selectUsageMeterById(
+    usageMeterId,
+    transaction
+  )
+  if (!usageMeter.pricingModelId) {
+    throw new Error(
+      `Usage meter ${usageMeterId} does not have a pricingModelId`
+    )
+  }
+  return usageMeter.pricingModelId
+}
+
 export const insertUsageMeter = createInsertFunction(
   usageMeters,
   config
