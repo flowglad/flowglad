@@ -29,7 +29,7 @@ interface ProductsGridPaginationProps {
  * Custom pagination footer for ProductsGridSection.
  *
  * Displays:
- * - Left side: "{count} {entityName}s" count and optional "View All Products" link
+ * - Left side: "{count} {entityName}s" count and optional "View All {entityName}s" link
  * - Right side: Previous/Next ghost buttons that become invisible when disabled
  */
 export function ProductsGridPagination({
@@ -46,6 +46,8 @@ export function ProductsGridPagination({
   const isDisabled = isLoading || isFetching
   const pluralizedEntityName =
     total === 1 ? entityName : `${entityName}s`
+  const capitalizedPluralEntityName =
+    entityName.charAt(0).toUpperCase() + entityName.slice(1) + 's'
 
   return (
     <div className="flex items-center justify-between w-full">
@@ -62,7 +64,7 @@ export function ProductsGridPagination({
               href={viewAllHref}
               className="font-sans font-medium text-sm leading-none text-muted-foreground underline whitespace-nowrap hover:text-foreground transition-colors"
             >
-              View All Products
+              View All {capitalizedPluralEntityName}
             </Link>
           </>
         )}

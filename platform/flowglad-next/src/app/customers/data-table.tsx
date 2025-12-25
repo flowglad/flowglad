@@ -16,7 +16,7 @@ import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { Button } from '@/components/ui/button'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { InlineSearch } from '@/components/ui/inline-search'
+import { DataTableToolbar } from '@/components/ui/data-table-toolbar'
 import {
   Table,
   TableBody,
@@ -202,48 +202,42 @@ export function CustomersDataTable({
             <h3 className="text-lg truncate">{title}</h3>
           </div>
         )}
-        {/* Redesigned toolbar - responsive: 2 rows on mobile, 1 row on desktop */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-1">
-          {/* Search input - full width on mobile, flex-1 on desktop */}
-          <InlineSearch
-            value={inputValue}
-            onChange={setInputValue}
-            placeholder="Search customers..."
-            isLoading={isFetching}
-            disabled={isLoading}
-            className="w-full sm:flex-1"
-          />
-          {/* Buttons row - full width on mobile, auto on desktop */}
-          <div className="flex items-center gap-1 w-full sm:w-auto">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleExport}
-              disabled={
-                !hasResults || isLoading || isFetching || isExporting
-              }
-              className="flex-1 sm:flex-none"
-            >
-              {isExporting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-              {isExporting ? 'Exporting...' : 'Export'}
-            </Button>
-            {onCreateCustomer && (
-              <Button
-                onClick={onCreateCustomer}
-                variant={buttonVariant}
-                size="sm"
-                className="flex-1 sm:flex-none"
-              >
-                <Plus className="w-4 h-4" />
-                Create Customer
-              </Button>
+        {/* Toolbar */}
+        <DataTableToolbar
+          search={{
+            value: inputValue,
+            onChange: setInputValue,
+            placeholder: 'Search customers...',
+          }}
+          actionButton={
+            onCreateCustomer
+              ? {
+                  onClick: onCreateCustomer,
+                  text: 'Create Customer',
+                  variant: buttonVariant,
+                }
+              : undefined
+          }
+          isLoading={isLoading}
+          isFetching={isFetching}
+        >
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleExport}
+            disabled={
+              !hasResults || isLoading || isFetching || isExporting
+            }
+            className="flex-1 sm:flex-none"
+          >
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
             )}
-          </div>
-        </div>
+            {isExporting ? 'Exporting...' : 'Export'}
+          </Button>
+        </DataTableToolbar>
       </div>
 
       {/* Table */}

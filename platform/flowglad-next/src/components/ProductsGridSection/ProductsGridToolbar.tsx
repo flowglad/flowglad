@@ -1,9 +1,6 @@
 'use client'
 
-import { Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { InlineSearch } from '@/components/ui/inline-search'
-import { StatusDropdownFilter } from '@/components/ui/status-dropdown-filter'
+import { DataTableToolbar } from '@/components/ui/data-table-toolbar'
 
 interface ProductsGridToolbarProps {
   /** Current search input value */
@@ -47,51 +44,32 @@ export function ProductsGridToolbar({
   isLoading,
   isFetching,
 }: ProductsGridToolbarProps) {
-  const hasButtons =
-    (filterOptions && filterValue !== undefined && onFilterChange) ||
-    onCreateClick
-
   return (
-    <div className="flex flex-col gap-2 w-full sm:flex-row sm:items-center sm:gap-1">
-      {/* Search input - full width on mobile, flex-1 on desktop */}
-      <InlineSearch
-        value={searchValue}
-        onChange={onSearchChange}
-        placeholder={searchPlaceholder}
-        isLoading={isFetching}
-        disabled={isLoading}
-        className="w-full sm:flex-1"
-      />
-
-      {/* Buttons row - full width on mobile, auto on desktop */}
-      {hasButtons && (
-        <div className="flex items-center gap-1 w-full sm:w-auto">
-          {filterOptions &&
-            filterValue !== undefined &&
-            onFilterChange && (
-              <StatusDropdownFilter
-                value={filterValue}
-                onChange={onFilterChange}
-                options={filterOptions}
-                disabled={isLoading}
-                className="flex-1 sm:flex-none"
-              />
-            )}
-
-          {onCreateClick && (
-            <Button
-              onClick={onCreateClick}
-              variant="secondary"
-              size="sm"
-              disabled={isLoading}
-              className="flex-1 sm:flex-none"
-            >
-              <Plus className="w-4 h-4" />
-              {createButtonText}
-            </Button>
-          )}
-        </div>
-      )}
-    </div>
+    <DataTableToolbar
+      search={{
+        value: searchValue,
+        onChange: onSearchChange,
+        placeholder: searchPlaceholder,
+      }}
+      filter={
+        filterOptions && filterValue !== undefined && onFilterChange
+          ? {
+              value: filterValue,
+              options: filterOptions,
+              onChange: onFilterChange,
+            }
+          : undefined
+      }
+      actionButton={
+        onCreateClick
+          ? {
+              onClick: onCreateClick,
+              text: createButtonText,
+            }
+          : undefined
+      }
+      isLoading={isLoading}
+      isFetching={isFetching}
+    />
   )
 }

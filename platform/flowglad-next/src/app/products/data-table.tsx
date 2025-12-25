@@ -12,16 +12,13 @@ import {
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
-import { Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
-import { Button } from '@/components/ui/button'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { InlineSearch } from '@/components/ui/inline-search'
-import { StatusDropdownFilter } from '@/components/ui/status-dropdown-filter'
+import { DataTableToolbar } from '@/components/ui/data-table-toolbar'
 import {
   Table,
   TableBody,
@@ -162,47 +159,37 @@ export function ProductsDataTable({
     },
   })
 
-  const hasButtons =
-    (filterOptions && activeFilter && onFilterChange) ||
-    onCreateProduct
-
   return (
     <div className="w-full">
-      {/* Redesigned toolbar - responsive: 2 rows on mobile, 1 row on desktop */}
-      <div className="flex flex-col gap-2 pt-1 pb-2 px-4 sm:flex-row sm:items-center sm:gap-1">
-        {/* Search input - full width on mobile, flex-1 on desktop */}
-        <InlineSearch
-          value={inputValue}
-          onChange={setInputValue}
-          placeholder="Search products..."
-          isLoading={isFetching}
-          disabled={isLoading}
-          className="w-full sm:flex-1"
+      {/* Toolbar */}
+      <div className="pt-1 pb-2 px-4">
+        <DataTableToolbar
+          search={{
+            value: inputValue,
+            onChange: setInputValue,
+            placeholder: 'Search products...',
+          }}
+          filter={
+            filterOptions && activeFilter && onFilterChange
+              ? {
+                  value: activeFilter,
+                  options: filterOptions,
+                  onChange: onFilterChange,
+                }
+              : undefined
+          }
+          actionButton={
+            onCreateProduct
+              ? {
+                  onClick: onCreateProduct,
+                  text: 'Create Product',
+                  variant: buttonVariant,
+                }
+              : undefined
+          }
+          isLoading={isLoading}
+          isFetching={isFetching}
         />
-        {/* Buttons row - full width on mobile, auto on desktop */}
-        {hasButtons && (
-          <div className="flex items-center gap-1 w-full sm:w-auto">
-            {filterOptions && activeFilter && onFilterChange && (
-              <StatusDropdownFilter
-                value={activeFilter}
-                onChange={onFilterChange}
-                options={filterOptions}
-                className="flex-1 sm:flex-none"
-              />
-            )}
-            {onCreateProduct && (
-              <Button
-                onClick={onCreateProduct}
-                variant={buttonVariant}
-                size="sm"
-                className="flex-1 sm:flex-none"
-              >
-                <Plus className="w-4 h-4" />
-                Create Product
-              </Button>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Table */}
