@@ -149,7 +149,7 @@ export function ApiKeysDataTable({
           <DataTableViewOptions table={table} />
           {onCreateApiKey && (
             <Button onClick={onCreateApiKey} variant={buttonVariant}>
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Create API Key
             </Button>
           )}
@@ -228,6 +228,7 @@ export function ApiKeysDataTable({
           totalCount={data?.total}
           isFiltered={Object.keys(filters).length > 0}
           filteredCount={data?.total}
+          entityName="API key"
         />
       </div>
     </div>

@@ -92,7 +92,7 @@ const columns = {
    * without payment methods and will skip all billing runs.
    */
   doNotCharge: boolean('do_not_charge').default(false),
-  priceId: nullableStringForeignKey('price_id', prices),
+  priceId: notNullStringForeignKey('price_id', prices),
   runBillingAtPeriodStart: boolean(
     'run_billing_at_period_start'
   ).default(true),

@@ -4,14 +4,11 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil } from 'lucide-react'
 import * as React from 'react'
 import EditUsageMeterModal from '@/components/components/EditUsageMeterModal'
-import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
-import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
 import type { UsageMeter } from '@/db/schema/usageMeters'
-import { formatDate } from '@/utils/core'
 
 type UsageMeterTableRowData = {
   usageMeter: UsageMeter.ClientRecord
@@ -51,7 +48,7 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
   {
     id: 'name',
     accessorFn: (row) => row.usageMeter.name,
-    header: 'Name',
+    header: 'Usage Meter',
     size: 200,
     minSize: 200,
     maxSize: 275,
@@ -60,27 +57,6 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
       return (
         <div className="truncate" title={name}>
           {name}
-        </div>
-      )
-    },
-  },
-  {
-    id: 'pricingModel',
-    accessorFn: (row) => row.pricingModel.name,
-    header: 'Pricing Model',
-    size: 200,
-    minSize: 150,
-    maxSize: 300,
-    cell: ({ row }) => {
-      const name = row.getValue('pricingModel') as string
-      const pricingModelId = row.original.pricingModel.id
-      return (
-        <div onClick={(e) => e.stopPropagation()}>
-          <DataTableLinkableCell
-            href={`/pricing-models/${pricingModelId}`}
-          >
-            {name}
-          </DataTableLinkableCell>
         </div>
       )
     },
@@ -97,56 +73,6 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
       const displayText =
         type === 'sum' ? 'Sum' : 'Count Distinct Properties'
       return <div>{displayText}</div>
-    },
-  },
-  {
-    id: 'createdAt',
-    accessorFn: (row) => row.usageMeter.createdAt,
-    header: 'Created',
-    size: 140,
-    minSize: 120,
-    maxSize: 160,
-    cell: ({ row }) => {
-      const date = row.getValue('createdAt') as Date
-      return (
-        <div className="whitespace-nowrap">{formatDate(date)}</div>
-      )
-    },
-  },
-  {
-    id: 'slug',
-    accessorFn: (row) => row.usageMeter.slug,
-    header: 'Slug',
-    cell: ({ row }) => {
-      const slug = row.getValue('slug') as string
-      return (
-        <div onClick={(e) => e.stopPropagation()}>
-          <DataTableCopyableCell copyText={slug}>
-            {slug}
-          </DataTableCopyableCell>
-        </div>
-      )
-    },
-    size: 180,
-    minSize: 125,
-    maxSize: 250,
-  },
-  {
-    id: 'id',
-    accessorFn: (row) => row.usageMeter.id,
-    header: 'ID',
-    size: 200,
-    minSize: 150,
-    maxSize: 300,
-    cell: ({ row }) => {
-      const id = row.getValue('id') as string
-      return (
-        <div onClick={(e) => e.stopPropagation()}>
-          <DataTableCopyableCell copyText={id}>
-            {id}
-          </DataTableCopyableCell>
-        </div>
-      )
     },
   },
   {

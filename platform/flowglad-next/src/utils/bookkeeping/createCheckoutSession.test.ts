@@ -901,45 +901,6 @@ describe('createCheckoutSessionTransaction', () => {
         `Target subscription ${otherCustomerSubscription.id} does not belong to customer ${customer.id}`
       )
     })
-
-    it('should throw when the target subscription is missing a price', async () => {
-      const subscriptionWithoutPrice = await setupSubscription({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: subscriptionPrice.id,
-        status: SubscriptionStatus.Incomplete,
-        livemode: true,
-      })
-      await adminTransaction(async ({ transaction }) =>
-        updateSubscription(
-          {
-            id: subscriptionWithoutPrice.id,
-            priceId: null,
-            renews: subscriptionWithoutPrice.renews,
-          },
-          transaction
-        )
-      )
-
-      const checkoutSessionInput = buildActivateInput({
-        targetSubscriptionId: subscriptionWithoutPrice.id,
-      })
-
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          createCheckoutSessionTransaction(
-            {
-              checkoutSessionInput,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
-        )
-      ).rejects.toThrow(
-        `Target subscription ${subscriptionWithoutPrice.id} does not have an associated price`
-      )
-    })
   })
 
   describe('Price slug support', () => {

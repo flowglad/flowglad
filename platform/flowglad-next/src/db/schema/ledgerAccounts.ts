@@ -19,7 +19,6 @@ import {
   merchantPolicy,
   merchantRole,
   notNullStringForeignKey,
-  nullableStringForeignKey,
   ommittedColumnsForInsertSchema,
   pgEnumColumn,
   tableBase,
@@ -41,7 +40,7 @@ export const ledgerAccounts = pgTable(
       'subscription_id',
       subscriptions
     ),
-    usageMeterId: nullableStringForeignKey(
+    usageMeterId: notNullStringForeignKey(
       'usage_meter_id',
       usageMeters
     ),

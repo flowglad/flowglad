@@ -67,7 +67,8 @@ const processAdminCreditAdjustedLedgerCommand = async (
       organizationId: command.organizationId,
       livemode: command.livemode,
       subscriptionId: command.subscriptionId!,
-      usageMeterId: null, // Assuming general ECCA; adjust if meter-specific adjustments are possible
+      usageMeterId:
+        command.payload.usageCreditBalanceAdjustment.usageMeterId, // Assuming general ECCA; adjust if meter-specific adjustments are possible
     },
     transaction
   )

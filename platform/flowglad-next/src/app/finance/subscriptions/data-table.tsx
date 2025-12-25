@@ -285,7 +285,7 @@ export function SubscriptionsDataTable({
           />
           {onCreateSubscription && (
             <Button onClick={onCreateSubscription}>
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Create Subscription
             </Button>
           )}
@@ -379,6 +379,7 @@ export function SubscriptionsDataTable({
           totalCount={data?.total}
           isFiltered={hasActiveFilters}
           filteredCount={data?.total}
+          entityName="subscription"
         />
       </div>
     </div>

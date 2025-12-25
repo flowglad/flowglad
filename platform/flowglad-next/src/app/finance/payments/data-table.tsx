@@ -245,6 +245,7 @@ export function PaymentsDataTable({
           totalCount={data?.total}
           isFiltered={Object.keys(filters).length > 0}
           filteredCount={data?.total}
+          entityName="payment"
         />
       </div>
     </div>

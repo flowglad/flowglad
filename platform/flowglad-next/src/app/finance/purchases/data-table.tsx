@@ -213,7 +213,11 @@ export function PurchasesDataTable({
 
       {/* Enhanced pagination with proper spacing */}
       <div className="py-2">
-        <DataTablePagination table={table} totalCount={data?.total} />
+        <DataTablePagination
+          table={table}
+          totalCount={data?.total}
+          entityName="purchase"
+        />
       </div>
     </div>
   )

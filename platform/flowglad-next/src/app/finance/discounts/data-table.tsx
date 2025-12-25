@@ -156,7 +156,7 @@ export function DiscountsDataTable({
           <DataTableViewOptions table={table} />
           {onCreateDiscount && (
             <Button onClick={onCreateDiscount}>
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Create Discount
             </Button>
           )}
@@ -250,6 +250,7 @@ export function DiscountsDataTable({
           totalCount={data?.total}
           isFiltered={Object.keys(filters).length > 0}
           filteredCount={data?.total}
+          entityName="discount"
         />
       </div>
     </div>

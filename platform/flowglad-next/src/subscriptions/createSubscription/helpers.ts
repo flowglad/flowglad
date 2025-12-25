@@ -307,30 +307,6 @@ export const maybeDefaultPaymentMethodForSubscription = async (
     : paymentMethods[0]
 }
 
-export const setupLedgerAccounts = async (
-  params: {
-    subscription: Subscription.Record
-    subscriptionItems: SubscriptionItem.Record[]
-    price: Price.ClientRecord
-  },
-  transaction: DbTransaction
-) => {
-  const { subscription, price } = params
-  await bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId(
-    [
-      {
-        subscriptionId: subscription.id,
-        usageMeterId: price.usageMeterId,
-        livemode: subscription.livemode,
-        organizationId: subscription.organizationId,
-        normalBalance: NormalBalanceType.CREDIT,
-        version: 0,
-      },
-    ],
-    transaction
-  )
-}
-
 export const activateSubscription = async (
   params: {
     subscription: Subscription.Record
