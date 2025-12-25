@@ -4,6 +4,8 @@ import { appRouter } from '@/server'
 import { createContext } from '@/server/trpcContext'
 
 const handler = (req: Request) =>
+{
+  console.log("!!! API HIT !!!");
   fetchRequestHandler({
     endpoint: '/api/trpc',
     req,
@@ -11,5 +13,5 @@ const handler = (req: Request) =>
     // @ts-expect-error
     createContext,
   })
-
+}
 export { handler as GET, handler as POST }

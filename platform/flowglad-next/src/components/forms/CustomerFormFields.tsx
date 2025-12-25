@@ -19,14 +19,7 @@ const CustomerFormFields = () => {
       <FormField
         control={form.control}
         name="customer.name"
-        rules={{
-          required: true,
-          validate: (value) => {
-            if (value && value.length < 2) {
-              return `Please enter the customer's full name`
-            }
-          },
-        }}
+         
         render={({ field }) => (
           <FormItem>
             <FormLabel>Customer Name</FormLabel>
@@ -40,19 +33,7 @@ const CustomerFormFields = () => {
       <FormField
         control={form.control}
         name="customer.email"
-        rules={{
-          required: true,
-          validate: (value) => {
-            if (
-              value &&
-              !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(
-                value
-              )
-            ) {
-              return 'Please enter a valid email address'
-            }
-          },
-        }}
+        
         render={({ field }) => (
           <FormItem>
             <FormLabel>Customer Email</FormLabel>
