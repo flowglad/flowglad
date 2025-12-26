@@ -183,9 +183,9 @@ export const columns: ColumnDef<Payment.TableRowData>[] = [
         </div>
       )
     },
-    size: 136,
-    minSize: 136,
-    maxSize: 145,
+    size: 109,
+    minSize: 109,
+    maxSize: 116,
   },
   {
     id: 'paymentId',
