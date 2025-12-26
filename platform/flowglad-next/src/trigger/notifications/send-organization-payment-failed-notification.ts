@@ -10,7 +10,11 @@ import {
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
-import { formatEmailSubject, safeSend } from '@/utils/email'
+import {
+  formatEmailSubject,
+  getBccForLivemode,
+  safeSend,
+} from '@/utils/email'
 
 interface PaymentFailedNotificationData {
   organizationId: string
@@ -67,6 +71,7 @@ const sendOrganizationPaymentFailedNotificationTask = task({
 
     await safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
+      bcc: getBccForLivemode(paymentData.livemode),
       to: usersAndMemberships
         .map(({ user }) => user.email)
         .filter((email) => !isNil(email)),
