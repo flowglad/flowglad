@@ -148,10 +148,18 @@ const checkoutSession = await flowglad(userId).createCheckoutSession({
 // Check feature access for gating premium functionality
 const hasPremium = billing.checkFeatureAccess('premium_feature')
 
-// Record metered usage
+// Record metered usage with price (for billing)
 await flowglad(userId).createUsageEvent({
   amount: 1,
   priceSlug: 'usage_price_slug',
+  subscriptionId: 'subscription_id',
+  transactionId: 'idempotency-key',
+})
+
+// Record metered usage without price (for tracking only)
+await flowglad(userId).createUsageEvent({
+  amount: 1,
+  usageMeterSlug: 'api_calls',
   subscriptionId: 'subscription_id',
   transactionId: 'idempotency-key',
 })
