@@ -508,7 +508,7 @@ export const sendOrganizationOnboardingCompletedNotificationEmail =
     return safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
       to: to.map(safeTo),
-      bcc: undefined,
+      bcc: getBccForLivemode(true),
       subject: `Live payments pending review for ${organizationName}`,
       react: await OrganizationOnboardingCompletedNotificationEmail({
         organizationName,
@@ -527,7 +527,7 @@ export const sendOrganizationPayoutsEnabledNotificationEmail =
     return safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
       to: to.map(safeTo),
-      bcc: undefined,
+      bcc: getBccForLivemode(true),
       subject: `Payouts Enabled for ${organizationName}`,
       /**
        * NOTE: await needed to prevent
