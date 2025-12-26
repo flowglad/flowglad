@@ -11,6 +11,7 @@ import { buildSchemas } from '@/db/createZodSchemas'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { organizations } from '@/db/schema/organizations'
 import { payments } from '@/db/schema/payments'
+import { pricingModels } from '@/db/schema/pricingModels'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { usageMeters } from '@/db/schema/usageMeters'
 import {
@@ -81,6 +82,10 @@ export const usageCredits = pgTable(
     }).notNull(),
     notes: text('notes'),
     metadata: jsonb('metadata'),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => {
     return [
@@ -92,6 +97,7 @@ export const usageCredits = pgTable(
       constructIndex(TABLE_NAME, [table.creditType]),
       constructIndex(TABLE_NAME, [table.status]),
       constructIndex(TABLE_NAME, [table.paymentId]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       constructUniqueIndex(TABLE_NAME, [
         table.paymentId,
         table.subscriptionId,
@@ -141,6 +147,9 @@ export const {
   refine: {
     ...columnRefinements,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns: {
       ...hiddenColumnsForClientSchema,
@@ -148,6 +157,7 @@ export const {
     readOnlyColumns: {
       organizationId: true,
       livemode: true,
+      pricingModelId: true,
     },
     createOnlyColumns: {
       issuedAmount: true,

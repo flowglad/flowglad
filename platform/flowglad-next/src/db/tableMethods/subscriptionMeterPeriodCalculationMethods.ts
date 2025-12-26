@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  SubscriptionMeterPeriodCalculation,
   subscriptionMeterPeriodCalculationInsertSchema,
   subscriptionMeterPeriodCalculationSelectSchema,
   subscriptionMeterPeriodCalculations,
@@ -14,6 +15,8 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import { SubscriptionMeterPeriodCalculationStatus } from '@/types'
+import type { DbTransaction } from '../types'
+import { derivePricingModelIdFromUsageMeter } from './usageMeterMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionMeterPeriodCalculations,
@@ -30,8 +33,25 @@ const config: ORMMethodCreatorConfig<
 export const selectSubscriptionMeterPeriodCalculationById =
   createSelectById(subscriptionMeterPeriodCalculations, config)
 
-export const insertSubscriptionMeterPeriodCalculation =
+const baseInsertSubscriptionMeterPeriodCalculation =
   createInsertFunction(subscriptionMeterPeriodCalculations, config)
+
+export const insertSubscriptionMeterPeriodCalculation = async (
+  calculationInsert: SubscriptionMeterPeriodCalculation.Insert,
+  transaction: DbTransaction
+): Promise<SubscriptionMeterPeriodCalculation.Record> => {
+  const pricingModelId = await derivePricingModelIdFromUsageMeter(
+    calculationInsert.usageMeterId,
+    transaction
+  )
+  return baseInsertSubscriptionMeterPeriodCalculation(
+    {
+      ...calculationInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateSubscriptionMeterPeriodCalculation =
   createUpdateFunction(subscriptionMeterPeriodCalculations, config)

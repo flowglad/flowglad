@@ -271,6 +271,12 @@ describe('syncProductFeatures', () => {
     const resultFeatureIds = new Set(result.map((pf) => pf.featureId))
     expect(resultFeatureIds.has(featureA.id)).toBe(true)
     expect(resultFeatureIds.has(featureB.id)).toBe(true)
+    // Verify pricingModelId is correctly derived from product
+    expect(
+      result.every(
+        (pf) => pf.pricingModelId === product.pricingModelId
+      )
+    ).toBe(true)
 
     // - A database query should confirm that two new, active product features now link the product to the desired features.
     const allFeatures = await adminTransaction(
@@ -279,6 +285,12 @@ describe('syncProductFeatures', () => {
     )
     expect(allFeatures).toHaveLength(2)
     expect(allFeatures.every((pf) => !pf.expiredAt)).toBe(true)
+    // Verify pricingModelId matches product for all features
+    expect(
+      allFeatures.every(
+        (pf) => pf.pricingModelId === product.pricingModelId
+      )
+    ).toBe(true)
   })
 
   it('should expire all existing active product features when an empty array is provided', async () => {

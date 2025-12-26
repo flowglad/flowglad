@@ -22,6 +22,7 @@ import type { DbTransaction } from '@/db/types'
 import { features, featuresSelectSchema } from '../schema/features'
 import type { Product } from '../schema/products'
 import { createDateNotPassedFilter } from '../tableUtils'
+import { derivePricingModelIdFromProduct } from './priceMethods'
 import { detachSubscriptionItemFeaturesFromProductFeature } from './subscriptionItemFeatureMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -41,10 +42,27 @@ export const selectProductFeatureById = createSelectById(
   config
 )
 
-export const insertProductFeature = createInsertFunction(
+const baseInsertProductFeature = createInsertFunction(
   productFeatures,
   config
 )
+
+export const insertProductFeature = async (
+  productFeatureInsert: ProductFeature.Insert,
+  transaction: DbTransaction
+): Promise<ProductFeature.Record> => {
+  const pricingModelId = await derivePricingModelIdFromProduct(
+    productFeatureInsert.productId,
+    transaction
+  )
+  return baseInsertProductFeature(
+    {
+      ...productFeatureInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 /**
  * No need to "update" a product feature in our business logic,
@@ -142,12 +160,35 @@ export const selectFeaturesByProductFeatureWhere = async (
   }))
 }
 
-export const bulkInsertProductFeatures = createBulkInsertFunction(
+const baseBulkInsertProductFeatures = createBulkInsertFunction(
   productFeatures,
   config
 )
 
-export const bulkInsertOrDoNothingProductFeatures =
+export const bulkInsertProductFeatures = async (
+  productFeatureInserts: ProductFeature.Insert[],
+  transaction: DbTransaction
+): Promise<ProductFeature.Record[]> => {
+  // Derive pricingModelId for each product feature
+  const productFeaturesWithPricingModelId = await Promise.all(
+    productFeatureInserts.map(async (productFeatureInsert) => {
+      const pricingModelId = await derivePricingModelIdFromProduct(
+        productFeatureInsert.productId,
+        transaction
+      )
+      return {
+        ...productFeatureInsert,
+        pricingModelId,
+      }
+    })
+  )
+  return baseBulkInsertProductFeatures(
+    productFeaturesWithPricingModelId,
+    transaction
+  )
+}
+
+const baseBulkInsertOrDoNothingProductFeatures =
   createBulkInsertOrDoNothingFunction(productFeatures, config)
 
 export const bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId =
@@ -155,8 +196,21 @@ export const bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId =
     inserts: ProductFeature.Insert[],
     transaction: DbTransaction
   ) => {
-    return bulkInsertOrDoNothingProductFeatures(
-      inserts,
+    // Derive pricingModelId for each product feature
+    const productFeaturesWithPricingModelId = await Promise.all(
+      inserts.map(async (productFeatureInsert) => {
+        const pricingModelId = await derivePricingModelIdFromProduct(
+          productFeatureInsert.productId,
+          transaction
+        )
+        return {
+          ...productFeatureInsert,
+          pricingModelId,
+        }
+      })
+    )
+    return baseBulkInsertOrDoNothingProductFeatures(
+      productFeaturesWithPricingModelId,
       [productFeatures.productId, productFeatures.featureId],
       transaction
     )

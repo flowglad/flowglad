@@ -35,6 +35,7 @@ import type { SubscriptionStatus } from '@/types'
 import core from '@/utils/core'
 import type { DbTransaction } from '../types'
 import { isSubscriptionCurrent } from './subscriptionMethods'
+import { derivePricingModelIdFromUsageMeter } from './usageMeterMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof usageEvents,
@@ -53,10 +54,24 @@ export const selectUsageEventById = createSelectById(
   config
 )
 
-export const insertUsageEvent = createInsertFunction(
-  usageEvents,
-  config
-)
+const baseInsertUsageEvent = createInsertFunction(usageEvents, config)
+
+export const insertUsageEvent = async (
+  usageEventInsert: UsageEvent.Insert,
+  transaction: DbTransaction
+): Promise<UsageEvent.Record> => {
+  const pricingModelId = await derivePricingModelIdFromUsageMeter(
+    usageEventInsert.usageMeterId,
+    transaction
+  )
+  return baseInsertUsageEvent(
+    {
+      ...usageEventInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateUsageEvent = createUpdateFunction(
   usageEvents,
@@ -68,15 +83,28 @@ export const selectUsageEvents = createSelectFunction(
   config
 )
 
-const bulkInsertOrDoNothingUsageEvents =
+const baseBulkInsertOrDoNothingUsageEvents =
   createBulkInsertOrDoNothingFunction(usageEvents, config)
 
-export const bulkInsertOrDoNothingUsageEventsByTransactionId = (
+export const bulkInsertOrDoNothingUsageEventsByTransactionId = async (
   usageEventInserts: UsageEvent.Insert[],
   transaction: DbTransaction
 ) => {
-  return bulkInsertOrDoNothingUsageEvents(
-    usageEventInserts,
+  // Derive pricingModelId for each usage event
+  const usageEventsWithPricingModelId = await Promise.all(
+    usageEventInserts.map(async (usageEventInsert) => {
+      const pricingModelId = await derivePricingModelIdFromUsageMeter(
+        usageEventInsert.usageMeterId,
+        transaction
+      )
+      return {
+        ...usageEventInsert,
+        pricingModelId,
+      }
+    })
+  )
+  return baseBulkInsertOrDoNothingUsageEvents(
+    usageEventsWithPricingModelId,
     [usageEvents.transactionId, usageEvents.usageMeterId],
     transaction
   )

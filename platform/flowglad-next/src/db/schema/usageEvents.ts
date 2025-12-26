@@ -3,6 +3,7 @@ import { integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { customers } from '@/db/schema/customers'
+import { pricingModels } from '@/db/schema/pricingModels'
 import { usageMeters } from '@/db/schema/usageMeters'
 import {
   constructIndex,
@@ -60,6 +61,10 @@ export const usageEvents = pgTable(
     transactionId: text('transaction_id').notNull(),
     priceId: nullableStringForeignKey('price_id', prices),
     properties: jsonb('properties'),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => {
     return [
@@ -68,6 +73,7 @@ export const usageEvents = pgTable(
       constructIndex(TABLE_NAME, [table.billingPeriodId]),
       constructIndex(TABLE_NAME, [table.subscriptionId]),
       constructIndex(TABLE_NAME, [table.priceId]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       constructUniqueIndex(TABLE_NAME, [
         table.transactionId,
         table.usageMeterId,
@@ -175,6 +181,7 @@ const readOnlyColumns = {
   livemode: true,
   billingPeriodId: true,
   customerId: true,
+  pricingModelId: true,
 } as const
 
 const createOnlyColumns = {
@@ -205,6 +212,7 @@ export const {
   refine: columnRefinements,
   insertRefine: {
     usageDate: columnRefinements.usageDate.optional(),
+    pricingModelId: z.string().optional(),
   },
   client: {
     readOnlyColumns,

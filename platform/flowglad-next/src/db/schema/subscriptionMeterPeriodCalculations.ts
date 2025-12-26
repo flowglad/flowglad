@@ -8,10 +8,11 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
-import type { z } from 'zod'
+import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { usageMeters } from '@/db/schema/usageMeters'
 import {
@@ -84,6 +85,10 @@ export const subscriptionMeterPeriodCalculations = pgTable(
     //   creditNotes
     // ),
     notes: text('notes'),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => {
     return [
@@ -95,6 +100,7 @@ export const subscriptionMeterPeriodCalculations = pgTable(
       constructIndex(TABLE_NAME, [table.billingRunId]),
       constructIndex(TABLE_NAME, [table.supersededByCalculationId]),
       constructIndex(TABLE_NAME, [table.sourceInvoiceId]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       //   constructIndex(TABLE_NAME, [table.sourceCreditNoteId]),
       foreignKey({
         columns: [table.supersededByCalculationId],
@@ -134,6 +140,10 @@ const columnRefinements = {
 /*
  * Database Schemas
  */
+const readOnlyColumns = {
+  pricingModelId: true,
+} as const
+
 export const {
   select: subscriptionMeterPeriodCalculationSelectSchema,
   insert: subscriptionMeterPeriodCalculationInsertSchema,
@@ -145,10 +155,14 @@ export const {
   refine: {
     ...columnRefinements,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns: {
       ...hiddenColumnsForClientSchema,
     },
+    readOnlyColumns,
   },
   entityName: 'SubscriptionMeterPeriodCalculation',
 })

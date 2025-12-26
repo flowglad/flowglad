@@ -194,6 +194,17 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
         )
         expect(newLa?.livemode).toBe(subscription.livemode)
         expect(newLa?.subscriptionId).toBe(subscription.id)
+        // Verify pricingModelId is correctly derived from usage meter
+        const usageMeter = [
+          usageMeter1,
+          usageMeter2,
+          usageMeter3,
+        ].find((um) => um.id === usageMeterId)
+        if (usageMeter) {
+          expect(newLa?.pricingModelId).toBe(
+            usageMeter.pricingModelId
+          )
+        }
       }
     })
   })
@@ -238,7 +249,15 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
       expect(result).toHaveLength(2)
       expect(result[0].id).toBe(ledgerAccountForUsageMeter1.id)
       expect(result[0].usageMeterId).toBe(usageMeter1.id)
+      // Verify pricingModelId is correctly derived from usage meter
+      expect(result[0].pricingModelId).toBe(
+        usageMeter1.pricingModelId
+      )
       expect(result[1].usageMeterId).toBe(usageMeter2.id)
+      // Verify pricingModelId is correctly derived from usage meter
+      expect(result[1].pricingModelId).toBe(
+        usageMeter2.pricingModelId
+      )
 
       const newLedgerAccountForUM2 = await selectLedgerAccounts(
         {
