@@ -40,7 +40,6 @@ const CustomerFormFields = () => {
       <FormField
         control={form.control}
         name="customer.name"
-         
         render={({ field }) => (
           <FormItem>
             <FormLabel>Customer Name</FormLabel>
@@ -54,7 +53,6 @@ const CustomerFormFields = () => {
       <FormField
         control={form.control}
         name="customer.email"
-        
         render={({ field }) => (
           <FormItem>
             <FormLabel>Customer Email</FormLabel>
