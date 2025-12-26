@@ -181,16 +181,47 @@ bun run install-packages
 cp .env.example .env.local
 ```
 
+### Environment variables
+
+Add these values to your `.env.local`:
+
+- **STRIPE_SECRET_KEY** — get it from  
+  https://dashboard.stripe.com/apikeys  
+
+- **STRIPE_TEST_MODE_SECRET_KEY** — get it from the same Stripe API keys page (test key)
+
+- **UNKEY_ROOT_KEY** — grab it in Unkey Dashboard → **Root Keys**  
+  https://app.unkey.dev
+
+- **UNKEY_API_ID** — find it in Unkey Dashboard → **APIs**
+
+- **NEXT_PUBLIC_APP_URL** — usually your local URL (e.g. `http://localhost:3000`)
+
+- **SVIX_API_KEY** — create/find it in Svix Dashboard  
+  https://dashboard.svix.com
+
+- **DEV_EMAIL_REDIRECT** — set an email you want all local emails forwarded to
+
+- **DATABASE_URL** — your Postgres connection string  
+  (example: `postgres://test:test@localhost:5432/test_db`)
+
 4) Start the test database and run migrations
 ```
 bun run test:setup
 ```
 
-5) Run the test suite
+5) Seed the countries table
+```
+bun run seed:countries
+```
+6) Run the application
+```
+bun dev
+```
+7) Run the test suite
 ```
 bun run test
 ```
-
 ### Adding tests (backend)
 
 Follow this sequence when introducing new tests:
