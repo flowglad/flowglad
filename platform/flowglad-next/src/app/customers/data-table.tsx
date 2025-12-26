@@ -16,7 +16,7 @@ import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { Button } from '@/components/ui/button'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { InlineSearch } from '@/components/ui/inline-search'
+import { DataTableToolbar } from '@/components/ui/data-table-toolbar'
 import {
   Table,
   TableBody,
@@ -202,16 +202,25 @@ export function CustomersDataTable({
             <h3 className="text-lg truncate">{title}</h3>
           </div>
         )}
-        {/* Redesigned toolbar matching Figma specs */}
-        <div className="flex items-center gap-1">
-          <InlineSearch
-            value={inputValue}
-            onChange={setInputValue}
-            placeholder="Search customers..."
-            isLoading={isFetching}
-            disabled={isLoading}
-            className="flex-1"
-          />
+        {/* Toolbar */}
+        <DataTableToolbar
+          search={{
+            value: inputValue,
+            onChange: setInputValue,
+            placeholder: 'Search customers...',
+          }}
+          actionButton={
+            onCreateCustomer
+              ? {
+                  onClick: onCreateCustomer,
+                  text: 'Create Customer',
+                  variant: buttonVariant,
+                }
+              : undefined
+          }
+          isLoading={isLoading}
+          isFetching={isFetching}
+        >
           <Button
             variant="secondary"
             size="sm"
@@ -219,6 +228,7 @@ export function CustomersDataTable({
             disabled={
               !hasResults || isLoading || isFetching || isExporting
             }
+            className="flex-1 sm:flex-none"
           >
             {isExporting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -227,17 +237,7 @@ export function CustomersDataTable({
             )}
             {isExporting ? 'Exporting...' : 'Export'}
           </Button>
-          {onCreateCustomer && (
-            <Button
-              onClick={onCreateCustomer}
-              variant={buttonVariant}
-              size="sm"
-            >
-              <Plus className="w-4 h-4" />
-              Create Customer
-            </Button>
-          )}
-        </div>
+        </DataTableToolbar>
       </div>
 
       {/* Table */}

@@ -49,7 +49,7 @@ function StatusDropdownFilter({
         className={cn(
           'h-8 rounded bg-accent px-3',
           'text-sm font-medium',
-          'inline-flex items-center',
+          'inline-flex items-center justify-center',
           'hover:bg-accent/80',
           'data-[state=open]:bg-accent/80',
           'focus:outline-none focus:ring-1 focus:ring-ring',

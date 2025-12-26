@@ -1,6 +1,7 @@
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectPricesAndProductByProductId } from '@/db/tableMethods/priceMethods'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
+import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
 import InternalProductDetailsPage from './InternalProductDetailsPage'
 
 interface ProductPageProps {
@@ -11,7 +12,7 @@ interface ProductPageProps {
 
 const ProductPage = async ({ params }: ProductPageProps) => {
   const { id } = await params
-  const { product, prices, pricingModel } =
+  const { product, prices, pricingModel, features } =
     await authenticatedTransaction(async ({ transaction }) => {
       const { prices, ...product } =
         await selectPricesAndProductByProductId(id, transaction)
@@ -19,13 +20,22 @@ const ProductPage = async ({ params }: ProductPageProps) => {
         product.pricingModelId,
         transaction
       )
-      return { product, prices, pricingModel }
+      const productFeaturesWithDetails =
+        await selectFeaturesByProductFeatureWhere(
+          { productId: id },
+          transaction
+        )
+      const features = productFeaturesWithDetails.map(
+        ({ feature }) => feature
+      )
+      return { product, prices, pricingModel, features }
     })
   return (
     <InternalProductDetailsPage
       product={product}
       prices={prices}
       pricingModel={pricingModel}
+      features={features}
     />
   )
 }

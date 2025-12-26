@@ -21,7 +21,7 @@ const productCardVariants = cva(
         subscription: '',
       },
       state: {
-        default: 'bg-card-50 border-border shadow-realistic-sm',
+        default: 'bg-card-muted border-border shadow-realistic-sm',
         hover: 'bg-card border-muted-foreground shadow-realistic-sm',
       },
       clickable: {
@@ -392,15 +392,17 @@ const ProductCardPrice = React.forwardRef<
           {price}
         </span>
 
-        {/* Separator */}
-        <span className="font-sans font-medium text-base leading-6 text-muted-foreground">
-          /
-        </span>
-
-        {/* Period */}
-        <span className="font-sans font-medium text-base leading-6 text-muted-foreground">
-          {period}
-        </span>
+        {/* Separator and Period - hidden when period is empty (e.g., one-time payments) */}
+        {period && (
+          <>
+            <span className="font-sans font-medium text-base leading-6 text-muted-foreground">
+              /
+            </span>
+            <span className="font-sans font-medium text-base leading-6 text-muted-foreground">
+              {period}
+            </span>
+          </>
+        )}
 
         {/* Total indicator for multi-quantity items */}
         {showTotal && (

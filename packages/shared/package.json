@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/shared",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -15,6 +15,10 @@
     "build:declarations": "tsc -p tsconfig.declarations.json",
     "test": "vitest run",
     "test:watch": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowglad/flowglad"
   },
   "publishConfig": {
     "access": "public"
