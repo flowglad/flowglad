@@ -65,7 +65,7 @@ const config: Config = {
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
-          50: 'hsl(var(--card-50))',
+          muted: 'hsl(var(--muted-card))',
         },
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar-background))',

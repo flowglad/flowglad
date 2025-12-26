@@ -114,9 +114,14 @@ export function DataTablePagination<TData>({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8"
+                  className={
+                    !table.getCanPreviousPage()
+                      ? 'h-8 opacity-0 disabled:opacity-0 pointer-events-none'
+                      : 'h-8'
+                  }
                   onClick={() => table.previousPage()}
                   disabled={!table.getCanPreviousPage()}
+                  aria-hidden={!table.getCanPreviousPage()}
                 >
                   Previous
                 </Button>
