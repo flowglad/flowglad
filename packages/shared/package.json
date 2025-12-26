@@ -16,6 +16,10 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowglad/flowglad"
+  },
   "publishConfig": {
     "access": "public"
   },

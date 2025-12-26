@@ -71,6 +71,10 @@
       "require": "./dist/cjs/express/index.js"
     }
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowglad/flowglad"
+  },
   "publishConfig": {
     "access": "public"
   }

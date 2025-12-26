@@ -41,6 +41,10 @@
   "peerDependencies": {
     "react": "^19.0.0 || ^18.0.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowglad/flowglad"
+  },
   "publishConfig": {
     "access": "public"
   }
