@@ -73,6 +73,23 @@ export const formatEmailSubject = (
   return `[TEST] ${subject}`
 }
 
+/**
+ * Returns the bcc array with NOTIF_UAT_EMAIL only if livemode is true.
+ * This ensures UAT notifications are only sent for production events, not test mode events.
+ *
+ * @param livemode - Whether this is a livemode (production) email
+ * @returns Array with NOTIF_UAT_EMAIL if livemode is true, undefined otherwise
+ */
+export const getBccForLivemode = (
+  livemode: boolean
+): string[] | undefined => {
+  if (!livemode) {
+    return undefined
+  }
+  const notifUatEmail = core.envVariable('NOTIF_UAT_EMAIL')
+  return notifUatEmail ? [notifUatEmail] : undefined
+}
+
 export const sendReceiptEmail = async (params: {
   to: string[]
   invoice: Invoice.Record
@@ -114,7 +131,7 @@ export const sendReceiptEmail = async (params: {
   }
   return safeSend({
     from: `${params.organizationName} Billing <${kebabCase(params.organizationName)}-notifications@flowglad.com>`,
-    bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
+    bcc: getBccForLivemode(invoice.livemode),
     to: params.to.map(safeTo),
     replyTo: params.replyTo ?? undefined,
     subject: `${params.organizationName} Order Receipt: #${invoice.invoiceNumber}`,
@@ -148,7 +165,7 @@ export const sendOrganizationPaymentNotificationEmail = async (
   return safeSend({
     from: `Flowglad <notifications@flowglad.com>`,
     to: params.to.map(safeTo),
-    bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
+    bcc: getBccForLivemode(params.livemode),
     subject: formatEmailSubject(
       `You just made ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
         params.currency,
@@ -176,7 +193,7 @@ export const sendPurchaseAccessSessionTokenEmail = async (params: {
   return safeSend({
     from: 'notifications@flowglad.com',
     to: params.to.map(safeTo),
-    bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
+    bcc: getBccForLivemode(params.livemode),
     replyTo: params.replyTo ?? undefined,
     subject: formatEmailSubject('Your Order Link', params.livemode),
     /**
@@ -221,7 +238,7 @@ export const sendPaymentFailedEmail = async (params: {
   return safeSend({
     from: 'notifications@flowglad.com',
     to: params.to.map(safeTo),
-    bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
+    bcc: getBccForLivemode(params.livemode),
     replyTo: params.replyTo ?? undefined,
     subject: formatEmailSubject(
       'Payment Unsuccessful',
@@ -420,7 +437,7 @@ export const sendOrganizationPaymentFailedNotificationEmail = async (
   return safeSend({
     from: `Flowglad <notifications@flowglad.com>`,
     to: params.to.map(safeTo),
-    bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
+    bcc: getBccForLivemode(params.livemode),
     subject: formatEmailSubject(
       `${params.organizationName} payment failed from ${params.customerName}`,
       params.livemode
@@ -491,7 +508,7 @@ export const sendOrganizationOnboardingCompletedNotificationEmail =
     return safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
       to: to.map(safeTo),
-      bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
+      bcc: undefined,
       subject: `Live payments pending review for ${organizationName}`,
       react: await OrganizationOnboardingCompletedNotificationEmail({
         organizationName,
@@ -510,7 +527,7 @@ export const sendOrganizationPayoutsEnabledNotificationEmail =
     return safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
       to: to.map(safeTo),
-      bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
+      bcc: undefined,
       subject: `Payouts Enabled for ${organizationName}`,
       /**
        * NOTE: await needed to prevent

@@ -12,8 +12,11 @@ import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
-import core from '@/utils/core'
-import { formatEmailSubject, safeSend } from '@/utils/email'
+import {
+  formatEmailSubject,
+  getBccForLivemode,
+  safeSend,
+} from '@/utils/email'
 
 const sendCustomerSubscriptionUpgradedNotificationTask = task({
   id: 'send-customer-subscription-upgraded-notification',
@@ -143,10 +146,9 @@ const sendCustomerSubscriptionUpgradedNotificationTask = task({
         }
       }
     }
-    const notifUatEmail = core.envVariable('NOTIF_UAT_EMAIL')
     const result = await safeSend({
       from: `${organization.name} Billing <${kebabCase(organization.name)}-notifications@flowglad.com>`,
-      bcc: notifUatEmail ? [notifUatEmail] : undefined,
+      bcc: getBccForLivemode(newSubscription.livemode),
       to: [customer.email],
       subject: formatEmailSubject(
         'Payment method confirmed - Subscription upgraded',
