@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { sentenceCase } from 'change-case'
 import {
   Check,
+  Copy,
   ExternalLink,
   Hourglass,
   Rewind,
@@ -11,6 +12,7 @@ import {
   X,
 } from 'lucide-react'
 import * as React from 'react'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import { Badge } from '@/components/ui/badge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
@@ -60,24 +62,34 @@ function PaymentActionsMenu({
 }) {
   const [isRefundOpen, setIsRefundOpen] = React.useState(false)
   const [isRetryOpen, setIsRetryOpen] = React.useState(false)
-  const actionItems: ActionMenuItem[] = []
+  const copyIDHandler = useCopyTextHandler({ text: payment.id })
+
   const invoiceUrl = `${core.NEXT_PUBLIC_APP_URL}/invoice/view/${payment.organizationId}/${payment.invoiceId}`
-  actionItems.push({
-    label: 'View Invoice',
-    icon: <ExternalLink className="h-4 w-4" />,
-    handler: () =>
-      window.open(invoiceUrl, '_blank', 'noopener,noreferrer'),
-  })
-  actionItems.push({
-    label: 'Refund Payment',
-    icon: <Rewind className="h-4 w-4" />,
-    disabled: payment.status !== PaymentStatus.Succeeded,
-    helperText:
-      payment.status !== PaymentStatus.Succeeded
-        ? 'Only succeeded payments can be refunded'
-        : undefined,
-    handler: () => setIsRefundOpen(true),
-  })
+
+  const actionItems: ActionMenuItem[] = [
+    {
+      label: 'View Invoice',
+      icon: <ExternalLink className="h-4 w-4" />,
+      handler: () =>
+        window.open(invoiceUrl, '_blank', 'noopener,noreferrer'),
+    },
+    {
+      label: 'Refund Payment',
+      icon: <Rewind className="h-4 w-4" />,
+      disabled: payment.status !== PaymentStatus.Succeeded,
+      helperText:
+        payment.status !== PaymentStatus.Succeeded
+          ? 'Only succeeded payments can be refunded'
+          : undefined,
+      handler: () => setIsRefundOpen(true),
+    },
+    {
+      label: 'Copy ID',
+      icon: <Copy className="h-4 w-4" />,
+      handler: copyIDHandler,
+    },
+  ]
+
   if (
     payment.status === PaymentStatus.Failed &&
     !!payment.billingPeriodId
@@ -88,6 +100,7 @@ function PaymentActionsMenu({
       handler: () => setIsRetryOpen(true),
     })
   }
+
   return (
     <EnhancedDataTableActionsMenu items={actionItems}>
       <RefundPaymentModal
@@ -106,6 +119,22 @@ function PaymentActionsMenu({
 
 export const columns: ColumnDef<Payment.TableRowData>[] = [
   {
+    id: 'chargeDate',
+    accessorFn: (row) => row.payment.chargeDate,
+    header: 'Date',
+    cell: ({ row }) => {
+      const date = row.getValue('chargeDate') as Date
+      return (
+        <div className="whitespace-nowrap">
+          {formatDate(date, false)}
+        </div>
+      )
+    },
+    size: 100,
+    minSize: 100,
+    maxSize: 150,
+  },
+  {
     id: 'amount',
     accessorFn: (row) => row.payment.amount,
     header: 'Amount',
@@ -122,9 +151,9 @@ export const columns: ColumnDef<Payment.TableRowData>[] = [
         </div>
       )
     },
-    size: 140,
-    minSize: 140,
-    maxSize: 160,
+    size: 112,
+    minSize: 112,
+    maxSize: 128,
   },
   {
     id: 'status',
@@ -154,25 +183,9 @@ export const columns: ColumnDef<Payment.TableRowData>[] = [
         </div>
       )
     },
-    size: 160,
-    minSize: 160,
-    maxSize: 170,
-  },
-  {
-    id: 'chargeDate',
-    accessorFn: (row) => row.payment.chargeDate,
-    header: 'Date',
-    cell: ({ row }) => {
-      const date = row.getValue('chargeDate') as Date
-      return (
-        <div className="whitespace-nowrap">
-          {formatDate(date, false)}
-        </div>
-      )
-    },
-    size: 100,
-    minSize: 100,
-    maxSize: 150,
+    size: 136,
+    minSize: 136,
+    maxSize: 145,
   },
   {
     id: 'paymentId',
