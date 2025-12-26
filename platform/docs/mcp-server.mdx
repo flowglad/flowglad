@@ -10,11 +10,15 @@ This guide will show you how to setup the Flowglad MCP server.
   has a remote MCP server, we detail a simple workaround below.
 </Note>
 
-<Info>You'll need a Flowglad API key to authenticate to the MCP server.</Info>
+<Info>
+  You'll need a Flowglad API key to authenticate to the MCP server which you can
+  get from [settings](https://app.flowglad.com/settings).
+</Info>
 
 ## Remote Server Setup
 
-The Flowglad MCP server can be found at the following URL:
+The **Flowglad** MCP server can be found at the following URL:
+
 ```bash
 https://app.flowglad.com/api/mcp
 ```
@@ -32,12 +36,12 @@ https://app.flowglad.com/api/mcp
     ```
   </Accordion>
   <Accordion title="Claude Code" icon="/images/claude.svg">
-    Run the following command:
+    Run the following command (make sure to replace `<FLOWGLAD_API_KEY> with your API key`):
     ```bash 
-    claude mcp add --transport http flowglad https://app.flowglad.com/api/mcp
+    claude mcp add --transport http flowglad https://app.flowglad.com/api/mcp --header "Authorization: Bearer <FLOWGLAD_API_KEY>"
     ```
 
-    You can check that this worked by first running `claude`, to open Claude Code, and then use the `/mcp` command to see a list of MCP servers, which should now include Flowglad's.
+    You can check that this worked by first running `claude`, to open Claude Code, and then use the `/mcp` command to see a list of MCP servers that Claude Code has access to, which should now include Flowglad's.
 
   </Accordion>
 </AccordionGroup>
@@ -48,31 +52,36 @@ This workaround uses [mcp-proxy](https://github.com/sparfenyuk/mcp-proxy) to all
 
 ### 1. Install mcp-proxy
 
-First, you'll need to install the `uv` package manager for Python if you haven't already. Its installation docs can be found [here](https://docs.astral.sh/uv/getting-started/installation/).
+First, you'll need to install either [uv](https://docs.astral.sh/uv/getting-started/installation/) or [pipx](https://github.com/pypa/pipx?tab=readme-ov-file#install-pipx) which are package managers for Python if you don't have them installed already.
 
-After you have `uv` installed, you can find the `mcp-proxy` installation documentation [here](https://github.com/sparfenyuk/mcp-proxy?tab=readme-ov-file#installation).
+After you have one installed, you can find the `mcp-proxy` installation documentation [here](https://github.com/sparfenyuk/mcp-proxy?tab=readme-ov-file#installation).
 
 After you've installed `mcp-proxy`, run `which mcp-proxy` to print the path of the `mcp-proxy` binary and copy it. We'll need this path in the following steps.
 
 ### 2. Add MCP Config to Your Tool
 
-Here's an example of a Claude Desktop config using this workaround.
+**Here**'s an example of a Claude Desktop config using this workaround. You can edit this config under Settings > Developer
 
 <Note>Make sure to replace `<MCP_PROXY_PATH>` with the path you got from running `which mcp-proxy` above and `<FLOWGLAD_API_KEY>` with your Flowglad API key.</Note>
 
 ```json
-"flowglad": {
-  "command": "<MCP_PROXY_PATH>",
-  "args": [
-    "--transport",
-    "streamablehttp",
-    "-H",
-    "Authorization",
-    "Bearer <FLOWGLAD_API_KEY>",
-    "-H",
-    "Accept",
-    "application/json, text/event-stream",
-    "https://app.flowglad.com/api/mcp"
-  ]
+{
+  "mcpServers": {
+    "flowglad": {
+      "command": "<MCP_PROXY_PATH>",
+      "args": [
+        "--transport",
+        "streamablehttp",
+        "-H",
+        "Authorization",
+        "Bearer <FLOWGLAD_API_KEY>",
+        "-H",
+        "Accept",
+        "application/json, text/event-stream",
+        "https://app.flowglad.com/api/mcp"
+      ]
+    }
+    // other MCP servers...
+  }
 }
 ```
