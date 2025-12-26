@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import {
   type Purchase,
@@ -296,14 +296,18 @@ export const selectPurchasesTableRowData =
     config,
     purchasesTableRowDataSchema,
     async (
-      purchases: Purchase.Record[],
+      purchasesResult: Purchase.Record[],
       transaction: DbTransaction
     ): Promise<z.infer<typeof purchasesTableRowDataSchema>[]> => {
-      const priceIds = purchases.map((purchase) => purchase.priceId)
-      const customerIds = purchases.map(
+      const priceIds = purchasesResult.map(
+        (purchase) => purchase.priceId
+      )
+      const customerIds = purchasesResult.map(
         (purchase) => purchase.customerId
       )
-      const purchaseIds = purchases.map((purchase) => purchase.id)
+      const purchaseIds = purchasesResult.map(
+        (purchase) => purchase.id
+      )
 
       const priceProductResults = await transaction
         .select({
@@ -368,7 +372,7 @@ export const selectPurchasesTableRowData =
         paymentsByPurchaseId.get(purchaseId)!.push(paymentRow)
       }
 
-      return purchases.map((purchase) => {
+      return purchasesResult.map((purchase) => {
         const price = pricesById.get(purchase.priceId)!
         const product = productsById.get(price.productId)!
         const customer = customersById.get(purchase.customerId)!
@@ -390,5 +394,75 @@ export const selectPurchasesTableRowData =
           customerEmail,
         }
       })
+    },
+    // searchableColumns: undefined (no direct column search on purchases table)
+    undefined,
+    /**
+     * Additional search clause handler for purchases table.
+     * Enables searching purchases by:
+     * - Exact purchase ID match
+     * - Customer name (case-insensitive partial match via ILIKE)
+     * - Product name (case-insensitive partial match via ILIKE)
+     *
+     * The `exists()` function wraps a subquery and returns a boolean condition:
+     * - Returns `true` if the subquery finds at least one matching row
+     * - Returns `false` if the subquery finds zero matching rows
+     * The database optimizes EXISTS subqueries to stop evaluating as soon as it finds
+     * the first matching row, making it efficient for existence checks without needing JOINs.
+     *
+     * @param searchQuery - The search query string from the user
+     * @param transaction - Database transaction for building subqueries
+     * @returns SQL condition for OR-ing with other search filters, or undefined if query is empty
+     */
+    ({ searchQuery, transaction }) => {
+      // Early return if search query is not provided
+      if (!searchQuery) return undefined
+
+      // Normalize the search query by trimming whitespace
+      const trimmedQuery =
+        typeof searchQuery === 'string'
+          ? searchQuery.trim()
+          : searchQuery
+
+      // Only apply search filter if query is non-empty after trimming
+      if (!trimmedQuery) return undefined
+
+      // IMPORTANT: Do NOT await these queries. By not awaiting, we keep them as query builder
+      // objects that Drizzle can embed into the SQL as subqueries. If we await them, they would
+      // execute immediately and return data, which we can't use in the EXISTS clause.
+
+      // Subquery to match purchases by customer name
+      const customerSubquery = transaction
+        .select({ id: sql`1` })
+        .from(customers)
+        .where(
+          and(
+            eq(customers.id, purchases.customerId),
+            ilike(customers.name, sql`'%' || ${trimmedQuery} || '%'`)
+          )
+        )
+        .limit(1)
+
+      // Subquery to match purchases by product name (via prices join)
+      const productSubquery = transaction
+        .select({ id: sql`1` })
+        .from(prices)
+        .innerJoin(products, eq(products.id, prices.productId))
+        .where(
+          and(
+            eq(prices.id, purchases.priceId),
+            ilike(products.name, sql`'%' || ${trimmedQuery} || '%'`)
+          )
+        )
+        .limit(1)
+
+      return or(
+        // Match purchases by exact ID
+        eq(purchases.id, trimmedQuery),
+        // Match purchases where customer name contains the search query
+        exists(customerSubquery),
+        // Match purchases where product name contains the search query
+        exists(productSubquery)
+      )
     }
   )

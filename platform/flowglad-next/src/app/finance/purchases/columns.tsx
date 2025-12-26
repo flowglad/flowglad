@@ -44,9 +44,21 @@ const PurchaseStatusCell = ({
 
 export const columns: ColumnDef<PurchaseTableRowData>[] = [
   {
+    id: 'purchaseDate',
+    accessorFn: (row) => row.purchase.purchaseDate,
+    header: 'Date',
+    size: 140,
+    minSize: 125,
+    maxSize: 160,
+    cell: ({ row }) => {
+      const date = row.getValue('purchaseDate') as Date | null
+      return <div>{date ? formatDate(date) : '-'}</div>
+    },
+  },
+  {
     id: 'name',
     accessorFn: (row) => row.purchase.name,
-    header: 'Name',
+    header: 'Product',
     size: 300,
     minSize: 150,
     maxSize: 400,
@@ -118,18 +130,6 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
           amount
         )
       return <div>{formatted}</div>
-    },
-  },
-  {
-    id: 'purchaseDate',
-    accessorFn: (row) => row.purchase.purchaseDate,
-    header: 'Purchase Date',
-    size: 140,
-    minSize: 125,
-    maxSize: 160,
-    cell: ({ row }) => {
-      const date = row.getValue('purchaseDate') as Date | null
-      return <div>{date ? formatDate(date) : '-'}</div>
     },
   },
   {

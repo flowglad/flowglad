@@ -1,13 +1,9 @@
 'use client'
 
 import {
-  type ColumnFiltersState,
   type ColumnSizingState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  type SortingState,
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
@@ -15,8 +11,9 @@ import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
+import { DataTableToolbar } from '@/components/ui/data-table-toolbar'
 import {
   Table,
   TableBody,
@@ -26,7 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type { Purchase } from '@/db/schema/purchases'
-import type { PurchaseStatus } from '@/types'
+import { PurchaseStatus } from '@/types'
 import { columns } from './columns'
 
 export interface PurchasesTableFilters {
@@ -35,16 +32,53 @@ export interface PurchasesTableFilters {
   organizationId?: string
 }
 
+const statusFilterOptions = [
+  { value: 'all', label: 'All' },
+  { value: PurchaseStatus.Open, label: 'Open' },
+  { value: PurchaseStatus.Pending, label: 'Pending' },
+  { value: PurchaseStatus.Paid, label: 'Paid' },
+  { value: PurchaseStatus.Failed, label: 'Failed' },
+  { value: PurchaseStatus.Refunded, label: 'Refunded' },
+  { value: PurchaseStatus.PartialRefund, label: 'Partial Refund' },
+  { value: PurchaseStatus.Fraudulent, label: 'Fraudulent' },
+]
+
 interface PurchasesDataTableProps {
-  filters?: PurchasesTableFilters
+  externalFilters?: Pick<
+    PurchasesTableFilters,
+    'customerId' | 'organizationId'
+  >
+  hiddenColumns?: string[]
 }
 
 export function PurchasesDataTable({
-  filters = {},
+  externalFilters = {},
+  hiddenColumns = [],
 }: PurchasesDataTableProps) {
   const router = useRouter()
-  // Dynamic page size state (REQUIRED for server-side pagination)
+
+  // Server-side filtering with debounced search
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(300)
+
+  // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
+
+  // Status filter state - default to 'all'
+  const [statusFilter, setStatusFilter] = React.useState('all')
+
+  // Derive server filters from UI state
+  const derivedFilters = React.useMemo((): PurchasesTableFilters => {
+    const filters: PurchasesTableFilters = {
+      ...externalFilters,
+    }
+
+    if (statusFilter !== 'all') {
+      filters.status = statusFilter as PurchaseStatus
+    }
+
+    return filters
+  }, [statusFilter, externalFilters])
 
   const {
     pageIndex,
@@ -60,64 +94,66 @@ export function PurchasesDataTable({
   >({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
-    filters,
+    filters: derivedFilters,
+    searchQuery,
     useQuery: trpc.purchases.getTableRows.useQuery,
   })
 
   // Reset to first page when filters change
-  const filtersKey = JSON.stringify(filters)
+  const filtersKey = JSON.stringify(derivedFilters)
   React.useEffect(() => {
     goToFirstPage()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey])
 
-  // Client-side features (Shadcn patterns)
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] =
-    React.useState<ColumnFiltersState>([])
+  // Reset to first page when debounced search changes
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
+
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>(() =>
+      Object.fromEntries(hiddenColumns.map((col) => [col, false]))
+    )
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
 
   const table = useReactTable({
     data: data?.items || [],
     columns,
-    manualPagination: true, // Server-side pagination
-    manualSorting: false, // Client-side sorting on current page
-    manualFiltering: false, // Client-side filtering on current page
-    pageCount: Math.ceil((data?.total || 0) / currentPageSize),
     enableColumnResizing: true,
     columnResizeMode: 'onEnd',
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
+    defaultColumn: {
+      size: 150,
+      minSize: 50,
+      maxSize: 500,
+    },
+    enableSorting: false,
+    manualPagination: true,
+    manualSorting: true,
+    manualFiltering: true,
+    pageCount: Math.ceil((data?.total || 0) / currentPageSize),
     onColumnSizingChange: setColumnSizing,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-
-    // CRITICAL: Bridge TanStack Table pagination to server-side pagination
+    onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: (updater) => {
       const newPagination =
         typeof updater === 'function'
           ? updater({ pageIndex, pageSize: currentPageSize })
           : updater
 
-      // Handle page size changes - MUST use goToFirstPage() to clear cursors
+      // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        goToFirstPage() // ✅ CRITICAL: Clears cursor state, prevents wrong data load
+        goToFirstPage()
       }
-      // Handle page navigation
+      // Handle page index changes (page navigation)
       else if (newPagination.pageIndex !== pageIndex) {
         handlePaginationChange(newPagination.pageIndex)
       }
     },
-
+    getCoreRowModel: getCoreRowModel(),
     state: {
-      sorting,
-      columnFilters,
       columnVisibility,
       columnSizing,
       pagination: { pageIndex, pageSize: currentPageSize },
@@ -126,34 +162,47 @@ export function PurchasesDataTable({
 
   return (
     <div className="w-full">
-      {/* Enhanced toolbar with view options */}
-      <div className="flex items-center pt-4 pb-3">
-        <div className="flex items-center gap-2 ml-auto">
-          <DataTableViewOptions table={table} />
-        </div>
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 pt-1 pb-2 px-4">
+        <DataTableToolbar
+          search={{
+            value: inputValue,
+            onChange: setInputValue,
+            placeholder: 'Search purchases...',
+          }}
+          filter={{
+            value: statusFilter,
+            options: statusFilterOptions,
+            onChange: setStatusFilter,
+          }}
+          isLoading={isLoading}
+          isFetching={isFetching}
+        />
       </div>
 
       {/* Table */}
-      <Table className="w-full" style={{ tableLayout: 'fixed' }}>
+      <Table style={{ tableLayout: 'fixed' }}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow
               key={headerGroup.id}
               className="hover:bg-transparent"
             >
-              {headerGroup.headers.map((header) => (
-                <TableHead
-                  key={header.id}
-                  style={{ width: header.getSize() }}
-                >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                </TableHead>
-              ))}
+              {headerGroup.headers.map((header) => {
+                return (
+                  <TableHead
+                    key={header.id}
+                    style={{ width: header.getSize() }}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                )
+              })}
             </TableRow>
           ))}
         </TableHeader>
@@ -211,11 +260,13 @@ export function PurchasesDataTable({
         </TableBody>
       </Table>
 
-      {/* Enhanced pagination with proper spacing */}
-      <div className="py-2">
+      {/* Pagination */}
+      <div className="py-2 px-4">
         <DataTablePagination
           table={table}
           totalCount={data?.total}
+          isFiltered={statusFilter !== 'all' || !!searchQuery}
+          filteredCount={data?.total}
           entityName="purchase"
         />
       </div>
