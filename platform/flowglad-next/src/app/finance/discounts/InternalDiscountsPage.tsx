@@ -17,7 +17,7 @@ const filterOptions = [
 function InternalDiscountsPage() {
   const [isCreateDiscountOpen, setIsCreateDiscountOpen] =
     useState(false)
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('active')
 
   const getFilters = (): DiscountsTableFilters => {
     if (statusFilter === 'all') {
@@ -29,7 +29,11 @@ function InternalDiscountsPage() {
   return (
     <>
       <InnerPageContainerNew>
-        <PageHeaderNew title="Discounts" hideBorder />
+        <PageHeaderNew
+          title="Discounts"
+          hideBorder
+          className="pb-2"
+        />
         <DiscountsDataTable
           filters={getFilters()}
           onCreateDiscount={() => setIsCreateDiscountOpen(true)}

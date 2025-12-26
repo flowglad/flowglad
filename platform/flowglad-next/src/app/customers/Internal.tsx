@@ -30,7 +30,11 @@ function Internal() {
   return (
     <>
       <InnerPageContainerNew>
-        <PageHeaderNew title="Customers" hideBorder />
+        <PageHeaderNew
+          title="Customers"
+          hideBorder
+          className="pb-2"
+        />
         <CustomersDataTable
           filters={getFiltersForTab(activeTab)}
           onCreateCustomer={() => setIsCreateCustomerOpen(true)}

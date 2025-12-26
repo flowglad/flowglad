@@ -195,13 +195,13 @@ export const selectPricingModelsTableRows =
     pricingModels,
     config,
     pricingModelTableRowSchema,
-    async (pricingModels, transaction) => {
+    async (pricingModelsResult, transaction) => {
       const productsByPricingModelId = new Map<string, number>()
 
-      if (pricingModels.length > 0) {
+      if (pricingModelsResult.length > 0) {
         const products = await selectProducts(
           {
-            pricingModelId: pricingModels.map(
+            pricingModelId: pricingModelsResult.map(
               (pricingModel) => pricingModel.id
             ),
           },
@@ -218,12 +218,14 @@ export const selectPricingModelsTableRows =
         })
       }
 
-      return pricingModels.map((pricingModel) => ({
+      return pricingModelsResult.map((pricingModel) => ({
         pricingModel: pricingModel,
         productsCount:
           productsByPricingModelId.get(pricingModel.id) || 0,
       }))
-    }
+    },
+    // Searchable columns for ILIKE search on name
+    [pricingModels.name]
   )
 
 export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
