@@ -28,6 +28,7 @@ export const subscriptionWithoutTrialDummyPurchase: Purchase.SubscriptionPurchas
     billingAddress: null,
     livemode: false,
     metadata: null,
+    pricingModelId: '1',
     createdByCommit: 'test',
     updatedByCommit: 'test',
     position: 0,

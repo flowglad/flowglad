@@ -19,6 +19,7 @@ import {
   organizations,
 } from '@/db/schema/organizations'
 import { prices } from '@/db/schema/prices'
+import { pricingModels } from '@/db/schema/pricingModels'
 import {
   Product,
   productsClientSelectSchema,
@@ -103,6 +104,10 @@ const columns = {
   archived: boolean('archived').default(false),
   billingAddress: jsonb('billing_address'),
   metadata: jsonb('metadata'),
+  pricingModelId: notNullStringForeignKey(
+    'pricing_model_id',
+    pricingModels
+  ),
 }
 
 export const purchases = pgTable(TABLE_NAME, columns, (table) => {
@@ -110,6 +115,7 @@ export const purchases = pgTable(TABLE_NAME, columns, (table) => {
     constructIndex(TABLE_NAME, [table.customerId]),
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructIndex(TABLE_NAME, [table.priceId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
     livemodePolicy(TABLE_NAME),
     enableCustomerReadPolicy(
       `Enable read for customers (${TABLE_NAME})`,
@@ -178,6 +184,9 @@ export const {
     ...subscriptionColumns,
     ...nulledInstallmentColumns,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   selectRefine: {
     ...newBaseZodSelectSchemaColumns,
   },
@@ -188,6 +197,7 @@ export const {
     readOnlyColumns: {
       // Keep billingAddress out of client writes entirely
       billingAddress: true,
+      pricingModelId: true,
     },
     // Allow organizationId and livemode only on create, not update (matches previous behavior)
     createOnlyColumns: {
@@ -227,6 +237,9 @@ export const {
     ...refineColumns,
     ...singlePaymentColumns,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   selectRefine: {
     ...newBaseZodSelectSchemaColumns,
   },
@@ -239,6 +252,7 @@ export const {
       organizationId: true,
       livemode: true,
       billingAddress: true,
+      pricingModelId: true,
     },
     createOnlyColumns: {},
   },
@@ -260,6 +274,9 @@ export const {
     ...refineColumns,
     ...usageColumns,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   selectRefine: {
     ...newBaseZodSelectSchemaColumns,
   },
@@ -271,6 +288,7 @@ export const {
       organizationId: true,
       livemode: true,
       billingAddress: true,
+      pricingModelId: true,
     },
     createOnlyColumns: {},
   },

@@ -45,6 +45,7 @@ import {
   products,
   productsClientSelectSchema,
 } from '../schema/products'
+import { derivePricingModelIdFromPrice } from './priceMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptions,
@@ -74,10 +75,27 @@ export const selectSubscriptionById = createSelectById(
   config
 )
 
-export const insertSubscription = createInsertFunction(
+const baseInsertSubscription = createInsertFunction(
   subscriptions,
   config
 )
+
+export const insertSubscription = async (
+  subscriptionInsert: Subscription.Insert,
+  transaction: DbTransaction
+): Promise<Subscription.Record> => {
+  const pricingModelId = await derivePricingModelIdFromPrice(
+    subscriptionInsert.priceId,
+    transaction
+  )
+  return baseInsertSubscription(
+    {
+      ...subscriptionInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateSubscription = createUpdateFunction(
   subscriptions,
@@ -391,13 +409,26 @@ export const subscriptionWithCurrent = <
   }
 }
 
-export const bulkInsertOrDoNothingSubscriptionsByExternalId = (
+export const bulkInsertOrDoNothingSubscriptionsByExternalId = async (
   subscriptionInserts: Subscription.Insert[],
   transaction: DbTransaction
 ) => {
+  // Derive pricingModelId for each subscription
+  const subscriptionsWithPricingModelId = await Promise.all(
+    subscriptionInserts.map(async (subscriptionInsert) => {
+      const pricingModelId = await derivePricingModelIdFromPrice(
+        subscriptionInsert.priceId,
+        transaction
+      )
+      return {
+        ...subscriptionInsert,
+        pricingModelId,
+      }
+    })
+  )
   return transaction
     .insert(subscriptions)
-    .values(subscriptionInserts)
+    .values(subscriptionsWithPricingModelId)
     .onConflictDoUpdate({
       target: [
         subscriptions.externalId,

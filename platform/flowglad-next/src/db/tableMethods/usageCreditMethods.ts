@@ -38,6 +38,26 @@ export const selectUsageCreditById = createSelectById(
   config
 )
 
+/**
+ * Derives pricingModelId from a usage credit (via usage meter).
+ * Used for usageCreditApplications and usageCreditBalanceAdjustments.
+ */
+export const derivePricingModelIdFromUsageCredit = async (
+  usageCreditId: string,
+  transaction: DbTransaction
+): Promise<string> => {
+  const usageCredit = await selectUsageCreditById(
+    usageCreditId,
+    transaction
+  )
+  if (!usageCredit.pricingModelId) {
+    throw new Error(
+      `Usage credit ${usageCreditId} does not have a pricingModelId`
+    )
+  }
+  return usageCredit.pricingModelId
+}
+
 const baseInsertUsageCredit = createInsertFunction(
   usageCredits,
   config

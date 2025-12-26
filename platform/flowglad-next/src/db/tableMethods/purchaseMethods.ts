@@ -56,6 +56,7 @@ import {
   products,
   productsSelectSchema,
 } from '../schema/products'
+import { derivePricingModelIdFromPrice } from './priceMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof purchases,
@@ -73,19 +74,48 @@ export const selectPurchaseById = createSelectById(purchases, config)
 
 export const selectPurchases = createSelectFunction(purchases, config)
 
-export const insertPurchase = createInsertFunction(
-  purchases,
-  config
-) as (
-  payload: Purchase.Insert,
-  transaction: DbTransaction
-) => Promise<Purchase.Record>
+const baseInsertPurchase = createInsertFunction(purchases, config)
 
-export const upsertPurchaseById = createUpsertFunction(
+export const insertPurchase = async (
+  purchaseInsert: Purchase.Insert,
+  transaction: DbTransaction
+): Promise<Purchase.Record> => {
+  const pricingModelId = await derivePricingModelIdFromPrice(
+    purchaseInsert.priceId,
+    transaction
+  )
+  return baseInsertPurchase(
+    {
+      ...purchaseInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
+
+const baseUpsertPurchaseById = createUpsertFunction(
   purchases,
   purchases.id,
   config
 )
+
+export const upsertPurchaseById = async (
+  purchaseInsert: Purchase.Insert,
+  transaction: DbTransaction
+): Promise<Purchase.Record> => {
+  const pricingModelId = await derivePricingModelIdFromPrice(
+    purchaseInsert.priceId,
+    transaction
+  )
+  const results = await baseUpsertPurchaseById(
+    {
+      ...purchaseInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+  return results[0]! // Upsert functions return arrays
+}
 
 export const updatePurchase = createUpdateFunction(purchases, config)
 
@@ -261,9 +291,22 @@ export const bulkInsertPurchases = async (
   purchaseInserts: Purchase.Insert[],
   transaction: DbTransaction
 ) => {
+  // Derive pricingModelId for each purchase
+  const purchasesWithPricingModelId = await Promise.all(
+    purchaseInserts.map(async (purchaseInsert) => {
+      const pricingModelId = await derivePricingModelIdFromPrice(
+        purchaseInsert.priceId,
+        transaction
+      )
+      return {
+        ...purchaseInsert,
+        pricingModelId,
+      }
+    })
+  )
   const result = await transaction
     .insert(purchases)
-    .values(purchaseInserts)
+    .values(purchasesWithPricingModelId)
   return result.map((item) => purchasesSelectSchema.parse(item))
 }
 

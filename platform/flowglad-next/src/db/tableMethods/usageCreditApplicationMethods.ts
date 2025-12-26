@@ -1,4 +1,5 @@
 import {
+  type UsageCreditApplication,
   usageCreditApplications,
   usageCreditApplicationsInsertSchema,
   usageCreditApplicationsSelectSchema,
@@ -12,6 +13,8 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
+import { derivePricingModelIdFromUsageCredit } from './usageCreditMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof usageCreditApplications,
@@ -30,10 +33,27 @@ export const selectUsageCreditApplicationById = createSelectById(
   config
 )
 
-export const insertUsageCreditApplication = createInsertFunction(
+const baseInsertUsageCreditApplication = createInsertFunction(
   usageCreditApplications,
   config
 )
+
+export const insertUsageCreditApplication = async (
+  usageCreditApplicationInsert: UsageCreditApplication.Insert,
+  transaction: DbTransaction
+): Promise<UsageCreditApplication.Record> => {
+  const pricingModelId = await derivePricingModelIdFromUsageCredit(
+    usageCreditApplicationInsert.usageCreditId,
+    transaction
+  )
+  return baseInsertUsageCreditApplication(
+    {
+      ...usageCreditApplicationInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateUsageCreditApplication = createUpdateFunction(
   usageCreditApplications,
@@ -45,5 +65,29 @@ export const selectUsageCreditApplications = createSelectFunction(
   config
 )
 
-export const bulkInsertUsageCreditApplications =
+const baseBulkInsertUsageCreditApplications =
   createBulkInsertFunction(usageCreditApplications, config)
+
+export const bulkInsertUsageCreditApplications = async (
+  inserts: UsageCreditApplication.Insert[],
+  transaction: DbTransaction
+): Promise<UsageCreditApplication.Record[]> => {
+  // Derive pricingModelId for each insert
+  const insertsWithPricingModelId = await Promise.all(
+    inserts.map(async (insert) => {
+      const pricingModelId =
+        await derivePricingModelIdFromUsageCredit(
+          insert.usageCreditId,
+          transaction
+        )
+      return {
+        ...insert,
+        pricingModelId,
+      }
+    })
+  )
+  return baseBulkInsertUsageCreditApplications(
+    insertsWithPricingModelId,
+    transaction
+  )
+}

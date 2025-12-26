@@ -80,6 +80,18 @@ export const derivePricingModelIdFromProduct = async (
   return product.pricingModelId
 }
 
+/**
+ * Derives pricingModelId from a price (via product).
+ * Used for subscriptions and purchases.
+ */
+export const derivePricingModelIdFromPrice = async (
+  priceId: string,
+  transaction: DbTransaction
+): Promise<string> => {
+  const price = await selectPriceById(priceId, transaction)
+  return derivePricingModelIdFromProduct(price.productId, transaction)
+}
+
 export const selectPriceById = createSelectById(prices, config)
 
 const baseBulkInsertPrices = createBulkInsertFunction(prices, config)

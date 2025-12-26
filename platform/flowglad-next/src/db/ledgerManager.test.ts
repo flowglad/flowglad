@@ -723,6 +723,7 @@ describe('Ledger Management System', async () => {
               notes: 'Admin adjustment',
               livemode: subscription.livemode,
               usageMeterId: usageMeter.id,
+              pricingModelId: usageMeter.pricingModelId,
               createdAt: Date.now(),
               updatedAt: Date.now(),
               createdByCommit: null,
