@@ -15,6 +15,7 @@ import type { Product } from '../schema/products'
 import { updateCustomer } from './customerMethods'
 import {
   insertPrice,
+  pricingModelIdsForPrices,
   safelyInsertPrice,
   safelyUpdatePrice,
   selectPriceById,
@@ -1548,6 +1549,84 @@ describe('priceMethods.ts', () => {
         expect(result).not.toBeNull()
         expect(result?.id).toBe(activePrice.id)
         expect(result?.active).toBe(true)
+      })
+    })
+  })
+
+  describe('pricingModelIdsForPrices', () => {
+    let price1: Price.Record
+    let price2: Price.Record
+
+    beforeEach(async () => {
+      // Setup additional prices for batch testing
+      price1 = await setupPrice({
+        productId: product.id,
+        name: 'Test Price 1',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+      })
+
+      price2 = await setupPrice({
+        productId: product.id,
+        name: 'Test Price 2',
+        type: PriceType.Subscription,
+        unitPrice: 2000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+      })
+    })
+
+    it('should successfully return map of pricingModelIds for multiple prices', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const pricingModelIdMap = await pricingModelIdsForPrices(
+          [price1.id, price2.id],
+          transaction
+        )
+
+        expect(pricingModelIdMap.size).toBe(2)
+        expect(pricingModelIdMap.get(price1.id)).toBe(
+          product.pricingModelId
+        )
+        expect(pricingModelIdMap.get(price2.id)).toBe(
+          product.pricingModelId
+        )
+      })
+    })
+
+    it('should return empty map when no price IDs are provided', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const pricingModelIdMap = await pricingModelIdsForPrices(
+          [],
+          transaction
+        )
+
+        expect(pricingModelIdMap.size).toBe(0)
+      })
+    })
+
+    it('should only return entries for existing prices', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentPriceId = `price_${core.nanoid()}`
+        const pricingModelIdMap = await pricingModelIdsForPrices(
+          [price1.id, nonExistentPriceId],
+          transaction
+        )
+
+        expect(pricingModelIdMap.size).toBe(1)
+        expect(pricingModelIdMap.get(price1.id)).toBe(
+          product.pricingModelId
+        )
+        expect(pricingModelIdMap.has(nonExistentPriceId)).toBe(false)
       })
     })
   })

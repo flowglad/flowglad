@@ -156,6 +156,40 @@ describe('Usage Credit Application Methods', () => {
         ).rejects.toThrow()
       })
     })
+
+    it('should use provided pricingModelId without derivation', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const usageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          customerId: customer.id,
+          transactionId: `txn_${core.nanoid()}`,
+          amount: 100,
+          livemode: true,
+        })
+
+        const usageCreditApplication =
+          await insertUsageCreditApplication(
+            {
+              organizationId: organization.id,
+              usageCreditId: usageCredit.id,
+              usageEventId: usageEvent.id,
+              amountApplied: 100,
+              appliedAt: Date.now(),
+              livemode: true,
+              status: UsageCreditApplicationStatus.Posted,
+              pricingModelId: pricingModel.id, // explicitly provided
+            },
+            transaction
+          )
+
+        // Verify the provided pricingModelId is used
+        expect(usageCreditApplication.pricingModelId).toBe(
+          pricingModel.id
+        )
+      })
+    })
   })
 
   describe('bulkInsertUsageCreditApplications', () => {

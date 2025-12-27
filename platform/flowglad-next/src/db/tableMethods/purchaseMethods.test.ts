@@ -106,6 +106,34 @@ describe('insertPurchase', () => {
       ).rejects.toThrow()
     })
   })
+
+  it('should use provided pricingModelId without derivation', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const purchase = await insertPurchase(
+        {
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          livemode: true,
+          name: 'Test Purchase',
+          priceType: PriceType.SinglePayment,
+          totalPurchaseValue: price.unitPrice,
+          quantity: 1,
+          firstInvoiceValue: price.unitPrice,
+          status: PurchaseStatus.Paid,
+          pricePerBillingCycle: null,
+          intervalUnit: null,
+          intervalCount: null,
+          trialPeriodDays: null,
+          pricingModelId: pricingModel.id, // explicitly provided
+        },
+        transaction
+      )
+
+      // Verify the provided pricingModelId is used
+      expect(purchase.pricingModelId).toBe(pricingModel.id)
+    })
+  })
 })
 
 describe('bulkInsertPurchases', () => {
@@ -256,6 +284,34 @@ describe('upsertPurchaseById', () => {
       // Verify pricingModelId is correctly derived from price's product
       expect(purchase.pricingModelId).toBe(price.pricingModelId)
       expect(purchase.pricingModelId).toBe(product.pricingModelId)
+      expect(purchase.pricingModelId).toBe(pricingModel.id)
+    })
+  })
+
+  it('should use provided pricingModelId without derivation', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const purchase = await upsertPurchaseById(
+        {
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          livemode: true,
+          name: 'Test Purchase',
+          priceType: PriceType.SinglePayment,
+          totalPurchaseValue: price.unitPrice,
+          quantity: 1,
+          firstInvoiceValue: price.unitPrice,
+          status: PurchaseStatus.Paid,
+          pricePerBillingCycle: null,
+          intervalUnit: null,
+          intervalCount: null,
+          trialPeriodDays: null,
+          pricingModelId: pricingModel.id, // explicitly provided
+        },
+        transaction
+      )
+
+      // Verify the provided pricingModelId is used
       expect(purchase.pricingModelId).toBe(pricingModel.id)
     })
   })

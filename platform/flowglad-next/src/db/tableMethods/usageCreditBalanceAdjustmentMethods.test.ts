@@ -127,6 +127,30 @@ describe('Usage Credit Balance Adjustment Methods', () => {
         ).rejects.toThrow()
       })
     })
+
+    it('should use provided pricingModelId without derivation', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const usageCreditBalanceAdjustment =
+          await insertUsageCreditBalanceAdjustment(
+            {
+              organizationId: organization.id,
+              adjustedUsageCreditId: usageCredit.id,
+              usageMeterId: usageMeter.id,
+              amountAdjusted: 100,
+              adjustmentInitiatedAt: Date.now(),
+              reason: 'Test adjustment',
+              livemode: true,
+              pricingModelId: pricingModel.id, // explicitly provided
+            },
+            transaction
+          )
+
+        // Verify the provided pricingModelId is used
+        expect(usageCreditBalanceAdjustment.pricingModelId).toBe(
+          pricingModel.id
+        )
+      })
+    })
   })
 
   describe('setupUsageCreditBalanceAdjustment', () => {
