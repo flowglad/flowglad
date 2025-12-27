@@ -124,34 +124,43 @@ describe('selectDistinctSubscriptionProductNames', () => {
     })
 
     // Create subscriptions - some with same product to test deduplication
-    await setupSubscription({
+    const subscription1 = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       paymentMethodId: paymentMethod.id,
       priceId: price1.id,
     })
+    // Verify pricingModelId is derived from price's product
+    expect(subscription1.pricingModelId).toBe(product1.pricingModelId)
+    expect(subscription1.pricingModelId).toBe(pricingModel.id)
 
-    await setupSubscription({
+    const subscription2 = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       paymentMethodId: paymentMethod.id,
       priceId: price2.id,
     })
+    expect(subscription2.pricingModelId).toBe(product2.pricingModelId)
+    expect(subscription2.pricingModelId).toBe(pricingModel.id)
 
-    await setupSubscription({
+    const subscription3 = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       paymentMethodId: paymentMethod.id,
       priceId: price3.id,
     })
+    expect(subscription3.pricingModelId).toBe(product3.pricingModelId)
+    expect(subscription3.pricingModelId).toBe(pricingModel.id)
 
     // Add another subscription with product2 to verify deduplication
-    await setupSubscription({
+    const subscription4 = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       paymentMethodId: paymentMethod.id,
       priceId: price4.id,
     })
+    expect(subscription4.pricingModelId).toBe(product2.pricingModelId)
+    expect(subscription4.pricingModelId).toBe(pricingModel.id)
 
     await adminTransaction(async ({ transaction }) => {
       const result = await selectDistinctSubscriptionProductNames(
@@ -208,19 +217,27 @@ describe('selectDistinctSubscriptionProductNames', () => {
       customerId: customer2.id,
     })
 
-    await setupSubscription({
+    const subscriptionOrg1 = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       paymentMethodId: paymentMethod.id,
       priceId: price1.id,
     })
+    expect(subscriptionOrg1.pricingModelId).toBe(
+      product1.pricingModelId
+    )
+    expect(subscriptionOrg1.pricingModelId).toBe(pricingModel.id)
 
-    await setupSubscription({
+    const subscriptionOrg2 = await setupSubscription({
       organizationId: organization2.id,
       customerId: customer2.id,
       paymentMethodId: paymentMethod2.id,
       priceId: price2.id,
     })
+    expect(subscriptionOrg2.pricingModelId).toBe(
+      product2.pricingModelId
+    )
+    expect(subscriptionOrg2.pricingModelId).toBe(pricingModel2.id)
 
     await adminTransaction(async ({ transaction }) => {
       const result1 = await selectDistinctSubscriptionProductNames(

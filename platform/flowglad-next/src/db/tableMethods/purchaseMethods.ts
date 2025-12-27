@@ -100,7 +100,7 @@ const baseUpsertPurchaseById = createUpsertFunction(
 )
 
 export const upsertPurchaseById = async (
-  purchaseInsert: Purchase.Insert,
+  purchaseInsert: Purchase.Insert & { id?: string },
   transaction: DbTransaction
 ): Promise<Purchase.Record> => {
   const pricingModelId = await derivePricingModelIdFromPrice(
@@ -307,6 +307,7 @@ export const bulkInsertPurchases = async (
   const result = await transaction
     .insert(purchases)
     .values(purchasesWithPricingModelId)
+    .returning()
   return result.map((item) => purchasesSelectSchema.parse(item))
 }
 
