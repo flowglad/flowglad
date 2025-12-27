@@ -84,11 +84,17 @@ export const bulkInsertUsageCreditApplications = async (
   )
   const insertsWithPricingModelId = inserts.map(
     (insert): UsageCreditApplication.Insert => {
+      const pricingModelId =
+        insert.pricingModelId ??
+        pricingModelIdMap.get(insert.usageCreditId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Pricing model id not found for usage credit ${insert.usageCreditId}`
+        )
+      }
       return {
         ...insert,
-        pricingModelId:
-          insert.pricingModelId ??
-          pricingModelIdMap.get(insert.usageCreditId)!,
+        pricingModelId,
       }
     }
   )
