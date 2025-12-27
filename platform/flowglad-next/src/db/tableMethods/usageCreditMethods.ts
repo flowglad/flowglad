@@ -58,6 +58,27 @@ export const derivePricingModelIdFromUsageCredit = async (
   return usageCredit.pricingModelId
 }
 
+export const pricingModelIdsForUsageCredits = async (
+  usageCreditIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, string>> => {
+  const usageCreditRows = await transaction
+    .select({
+      id: usageCredits.id,
+      pricingModelId: usageCredits.pricingModelId,
+    })
+    .from(usageCredits)
+    .where(inArray(usageCredits.id, usageCreditIds))
+  const pricingModelIdMap = new Map<string, string>()
+  for (const usageCreditRow of usageCreditRows) {
+    pricingModelIdMap.set(
+      usageCreditRow.id,
+      usageCreditRow.pricingModelId
+    )
+  }
+  return pricingModelIdMap
+}
+
 const baseInsertUsageCredit = createInsertFunction(
   usageCredits,
   config
