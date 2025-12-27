@@ -39,10 +39,13 @@ export const insertUsageCreditBalanceAdjustment = async (
   usageCreditBalanceAdjustmentInsert: UsageCreditBalanceAdjustment.Insert,
   transaction: DbTransaction
 ): Promise<UsageCreditBalanceAdjustment.Record> => {
-  const pricingModelId = await derivePricingModelIdFromUsageCredit(
-    usageCreditBalanceAdjustmentInsert.adjustedUsageCreditId,
-    transaction
-  )
+  const pricingModelId =
+    usageCreditBalanceAdjustmentInsert.pricingModelId
+      ? usageCreditBalanceAdjustmentInsert.pricingModelId
+      : await derivePricingModelIdFromUsageCredit(
+          usageCreditBalanceAdjustmentInsert.adjustedUsageCreditId,
+          transaction
+        )
   return baseInsertUsageCreditBalanceAdjustment(
     {
       ...usageCreditBalanceAdjustmentInsert,

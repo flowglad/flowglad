@@ -45,7 +45,10 @@ import {
   products,
   productsClientSelectSchema,
 } from '../schema/products'
-import { derivePricingModelIdFromPrice } from './priceMethods'
+import {
+  derivePricingModelIdFromPrice,
+  pricingModelIdsForPrices,
+} from './priceMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptions,
@@ -84,10 +87,12 @@ export const insertSubscription = async (
   subscriptionInsert: Subscription.Insert,
   transaction: DbTransaction
 ): Promise<Subscription.Record> => {
-  const pricingModelId = await derivePricingModelIdFromPrice(
-    subscriptionInsert.priceId,
-    transaction
-  )
+  const pricingModelId = subscriptionInsert.pricingModelId
+    ? subscriptionInsert.pricingModelId
+    : await derivePricingModelIdFromPrice(
+        subscriptionInsert.priceId,
+        transaction
+      )
   return baseInsertSubscription(
     {
       ...subscriptionInsert,
@@ -413,18 +418,25 @@ export const bulkInsertOrDoNothingSubscriptionsByExternalId = async (
   subscriptionInserts: Subscription.Insert[],
   transaction: DbTransaction
 ) => {
-  // Derive pricingModelId for each subscription
-  const subscriptionsWithPricingModelId = await Promise.all(
-    subscriptionInserts.map(async (subscriptionInsert) => {
-      const pricingModelId = await derivePricingModelIdFromPrice(
-        subscriptionInsert.priceId,
-        transaction
-      )
+  const pricingModelIdMap = await pricingModelIdsForPrices(
+    subscriptionInserts.map((insert) => insert.priceId),
+    transaction
+  )
+  const subscriptionsWithPricingModelId = subscriptionInserts.map(
+    (subscriptionInsert) => {
+      const pricingModelId =
+        subscriptionInsert.pricingModelId ??
+        pricingModelIdMap.get(subscriptionInsert.priceId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Pricing model id not found for price ${subscriptionInsert.priceId}`
+        )
+      }
       return {
         ...subscriptionInsert,
         pricingModelId,
       }
-    })
+    }
   )
   return transaction
     .insert(subscriptions)

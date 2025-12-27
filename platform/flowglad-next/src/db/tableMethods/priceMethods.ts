@@ -1,4 +1,11 @@
-import { and, asc, desc, eq, type SQLWrapper } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  type SQLWrapper,
+} from 'drizzle-orm'
 import { z } from 'zod'
 import {
   type Price,
@@ -90,6 +97,35 @@ export const derivePricingModelIdFromPrice = async (
 ): Promise<string> => {
   const price = await selectPriceById(priceId, transaction)
   return derivePricingModelIdFromProduct(price.productId, transaction)
+}
+
+/**
+ * Batch fetch pricingModelIds for multiple prices.
+ * More efficient than calling derivePricingModelIdFromPrice for each price individually.
+ * Used by bulk insert operations in purchases and subscriptions.
+ */
+export const pricingModelIdsForPrices = async (
+  priceIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, string>> => {
+  const priceRows = await transaction
+    .select({
+      id: prices.id,
+      pricingModelId: prices.pricingModelId,
+    })
+    .from(prices)
+    .where(inArray(prices.id, priceIds))
+
+  const pricingModelIdMap = new Map<string, string>()
+  for (const priceRow of priceRows) {
+    if (!priceRow.pricingModelId) {
+      throw new Error(
+        `Price ${priceRow.id} does not have a pricingModelId`
+      )
+    }
+    pricingModelIdMap.set(priceRow.id, priceRow.pricingModelId)
+  }
+  return pricingModelIdMap
 }
 
 export const selectPriceById = createSelectById(prices, config)

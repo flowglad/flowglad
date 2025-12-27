@@ -56,7 +56,10 @@ import {
   products,
   productsSelectSchema,
 } from '../schema/products'
-import { derivePricingModelIdFromPrice } from './priceMethods'
+import {
+  derivePricingModelIdFromPrice,
+  pricingModelIdsForPrices,
+} from './priceMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof purchases,
@@ -80,10 +83,12 @@ export const insertPurchase = async (
   purchaseInsert: Purchase.Insert,
   transaction: DbTransaction
 ): Promise<Purchase.Record> => {
-  const pricingModelId = await derivePricingModelIdFromPrice(
-    purchaseInsert.priceId,
-    transaction
-  )
+  const pricingModelId = purchaseInsert.pricingModelId
+    ? purchaseInsert.pricingModelId
+    : await derivePricingModelIdFromPrice(
+        purchaseInsert.priceId,
+        transaction
+      )
   return baseInsertPurchase(
     {
       ...purchaseInsert,
@@ -103,10 +108,12 @@ export const upsertPurchaseById = async (
   purchaseInsert: Purchase.Insert & { id?: string },
   transaction: DbTransaction
 ): Promise<Purchase.Record> => {
-  const pricingModelId = await derivePricingModelIdFromPrice(
-    purchaseInsert.priceId,
-    transaction
-  )
+  const pricingModelId = purchaseInsert.pricingModelId
+    ? purchaseInsert.pricingModelId
+    : await derivePricingModelIdFromPrice(
+        purchaseInsert.priceId,
+        transaction
+      )
   const results = await baseUpsertPurchaseById(
     {
       ...purchaseInsert,
@@ -291,18 +298,25 @@ export const bulkInsertPurchases = async (
   purchaseInserts: Purchase.Insert[],
   transaction: DbTransaction
 ) => {
-  // Derive pricingModelId for each purchase
-  const purchasesWithPricingModelId = await Promise.all(
-    purchaseInserts.map(async (purchaseInsert) => {
-      const pricingModelId = await derivePricingModelIdFromPrice(
-        purchaseInsert.priceId,
-        transaction
-      )
+  const pricingModelIdMap = await pricingModelIdsForPrices(
+    purchaseInserts.map((insert) => insert.priceId),
+    transaction
+  )
+  const purchasesWithPricingModelId = purchaseInserts.map(
+    (purchaseInsert) => {
+      const pricingModelId =
+        purchaseInsert.pricingModelId ??
+        pricingModelIdMap.get(purchaseInsert.priceId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Pricing model id not found for price ${purchaseInsert.priceId}`
+        )
+      }
       return {
         ...purchaseInsert,
         pricingModelId,
       }
-    })
+    }
   )
   const result = await transaction
     .insert(purchases)
