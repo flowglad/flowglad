@@ -142,141 +142,249 @@ Flowglad integrates seamlessly with your auth provider. Read more about auth opt
 
 ### 3. Create API Route Handler
 
-<CodeGroup>
+Create a route handler to handle Flowglad API requests from your frontend. The Server SDK provides route handler constructors that enable your client to communicate with your server, allowing you to load billing and feature access data via the [`useBilling` hook](/sdks/react#usebilling-hook) on your frontend. It should handle requests at `/api/flowglad/...`
 
-```ts app/api/flowglad/[...path]/route.ts (App Router)
-import { nextRouteHandler } from '@flowglad/nextjs/server'
-import { flowglad } from '@/utils/flowglad'
+<Tabs>
+  <Tab title="Next.js App Router">
+    ```ts title="app/api/flowglad/[...path]/route.ts"
+    import { nextRouteHandler } from '@flowglad/nextjs/server'
+    import { flowglad } from '@/lib/flowglad'
+    import { customerIdFromRequest } from '@/lib/auth'
 
-export const { GET, POST } = nextRouteHandler({
-  flowglad,
-  getCustomerExternalId: async (req) => {
-    // Extract customerExternalId from your auth/session
-    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
-    // For B2C: return user.id (from your database)
-    // For B2B: return organization.id (from your database)
-    const userId = await getUserIdFromRequest(req)
-    if (!userId) {
-      throw new Error('User not authenticated')
-    }
-    return userId
-  },
-})
-```
-
-```ts Example: Better Auth
-import { nextRouteHandler } from '@flowglad/nextjs/server'
-import { flowglad } from '@/utils/flowglad'
-import { auth } from '@/utils/auth'
-import { headers } from 'next/headers'
-
-export const { GET, POST } = nextRouteHandler({
-  flowglad,
-  getCustomerExternalId: async (req) => {
-    const session = await auth.api.getSession({
-      headers: await headers(),
+    export const { GET, POST } = nextRouteHandler({
+      flowglad,
+      getCustomerExternalId: async (req) => {
+        const externalId = await customerIdFromRequest(req)
+        if (!externalId) {
+          throw new Error('Unable to determine customer external ID')
+        }
+        return externalId
+      },
     })
-    const userId = session?.user?.id
-    if (!userId) {
-      throw new Error('User not found')
+    ```
+  </Tab>
+
+  <Tab title="Next.js Pages Router">
+    ```ts title="pages/api/flowglad/[...path].ts"
+    import { pagesRouteHandler } from '@flowglad/nextjs/server'
+    import { flowglad } from '@/lib/flowglad'
+    import { customerIdFromRequest } from '@/lib/auth'
+
+    export default pagesRouteHandler({
+      flowglad,
+      getCustomerExternalId: async (req) => {
+        const externalId = await customerIdFromRequest(req)
+        if (!externalId) {
+          throw new Error('Unable to determine customer external ID')
+        }
+        return externalId
+      },
+    })
+    ```
+  </Tab>
+
+  <Tab title="Express">
+    ```ts title="server.ts"
+    import express from 'express'
+    import { expressRouter } from '@flowglad/server/express'
+    import { flowglad } from './lib/flowglad'
+    import { customerIdFromRequest } from './lib/auth'
+
+    const app = express()
+
+    app.use(
+      '/api/flowglad',
+      expressRouter({
+        flowglad,
+        getCustomerExternalId: async (req) => {
+          const externalId = await customerIdFromRequest(req)
+          if (!externalId) {
+            throw new Error('Unable to determine customer external ID')
+          }
+          return externalId
+        },
+      })
+    )
+    ```
+  </Tab>
+
+  <Tab title="Other Frameworks">
+    ```ts title="server.ts"
+    import { requestHandler } from '@flowglad/server'
+    import { flowglad } from './lib/flowglad'
+    import { customerIdFromRequest } from './lib/auth'
+    import type { HTTPMethod } from '@flowglad/shared'
+
+    const flowgladHandler = requestHandler({
+      flowglad,
+      getCustomerExternalId: async (req) => {
+        const externalId = await customerIdFromRequest(req)
+        if (!externalId) {
+          throw new Error('Unable to determine customer external ID')
+        }
+        return externalId
+      },
+    })
+
+    // Example: Hono, Cloudflare Workers, Elysia, etc.
+    // Adapt this pattern to your framework
+    async function handleFlowgladRequest(request: Request): Promise<Response> {
+      const url = new URL(request.url)
+      const path = url.pathname
+        .replace('/api/flowglad/', '')
+        .split('/')
+        .filter((segment) => segment !== '')
+
+      const result = await flowgladHandler(
+        {
+          path,
+          method: request.method as HTTPMethod,
+          query:
+            request.method === 'GET'
+              ? Object.fromEntries(url.searchParams)
+              : undefined,
+          body:
+            request.method !== 'GET'
+              ? await request.json().catch(() => ({}))
+              : undefined,
+        },
+        request
+      )
+
+      return Response.json(
+        {
+          error: result.error,
+          data: result.data,
+        },
+        {
+          status: result.status,
+        }
+      )
     }
-    return userId
-  },
-})
-```
-
-```ts Example: Supabase Auth
-import { nextRouteHandler } from '@flowglad/nextjs/server'
-import { flowglad } from '@/utils/flowglad'
-import { createClient } from '@/utils/supabase/server'
-
-export const { GET, POST } = nextRouteHandler({
-  flowglad,
-  getCustomerExternalId: async (req) => {
-    const supabase = await createClient()
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
-    const userId = user?.id
-    if (!userId) {
-      throw new Error('User not found')
-    }
-    return userId
-  },
-})
-```
-
-</CodeGroup>
-
-<Info>
-Flowglad integrates seamlessly with your auth provider. Read more about auth options [here](/sdks/auth).
-</Info>
+    ```
+  </Tab>
+</Tabs>
 
 ### 4. Wrap Your App with FlowgladProvider
 
-<CodeGroup>
+<Tabs>
+  <Tab title="Next.js App Router">
+    ```tsx title="app/layout.tsx"
+    import { FlowgladProvider } from '@flowglad/nextjs'
 
-```tsx app/layout.tsx (App Router)
-import { FlowgladProvider } from '@flowglad/nextjs'
+    export default function RootLayout({ children }) {
+      return (
+        <html>
+          <body>
+            <FlowgladProvider loadBilling={true}>
+              {children}
+            </FlowgladProvider>
+          </body>
+        </html>
+      )
+    }
+    ```
+  </Tab>
 
-export default function RootLayout({ children }) {
-  return (
-    <html>
-      <body>
+  <Tab title="Next.js Pages Router">
+    ```tsx title="pages/_app.tsx"
+    import { FlowgladProvider } from '@flowglad/nextjs'
+
+    export default function App({ Component, pageProps }) {
+      return (
+        <FlowgladProvider loadBilling={true}>
+          <Component {...pageProps} />
+        </FlowgladProvider>
+      )
+    }
+    ```
+  </Tab>
+
+  <Tab title="Vite + React">
+    ```tsx title="src/App.tsx"
+    import { FlowgladProvider } from '@flowglad/react'
+
+    export default function App({ children }) {
+      return (
         <FlowgladProvider loadBilling={true}>
           {children}
         </FlowgladProvider>
-      </body>
-    </html>
-  )
-}
-```
-
-```tsx pages/_app.tsx (Pages Router)
-import { FlowgladProvider } from '@flowglad/nextjs'
-
-export default function App({ Component, pageProps }) {
-  return (
-    <FlowgladProvider loadBilling={true}>
-      <Component {...pageProps} />
-    </FlowgladProvider>
-  )
-}
-```
-
-</CodeGroup>
+      )
+    }
+    ```
+  </Tab>
+</Tabs>
 
 ### 5. Use the Billing Hook
 
-```tsx
-import { useBilling } from '@flowglad/nextjs'
+<Tabs>
+  <Tab title="Next.js">
+    ```tsx
+    "use client"
 
-export default function BillingPage() {
-  const { checkFeatureAccess, createCheckoutSession } = useBilling()
+    import { useBilling } from '@flowglad/nextjs'
 
-  if (!checkFeatureAccess) {
-    return <div>Loading...</div>
-  }
+    export default function BillingPage() {
+      const { checkFeatureAccess, createCheckoutSession } = useBilling()
 
-  if (checkFeatureAccess('premium_feature')) {
-    return <div>You have access to premium features!</div>
-  }
-
-  return (
-    <button
-      onClick={() =>
-        createCheckoutSession({
-          priceSlug: 'pro_plan',
-          successUrl: window.location.href,
-          cancelUrl: window.location.href,
-          autoRedirect: true,
-        })
+      if (!checkFeatureAccess) {
+        return <div>Loading...</div>
       }
-    >
-      Upgrade to Premium
-    </button>
-  )
-}
-```
+
+      if (checkFeatureAccess('premium_feature')) {
+        return <div>You have access to premium features!</div>
+      }
+
+      return (
+        <button
+          onClick={() =>
+            createCheckoutSession({
+              priceSlug: 'pro_plan',
+              successUrl: window.location.href,
+              cancelUrl: window.location.href,
+              autoRedirect: true,
+            })
+          }
+        >
+          Upgrade to Premium
+        </button>
+      )
+    }
+    ```
+  </Tab>
+
+  <Tab title="Vite + React">
+    ```tsx
+    import { useBilling } from '@flowglad/react'
+
+    export default function BillingPage() {
+      const { checkFeatureAccess, createCheckoutSession } = useBilling()
+
+      if (!checkFeatureAccess) {
+        return <div>Loading...</div>
+      }
+
+      if (checkFeatureAccess('premium_feature')) {
+        return <div>You have access to premium features!</div>
+      }
+
+      return (
+        <button
+          onClick={() =>
+            createCheckoutSession({
+              priceSlug: 'pro_plan',
+              successUrl: window.location.href,
+              cancelUrl: window.location.href,
+              autoRedirect: true,
+            })
+          }
+        >
+          Upgrade to Premium
+        </button>
+      )
+    }
+    ```
+  </Tab>
+</Tabs>
 
 
