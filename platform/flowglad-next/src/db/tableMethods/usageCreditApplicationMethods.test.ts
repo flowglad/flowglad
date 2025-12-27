@@ -30,7 +30,7 @@ import {
   insertUsageCreditApplication,
 } from './usageCreditApplicationMethods'
 
-describe('insertUsageCreditApplication', () => {
+describe('Usage Credit Application Methods', () => {
   let organization: Organization.Record
   let pricingModel: PricingModel.Record
   let product: Product.Record
@@ -86,8 +86,163 @@ describe('insertUsageCreditApplication', () => {
     })
   })
 
-  it('should successfully insert usage credit application and derive pricingModelId from usage credit', async () => {
-    await adminTransaction(async ({ transaction }) => {
+  describe('insertUsageCreditApplication', () => {
+    it('should successfully insert usage credit application and derive pricingModelId from usage credit', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create a usage event first
+        const usageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          customerId: customer.id,
+          transactionId: `txn_${core.nanoid()}`,
+          amount: 100,
+          livemode: true,
+        })
+
+        const usageCreditApplication =
+          await insertUsageCreditApplication(
+            {
+              organizationId: organization.id,
+              usageCreditId: usageCredit.id,
+              usageEventId: usageEvent.id,
+              amountApplied: 100,
+              appliedAt: Date.now(),
+              livemode: true,
+              status: UsageCreditApplicationStatus.Posted,
+            },
+            transaction
+          )
+
+        // Verify pricingModelId is correctly derived from usage credit
+        expect(usageCreditApplication.pricingModelId).toBe(
+          usageCredit.pricingModelId
+        )
+        expect(usageCreditApplication.pricingModelId).toBe(
+          usageMeter.pricingModelId
+        )
+        expect(usageCreditApplication.pricingModelId).toBe(
+          pricingModel.id
+        )
+      })
+    })
+
+    it('should throw an error when usageCreditId does not exist', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const usageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          customerId: customer.id,
+          transactionId: `txn_${core.nanoid()}`,
+          amount: 100,
+          livemode: true,
+        })
+        const nonExistentUsageCreditId = `uc_${core.nanoid()}`
+
+        await expect(
+          insertUsageCreditApplication(
+            {
+              organizationId: organization.id,
+              usageCreditId: nonExistentUsageCreditId,
+              usageEventId: usageEvent.id,
+              amountApplied: 100,
+              appliedAt: Date.now(),
+              livemode: true,
+              status: UsageCreditApplicationStatus.Posted,
+            },
+            transaction
+          )
+        ).rejects.toThrow()
+      })
+    })
+  })
+
+  describe('bulkInsertUsageCreditApplications', () => {
+    let usageCredit2: UsageCredit.Record
+
+    beforeEach(async () => {
+      // Create a second usage credit for bulk operations
+      usageCredit2 = await setupUsageCredit({
+        organizationId: organization.id,
+        usageMeterId: usageMeter.id,
+        subscriptionId: subscription.id,
+        creditType: UsageCreditType.Grant,
+        livemode: true,
+        issuedAmount: 2000,
+      })
+    })
+
+    it('should bulk insert usage credit applications and derive pricingModelId for each', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create usage events first
+        const usageEvent1 = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          customerId: customer.id,
+          transactionId: `txn_${core.nanoid()}`,
+          amount: 100,
+          livemode: true,
+        })
+
+        const usageEvent2 = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          customerId: customer.id,
+          transactionId: `txn_${core.nanoid()}`,
+          amount: 200,
+          livemode: true,
+        })
+
+        const usageCreditApplications =
+          await bulkInsertUsageCreditApplications(
+            [
+              {
+                organizationId: organization.id,
+                usageCreditId: usageCredit.id,
+                usageEventId: usageEvent1.id,
+                amountApplied: 100,
+                appliedAt: Date.now(),
+                livemode: true,
+                status: UsageCreditApplicationStatus.Posted,
+              },
+              {
+                organizationId: organization.id,
+                usageCreditId: usageCredit2.id,
+                usageEventId: usageEvent2.id,
+                amountApplied: 200,
+                appliedAt: Date.now(),
+                livemode: true,
+                status: UsageCreditApplicationStatus.Posted,
+              },
+            ],
+            transaction
+          )
+
+        expect(usageCreditApplications).toHaveLength(2)
+
+        // Verify pricingModelId is correctly derived for each application
+        expect(usageCreditApplications[0]!.pricingModelId).toBe(
+          usageCredit.pricingModelId
+        )
+        expect(usageCreditApplications[0]!.pricingModelId).toBe(
+          pricingModel.id
+        )
+
+        expect(usageCreditApplications[1]!.pricingModelId).toBe(
+          usageCredit2.pricingModelId
+        )
+        expect(usageCreditApplications[1]!.pricingModelId).toBe(
+          pricingModel.id
+        )
+      })
+    })
+  })
+
+  describe('setupUsageCreditApplication', () => {
+    it('should create usage credit application via setupUsageCreditApplication and verify pricingModelId', async () => {
       // Create a usage event first
       const usageEvent = await setupUsageEvent({
         organizationId: organization.id,
@@ -100,18 +255,13 @@ describe('insertUsageCreditApplication', () => {
       })
 
       const usageCreditApplication =
-        await insertUsageCreditApplication(
-          {
-            organizationId: organization.id,
-            usageCreditId: usageCredit.id,
-            usageEventId: usageEvent.id,
-            amountApplied: 100,
-            appliedAt: Date.now(),
-            livemode: true,
-            status: UsageCreditApplicationStatus.Posted,
-          },
-          transaction
-        )
+        await setupUsageCreditApplication({
+          organizationId: organization.id,
+          usageCreditId: usageCredit.id,
+          usageEventId: usageEvent.id,
+          amountApplied: 100,
+          livemode: true,
+        })
 
       // Verify pricingModelId is correctly derived from usage credit
       expect(usageCreditApplication.pricingModelId).toBe(
@@ -124,258 +274,5 @@ describe('insertUsageCreditApplication', () => {
         pricingModel.id
       )
     })
-  })
-
-  it('should throw an error when usageCreditId does not exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const usageEvent = await setupUsageEvent({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        customerId: customer.id,
-        transactionId: `txn_${core.nanoid()}`,
-        amount: 100,
-        livemode: true,
-      })
-      const nonExistentUsageCreditId = `uc_${core.nanoid()}`
-
-      await expect(
-        insertUsageCreditApplication(
-          {
-            organizationId: organization.id,
-            usageCreditId: nonExistentUsageCreditId,
-            usageEventId: usageEvent.id,
-            amountApplied: 100,
-            appliedAt: Date.now(),
-            livemode: true,
-            status: UsageCreditApplicationStatus.Posted,
-          },
-          transaction
-        )
-      ).rejects.toThrow()
-    })
-  })
-})
-
-describe('bulkInsertUsageCreditApplications', () => {
-  let organization: Organization.Record
-  let pricingModel: PricingModel.Record
-  let product: Product.Record
-  let price: Price.Record
-  let customer: Customer.Record
-  let subscription: Subscription.Record
-  let usageMeter: UsageMeter.Record
-  let usageCredit1: UsageCredit.Record
-  let usageCredit2: UsageCredit.Record
-
-  beforeEach(async () => {
-    const orgData = await setupOrg()
-    organization = orgData.organization
-    pricingModel = orgData.pricingModel
-    product = orgData.product
-
-    price = await setupPrice({
-      productId: product.id,
-      name: 'Test Price',
-      unitPrice: 1000,
-      type: PriceType.SinglePayment,
-      livemode: true,
-      isDefault: false,
-      currency: CurrencyCode.USD,
-    })
-
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-    })
-
-    subscription = await setupSubscription({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      livemode: true,
-    })
-
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
-
-    usageCredit1 = await setupUsageCredit({
-      organizationId: organization.id,
-      usageMeterId: usageMeter.id,
-      subscriptionId: subscription.id,
-      creditType: UsageCreditType.Grant,
-      livemode: true,
-      issuedAmount: 1000,
-    })
-
-    usageCredit2 = await setupUsageCredit({
-      organizationId: organization.id,
-      usageMeterId: usageMeter.id,
-      subscriptionId: subscription.id,
-      creditType: UsageCreditType.Grant,
-      livemode: true,
-      issuedAmount: 2000,
-    })
-  })
-
-  it('should bulk insert usage credit applications and derive pricingModelId for each', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      // Create usage events first
-      const usageEvent1 = await setupUsageEvent({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        customerId: customer.id,
-        transactionId: `txn_${core.nanoid()}`,
-        amount: 100,
-        livemode: true,
-      })
-
-      const usageEvent2 = await setupUsageEvent({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        customerId: customer.id,
-        transactionId: `txn_${core.nanoid()}`,
-        amount: 200,
-        livemode: true,
-      })
-
-      const usageCreditApplications =
-        await bulkInsertUsageCreditApplications(
-          [
-            {
-              organizationId: organization.id,
-              usageCreditId: usageCredit1.id,
-              usageEventId: usageEvent1.id,
-              amountApplied: 100,
-              appliedAt: Date.now(),
-              livemode: true,
-              status: UsageCreditApplicationStatus.Posted,
-            },
-            {
-              organizationId: organization.id,
-              usageCreditId: usageCredit2.id,
-              usageEventId: usageEvent2.id,
-              amountApplied: 200,
-              appliedAt: Date.now(),
-              livemode: true,
-              status: UsageCreditApplicationStatus.Posted,
-            },
-          ],
-          transaction
-        )
-
-      expect(usageCreditApplications).toHaveLength(2)
-
-      // Verify pricingModelId is correctly derived for each application
-      expect(usageCreditApplications[0]!.pricingModelId).toBe(
-        usageCredit1.pricingModelId
-      )
-      expect(usageCreditApplications[0]!.pricingModelId).toBe(
-        pricingModel.id
-      )
-
-      expect(usageCreditApplications[1]!.pricingModelId).toBe(
-        usageCredit2.pricingModelId
-      )
-      expect(usageCreditApplications[1]!.pricingModelId).toBe(
-        pricingModel.id
-      )
-    })
-  })
-})
-
-describe('setupUsageCreditApplication', () => {
-  let organization: Organization.Record
-  let pricingModel: PricingModel.Record
-  let product: Product.Record
-  let price: Price.Record
-  let customer: Customer.Record
-  let subscription: Subscription.Record
-  let usageMeter: UsageMeter.Record
-  let usageCredit: UsageCredit.Record
-
-  beforeEach(async () => {
-    const orgData = await setupOrg()
-    organization = orgData.organization
-    pricingModel = orgData.pricingModel
-    product = orgData.product
-
-    price = await setupPrice({
-      productId: product.id,
-      name: 'Test Price',
-      unitPrice: 1000,
-      type: PriceType.SinglePayment,
-      livemode: true,
-      isDefault: false,
-      currency: CurrencyCode.USD,
-    })
-
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-    })
-
-    subscription = await setupSubscription({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      livemode: true,
-    })
-
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
-
-    usageCredit = await setupUsageCredit({
-      organizationId: organization.id,
-      usageMeterId: usageMeter.id,
-      subscriptionId: subscription.id,
-      creditType: UsageCreditType.Grant,
-      livemode: true,
-      issuedAmount: 1000,
-    })
-  })
-
-  it('should create usage credit application via setupUsageCreditApplication and verify pricingModelId', async () => {
-    // Create a usage event first
-    const usageEvent = await setupUsageEvent({
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
-      usageMeterId: usageMeter.id,
-      customerId: customer.id,
-      transactionId: `txn_${core.nanoid()}`,
-      amount: 100,
-      livemode: true,
-    })
-
-    const usageCreditApplication = await setupUsageCreditApplication({
-      organizationId: organization.id,
-      usageCreditId: usageCredit.id,
-      usageEventId: usageEvent.id,
-      amountApplied: 100,
-      livemode: true,
-    })
-
-    // Verify pricingModelId is correctly derived from usage credit
-    expect(usageCreditApplication.pricingModelId).toBe(
-      usageCredit.pricingModelId
-    )
-    expect(usageCreditApplication.pricingModelId).toBe(
-      usageMeter.pricingModelId
-    )
-    expect(usageCreditApplication.pricingModelId).toBe(
-      pricingModel.id
-    )
   })
 })
