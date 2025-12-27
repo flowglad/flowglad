@@ -143,8 +143,7 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
     header: 'Customer',
     cell: ({ row }) => {
       const customer = row.original.customer
-      const displayName =
-        customer.name.length === 0 ? customer.email : customer.name
+      const displayName = customer.name || customer.email
       return (
         <div>
           <DataTableLinkableCell href={`/customers/${customer.id}`}>
