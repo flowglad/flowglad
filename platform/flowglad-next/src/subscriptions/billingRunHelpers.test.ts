@@ -1234,7 +1234,6 @@ describe('billingRunHelpers', async () => {
       const newItem = itemsAfter.find(
         (item) => item.priceId === higherPrice.id
       )
-      expect(newItem).toBeDefined()
       expect(newItem?.name).toBe(higherPrice.name)
     })
 
@@ -1349,7 +1348,7 @@ describe('billingRunHelpers', async () => {
       expect(newItemExists).toBe(false)
     })
 
-    it('should calculate proration correctly accounting for existing payments', async () => {
+    it('should succeed billing run and create payment intent when existing payments partially cover the adjustment', async () => {
       // Setup: Create an existing payment for the billing period
       const invoice = await setupInvoice({
         billingPeriodId: billingPeriod.id,
@@ -1571,7 +1570,7 @@ describe('billingRunHelpers', async () => {
       )
     })
 
-    it('should handle adjustment with multiple subscription items (add and remove)', async () => {
+    it('should expire removed subscription item and keep retained items active after multi-item adjustment', async () => {
       // Setup: Create subscription with 2 items
       const secondPrice = await setupPrice({
         productId: product.id,
@@ -1680,8 +1679,6 @@ describe('billingRunHelpers', async () => {
       const secondItemAfter = allItemsAfter.find(
         (item) => item.id === secondItem.id
       )
-      expect(secondItemAfter).toBeDefined()
-      expect(secondItemAfter?.expiredAt).toBeDefined()
       expect(secondItemAfter?.expiredAt).toBeLessThanOrEqual(
         adjustmentDate.getTime()
       )
@@ -1696,20 +1693,35 @@ describe('billingRunHelpers', async () => {
           )
       )
 
-      // First item should still exist and be active
+      // First item should still exist and be active with correct properties
       const firstItemAfter = activeItemsAfter.find(
-        (item) => item.priceId === staticPrice.id && !item.expiredAt
+        (item) => item.id === subscriptionItem.id
       )
-      expect(firstItemAfter).toBeDefined()
+      expect(firstItemAfter).toMatchObject({
+        id: subscriptionItem.id,
+        priceId: staticPrice.id,
+        name: subscriptionItem.name,
+        quantity: subscriptionItem.quantity,
+        unitPrice: subscriptionItem.unitPrice,
+        type: SubscriptionItemType.Static,
+        expiredAt: null,
+      })
 
-      // Third item should exist and be active
+      // Third item should exist and be active with correct properties
       const thirdItemAfter = activeItemsAfter.find(
         (item) => item.priceId === thirdPrice.id && !item.expiredAt
       )
-      expect(thirdItemAfter).toBeDefined()
+      expect(thirdItemAfter).toMatchObject({
+        priceId: thirdPrice.id,
+        name: thirdPrice.name ?? 'New Add-on',
+        quantity: 1,
+        unitPrice: thirdPrice.unitPrice,
+        type: SubscriptionItemType.Static,
+        expiredAt: null,
+      })
     })
 
-    it('should calculate proration correctly for mid-period adjustment', async () => {
+    it('should create payment intent and succeed billing run for mid-period upgrade adjustment', async () => {
       const adjustmentBillingRun = await setupBillingRun({
         billingPeriodId: billingPeriod.id,
         paymentMethodId: paymentMethod.id,
@@ -1864,7 +1876,7 @@ describe('billingRunHelpers', async () => {
       expect(updatedSubscription.name).toBe(higherPrice.name)
     })
 
-    it('should create proration billing period item with correct amount', async () => {
+    it('should preserve existing billing period items and succeed billing run for adjustment', async () => {
       const adjustmentBillingRun = await setupBillingRun({
         billingPeriodId: billingPeriod.id,
         paymentMethodId: paymentMethod.id,
