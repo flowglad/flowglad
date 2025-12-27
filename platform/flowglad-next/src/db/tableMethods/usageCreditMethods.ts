@@ -71,6 +71,11 @@ export const pricingModelIdsForUsageCredits = async (
     .where(inArray(usageCredits.id, usageCreditIds))
   const pricingModelIdMap = new Map<string, string>()
   for (const usageCreditRow of usageCreditRows) {
+    if (!usageCreditRow.pricingModelId) {
+      throw new Error(
+        `Usage credit ${usageCreditRow.id} does not have a pricingModelId`
+      )
+    }
     pricingModelIdMap.set(
       usageCreditRow.id,
       usageCreditRow.pricingModelId
