@@ -40,29 +40,15 @@ export function ExpandSection({
 }: ExpandSectionProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 
-  const dashedBorderImage =
-    'repeating-linear-gradient(to right, hsl(var(--border)) 0, hsl(var(--border)) 4px, transparent 4px, transparent 8px)'
-
   return (
     <Collapsible
       open={isExpanded}
       onOpenChange={setIsExpanded}
       className={cn(
-        'border-b border-border relative w-full',
+        'border-b border-dashed border-border relative w-full',
         borderTop && 'border-t',
         className
       )}
-      style={{
-        borderBottomStyle: 'dashed',
-        borderBottomWidth: '1px',
-        ...(borderTop && {
-          borderTopStyle: 'dashed',
-          borderTopWidth: '1px',
-        }),
-        borderImageSlice: 1,
-        borderImageRepeat: 'round',
-        borderImageSource: dashedBorderImage,
-      }}
     >
       <div className="flex flex-col items-start w-full">
         {/* Header */}

@@ -97,22 +97,10 @@ export function PageHeaderNew({
     <div
       className={cn(
         'flex flex-col items-start justify-center w-full',
-        !hideBorder && 'border-b border-border',
+        !hideBorder && 'border-b border-dashed border-border',
         'px-4 pt-20 pb-1',
         className
       )}
-      style={
-        hideBorder
-          ? undefined
-          : {
-              borderBottomStyle: 'dashed',
-              borderBottomWidth: '1px',
-              borderImageSlice: 1,
-              borderImageRepeat: 'round',
-              borderImageSource:
-                'repeating-linear-gradient(to right, hsl(var(--border)) 0, hsl(var(--border)) 4px, transparent 4px, transparent 8px)',
-            }
-      }
     >
       {/* Headline wrapper */}
       <div className="flex flex-col gap-1 items-start w-full">
