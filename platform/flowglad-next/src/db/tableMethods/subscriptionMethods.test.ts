@@ -23,6 +23,7 @@ import {
   insertSubscription,
   type SubscriptionTableFilters,
   selectDistinctSubscriptionProductNames,
+  selectSubscriptions,
   selectSubscriptionsTableRowData,
 } from './subscriptionMethods'
 
@@ -1467,15 +1468,10 @@ describe('bulkInsertOrDoNothingSubscriptionsByExternalId', () => {
       )
 
       // Verify by selecting the inserted subscriptions
-      const insertedSubscriptions = await transaction
-        .select()
-        .from(subscriptions)
-        .where(
-          inArray(subscriptions.externalId, [
-            externalId1,
-            externalId2,
-          ])
-        )
+      const insertedSubscriptions = await selectSubscriptions(
+        { externalId: [externalId1, externalId2] },
+        transaction
+      )
 
       expect(insertedSubscriptions.length).toBe(2)
       insertedSubscriptions.forEach((sub) => {
