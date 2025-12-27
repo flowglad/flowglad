@@ -146,7 +146,10 @@ export function DiscountsDataTable({
             placeholder: 'Search discounts...',
           }}
           filter={
-            filterOptions && filterValue && onFilterChange
+            filterOptions &&
+            filterValue !== undefined &&
+            filterValue !== null &&
+            onFilterChange
               ? {
                   value: filterValue,
                   options: filterOptions,

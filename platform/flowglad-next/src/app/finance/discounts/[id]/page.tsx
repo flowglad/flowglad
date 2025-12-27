@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { discountRedemptions } from '@/db/schema/discountRedemptions'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
+import { NotFoundError } from '@/db/tableUtils'
 import InnerDiscountDetailsPage from './InnerDiscountDetailsPage'
 
 interface PageProps {
@@ -21,10 +22,7 @@ const DiscountPage = async ({ params }: PageProps) => {
         discount = await selectDiscountById(id, transaction)
       } catch (error) {
         // Only treat "not found" errors as expected; let other DB failures propagate
-        if (
-          error instanceof Error &&
-          error.message.includes('No discounts found')
-        ) {
+        if (error instanceof NotFoundError) {
           return null
         }
         throw error
