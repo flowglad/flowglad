@@ -7,6 +7,7 @@ import {
   subscriptionItems,
 } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
+import { standardSubscriptionSelectSchema } from '@/db/schema/subscriptions'
 import { bulkInsertBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
@@ -479,7 +480,9 @@ export const adjustSubscription = async (
     transaction
   )
   return {
-    subscription: updatedSubscription as Subscription.StandardRecord,
+    subscription: standardSubscriptionSelectSchema.parse(
+      updatedSubscription
+    ),
     subscriptionItems: currentSubscriptionItems,
   }
 }
