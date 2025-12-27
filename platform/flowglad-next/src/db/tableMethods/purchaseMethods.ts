@@ -56,6 +56,10 @@ import {
   products,
   productsSelectSchema,
 } from '../schema/products'
+import {
+  derivePricingModelIdFromPrice,
+  pricingModelIdsForPrices,
+} from './priceMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof purchases,
@@ -73,19 +77,52 @@ export const selectPurchaseById = createSelectById(purchases, config)
 
 export const selectPurchases = createSelectFunction(purchases, config)
 
-export const insertPurchase = createInsertFunction(
-  purchases,
-  config
-) as (
-  payload: Purchase.Insert,
-  transaction: DbTransaction
-) => Promise<Purchase.Record>
+const baseInsertPurchase = createInsertFunction(purchases, config)
 
-export const upsertPurchaseById = createUpsertFunction(
+export const insertPurchase = async (
+  purchaseInsert: Purchase.Insert,
+  transaction: DbTransaction
+): Promise<Purchase.Record> => {
+  const pricingModelId = purchaseInsert.pricingModelId
+    ? purchaseInsert.pricingModelId
+    : await derivePricingModelIdFromPrice(
+        purchaseInsert.priceId,
+        transaction
+      )
+  return baseInsertPurchase(
+    {
+      ...purchaseInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
+
+const baseUpsertPurchaseById = createUpsertFunction(
   purchases,
   purchases.id,
   config
 )
+
+export const upsertPurchaseById = async (
+  purchaseInsert: Purchase.Insert & { id?: string },
+  transaction: DbTransaction
+): Promise<Purchase.Record> => {
+  const pricingModelId = purchaseInsert.pricingModelId
+    ? purchaseInsert.pricingModelId
+    : await derivePricingModelIdFromPrice(
+        purchaseInsert.priceId,
+        transaction
+      )
+  const results = await baseUpsertPurchaseById(
+    {
+      ...purchaseInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+  return results[0]! // Upsert functions return arrays
+}
 
 export const updatePurchase = createUpdateFunction(purchases, config)
 
@@ -261,9 +298,30 @@ export const bulkInsertPurchases = async (
   purchaseInserts: Purchase.Insert[],
   transaction: DbTransaction
 ) => {
+  const pricingModelIdMap = await pricingModelIdsForPrices(
+    purchaseInserts.map((insert) => insert.priceId),
+    transaction
+  )
+  const purchasesWithPricingModelId = purchaseInserts.map(
+    (purchaseInsert) => {
+      const pricingModelId =
+        purchaseInsert.pricingModelId ??
+        pricingModelIdMap.get(purchaseInsert.priceId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Pricing model id not found for price ${purchaseInsert.priceId}`
+        )
+      }
+      return {
+        ...purchaseInsert,
+        pricingModelId,
+      }
+    }
+  )
   const result = await transaction
     .insert(purchases)
-    .values(purchaseInserts)
+    .values(purchasesWithPricingModelId)
+    .returning()
   return result.map((item) => purchasesSelectSchema.parse(item))
 }
 

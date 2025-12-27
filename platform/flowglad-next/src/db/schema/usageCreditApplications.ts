@@ -3,6 +3,7 @@ import { boolean, integer, pgTable } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 import { usageCredits } from '@/db/schema/usageCredits'
 import { usageMeters } from '@/db/schema/usageMeters'
 import {
@@ -51,10 +52,15 @@ export const usageCreditApplications = pgTable(
       organizations
     ),
     livemode: boolean('livemode').notNull(),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
     createdAt: timestampWithTimezoneColumn('created_at').defaultNow(),
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.usageCreditId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
     enableCustomerReadPolicy(
       `Enable read for customers (${TABLE_NAME})`,
       {
@@ -93,6 +99,9 @@ export const {
   refine: {
     ...columnRefinements,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns: {
       ...hiddenColumnsForClientSchema,
@@ -100,6 +109,7 @@ export const {
     readOnlyColumns: {
       organizationId: true,
       livemode: true,
+      pricingModelId: true,
     },
     createOnlyColumns: {},
   },

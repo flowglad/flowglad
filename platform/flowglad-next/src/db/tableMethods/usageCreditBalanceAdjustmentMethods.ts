@@ -1,4 +1,5 @@
 import {
+  type UsageCreditBalanceAdjustment,
   usageCreditBalanceAdjustments,
   usageCreditBalanceAdjustmentsInsertSchema,
   usageCreditBalanceAdjustmentsSelectSchema,
@@ -11,6 +12,8 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
+import { derivePricingModelIdFromUsageCredit } from './usageCreditMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof usageCreditBalanceAdjustments,
@@ -27,8 +30,30 @@ const config: ORMMethodCreatorConfig<
 export const selectUsageCreditBalanceAdjustmentById =
   createSelectById(usageCreditBalanceAdjustments, config)
 
-export const insertUsageCreditBalanceAdjustment =
-  createInsertFunction(usageCreditBalanceAdjustments, config)
+const baseInsertUsageCreditBalanceAdjustment = createInsertFunction(
+  usageCreditBalanceAdjustments,
+  config
+)
+
+export const insertUsageCreditBalanceAdjustment = async (
+  usageCreditBalanceAdjustmentInsert: UsageCreditBalanceAdjustment.Insert,
+  transaction: DbTransaction
+): Promise<UsageCreditBalanceAdjustment.Record> => {
+  const pricingModelId =
+    usageCreditBalanceAdjustmentInsert.pricingModelId
+      ? usageCreditBalanceAdjustmentInsert.pricingModelId
+      : await derivePricingModelIdFromUsageCredit(
+          usageCreditBalanceAdjustmentInsert.adjustedUsageCreditId,
+          transaction
+        )
+  return baseInsertUsageCreditBalanceAdjustment(
+    {
+      ...usageCreditBalanceAdjustmentInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateUsageCreditBalanceAdjustment =
   createUpdateFunction(usageCreditBalanceAdjustments, config)
