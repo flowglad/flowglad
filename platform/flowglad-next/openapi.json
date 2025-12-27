@@ -13240,6 +13240,9 @@
               }
             ]
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "position": {
             "type": "number"
           }
@@ -13265,6 +13268,7 @@
           "bankPaymentOnly",
           "proposal",
           "archived",
+          "pricingModelId",
           "position"
         ],
         "additionalProperties": false
@@ -13457,6 +13461,9 @@
               }
             ]
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "position": {
             "type": "number"
           }
@@ -13482,6 +13489,7 @@
           "bankPaymentOnly",
           "proposal",
           "archived",
+          "pricingModelId",
           "position"
         ],
         "additionalProperties": false
@@ -13674,6 +13682,9 @@
               }
             ]
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "position": {
             "type": "number"
           }
@@ -13699,6 +13710,7 @@
           "bankPaymentOnly",
           "proposal",
           "archived",
+          "pricingModelId",
           "position"
         ],
         "additionalProperties": false
@@ -14079,6 +14091,9 @@
             "type": "boolean",
             "const": true
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "current": {
             "description": "Whether the subscription is current (statuses \"active\", \"trialing\", \"past_due\", or \"cancellation_scheduled\")",
             "type": "boolean"
@@ -14105,6 +14120,7 @@
           "intervalCount",
           "name",
           "renews",
+          "pricingModelId",
           "current"
         ],
         "additionalProperties": false
@@ -14293,6 +14309,9 @@
             "type": "boolean",
             "const": false
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "current": {
             "description": "Whether the subscription is current (statuses \"active\", \"trialing\", \"past_due\", \"cancellation_scheduled\", or \"credit_trial\")",
             "type": "boolean"
@@ -14323,6 +14342,7 @@
           "billingCycleAnchorDate",
           "name",
           "renews",
+          "pricingModelId",
           "current"
         ],
         "additionalProperties": false
@@ -14528,6 +14548,9 @@
           "renews": {
             "type": "boolean",
             "const": false
+          },
+          "pricingModelId": {
+            "type": "string"
           },
           "current": {
             "type": "boolean"
@@ -14786,6 +14809,7 @@
           "billingCycleAnchorDate",
           "name",
           "renews",
+          "pricingModelId",
           "current",
           "subscriptionItems"
         ],
@@ -15270,6 +15294,9 @@
             "type": "boolean",
             "const": true
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "current": {
             "type": "boolean"
           },
@@ -15523,6 +15550,7 @@
           "intervalCount",
           "name",
           "renews",
+          "pricingModelId",
           "current",
           "subscriptionItems"
         ],
