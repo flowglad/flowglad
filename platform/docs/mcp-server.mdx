@@ -26,11 +26,15 @@ https://app.flowglad.com/api/mcp
 <AccordionGroup>
   <Accordion title="Cursor" icon="/images/cursor-dark.svg">
     Open Cursor's `mcp.json` file through the command palette with <kbd>Cmd/Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> or through Cursor Settings > Tools & MCP and paste in the following under `mcpServers`. Make sure to replace `<FLOWGLAD_API_KEY>` with your Flowglad API key.
-    ```json mcp.json 
-    "flowglad": {
-      "url": "https://app.flowglad.com/api/mcp",
-      "headers": {
-        "Authorization": "Bearer <FLOWGLAD_API_KEY>"
+    ```json mcp.json
+    {
+      "mcpServers": {
+        "flowglad": {
+          "url": "https://app.flowglad.com/api/mcp",
+            "headers": {
+              "Authorization": "Bearer sk_test_Bmnn2mhnnoADFQgmEK5PFs"
+            }
+          }
       }
     }
     ```
