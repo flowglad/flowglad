@@ -18,28 +18,6 @@ import {
   sql,
   type Table,
 } from 'drizzle-orm'
-
-/**
- * Custom error class for when a database record is not found.
- * Use `instanceof NotFoundError` for type-safe error discrimination
- * instead of string matching on error messages.
- */
-export class NotFoundError extends Error {
-  readonly resourceType: string
-  readonly resourceId: string | number
-
-  constructor(resourceType: string, resourceId: string | number) {
-    super(`No ${noCase(resourceType)} found with id: ${resourceId}`)
-    this.name = 'NotFoundError'
-    this.resourceType = resourceType
-    this.resourceId = resourceId
-    // Maintain proper stack trace in V8 environments
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, NotFoundError)
-    }
-  }
-}
-
 import {
   bigserial,
   boolean,
@@ -75,6 +53,27 @@ import core, { gitCommitId, IS_TEST } from '@/utils/core'
 import { countryCodeSchema } from './commonZodSchema'
 import { timestamptzMs } from './timestampMs'
 import type { PgTimestampColumn } from './types'
+
+/**
+ * Custom error class for when a database record is not found.
+ * Use `instanceof NotFoundError` for type-safe error discrimination
+ * instead of string matching on error messages.
+ */
+export class NotFoundError extends Error {
+  readonly resourceType: string
+  readonly resourceId: string | number
+
+  constructor(resourceType: string, resourceId: string | number) {
+    super(`No ${noCase(resourceType)} found with id: ${resourceId}`)
+    this.name = 'NotFoundError'
+    this.resourceType = resourceType
+    this.resourceId = resourceId
+    // Maintain proper stack trace in V8 environments
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, NotFoundError)
+    }
+  }
+}
 
 export const merchantRole = pgRole('merchant', {
   createRole: false,

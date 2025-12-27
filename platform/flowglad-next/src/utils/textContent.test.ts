@@ -78,7 +78,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
         organizationId: nonExistentOrgId,
         markdown: '# Test',
       })
-    ).rejects.toThrow(/Failed to select organizations by id/)
+    ).rejects.toThrow(/No organizations found with id/)
 
     // Verify putMarkdownFile was never called
     expect(putMarkdownFile).not.toHaveBeenCalled()
@@ -222,7 +222,7 @@ describe('getOrganizationCodebaseMarkdown', () => {
 
     await expect(
       getOrganizationCodebaseMarkdown(nonExistentOrgId)
-    ).rejects.toThrow(/Failed to select organizations by id/)
+    ).rejects.toThrow(/No organizations found with id/)
   })
 
   it('should return null immediately when codebaseMarkdownHash is null', async () => {
@@ -352,7 +352,7 @@ describe('savePricingModelIntegrationMarkdown', () => {
         pricingModelId: pricingModel.id,
         markdown: '# Test',
       })
-    ).rejects.toThrow(/Failed to select organizations by id/)
+    ).rejects.toThrow(/No organizations found with id/)
 
     // Verify putMarkdownFile was never called
     expect(putMarkdownFile).not.toHaveBeenCalled()
@@ -411,7 +411,7 @@ describe('getPricingModelIntegrationMarkdown', () => {
         organizationId: organization.id,
         pricingModelId: nonExistentPricingModelId,
       })
-    ).rejects.toThrow(/Failed to select pricingModels by id/)
+    ).rejects.toThrow(/No pricing models found with id/)
   })
 
   it('should return null immediately when integrationGuideHash is null', async () => {
