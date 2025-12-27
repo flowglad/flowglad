@@ -9,6 +9,7 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { updatePricingModel } from './pricingModelMethods'
 import {
   insertUsageMeter,
+  pricingModelIdsForUsageMeters,
   selectUsageMeterById,
   selectUsageMeterBySlugAndCustomerId,
   selectUsageMeters,
@@ -414,6 +415,72 @@ describe('usageMeterMethods', () => {
         expect(resultEmpty.items.length).toBe(1)
         expect(resultUndefined.items.length).toBe(1)
         expect(resultEmpty.total).toBe(resultUndefined.total)
+      })
+    })
+  })
+
+  describe('pricingModelIdsForUsageMeters', () => {
+    it('should successfully return map of pricingModelIds for multiple usage meters', async () => {
+      const usageMeter1 = await setupUsageMeter({
+        organizationId,
+        pricingModelId,
+        name: 'Test Meter 1',
+      })
+
+      const usageMeter2 = await setupUsageMeter({
+        organizationId,
+        pricingModelId,
+        name: 'Test Meter 2',
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const pricingModelIdMap = await pricingModelIdsForUsageMeters(
+          [usageMeter1.id, usageMeter2.id],
+          transaction
+        )
+
+        expect(pricingModelIdMap.size).toBe(2)
+        expect(pricingModelIdMap.get(usageMeter1.id)).toBe(
+          pricingModelId
+        )
+        expect(pricingModelIdMap.get(usageMeter2.id)).toBe(
+          pricingModelId
+        )
+      })
+    })
+
+    it('should return empty map when no usage meter IDs are provided', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const pricingModelIdMap = await pricingModelIdsForUsageMeters(
+          [],
+          transaction
+        )
+
+        expect(pricingModelIdMap.size).toBe(0)
+      })
+    })
+
+    it('should only return entries for existing usage meters', async () => {
+      const usageMeter = await setupUsageMeter({
+        organizationId,
+        pricingModelId,
+        name: 'Test Meter',
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentUsageMeterId = `um_nonexistent`
+        const pricingModelIdMap = await pricingModelIdsForUsageMeters(
+          [usageMeter.id, nonExistentUsageMeterId],
+          transaction
+        )
+
+        expect(pricingModelIdMap.size).toBe(1)
+        expect(pricingModelIdMap.get(usageMeter.id)).toBe(
+          pricingModelId
+        )
+        expect(pricingModelIdMap.has(nonExistentUsageMeterId)).toBe(
+          false
+        )
       })
     })
   })
