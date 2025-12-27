@@ -18,7 +18,10 @@ import {
   idInputSchema,
 } from '@/db/tableUtils'
 import { FlowgladApiKeyType } from '@/types'
-import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
+import {
+  createSecretApiKeyTransaction,
+  deleteSecretApiKeyTransaction,
+} from '@/utils/apiKeyHelpers'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { rotateApiKeyProcedure } from '../mutations/rotateApiKey'
 import { protectedProcedure, router } from '../trpc'
@@ -89,10 +92,29 @@ export const createApiKey = protectedProcedure
     }
   })
 
+export const deleteApiKey = protectedProcedure
+  .input(idInputSchema)
+  .mutation(async ({ input, ctx }) => {
+    await authenticatedTransaction(
+      ({ transaction, userId, livemode, organizationId }) =>
+        deleteSecretApiKeyTransaction(input, {
+          transaction,
+          userId,
+          livemode,
+          organizationId,
+        }),
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+    return { success: true }
+  })
+
 export const apiKeysRouter = router({
   // list: listApiKeysProcedure,
   get: getApiKeyProcedure,
   getTableRows: getTableRowsProcedure,
   rotate: rotateApiKeyProcedure,
   create: createApiKey,
+  delete: deleteApiKey,
 })
