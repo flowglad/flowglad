@@ -120,11 +120,17 @@ export namespace PricingModel {
   }
 }
 
+ 
+
 export const createPricingModelSchema = z.object({
-  pricingModel: pricingModelsClientInsertSchema,
-  defaultPlanIntervalUnit: core
-    .createSafeZodEnum(IntervalUnit)
-    .optional(),
+  pricingModel: pricingModelsClientInsertSchema.extend({
+     
+    name: z.string().min(1, "pricing model name is required"),
+     
+    isDefault: z.boolean().default(true),
+  }),
+   
+  defaultPlanIntervalUnit: core.createSafeZodEnum(IntervalUnit),
 })
 
 export type CreatePricingModelInput = z.infer<
