@@ -14,7 +14,10 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
-import { derivePricingModelIdFromUsageCredit } from './usageCreditMethods'
+import {
+  derivePricingModelIdFromUsageCredit,
+  pricingModelIdsForUsageCredits,
+} from './usageCreditMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof usageCreditApplications,
@@ -42,10 +45,13 @@ export const insertUsageCreditApplication = async (
   usageCreditApplicationInsert: UsageCreditApplication.Insert,
   transaction: DbTransaction
 ): Promise<UsageCreditApplication.Record> => {
-  const pricingModelId = await derivePricingModelIdFromUsageCredit(
-    usageCreditApplicationInsert.usageCreditId,
-    transaction
-  )
+  const pricingModelId = usageCreditApplicationInsert.pricingModelId
+    ? usageCreditApplicationInsert.pricingModelId
+    : await derivePricingModelIdFromUsageCredit(
+        usageCreditApplicationInsert.usageCreditId,
+        transaction
+      )
+
   return baseInsertUsageCreditApplication(
     {
       ...usageCreditApplicationInsert,
@@ -72,19 +78,19 @@ export const bulkInsertUsageCreditApplications = async (
   inserts: UsageCreditApplication.Insert[],
   transaction: DbTransaction
 ): Promise<UsageCreditApplication.Record[]> => {
-  // Derive pricingModelId for each insert
-  const insertsWithPricingModelId = await Promise.all(
-    inserts.map(async (insert) => {
-      const pricingModelId =
-        await derivePricingModelIdFromUsageCredit(
-          insert.usageCreditId,
-          transaction
-        )
+  const pricingModelIdMap = await pricingModelIdsForUsageCredits(
+    inserts.map((insert) => insert.usageCreditId),
+    transaction
+  )
+  const insertsWithPricingModelId = inserts.map(
+    (insert): UsageCreditApplication.Insert => {
       return {
         ...insert,
-        pricingModelId,
+        pricingModelId:
+          insert.pricingModelId ??
+          pricingModelIdMap.get(insert.usageCreditId)!,
       }
-    })
+    }
   )
   return baseBulkInsertUsageCreditApplications(
     insertsWithPricingModelId,
