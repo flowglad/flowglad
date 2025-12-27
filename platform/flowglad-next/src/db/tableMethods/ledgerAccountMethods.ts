@@ -17,7 +17,10 @@ import {
 import { NormalBalanceType } from '@/types'
 import type { DbTransaction } from '../types'
 import { selectSubscriptionById } from './subscriptionMethods'
-import { derivePricingModelIdFromUsageMeter } from './usageMeterMethods'
+import {
+  derivePricingModelIdFromUsageMeter,
+  pricingModelIdsForUsageMeters,
+} from './usageMeterMethods'
 
 const TABLE_NAME = 'ledger_accounts'
 
@@ -47,10 +50,12 @@ export const insertLedgerAccount = async (
   ledgerAccountInsert: LedgerAccount.Insert,
   transaction: DbTransaction
 ): Promise<LedgerAccount.Record> => {
-  const pricingModelId = await derivePricingModelIdFromUsageMeter(
-    ledgerAccountInsert.usageMeterId,
-    transaction
-  )
+  const pricingModelId = ledgerAccountInsert.pricingModelId
+    ? ledgerAccountInsert.pricingModelId
+    : await derivePricingModelIdFromUsageMeter(
+        ledgerAccountInsert.usageMeterId,
+        transaction
+      )
   return baseInsertLedgerAccount(
     {
       ...ledgerAccountInsert,
@@ -86,10 +91,12 @@ export const upsertLedgerAccountByEccaDefinition = async (
   ledgerAccountInsert: LedgerAccount.Insert,
   transaction: DbTransaction
 ): Promise<LedgerAccount.Record> => {
-  const pricingModelId = await derivePricingModelIdFromUsageMeter(
-    ledgerAccountInsert.usageMeterId,
-    transaction
-  )
+  const pricingModelId = ledgerAccountInsert.pricingModelId
+    ? ledgerAccountInsert.pricingModelId
+    : await derivePricingModelIdFromUsageMeter(
+        ledgerAccountInsert.usageMeterId,
+        transaction
+      )
   const results = await baseUpsertLedgerAccountByEccaDefinition(
     {
       ...ledgerAccountInsert,
@@ -107,19 +114,25 @@ export const bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId =
     insertParams: LedgerAccount.Insert[],
     transaction: DbTransaction
   ): Promise<LedgerAccount.Record[]> => {
-    // Derive pricingModelId for each ledger account
-    const ledgerAccountsWithPricingModelId = await Promise.all(
-      insertParams.map(async (ledgerAccountInsert) => {
+    const pricingModelIdMap = await pricingModelIdsForUsageMeters(
+      insertParams.map((insert) => insert.usageMeterId),
+      transaction
+    )
+    const ledgerAccountsWithPricingModelId = insertParams.map(
+      (ledgerAccountInsert): LedgerAccount.Insert => {
         const pricingModelId =
-          await derivePricingModelIdFromUsageMeter(
-            ledgerAccountInsert.usageMeterId,
-            transaction
+          ledgerAccountInsert.pricingModelId ??
+          pricingModelIdMap.get(ledgerAccountInsert.usageMeterId)
+        if (!pricingModelId) {
+          throw new Error(
+            `Pricing model id not found for usage meter ${ledgerAccountInsert.usageMeterId}`
           )
+        }
         return {
           ...ledgerAccountInsert,
           pricingModelId,
         }
-      })
+      }
     )
     return baseBulkInsertOrDoNothingLedgerAccounts(
       ledgerAccountsWithPricingModelId,
