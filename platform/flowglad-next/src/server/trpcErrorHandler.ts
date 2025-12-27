@@ -5,6 +5,7 @@
 
 import { TRPCError } from '@trpc/server'
 import type { TRPC_ERROR_CODE_KEY } from '@trpc/server/rpc'
+import { NotFoundError } from '@/db/tableUtils'
 import {
   extractPostgresError,
   parsePostgresError,
@@ -39,6 +40,20 @@ export function extractErrorDetails(error: unknown): {
       developerMessage: error.message,
       code: error.code,
       context: error.cause as Record<string, any>,
+    }
+  }
+
+  // Handle NotFoundError with type-safe instanceof check
+  if (error instanceof NotFoundError) {
+    return {
+      userMessage: `The requested ${error.resourceType} could not be found.`,
+      developerMessage: error.message,
+      code: 'NOT_FOUND',
+      context: {
+        resource: error.resourceType,
+        id: error.resourceId,
+        errorType: 'not_found',
+      },
     }
   }
 

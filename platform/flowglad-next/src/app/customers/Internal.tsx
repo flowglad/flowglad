@@ -1,26 +1,10 @@
 'use client'
 import { useState } from 'react'
 import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
-import InternalPageContainer from '@/components/InternalPageContainer'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
-import { PageHeader } from '@/components/ui/page-header'
-import { TabsTrigger } from '@/components/ui/tabs'
+import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { CustomersDataTable } from './data-table'
-
-interface CustomerTabProps {
-  label: string
-}
-
-const CustomerTab = ({ label }: CustomerTabProps) => {
-  return (
-    <TabsTrigger value={label}>
-      <div className="flex items-center gap-2">
-        <span>{label}</span>
-      </div>
-    </TabsTrigger>
-  )
-}
 
 function Internal() {
   const { organization } = useAuthenticatedContext()
@@ -45,18 +29,18 @@ function Internal() {
 
   return (
     <>
-      <InternalPageContainer>
-        <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
-          <Breadcrumb />
-          <PageHeader title="Customers" />
-          <div>
-            <CustomersDataTable
-              filters={getFiltersForTab(activeTab)}
-              onCreateCustomer={() => setIsCreateCustomerOpen(true)}
-            />
-          </div>
-        </div>
-      </InternalPageContainer>
+      <InnerPageContainerNew>
+        <PageHeaderNew
+          title="Customers"
+          hideBorder
+          className="pb-2"
+        />
+        <CustomersDataTable
+          filters={getFiltersForTab(activeTab)}
+          onCreateCustomer={() => setIsCreateCustomerOpen(true)}
+          hiddenColumns={['payments', 'createdAt', 'customerId']}
+        />
+      </InnerPageContainerNew>
       <CreateCustomerFormModal
         isOpen={isCreateCustomerOpen}
         setIsOpen={setIsCreateCustomerOpen}

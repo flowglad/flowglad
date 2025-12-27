@@ -11,10 +11,8 @@ import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
-import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
-import { FilterButtonGroup } from '@/components/ui/filter-button-group'
+import { DataTableToolbar } from '@/components/ui/data-table-toolbar'
 import {
   Table,
   TableBody,
@@ -39,7 +37,7 @@ interface PaymentsDataTableProps {
   filters?: PaymentsTableFilters
   title?: string
   filterOptions?: { value: string; label: string }[]
-  activeFilter?: string
+  filterValue?: string
   onFilterChange?: (value: string) => void
   hiddenColumns?: string[]
 }
@@ -48,7 +46,7 @@ export function PaymentsDataTable({
   filters = {},
   title,
   filterOptions,
-  activeFilter,
+  filterValue,
   onFilterChange,
   hiddenColumns = [],
 }: PaymentsDataTableProps) {
@@ -142,39 +140,40 @@ export function PaymentsDataTable({
 
   return (
     <div className="w-full">
-      {/* Enhanced toolbar */}
-      <div className="flex flex-wrap items-center justify-between pt-4 pb-3 gap-4 min-w-0">
-        {/* Title and/or Filter buttons on the left */}
-        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && <h3 className="text-lg truncate">{title}</h3>}
-          {filterOptions && activeFilter && onFilterChange && (
-            <FilterButtonGroup
-              options={filterOptions}
-              value={activeFilter}
-              onValueChange={onFilterChange}
-            />
-          )}
-        </div>
-
-        {/* View options and search */}
-        <div className="flex items-center gap-2 flex-wrap flex-shrink-0 justify-end">
-          <CollapsibleSearch
-            value={inputValue}
-            onChange={setInputValue}
-            // Customer name search is redundant when customer context is already scoped by filters.
-            placeholder={
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 pt-1 pb-2 px-4">
+        {/* Title row */}
+        {title && (
+          <div>
+            <h3 className="text-lg truncate">{title}</h3>
+          </div>
+        )}
+        {/* Toolbar */}
+        <DataTableToolbar
+          search={{
+            value: inputValue,
+            onChange: setInputValue,
+            placeholder:
               filters.customerId || filters.subscriptionId
                 ? 'Search payment_id...'
-                : 'Customer or payment_id...'
-            }
-            isLoading={isFetching}
-          />
-          <DataTableViewOptions table={table} />
-        </div>
+                : 'Customer or payment_id...',
+          }}
+          filter={
+            filterOptions && filterValue && onFilterChange
+              ? {
+                  value: filterValue,
+                  options: filterOptions,
+                  onChange: onFilterChange,
+                }
+              : undefined
+          }
+          isLoading={isLoading}
+          isFetching={isFetching}
+        />
       </div>
 
       {/* Table */}
-      <Table className="w-full" style={{ tableLayout: 'fixed' }}>
+      <Table style={{ tableLayout: 'fixed' }}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow
@@ -239,11 +238,13 @@ export function PaymentsDataTable({
       </Table>
 
       {/* Pagination */}
-      <div className="py-2">
+      <div className="py-2 px-4">
         <DataTablePagination
           table={table}
           totalCount={data?.total}
-          isFiltered={Object.keys(filters).length > 0}
+          isFiltered={
+            !!searchQuery || Object.keys(filters).length > 0
+          }
           filteredCount={data?.total}
           entityName="payment"
         />

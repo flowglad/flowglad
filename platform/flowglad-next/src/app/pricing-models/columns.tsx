@@ -2,11 +2,11 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
-import { Copy, Pencil, Star } from 'lucide-react'
+import { CopyIcon, CopyPlus, Pencil } from 'lucide-react'
 import * as React from 'react'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
-import SetPricingModelAsDefaultModal from '@/components/forms/SetPricingModelAsDefaultModal'
 // UI components last
 import { Badge } from '@/components/ui/badge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
@@ -24,29 +24,25 @@ function PricingModelActionsMenu({
 }) {
   const [isEditOpen, setIsEditOpen] = React.useState(false)
   const [isCloneOpen, setIsCloneOpen] = React.useState(false)
-  const [isSetDefaultOpen, setIsSetDefaultOpen] =
-    React.useState(false)
+  const copyIDHandler = useCopyTextHandler({ text: pricingModel.id })
 
   const actionItems: ActionMenuItem[] = [
     {
-      label: 'Edit',
+      label: 'Edit name',
       icon: <Pencil className="h-4 w-4" />,
       handler: () => setIsEditOpen(true),
     },
     {
+      label: 'Copy ID',
+      icon: <CopyIcon className="h-4 w-4" />,
+      handler: copyIDHandler,
+    },
+    {
       label: 'Duplicate',
-      icon: <Copy className="h-4 w-4" />,
+      icon: <CopyPlus className="h-4 w-4" />,
       handler: () => setIsCloneOpen(true),
     },
   ]
-
-  if (!pricingModel.isDefault) {
-    actionItems.push({
-      label: 'Set Default',
-      icon: <Star className="h-4 w-4" />,
-      handler: () => setIsSetDefaultOpen(true),
-    })
-  }
 
   return (
     <EnhancedDataTableActionsMenu items={actionItems}>
@@ -58,11 +54,6 @@ function PricingModelActionsMenu({
       <ClonePricingModelModal
         isOpen={isCloneOpen}
         setIsOpen={setIsCloneOpen}
-        pricingModel={pricingModel}
-      />
-      <SetPricingModelAsDefaultModal
-        isOpen={isSetDefaultOpen}
-        setIsOpen={setIsSetDefaultOpen}
         pricingModel={pricingModel}
       />
     </EnhancedDataTableActionsMenu>
