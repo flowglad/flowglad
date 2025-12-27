@@ -168,7 +168,8 @@ export function PurchasesDataTable({
           search={{
             value: inputValue,
             onChange: setInputValue,
-            placeholder: 'Search purchases...',
+            placeholder:
+              'Search by product, customer, or purchase_id',
           }}
           filter={{
             value: statusFilter,

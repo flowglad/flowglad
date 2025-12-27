@@ -3,6 +3,7 @@
 import {
   AlertCircle,
   Check,
+  ChevronDown,
   Loader2,
   Settings2,
   X,
@@ -76,6 +77,15 @@ export interface DataTableFilterPopoverProps<
   triggerLabel?: string
   /** Whether to show active filter count badge (default: true) */
   showBadge?: boolean
+  /** Button variant for the trigger (default: "outline") */
+  triggerVariant?: 'outline' | 'secondary' | 'ghost'
+  /** Icon style for the trigger (default: "settings") */
+  triggerIcon?: 'settings' | 'chevron'
+  /**
+   * Filter IDs to exclude from the badge count calculation.
+   * Useful when a filter value is displayed in the trigger label itself.
+   */
+  excludeFromBadgeCount?: string[]
 }
 
 /**
@@ -83,9 +93,12 @@ export interface DataTableFilterPopoverProps<
  */
 function calculateActiveFilterCount<
   T extends Record<string, unknown>,
->(values: T, defaultValues: T): number {
+>(values: T, defaultValues: T, excludeKeys: string[] = []): number {
   let count = 0
   for (const key of Object.keys(defaultValues)) {
+    if (excludeKeys.includes(key)) {
+      continue
+    }
     if (values[key] !== defaultValues[key]) {
       count++
     }
@@ -309,6 +322,9 @@ export function DataTableFilterPopover<
   disabled,
   triggerLabel = 'Filter',
   showBadge = true,
+  triggerVariant = 'outline',
+  triggerIcon = 'settings',
+  excludeFromBadgeCount = [],
 }: DataTableFilterPopoverProps<T>): React.ReactElement {
   const [isOpen, setIsOpen] = React.useState(false)
 
@@ -317,9 +333,10 @@ export function DataTableFilterPopover<
     () =>
       calculateActiveFilterCount(
         values,
-        neutralValues ?? defaultValues
+        neutralValues ?? defaultValues,
+        excludeFromBadgeCount
       ),
-    [values, neutralValues, defaultValues]
+    [values, neutralValues, defaultValues, excludeFromBadgeCount]
   )
 
   const handleReset = () => {
@@ -336,21 +353,29 @@ export function DataTableFilterPopover<
     })
   }
 
+  const IconComponent =
+    triggerIcon === 'chevron' ? ChevronDown : Settings2
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
+          variant={triggerVariant}
           size="sm"
           disabled={disabled}
-          className="h-9 gap-1 text-sm"
+          className="h-8 w-full sm:w-auto gap-1 text-sm"
         >
-          <Settings2 className="size-4" />
+          {triggerIcon === 'settings' && (
+            <IconComponent className="size-4" />
+          )}
           <span>{triggerLabel}</span>
           {showBadge && activeFilterCount > 0 && (
-            <span className="ml-1 flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
-              {activeFilterCount}
+            <span className="flex w-5 h-4 items-center justify-center rounded-sm bg-primary text-[10px] font-semibold text-primary-foreground">
+              +{activeFilterCount}
             </span>
+          )}
+          {triggerIcon === 'chevron' && (
+            <IconComponent className="size-4 text-muted-foreground" />
           )}
         </Button>
       </PopoverTrigger>

@@ -8,7 +8,7 @@ const InnerPurchasesPage = () => {
   return (
     <InnerPageContainerNew>
       <PageHeaderNew title="Purchases" hideBorder className="pb-2" />
-      <PurchasesDataTable hiddenColumns={['id', 'status']} />
+      <PurchasesDataTable hiddenColumns={['id', 'customer']} />
     </InnerPageContainerNew>
   )
 }

@@ -12,6 +12,10 @@ import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
+import {
+  DataTableFilterPopover,
+  type FilterSection,
+} from '@/components/ui/data-table-filter-popover'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { DataTableToolbar } from '@/components/ui/data-table-toolbar'
 import {
@@ -34,6 +38,38 @@ export interface SubscriptionsTableFilters {
   isFreePlan?: boolean
 }
 
+/**
+ * Filter state for the subscriptions multi-filter popover.
+ * Uses string values to match the DataTableFilterPopover interface.
+ * Index signature required for Record<string, unknown> compatibility.
+ */
+interface SubscriptionFilterValues {
+  [key: string]: string
+  status: string
+  planType: string
+  productName: string
+}
+
+/**
+ * Default filter values - what the filter starts with.
+ * Defaults to "Paid Plans" to match the previous implementation.
+ */
+const defaultFilterValues: SubscriptionFilterValues = {
+  status: 'all',
+  planType: 'paid',
+  productName: 'all',
+}
+
+/**
+ * Neutral filter values - represents "no filter applied" state.
+ * Used for badge calculation and the "Reset filters" action.
+ */
+const neutralFilterValues: SubscriptionFilterValues = {
+  status: 'all',
+  planType: 'all',
+  productName: 'all',
+}
+
 const statusFilterOptions = [
   { value: 'all', label: 'All' },
   { value: SubscriptionStatus.Active, label: 'Active' },
@@ -46,6 +82,12 @@ const statusFilterOptions = [
   { value: SubscriptionStatus.Paused, label: 'Paused' },
   { value: SubscriptionStatus.PastDue, label: 'Past Due' },
   { value: SubscriptionStatus.Incomplete, label: 'Incomplete' },
+]
+
+const planTypeFilterOptions = [
+  { value: 'all', label: 'All Plans' },
+  { value: 'paid', label: 'Paid Plans' },
+  { value: 'free', label: 'Free Plans' },
 ]
 
 interface SubscriptionsDataTableProps {
@@ -74,22 +116,92 @@ export function SubscriptionsDataTable({
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
 
-  // Status filter state - default to 'all'
-  const [statusFilter, setStatusFilter] = React.useState('all')
+  // Multi-filter state for status, plan type, and product
+  const [filterValues, setFilterValues] =
+    React.useState<SubscriptionFilterValues>(defaultFilterValues)
 
-  // Derive server filters from UI state
+  // Query for distinct product names that have subscriptions
+  const productNamesQuery =
+    trpc.subscriptions.listDistinctSubscriptionProductNames.useQuery(
+      {},
+      { staleTime: 5 * 60 * 1000 } // Cache for 5 minutes
+    )
+
+  // Build filter sections for the popover
+  const filterSections: FilterSection[] = React.useMemo(
+    () => [
+      {
+        id: 'planType',
+        label: 'Plan Type',
+        type: 'single-select' as const,
+        options: planTypeFilterOptions,
+      },
+      {
+        id: 'status',
+        label: 'Status',
+        type: 'single-select' as const,
+        options: statusFilterOptions,
+      },
+      {
+        id: 'productName',
+        label: 'Product',
+        type: 'async-select' as const,
+        loadOptions: async () => {
+          // Use cached data if available
+          if (productNamesQuery.data) {
+            return [
+              { value: 'all', label: 'All Products' },
+              ...productNamesQuery.data.map((name) => ({
+                value: name,
+                label: name,
+              })),
+            ]
+          }
+          // Refetch if no data available
+          const result = await productNamesQuery.refetch()
+          if (result.data) {
+            return [
+              { value: 'all', label: 'All Products' },
+              ...result.data.map((name) => ({
+                value: name,
+                label: name,
+              })),
+            ]
+          }
+          return [{ value: 'all', label: 'All Products' }]
+        },
+        placeholder: 'Select product...',
+      },
+    ],
+    [productNamesQuery]
+  )
+
+  // Derive server filters from UI filter state
   const derivedFilters =
     React.useMemo((): SubscriptionsTableFilters => {
       const filters: SubscriptionsTableFilters = {
         ...externalFilters,
       }
 
-      if (statusFilter !== 'all') {
-        filters.status = statusFilter as SubscriptionStatus
+      // Apply status filter
+      if (filterValues.status !== 'all') {
+        filters.status = filterValues.status as SubscriptionStatus
+      }
+
+      // Apply plan type filter (maps to isFreePlan boolean)
+      if (filterValues.planType === 'free') {
+        filters.isFreePlan = true
+      } else if (filterValues.planType === 'paid') {
+        filters.isFreePlan = false
+      }
+
+      // Apply product name filter
+      if (filterValues.productName !== 'all') {
+        filters.productName = filterValues.productName
       }
 
       return filters
-    }, [statusFilter, externalFilters])
+    }, [filterValues, externalFilters])
 
   const {
     pageIndex,
@@ -171,8 +283,11 @@ export function SubscriptionsDataTable({
     },
   })
 
-  // Calculate if any filter deviates from defaults (for pagination display)
-  const hasActiveFilters = statusFilter !== 'all'
+  // Calculate if any filter deviates from neutral (for pagination display)
+  const hasActiveFilters =
+    filterValues.status !== neutralFilterValues.status ||
+    filterValues.planType !== neutralFilterValues.planType ||
+    filterValues.productName !== neutralFilterValues.productName
 
   return (
     <div className="w-full">
@@ -188,12 +303,7 @@ export function SubscriptionsDataTable({
           search={{
             value: inputValue,
             onChange: setInputValue,
-            placeholder: 'Search subscriptions...',
-          }}
-          filter={{
-            value: statusFilter,
-            options: statusFilterOptions,
-            onChange: setStatusFilter,
+            placeholder: 'Search by customer or sub_id',
           }}
           actionButton={
             onCreateSubscription
@@ -205,7 +315,24 @@ export function SubscriptionsDataTable({
           }
           isLoading={isLoading}
           isFetching={isFetching}
-        />
+        >
+          <DataTableFilterPopover
+            sections={filterSections}
+            values={filterValues}
+            onChange={setFilterValues}
+            defaultValues={defaultFilterValues}
+            neutralValues={neutralFilterValues}
+            disabled={isLoading}
+            triggerLabel={
+              planTypeFilterOptions.find(
+                (opt) => opt.value === filterValues.planType
+              )?.label ?? 'All Plans'
+            }
+            triggerVariant="secondary"
+            triggerIcon="chevron"
+            excludeFromBadgeCount={['planType']}
+          />
+        </DataTableToolbar>
       </div>
 
       {/* Table */}
