@@ -78,6 +78,34 @@ describe('insertPurchase', () => {
       expect(purchase.pricingModelId).toBe(pricingModel.id)
     })
   })
+
+  it('should throw an error when priceId does not exist', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const nonExistentPriceId = `price_${core.nanoid()}`
+
+      await expect(
+        insertPurchase(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            priceId: nonExistentPriceId,
+            livemode: true,
+            name: 'Test Purchase',
+            priceType: PriceType.SinglePayment,
+            totalPurchaseValue: 1000,
+            quantity: 1,
+            firstInvoiceValue: 1000,
+            status: PurchaseStatus.Paid,
+            pricePerBillingCycle: null,
+            intervalUnit: null,
+            intervalCount: null,
+            trialPeriodDays: null,
+          },
+          transaction
+        )
+      ).rejects.toThrow()
+    })
+  })
 })
 
 describe('bulkInsertPurchases', () => {

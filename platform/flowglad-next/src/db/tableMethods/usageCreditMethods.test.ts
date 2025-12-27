@@ -24,7 +24,11 @@ import type { Product } from '../schema/products'
 import type { Subscription } from '../schema/subscriptions'
 import type { UsageCredit } from '../schema/usageCredits'
 import type { UsageMeter } from '../schema/usageMeters'
-import { insertUsageCredit } from './usageCreditMethods'
+import {
+  derivePricingModelIdFromUsageCredit,
+  insertUsageCredit,
+  pricingModelIdsForUsageCredits,
+} from './usageCreditMethods'
 
 describe('Usage Credit Methods', () => {
   let organization: Organization.Record
@@ -100,6 +104,146 @@ describe('Usage Credit Methods', () => {
           usageMeter.pricingModelId
         )
         expect(usageCredit.pricingModelId).toBe(pricingModel.id)
+      })
+    })
+
+    it('should throw an error when usageMeterId does not exist', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentUsageMeterId = `um_${core.nanoid()}`
+
+        await expect(
+          insertUsageCredit(
+            {
+              organizationId: organization.id,
+              usageMeterId: nonExistentUsageMeterId,
+              subscriptionId: subscription.id,
+              creditType: UsageCreditType.Grant,
+              livemode: true,
+              issuedAmount: 1000,
+              issuedAt: Date.now(),
+              status: UsageCreditStatus.Posted,
+              sourceReferenceId: `src_ref_${core.nanoid()}`,
+              sourceReferenceType:
+                UsageCreditSourceReferenceType.InvoiceSettlement,
+              notes: 'Test usage credit',
+              metadata: {},
+              paymentId: null,
+            },
+            transaction
+          )
+        ).rejects.toThrow()
+      })
+    })
+  })
+
+  describe('derivePricingModelIdFromUsageCredit', () => {
+    it('should successfully derive pricingModelId from usage credit', async () => {
+      const usageCredit = await setupUsageCredit({
+        organizationId: organization.id,
+        usageMeterId: usageMeter.id,
+        subscriptionId: subscription.id,
+        creditType: UsageCreditType.Grant,
+        livemode: true,
+        issuedAmount: 1000,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const pricingModelId =
+          await derivePricingModelIdFromUsageCredit(
+            usageCredit.id,
+            transaction
+          )
+
+        expect(pricingModelId).toBe(usageCredit.pricingModelId)
+        expect(pricingModelId).toBe(pricingModel.id)
+      })
+    })
+
+    it('should throw an error when usage credit does not exist', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentUsageCreditId = `uc_${core.nanoid()}`
+
+        await expect(
+          derivePricingModelIdFromUsageCredit(
+            nonExistentUsageCreditId,
+            transaction
+          )
+        ).rejects.toThrow()
+      })
+    })
+  })
+
+  describe('pricingModelIdsForUsageCredits', () => {
+    it('should successfully return map of pricingModelIds for multiple usage credits', async () => {
+      const usageCredit1 = await setupUsageCredit({
+        organizationId: organization.id,
+        usageMeterId: usageMeter.id,
+        subscriptionId: subscription.id,
+        creditType: UsageCreditType.Grant,
+        livemode: true,
+        issuedAmount: 1000,
+      })
+
+      const usageCredit2 = await setupUsageCredit({
+        organizationId: organization.id,
+        usageMeterId: usageMeter.id,
+        subscriptionId: subscription.id,
+        creditType: UsageCreditType.Grant,
+        livemode: true,
+        issuedAmount: 2000,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const pricingModelIdMap =
+          await pricingModelIdsForUsageCredits(
+            [usageCredit1.id, usageCredit2.id],
+            transaction
+          )
+
+        expect(pricingModelIdMap.size).toBe(2)
+        expect(pricingModelIdMap.get(usageCredit1.id)).toBe(
+          pricingModel.id
+        )
+        expect(pricingModelIdMap.get(usageCredit2.id)).toBe(
+          pricingModel.id
+        )
+      })
+    })
+
+    it('should return empty map when no usage credit IDs are provided', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const pricingModelIdMap =
+          await pricingModelIdsForUsageCredits([], transaction)
+
+        expect(pricingModelIdMap.size).toBe(0)
+      })
+    })
+
+    it('should only return entries for existing usage credits', async () => {
+      const usageCredit = await setupUsageCredit({
+        organizationId: organization.id,
+        usageMeterId: usageMeter.id,
+        subscriptionId: subscription.id,
+        creditType: UsageCreditType.Grant,
+        livemode: true,
+        issuedAmount: 1000,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentUsageCreditId = `uc_${core.nanoid()}`
+        const pricingModelIdMap =
+          await pricingModelIdsForUsageCredits(
+            [usageCredit.id, nonExistentUsageCreditId],
+            transaction
+          )
+
+        expect(pricingModelIdMap.size).toBe(1)
+        expect(pricingModelIdMap.get(usageCredit.id)).toBe(
+          pricingModel.id
+        )
+        expect(pricingModelIdMap.has(nonExistentUsageCreditId)).toBe(
+          false
+        )
       })
     })
   })

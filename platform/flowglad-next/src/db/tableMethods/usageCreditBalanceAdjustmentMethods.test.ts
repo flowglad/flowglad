@@ -106,6 +106,27 @@ describe('Usage Credit Balance Adjustment Methods', () => {
         )
       })
     })
+
+    it('should throw an error when adjustedUsageCreditId does not exist', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentUsageCreditId = `uc_${core.nanoid()}`
+
+        await expect(
+          insertUsageCreditBalanceAdjustment(
+            {
+              organizationId: organization.id,
+              adjustedUsageCreditId: nonExistentUsageCreditId,
+              usageMeterId: usageMeter.id,
+              amountAdjusted: 100,
+              adjustmentInitiatedAt: Date.now(),
+              reason: 'Test adjustment',
+              livemode: true,
+            },
+            transaction
+          )
+        ).rejects.toThrow()
+      })
+    })
   })
 
   describe('setupUsageCreditBalanceAdjustment', () => {

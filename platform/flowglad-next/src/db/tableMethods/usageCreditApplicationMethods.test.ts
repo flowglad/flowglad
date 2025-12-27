@@ -125,6 +125,36 @@ describe('insertUsageCreditApplication', () => {
       )
     })
   })
+
+  it('should throw an error when usageCreditId does not exist', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const usageEvent = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        customerId: customer.id,
+        transactionId: `txn_${core.nanoid()}`,
+        amount: 100,
+        livemode: true,
+      })
+      const nonExistentUsageCreditId = `uc_${core.nanoid()}`
+
+      await expect(
+        insertUsageCreditApplication(
+          {
+            organizationId: organization.id,
+            usageCreditId: nonExistentUsageCreditId,
+            usageEventId: usageEvent.id,
+            amountApplied: 100,
+            appliedAt: Date.now(),
+            livemode: true,
+            status: UsageCreditApplicationStatus.Posted,
+          },
+          transaction
+        )
+      ).rejects.toThrow()
+    })
+  })
 })
 
 describe('bulkInsertUsageCreditApplications', () => {
