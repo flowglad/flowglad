@@ -23,6 +23,7 @@ import { features, featuresSelectSchema } from '../schema/features'
 import type { Product } from '../schema/products'
 import { createDateNotPassedFilter } from '../tableUtils'
 import { derivePricingModelIdFromProduct } from './priceMethods'
+import { pricingModelIdsForProducts } from './productMethods'
 import { detachSubscriptionItemFeaturesFromProductFeature } from './subscriptionItemFeatureMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -51,10 +52,12 @@ export const insertProductFeature = async (
   productFeatureInsert: ProductFeature.Insert,
   transaction: DbTransaction
 ): Promise<ProductFeature.Record> => {
-  const pricingModelId = await derivePricingModelIdFromProduct(
-    productFeatureInsert.productId,
-    transaction
-  )
+  const pricingModelId = productFeatureInsert.pricingModelId
+    ? productFeatureInsert.pricingModelId
+    : await derivePricingModelIdFromProduct(
+        productFeatureInsert.productId,
+        transaction
+      )
   return baseInsertProductFeature(
     {
       ...productFeatureInsert,
@@ -169,18 +172,25 @@ export const bulkInsertProductFeatures = async (
   productFeatureInserts: ProductFeature.Insert[],
   transaction: DbTransaction
 ): Promise<ProductFeature.Record[]> => {
-  // Derive pricingModelId for each product feature
-  const productFeaturesWithPricingModelId = await Promise.all(
-    productFeatureInserts.map(async (productFeatureInsert) => {
-      const pricingModelId = await derivePricingModelIdFromProduct(
-        productFeatureInsert.productId,
-        transaction
-      )
+  const pricingModelIdMap = await pricingModelIdsForProducts(
+    productFeatureInserts.map((insert) => insert.productId),
+    transaction
+  )
+  const productFeaturesWithPricingModelId = productFeatureInserts.map(
+    (productFeatureInsert): ProductFeature.Insert => {
+      const pricingModelId =
+        productFeatureInsert.pricingModelId ??
+        pricingModelIdMap.get(productFeatureInsert.productId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Pricing model id not found for product ${productFeatureInsert.productId}`
+        )
+      }
       return {
         ...productFeatureInsert,
         pricingModelId,
       }
-    })
+    }
   )
   return baseBulkInsertProductFeatures(
     productFeaturesWithPricingModelId,
@@ -196,18 +206,25 @@ export const bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId =
     inserts: ProductFeature.Insert[],
     transaction: DbTransaction
   ) => {
-    // Derive pricingModelId for each product feature
-    const productFeaturesWithPricingModelId = await Promise.all(
-      inserts.map(async (productFeatureInsert) => {
-        const pricingModelId = await derivePricingModelIdFromProduct(
-          productFeatureInsert.productId,
-          transaction
-        )
+    const pricingModelIdMap = await pricingModelIdsForProducts(
+      inserts.map((insert) => insert.productId),
+      transaction
+    )
+    const productFeaturesWithPricingModelId = inserts.map(
+      (productFeatureInsert): ProductFeature.Insert => {
+        const pricingModelId =
+          productFeatureInsert.pricingModelId ??
+          pricingModelIdMap.get(productFeatureInsert.productId)
+        if (!pricingModelId) {
+          throw new Error(
+            `Pricing model id not found for product ${productFeatureInsert.productId}`
+          )
+        }
         return {
           ...productFeatureInsert,
           pricingModelId,
         }
-      })
+      }
     )
     return baseBulkInsertOrDoNothingProductFeatures(
       productFeaturesWithPricingModelId,

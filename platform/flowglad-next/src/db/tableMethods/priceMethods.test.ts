@@ -14,6 +14,8 @@ import { nulledPriceColumns, type Price } from '../schema/prices'
 import type { Product } from '../schema/products'
 import { updateCustomer } from './customerMethods'
 import {
+  bulkInsertPrices,
+  dangerouslyInsertPrice,
   insertPrice,
   pricingModelIdsForPrices,
   safelyInsertPrice,
@@ -1627,6 +1629,167 @@ describe('priceMethods.ts', () => {
           product.pricingModelId
         )
         expect(pricingModelIdMap.has(nonExistentPriceId)).toBe(false)
+      })
+    })
+  })
+
+  describe('insertPrice', () => {
+    it('should insert price and derive pricingModelId from product', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const newPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'Test Price',
+            type: PriceType.SinglePayment,
+            unitPrice: 5000,
+            livemode: true,
+            currency: CurrencyCode.USD,
+            slug: `test-price-${core.nanoid()}`,
+            isDefault: false,
+          },
+          transaction
+        )
+
+        expect(newPrice.pricingModelId).toBe(product.pricingModelId)
+      })
+    })
+
+    it('should use provided pricingModelId without derivation', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const newPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'Test Price with PM ID',
+            type: PriceType.SinglePayment,
+            unitPrice: 5000,
+            livemode: true,
+            currency: CurrencyCode.USD,
+            slug: `test-price-pm-${core.nanoid()}`,
+            isDefault: false,
+            pricingModelId: product.pricingModelId, // Pre-provided
+          },
+          transaction
+        )
+
+        expect(newPrice.pricingModelId).toBe(product.pricingModelId)
+      })
+    })
+  })
+
+  describe('dangerouslyInsertPrice', () => {
+    it('should use provided pricingModelId without derivation', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const newPrice = await dangerouslyInsertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'Test Dangerous Price',
+            type: PriceType.SinglePayment,
+            unitPrice: 7500,
+            livemode: true,
+            currency: CurrencyCode.USD,
+            slug: `test-dangerous-${core.nanoid()}`,
+            isDefault: false,
+            active: true,
+            pricingModelId: product.pricingModelId, // Pre-provided
+          },
+          transaction
+        )
+
+        expect(newPrice.pricingModelId).toBe(product.pricingModelId)
+      })
+    })
+  })
+
+  describe('bulkInsertPrices', () => {
+    let product2: Product.Record
+
+    beforeEach(async () => {
+      product2 = await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product 2',
+        livemode: true,
+        pricingModelId: product.pricingModelId,
+      })
+    })
+
+    it('should bulk insert prices and derive pricingModelId for each', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const prices = await bulkInsertPrices(
+          [
+            {
+              ...nulledPriceColumns,
+              productId: product.id,
+              name: 'Bulk Price 1',
+              type: PriceType.SinglePayment,
+              unitPrice: 3000,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `bulk-1-${core.nanoid()}`,
+              isDefault: false,
+            },
+            {
+              ...nulledPriceColumns,
+              productId: product2.id,
+              name: 'Bulk Price 2',
+              type: PriceType.SinglePayment,
+              unitPrice: 4000,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `bulk-2-${core.nanoid()}`,
+              isDefault: false,
+            },
+          ],
+          transaction
+        )
+
+        expect(prices).toHaveLength(2)
+        expect(prices[0]!.pricingModelId).toBe(product.pricingModelId)
+        expect(prices[1]!.pricingModelId).toBe(
+          product2.pricingModelId
+        )
+      })
+    })
+
+    it('should honor pre-provided pricingModelId in bulk insert', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const prices = await bulkInsertPrices(
+          [
+            {
+              ...nulledPriceColumns,
+              productId: product.id,
+              name: 'Bulk Price with PM 1',
+              type: PriceType.SinglePayment,
+              unitPrice: 3000,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `bulk-pm-1-${core.nanoid()}`,
+              isDefault: false,
+              pricingModelId: product.pricingModelId, // Pre-provided
+            },
+            {
+              ...nulledPriceColumns,
+              productId: product2.id,
+              name: 'Bulk Price without PM 2',
+              type: PriceType.SinglePayment,
+              unitPrice: 4000,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `bulk-pm-2-${core.nanoid()}`,
+              isDefault: false,
+              // No pricingModelId - should derive
+            },
+          ],
+          transaction
+        )
+
+        expect(prices).toHaveLength(2)
+        expect(prices[0]!.pricingModelId).toBe(product.pricingModelId)
+        expect(prices[1]!.pricingModelId).toBe(
+          product2.pricingModelId
+        )
       })
     })
   })

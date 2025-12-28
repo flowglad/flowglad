@@ -1,6 +1,8 @@
 import { Flowglad as FlowgladNode } from '@flowglad/node'
 import {
   type BillingWithChecks,
+  type BulkCreateUsageEventsParams,
+  bulkCreateUsageEventsSchema,
   type CancelSubscriptionParams,
   type CreateActivateSubscriptionCheckoutSessionParams,
   type CreateAddPaymentMethodCheckoutSessionParams,
@@ -350,8 +352,58 @@ export class FlowgladServer {
       usageEvent: {
         ...parsedParams,
         properties: parsedParams.properties ?? undefined,
-        usageDate: parsedParams.usageDate || undefined,
+        usageDate: parsedParams.usageDate ?? undefined,
       },
+    })
+  }
+
+  /**
+   * Create multiple usage events in a single request.
+   * NOTE: this method is more efficient than calling `createUsageEvent` multiple times.
+   * @param params - The parameters containing an array of usage events.
+   * @returns The created usage events.
+   * @throws {Error} If any subscription in the bulk request is not owned by the authenticated customer.
+   */
+  public bulkCreateUsageEvents = async (
+    params: BulkCreateUsageEventsParams
+  ): Promise<{
+    usageEvents: FlowgladNode.UsageEvents.UsageEventCreateResponse['usageEvent'][]
+  }> => {
+    const parsedParams = bulkCreateUsageEventsSchema.parse(params)
+
+    // Get billing to access current subscriptions for validation
+    const billing = await this.getBilling()
+
+    // Extract unique subscription IDs from the bulk request
+    const uniqueSubscriptionIds = [
+      ...new Set(
+        parsedParams.usageEvents.map((e) => e.subscriptionId)
+      ),
+    ]
+
+    // Get the customer's current subscription IDs
+    const customerSubscriptionIds =
+      billing.currentSubscriptions?.map((sub) => sub.id) ?? []
+
+    // Validate that all subscription IDs in the request are found among customer's current subscriptions
+    for (const subscriptionId of uniqueSubscriptionIds) {
+      if (!customerSubscriptionIds.includes(subscriptionId)) {
+        throw new Error(
+          `Subscription ${subscriptionId} is not found among the customer's current subscriptions`
+        )
+      }
+    }
+
+    // All validations passed, proceed with bulk creation
+    const usageEvents = parsedParams.usageEvents.map(
+      (usageEvent) => ({
+        ...usageEvent,
+        properties: usageEvent.properties ?? undefined,
+        usageDate: usageEvent.usageDate ?? undefined,
+      })
+    )
+    return this.flowgladNode.post('/api/v1/usage-events/bulk', {
+      body: { usageEvents },
     })
   }
 
