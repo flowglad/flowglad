@@ -3,8 +3,8 @@ import {
   Flowglad as FlowgladNode,
 } from '@flowglad/node'
 import {
-  type CreateBulkUsageEventsParams,
-  createBulkUsageEventsSchema,
+  type BulkCreateUsageEventsParams,
+  bulkCreateUsageEventsSchema,
 } from '@flowglad/shared'
 
 export class FlowgladServerAdmin {
@@ -92,11 +92,11 @@ export class FlowgladServerAdmin {
    * @returns The created usage events.
    */
   public async bulkCreateUsageEvents(
-    params: CreateBulkUsageEventsParams
+    params: BulkCreateUsageEventsParams
   ): Promise<{
     usageEvents: FlowgladNode.UsageEvents.UsageEventCreateResponse['usageEvent'][]
   }> {
-    const parsedParams = createBulkUsageEventsSchema.parse(params)
+    const parsedParams = bulkCreateUsageEventsSchema.parse(params)
     const usageEvents = parsedParams.usageEvents.map(
       (usageEvent) => ({
         ...usageEvent,

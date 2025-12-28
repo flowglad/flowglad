@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   billingAddressSchema,
+  bulkCreateUsageEventsSchema,
   cancelSubscriptionSchema,
   createActivateSubscriptionCheckoutSessionSchema,
   createAddPaymentMethodCheckoutSessionSchema,
-  createBulkUsageEventsSchema,
   createProductCheckoutSessionSchema,
   createSubscriptionSchema,
   createUsageEventSchema,
@@ -350,7 +350,7 @@ describe('createUsageEventSchema', () => {
   })
 })
 
-describe('createBulkUsageEventsSchema', () => {
+describe('bulkCreateUsageEventsSchema', () => {
   const validUsageEvent = {
     amount: 100,
     subscriptionId: 'sub_123',
@@ -360,7 +360,7 @@ describe('createBulkUsageEventsSchema', () => {
 
   it('accepts valid input with single usage event', () => {
     const input = { usageEvents: [validUsageEvent] }
-    const result = createBulkUsageEventsSchema.safeParse(input)
+    const result = bulkCreateUsageEventsSchema.safeParse(input)
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.usageEvents).toHaveLength(1)
@@ -381,7 +381,7 @@ describe('createBulkUsageEventsSchema', () => {
         },
       ],
     }
-    const result = createBulkUsageEventsSchema.safeParse(input)
+    const result = bulkCreateUsageEventsSchema.safeParse(input)
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.usageEvents).toHaveLength(3)
@@ -414,13 +414,13 @@ describe('createBulkUsageEventsSchema', () => {
         },
       ],
     }
-    const result = createBulkUsageEventsSchema.safeParse(input)
+    const result = bulkCreateUsageEventsSchema.safeParse(input)
     expect(result.success).toBe(true)
   })
 
   it('rejects empty array', () => {
     const input = { usageEvents: [] }
-    const result = createBulkUsageEventsSchema.safeParse(input)
+    const result = bulkCreateUsageEventsSchema.safeParse(input)
     expect(result.success).toBe(false)
   })
 
@@ -436,17 +436,17 @@ describe('createBulkUsageEventsSchema', () => {
         },
       ],
     }
-    const result = createBulkUsageEventsSchema.safeParse(input)
+    const result = bulkCreateUsageEventsSchema.safeParse(input)
     expect(result.success).toBe(false)
   })
 
   it('rejects missing usageEvents field', () => {
-    const result = createBulkUsageEventsSchema.safeParse({})
+    const result = bulkCreateUsageEventsSchema.safeParse({})
     expect(result.success).toBe(false)
   })
 
   it('rejects invalid usageEvents type', () => {
-    const result = createBulkUsageEventsSchema.safeParse({
+    const result = bulkCreateUsageEventsSchema.safeParse({
       usageEvents: 'not-an-array',
     })
     expect(result.success).toBe(false)

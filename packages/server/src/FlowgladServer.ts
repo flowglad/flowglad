@@ -1,10 +1,11 @@
 import { Flowglad as FlowgladNode } from '@flowglad/node'
 import {
   type BillingWithChecks,
+  type BulkCreateUsageEventsParams,
+  bulkCreateUsageEventsSchema,
   type CancelSubscriptionParams,
   type CreateActivateSubscriptionCheckoutSessionParams,
   type CreateAddPaymentMethodCheckoutSessionParams,
-  type CreateBulkUsageEventsParams,
   type CreateProductCheckoutSessionParams,
   type CreateSubscriptionParams,
   type CreateUsageEventParams,
@@ -15,7 +16,6 @@ import {
   constructHasPurchased,
   createActivateSubscriptionCheckoutSessionSchema,
   createAddPaymentMethodCheckoutSessionSchema,
-  createBulkUsageEventsSchema,
   createProductCheckoutSessionSchema,
   createUsageEventSchema,
   type SubscriptionExperimentalFields,
@@ -364,12 +364,12 @@ export class FlowgladServer {
    * @returns The created usage events.
    * @throws {Error} If any subscription in the bulk request is not owned by the authenticated customer.
    */
-  public createBulkUsageEvents = async (
-    params: CreateBulkUsageEventsParams
+  public bulkCreateUsageEvents = async (
+    params: BulkCreateUsageEventsParams
   ): Promise<{
     usageEvents: FlowgladNode.UsageEvents.UsageEventCreateResponse['usageEvent'][]
   }> => {
-    const parsedParams = createBulkUsageEventsSchema.parse(params)
+    const parsedParams = bulkCreateUsageEventsSchema.parse(params)
 
     // Get billing to access current subscriptions for validation
     const billing = await this.getBilling()

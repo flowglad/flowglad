@@ -145,12 +145,12 @@ export type CreateUsageEventParams = z.infer<
 /**
  * Schema for bulk creating usage events. Takes an array of usage events.
  */
-export const createBulkUsageEventsSchema = z.object({
+export const bulkCreateUsageEventsSchema = z.object({
   usageEvents: z.array(createUsageEventSchema).min(1),
 })
 
-export type CreateBulkUsageEventsParams = z.infer<
-  typeof createBulkUsageEventsSchema
+export type BulkCreateUsageEventsParams = z.infer<
+  typeof bulkCreateUsageEventsSchema
 >
 
 export type CancelSubscriptionParams = z.infer<
