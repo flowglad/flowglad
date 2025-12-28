@@ -671,7 +671,7 @@ describe('Invoice Components', () => {
     })
 
     describe('when isMoR is true', () => {
-      it('should display Flowglad LLC as seller', async () => {
+      it('should display Flowglad LLC as seller with merchant info and customer billing', async () => {
         const updatedCustomer = await adminTransaction(
           async ({ transaction }) => {
             return await updateCustomer(
@@ -711,78 +711,13 @@ describe('Invoice Components', () => {
         expect(
           getByTestId('seller-contact-info-name')
         ).toHaveTextContent(FLOWGLAD_LEGAL_ENTITY.name)
-      })
 
-      it('should show "For: [org name]" in seller section', async () => {
-        const updatedCustomer = await adminTransaction(
-          async ({ transaction }) => {
-            return await updateCustomer(
-              {
-                id: customer.id,
-                billingAddress: {
-                  address: {
-                    line1: '123 Main St',
-                    city: 'San Francisco',
-                    state: 'CA',
-                    postal_code: '94105',
-                    country: 'US',
-                  },
-                },
-              },
-              transaction
-            )
-          }
-        )
-
-        const { getByTestId } = render(
-          <InvoiceTemplate
-            invoice={invoice}
-            invoiceLineItems={invoiceLineItems}
-            customer={updatedCustomer}
-            organization={organization}
-            paymentLink="/pay"
-            isMoR={true}
-          />
-        )
-
+        // Should show "For: [org name]" in seller section
         expect(getByTestId('seller-for-merchant')).toHaveTextContent(
           `For: ${organization.name}`
         )
-      })
 
-      it('should display customer name, email, and address in bill-to section when isMoR is true', async () => {
-        const updatedCustomer = await adminTransaction(
-          async ({ transaction }) => {
-            return await updateCustomer(
-              {
-                id: customer.id,
-                billingAddress: {
-                  address: {
-                    line1: '123 Main St',
-                    line2: 'Apt 1',
-                    city: 'San Francisco',
-                    state: 'CA',
-                    postal_code: '94105',
-                    country: 'US',
-                  },
-                },
-              },
-              transaction
-            )
-          }
-        )
-
-        const { getByTestId } = render(
-          <InvoiceTemplate
-            invoice={invoice}
-            invoiceLineItems={invoiceLineItems}
-            customer={updatedCustomer}
-            organization={organization}
-            paymentLink="/pay"
-            isMoR={true}
-          />
-        )
-
+        // Should still display customer billing info correctly
         expect(getByTestId('bill-to-label')).toHaveTextContent(
           'Bill to'
         )
