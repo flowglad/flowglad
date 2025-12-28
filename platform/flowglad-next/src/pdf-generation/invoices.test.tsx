@@ -816,7 +816,7 @@ describe('Invoice Components', () => {
     })
 
     describe('when isMoR is true', () => {
-      it('should display Flowglad logo with correct alt text', () => {
+      it('should display Flowglad logo with "Flowglad LLC" as alt text', () => {
         const { getByTestId } = render(
           <DocumentHeader
             organization={organization}
@@ -825,7 +825,6 @@ describe('Invoice Components', () => {
           />
         )
 
-        // When isMoR=true and logo URL exists, the logo is shown with Flowglad name as alt text
         expect(getByTestId('organization-logo')).toHaveAttribute(
           'alt',
           FLOWGLAD_LEGAL_ENTITY.name
