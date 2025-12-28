@@ -526,7 +526,7 @@ describe('OrderReceiptEmail', () => {
         )
       })
 
-      it('should still display customer billing info correctly', () => {
+      it('should display invoice number, order date, and payment amount when isMoR is true', () => {
         const { getByTestId } = render(
           <OrderReceiptEmail {...mockProps} isMoR={true} />
         )
