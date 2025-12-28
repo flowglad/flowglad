@@ -11,8 +11,6 @@ import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-
 import { OrderReceiptEmail } from '@/email-templates/customer-order-receipt'
 import { PaymentFailedEmail } from '@/email-templates/customer-payment-failed'
 import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
-import { InvoiceNotificationEmail } from '@/email-templates/invoice-notification'
-import { InvoiceReminderEmail } from '@/email-templates/invoice-reminder'
 import { CustomersCsvExportReadyEmail } from '@/email-templates/organization/customers-csv-export-ready'
 import { OrganizationInvitationEmail } from '@/email-templates/organization/organization-invitation'
 import { OrganizationPaymentConfirmationEmail } from '@/email-templates/organization/organization-payment-awaiting-confirmation'
@@ -316,126 +314,6 @@ export const sendAwaitingPaymentConfirmationEmail = async ({
       currency,
       customerName: customerName,
       livemode,
-    }),
-  })
-}
-
-export const sendInvoiceReminderEmail = async ({
-  to,
-  cc,
-  invoice,
-  invoiceLineItems,
-  organizationName,
-  organizationLogoUrl,
-  replyTo,
-  discountInfo,
-  isMoR,
-}: {
-  to: string[]
-  cc?: string[]
-  invoice: Invoice.Record
-  invoiceLineItems: InvoiceLineItem.Record[]
-  organizationName: string
-  organizationLogoUrl?: string
-  replyTo?: string | null
-  discountInfo?: {
-    discountName: string
-    discountCode: string
-    discountAmount: number
-    discountAmountType: string
-  } | null
-  /** Whether this is a Merchant of Record invoice (Flowglad as seller) */
-  isMoR?: boolean
-}) => {
-  const fromAddress = isMoR
-    ? `Flowglad Billing <billing@flowglad.com>`
-    : `${organizationName} Billing <${kebabCase(organizationName)}-notifications@flowglad.com>`
-
-  const subject = isMoR
-    ? `Invoice Reminder #${invoice.invoiceNumber} from ${FLOWGLAD_LEGAL_ENTITY.name} for ${organizationName}`
-    : `${organizationName} Invoice Reminder: #${invoice.invoiceNumber}`
-
-  return safeSend({
-    from: fromAddress,
-    to: to.map(safeTo),
-    cc: cc?.map(safeTo),
-    replyTo: replyTo ?? undefined,
-    subject: formatEmailSubject(subject, invoice.livemode),
-    /**
-     * NOTE: await needed to prevent
-     * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
-     * @see
-     * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
-     * https://github.com/resend/react-email/issues/868
-     */
-    react: await InvoiceReminderEmail({
-      invoice,
-      invoiceLineItems,
-      organizationName,
-      organizationLogoUrl,
-      discountInfo,
-      livemode: invoice.livemode,
-      isMoR,
-    }),
-  })
-}
-
-export const sendInvoiceNotificationEmail = async ({
-  to,
-  cc,
-  invoice,
-  invoiceLineItems,
-  organizationName,
-  organizationLogoUrl,
-  replyTo,
-  discountInfo,
-  isMoR,
-}: {
-  to: string[]
-  cc?: string[]
-  invoice: Invoice.Record
-  invoiceLineItems: InvoiceLineItem.Record[]
-  organizationName: string
-  organizationLogoUrl?: string
-  replyTo?: string | null
-  discountInfo?: {
-    discountName: string
-    discountCode: string
-    discountAmount: number
-    discountAmountType: string
-  } | null
-  /** Whether this is a Merchant of Record invoice (Flowglad as seller) */
-  isMoR?: boolean
-}) => {
-  const fromAddress = isMoR
-    ? `Flowglad Billing <billing@flowglad.com>`
-    : `${organizationName} Billing <${kebabCase(organizationName)}-notifications@flowglad.com>`
-
-  const subject = isMoR
-    ? `Invoice #${invoice.invoiceNumber} from ${FLOWGLAD_LEGAL_ENTITY.name} for ${organizationName}`
-    : `${organizationName} New Invoice: #${invoice.invoiceNumber}`
-
-  return safeSend({
-    from: fromAddress,
-    to: to.map(safeTo),
-    cc: cc?.map(safeTo),
-    replyTo: replyTo ?? undefined,
-    subject: formatEmailSubject(subject, invoice.livemode),
-    /**
-     * NOTE: await needed to prevent
-     * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
-     * @see
-     * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
-     * https://github.com/resend/react-email/issues/868
-     */
-    react: await InvoiceNotificationEmail({
-      invoice,
-      invoiceLineItems,
-      organizationName,
-      organizationLogoUrl,
-      discountInfo,
-      livemode: invoice.livemode,
-      isMoR,
     }),
   })
 }

@@ -3,23 +3,16 @@ import core from '@/utils/core'
 import InternalDemoPage from './InternalDemoPage'
 import MoREmailPreview from './MoREmailPreview'
 
-type EmailTemplate =
-  | 'invoice-notification'
-  | 'invoice-reminder'
-  | 'order-receipt'
-
 const DemoPage = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ template?: string; mor?: string }>
+  searchParams: Promise<{ mor?: string }>
 }) => {
   if (core.IS_PROD) {
     return notFound()
   }
 
   const params = await searchParams
-  const template =
-    (params.template as EmailTemplate) || 'invoice-notification'
   const isMoR = params.mor !== 'false'
 
   return (
@@ -28,47 +21,23 @@ const DemoPage = async ({
 
       <div className="mb-8">
         <h2 className="text-xl font-semibold mb-2">
-          MoR Email Preview
+          MoR Email Preview (Order Receipt)
         </h2>
         <div className="mb-4 flex gap-2 flex-wrap">
           <a
-            href="/demo-route?template=invoice-notification&mor=true"
-            className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-          >
-            Invoice Notification (MoR)
-          </a>
-          <a
-            href="/demo-route?template=invoice-notification&mor=false"
-            className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
-          >
-            Invoice Notification
-          </a>
-          <a
-            href="/demo-route?template=invoice-reminder&mor=true"
-            className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-          >
-            Invoice Reminder (MoR)
-          </a>
-          <a
-            href="/demo-route?template=invoice-reminder&mor=false"
-            className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
-          >
-            Invoice Reminder
-          </a>
-          <a
-            href="/demo-route?template=order-receipt&mor=true"
+            href="/demo-route?mor=true"
             className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
           >
             Order Receipt (MoR)
           </a>
           <a
-            href="/demo-route?template=order-receipt&mor=false"
+            href="/demo-route?mor=false"
             className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
           >
             Order Receipt
           </a>
         </div>
-        <MoREmailPreview template={template} isMoR={isMoR} />
+        <MoREmailPreview isMoR={isMoR} />
       </div>
 
       <div className="border-t pt-8">
