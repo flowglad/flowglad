@@ -685,7 +685,7 @@ describe('diffProducts', () => {
     )
   })
 
-  it('should include priceDiff when features change', () => {
+  it('should not include priceDiff when only features change and prices are identical', () => {
     // Setup: same product slug and price, different features
     const existing: ProductDiffInput[] = [
       createProductInput({
