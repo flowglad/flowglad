@@ -645,7 +645,6 @@ describe('diffProducts', () => {
     expect(result.toUpdate).toHaveLength(1)
     expect(result.toUpdate[0].existing.product.name).toBe('Old')
     expect(result.toUpdate[0].proposed.product.name).toBe('New')
-    expect(result.toUpdate[0].priceDiff).toBeDefined()
     expect(
       result.toUpdate[0].priceDiff?.existingPrice?.unitPrice
     ).toBe(1000)
