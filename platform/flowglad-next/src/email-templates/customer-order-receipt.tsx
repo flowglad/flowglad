@@ -27,7 +27,7 @@ export const OrderReceiptEmail = ({
   customerId,
   discountInfo,
   livemode,
-  isMoR = false,
+  isMoR,
 }: {
   invoiceNumber: string
   orderDate: string
@@ -52,6 +52,7 @@ export const OrderReceiptEmail = ({
     discountAmountType: string
   } | null
   livemode: boolean
+  /** Whether this is a Merchant of Record invoice (Flowglad as seller) */
   isMoR?: boolean
 }) => {
   const totals = calculateInvoiceTotalsWithDiscounts(
@@ -60,17 +61,22 @@ export const OrderReceiptEmail = ({
     discountInfo
   )
 
+  // MoR branding: use Flowglad logo and name as seller
   const sellerName = isMoR
     ? FLOWGLAD_LEGAL_ENTITY.name
     : organizationName
   const sellerLogo = isMoR
     ? FLOWGLAD_LEGAL_ENTITY.logoURL
     : organizationLogoUrl
+  const previewText = isMoR
+    ? `Thanks for your order with ${organizationName}!`
+    : 'Thanks for your order!'
+  const signatureName = isMoR
+    ? `${sellerName} for ${organizationName}`
+    : organizationName
 
   return (
-    <EmailLayout
-      previewText={`Thanks for your order from ${sellerName}!`}
-    >
+    <EmailLayout previewText={previewText}>
       <TestModeBanner livemode={livemode} />
       <Header
         title="Thanks for your order!"
@@ -141,11 +147,7 @@ export const OrderReceiptEmail = ({
 
       <Signature
         greeting="Thanks,"
-        name={
-          isMoR
-            ? `${sellerName} for ${organizationName}`
-            : organizationName
-        }
+        name={signatureName}
         greetingDataTestId="signature-thanks"
         nameDataTestId="signature-org-name"
       />

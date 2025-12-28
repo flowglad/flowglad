@@ -11,6 +11,7 @@ import {
   Text,
 } from '@react-email/components'
 import type React from 'react'
+import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import type { Customer } from '@/db/schema/customers'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
@@ -46,12 +47,21 @@ const safePaymentMethodSummaryLabel = (
 interface DocumentHeaderProps {
   organization: Organization.Record
   mode: 'receipt' | 'invoice'
+  isMoR?: boolean
 }
 
 export const DocumentHeader: React.FC<DocumentHeaderProps> = ({
   organization,
   mode,
+  isMoR = false,
 }) => {
+  const logoURL = isMoR
+    ? FLOWGLAD_LEGAL_ENTITY.logoURL
+    : organization.logoURL
+  const displayName = isMoR
+    ? FLOWGLAD_LEGAL_ENTITY.name
+    : organization.name
+
   return (
     <Row style={{ marginBottom: '20px' }}>
       <Column style={{ width: '70%' }}>
@@ -77,11 +87,11 @@ export const DocumentHeader: React.FC<DocumentHeaderProps> = ({
           alignItems: 'flex-end',
         }}
       >
-        {organization.logoURL ? (
+        {logoURL ? (
           <Img
             data-testid="organization-logo"
-            src={organization.logoURL}
-            alt={`${organization.name}`}
+            src={logoURL}
+            alt={displayName}
             width="64"
             height="64"
             style={{ marginLeft: 'auto' }}
@@ -91,7 +101,7 @@ export const DocumentHeader: React.FC<DocumentHeaderProps> = ({
             data-testid="organization-name"
             style={{ fontSize: '24px', fontWeight: 'bold' }}
           >
-            {organization.name}
+            {displayName}
           </Text>
         )}
       </Column>
@@ -168,6 +178,7 @@ interface CheckoutInfoProps {
   organization: Organization.Record
   customer: Customer.Record
   billingAddress?: BillingAddress
+  isMoR?: boolean
 }
 
 const BillingAddressLabel: React.FC<{
@@ -189,14 +200,56 @@ const BillingAddressLabel: React.FC<{
   )
 }
 
-const OrganizationContactInfo: React.FC<{
+interface SellerContactInfoProps {
   organization: Organization.Record
-}> = ({ organization }) => {
+  isMoR: boolean
+}
+
+export const SellerContactInfo: React.FC<SellerContactInfoProps> = ({
+  organization,
+  isMoR,
+}) => {
+  if (isMoR) {
+    return (
+      <>
+        <Text
+          style={{ fontWeight: 'bold', margin: '0 0 5px 0' }}
+          data-testid="seller-contact-info-name"
+        >
+          {FLOWGLAD_LEGAL_ENTITY.name}
+        </Text>
+        <Text style={{ margin: '0' }}>
+          {FLOWGLAD_LEGAL_ENTITY.address.line1}
+        </Text>
+        <Text style={{ margin: '0' }}>
+          {FLOWGLAD_LEGAL_ENTITY.address.city},{' '}
+          {FLOWGLAD_LEGAL_ENTITY.address.state}{' '}
+          {FLOWGLAD_LEGAL_ENTITY.address.postal_code}
+        </Text>
+        <Text style={{ margin: '0' }}>
+          {FLOWGLAD_LEGAL_ENTITY.address.country}
+        </Text>
+        <Text style={{ margin: '0' }}>
+          {FLOWGLAD_LEGAL_ENTITY.contactEmail}
+        </Text>
+        <Text
+          data-testid="seller-for-merchant"
+          style={{
+            margin: '10px 0 0 0',
+            fontStyle: 'italic',
+            fontSize: '12px',
+          }}
+        >
+          For: {organization.name}
+        </Text>
+      </>
+    )
+  }
   return (
     <>
       <Text
         style={{ fontWeight: 'bold', margin: '0 0 5px 0' }}
-        data-testid="organization-contact-info-name"
+        data-testid="seller-contact-info-name"
       >
         {organization.name}
       </Text>
@@ -218,6 +271,7 @@ export const BillingInfo: React.FC<CheckoutInfoProps> = ({
   organization,
   customer,
   billingAddress,
+  isMoR = false,
 }) => {
   return (
     <Row style={{ marginBottom: '30px' }}>
@@ -228,7 +282,10 @@ export const BillingInfo: React.FC<CheckoutInfoProps> = ({
           verticalAlign: 'top',
         }}
       >
-        <OrganizationContactInfo organization={organization} />
+        <SellerContactInfo
+          organization={organization}
+          isMoR={isMoR}
+        />
       </Column>
 
       <Column
@@ -715,6 +772,7 @@ export interface InvoiceTemplateProps {
     discountAmount: number
     discountAmountType: string
   } | null
+  isMoR?: boolean
 }
 
 export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
@@ -724,6 +782,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
   organization,
   paymentLink,
   discountInfo,
+  isMoR = false,
 }) => {
   const totals = calculateInvoiceTotalsRaw(
     invoiceLineItems,
@@ -791,6 +850,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
           <DocumentHeader
             organization={organization}
             mode="invoice"
+            isMoR={isMoR}
           />
           <DocumentDetails invoice={invoice} mode="invoice" />
           {billingAddress && (
@@ -798,6 +858,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
               organization={organization}
               customer={customer}
               billingAddress={billingAddress}
+              isMoR={isMoR}
             />
           )}
           <PaymentInfo
