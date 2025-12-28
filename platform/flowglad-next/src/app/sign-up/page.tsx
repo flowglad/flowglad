@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ErrorContext } from 'better-auth/react'
-import { Loader2, Eye, EyeOff } from 'lucide-react' 
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -37,14 +37,11 @@ export default function SignUp() {
     mode: 'onSubmit',
   })
 
-  
- 
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
-  
   const signupFetchOptions = {
     onResponse: () => {
       setLoading(false)
@@ -134,9 +131,15 @@ export default function SignUp() {
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showPassword ? 'Hide password' : 'Show password'
+                  }
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? (
+                    <EyeOff size={16} />
+                  ) : (
+                    <Eye size={16} />
+                  )}
                 </button>
               </div>
               <ErrorLabel error={errors.password} />

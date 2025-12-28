@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import {Loader2, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -19,13 +19,11 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { signInSchema } from '@/lib/schemas'
 import { cn } from '@/lib/utils'
 import { authClient, signIn } from '@/utils/authClient'
-import { signInSchema } from '@/lib/schemas'
 
 export default function SignIn() {
- 
-
   type SigninValues = z.infer<typeof signInSchema>
 
   const {
@@ -141,9 +139,15 @@ export default function SignIn() {
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showPassword ? 'Hide password' : 'Show password'
+                  }
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? (
+                    <EyeOff size={16} />
+                  ) : (
+                    <Eye size={16} />
+                  )}
                 </button>
               </div>
               <ErrorLabel error={errors.password} />
