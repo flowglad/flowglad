@@ -4,6 +4,7 @@ import {
   type CreateEmailRequestOptions,
   Resend,
 } from 'resend'
+import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-billing-portal-magic-link'
@@ -105,8 +106,10 @@ export const sendReceiptEmail = async (params: {
     discountAmount: number
     discountAmountType: string
   } | null
+  /** Whether this is a Merchant of Record invoice (Flowglad as seller) */
+  isMoR?: boolean
 }) => {
-  const { invoice } = params
+  const { invoice, isMoR } = params
   const attachments: {
     filename: string
     path: string
@@ -129,12 +132,21 @@ export const sendReceiptEmail = async (params: {
   if (!invoice.livemode) {
     return
   }
+
+  const fromAddress = isMoR
+    ? `Flowglad Billing <billing@flowglad.com>`
+    : `${params.organizationName} Billing <${kebabCase(params.organizationName)}-notifications@flowglad.com>`
+
+  const subject = isMoR
+    ? `Order Receipt #${invoice.invoiceNumber} from ${FLOWGLAD_LEGAL_ENTITY.name} for ${params.organizationName}`
+    : `${params.organizationName} Order Receipt: #${invoice.invoiceNumber}`
+
   return safeSend({
-    from: `${params.organizationName} Billing <${kebabCase(params.organizationName)}-notifications@flowglad.com>`,
+    from: fromAddress,
     bcc: getBccForLivemode(invoice.livemode),
     to: params.to.map(safeTo),
     replyTo: params.replyTo ?? undefined,
-    subject: `${params.organizationName} Order Receipt: #${invoice.invoiceNumber}`,
+    subject,
     attachments,
     react: await OrderReceiptEmail({
       invoiceNumber: invoice.invoiceNumber,
@@ -155,6 +167,7 @@ export const sendReceiptEmail = async (params: {
       customerId: params.customerId,
       discountInfo: params.discountInfo,
       livemode: invoice.livemode,
+      isMoR,
     }),
   })
 }
@@ -316,6 +329,7 @@ export const sendInvoiceReminderEmail = async ({
   organizationLogoUrl,
   replyTo,
   discountInfo,
+  isMoR,
 }: {
   to: string[]
   cc?: string[]
@@ -330,16 +344,23 @@ export const sendInvoiceReminderEmail = async ({
     discountAmount: number
     discountAmountType: string
   } | null
+  /** Whether this is a Merchant of Record invoice (Flowglad as seller) */
+  isMoR?: boolean
 }) => {
+  const fromAddress = isMoR
+    ? `Flowglad Billing <billing@flowglad.com>`
+    : `${organizationName} Billing <${kebabCase(organizationName)}-notifications@flowglad.com>`
+
+  const subject = isMoR
+    ? `Invoice Reminder #${invoice.invoiceNumber} from ${FLOWGLAD_LEGAL_ENTITY.name} for ${organizationName}`
+    : `${organizationName} Invoice Reminder: #${invoice.invoiceNumber}`
+
   return safeSend({
-    from: 'notifs@flowglad.com',
+    from: fromAddress,
     to: to.map(safeTo),
     cc: cc?.map(safeTo),
     replyTo: replyTo ?? undefined,
-    subject: formatEmailSubject(
-      `${organizationName} Invoice Reminder: #${invoice.invoiceNumber}`,
-      invoice.livemode
-    ),
+    subject: formatEmailSubject(subject, invoice.livemode),
     /**
      * NOTE: await needed to prevent
      * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
@@ -354,6 +375,7 @@ export const sendInvoiceReminderEmail = async ({
       organizationLogoUrl,
       discountInfo,
       livemode: invoice.livemode,
+      isMoR,
     }),
   })
 }
@@ -367,6 +389,7 @@ export const sendInvoiceNotificationEmail = async ({
   organizationLogoUrl,
   replyTo,
   discountInfo,
+  isMoR,
 }: {
   to: string[]
   cc?: string[]
@@ -381,16 +404,23 @@ export const sendInvoiceNotificationEmail = async ({
     discountAmount: number
     discountAmountType: string
   } | null
+  /** Whether this is a Merchant of Record invoice (Flowglad as seller) */
+  isMoR?: boolean
 }) => {
+  const fromAddress = isMoR
+    ? `Flowglad Billing <billing@flowglad.com>`
+    : `${organizationName} Billing <${kebabCase(organizationName)}-notifications@flowglad.com>`
+
+  const subject = isMoR
+    ? `Invoice #${invoice.invoiceNumber} from ${FLOWGLAD_LEGAL_ENTITY.name} for ${organizationName}`
+    : `${organizationName} New Invoice: #${invoice.invoiceNumber}`
+
   return safeSend({
-    from: 'notifs@flowglad.com',
+    from: fromAddress,
     to: to.map(safeTo),
     cc: cc?.map(safeTo),
     replyTo: replyTo ?? undefined,
-    subject: formatEmailSubject(
-      `${organizationName} New Invoice: #${invoice.invoiceNumber}`,
-      invoice.livemode
-    ),
+    subject: formatEmailSubject(subject, invoice.livemode),
     /**
      * NOTE: await needed to prevent
      * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
@@ -405,6 +435,7 @@ export const sendInvoiceNotificationEmail = async ({
       organizationLogoUrl,
       discountInfo,
       livemode: invoice.livemode,
+      isMoR,
     }),
   })
 }

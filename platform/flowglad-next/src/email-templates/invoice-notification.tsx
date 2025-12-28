@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import { emailBaseUrl } from '@/utils/core'
@@ -22,6 +23,7 @@ export const InvoiceNotificationEmail = ({
   organizationName,
   discountInfo,
   livemode,
+  isMoR,
 }: {
   invoice: Invoice.Record
   invoiceLineItems: InvoiceLineItem.Record[]
@@ -34,6 +36,8 @@ export const InvoiceNotificationEmail = ({
     discountAmountType: string
   } | null
   livemode: boolean
+  /** Whether this is a Merchant of Record invoice (Flowglad as seller) */
+  isMoR?: boolean
 }) => {
   const { originalAmount, subtotalAmount, taxAmount, totalAmount } =
     calculateInvoiceTotalsFromLineItems(
@@ -50,13 +54,24 @@ export const InvoiceNotificationEmail = ({
       }
     : null
 
+  // MoR branding: use Flowglad logo and name as seller
+  const sellerName = isMoR
+    ? FLOWGLAD_LEGAL_ENTITY.name
+    : organizationName
+  const sellerLogo = isMoR
+    ? FLOWGLAD_LEGAL_ENTITY.logoURL
+    : organizationLogoUrl
+  const previewText = isMoR
+    ? `New Invoice from ${sellerName} for ${organizationName}`
+    : `New Invoice from ${organizationName}`
+  const signatureName = isMoR
+    ? `${sellerName} for ${organizationName}`
+    : organizationName
+
   return (
-    <EmailLayout previewText={`New Invoice from ${organizationName}`}>
+    <EmailLayout previewText={previewText}>
       <TestModeBanner livemode={livemode} />
-      <Header
-        title="New Invoice"
-        organizationLogoUrl={organizationLogoUrl}
-      />
+      <Header title="New Invoice" organizationLogoUrl={sellerLogo} />
       <DetailSection>
         <DetailItem>Invoice #: {invoice.invoiceNumber}</DetailItem>
         <DetailItem>
@@ -90,7 +105,22 @@ export const InvoiceNotificationEmail = ({
         View Invoice →
       </EmailButton>
 
-      <Signature greeting="Best regards," name={organizationName} />
+      {isMoR && (
+        <Paragraph
+          style={{
+            fontSize: '12px',
+            color: '#666',
+            marginTop: '20px',
+          }}
+        >
+          This purchase was processed by {FLOWGLAD_LEGAL_ENTITY.name}{' '}
+          for {organizationName}. You may see "
+          {FLOWGLAD_LEGAL_ENTITY.cardStatementDescriptor}" on your
+          card statement.
+        </Paragraph>
+      )}
+
+      <Signature greeting="Best regards," name={signatureName} />
     </EmailLayout>
   )
 }

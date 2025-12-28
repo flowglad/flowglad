@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import core from '@/utils/core'
@@ -24,6 +25,7 @@ export const InvoiceReminderEmail = ({
   organizationName,
   discountInfo,
   livemode,
+  isMoR,
 }: {
   invoice: Invoice.Record
   invoiceLineItems: InvoiceLineItem.Record[]
@@ -36,6 +38,8 @@ export const InvoiceReminderEmail = ({
     discountAmountType: string
   } | null
   livemode: boolean
+  /** Whether this is a Merchant of Record invoice (Flowglad as seller) */
+  isMoR?: boolean
 }) => {
   const { originalAmount, subtotalAmount, taxAmount, totalAmount } =
     calculateInvoiceTotalsFromLineItems(
@@ -52,12 +56,26 @@ export const InvoiceReminderEmail = ({
       }
     : null
 
+  // MoR branding: use Flowglad logo and name as seller
+  const sellerName = isMoR
+    ? FLOWGLAD_LEGAL_ENTITY.name
+    : organizationName
+  const sellerLogo = isMoR
+    ? FLOWGLAD_LEGAL_ENTITY.logoURL
+    : organizationLogoUrl
+  const previewText = isMoR
+    ? `Invoice Reminder from ${sellerName} for ${organizationName}`
+    : 'Invoice Reminder'
+  const signatureName = isMoR
+    ? `${sellerName} for ${organizationName}`
+    : organizationName
+
   return (
-    <EmailLayout previewText="Invoice Reminder">
+    <EmailLayout previewText={previewText}>
       <TestModeBanner livemode={livemode} />
       <Header
         title="Invoice Reminder"
-        organizationLogoUrl={organizationLogoUrl}
+        organizationLogoUrl={sellerLogo}
       />
 
       <DetailSection>
@@ -90,7 +108,22 @@ export const InvoiceReminderEmail = ({
         View Invoice →
       </EmailButton>
 
-      <Signature greeting="Best regards," name={organizationName} />
+      {isMoR && (
+        <Paragraph
+          style={{
+            fontSize: '12px',
+            color: '#666',
+            marginTop: '20px',
+          }}
+        >
+          This purchase was processed by {FLOWGLAD_LEGAL_ENTITY.name}{' '}
+          for {organizationName}. You may see "
+          {FLOWGLAD_LEGAL_ENTITY.cardStatementDescriptor}" on your
+          card statement.
+        </Paragraph>
+      )}
+
+      <Signature greeting="Best regards," name={signatureName} />
     </EmailLayout>
   )
 }
