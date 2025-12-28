@@ -1,201 +1,175 @@
 'use client'
-import { useState } from 'react'
-import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import type { Invoice } from '@/db/schema/invoices'
-import { OrderReceiptEmail } from '@/email-templates/customer-order-receipt'
-import { InvoiceNotificationEmail } from '@/email-templates/invoice-notification'
-import { InvoiceReminderEmail } from '@/email-templates/invoice-reminder'
-import { CurrencyCode, SubscriptionItemType } from '@/types'
+import { useEffect } from 'react'
+import { PricingTable } from '@/registry/base/pricing/pricing-table'
+import type { PricingProductGroup } from '@/registry/base/pricing/types'
+import { trpc } from '../_trpc/client'
 
-// Mock data for invoice demos
-// Using timestamps for dates (number type expected by schema)
-const mockDate = Date.now()
-
-// We cast these as the Record types since this is a demo page
-// and we only need the fields used by the email templates
-const mockInvoice = {
-  id: 'inv_mock123',
-  invoiceNumber: 'INV-2024-0042',
-  invoiceDate: mockDate,
-  dueDate: mockDate + 30 * 24 * 60 * 60 * 1000, // 30 days later
-  currency: CurrencyCode.USD,
-  customerId: 'cust_mock123',
-  organizationId: 'org_mock123',
-  livemode: true,
-  createdAt: mockDate,
-  taxAmount: 1599,
-  subtotal: 18000,
-} as Invoice.Record
-
-const mockInvoiceLineItems = [
-  {
-    id: 'inv_li_mock1',
-    invoiceId: 'inv_mock123',
-    quantity: 1,
-    description: 'Pro Plan - Monthly Subscription',
-    price: 9900,
-    type: SubscriptionItemType.Static,
-    livemode: true,
-  },
-  {
-    id: 'inv_li_mock2',
-    invoiceId: 'inv_mock123',
-    quantity: 1,
-    description: 'API Usage - 10,000 requests',
-    price: 4900,
-    type: SubscriptionItemType.Usage,
-    livemode: true,
-  },
-  {
-    id: 'inv_li_mock3',
-    invoiceId: 'inv_mock123',
-    quantity: 2,
-    description: 'Additional Team Seats',
-    price: 1600,
-    type: SubscriptionItemType.Static,
-    livemode: true,
-  },
-] as InvoiceLineItem.Record[]
-
-const MOCK_MERCHANT_NAME = 'Acme SaaS Inc.'
-const MOCK_MERCHANT_LOGO =
-  'https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?w=128&h=128&fit=crop'
-
-type EmailTemplate =
-  | 'invoice-notification'
-  | 'invoice-reminder'
-  | 'order-receipt'
+/**
+ * NOTE: The MoR email template preview was moved to a server component
+ * because email templates import from @/db/schema/* which uses Node.js APIs.
+ * To preview MoR emails, use the react-email dev server instead:
+ *   cd platform/flowglad-next && bun run email:dev
+ */
 
 const InternalDemoPage = () => {
-  const [isMoR, setIsMoR] = useState(true)
-  const [selectedTemplate, setSelectedTemplate] =
-    useState<EmailTemplate>('invoice-notification')
-
-  const renderEmailTemplate = () => {
-    switch (selectedTemplate) {
-      case 'invoice-notification':
-        return (
-          <InvoiceNotificationEmail
-            invoice={mockInvoice}
-            invoiceLineItems={mockInvoiceLineItems}
-            organizationName={MOCK_MERCHANT_NAME}
-            organizationLogoUrl={MOCK_MERCHANT_LOGO}
-            livemode={true}
-            isMoR={isMoR}
-          />
-        )
-      case 'invoice-reminder':
-        return (
-          <InvoiceReminderEmail
-            invoice={mockInvoice}
-            invoiceLineItems={mockInvoiceLineItems}
-            organizationName={MOCK_MERCHANT_NAME}
-            organizationLogoUrl={MOCK_MERCHANT_LOGO}
-            livemode={true}
-            isMoR={isMoR}
-          />
-        )
-      case 'order-receipt':
-        return (
-          <OrderReceiptEmail
-            invoiceNumber={mockInvoice.invoiceNumber}
-            orderDate="December 28, 2024"
-            invoice={{
-              subtotal: mockInvoice.subtotal,
-              taxAmount: mockInvoice.taxAmount,
-              currency: mockInvoice.currency,
-            }}
-            lineItems={mockInvoiceLineItems.map((item) => ({
-              name: item.description ?? '',
-              price: item.price,
-              quantity: item.quantity,
-            }))}
-            organizationName={MOCK_MERCHANT_NAME}
-            organizationLogoUrl={MOCK_MERCHANT_LOGO}
-            organizationId={mockInvoice.organizationId}
-            customerId={mockInvoice.customerId}
-            livemode={true}
-            isMoR={isMoR}
-          />
-        )
-    }
-  }
-
+  const productGroups: PricingProductGroup[] = [
+    {
+      name: 'Personal',
+      slug: 'personal',
+      products: [
+        {
+          slug: 'personal-free',
+          name: 'Free',
+          price: {
+            unitAmount: 0,
+            currency: 'USD',
+            intervalUnit: 'month',
+            intervalCount: 1,
+          },
+          description: 'Basic tools to explore the platform.',
+          features: [
+            { text: 'Single user', included: true },
+            { text: 'Community support', included: true },
+            {
+              text: 'Usage limits apply',
+              included: true,
+              tooltip: 'Reasonable monthly limits for evaluation',
+            },
+            { text: 'Advanced analytics', included: false },
+          ],
+          cta: { text: 'Get started', variant: 'default' },
+          footnote: 'No credit card required',
+          current: true,
+        },
+        {
+          slug: 'personal-pro',
+          name: 'Pro',
+          price: {
+            unitAmount: 20,
+            currency: 'USD',
+            intervalUnit: 'month',
+            intervalCount: 1,
+          },
+          description:
+            'For individuals who need more power and higher limits.',
+          features: [
+            { text: 'Single user', included: true },
+            { text: 'Priority email support', included: true },
+            { text: 'Higher usage limits', included: true },
+            { text: 'Advanced analytics', included: true },
+          ],
+          cta: { text: 'Upgrade to Pro', variant: 'default' },
+          popular: true,
+          footnote: 'Billed monthly',
+        },
+        {
+          slug: 'personal-max',
+          name: 'Max',
+          price: {
+            unitAmount: 40,
+            currency: 'USD',
+            intervalUnit: 'month',
+            intervalCount: 1,
+          },
+          description:
+            'All features for power users with maximum limits.',
+          features: [
+            { text: 'Single user', included: true },
+            { text: 'Priority support', included: true },
+            { text: 'Maximum usage limits', included: true },
+            { text: 'Advanced analytics & exports', included: true },
+          ],
+          cta: { text: 'Go Max', variant: 'default' },
+          footnote: 'Best for heavy personal usage',
+        },
+      ],
+    },
+    {
+      name: 'Team',
+      slug: 'team',
+      products: [
+        {
+          slug: 'team-starter',
+          name: 'Starter',
+          price: {
+            unitAmount: 49,
+            currency: 'USD',
+            intervalUnit: 'month',
+            intervalCount: 1,
+          },
+          description:
+            'Everything you need to collaborate as a small team.',
+          features: [
+            { text: 'Up to 5 seats', included: true },
+            { text: 'Role-based access', included: true },
+            { text: 'Shared workspaces', included: true },
+            { text: 'Basic analytics', included: true },
+          ],
+          cta: { text: 'Choose Starter', variant: 'default' },
+        },
+        {
+          slug: 'team-growth',
+          name: 'Growth',
+          price: {
+            unitAmount: 99,
+            currency: 'USD',
+            intervalUnit: 'month',
+            intervalCount: 1,
+          },
+          description:
+            'For growing teams that need advanced controls and insights.',
+          features: [
+            { text: 'Up to 20 seats', included: true },
+            { text: 'SSO (SAML)', included: true },
+            { text: 'Advanced analytics', included: true },
+            { text: 'Priority support', included: true },
+          ],
+          cta: { text: 'Choose Growth', variant: 'default' },
+          popular: true,
+          footnote: 'Most teams choose this',
+        },
+        {
+          slug: 'team-enterprise',
+          name: 'Enterprise',
+          price: {
+            unitAmount: 0,
+            currency: 'USD',
+            intervalUnit: 'month',
+            intervalCount: 1,
+          },
+          description:
+            'Custom pricing for large organizations with advanced needs.',
+          features: [
+            { text: 'Unlimited seats', included: true },
+            { text: 'Dedicated support & SLA', included: true },
+            { text: 'Security reviews', included: true },
+            { text: 'Custom contracts', included: true },
+          ],
+          cta: { text: 'Contact sales', variant: 'outline' },
+          footnote: 'Custom pricing',
+        },
+      ],
+    },
+  ]
+  const { mutate: requestMagicLink } =
+    trpc.customerBillingPortal.requestMagicLink.useMutation()
+  useEffect(() => {
+    requestMagicLink({
+      organizationId: '123',
+      email: 'test@test.com',
+    })
+    // FIXME(FG-384): Fix this warning:
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="mx-auto max-w-4xl">
-        <h1 className="mb-6 text-2xl font-bold text-gray-900">
-          MoR Email Template Preview
-        </h1>
-
-        {/* Controls */}
-        <div className="mb-6 rounded-lg bg-white p-4 shadow">
-          <div className="flex flex-wrap items-center gap-6">
-            {/* MoR Toggle */}
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={isMoR}
-                onChange={(e) => setIsMoR(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Merchant of Record Mode
-              </span>
-            </label>
-
-            {/* Template Selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">
-                Template:
-              </span>
-              <select
-                value={selectedTemplate}
-                onChange={(e) =>
-                  setSelectedTemplate(e.target.value as EmailTemplate)
-                }
-                className="rounded border border-gray-300 px-3 py-1 text-sm"
-              >
-                <option value="invoice-notification">
-                  Invoice Notification
-                </option>
-                <option value="invoice-reminder">
-                  Invoice Reminder
-                </option>
-                <option value="order-receipt">Order Receipt</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Info Banner */}
-          <div className="mt-4 rounded bg-blue-50 p-3 text-sm text-blue-800">
-            {isMoR ? (
-              <>
-                <strong>MoR Mode:</strong> Emails show Flowglad LLC as
-                the seller with &quot;For: {MOCK_MERCHANT_NAME}&quot;
-                branding. Card statement will show &quot;FLGLD*&quot;.
-              </>
-            ) : (
-              <>
-                <strong>Platform Mode:</strong> Emails show{' '}
-                {MOCK_MERCHANT_NAME} as the seller with their own
-                branding.
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Email Preview */}
-        <div className="overflow-hidden rounded-lg bg-white shadow">
-          <div className="border-b border-gray-200 bg-gray-50 px-4 py-2">
-            <span className="text-xs font-medium text-gray-500">
-              EMAIL PREVIEW
-            </span>
-          </div>
-          <div className="p-0">{renderEmailTemplate()}</div>
-        </div>
-      </div>
-    </div>
+    <PricingTable
+      productGroups={productGroups}
+      currentGroupSlug="personal"
+      onProductSelect={() => {
+        // Handle product selection
+      }}
+      showToggle={true}
+    />
   )
 }
 
