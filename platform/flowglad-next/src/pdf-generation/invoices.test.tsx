@@ -750,7 +750,7 @@ describe('Invoice Components', () => {
         )
       })
 
-      it('should still display customer billing info correctly', async () => {
+      it('should display customer name, email, and address in bill-to section when isMoR is true', async () => {
         const updatedCustomer = await adminTransaction(
           async ({ transaction }) => {
             return await updateCustomer(
