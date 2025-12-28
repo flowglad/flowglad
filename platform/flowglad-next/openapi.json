@@ -3052,7 +3052,17 @@
                 "type": "object",
                 "properties": {
                   "pricingModel": {
-                    "$ref": "#/components/schemas/PricingModelClientInsertSchema"
+                    "type": "object",
+                    "properties": {
+                      "isDefault": {
+                        "type": "boolean"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": ["name"]
                   },
                   "defaultPlanIntervalUnit": {
                     "type": "string",
@@ -9040,18 +9050,6 @@
           "amountType",
           "duration"
         ]
-      },
-      "PricingModelClientInsertSchema": {
-        "type": "object",
-        "properties": {
-          "isDefault": {
-            "type": "boolean"
-          },
-          "name": {
-            "type": "string"
-          }
-        },
-        "required": ["name"]
       },
       "CurrencyCode": {
         "description": "Currency code",
