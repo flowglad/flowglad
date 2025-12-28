@@ -129,7 +129,7 @@ const hiddenColumns = {
 const zodSchemaEnhancementColumns = {
   billingAddress: billingAddressSchema.nullable().optional(),
 
-  name: z.string().min(2, "Please enter the customer's full name"),
+  name: z.string().min(1, "Please enter the customer's name"),
   email: z.email('Please enter a valid email address'),
 }
 
