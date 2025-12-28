@@ -491,11 +491,13 @@ export const validateFeatureDiff = (
 
     // Handle usageMeterSlug -> usageMeterId transformation for UsageCreditGrant features
     // In the setup schema, we use usageMeterSlug, but the client update schema expects usageMeterId
-    // Since usageMeterId is create-only, any change to usageMeterSlug should fail validation
+    // usageMeterId is updatable (per features.ts schemas), so changes to usageMeterSlug are allowed
+    // The transformation from usageMeterSlug to usageMeterId is only to align client update payloads
+    // with the schema so validation can proceed. Tests expect changing usageMeterSlug/usageMeterId
+    // to be allowed (not to throw).
     const transformedUpdate = { ...updateObject }
     if ('usageMeterSlug' in transformedUpdate) {
-      // usageMeterSlug changes are not allowed (usageMeterId is create-only)
-      // Transform to usageMeterId to let the schema validation catch it
+      // Transform usageMeterSlug to usageMeterId to align with the client update schema
       ;(transformedUpdate as Record<string, unknown>).usageMeterId = (
         transformedUpdate as Record<string, unknown>
       ).usageMeterSlug
