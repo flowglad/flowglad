@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Key, Loader2 } from 'lucide-react'
+import {Loader2, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -22,16 +21,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { authClient, signIn } from '@/utils/authClient'
+import { signInSchema } from '@/lib/schemas'
 
 export default function SignIn() {
-  const signInSchema = z.object({
-    email: z
-      .string()
-      .email({ message: 'Please enter a valid email' }),
-    password: z
-      .string()
-      .min(1, { message: 'Please enter your password' }),
-  })
+ 
 
   type SigninValues = z.infer<typeof signInSchema>
 
@@ -49,6 +42,7 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const emailValue = watch('email')
   const forgotPasswordDisabled = !z
@@ -135,13 +129,23 @@ export default function SignIn() {
                   Forgot your password?
                 </div>
               </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="password"
-                autoComplete="password"
-                {...register('password')}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="password"
+                  autoComplete="password"
+                  {...register('password')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               <ErrorLabel error={errors.password} />
             </div>
 
