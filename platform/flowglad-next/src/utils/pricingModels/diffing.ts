@@ -5,7 +5,12 @@
  * (features, products, usage meters) to identify what needs to be created, updated, or removed.
  */
 
-import type { SetupPricingModelInput } from './setupSchemas'
+import * as R from 'ramda'
+import type {
+  SetupPricingModelInput,
+  SetupPricingModelProductInput,
+  SetupPricingModelProductPriceInput,
+} from './setupSchemas'
 
 /**
  * A resource with a slug identifier.
@@ -23,6 +28,12 @@ export type FeatureDiffInput =
  */
 export type UsageMeterDiffInput =
   SetupPricingModelInput['usageMeters'][number]
+
+/**
+ * Input type for product diffing - same as SetupPricingModelProductInput.
+ * Products are complex objects with nested product, price, and features.
+ */
+export type ProductDiffInput = SetupPricingModelProductInput
 
 /**
  * Result of diffing two arrays of slugged resources.
@@ -173,4 +184,161 @@ export const diffUsageMeters = (
   proposed: UsageMeterDiffInput[]
 ): DiffResult<UsageMeterDiffInput> => {
   return diffSluggedResources(existing, proposed)
+}
+
+/**
+ * Result of diffing two arrays of products.
+ *
+ * Similar to DiffResult but with additional price comparison information
+ * for products that need to be updated.
+ */
+export type ProductDiffResult = {
+  /**
+   * Products that exist in the existing array but not in the proposed array.
+   * These products should be removed.
+   */
+  toRemove: ProductDiffInput[]
+  /**
+   * Products that exist in the proposed array but not in the existing array.
+   * These products should be created.
+   */
+  toCreate: ProductDiffInput[]
+  /**
+   * Products that exist in both arrays (matched by product slug).
+   * These products may need to be updated if their properties differ.
+   * Includes price diff information when prices differ.
+   */
+  toUpdate: Array<{
+    existing: ProductDiffInput
+    proposed: ProductDiffInput
+    /**
+     * Price comparison information when prices differ or one is missing.
+     * Only present if the prices are different or one is undefined.
+     */
+    priceDiff?: {
+      existingPrice?: SetupPricingModelProductPriceInput
+      proposedPrice?: SetupPricingModelProductPriceInput
+    }
+  }>
+}
+
+/**
+ * Extracts the product slug from a ProductDiffInput for slug-based diffing.
+ */
+const getProductSlug = (productInput: ProductDiffInput): string => {
+  return productInput.product.slug
+}
+
+/**
+ * Converts ProductDiffInput array to a format compatible with diffSluggedResources
+ * by adding the slug at the top level.
+ */
+const toSluggedProducts = (
+  products: ProductDiffInput[]
+): SluggedResource<ProductDiffInput>[] => {
+  return products.map((p) => ({
+    ...p,
+    slug: getProductSlug(p),
+  }))
+}
+
+/**
+ * Checks if two prices are different by comparing their JSON representations.
+ */
+const pricesAreDifferent = (
+  existingPrice: SetupPricingModelProductPriceInput | undefined,
+  proposedPrice: SetupPricingModelProductPriceInput | undefined
+): boolean => {
+  // Both undefined means no difference
+  if (existingPrice === undefined && proposedPrice === undefined) {
+    return false
+  }
+  // One undefined and one defined means different
+  if (existingPrice === undefined || proposedPrice === undefined) {
+    return true
+  }
+  // Both defined - compare using deep equality
+  return !R.equals(existingPrice, proposedPrice)
+}
+
+/**
+ * Diffs product arrays to identify which products need to be removed, created, or updated.
+ *
+ * Products are compared by their product.slug field. For products that exist in both
+ * arrays, the function also compares their prices and includes price diff information
+ * in the result.
+ *
+ * @param existing - Array of existing products (SetupPricingModelProductInput)
+ * @param proposed - Array of proposed products (SetupPricingModelProductInput)
+ * @returns A ProductDiffResult containing products to remove, create, and update with price diffs
+ *
+ * @example
+ * ```typescript
+ * const existing = [{
+ *   product: { slug: 'pro', name: 'Pro Plan', ... },
+ *   price: { type: 'subscription', unitPrice: 1000, ... },
+ *   features: ['feature-a']
+ * }]
+ * const proposed = [{
+ *   product: { slug: 'pro', name: 'Pro Plan Updated', ... },
+ *   price: { type: 'subscription', unitPrice: 2000, ... },
+ *   features: ['feature-a', 'feature-b']
+ * }]
+ * const diff = diffProducts(existing, proposed)
+ * // diff.toUpdate[0] will contain the product with priceDiff showing the unitPrice change
+ * ```
+ */
+export const diffProducts = (
+  existing: ProductDiffInput[],
+  proposed: ProductDiffInput[]
+): ProductDiffResult => {
+  // Convert to slugged format for generic diffing
+  const sluggedExisting = toSluggedProducts(existing)
+  const sluggedProposed = toSluggedProducts(proposed)
+
+  // Use generic diffing for basic categorization
+  const baseDiff = diffSluggedResources(
+    sluggedExisting,
+    sluggedProposed
+  )
+
+  // Build the result with price diffs for updates
+  const toUpdate = baseDiff.toUpdate.map(
+    ({ existing: existingProduct, proposed: proposedProduct }) => {
+      // Cast to ProductDiffInput to access price property
+      const existing = existingProduct as unknown as ProductDiffInput
+      const proposed = proposedProduct as unknown as ProductDiffInput
+
+      const existingPrice = existing.price
+      const proposedPrice = proposed.price
+
+      // Check if prices are different
+      const hasPriceDiff = pricesAreDifferent(
+        existingPrice,
+        proposedPrice
+      )
+
+      // Build the update entry
+      const updateEntry: ProductDiffResult['toUpdate'][number] = {
+        existing,
+        proposed,
+      }
+
+      // Only include priceDiff if prices are actually different
+      if (hasPriceDiff) {
+        updateEntry.priceDiff = {
+          existingPrice,
+          proposedPrice,
+        }
+      }
+
+      return updateEntry
+    }
+  ) as ProductDiffResult['toUpdate']
+
+  return {
+    toRemove: baseDiff.toRemove as unknown as ProductDiffInput[],
+    toCreate: baseDiff.toCreate as unknown as ProductDiffInput[],
+    toUpdate,
+  }
 }
