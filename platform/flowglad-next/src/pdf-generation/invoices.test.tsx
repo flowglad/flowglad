@@ -703,7 +703,9 @@ describe('Invoice Components', () => {
           />
         )
 
-        expect(getByTestId('organization-name')).toHaveTextContent(
+        // When isMoR=true and logo URL exists, the logo is shown with Flowglad name as alt text
+        expect(getByTestId('organization-logo')).toHaveAttribute(
+          'alt',
           FLOWGLAD_LEGAL_ENTITY.name
         )
         expect(
@@ -879,7 +881,7 @@ describe('Invoice Components', () => {
     })
 
     describe('when isMoR is true', () => {
-      it('should display Flowglad name', () => {
+      it('should display Flowglad logo with correct alt text', () => {
         const { getByTestId } = render(
           <DocumentHeader
             organization={organization}
@@ -888,7 +890,9 @@ describe('Invoice Components', () => {
           />
         )
 
-        expect(getByTestId('organization-name')).toHaveTextContent(
+        // When isMoR=true and logo URL exists, the logo is shown with Flowglad name as alt text
+        expect(getByTestId('organization-logo')).toHaveAttribute(
+          'alt',
           FLOWGLAD_LEGAL_ENTITY.name
         )
       })
