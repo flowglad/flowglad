@@ -4,13 +4,6 @@ import { PricingTable } from '@/registry/base/pricing/pricing-table'
 import type { PricingProductGroup } from '@/registry/base/pricing/types'
 import { trpc } from '../_trpc/client'
 
-/**
- * NOTE: The MoR email template preview was moved to a server component
- * because email templates import from @/db/schema/* which uses Node.js APIs.
- * To preview MoR emails, use the react-email dev server instead:
- *   cd platform/flowglad-next && bun run email:dev
- */
-
 const InternalDemoPage = () => {
   const productGroups: PricingProductGroup[] = [
     {
