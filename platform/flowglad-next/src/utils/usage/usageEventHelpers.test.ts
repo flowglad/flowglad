@@ -550,12 +550,7 @@ describe('usageEventHelpers', () => {
 
       // Setup price with this usage meter
       const distinctPrice = await setupPrice({
-        productId: (
-          await adminTransaction(async ({ transaction }) => {
-            const orgSetup = await setupOrg()
-            return orgSetup.product
-          })
-        ).id,
+        productId: orgSetup.product.id,
         name: 'Distinct Properties Price',
         type: PriceType.Usage,
         unitPrice: 10,
@@ -1708,7 +1703,7 @@ describe('usageEventHelpers', () => {
       })
     })
 
-    it('should throw error when subscription or usage meter not found', async () => {
+    it('should throw error when subscription not found', async () => {
       await adminTransaction(async ({ transaction }) => {
         const usageEvent = await setupUsageEvent({
           organizationId: organization.id,
@@ -1720,7 +1715,6 @@ describe('usageEventHelpers', () => {
           priceId: usagePrice.id,
         })
 
-        // Test 1: Invalid subscriptionId
         const invalidSubscriptionEvent = {
           ...usageEvent,
           subscriptionId: 'non-existent-subscription-id',
@@ -1737,8 +1731,21 @@ describe('usageEventHelpers', () => {
         ).rejects.toThrow(
           'Subscription non-existent-subscription-id not found'
         )
+      })
+    })
 
-        // Test 2: Invalid usageMeterId
+    it('should throw error when usage meter not found', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const usageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: mainSubscription.id,
+          usageMeterId: usageMeter.id,
+          customerId: customer.id,
+          amount: 10,
+          transactionId: `txn_${core.nanoid()}`,
+          priceId: usagePrice.id,
+        })
+
         const invalidMeterEvent = {
           ...usageEvent,
           usageMeterId: 'non-existent-usage-meter-id',

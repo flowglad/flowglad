@@ -531,16 +531,18 @@ export const generateLedgerCommandsForBulkUsageEvents = async (
       usageEvent.subscriptionId
     )
     if (!subscription) {
-      throw new Error(
-        `Subscription ${usageEvent.subscriptionId} not found`
-      )
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `Subscription ${usageEvent.subscriptionId} not found`,
+      })
     }
 
     const usageMeter = usageMeterById.get(usageEvent.usageMeterId)
     if (!usageMeter) {
-      throw new Error(
-        `Usage meter ${usageEvent.usageMeterId} not found`
-      )
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `Usage meter ${usageEvent.usageMeterId} not found`,
+      })
     }
 
     const billingPeriod =
