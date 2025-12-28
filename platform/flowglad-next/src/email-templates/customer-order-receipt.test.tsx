@@ -464,83 +464,60 @@ describe('OrderReceiptEmail', () => {
   })
 
   describe('MoR Support', () => {
-    describe('when isMoR is false', () => {
-      it('should render organization branding', () => {
-        const { getByAltText, getByTestId } = render(
-          <OrderReceiptEmail {...mockProps} isMoR={false} />
-        )
+    it('should render organization branding when isMoR is false', () => {
+      const { getByAltText, getByTestId, queryByText } = render(
+        <OrderReceiptEmail {...mockProps} isMoR={false} />
+      )
 
-        expect(getByAltText('Logo')).toHaveAttribute(
-          'src',
-          mockProps.organizationLogoUrl
-        )
-        expect(getByTestId('signature-org-name')).toHaveTextContent(
-          mockProps.organizationName
-        )
-      })
+      // Organization branding
+      expect(getByAltText('Logo')).toHaveAttribute(
+        'src',
+        mockProps.organizationLogoUrl
+      )
+      expect(getByTestId('signature-org-name')).toHaveTextContent(
+        mockProps.organizationName
+      )
 
-      it('should not show card statement descriptor notice', () => {
-        const { queryByText } = render(
-          <OrderReceiptEmail {...mockProps} isMoR={false} />
-        )
-
-        expect(
-          queryByText(/This purchase was processed by/)
-        ).not.toBeInTheDocument()
-      })
+      // No card statement descriptor notice
+      expect(
+        queryByText(/This purchase was processed by/)
+      ).not.toBeInTheDocument()
     })
 
-    describe('when isMoR is true', () => {
-      it('should show Flowglad branding', () => {
-        const { getByAltText } = render(
-          <OrderReceiptEmail {...mockProps} isMoR={true} />
-        )
+    it('should render Flowglad branding and MoR notice when isMoR is true', () => {
+      const { getByAltText, getByTestId, container } = render(
+        <OrderReceiptEmail {...mockProps} isMoR={true} />
+      )
 
-        expect(getByAltText('Logo')).toHaveAttribute(
-          'src',
-          FLOWGLAD_LEGAL_ENTITY.logoURL
-        )
-      })
+      // Flowglad branding
+      expect(getByAltText('Logo')).toHaveAttribute(
+        'src',
+        FLOWGLAD_LEGAL_ENTITY.logoURL
+      )
 
-      it('should include card statement descriptor notice', () => {
-        const { container } = render(
-          <OrderReceiptEmail {...mockProps} isMoR={true} />
-        )
+      // Card statement descriptor notice
+      expect(container.textContent).toContain(
+        FLOWGLAD_LEGAL_ENTITY.cardStatementDescriptor
+      )
+      expect(container.textContent).toContain(
+        'This purchase was processed by'
+      )
 
-        // The text contains the card statement descriptor in the MoR notice
-        expect(container.textContent).toContain(
-          FLOWGLAD_LEGAL_ENTITY.cardStatementDescriptor
-        )
-        expect(container.textContent).toContain(
-          'This purchase was processed by'
-        )
-      })
+      // Signature shows "for [merchant]"
+      expect(getByTestId('signature-org-name')).toHaveTextContent(
+        `${FLOWGLAD_LEGAL_ENTITY.name} for ${mockProps.organizationName}`
+      )
 
-      it('should show "for [merchant]" in signature', () => {
-        const { getByTestId } = render(
-          <OrderReceiptEmail {...mockProps} isMoR={true} />
-        )
-
-        expect(getByTestId('signature-org-name')).toHaveTextContent(
-          `${FLOWGLAD_LEGAL_ENTITY.name} for ${mockProps.organizationName}`
-        )
-      })
-
-      it('should display invoice number, order date, and payment amount when isMoR is true', () => {
-        const { getByTestId } = render(
-          <OrderReceiptEmail {...mockProps} isMoR={true} />
-        )
-
-        expect(getByTestId('invoice-number')).toHaveTextContent(
-          `Invoice #: ${mockProps.invoiceNumber}`
-        )
-        expect(getByTestId('order-date')).toHaveTextContent(
-          `Date: ${mockProps.orderDate}`
-        )
-        expect(getByTestId('payment-amount')).toHaveTextContent(
-          'Payment: $60.00'
-        )
-      })
+      // Customer billing info still displays correctly
+      expect(getByTestId('invoice-number')).toHaveTextContent(
+        `Invoice #: ${mockProps.invoiceNumber}`
+      )
+      expect(getByTestId('order-date')).toHaveTextContent(
+        `Date: ${mockProps.orderDate}`
+      )
+      expect(getByTestId('payment-amount')).toHaveTextContent(
+        'Payment: $60.00'
+      )
     })
   })
 })
