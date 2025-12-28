@@ -11,6 +11,7 @@ import {
   setupPricingModel,
   setupProduct,
   setupSubscription,
+  setupUsageEvent,
   setupUsageMeter,
 } from '@/../seedDatabase'
 import {
@@ -33,14 +34,17 @@ import {
   CurrencyCode,
   IntervalUnit,
   LedgerTransactionInitiatingSourceType,
+  LedgerTransactionType,
   PriceType,
   UsageMeterAggregationType,
 } from '@/types'
 // Function to test
 import {
   createUsageEventWithSlugSchema,
+  generateLedgerCommandsForBulkUsageEvents,
   ingestAndProcessUsageEvent,
   resolveUsageEventInput,
+  shouldProcessUsageEventLedgerCommand,
 } from '@/utils/usage/usageEventHelpers'
 
 describe('usageEventHelpers', () => {
@@ -51,9 +55,10 @@ describe('usageEventHelpers', () => {
   let mainBillingPeriod: BillingPeriod.Record
   let organization: Organization.Record
   let usageMeter: UsageMeter.Record
+  let orgSetup: Awaited<ReturnType<typeof setupOrg>>
   beforeEach(async () => {
     await adminTransaction(async ({ transaction }) => {
-      const orgSetup = await setupOrg()
+      orgSetup = await setupOrg()
       organization = orgSetup.organization
       customer = await setupCustomer({
         organizationId: organization.id,
@@ -1317,6 +1322,440 @@ describe('usageEventHelpers', () => {
       ).rejects.toThrow(
         "Usage meter with slug non-existent-usage-meter-slug not found for this customer's pricing model"
       )
+    })
+  })
+
+  async function setupCountDistinctPropertiesMeter({
+    organizationId,
+    customerId,
+    paymentMethodId,
+    pricingModelId,
+    productId,
+  }: {
+    organizationId: string
+    customerId: string
+    paymentMethodId: string
+    pricingModelId: string
+    productId: string
+  }) {
+    const distinctMeter = await setupUsageMeter({
+      organizationId,
+      name: 'Distinct Properties Meter',
+      livemode: true,
+      pricingModelId,
+      aggregationType:
+        UsageMeterAggregationType.CountDistinctProperties,
+    })
+
+    const distinctPrice = await setupPrice({
+      productId,
+      name: 'Distinct Price',
+      type: PriceType.Usage,
+      unitPrice: 10,
+      intervalUnit: IntervalUnit.Day,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+      usageMeterId: distinctMeter.id,
+    })
+
+    const distinctSubscription = await setupSubscription({
+      organizationId,
+      customerId,
+      paymentMethodId,
+      priceId: distinctPrice.id,
+    })
+
+    const now = new Date()
+    const endDate = new Date(now)
+    endDate.setDate(now.getDate() + 30)
+    const distinctBillingPeriod = await setupBillingPeriod({
+      subscriptionId: distinctSubscription.id,
+      startDate: now,
+      endDate: endDate,
+    })
+
+    return {
+      distinctMeter,
+      distinctPrice,
+      distinctSubscription,
+      distinctBillingPeriod,
+    }
+  }
+
+  describe('shouldProcessUsageEventLedgerCommand', () => {
+    it('should return true for non-CountDistinctProperties meter', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const usageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: mainSubscription.id,
+          usageMeterId: usageMeter.id,
+          customerId: customer.id,
+          amount: 10,
+          transactionId: `txn_${core.nanoid()}`,
+          priceId: usagePrice.id,
+        })
+
+        const shouldProcess =
+          await shouldProcessUsageEventLedgerCommand(
+            {
+              usageEvent,
+              usageMeterAggregationType:
+                UsageMeterAggregationType.Sum,
+              billingPeriod: mainBillingPeriod,
+            },
+            transaction
+          )
+
+        expect(shouldProcess).toBe(true)
+      })
+    })
+
+    it('should return true for unique properties and false for duplicate properties in same billing period for CountDistinctProperties meter', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Setup CountDistinctProperties meter using existing org setup
+        const {
+          distinctMeter,
+          distinctPrice,
+          distinctSubscription,
+          distinctBillingPeriod,
+        } = await setupCountDistinctPropertiesMeter({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          pricingModelId: orgSetup.pricingModel.id,
+          productId: orgSetup.product.id,
+        })
+
+        const testProperties = {
+          user_id: 'user_123',
+          feature: 'export',
+        }
+
+        // Test 1: Create usage event with unique properties - should return true
+        const uniqueEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: distinctSubscription.id,
+          usageMeterId: distinctMeter.id,
+          customerId: customer.id,
+          amount: 1,
+          transactionId: `txn_${core.nanoid()}`,
+          priceId: distinctPrice.id,
+          properties: testProperties,
+          billingPeriodId: distinctBillingPeriod.id,
+        })
+
+        const shouldProcessUnique =
+          await shouldProcessUsageEventLedgerCommand(
+            {
+              usageEvent: uniqueEvent,
+              usageMeterAggregationType:
+                UsageMeterAggregationType.CountDistinctProperties,
+              billingPeriod: distinctBillingPeriod,
+            },
+            transaction
+          )
+
+        expect(shouldProcessUnique).toBe(true)
+
+        // Test 2: Create second usage event with same properties - should return false
+        const duplicateEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: distinctSubscription.id,
+          usageMeterId: distinctMeter.id,
+          customerId: customer.id,
+          amount: 1,
+          transactionId: `txn_${core.nanoid()}`,
+          priceId: distinctPrice.id,
+          properties: testProperties,
+          billingPeriodId: distinctBillingPeriod.id,
+        })
+
+        const shouldProcessDuplicate =
+          await shouldProcessUsageEventLedgerCommand(
+            {
+              usageEvent: duplicateEvent,
+              usageMeterAggregationType:
+                UsageMeterAggregationType.CountDistinctProperties,
+              billingPeriod: distinctBillingPeriod,
+            },
+            transaction
+          )
+
+        expect(shouldProcessDuplicate).toBe(false)
+      })
+    })
+
+    it('should throw error when CountDistinctProperties meter has no billing period', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const usageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: mainSubscription.id,
+          usageMeterId: usageMeter.id,
+          customerId: customer.id,
+          amount: 10,
+          transactionId: `txn_${core.nanoid()}`,
+          priceId: usagePrice.id,
+        })
+
+        await expect(
+          shouldProcessUsageEventLedgerCommand(
+            {
+              usageEvent,
+              usageMeterAggregationType:
+                UsageMeterAggregationType.CountDistinctProperties,
+              billingPeriod: null,
+            },
+            transaction
+          )
+        ).rejects.toThrow(
+          'Billing period is required for usage meter of type "count_distinct_properties".'
+        )
+      })
+    })
+  })
+
+  describe('generateLedgerCommandsForBulkUsageEvents', () => {
+    it('should generate ledger commands for all inserted events when none are duplicates and include organizationId and subscriptionId from subscription lookup', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create 3 usage events with different transactionIds
+        const event1 = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: mainSubscription.id,
+          usageMeterId: usageMeter.id,
+          customerId: customer.id,
+          amount: 10,
+          transactionId: `txn_${core.nanoid()}`,
+          priceId: usagePrice.id,
+        })
+
+        const event2 = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: mainSubscription.id,
+          usageMeterId: usageMeter.id,
+          customerId: customer.id,
+          amount: 20,
+          transactionId: `txn_${core.nanoid()}`,
+          priceId: usagePrice.id,
+        })
+
+        const event3 = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: mainSubscription.id,
+          usageMeterId: usageMeter.id,
+          customerId: customer.id,
+          amount: 30,
+          transactionId: `txn_${core.nanoid()}`,
+          priceId: usagePrice.id,
+        })
+
+        const ledgerCommands =
+          await generateLedgerCommandsForBulkUsageEvents(
+            {
+              insertedUsageEvents: [event1, event2, event3],
+              livemode: true,
+            },
+            transaction
+          )
+
+        expect(ledgerCommands.length).toBe(3)
+        expect(ledgerCommands[0].type).toBe(
+          LedgerTransactionType.UsageEventProcessed
+        )
+        expect(ledgerCommands[0].livemode).toBe(true)
+        expect(ledgerCommands[0].organizationId).toBe(organization.id)
+        expect(ledgerCommands[0].subscriptionId).toBe(
+          mainSubscription.id
+        )
+        expect(ledgerCommands[0].payload.usageEvent.id).toBe(
+          event1.id
+        )
+        expect(ledgerCommands[1].payload.usageEvent.id).toBe(
+          event2.id
+        )
+        expect(ledgerCommands[2].payload.usageEvent.id).toBe(
+          event3.id
+        )
+      })
+    })
+
+    it('should skip ledger commands for CountDistinctProperties duplicates in same period, including when properties key order differs', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Setup CountDistinctProperties meter using existing org setup
+        const {
+          distinctMeter,
+          distinctPrice,
+          distinctSubscription,
+          distinctBillingPeriod,
+        } = await setupCountDistinctPropertiesMeter({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          pricingModelId: orgSetup.pricingModel.id,
+          productId: orgSetup.product.id,
+        })
+
+        const testProperties = {
+          user_id: 'user_123',
+          feature: 'export',
+        }
+
+        // Test 1: Create first event with unique properties
+        const event1 = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: distinctSubscription.id,
+          usageMeterId: distinctMeter.id,
+          customerId: customer.id,
+          amount: 1,
+          transactionId: `txn_${core.nanoid()}`,
+          priceId: distinctPrice.id,
+          properties: testProperties,
+          billingPeriodId: distinctBillingPeriod.id,
+        })
+
+        // Test 1: Create second event with same properties (duplicate)
+        const event2 = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: distinctSubscription.id,
+          usageMeterId: distinctMeter.id,
+          customerId: customer.id,
+          amount: 1,
+          transactionId: `txn_${core.nanoid()}`,
+          priceId: distinctPrice.id,
+          properties: testProperties,
+          billingPeriodId: distinctBillingPeriod.id,
+        })
+
+        const ledgerCommands1 =
+          await generateLedgerCommandsForBulkUsageEvents(
+            {
+              insertedUsageEvents: [event1, event2],
+              livemode: true,
+            },
+            transaction
+          )
+
+        // Should only generate command for first event (second is duplicate)
+        expect(ledgerCommands1.length).toBe(1)
+        expect(ledgerCommands1[0].payload.usageEvent.id).toBe(
+          event1.id
+        )
+
+        // Test 2: Test deduplication with different key order
+        const propsA = {
+          user_id: 'user_456',
+          feature: 'import',
+        }
+        const propsB = {
+          feature: 'import',
+          user_id: 'user_456',
+        }
+
+        const event3 = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: distinctSubscription.id,
+          usageMeterId: distinctMeter.id,
+          customerId: customer.id,
+          amount: 1,
+          transactionId: `txn_${core.nanoid()}`,
+          priceId: distinctPrice.id,
+          properties: propsA,
+          billingPeriodId: distinctBillingPeriod.id,
+        })
+
+        const event4 = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: distinctSubscription.id,
+          usageMeterId: distinctMeter.id,
+          customerId: customer.id,
+          amount: 1,
+          transactionId: `txn_${core.nanoid()}`,
+          priceId: distinctPrice.id,
+          properties: propsB,
+          billingPeriodId: distinctBillingPeriod.id,
+        })
+
+        const ledgerCommands2 =
+          await generateLedgerCommandsForBulkUsageEvents(
+            {
+              insertedUsageEvents: [event3, event4],
+              livemode: true,
+            },
+            transaction
+          )
+
+        // Should only generate command for first event (second is duplicate even with different key order)
+        expect(ledgerCommands2.length).toBe(1)
+        expect(ledgerCommands2[0].payload.usageEvent.id).toBe(
+          event3.id
+        )
+      })
+    })
+
+    it('should return empty array when no events provided', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const ledgerCommands =
+          await generateLedgerCommandsForBulkUsageEvents(
+            {
+              insertedUsageEvents: [],
+              livemode: true,
+            },
+            transaction
+          )
+
+        expect(ledgerCommands.length).toBe(0)
+      })
+    })
+
+    it('should throw error when subscription or usage meter not found', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const usageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: mainSubscription.id,
+          usageMeterId: usageMeter.id,
+          customerId: customer.id,
+          amount: 10,
+          transactionId: `txn_${core.nanoid()}`,
+          priceId: usagePrice.id,
+        })
+
+        // Test 1: Invalid subscriptionId
+        const invalidSubscriptionEvent = {
+          ...usageEvent,
+          subscriptionId: 'non-existent-subscription-id',
+        }
+
+        await expect(
+          generateLedgerCommandsForBulkUsageEvents(
+            {
+              insertedUsageEvents: [invalidSubscriptionEvent],
+              livemode: true,
+            },
+            transaction
+          )
+        ).rejects.toThrow(
+          'Subscription non-existent-subscription-id not found'
+        )
+
+        // Test 2: Invalid usageMeterId
+        const invalidMeterEvent = {
+          ...usageEvent,
+          usageMeterId: 'non-existent-usage-meter-id',
+        }
+
+        await expect(
+          generateLedgerCommandsForBulkUsageEvents(
+            {
+              insertedUsageEvents: [invalidMeterEvent],
+              livemode: true,
+            },
+            transaction
+          )
+        ).rejects.toThrow(
+          'Usage meter non-existent-usage-meter-id not found'
+        )
+      })
     })
   })
 })
