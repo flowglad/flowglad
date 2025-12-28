@@ -2,6 +2,10 @@ import {
   type ClientOptions,
   Flowglad as FlowgladNode,
 } from '@flowglad/node'
+import {
+  type CreateBulkUsageEventsParams,
+  createBulkUsageEventsSchema,
+} from '@flowglad/shared'
 
 export class FlowgladServerAdmin {
   private flowgladNode: FlowgladNode
@@ -79,6 +83,30 @@ export class FlowgladServerAdmin {
     params: FlowgladNode.UsageEvents.UsageEventCreateParams
   ) {
     return this.flowgladNode.usageEvents.create(params)
+  }
+
+  /**
+   * Create multiple usage events in a single request.
+   * NOTE: this method is more efficient than calling `createUsageEvent` multiple times.
+   * @param params - The parameters containing an array of usage events.
+   * @returns The created usage events.
+   */
+  public async createBulkUsageEvents(
+    params: CreateBulkUsageEventsParams
+  ): Promise<{
+    usageEvents: FlowgladNode.UsageEvents.UsageEventCreateResponse['usageEvent'][]
+  }> {
+    const parsedParams = createBulkUsageEventsSchema.parse(params)
+    const usageEvents = parsedParams.usageEvents.map(
+      (usageEvent) => ({
+        ...usageEvent,
+        properties: usageEvent.properties ?? undefined,
+        usageDate: usageEvent.usageDate ?? undefined,
+      })
+    )
+    return this.flowgladNode.post('/api/v1/usage-events/bulk', {
+      body: { usageEvents },
+    })
   }
 
   public async getUsageEvent(id: string) {

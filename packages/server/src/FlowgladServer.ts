@@ -4,6 +4,7 @@ import {
   type CancelSubscriptionParams,
   type CreateActivateSubscriptionCheckoutSessionParams,
   type CreateAddPaymentMethodCheckoutSessionParams,
+  type CreateBulkUsageEventsParams,
   type CreateProductCheckoutSessionParams,
   type CreateSubscriptionParams,
   type CreateUsageEventParams,
@@ -14,6 +15,7 @@ import {
   constructHasPurchased,
   createActivateSubscriptionCheckoutSessionSchema,
   createAddPaymentMethodCheckoutSessionSchema,
+  createBulkUsageEventsSchema,
   createProductCheckoutSessionSchema,
   createUsageEventSchema,
   type SubscriptionExperimentalFields,
@@ -350,8 +352,61 @@ export class FlowgladServer {
       usageEvent: {
         ...parsedParams,
         properties: parsedParams.properties ?? undefined,
-        usageDate: parsedParams.usageDate || undefined,
+        usageDate: parsedParams.usageDate ?? undefined,
       },
+    })
+  }
+
+  /**
+   * Create multiple usage events in a single request.
+   * NOTE: this method is more efficient than calling `createUsageEvent` multiple times.
+   * @param params - The parameters containing an array of usage events.
+   * @returns The created usage events.
+   * @throws {Error} If any subscription in the bulk request is not owned by the authenticated customer.
+   */
+  public createBulkUsageEvents = async (
+    params: CreateBulkUsageEventsParams
+  ): Promise<{
+    usageEvents: FlowgladNode.UsageEvents.UsageEventCreateResponse['usageEvent'][]
+  }> => {
+    const parsedParams = createBulkUsageEventsSchema.parse(params)
+
+    // Get the scoped customer to validate ownership
+    const { customer } = await this.getCustomer()
+
+    // Extract unique subscription IDs to validate ownership
+    const uniqueSubscriptionIds = [
+      ...new Set(
+        parsedParams.usageEvents.map((e) => e.subscriptionId)
+      ),
+    ]
+
+    // Batch fetch all subscriptions to validate ownership
+    const subscriptions = await Promise.all(
+      uniqueSubscriptionIds.map((id) =>
+        this.flowgladNode.subscriptions.retrieve(id)
+      )
+    )
+
+    // Validate that all subscriptions belong to the authenticated customer
+    for (const { subscription } of subscriptions) {
+      if (subscription.customerId !== customer.id) {
+        throw new Error(
+          `Subscription ${subscription.id} is not owned by the authenticated customer`
+        )
+      }
+    }
+
+    // All validations passed, proceed with bulk creation
+    const usageEvents = parsedParams.usageEvents.map(
+      (usageEvent) => ({
+        ...usageEvent,
+        properties: usageEvent.properties ?? undefined,
+        usageDate: usageEvent.usageDate ?? undefined,
+      })
+    )
+    return this.flowgladNode.post('/api/v1/usage-events/bulk', {
+      body: { usageEvents },
     })
   }
 
