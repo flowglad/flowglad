@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { FeatureType, UsageMeterAggregationType } from '@/types'
+import {
+  FeatureType,
+  IntervalUnit,
+  PriceType,
+  UsageMeterAggregationType,
+} from '@/types'
 import {
   diffFeatures,
+  diffProducts,
   diffSluggedResources,
   diffUsageMeters,
   type FeatureDiffInput,
+  type ProductDiffInput,
   type SluggedResource,
   type UsageMeterDiffInput,
 } from './diffing'
@@ -426,4 +433,363 @@ describe('diffUsageMeters', () => {
   })
 
   // TODO: after validation is implemented, add tests for permitted usage meter update fields
+})
+
+/**
+ * Helper function to create a minimal valid ProductDiffInput for testing.
+ */
+const createProductInput = (
+  overrides: Partial<{
+    productSlug: string
+    productName: string
+    priceType: PriceType
+    unitPrice: number
+    features: string[]
+    intervalUnit: IntervalUnit
+    intervalCount: number
+    active: boolean
+    isDefault: boolean
+  }> = {}
+): ProductDiffInput => {
+  const {
+    productSlug = 'test-product',
+    productName = 'Test Product',
+    priceType = PriceType.Subscription,
+    unitPrice = 1000,
+    features = [],
+    intervalUnit = IntervalUnit.Month,
+    intervalCount = 1,
+    active = true,
+    isDefault = true,
+  } = overrides
+
+  return {
+    product: {
+      slug: productSlug,
+      name: productName,
+      active,
+    },
+    price: {
+      type: priceType,
+      unitPrice,
+      intervalUnit:
+        priceType === PriceType.Subscription
+          ? intervalUnit
+          : undefined,
+      intervalCount:
+        priceType === PriceType.Subscription
+          ? intervalCount
+          : undefined,
+      active,
+      isDefault,
+      slug: `${productSlug}-price`,
+    } as ProductDiffInput['price'],
+    features,
+  }
+}
+
+describe('diffProducts', () => {
+  it('should identify product to remove', () => {
+    // Setup: existing has product, proposed is empty
+    const existing: ProductDiffInput[] = [
+      createProductInput({
+        productSlug: 'foo',
+        productName: 'Foo Product',
+      }),
+    ]
+    const proposed: ProductDiffInput[] = []
+
+    const result = diffProducts(existing, proposed)
+
+    // Expectation: toRemove contains the product
+    expect(result.toRemove).toHaveLength(1)
+    expect(result.toRemove[0].product.slug).toBe('foo')
+    expect(result.toCreate).toEqual([])
+    expect(result.toUpdate).toEqual([])
+  })
+
+  it('should identify product to create', () => {
+    // Setup: existing is empty, proposed has product
+    const existing: ProductDiffInput[] = []
+    const proposed: ProductDiffInput[] = [
+      createProductInput({
+        productSlug: 'foo',
+        productName: 'Foo Product',
+      }),
+    ]
+
+    const result = diffProducts(existing, proposed)
+
+    // Expectation: toCreate contains the product
+    expect(result.toRemove).toEqual([])
+    expect(result.toCreate).toHaveLength(1)
+    expect(result.toCreate[0].product.slug).toBe('foo')
+    expect(result.toUpdate).toEqual([])
+  })
+
+  it('should identify product to update when name changes', () => {
+    // Setup: existing and proposed have same slug but different names
+    const existing: ProductDiffInput[] = [
+      createProductInput({
+        productSlug: 'foo',
+        productName: 'Old Name',
+      }),
+    ]
+    const proposed: ProductDiffInput[] = [
+      createProductInput({
+        productSlug: 'foo',
+        productName: 'New Name',
+      }),
+    ]
+
+    const result = diffProducts(existing, proposed)
+
+    // Expectation: toUpdate contains the product with name change
+    expect(result.toRemove).toEqual([])
+    expect(result.toCreate).toEqual([])
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].existing.product.name).toBe('Old Name')
+    expect(result.toUpdate[0].proposed.product.name).toBe('New Name')
+  })
+
+  it('should include priceDiff when both products have prices with different unitPrice', () => {
+    // Setup: same product slug, different unit prices
+    const existing: ProductDiffInput[] = [
+      createProductInput({
+        productSlug: 'foo',
+        productName: 'Foo',
+        unitPrice: 1000,
+      }),
+    ]
+    const proposed: ProductDiffInput[] = [
+      createProductInput({
+        productSlug: 'foo',
+        productName: 'Foo',
+        unitPrice: 2000,
+      }),
+    ]
+
+    const result = diffProducts(existing, proposed)
+
+    // Expectation: toUpdate contains product with priceDiff
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].priceDiff).toBeDefined()
+    expect(
+      result.toUpdate[0].priceDiff?.existingPrice?.unitPrice
+    ).toBe(1000)
+    expect(
+      result.toUpdate[0].priceDiff?.proposedPrice?.unitPrice
+    ).toBe(2000)
+  })
+
+  it('should not include priceDiff when prices are identical', () => {
+    // Setup: same product slug, same prices, different product name
+    const existing: ProductDiffInput[] = [
+      createProductInput({
+        productSlug: 'foo',
+        productName: 'Old Name',
+        unitPrice: 1000,
+      }),
+    ]
+    const proposed: ProductDiffInput[] = [
+      createProductInput({
+        productSlug: 'foo',
+        productName: 'New Name',
+        unitPrice: 1000,
+      }),
+    ]
+
+    const result = diffProducts(existing, proposed)
+
+    // Expectation: toUpdate contains product but no priceDiff (prices are same)
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].existing.product.name).toBe('Old Name')
+    expect(result.toUpdate[0].proposed.product.name).toBe('New Name')
+    expect(result.toUpdate[0].priceDiff).toBeUndefined()
+  })
+
+  it('should handle mixed changes for products', () => {
+    // Setup: remove one, create one, update one
+    const existing: ProductDiffInput[] = [
+      createProductInput({
+        productSlug: 'remove-me',
+        productName: 'Remove',
+      }),
+      createProductInput({
+        productSlug: 'update-me',
+        productName: 'Old',
+        unitPrice: 1000,
+      }),
+    ]
+    const proposed: ProductDiffInput[] = [
+      createProductInput({
+        productSlug: 'update-me',
+        productName: 'New',
+        unitPrice: 2000,
+      }),
+      createProductInput({
+        productSlug: 'create-me',
+        productName: 'Create',
+      }),
+    ]
+
+    const result = diffProducts(existing, proposed)
+
+    // Expectations
+    expect(result.toRemove).toHaveLength(1)
+    expect(result.toRemove[0].product.slug).toBe('remove-me')
+
+    expect(result.toCreate).toHaveLength(1)
+    expect(result.toCreate[0].product.slug).toBe('create-me')
+
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].existing.product.name).toBe('Old')
+    expect(result.toUpdate[0].proposed.product.name).toBe('New')
+    expect(result.toUpdate[0].priceDiff).toBeDefined()
+    expect(
+      result.toUpdate[0].priceDiff?.existingPrice?.unitPrice
+    ).toBe(1000)
+    expect(
+      result.toUpdate[0].priceDiff?.proposedPrice?.unitPrice
+    ).toBe(2000)
+  })
+
+  it('should include priceDiff when price type changes', () => {
+    // Setup: same product slug, different price types
+    const existingProduct = createProductInput({
+      productSlug: 'foo',
+      productName: 'Foo',
+      priceType: PriceType.Subscription,
+      unitPrice: 1000,
+    })
+    const proposedProduct = createProductInput({
+      productSlug: 'foo',
+      productName: 'Foo',
+      priceType: PriceType.SinglePayment,
+      unitPrice: 1000,
+    })
+
+    const existing: ProductDiffInput[] = [existingProduct]
+    const proposed: ProductDiffInput[] = [proposedProduct]
+
+    const result = diffProducts(existing, proposed)
+
+    // Expectation: priceDiff should show the type change
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].priceDiff).toBeDefined()
+    expect(result.toUpdate[0].priceDiff?.existingPrice?.type).toBe(
+      PriceType.Subscription
+    )
+    expect(result.toUpdate[0].priceDiff?.proposedPrice?.type).toBe(
+      PriceType.SinglePayment
+    )
+  })
+
+  it('should include priceDiff when features change', () => {
+    // Setup: same product slug and price, different features
+    const existing: ProductDiffInput[] = [
+      createProductInput({
+        productSlug: 'foo',
+        productName: 'Foo',
+        unitPrice: 1000,
+        features: ['feature-a'],
+      }),
+    ]
+    const proposed: ProductDiffInput[] = [
+      createProductInput({
+        productSlug: 'foo',
+        productName: 'Foo',
+        unitPrice: 1000,
+        features: ['feature-a', 'feature-b'],
+      }),
+    ]
+
+    const result = diffProducts(existing, proposed)
+
+    // Expectation: toUpdate should have entry (features changed), but no priceDiff (prices same)
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].existing.features).toEqual([
+      'feature-a',
+    ])
+    expect(result.toUpdate[0].proposed.features).toEqual([
+      'feature-a',
+      'feature-b',
+    ])
+    // Price didn't change
+    expect(result.toUpdate[0].priceDiff).toBeUndefined()
+  })
+
+  it('should handle empty arrays', () => {
+    // Setup: both arrays are empty
+    const existing: ProductDiffInput[] = []
+    const proposed: ProductDiffInput[] = []
+
+    const result = diffProducts(existing, proposed)
+
+    // Expectation: all arrays should be empty
+    expect(result.toRemove).toEqual([])
+    expect(result.toCreate).toEqual([])
+    expect(result.toUpdate).toEqual([])
+  })
+
+  it('should handle completely different products as remove + create', () => {
+    // Setup: existing has 'foo', proposed has 'bar'
+    const existing: ProductDiffInput[] = [
+      createProductInput({ productSlug: 'foo', productName: 'Foo' }),
+    ]
+    const proposed: ProductDiffInput[] = [
+      createProductInput({ productSlug: 'bar', productName: 'Bar' }),
+    ]
+
+    const result = diffProducts(existing, proposed)
+
+    // Expectation: 'foo' in toRemove, 'bar' in toCreate
+    expect(result.toRemove).toHaveLength(1)
+    expect(result.toRemove[0].product.slug).toBe('foo')
+    expect(result.toCreate).toHaveLength(1)
+    expect(result.toCreate[0].product.slug).toBe('bar')
+    expect(result.toUpdate).toEqual([])
+  })
+
+  it('should preserve all product properties in diff results', () => {
+    // Setup: product with all properties
+    const existingProduct = createProductInput({
+      productSlug: 'test',
+      productName: 'Test',
+      unitPrice: 1000,
+      features: ['feature-a', 'feature-b'],
+    })
+    const proposedProduct = createProductInput({
+      productSlug: 'test',
+      productName: 'Test Updated',
+      unitPrice: 2000,
+      features: ['feature-a', 'feature-c'],
+    })
+
+    const existing: ProductDiffInput[] = [existingProduct]
+    const proposed: ProductDiffInput[] = [proposedProduct]
+
+    const result = diffProducts(existing, proposed)
+
+    // Expectation: all properties preserved in toUpdate
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].existing.product).toEqual(
+      existingProduct.product
+    )
+    expect(result.toUpdate[0].proposed.product).toEqual(
+      proposedProduct.product
+    )
+    expect(result.toUpdate[0].existing.features).toEqual(
+      existingProduct.features
+    )
+    expect(result.toUpdate[0].proposed.features).toEqual(
+      proposedProduct.features
+    )
+    expect(result.toUpdate[0].priceDiff?.existingPrice).toEqual(
+      existingProduct.price
+    )
+    expect(result.toUpdate[0].priceDiff?.proposedPrice).toEqual(
+      proposedProduct.price
+    )
+  })
 })
