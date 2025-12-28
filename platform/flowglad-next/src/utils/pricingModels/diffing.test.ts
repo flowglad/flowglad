@@ -583,7 +583,6 @@ describe('diffProducts', () => {
 
     // Expectation: toUpdate contains product with priceDiff
     expect(result.toUpdate).toHaveLength(1)
-    expect(result.toUpdate[0].priceDiff).toBeDefined()
     expect(
       result.toUpdate[0].priceDiff?.existingPrice?.unitPrice
     ).toBe(1000)
@@ -655,7 +654,6 @@ describe('diffProducts', () => {
     expect(result.toUpdate).toHaveLength(1)
     expect(result.toUpdate[0].existing.product.name).toBe('Old')
     expect(result.toUpdate[0].proposed.product.name).toBe('New')
-    expect(result.toUpdate[0].priceDiff).toBeDefined()
     expect(
       result.toUpdate[0].priceDiff?.existingPrice?.unitPrice
     ).toBe(1000)
@@ -686,7 +684,6 @@ describe('diffProducts', () => {
 
     // Expectation: priceDiff should show the type change
     expect(result.toUpdate).toHaveLength(1)
-    expect(result.toUpdate[0].priceDiff).toBeDefined()
     expect(result.toUpdate[0].priceDiff?.existingPrice?.type).toBe(
       PriceType.Subscription
     )
@@ -695,7 +692,7 @@ describe('diffProducts', () => {
     )
   })
 
-  it('should include priceDiff when features change', () => {
+  it('should not include priceDiff when only features change and prices are identical', () => {
     // Setup: same product slug and price, different features
     const existing: ProductDiffInput[] = [
       createProductInput({

@@ -5,6 +5,7 @@
  * (features, products, usage meters) to identify what needs to be created, updated, or removed.
  */
 
+import * as R from 'ramda'
 import { z } from 'zod'
 import {
   toggleFeatureClientUpdateSchema,
@@ -269,10 +270,8 @@ const pricesAreDifferent = (
   if (existingPrice === undefined || proposedPrice === undefined) {
     return true
   }
-  // Both defined - compare by JSON stringification
-  return (
-    JSON.stringify(existingPrice) !== JSON.stringify(proposedPrice)
-  )
+  // Both defined - compare using deep equality
+  return !R.equals(existingPrice, proposedPrice)
 }
 
 /**
@@ -391,10 +390,8 @@ export const computeUpdateObject = <
     const existingValue = existing[key]
     const proposedValue = proposed[key]
 
-    // Compare values using JSON stringify for deep equality
-    if (
-      JSON.stringify(existingValue) !== JSON.stringify(proposedValue)
-    ) {
+    // Compare values for deep equality
+    if (!R.equals(existingValue, proposedValue)) {
       update[key as keyof T] = proposedValue as T[keyof T]
     }
   }
