@@ -371,28 +371,25 @@ export class FlowgladServer {
   }> => {
     const parsedParams = createBulkUsageEventsSchema.parse(params)
 
-    // Get the scoped customer to validate ownership
-    const { customer } = await this.getCustomer()
+    // Get billing to access current subscriptions for validation
+    const billing = await this.getBilling()
 
-    // Extract unique subscription IDs to validate ownership
+    // Extract unique subscription IDs from the bulk request
     const uniqueSubscriptionIds = [
       ...new Set(
         parsedParams.usageEvents.map((e) => e.subscriptionId)
       ),
     ]
 
-    // Batch fetch all subscriptions to validate ownership
-    const subscriptions = await Promise.all(
-      uniqueSubscriptionIds.map((id) =>
-        this.flowgladNode.subscriptions.retrieve(id)
-      )
-    )
+    // Get the customer's current subscription IDs
+    const customerSubscriptionIds =
+      billing.currentSubscriptions?.map((sub) => sub.id) ?? []
 
-    // Validate that all subscriptions belong to the authenticated customer
-    for (const { subscription } of subscriptions) {
-      if (subscription.customerId !== customer.id) {
+    // Validate that all subscription IDs in the request are found among customer's current subscriptions
+    for (const subscriptionId of uniqueSubscriptionIds) {
+      if (!customerSubscriptionIds.includes(subscriptionId)) {
         throw new Error(
-          `Subscription ${subscription.id} is not owned by the authenticated customer`
+          `Subscription ${subscriptionId} is not found among the customer's current subscriptions`
         )
       }
     }

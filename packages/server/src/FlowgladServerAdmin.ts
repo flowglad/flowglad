@@ -91,7 +91,7 @@ export class FlowgladServerAdmin {
    * @param params - The parameters containing an array of usage events.
    * @returns The created usage events.
    */
-  public async createBulkUsageEvents(
+  public async bulkCreateUsageEvents(
     params: CreateBulkUsageEventsParams
   ): Promise<{
     usageEvents: FlowgladNode.UsageEvents.UsageEventCreateResponse['usageEvent'][]

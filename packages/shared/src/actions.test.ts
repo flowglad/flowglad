@@ -4,6 +4,7 @@ import {
   cancelSubscriptionSchema,
   createActivateSubscriptionCheckoutSessionSchema,
   createAddPaymentMethodCheckoutSessionSchema,
+  createBulkUsageEventsSchema,
   createProductCheckoutSessionSchema,
   createSubscriptionSchema,
   createUsageEventSchema,
@@ -345,6 +346,109 @@ describe('createUsageEventSchema', () => {
       priceId: 'price_123',
     }
     const result = createUsageEventSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('createBulkUsageEventsSchema', () => {
+  const validUsageEvent = {
+    amount: 100,
+    subscriptionId: 'sub_123',
+    transactionId: 'txn_456',
+    priceId: 'price_123',
+  }
+
+  it('accepts valid input with single usage event', () => {
+    const input = { usageEvents: [validUsageEvent] }
+    const result = createBulkUsageEventsSchema.safeParse(input)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.usageEvents).toHaveLength(1)
+      expect(result.data.usageEvents[0]).toEqual(validUsageEvent)
+    }
+  })
+
+  it('accepts valid input with multiple usage events', () => {
+    const input = {
+      usageEvents: [
+        validUsageEvent,
+        { ...validUsageEvent, transactionId: 'txn_789', amount: 200 },
+        {
+          amount: 100,
+          subscriptionId: 'sub_123',
+          transactionId: 'txn_101',
+          priceSlug: 'my-price',
+        },
+      ],
+    }
+    const result = createBulkUsageEventsSchema.safeParse(input)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.usageEvents).toHaveLength(3)
+    }
+  })
+
+  it('accepts valid input with usage events using different identifier types', () => {
+    const baseEvent = {
+      amount: 100,
+      subscriptionId: 'sub_123',
+      transactionId: 'txn_1',
+    }
+    const input = {
+      usageEvents: [
+        { ...baseEvent, priceId: 'price_123' },
+        {
+          ...baseEvent,
+          transactionId: 'txn_2',
+          priceSlug: 'my-price',
+        },
+        {
+          ...baseEvent,
+          transactionId: 'txn_3',
+          usageMeterId: 'meter_123',
+        },
+        {
+          ...baseEvent,
+          transactionId: 'txn_4',
+          usageMeterSlug: 'my-meter',
+        },
+      ],
+    }
+    const result = createBulkUsageEventsSchema.safeParse(input)
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects empty array', () => {
+    const input = { usageEvents: [] }
+    const result = createBulkUsageEventsSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects array with invalid usage event', () => {
+    const input = {
+      usageEvents: [
+        validUsageEvent,
+        {
+          amount: 100,
+          subscriptionId: 'sub_123',
+          // missing transactionId
+          priceId: 'price_123',
+        },
+      ],
+    }
+    const result = createBulkUsageEventsSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects missing usageEvents field', () => {
+    const result = createBulkUsageEventsSchema.safeParse({})
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects invalid usageEvents type', () => {
+    const result = createBulkUsageEventsSchema.safeParse({
+      usageEvents: 'not-an-array',
+    })
     expect(result.success).toBe(false)
   })
 })
