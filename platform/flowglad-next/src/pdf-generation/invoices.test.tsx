@@ -948,7 +948,7 @@ describe('Invoice Components', () => {
         )
       })
 
-      it('should still show customer billing info correctly', () => {
+      it('should display customer name and email in bill-to section', () => {
         const { getByTestId } = render(
           <BillingInfo
             organization={organization}
