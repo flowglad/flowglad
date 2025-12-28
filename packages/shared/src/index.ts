@@ -1,4 +1,5 @@
 export type {
+  BulkCreateUsageEventsParams,
   CancelSubscriptionParams,
   CreateActivateSubscriptionCheckoutSessionParams,
   CreateAddPaymentMethodCheckoutSessionParams,
@@ -10,6 +11,7 @@ export type {
 } from './actions'
 
 export {
+  bulkCreateUsageEventsSchema,
   cancelSubscriptionSchema,
   createActivateSubscriptionCheckoutSessionSchema,
   createAddPaymentMethodCheckoutSessionSchema,
