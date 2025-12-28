@@ -7,6 +7,7 @@ import {
   setupOrg,
   setupPayment,
 } from '@/../seedDatabase'
+import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
@@ -20,10 +21,12 @@ import { CurrencyCode, InvoiceStatus, PaymentStatus } from '@/types'
 import { formatDate } from '@/utils/core'
 import {
   BillingInfo,
+  DocumentHeader,
   InvoiceLineItems,
   InvoiceTemplate,
   InvoiceTotals,
   PaymentInfo,
+  SellerContactInfo,
 } from './invoices'
 
 describe('Invoice Components', () => {
@@ -222,7 +225,7 @@ describe('Invoice Components', () => {
       )
 
       expect(
-        getByTestId('organization-contact-info-name')
+        getByTestId('seller-contact-info-name')
       ).toHaveTextContent(organization.name)
       expect(getByTestId('bill-to-label')).toHaveTextContent(
         'Bill to'
@@ -621,6 +624,346 @@ describe('Invoice Components', () => {
         'San Francisco, CA 94105'
       )
       expect(getByTestId('address-country')).toHaveTextContent('US')
+    })
+  })
+
+  describe('InvoiceTemplate MoR Support', () => {
+    describe('when isMoR is false (default)', () => {
+      it('should display organization name as seller', async () => {
+        const updatedCustomer = await adminTransaction(
+          async ({ transaction }) => {
+            return await updateCustomer(
+              {
+                id: customer.id,
+                billingAddress: {
+                  address: {
+                    line1: '123 Main St',
+                    city: 'San Francisco',
+                    state: 'CA',
+                    postal_code: '94105',
+                    country: 'US',
+                  },
+                },
+              },
+              transaction
+            )
+          }
+        )
+
+        const { getByTestId } = render(
+          <InvoiceTemplate
+            invoice={invoice}
+            invoiceLineItems={invoiceLineItems}
+            customer={updatedCustomer}
+            organization={organization}
+            paymentLink="/pay"
+            isMoR={false}
+          />
+        )
+
+        expect(getByTestId('organization-name')).toHaveTextContent(
+          organization.name
+        )
+        expect(
+          getByTestId('seller-contact-info-name')
+        ).toHaveTextContent(organization.name)
+      })
+    })
+
+    describe('when isMoR is true', () => {
+      it('should display Flowglad LLC as seller', async () => {
+        const updatedCustomer = await adminTransaction(
+          async ({ transaction }) => {
+            return await updateCustomer(
+              {
+                id: customer.id,
+                billingAddress: {
+                  address: {
+                    line1: '123 Main St',
+                    city: 'San Francisco',
+                    state: 'CA',
+                    postal_code: '94105',
+                    country: 'US',
+                  },
+                },
+              },
+              transaction
+            )
+          }
+        )
+
+        const { getByTestId } = render(
+          <InvoiceTemplate
+            invoice={invoice}
+            invoiceLineItems={invoiceLineItems}
+            customer={updatedCustomer}
+            organization={organization}
+            paymentLink="/pay"
+            isMoR={true}
+          />
+        )
+
+        expect(getByTestId('organization-name')).toHaveTextContent(
+          FLOWGLAD_LEGAL_ENTITY.name
+        )
+        expect(
+          getByTestId('seller-contact-info-name')
+        ).toHaveTextContent(FLOWGLAD_LEGAL_ENTITY.name)
+      })
+
+      it('should show "For: [org name]" in seller section', async () => {
+        const updatedCustomer = await adminTransaction(
+          async ({ transaction }) => {
+            return await updateCustomer(
+              {
+                id: customer.id,
+                billingAddress: {
+                  address: {
+                    line1: '123 Main St',
+                    city: 'San Francisco',
+                    state: 'CA',
+                    postal_code: '94105',
+                    country: 'US',
+                  },
+                },
+              },
+              transaction
+            )
+          }
+        )
+
+        const { getByTestId } = render(
+          <InvoiceTemplate
+            invoice={invoice}
+            invoiceLineItems={invoiceLineItems}
+            customer={updatedCustomer}
+            organization={organization}
+            paymentLink="/pay"
+            isMoR={true}
+          />
+        )
+
+        expect(getByTestId('seller-for-merchant')).toHaveTextContent(
+          `For: ${organization.name}`
+        )
+      })
+
+      it('should still display customer billing info correctly', async () => {
+        const updatedCustomer = await adminTransaction(
+          async ({ transaction }) => {
+            return await updateCustomer(
+              {
+                id: customer.id,
+                billingAddress: {
+                  address: {
+                    line1: '123 Main St',
+                    line2: 'Apt 1',
+                    city: 'San Francisco',
+                    state: 'CA',
+                    postal_code: '94105',
+                    country: 'US',
+                  },
+                },
+              },
+              transaction
+            )
+          }
+        )
+
+        const { getByTestId } = render(
+          <InvoiceTemplate
+            invoice={invoice}
+            invoiceLineItems={invoiceLineItems}
+            customer={updatedCustomer}
+            organization={organization}
+            paymentLink="/pay"
+            isMoR={true}
+          />
+        )
+
+        expect(getByTestId('bill-to-label')).toHaveTextContent(
+          'Bill to'
+        )
+        expect(getByTestId('customer-name')).toHaveTextContent(
+          updatedCustomer.name
+        )
+        expect(getByTestId('customer-email')).toHaveTextContent(
+          updatedCustomer.email
+        )
+        expect(getByTestId('address-line1')).toHaveTextContent(
+          '123 Main St'
+        )
+        expect(getByTestId('address-city-state')).toHaveTextContent(
+          'San Francisco, CA 94105'
+        )
+      })
+    })
+  })
+
+  describe('SellerContactInfo', () => {
+    describe('when isMoR is false', () => {
+      it('should display organization name as seller', () => {
+        const { getByTestId } = render(
+          <SellerContactInfo
+            organization={organization}
+            isMoR={false}
+          />
+        )
+
+        expect(
+          getByTestId('seller-contact-info-name')
+        ).toHaveTextContent(organization.name)
+      })
+    })
+
+    describe('when isMoR is true', () => {
+      it('should display Flowglad LLC as seller', () => {
+        const { getByTestId } = render(
+          <SellerContactInfo
+            organization={organization}
+            isMoR={true}
+          />
+        )
+
+        expect(
+          getByTestId('seller-contact-info-name')
+        ).toHaveTextContent(FLOWGLAD_LEGAL_ENTITY.name)
+      })
+
+      it('should display Flowglad address', () => {
+        const { getByText } = render(
+          <SellerContactInfo
+            organization={organization}
+            isMoR={true}
+          />
+        )
+
+        expect(
+          getByText(FLOWGLAD_LEGAL_ENTITY.address.line1)
+        ).toBeInTheDocument()
+        expect(
+          getByText(FLOWGLAD_LEGAL_ENTITY.contactEmail)
+        ).toBeInTheDocument()
+      })
+
+      it('should show "For: [org name]"', () => {
+        const { getByTestId } = render(
+          <SellerContactInfo
+            organization={organization}
+            isMoR={true}
+          />
+        )
+
+        expect(getByTestId('seller-for-merchant')).toHaveTextContent(
+          `For: ${organization.name}`
+        )
+      })
+    })
+  })
+
+  describe('DocumentHeader MoR Support', () => {
+    describe('when isMoR is false', () => {
+      it('should display organization name', () => {
+        const { getByTestId } = render(
+          <DocumentHeader
+            organization={organization}
+            mode="invoice"
+            isMoR={false}
+          />
+        )
+
+        expect(getByTestId('organization-name')).toHaveTextContent(
+          organization.name
+        )
+      })
+    })
+
+    describe('when isMoR is true', () => {
+      it('should display Flowglad name', () => {
+        const { getByTestId } = render(
+          <DocumentHeader
+            organization={organization}
+            mode="invoice"
+            isMoR={true}
+          />
+        )
+
+        expect(getByTestId('organization-name')).toHaveTextContent(
+          FLOWGLAD_LEGAL_ENTITY.name
+        )
+      })
+    })
+  })
+
+  describe('BillingInfo MoR Support', () => {
+    describe('when isMoR is false', () => {
+      it('should display organization as seller', () => {
+        const { getByTestId } = render(
+          <BillingInfo
+            organization={organization}
+            customer={customer}
+            billingAddress={customer.billingAddress!}
+            isMoR={false}
+          />
+        )
+
+        expect(
+          getByTestId('seller-contact-info-name')
+        ).toHaveTextContent(organization.name)
+      })
+    })
+
+    describe('when isMoR is true', () => {
+      it('should display Flowglad LLC as seller', () => {
+        const { getByTestId } = render(
+          <BillingInfo
+            organization={organization}
+            customer={customer}
+            billingAddress={customer.billingAddress!}
+            isMoR={true}
+          />
+        )
+
+        expect(
+          getByTestId('seller-contact-info-name')
+        ).toHaveTextContent(FLOWGLAD_LEGAL_ENTITY.name)
+      })
+
+      it('should show "For: [org name]"', () => {
+        const { getByTestId } = render(
+          <BillingInfo
+            organization={organization}
+            customer={customer}
+            billingAddress={customer.billingAddress!}
+            isMoR={true}
+          />
+        )
+
+        expect(getByTestId('seller-for-merchant')).toHaveTextContent(
+          `For: ${organization.name}`
+        )
+      })
+
+      it('should still show customer billing info correctly', () => {
+        const { getByTestId } = render(
+          <BillingInfo
+            organization={organization}
+            customer={customer}
+            billingAddress={customer.billingAddress!}
+            isMoR={true}
+          />
+        )
+
+        expect(getByTestId('bill-to-label')).toHaveTextContent(
+          'Bill to'
+        )
+        expect(getByTestId('customer-name')).toHaveTextContent(
+          customer.name
+        )
+        expect(getByTestId('customer-email')).toHaveTextContent(
+          customer.email
+        )
+      })
     })
   })
 })
