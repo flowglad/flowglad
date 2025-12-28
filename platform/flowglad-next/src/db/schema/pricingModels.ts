@@ -1,10 +1,8 @@
 import { sql } from 'drizzle-orm'
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 import { organizations } from '@/db/schema/organizations'
 import {
-  clientWriteOmitsConstructor,
   constructIndex,
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
@@ -12,9 +10,7 @@ import {
   hiddenColumnsForClientSchema,
   livemodePolicy,
   merchantPolicy,
-  newBaseZodSelectSchemaColumns,
   notNullStringForeignKey,
-  ommittedColumnsForInsertSchema,
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
@@ -120,17 +116,13 @@ export namespace PricingModel {
   }
 }
 
- 
-
 export const createPricingModelSchema = z.object({
   pricingModel: pricingModelsClientInsertSchema.extend({
-     
-    name: z.string().min(1, "pricing model name is required"),
-     
-    isDefault: z.boolean().default(true),
+    name: z.string().min(1, 'Name is required'),
   }),
-   
-  defaultPlanIntervalUnit: core.createSafeZodEnum(IntervalUnit),
+  defaultPlanIntervalUnit: core
+    .createSafeZodEnum(IntervalUnit)
+    .optional(),
 })
 
 export type CreatePricingModelInput = z.infer<
