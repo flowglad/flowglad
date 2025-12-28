@@ -1,20 +1,30 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CurrencyCode,
   FeatureType,
+  FeatureUsageGrantFrequency,
   IntervalUnit,
   PriceType,
   UsageMeterAggregationType,
 } from '@/types'
 import {
+  computeUpdateObject,
+  type DiffResult,
   diffFeatures,
   diffProducts,
   diffSluggedResources,
   diffUsageMeters,
   type FeatureDiffInput,
   type ProductDiffInput,
+  type ProductDiffResult,
   type SluggedResource,
   type UsageMeterDiffInput,
+  validateFeatureDiff,
+  validatePriceChange,
+  validateProductDiff,
+  validateUsageMeterDiff,
 } from './diffing'
+import type { SetupPricingModelProductPriceInput } from './setupSchemas'
 
 type SlugAndName = SluggedResource<{ name: string }>
 
@@ -788,5 +798,877 @@ describe('diffProducts', () => {
     expect(result.toUpdate[0].priceDiff?.proposedPrice).toEqual(
       proposedProduct.price
     )
+  })
+})
+
+describe('computeUpdateObject', () => {
+  it('should return only changed fields', () => {
+    const existing = { slug: 'foo', name: 'Old', active: true }
+    const proposed = { slug: 'foo', name: 'New', active: true }
+
+    const result = computeUpdateObject(existing, proposed)
+
+    expect(result).toEqual({ name: 'New' })
+  })
+
+  it('should return empty object when nothing changed', () => {
+    const existing = { slug: 'foo', name: 'Same', active: true }
+    const proposed = { slug: 'foo', name: 'Same', active: true }
+
+    const result = computeUpdateObject(existing, proposed)
+
+    expect(result).toEqual({})
+  })
+
+  it('should detect changes in nested objects', () => {
+    const existing = {
+      slug: 'foo',
+      metadata: { key: 'old' },
+    }
+    const proposed = {
+      slug: 'foo',
+      metadata: { key: 'new' },
+    }
+
+    const result = computeUpdateObject(existing, proposed)
+
+    expect(result).toEqual({ metadata: { key: 'new' } })
+  })
+
+  it('should detect new fields in proposed', () => {
+    const existing = { slug: 'foo', name: 'Test' }
+    const proposed = {
+      slug: 'foo',
+      name: 'Test',
+      description: 'New field',
+    }
+
+    const result = computeUpdateObject(
+      existing as Record<string, unknown>,
+      proposed as Record<string, unknown>
+    )
+
+    expect(result).toEqual({ description: 'New field' })
+  })
+
+  it('should detect removed fields (undefined in proposed)', () => {
+    const existing = { slug: 'foo', name: 'Test', description: 'Old' }
+    const proposed = { slug: 'foo', name: 'Test' }
+
+    const result = computeUpdateObject(
+      existing as Record<string, unknown>,
+      proposed as Record<string, unknown>
+    )
+
+    expect(result).toEqual({ description: undefined })
+  })
+
+  it('should handle multiple field changes', () => {
+    const existing = {
+      slug: 'foo',
+      name: 'Old',
+      active: true,
+      count: 5,
+    }
+    const proposed = {
+      slug: 'foo',
+      name: 'New',
+      active: false,
+      count: 5,
+    }
+
+    const result = computeUpdateObject(existing, proposed)
+
+    expect(result).toEqual({ name: 'New', active: false })
+  })
+})
+
+describe('validateUsageMeterDiff', () => {
+  it('should throw error when toRemove is non-empty', () => {
+    const diff: DiffResult<UsageMeterDiffInput> = {
+      toRemove: [
+        {
+          slug: 'api-calls',
+          name: 'API Calls',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+      ],
+      toCreate: [],
+      toUpdate: [],
+    }
+
+    expect(() => validateUsageMeterDiff(diff)).toThrow(
+      'Usage meters cannot be removed. Attempted to remove: api-calls'
+    )
+  })
+
+  it('should throw error when multiple usage meters are removed', () => {
+    const diff: DiffResult<UsageMeterDiffInput> = {
+      toRemove: [
+        {
+          slug: 'api-calls',
+          name: 'API Calls',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        {
+          slug: 'storage',
+          name: 'Storage',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+      ],
+      toCreate: [],
+      toUpdate: [],
+    }
+
+    expect(() => validateUsageMeterDiff(diff)).toThrow(
+      'Usage meters cannot be removed. Attempted to remove: api-calls, storage'
+    )
+  })
+
+  it('should allow updates to name and aggregationType', () => {
+    const diff: DiffResult<UsageMeterDiffInput> = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: {
+            slug: 'api-calls',
+            name: 'Old Name',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+          proposed: {
+            slug: 'api-calls',
+            name: 'New Name',
+            aggregationType:
+              UsageMeterAggregationType.CountDistinctProperties,
+          },
+        },
+      ],
+    }
+
+    // Should not throw
+    expect(() => validateUsageMeterDiff(diff)).not.toThrow()
+  })
+
+  it('should pass when nothing is being updated', () => {
+    const diff: DiffResult<UsageMeterDiffInput> = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: {
+            slug: 'api-calls',
+            name: 'API Calls',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+          proposed: {
+            slug: 'api-calls',
+            name: 'API Calls',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
+      ],
+    }
+
+    expect(() => validateUsageMeterDiff(diff)).not.toThrow()
+  })
+
+  it('should allow creating new usage meters', () => {
+    const diff: DiffResult<UsageMeterDiffInput> = {
+      toRemove: [],
+      toCreate: [
+        {
+          slug: 'new-meter',
+          name: 'New Meter',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+      ],
+      toUpdate: [],
+    }
+
+    expect(() => validateUsageMeterDiff(diff)).not.toThrow()
+  })
+})
+
+describe('validateFeatureDiff', () => {
+  it('should throw error when trying to change type in update', () => {
+    const diff: DiffResult<FeatureDiffInput> = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: {
+            slug: 'feature-a',
+            name: 'Feature A',
+            description: 'A test feature',
+            type: FeatureType.Toggle,
+            active: true,
+          },
+          proposed: {
+            slug: 'feature-a',
+            name: 'Feature A',
+            description: 'A test feature',
+            type: FeatureType.UsageCreditGrant,
+            active: true,
+            amount: 100,
+            usageMeterSlug: 'api-calls',
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+          },
+        },
+      ],
+    }
+
+    expect(() => validateFeatureDiff(diff)).toThrow(
+      "Feature type cannot be changed. Feature 'feature-a' has type 'toggle' but proposed type is 'usage_credit_grant'. To change type, remove the feature and create a new one."
+    )
+  })
+
+  it('should allow updates to mutable fields for Toggle features', () => {
+    const diff: DiffResult<FeatureDiffInput> = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: {
+            slug: 'feature-a',
+            name: 'Old Name',
+            description: 'Old description',
+            type: FeatureType.Toggle,
+            active: true,
+          },
+          proposed: {
+            slug: 'feature-a',
+            name: 'New Name',
+            description: 'New description',
+            type: FeatureType.Toggle,
+            active: false,
+          },
+        },
+      ],
+    }
+
+    expect(() => validateFeatureDiff(diff)).not.toThrow()
+  })
+
+  it('should allow updates to mutable fields for UsageCreditGrant features', () => {
+    const diff: DiffResult<FeatureDiffInput> = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: {
+            slug: 'credits',
+            name: 'Old Name',
+            description: 'Old description',
+            type: FeatureType.UsageCreditGrant,
+            active: true,
+            amount: 100,
+            usageMeterSlug: 'api-calls',
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+          },
+          proposed: {
+            slug: 'credits',
+            name: 'New Name',
+            description: 'New description',
+            type: FeatureType.UsageCreditGrant,
+            active: false,
+            amount: 200,
+            usageMeterSlug: 'api-calls',
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+          },
+        },
+      ],
+    }
+
+    expect(() => validateFeatureDiff(diff)).not.toThrow()
+  })
+
+  it('should allow updates to usageMeterSlug (maps to usageMeterId which is updatable)', () => {
+    const diff: DiffResult<FeatureDiffInput> = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: {
+            slug: 'credits',
+            name: 'Credits',
+            description: 'Credit grant',
+            type: FeatureType.UsageCreditGrant,
+            active: true,
+            amount: 100,
+            usageMeterSlug: 'old-meter',
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+          },
+          proposed: {
+            slug: 'credits',
+            name: 'Credits',
+            description: 'Credit grant',
+            type: FeatureType.UsageCreditGrant,
+            active: true,
+            amount: 100,
+            usageMeterSlug: 'new-meter',
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+          },
+        },
+      ],
+    }
+
+    // usageMeterSlug maps to usageMeterId which IS in the update schema (updatable)
+    expect(() => validateFeatureDiff(diff)).not.toThrow()
+  })
+
+  it('should pass when nothing is being updated', () => {
+    const diff: DiffResult<FeatureDiffInput> = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: {
+            slug: 'feature-a',
+            name: 'Feature A',
+            description: 'A test feature',
+            type: FeatureType.Toggle,
+            active: true,
+          },
+          proposed: {
+            slug: 'feature-a',
+            name: 'Feature A',
+            description: 'A test feature',
+            type: FeatureType.Toggle,
+            active: true,
+          },
+        },
+      ],
+    }
+
+    expect(() => validateFeatureDiff(diff)).not.toThrow()
+  })
+
+  it('should allow feature removal', () => {
+    const diff: DiffResult<FeatureDiffInput> = {
+      toRemove: [
+        {
+          slug: 'feature-a',
+          name: 'Feature A',
+          description: 'A test feature',
+          type: FeatureType.Toggle,
+          active: true,
+        },
+      ],
+      toCreate: [],
+      toUpdate: [],
+    }
+
+    expect(() => validateFeatureDiff(diff)).not.toThrow()
+  })
+
+  it('should allow feature creation', () => {
+    const diff: DiffResult<FeatureDiffInput> = {
+      toRemove: [],
+      toCreate: [
+        {
+          slug: 'new-feature',
+          name: 'New Feature',
+          description: 'A new feature',
+          type: FeatureType.Toggle,
+          active: true,
+        },
+      ],
+      toUpdate: [],
+    }
+
+    expect(() => validateFeatureDiff(diff)).not.toThrow()
+  })
+})
+
+/**
+ * Helper function to create test prices for validation tests.
+ * Uses type assertion since the actual SetupPricingModelProductPriceInput
+ * has additional required fields from the client insert schemas.
+ */
+const createTestPrice = (
+  overrides: Partial<{
+    type: PriceType
+    unitPrice: number
+    intervalUnit: IntervalUnit
+    intervalCount: number
+    isDefault: boolean
+    active: boolean
+    slug: string
+    name: string
+    currency: CurrencyCode
+    usageMeterSlug: string
+    usageEventsPerUnit: number
+  }> = {}
+): SetupPricingModelProductPriceInput => {
+  const {
+    type = PriceType.Subscription,
+    unitPrice = 1000,
+    intervalUnit = IntervalUnit.Month,
+    intervalCount = 1,
+    isDefault = true,
+    active = true,
+    slug = 'test-price',
+    name,
+    currency = CurrencyCode.USD,
+    usageMeterSlug,
+    usageEventsPerUnit,
+  } = overrides
+
+  const basePrice = {
+    type,
+    unitPrice,
+    isDefault,
+    active,
+    slug,
+    currency,
+    ...(name !== undefined && { name }),
+  }
+
+  if (type === PriceType.Subscription) {
+    return {
+      ...basePrice,
+      type: PriceType.Subscription,
+      intervalUnit,
+      intervalCount,
+    } as SetupPricingModelProductPriceInput
+  }
+
+  if (type === PriceType.SinglePayment) {
+    return {
+      ...basePrice,
+      type: PriceType.SinglePayment,
+    } as SetupPricingModelProductPriceInput
+  }
+
+  // Usage price
+  return {
+    ...basePrice,
+    type: PriceType.Usage,
+    intervalUnit,
+    intervalCount,
+    usageMeterSlug: usageMeterSlug ?? 'test-meter',
+    usageEventsPerUnit: usageEventsPerUnit ?? 1,
+  } as SetupPricingModelProductPriceInput
+}
+
+describe('validatePriceChange', () => {
+  const baseSubscriptionPrice = createTestPrice({
+    type: PriceType.Subscription,
+    unitPrice: 1000,
+    currency: CurrencyCode.USD,
+    intervalUnit: IntervalUnit.Month,
+    intervalCount: 1,
+    slug: 'monthly-price',
+  })
+
+  const baseSinglePaymentPrice = createTestPrice({
+    type: PriceType.SinglePayment,
+    unitPrice: 5000,
+    currency: CurrencyCode.USD,
+    slug: 'one-time-price',
+  })
+
+  it('should not throw when both prices are undefined', () => {
+    expect(() =>
+      validatePriceChange(undefined, undefined)
+    ).not.toThrow()
+  })
+
+  it('should not throw when creating a new price (existing undefined)', () => {
+    expect(() =>
+      validatePriceChange(undefined, baseSubscriptionPrice)
+    ).not.toThrow()
+  })
+
+  it('should not throw when removing a price (proposed undefined)', () => {
+    expect(() =>
+      validatePriceChange(baseSubscriptionPrice, undefined)
+    ).not.toThrow()
+  })
+
+  it('should throw error when price type changes', () => {
+    expect(() =>
+      validatePriceChange(
+        baseSubscriptionPrice,
+        baseSinglePaymentPrice
+      )
+    ).toThrow(
+      "Price type cannot be changed. Existing type is 'subscription' but proposed type is 'single_payment'. To change price type, remove the price and create a new one."
+    )
+  })
+
+  it('should throw error when trying to update unitPrice', () => {
+    const proposedPrice = createTestPrice({
+      type: PriceType.Subscription,
+      unitPrice: 2000,
+      currency: CurrencyCode.USD,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      slug: 'monthly-price',
+    })
+
+    expect(() =>
+      validatePriceChange(baseSubscriptionPrice, proposedPrice)
+    ).toThrow()
+  })
+
+  it('should throw error when trying to update intervalCount', () => {
+    const proposedPrice = createTestPrice({
+      type: PriceType.Subscription,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 2,
+      slug: 'monthly-price',
+    })
+
+    expect(() =>
+      validatePriceChange(baseSubscriptionPrice, proposedPrice)
+    ).toThrow()
+  })
+
+  it('should throw error when trying to update intervalUnit', () => {
+    const proposedPrice = createTestPrice({
+      type: PriceType.Subscription,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      intervalUnit: IntervalUnit.Year,
+      intervalCount: 1,
+      slug: 'monthly-price',
+    })
+
+    expect(() =>
+      validatePriceChange(baseSubscriptionPrice, proposedPrice)
+    ).toThrow()
+  })
+
+  it('should allow updates to mutable fields like name', () => {
+    const proposedPrice = createTestPrice({
+      type: PriceType.Subscription,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      slug: 'monthly-price',
+      name: 'New Price Name',
+    })
+
+    expect(() =>
+      validatePriceChange(baseSubscriptionPrice, proposedPrice)
+    ).not.toThrow()
+  })
+
+  it('should allow updates to active status', () => {
+    const proposedPrice = createTestPrice({
+      type: PriceType.Subscription,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      slug: 'monthly-price',
+      active: false,
+    })
+
+    expect(() =>
+      validatePriceChange(baseSubscriptionPrice, proposedPrice)
+    ).not.toThrow()
+  })
+
+  it('should not throw when prices are identical', () => {
+    expect(() =>
+      validatePriceChange(
+        baseSubscriptionPrice,
+        baseSubscriptionPrice
+      )
+    ).not.toThrow()
+  })
+
+  it('should throw error when trying to update usageMeterSlug for usage price', () => {
+    const existingUsagePrice = createTestPrice({
+      type: PriceType.Usage,
+      unitPrice: 100,
+      currency: CurrencyCode.USD,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      slug: 'usage-price',
+      usageMeterSlug: 'old-meter',
+      usageEventsPerUnit: 1,
+    })
+
+    const proposedUsagePrice = createTestPrice({
+      type: PriceType.Usage,
+      unitPrice: 100,
+      currency: CurrencyCode.USD,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      slug: 'usage-price',
+      usageMeterSlug: 'new-meter',
+      usageEventsPerUnit: 1,
+    })
+
+    expect(() =>
+      validatePriceChange(existingUsagePrice, proposedUsagePrice)
+    ).toThrow()
+  })
+})
+
+describe('validateProductDiff', () => {
+  it('should allow updates to mutable product fields', () => {
+    const diff: ProductDiffResult = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: createProductInput({
+            productSlug: 'pro',
+            productName: 'Old Name',
+          }),
+          proposed: createProductInput({
+            productSlug: 'pro',
+            productName: 'New Name',
+          }),
+        },
+      ],
+    }
+
+    expect(() => validateProductDiff(diff)).not.toThrow()
+  })
+
+  it('should allow updates to multiple mutable product fields', () => {
+    const existing = createProductInput({
+      productSlug: 'pro',
+      productName: 'Old Name',
+      active: true,
+    })
+    const proposed = createProductInput({
+      productSlug: 'pro',
+      productName: 'New Name',
+      active: false,
+    })
+    // Add description to products
+    ;(existing.product as Record<string, unknown>).description =
+      'Old desc'
+    ;(proposed.product as Record<string, unknown>).description =
+      'New desc'
+
+    const diff: ProductDiffResult = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [{ existing, proposed }],
+    }
+
+    expect(() => validateProductDiff(diff)).not.toThrow()
+  })
+
+  it('should call validatePriceChange for each priceDiff', () => {
+    const diff: ProductDiffResult = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: createProductInput({
+            productSlug: 'pro',
+            productName: 'Pro',
+            unitPrice: 1000,
+          }),
+          proposed: createProductInput({
+            productSlug: 'pro',
+            productName: 'Pro',
+            unitPrice: 2000,
+          }),
+          priceDiff: {
+            existingPrice: createTestPrice({
+              type: PriceType.Subscription,
+              unitPrice: 1000,
+              slug: 'pro-price',
+            }),
+            proposedPrice: createTestPrice({
+              type: PriceType.Subscription,
+              unitPrice: 2000,
+              slug: 'pro-price',
+            }),
+          },
+        },
+      ],
+    }
+
+    // Should throw because unitPrice is immutable
+    expect(() => validateProductDiff(diff)).toThrow()
+  })
+
+  it('should throw when price type changes in priceDiff', () => {
+    const diff: ProductDiffResult = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: createProductInput({
+            productSlug: 'pro',
+            productName: 'Pro',
+            priceType: PriceType.Subscription,
+          }),
+          proposed: createProductInput({
+            productSlug: 'pro',
+            productName: 'Pro',
+            priceType: PriceType.SinglePayment,
+          }),
+          priceDiff: {
+            existingPrice: createTestPrice({
+              type: PriceType.Subscription,
+              unitPrice: 1000,
+              slug: 'pro-price',
+            }),
+            proposedPrice: createTestPrice({
+              type: PriceType.SinglePayment,
+              unitPrice: 1000,
+              slug: 'pro-price',
+            }),
+          },
+        },
+      ],
+    }
+
+    expect(() => validateProductDiff(diff)).toThrow(
+      'Price type cannot be changed'
+    )
+  })
+
+  it('should pass when no changes in product update', () => {
+    const product = createProductInput({
+      productSlug: 'pro',
+      productName: 'Pro',
+    })
+
+    const diff: ProductDiffResult = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: product,
+          proposed: product,
+        },
+      ],
+    }
+
+    expect(() => validateProductDiff(diff)).not.toThrow()
+  })
+
+  it('should allow product removal', () => {
+    const diff: ProductDiffResult = {
+      toRemove: [
+        createProductInput({
+          productSlug: 'remove-me',
+          productName: 'Remove Me',
+        }),
+      ],
+      toCreate: [],
+      toUpdate: [],
+    }
+
+    expect(() => validateProductDiff(diff)).not.toThrow()
+  })
+
+  it('should allow product creation', () => {
+    const diff: ProductDiffResult = {
+      toRemove: [],
+      toCreate: [
+        createProductInput({
+          productSlug: 'new-product',
+          productName: 'New Product',
+        }),
+      ],
+      toUpdate: [],
+    }
+
+    expect(() => validateProductDiff(diff)).not.toThrow()
+  })
+
+  it('should pass when priceDiff has allowed changes (e.g., name)', () => {
+    const diff: ProductDiffResult = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: createProductInput({
+            productSlug: 'pro',
+            productName: 'Pro',
+          }),
+          proposed: createProductInput({
+            productSlug: 'pro',
+            productName: 'Pro',
+          }),
+          priceDiff: {
+            existingPrice: createTestPrice({
+              type: PriceType.Subscription,
+              unitPrice: 1000,
+              slug: 'pro-price',
+              name: 'Old Price Name',
+            }),
+            proposedPrice: createTestPrice({
+              type: PriceType.Subscription,
+              unitPrice: 1000,
+              slug: 'pro-price',
+              name: 'New Price Name',
+            }),
+          },
+        },
+      ],
+    }
+
+    expect(() => validateProductDiff(diff)).not.toThrow()
+  })
+
+  it('should handle mixed valid and invalid updates', () => {
+    const diff: ProductDiffResult = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          // Valid update - just name change
+          existing: createProductInput({
+            productSlug: 'pro-1',
+            productName: 'Old Name',
+          }),
+          proposed: createProductInput({
+            productSlug: 'pro-1',
+            productName: 'New Name',
+          }),
+        },
+        {
+          // Invalid update - price unitPrice change
+          existing: createProductInput({
+            productSlug: 'pro-2',
+            productName: 'Pro 2',
+            unitPrice: 1000,
+          }),
+          proposed: createProductInput({
+            productSlug: 'pro-2',
+            productName: 'Pro 2',
+            unitPrice: 2000,
+          }),
+          priceDiff: {
+            existingPrice: createTestPrice({
+              type: PriceType.Subscription,
+              unitPrice: 1000,
+              slug: 'pro-2-price',
+            }),
+            proposedPrice: createTestPrice({
+              type: PriceType.Subscription,
+              unitPrice: 2000,
+              slug: 'pro-2-price',
+            }),
+          },
+        },
+      ],
+    }
+
+    // Should throw on the second update (immutable field change)
+    expect(() => validateProductDiff(diff)).toThrow()
   })
 })

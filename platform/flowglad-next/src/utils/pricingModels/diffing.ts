@@ -6,6 +6,19 @@
  */
 
 import * as R from 'ramda'
+import { z } from 'zod'
+import {
+  toggleFeatureClientUpdateSchema,
+  usageCreditGrantFeatureClientUpdateSchema,
+} from '@/db/schema/features'
+import {
+  singlePaymentPriceClientUpdateSchema,
+  subscriptionPriceClientUpdateSchema,
+  usagePriceClientUpdateSchema,
+} from '@/db/schema/prices'
+import { productsClientUpdateSchema } from '@/db/schema/products'
+import { usageMetersClientUpdateSchema } from '@/db/schema/usageMeters'
+import { FeatureType, PriceType } from '@/types'
 import type {
   SetupPricingModelInput,
   SetupPricingModelProductInput,
@@ -340,5 +353,305 @@ export const diffProducts = (
     toRemove: baseDiff.toRemove as unknown as ProductDiffInput[],
     toCreate: baseDiff.toCreate as unknown as ProductDiffInput[],
     toUpdate,
+  }
+}
+
+/**
+ * Computes an update object containing only the fields that differ between
+ * existing and proposed objects.
+ *
+ * @param existing - The existing object
+ * @param proposed - The proposed object
+ * @returns An object containing only the fields that differ
+ *
+ * @example
+ * ```typescript
+ * const existing = { slug: 'foo', name: 'Old', active: true }
+ * const proposed = { slug: 'foo', name: 'New', active: true }
+ * const update = computeUpdateObject(existing, proposed)
+ * // update = { name: 'New' }
+ * ```
+ */
+export const computeUpdateObject = <
+  T extends Record<string, unknown>,
+>(
+  existing: T,
+  proposed: T
+): Partial<T> => {
+  const update: Partial<T> = {}
+
+  // Get all keys from both objects
+  const allKeys = new Set([
+    ...Object.keys(existing),
+    ...Object.keys(proposed),
+  ])
+
+  for (const key of allKeys) {
+    const existingValue = existing[key]
+    const proposedValue = proposed[key]
+
+    // Compare values for deep equality
+    if (!R.equals(existingValue, proposedValue)) {
+      update[key as keyof T] = proposedValue as T[keyof T]
+    }
+  }
+
+  return update
+}
+
+/**
+ * Validates a usage meter diff result.
+ *
+ * This function enforces the following rules:
+ * - Usage meters cannot be removed (throws if toRemove is non-empty)
+ * - Updates must only modify mutable fields (validated via Zod parsing with strict mode)
+ *
+ * @param diff - The diff result from diffUsageMeters
+ * @throws Error if usage meters are being removed or if immutable fields are being modified
+ *
+ * @example
+ * ```typescript
+ * const diff = diffUsageMeters(existing, proposed)
+ * validateUsageMeterDiff(diff) // throws if invalid
+ * ```
+ */
+export const validateUsageMeterDiff = (
+  diff: DiffResult<UsageMeterDiffInput>
+): void => {
+  // Usage meters cannot be removed
+  if (diff.toRemove.length > 0) {
+    const removedSlugs = diff.toRemove.map((m) => m.slug).join(', ')
+    throw new Error(
+      `Usage meters cannot be removed. Attempted to remove: ${removedSlugs}`
+    )
+  }
+
+  // Validate each update entry
+  for (const { existing, proposed } of diff.toUpdate) {
+    const updateObject = computeUpdateObject(existing, proposed)
+
+    // Skip if nothing changed
+    if (Object.keys(updateObject).length === 0) {
+      continue
+    }
+
+    // Try to parse with strict mode - this will fail if any immutable fields are present
+    const result = usageMetersClientUpdateSchema
+      .partial()
+      .strict()
+      .safeParse(updateObject)
+
+    if (!result.success) {
+      throw new Error(
+        `Invalid usage meter update for slug '${existing.slug}': ${result.error.message}`
+      )
+    }
+  }
+}
+
+/**
+ * Validates a feature diff result.
+ *
+ * This function enforces the following rules:
+ * - Feature type cannot be changed (throws error if type differs)
+ * - Updates must only modify mutable fields (validated via Zod parsing with strict mode)
+ *
+ * @param diff - The diff result from diffFeatures
+ * @throws Error if type changes or if immutable fields are being modified
+ *
+ * @example
+ * ```typescript
+ * const diff = diffFeatures(existing, proposed)
+ * validateFeatureDiff(diff) // throws if invalid
+ * ```
+ */
+export const validateFeatureDiff = (
+  diff: DiffResult<FeatureDiffInput>
+): void => {
+  for (const { existing, proposed } of diff.toUpdate) {
+    // Check for type change first (before Zod parsing)
+    if (existing.type !== proposed.type) {
+      throw new Error(
+        `Feature type cannot be changed. Feature '${existing.slug}' has type '${existing.type}' but proposed type is '${proposed.type}'. To change type, remove the feature and create a new one.`
+      )
+    }
+
+    const updateObject = computeUpdateObject(existing, proposed)
+
+    // Skip if nothing changed
+    if (Object.keys(updateObject).length === 0) {
+      continue
+    }
+
+    // Select the appropriate schema based on feature type
+    const schema =
+      existing.type === FeatureType.Toggle
+        ? toggleFeatureClientUpdateSchema
+        : usageCreditGrantFeatureClientUpdateSchema
+
+    // Handle usageMeterSlug -> usageMeterId transformation for UsageCreditGrant features
+    // In the setup schema, we use usageMeterSlug, but the client update schema expects usageMeterId
+    // usageMeterId is updatable (per features.ts schemas), so changes to usageMeterSlug are allowed
+    // The transformation from usageMeterSlug to usageMeterId is only to align client update payloads
+    // with the schema so validation can proceed. Tests expect changing usageMeterSlug/usageMeterId
+    // to be allowed (not to throw).
+    const transformedUpdate = { ...updateObject }
+    if ('usageMeterSlug' in transformedUpdate) {
+      // Transform usageMeterSlug to usageMeterId to align with the client update schema
+      ;(transformedUpdate as Record<string, unknown>).usageMeterId = (
+        transformedUpdate as Record<string, unknown>
+      ).usageMeterSlug
+      delete (transformedUpdate as Record<string, unknown>)
+        .usageMeterSlug
+    }
+
+    // Try to parse with strict mode
+    const result = schema
+      .partial()
+      .strict()
+      .safeParse(transformedUpdate)
+
+    if (!result.success) {
+      throw new Error(
+        `Invalid feature update for slug '${existing.slug}': ${result.error.message}`
+      )
+    }
+  }
+}
+
+/**
+ * Validates a price change between existing and proposed prices.
+ *
+ * This function enforces the following rules:
+ * - Price type cannot change (throws error if types differ)
+ * - Updates must only modify mutable fields (validated via Zod parsing with strict mode)
+ *
+ * @param existing - The existing price (or undefined for creation)
+ * @param proposed - The proposed price (or undefined for removal)
+ * @throws Error if price type changes or if immutable fields are being modified
+ *
+ * @example
+ * ```typescript
+ * validatePriceChange(existingPrice, proposedPrice) // throws if invalid
+ * ```
+ */
+export const validatePriceChange = (
+  existing: SetupPricingModelProductPriceInput | undefined,
+  proposed: SetupPricingModelProductPriceInput | undefined
+): void => {
+  // Both undefined - no change
+  if (existing === undefined && proposed === undefined) {
+    return
+  }
+
+  // One undefined, one defined - valid (creation or removal)
+  if (existing === undefined || proposed === undefined) {
+    return
+  }
+
+  // Both exist - validate the change
+  // Check for type change first (before Zod parsing)
+  if (existing.type !== proposed.type) {
+    throw new Error(
+      `Price type cannot be changed. Existing type is '${existing.type}' but proposed type is '${proposed.type}'. To change price type, remove the price and create a new one.`
+    )
+  }
+
+  const updateObject = computeUpdateObject(existing, proposed)
+
+  // Skip if nothing changed
+  if (Object.keys(updateObject).length === 0) {
+    return
+  }
+
+  // Handle usageMeterSlug -> usageMeterId transformation for usage prices
+  const transformedUpdate = { ...updateObject }
+  if ('usageMeterSlug' in transformedUpdate) {
+    // usageMeterSlug changes are not allowed (usageMeterId is create-only)
+    ;(transformedUpdate as Record<string, unknown>).usageMeterId = (
+      transformedUpdate as Record<string, unknown>
+    ).usageMeterSlug
+    delete (transformedUpdate as Record<string, unknown>)
+      .usageMeterSlug
+  }
+
+  // Select the appropriate schema based on price type and try to parse with strict mode
+  let result: { success: boolean; error?: z.ZodError }
+  switch (existing.type) {
+    case PriceType.Subscription:
+      result = subscriptionPriceClientUpdateSchema
+        .partial()
+        .strict()
+        .safeParse(transformedUpdate)
+      break
+    case PriceType.SinglePayment:
+      result = singlePaymentPriceClientUpdateSchema
+        .partial()
+        .strict()
+        .safeParse(transformedUpdate)
+      break
+    case PriceType.Usage:
+      result = usagePriceClientUpdateSchema
+        .partial()
+        .strict()
+        .safeParse(transformedUpdate)
+      break
+  }
+
+  if (!result.success) {
+    throw new Error(`Invalid price update: ${result.error?.message}`)
+  }
+}
+
+/**
+ * Validates a product diff result.
+ *
+ * This function enforces the following rules:
+ * - Product updates must only modify mutable fields (validated via Zod parsing with strict mode)
+ * - Price changes are validated via validatePriceChange
+ *
+ * @param diff - The diff result from diffProducts
+ * @throws Error if immutable fields are being modified or if price validation fails
+ *
+ * @example
+ * ```typescript
+ * const diff = diffProducts(existing, proposed)
+ * validateProductDiff(diff) // throws if invalid
+ * ```
+ */
+export const validateProductDiff = (
+  diff: ProductDiffResult
+): void => {
+  for (const { existing, proposed, priceDiff } of diff.toUpdate) {
+    // Validate product fields (excluding price field)
+    const existingProduct = existing.product
+    const proposedProduct = proposed.product
+
+    const productUpdateObject = computeUpdateObject(
+      existingProduct,
+      proposedProduct
+    )
+
+    // Validate product update if there are changes
+    if (Object.keys(productUpdateObject).length > 0) {
+      const result = productsClientUpdateSchema
+        .partial()
+        .strict()
+        .safeParse(productUpdateObject)
+
+      if (!result.success) {
+        throw new Error(
+          `Invalid product update for slug '${existingProduct.slug}': ${result.error.message}`
+        )
+      }
+    }
+
+    // Validate price change if there's a price diff
+    if (priceDiff) {
+      validatePriceChange(
+        priceDiff.existingPrice,
+        priceDiff.proposedPrice
+      )
+    }
   }
 }
