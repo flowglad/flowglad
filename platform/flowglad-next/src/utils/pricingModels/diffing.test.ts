@@ -676,7 +676,6 @@ describe('diffProducts', () => {
 
     // Expectation: priceDiff should show the type change
     expect(result.toUpdate).toHaveLength(1)
-    expect(result.toUpdate[0].priceDiff).toBeDefined()
     expect(result.toUpdate[0].priceDiff?.existingPrice?.type).toBe(
       PriceType.Subscription
     )
