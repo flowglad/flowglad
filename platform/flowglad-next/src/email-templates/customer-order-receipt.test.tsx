@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import { CurrencyCode } from '@/types'
 import core from '@/utils/core'
 import { OrderReceiptEmail } from './customer-order-receipt'
@@ -458,6 +459,87 @@ describe('OrderReceiptEmail', () => {
           '-$60.00'
         )
         expect(getByTestId('total-amount')).toHaveTextContent('$0.00')
+      })
+    })
+  })
+
+  describe('MoR Support', () => {
+    describe('when isMoR is false', () => {
+      it('should render organization branding', () => {
+        const { getByAltText, getByTestId } = render(
+          <OrderReceiptEmail {...mockProps} isMoR={false} />
+        )
+
+        expect(getByAltText('Logo')).toHaveAttribute(
+          'src',
+          mockProps.organizationLogoUrl
+        )
+        expect(getByTestId('signature-org-name')).toHaveTextContent(
+          mockProps.organizationName
+        )
+      })
+
+      it('should not show card statement descriptor notice', () => {
+        const { queryByText } = render(
+          <OrderReceiptEmail {...mockProps} isMoR={false} />
+        )
+
+        expect(
+          queryByText(/This purchase was processed by/)
+        ).not.toBeInTheDocument()
+      })
+    })
+
+    describe('when isMoR is true', () => {
+      it('should show Flowglad branding', () => {
+        const { getByAltText } = render(
+          <OrderReceiptEmail {...mockProps} isMoR={true} />
+        )
+
+        expect(getByAltText('Logo')).toHaveAttribute(
+          'src',
+          FLOWGLAD_LEGAL_ENTITY.logoURL
+        )
+      })
+
+      it('should include card statement descriptor notice', () => {
+        const { container } = render(
+          <OrderReceiptEmail {...mockProps} isMoR={true} />
+        )
+
+        // The text contains the card statement descriptor in the MoR notice
+        expect(container.textContent).toContain(
+          FLOWGLAD_LEGAL_ENTITY.cardStatementDescriptor
+        )
+        expect(container.textContent).toContain(
+          'This purchase was processed by'
+        )
+      })
+
+      it('should show "for [merchant]" in signature', () => {
+        const { getByTestId } = render(
+          <OrderReceiptEmail {...mockProps} isMoR={true} />
+        )
+
+        expect(getByTestId('signature-org-name')).toHaveTextContent(
+          `${FLOWGLAD_LEGAL_ENTITY.name} for ${mockProps.organizationName}`
+        )
+      })
+
+      it('should still display customer billing info correctly', () => {
+        const { getByTestId } = render(
+          <OrderReceiptEmail {...mockProps} isMoR={true} />
+        )
+
+        expect(getByTestId('invoice-number')).toHaveTextContent(
+          `Invoice #: ${mockProps.invoiceNumber}`
+        )
+        expect(getByTestId('order-date')).toHaveTextContent(
+          `Date: ${mockProps.orderDate}`
+        )
+        expect(getByTestId('payment-amount')).toHaveTextContent(
+          'Payment: $60.00'
+        )
       })
     })
   })

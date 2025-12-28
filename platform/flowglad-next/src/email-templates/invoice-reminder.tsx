@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import core from '@/utils/core'
@@ -24,6 +25,7 @@ export const InvoiceReminderEmail = ({
   organizationName,
   discountInfo,
   livemode,
+  isMoR = false,
 }: {
   invoice: Invoice.Record
   invoiceLineItems: InvoiceLineItem.Record[]
@@ -36,6 +38,7 @@ export const InvoiceReminderEmail = ({
     discountAmountType: string
   } | null
   livemode: boolean
+  isMoR?: boolean
 }) => {
   const { originalAmount, subtotalAmount, taxAmount, totalAmount } =
     calculateInvoiceTotalsFromLineItems(
@@ -52,12 +55,19 @@ export const InvoiceReminderEmail = ({
       }
     : null
 
+  const sellerName = isMoR
+    ? FLOWGLAD_LEGAL_ENTITY.name
+    : organizationName
+  const sellerLogo = isMoR
+    ? FLOWGLAD_LEGAL_ENTITY.logoURL
+    : organizationLogoUrl
+
   return (
-    <EmailLayout previewText="Invoice Reminder">
+    <EmailLayout previewText={`Invoice Reminder from ${sellerName}`}>
       <TestModeBanner livemode={livemode} />
       <Header
         title="Invoice Reminder"
-        organizationLogoUrl={organizationLogoUrl}
+        organizationLogoUrl={sellerLogo}
       />
 
       <DetailSection>
@@ -90,7 +100,29 @@ export const InvoiceReminderEmail = ({
         View Invoice →
       </EmailButton>
 
-      <Signature greeting="Best regards," name={organizationName} />
+      {isMoR && (
+        <Paragraph
+          style={{
+            fontSize: '12px',
+            color: '#666',
+            marginTop: '20px',
+          }}
+        >
+          This purchase was processed by {FLOWGLAD_LEGAL_ENTITY.name}{' '}
+          for {organizationName}. You may see "
+          {FLOWGLAD_LEGAL_ENTITY.cardStatementDescriptor}" on your
+          card statement.
+        </Paragraph>
+      )}
+
+      <Signature
+        greeting="Best regards,"
+        name={
+          isMoR
+            ? `${sellerName} for ${organizationName}`
+            : organizationName
+        }
+      />
     </EmailLayout>
   )
 }

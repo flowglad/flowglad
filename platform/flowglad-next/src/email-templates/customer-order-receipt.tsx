@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import type { CurrencyCode } from '@/types'
 import core from '@/utils/core'
 import { calculateInvoiceTotalsWithDiscounts } from '@/utils/discountHelpers'
@@ -26,6 +27,7 @@ export const OrderReceiptEmail = ({
   customerId,
   discountInfo,
   livemode,
+  isMoR = false,
 }: {
   invoiceNumber: string
   orderDate: string
@@ -50,6 +52,7 @@ export const OrderReceiptEmail = ({
     discountAmountType: string
   } | null
   livemode: boolean
+  isMoR?: boolean
 }) => {
   const totals = calculateInvoiceTotalsWithDiscounts(
     lineItems,
@@ -57,12 +60,21 @@ export const OrderReceiptEmail = ({
     discountInfo
   )
 
+  const sellerName = isMoR
+    ? FLOWGLAD_LEGAL_ENTITY.name
+    : organizationName
+  const sellerLogo = isMoR
+    ? FLOWGLAD_LEGAL_ENTITY.logoURL
+    : organizationLogoUrl
+
   return (
-    <EmailLayout previewText="Thanks for your order!">
+    <EmailLayout
+      previewText={`Thanks for your order from ${sellerName}!`}
+    >
       <TestModeBanner livemode={livemode} />
       <Header
         title="Thanks for your order!"
-        organizationLogoUrl={organizationLogoUrl}
+        organizationLogoUrl={sellerLogo}
       />
 
       <DetailSection>
@@ -112,9 +124,28 @@ export const OrderReceiptEmail = ({
         View Order →
       </EmailButton>
 
+      {isMoR && (
+        <Paragraph
+          style={{
+            fontSize: '12px',
+            color: '#666',
+            marginTop: '20px',
+          }}
+        >
+          This purchase was processed by {FLOWGLAD_LEGAL_ENTITY.name}{' '}
+          for {organizationName}. You may see "
+          {FLOWGLAD_LEGAL_ENTITY.cardStatementDescriptor}" on your
+          card statement.
+        </Paragraph>
+      )}
+
       <Signature
         greeting="Thanks,"
-        name={organizationName}
+        name={
+          isMoR
+            ? `${sellerName} for ${organizationName}`
+            : organizationName
+        }
         greetingDataTestId="signature-thanks"
         nameDataTestId="signature-org-name"
       />
