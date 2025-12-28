@@ -128,7 +128,132 @@ export const flowglad = (organizationId: string) => {
 **B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
 </Note>
 
-### 3. Call Server Methods
+### 3. Mount Flowglad Route Handler
+
+Create a route handler to handle Flowglad API requests from your frontend. The Server SDK provides route handler constructors that enable your client to communicate with your server, allowing you to load billing and feature access data via the [`useBilling` hook](/sdks/react#usebilling-hook) on your frontend. It should handle requests at "/api/flowglad/..."
+
+<Tabs>
+  <Tab title="Next.js App Router">
+    ```ts title="app/api/flowglad/[...path]/route.ts"
+    import { nextRouteHandler } from '@flowglad/nextjs/server'
+    import { flowglad } from '@/lib/flowglad'
+    import { customerIdFromRequest } from '@/lib/auth'
+
+    export const { GET, POST } = nextRouteHandler({
+      flowglad,
+      getCustomerExternalId: async (req) => {
+        const externalId = await customerIdFromRequest(req)
+        if (!externalId) {
+          throw new Error('Unable to determine customer external ID')
+        }
+        return externalId
+      },
+    })
+    ```
+  </Tab>
+
+  <Tab title="Next.js Pages Router">
+    ```ts title="pages/api/flowglad/[...path].ts"
+    import { pagesRouteHandler } from '@flowglad/nextjs/server'
+    import { flowglad } from '@/lib/flowglad'
+    import { customerIdFromRequest } from '@/lib/auth'
+
+    export default pagesRouteHandler({
+      flowglad,
+      getCustomerExternalId: async (req) => {
+        const externalId = await customerIdFromRequest(req)
+        if (!externalId) {
+          throw new Error('Unable to determine customer external ID')
+        }
+        return externalId
+      },
+    })
+    ```
+  </Tab>
+
+  <Tab title="Express">
+    ```ts title="server.ts"
+    import express from 'express'
+    import { expressRouter } from '@flowglad/server/express'
+    import { flowglad } from './lib/flowglad'
+    import { customerIdFromRequest } from './lib/auth'
+
+    const app = express()
+
+    app.use(
+      '/api/flowglad',
+      expressRouter({
+        flowglad,
+        getCustomerExternalId: async (req) => {
+          const externalId = await customerIdFromRequest(req)
+          if (!externalId) {
+            throw new Error('Unable to determine customer external ID')
+          }
+          return externalId
+        },
+      })
+    )
+    ```
+  </Tab>
+
+  <Tab title="Other Frameworks">
+    ```ts title="server.ts"
+    import { requestHandler } from '@flowglad/server'
+    import { flowglad } from './lib/flowglad'
+    import { customerIdFromRequest } from './lib/auth'
+    import type { HTTPMethod } from '@flowglad/shared'
+
+    const flowgladHandler = requestHandler({
+      flowglad,
+      getCustomerExternalId: async (req) => {
+        const externalId = await customerIdFromRequest(req)
+        if (!externalId) {
+          throw new Error('Unable to determine customer external ID')
+        }
+        return externalId
+      },
+    })
+
+    // Example: Hono, Cloudflare Workers, Elysia, etc.
+    // Adapt this pattern to your framework
+    async function handleFlowgladRequest(request: Request): Promise<Response> {
+      const url = new URL(request.url)
+      const path = url.pathname
+        .replace('/api/flowglad/', '')
+        .split('/')
+        .filter((segment) => segment !== '')
+
+      const result = await flowgladHandler(
+        {
+          path,
+          method: request.method as HTTPMethod,
+          query:
+            request.method === 'GET'
+              ? Object.fromEntries(url.searchParams)
+              : undefined,
+          body:
+            request.method !== 'GET'
+              ? await request.json().catch(() => ({}))
+              : undefined,
+        },
+        request
+      )
+
+      return Response.json(
+        {
+          error: result.error,
+          data: result.data,
+        },
+        {
+          status: result.status,
+        }
+      )
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### 4. Call Server Methods
 
 ```ts
 // Fetch billing details (customers, subscriptions, invoices, etc.)
@@ -148,10 +273,18 @@ const checkoutSession = await flowglad(userId).createCheckoutSession({
 // Check feature access for gating premium functionality
 const hasPremium = billing.checkFeatureAccess('premium_feature')
 
-// Record metered usage
+// Record metered usage with price (for billing)
 await flowglad(userId).createUsageEvent({
   amount: 1,
   priceSlug: 'usage_price_slug',
+  subscriptionId: 'subscription_id',
+  transactionId: 'idempotency-key',
+})
+
+// Record metered usage without price (for tracking only)
+await flowglad(userId).createUsageEvent({
+  amount: 1,
+  usageMeterSlug: 'api_calls',
   subscriptionId: 'subscription_id',
   transactionId: 'idempotency-key',
 })

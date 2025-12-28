@@ -158,6 +158,10 @@ export function FeaturesDataTable({
     },
   })
 
+  const hasButtons =
+    (filterOptions && activeFilter && onFilterChange) ||
+    onCreateFeature
+
   return (
     <div className="w-full">
       {/* Enhanced toolbar */}
@@ -168,32 +172,40 @@ export function FeaturesDataTable({
             <h3 className="text-lg truncate">{title}</h3>
           </div>
         )}
-        {/* Redesigned toolbar matching Figma specs */}
-        <div className="flex items-center gap-1">
+        {/* Redesigned toolbar - responsive: 2 rows on mobile, 1 row on desktop */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-1">
+          {/* Search input - full width on mobile, flex-1 on desktop */}
           <InlineSearch
             value={inputValue}
             onChange={setInputValue}
             placeholder="Search features..."
             isLoading={isFetching}
             disabled={isLoading}
-            className="flex-1"
+            className="w-full sm:flex-1"
           />
-          {filterOptions && activeFilter && onFilterChange && (
-            <StatusDropdownFilter
-              value={activeFilter}
-              onChange={onFilterChange}
-              options={filterOptions}
-            />
-          )}
-          {onCreateFeature && (
-            <Button
-              onClick={onCreateFeature}
-              variant={buttonVariant}
-              size="sm"
-            >
-              <Plus className="w-4 h-4" />
-              Create Feature
-            </Button>
+          {/* Buttons row - full width on mobile, auto on desktop */}
+          {hasButtons && (
+            <div className="flex items-center gap-1 w-full sm:w-auto">
+              {filterOptions && activeFilter && onFilterChange && (
+                <StatusDropdownFilter
+                  value={activeFilter}
+                  onChange={onFilterChange}
+                  options={filterOptions}
+                  className="flex-1 sm:flex-none"
+                />
+              )}
+              {onCreateFeature && (
+                <Button
+                  onClick={onCreateFeature}
+                  variant={buttonVariant}
+                  size="sm"
+                  className="flex-1 sm:flex-none"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Feature
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>

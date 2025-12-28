@@ -48,7 +48,7 @@ Usage prices denominate how much a customer should pay for usage events for a gi
 
 Usage prices are not subscribable and cannot be checked out, meaning attempts to create a subscription or a checkout session with a usage price will fail. Instead, usage prices describe explicitly what the cost should be for a usage event. They clarify to settle overrages for a usage meter in the case that a customer runs an overrage.
 
-Usage prices are currently required when creating a usage event. If you do not intend to charge for usage, you should create a usage price of `unitPrice: 0`. 
+Usage prices are optional when creating a usage event. You can create usage events by referencing the usage meter directly (via `usageMeterSlug` or `usageMeterId`) without requiring a price. This is useful for tracking usage without billing. Events created without a price will have a `unitPrice` of $0 and won't generate charges. 
 
 ## Usage Meters
 
@@ -90,7 +90,7 @@ When a customer receives usage credits, it **increases** the usage balance on th
 
 ## Usage Events
 
-Usage events record a consumption of an event to a usage meter. Every usage event belongs to a usage meter and a subscription. When usage events are created, they **deduct** from the usage balance on the subscription.
+Usage events record a consumption of an event to a usage meter. Every usage event belongs to a usage meter and a subscription. Usage events may be associated with a usage price for billing purposes. When usage events are created, they **deduct** from the usage balance on the subscription.
 
 If the customer is on a renewing subscription, Flowglad will attempt to settle the outstanding usage balance for the prior billing period when there's a billing period transition.
 

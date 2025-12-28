@@ -143,17 +143,23 @@ export function PricesDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar */}
-      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
-        {/* Title on the left (for detail pages) */}
-        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && <h3 className="text-lg truncate">{title}</h3>}
-        </div>
-
-        {/* Controls on the right */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex flex-col gap-3 pt-1 pb-2 px-4">
+        {/* Title row */}
+        {title && (
+          <div>
+            <h3 className="text-lg truncate">{title}</h3>
+          </div>
+        )}
+        {/* Controls row */}
+        <div className="flex items-center gap-1">
+          <div className="flex-1" />
           <DataTableViewOptions table={table} />
           {onCreatePrice && (
-            <Button onClick={onCreatePrice} variant={buttonVariant}>
+            <Button
+              onClick={onCreatePrice}
+              variant={buttonVariant}
+              size="sm"
+            >
               <Plus className="w-4 h-4" />
               New Price
             </Button>
@@ -227,7 +233,7 @@ export function PricesDataTable({
       </Table>
 
       {/* Pagination */}
-      <div className="py-2">
+      <div className="py-2 px-4">
         <DataTablePagination
           table={table}
           totalCount={data?.total}

@@ -17,6 +17,10 @@ import {
 import { NormalBalanceType } from '@/types'
 import type { DbTransaction } from '../types'
 import { selectSubscriptionById } from './subscriptionMethods'
+import {
+  derivePricingModelIdFromUsageMeter,
+  pricingModelIdsForUsageMeters,
+} from './usageMeterMethods'
 
 const TABLE_NAME = 'ledger_accounts'
 
@@ -37,10 +41,29 @@ export const selectLedgerAccountById = createSelectById(
   config
 )
 
-export const insertLedgerAccount = createInsertFunction(
+const baseInsertLedgerAccount = createInsertFunction(
   ledgerAccounts,
   config
 )
+
+export const insertLedgerAccount = async (
+  ledgerAccountInsert: LedgerAccount.Insert,
+  transaction: DbTransaction
+): Promise<LedgerAccount.Record> => {
+  const pricingModelId = ledgerAccountInsert.pricingModelId
+    ? ledgerAccountInsert.pricingModelId
+    : await derivePricingModelIdFromUsageMeter(
+        ledgerAccountInsert.usageMeterId,
+        transaction
+      )
+  return baseInsertLedgerAccount(
+    {
+      ...ledgerAccountInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateLedgerAccount = createUpdateFunction(
   ledgerAccounts,
@@ -52,28 +75,67 @@ export const selectLedgerAccounts = createSelectFunction(
   config
 )
 
-export const upsertLedgerAccountByEccaDefinition =
-  createUpsertFunction(
-    ledgerAccounts,
-    [
-      ledgerAccounts.organizationId,
-      ledgerAccounts.subscriptionId,
-      ledgerAccounts.usageMeterId,
-      //   ledgerAccounts.currency,
-      ledgerAccounts.livemode,
-    ],
-    config
-  )
+const baseUpsertLedgerAccountByEccaDefinition = createUpsertFunction(
+  ledgerAccounts,
+  [
+    ledgerAccounts.organizationId,
+    ledgerAccounts.subscriptionId,
+    ledgerAccounts.usageMeterId,
+    //   ledgerAccounts.currency,
+    ledgerAccounts.livemode,
+  ],
+  config
+)
 
-const bulkInsertOrDoNothingLedgerAccounts =
+export const upsertLedgerAccountByEccaDefinition = async (
+  ledgerAccountInsert: LedgerAccount.Insert,
+  transaction: DbTransaction
+): Promise<LedgerAccount.Record> => {
+  const pricingModelId = ledgerAccountInsert.pricingModelId
+    ? ledgerAccountInsert.pricingModelId
+    : await derivePricingModelIdFromUsageMeter(
+        ledgerAccountInsert.usageMeterId,
+        transaction
+      )
+  const results = await baseUpsertLedgerAccountByEccaDefinition(
+    {
+      ...ledgerAccountInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+  return results[0]!
+}
+
+const baseBulkInsertOrDoNothingLedgerAccounts =
   createBulkInsertOrDoNothingFunction(ledgerAccounts, config)
 export const bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId =
   async (
     insertParams: LedgerAccount.Insert[],
     transaction: DbTransaction
-  ) => {
-    return bulkInsertOrDoNothingLedgerAccounts(
-      insertParams,
+  ): Promise<LedgerAccount.Record[]> => {
+    const pricingModelIdMap = await pricingModelIdsForUsageMeters(
+      insertParams.map((insert) => insert.usageMeterId),
+      transaction
+    )
+    const ledgerAccountsWithPricingModelId = insertParams.map(
+      (ledgerAccountInsert): LedgerAccount.Insert => {
+        const pricingModelId =
+          ledgerAccountInsert.pricingModelId ??
+          pricingModelIdMap.get(ledgerAccountInsert.usageMeterId)
+        if (!pricingModelId) {
+          throw new Error(
+            `Pricing model id not found for usage meter ${ledgerAccountInsert.usageMeterId}`
+          )
+        }
+        return {
+          ...ledgerAccountInsert,
+          pricingModelId,
+        }
+      }
+    )
+    return baseBulkInsertOrDoNothingLedgerAccounts(
+      ledgerAccountsWithPricingModelId,
       [ledgerAccounts.subscriptionId, ledgerAccounts.usageMeterId],
       transaction
     )

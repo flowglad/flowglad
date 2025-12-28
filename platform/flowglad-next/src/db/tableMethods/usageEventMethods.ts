@@ -35,6 +35,10 @@ import type { SubscriptionStatus } from '@/types'
 import core from '@/utils/core'
 import type { DbTransaction } from '../types'
 import { isSubscriptionCurrent } from './subscriptionMethods'
+import {
+  derivePricingModelIdFromUsageMeter,
+  pricingModelIdsForUsageMeters,
+} from './usageMeterMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof usageEvents,
@@ -53,10 +57,26 @@ export const selectUsageEventById = createSelectById(
   config
 )
 
-export const insertUsageEvent = createInsertFunction(
-  usageEvents,
-  config
-)
+const baseInsertUsageEvent = createInsertFunction(usageEvents, config)
+
+export const insertUsageEvent = async (
+  usageEventInsert: UsageEvent.Insert,
+  transaction: DbTransaction
+): Promise<UsageEvent.Record> => {
+  const pricingModelId = usageEventInsert.pricingModelId
+    ? usageEventInsert.pricingModelId
+    : await derivePricingModelIdFromUsageMeter(
+        usageEventInsert.usageMeterId,
+        transaction
+      )
+  return baseInsertUsageEvent(
+    {
+      ...usageEventInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateUsageEvent = createUpdateFunction(
   usageEvents,
@@ -68,15 +88,35 @@ export const selectUsageEvents = createSelectFunction(
   config
 )
 
-const bulkInsertOrDoNothingUsageEvents =
+const baseBulkInsertOrDoNothingUsageEvents =
   createBulkInsertOrDoNothingFunction(usageEvents, config)
 
-export const bulkInsertOrDoNothingUsageEventsByTransactionId = (
+export const bulkInsertOrDoNothingUsageEventsByTransactionId = async (
   usageEventInserts: UsageEvent.Insert[],
   transaction: DbTransaction
 ) => {
-  return bulkInsertOrDoNothingUsageEvents(
-    usageEventInserts,
+  const pricingModelIdMap = await pricingModelIdsForUsageMeters(
+    usageEventInserts.map((insert) => insert.usageMeterId),
+    transaction
+  )
+  const usageEventsWithPricingModelId = usageEventInserts.map(
+    (usageEventInsert): UsageEvent.Insert => {
+      const pricingModelId =
+        usageEventInsert.pricingModelId ??
+        pricingModelIdMap.get(usageEventInsert.usageMeterId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Pricing model id not found for usage meter ${usageEventInsert.usageMeterId}`
+        )
+      }
+      return {
+        ...usageEventInsert,
+        pricingModelId,
+      }
+    }
+  )
+  return baseBulkInsertOrDoNothingUsageEvents(
+    usageEventsWithPricingModelId,
     [usageEvents.transactionId, usageEvents.usageMeterId],
     transaction
   )

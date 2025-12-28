@@ -970,3 +970,165 @@ describe('RLS Policies for usage_events table', () => {
     expect(result.data[0].id).toBe(usageEvent.id)
   })
 })
+
+describe('insertUsageEvent', () => {
+  let org1Data: Awaited<ReturnType<typeof setupOrg>>
+  let org1ApiKeyToken: string
+  let customer1: Customer.Record
+  let subscription1: Subscription.Record
+  let usageMeter1: UsageMeter.Record
+  let price1: Price.Record
+  let billingPeriod1: BillingPeriod.Record
+  let paymentMethod1: PaymentMethod.Record
+
+  beforeEach(async () => {
+    // Setup organization
+    org1Data = await setupOrg()
+
+    // Setup API key
+    const userApiKeyOrg1 = await setupUserAndApiKey({
+      organizationId: org1Data.organization.id,
+      livemode: true,
+    })
+    if (!userApiKeyOrg1.apiKey.token) {
+      throw new Error('API key token not found after setup for org1')
+    }
+    org1ApiKeyToken = userApiKeyOrg1.apiKey.token
+
+    // Setup customer
+    customer1 = await setupCustomer({
+      organizationId: org1Data.organization.id,
+      email: `customer1+${Date.now()}@test.com`,
+    })
+
+    // Setup payment method
+    paymentMethod1 = await setupPaymentMethod({
+      organizationId: org1Data.organization.id,
+      customerId: customer1.id,
+      type: PaymentMethodType.Card,
+    })
+
+    // Setup usage meter
+    usageMeter1 = await setupUsageMeter({
+      organizationId: org1Data.organization.id,
+      name: 'Test Usage Meter 1',
+      pricingModelId: org1Data.pricingModel.id,
+    })
+
+    // Setup price
+    price1 = await setupPrice({
+      productId: org1Data.product.id,
+      name: 'Test Price 1',
+      type: PriceType.Usage,
+      unitPrice: 100,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+      usageMeterId: usageMeter1.id,
+    })
+
+    // Setup subscription
+    subscription1 = await setupSubscription({
+      organizationId: org1Data.organization.id,
+      customerId: customer1.id,
+      paymentMethodId: paymentMethod1.id,
+      priceId: price1.id,
+      status: SubscriptionStatus.Active,
+    })
+
+    // Setup billing period
+    billingPeriod1 = await setupBillingPeriod({
+      subscriptionId: subscription1.id,
+      startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      endDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+    })
+  })
+
+  it('should successfully insert usage event and derive pricingModelId from usage meter', async () => {
+    await authenticatedTransaction(
+      async ({ transaction }) => {
+        const usageEvent = await insertUsageEvent(
+          {
+            customerId: customer1.id,
+            subscriptionId: subscription1.id,
+            usageMeterId: usageMeter1.id,
+            priceId: price1.id,
+            billingPeriodId: billingPeriod1.id,
+            amount: 100,
+            transactionId: `txn_${core.nanoid()}`,
+            usageDate: Date.now(),
+            livemode: true,
+            properties: {},
+          },
+          transaction
+        )
+
+        // Verify pricingModelId is correctly derived from usage meter
+        expect(usageEvent.pricingModelId).toBe(
+          usageMeter1.pricingModelId
+        )
+        expect(usageEvent.pricingModelId).toBe(
+          org1Data.pricingModel.id
+        )
+      },
+      { apiKey: org1ApiKeyToken }
+    )
+  })
+
+  it('should use provided pricingModelId without derivation', async () => {
+    await authenticatedTransaction(
+      async ({ transaction }) => {
+        const usageEvent = await insertUsageEvent(
+          {
+            customerId: customer1.id,
+            subscriptionId: subscription1.id,
+            usageMeterId: usageMeter1.id,
+            priceId: price1.id,
+            billingPeriodId: billingPeriod1.id,
+            amount: 100,
+            transactionId: `txn_${core.nanoid()}`,
+            usageDate: Date.now(),
+            livemode: true,
+            properties: {},
+            pricingModelId: org1Data.pricingModel.id, // Pre-provided
+          },
+          transaction
+        )
+
+        // Verify the provided pricingModelId is used
+        expect(usageEvent.pricingModelId).toBe(
+          org1Data.pricingModel.id
+        )
+      },
+      { apiKey: org1ApiKeyToken }
+    )
+  })
+
+  it('should throw an error when usageMeterId does not exist', async () => {
+    await authenticatedTransaction(
+      async ({ transaction }) => {
+        const nonExistentUsageMeterId = `um_${core.nanoid()}`
+
+        await expect(
+          insertUsageEvent(
+            {
+              customerId: customer1.id,
+              subscriptionId: subscription1.id,
+              usageMeterId: nonExistentUsageMeterId,
+              priceId: price1.id,
+              billingPeriodId: billingPeriod1.id,
+              amount: 100,
+              transactionId: `txn_${core.nanoid()}`,
+              usageDate: Date.now(),
+              livemode: true,
+              properties: {},
+            },
+            transaction
+          )
+        ).rejects.toThrow()
+      },
+      { apiKey: org1ApiKeyToken }
+    )
+  })
+})

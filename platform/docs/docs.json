@@ -41,6 +41,7 @@
               "quickstart",
               "integrate-by-prompt",
               "integrate-by-http",
+              "mcp-server",
               "faq"
             ]
           },
@@ -73,6 +74,7 @@
               "sdks/introduction",
               "sdks/setup",
               "sdks/auth",
+              "sdks/better-auth",
               "sdks/pricing-models-products",
               "sdks/checkout-sessions",
               "sdks/feature-access-usage",
@@ -82,12 +84,7 @@
           },
           {
             "group": "SDKs",
-            "pages": [
-              "sdks/nextjs",
-              "sdks/react",
-              "sdks/server",
-              "sdks/express"
-            ]
+            "pages": ["sdks/nextjs", "sdks/react", "sdks/server"]
           },
           {
             "group": "Additional Resources",

@@ -8,7 +8,11 @@ import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
-import { formatEmailSubject, safeSend } from '@/utils/email'
+import {
+  formatEmailSubject,
+  getBccForLivemode,
+  safeSend,
+} from '@/utils/email'
 
 const sendCustomerSubscriptionCanceledNotificationTask = task({
   id: 'send-customer-subscription-canceled-notification',
@@ -111,6 +115,7 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
 
     await safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
+      bcc: getBccForLivemode(subscription.livemode),
       to: customer.email,
       subject: formatEmailSubject(
         `Subscription Canceled: Your ${subscriptionName} subscription has been canceled`,

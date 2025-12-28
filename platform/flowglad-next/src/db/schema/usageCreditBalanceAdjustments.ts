@@ -9,6 +9,7 @@ import {
 import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 import { usageCredits } from '@/db/schema/usageCredits'
 import { usageMeters } from '@/db/schema/usageMeters'
 import { users } from '@/db/schema/users'
@@ -59,12 +60,17 @@ export const usageCreditBalanceAdjustments = pgTable(
     notes: text('notes'),
     metadata: jsonb('metadata'),
     livemode: boolean('livemode').notNull(),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.adjustedUsageCreditId]),
       constructIndex(TABLE_NAME, [table.adjustedByUserId]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
         {
@@ -104,6 +110,9 @@ export const {
   refine: {
     ...columnRefinements,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns: {
       ...hiddenColumnsForClientSchema,
@@ -111,6 +120,7 @@ export const {
     readOnlyColumns: {
       organizationId: true,
       livemode: true,
+      pricingModelId: true,
     },
     createOnlyColumns: {},
   },

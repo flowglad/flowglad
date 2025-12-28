@@ -3,6 +3,7 @@ import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectUsageMeterById } from '@/db/tableMethods/usageMeterMethods'
+import { NotFoundError } from '@/db/tableUtils'
 import { FeatureType } from '@/types'
 import InnerFeatureDetailsPage from './InnerFeatureDetailsPage'
 
@@ -20,10 +21,7 @@ const FeaturePage = async ({ params }: FeaturePageProps) => {
         feature = await selectFeatureById(id, transaction)
       } catch (error) {
         // Only treat "not found" errors as expected; let other DB failures propagate
-        if (
-          error instanceof Error &&
-          error.message.includes('No features found')
-        ) {
+        if (error instanceof NotFoundError) {
           return {
             feature: null,
             pricingModel: null,

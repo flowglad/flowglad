@@ -19,6 +19,10 @@ import { UsageCreditStatus } from '@/types'
 import type { Payment } from '../schema/payments'
 import type { UsageMeter } from '../schema/usageMeters'
 import type { DbTransaction } from '../types'
+import {
+  derivePricingModelIdFromUsageMeter,
+  pricingModelIdsForUsageMeters,
+} from './usageMeterMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof usageCredits,
@@ -37,10 +41,75 @@ export const selectUsageCreditById = createSelectById(
   config
 )
 
-export const insertUsageCredit = createInsertFunction(
+/**
+ * Derives pricingModelId from a usage credit (via usage meter).
+ * Used for usageCreditApplications and usageCreditBalanceAdjustments.
+ */
+export const derivePricingModelIdFromUsageCredit = async (
+  usageCreditId: string,
+  transaction: DbTransaction
+): Promise<string> => {
+  const usageCredit = await selectUsageCreditById(
+    usageCreditId,
+    transaction
+  )
+  if (!usageCredit.pricingModelId) {
+    throw new Error(
+      `Usage credit ${usageCreditId} does not have a pricingModelId`
+    )
+  }
+  return usageCredit.pricingModelId
+}
+
+export const pricingModelIdsForUsageCredits = async (
+  usageCreditIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, string>> => {
+  const usageCreditRows = await transaction
+    .select({
+      id: usageCredits.id,
+      pricingModelId: usageCredits.pricingModelId,
+    })
+    .from(usageCredits)
+    .where(inArray(usageCredits.id, usageCreditIds))
+  const pricingModelIdMap = new Map<string, string>()
+  for (const usageCreditRow of usageCreditRows) {
+    if (!usageCreditRow.pricingModelId) {
+      throw new Error(
+        `Usage credit ${usageCreditRow.id} does not have a pricingModelId`
+      )
+    }
+    pricingModelIdMap.set(
+      usageCreditRow.id,
+      usageCreditRow.pricingModelId
+    )
+  }
+  return pricingModelIdMap
+}
+
+const baseInsertUsageCredit = createInsertFunction(
   usageCredits,
   config
 )
+
+export const insertUsageCredit = async (
+  usageCreditInsert: UsageCredit.Insert,
+  transaction: DbTransaction
+): Promise<UsageCredit.Record> => {
+  const pricingModelId = usageCreditInsert.pricingModelId
+    ? usageCreditInsert.pricingModelId
+    : await derivePricingModelIdFromUsageMeter(
+        usageCreditInsert.usageMeterId,
+        transaction
+      )
+  return baseInsertUsageCredit(
+    {
+      ...usageCreditInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateUsageCredit = createUpdateFunction(
   usageCredits,
@@ -52,12 +121,42 @@ export const selectUsageCredits = createSelectFunction(
   config
 )
 
-export const bulkInsertUsageCredits = createBulkInsertFunction(
+const baseBulkInsertUsageCredits = createBulkInsertFunction(
   usageCredits,
   config
 )
 
-export const bulkInsertOrDoNothingUsageCredits =
+export const bulkInsertUsageCredits = async (
+  usageCreditInserts: UsageCredit.Insert[],
+  transaction: DbTransaction
+): Promise<UsageCredit.Record[]> => {
+  const pricingModelIdMap = await pricingModelIdsForUsageMeters(
+    usageCreditInserts.map((insert) => insert.usageMeterId),
+    transaction
+  )
+  const usageCreditsWithPricingModelId = usageCreditInserts.map(
+    (usageCreditInsert): UsageCredit.Insert => {
+      const pricingModelId =
+        usageCreditInsert.pricingModelId ??
+        pricingModelIdMap.get(usageCreditInsert.usageMeterId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Pricing model id not found for usage meter ${usageCreditInsert.usageMeterId}`
+        )
+      }
+      return {
+        ...usageCreditInsert,
+        pricingModelId,
+      }
+    }
+  )
+  return baseBulkInsertUsageCredits(
+    usageCreditsWithPricingModelId,
+    transaction
+  )
+}
+
+const baseBulkInsertOrDoNothingUsageCredits =
   createBulkInsertOrDoNothingFunction(usageCredits, config)
 
 export const bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter =
@@ -65,8 +164,28 @@ export const bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter
     usageCreditInserts: UsageCredit.Insert[],
     transaction: DbTransaction
   ) => {
-    return bulkInsertOrDoNothingUsageCredits(
-      usageCreditInserts,
+    const pricingModelIdMap = await pricingModelIdsForUsageMeters(
+      usageCreditInserts.map((insert) => insert.usageMeterId),
+      transaction
+    )
+    const usageCreditsWithPricingModelId = usageCreditInserts.map(
+      (usageCreditInsert): UsageCredit.Insert => {
+        const pricingModelId =
+          usageCreditInsert.pricingModelId ??
+          pricingModelIdMap.get(usageCreditInsert.usageMeterId)
+        if (!pricingModelId) {
+          throw new Error(
+            `Pricing model id not found for usage meter ${usageCreditInsert.usageMeterId}`
+          )
+        }
+        return {
+          ...usageCreditInsert,
+          pricingModelId,
+        }
+      }
+    )
+    return baseBulkInsertOrDoNothingUsageCredits(
+      usageCreditsWithPricingModelId,
       [
         usageCredits.paymentId,
         usageCredits.subscriptionId,

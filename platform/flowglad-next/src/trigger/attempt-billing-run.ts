@@ -1,6 +1,7 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingRun } from '@/db/schema/billingRuns'
+import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
 import { BillingRunStatus } from '@/types'
@@ -11,6 +12,10 @@ export const attemptBillingRunTask = task({
   run: async (
     payload: {
       billingRun: BillingRun.Record
+      adjustmentParams?: {
+        newSubscriptionItems: SubscriptionItem.Record[]
+        adjustmentDate: Date | number
+      }
     },
     { ctx }
   ) => {
@@ -21,7 +26,10 @@ export const attemptBillingRunTask = task({
         ctx,
       })
     }
-    await executeBillingRun(payload.billingRun.id)
+    await executeBillingRun(
+      payload.billingRun.id,
+      payload.adjustmentParams
+    )
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) => {
         return selectBillingRunById(

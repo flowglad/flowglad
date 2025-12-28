@@ -3211,9 +3211,8 @@
                             "amount": {
                               "description": "A positive integer",
                               "type": "integer",
-                              "exclusiveMinimum": true,
-                              "maximum": 9007199254740991,
-                              "minimum": 0
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
                             },
                             "renewalFrequency": {
                               "type": "string",
@@ -3334,9 +3333,8 @@
                                 "intervalCount": {
                                   "description": "A positive integer",
                                   "type": "integer",
-                                  "exclusiveMinimum": true,
-                                  "maximum": 9007199254740991,
-                                  "minimum": 0
+                                  "exclusiveMinimum": 0,
+                                  "maximum": 9007199254740991
                                 },
                                 "type": {
                                   "type": "string",
@@ -3350,9 +3348,8 @@
                                         {
                                           "description": "A positive integer",
                                           "type": "integer",
-                                          "exclusiveMinimum": true,
-                                          "maximum": 9007199254740991,
-                                          "minimum": 0
+                                          "exclusiveMinimum": 0,
+                                          "maximum": 9007199254740991
                                         },
                                         {
                                           "type": "number",
@@ -3375,9 +3372,8 @@
                                     {
                                       "description": "A positive integer",
                                       "type": "integer",
-                                      "exclusiveMinimum": true,
-                                      "maximum": 9007199254740991,
-                                      "minimum": 0
+                                      "exclusiveMinimum": 0,
+                                      "maximum": 9007199254740991
                                     },
                                     {
                                       "type": "number",
@@ -3447,9 +3443,8 @@
                                     {
                                       "description": "A positive integer",
                                       "type": "integer",
-                                      "exclusiveMinimum": true,
-                                      "maximum": 9007199254740991,
-                                      "minimum": 0
+                                      "exclusiveMinimum": 0,
+                                      "maximum": 9007199254740991
                                     },
                                     {
                                       "type": "number",
@@ -3503,9 +3498,8 @@
                                 "intervalCount": {
                                   "description": "A positive integer",
                                   "type": "integer",
-                                  "exclusiveMinimum": true,
-                                  "maximum": 9007199254740991,
-                                  "minimum": 0
+                                  "exclusiveMinimum": 0,
+                                  "maximum": 9007199254740991
                                 },
                                 "type": {
                                   "type": "string",
@@ -3525,9 +3519,8 @@
                                     {
                                       "description": "A positive integer",
                                       "type": "integer",
-                                      "exclusiveMinimum": true,
-                                      "maximum": 9007199254740991,
-                                      "minimum": 0
+                                      "exclusiveMinimum": 0,
+                                      "maximum": 9007199254740991
                                     },
                                     {
                                       "type": "number",
@@ -3538,9 +3531,8 @@
                                 "usageEventsPerUnit": {
                                   "description": "The number of usage events per unit. Used to determine how to map usage events to quantities when raising invoices for usage.",
                                   "type": "integer",
-                                  "exclusiveMinimum": true,
-                                  "maximum": 9007199254740991,
-                                  "minimum": 0
+                                  "exclusiveMinimum": 0,
+                                  "maximum": 9007199254740991
                                 },
                                 "active": {
                                   "type": "boolean"
@@ -5533,9 +5525,8 @@
                       },
                       "amount": {
                         "type": "integer",
-                        "exclusiveMinimum": true,
-                        "maximum": 9007199254740991,
-                        "minimum": 0
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
                       },
                       "usageDate": {
                         "description": "The date the usage occurred. If the usage occurs in a date that is outside of the current billing period, the usage will still be attached to the current billing period. Epoch milliseconds.",
@@ -5788,9 +5779,8 @@
                         },
                         "amount": {
                           "type": "integer",
-                          "exclusiveMinimum": true,
-                          "maximum": 9007199254740991,
-                          "minimum": 0
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
                         },
                         "usageDate": {
                           "description": "The date the usage occurred. If the usage occurs in a date that is outside of the current billing period, the usage will still be attached to the current billing period. Epoch milliseconds.",
@@ -7987,9 +7977,8 @@
           "intervalCount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "type": {
             "type": "string",
@@ -8003,9 +7992,8 @@
                   {
                     "description": "A positive integer",
                     "type": "integer",
-                    "exclusiveMinimum": true,
-                    "maximum": 9007199254740991,
-                    "minimum": 0
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
                   },
                   {
                     "type": "number",
@@ -8028,9 +8016,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -8107,9 +8094,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -8161,9 +8147,8 @@
           "intervalCount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "type": {
             "type": "string",
@@ -8183,9 +8168,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -8196,9 +8180,8 @@
           "usageEventsPerUnit": {
             "description": "The number of usage events per unit. Used to determine how to map usage events to quantities when raising invoices for usage.",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "active": {
             "type": "boolean"
@@ -8338,9 +8321,8 @@
           "intervalCount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "type": {
             "type": "string",
@@ -8354,9 +8336,8 @@
                   {
                     "description": "A positive integer",
                     "type": "integer",
-                    "exclusiveMinimum": true,
-                    "maximum": 9007199254740991,
-                    "minimum": 0
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
                   },
                   {
                     "type": "number",
@@ -8379,9 +8360,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -8462,9 +8442,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -8519,9 +8498,8 @@
           "intervalCount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "type": {
             "type": "string",
@@ -8541,9 +8519,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -8554,9 +8531,8 @@
           "usageEventsPerUnit": {
             "description": "The number of usage events per unit. Used to determine how to map usage events to quantities when raising invoices for usage.",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "productId": {
             "type": "string"
@@ -8829,9 +8805,8 @@
           "amount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "amountType": {
             "type": "string",
@@ -8866,9 +8841,8 @@
           "amount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "amountType": {
             "type": "string",
@@ -8884,9 +8858,8 @@
           "numberOfPayments": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -8914,9 +8887,8 @@
           "amount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "amountType": {
             "type": "string",
@@ -8961,9 +8933,8 @@
           "amount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "amountType": {
             "type": "string",
@@ -9001,9 +8972,8 @@
           "amount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "amountType": {
             "type": "string",
@@ -9019,9 +8989,8 @@
           "numberOfPayments": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -9046,9 +9015,8 @@
           "amount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "amountType": {
             "type": "string",
@@ -9311,9 +9279,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -9326,9 +9293,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -9444,9 +9410,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -9459,9 +9424,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -9694,9 +9658,8 @@
           "amount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "usageMeterId": {
             "type": "string"
@@ -9804,9 +9767,8 @@
           "amount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "usageMeterId": {
             "type": "string"
@@ -10270,9 +10232,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -12544,9 +12505,8 @@
           "intervalCount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "type": {
             "type": "string",
@@ -12560,9 +12520,8 @@
                   {
                     "description": "A positive integer",
                     "type": "integer",
-                    "exclusiveMinimum": true,
-                    "maximum": 9007199254740991,
-                    "minimum": 0
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
                   },
                   {
                     "type": "number",
@@ -12585,9 +12544,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -12621,6 +12579,9 @@
           "usageMeterId": {
             "description": "Omitted.",
             "type": "null"
+          },
+          "pricingModelId": {
+            "type": "string"
           }
         },
         "required": [
@@ -12639,7 +12600,8 @@
           "active",
           "currency",
           "slug",
-          "usageMeterId"
+          "usageMeterId",
+          "pricingModelId"
         ],
         "additionalProperties": false
       },
@@ -12700,9 +12662,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -12736,6 +12697,9 @@
           "usageMeterId": {
             "description": "Omitted.",
             "type": "null"
+          },
+          "pricingModelId": {
+            "type": "string"
           }
         },
         "required": [
@@ -12750,7 +12714,8 @@
           "productId",
           "active",
           "currency",
-          "slug"
+          "slug",
+          "pricingModelId"
         ],
         "additionalProperties": false
       },
@@ -12792,9 +12757,8 @@
           "intervalCount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "type": {
             "type": "string",
@@ -12814,9 +12778,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -12827,9 +12790,8 @@
           "usageEventsPerUnit": {
             "description": "The number of usage events per unit. Used to determine how to map usage events to quantities when raising invoices for usage.",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "productId": {
             "type": "string"
@@ -12853,6 +12815,9 @@
           "usageMeterId": {
             "description": "The usage meter that uses this price. All usage events on that meter must be associated with a price that is also associated with that usage meter.",
             "type": "string"
+          },
+          "pricingModelId": {
+            "type": "string"
           }
         },
         "required": [
@@ -12872,7 +12837,8 @@
           "active",
           "currency",
           "slug",
-          "usageMeterId"
+          "usageMeterId",
+          "pricingModelId"
         ],
         "additionalProperties": false
       },
@@ -13009,9 +12975,8 @@
           "amount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "usageMeterId": {
             "type": "string"
@@ -13144,9 +13109,8 @@
           "quantity": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "priceType": {
             "type": "string",
@@ -13157,9 +13121,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -13170,9 +13133,8 @@
           "pricePerBillingCycle": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "intervalUnit": {
             "type": "string",
@@ -13181,18 +13143,16 @@
           "intervalCount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "firstInvoiceValue": {
             "anyOf": [
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -13280,6 +13240,9 @@
               }
             ]
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "position": {
             "type": "number"
           }
@@ -13305,6 +13268,7 @@
           "bankPaymentOnly",
           "proposal",
           "archived",
+          "pricingModelId",
           "position"
         ],
         "additionalProperties": false
@@ -13370,9 +13334,8 @@
           "quantity": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "priceType": {
             "type": "string",
@@ -13399,9 +13362,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -13414,9 +13376,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -13500,6 +13461,9 @@
               }
             ]
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "position": {
             "type": "number"
           }
@@ -13525,6 +13489,7 @@
           "bankPaymentOnly",
           "proposal",
           "archived",
+          "pricingModelId",
           "position"
         ],
         "additionalProperties": false
@@ -13590,9 +13555,8 @@
           "quantity": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "priceType": {
             "type": "string",
@@ -13619,9 +13583,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -13634,9 +13597,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -13720,6 +13682,9 @@
               }
             ]
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "position": {
             "type": "number"
           }
@@ -13745,6 +13710,7 @@
           "bankPaymentOnly",
           "proposal",
           "archived",
+          "pricingModelId",
           "position"
         ],
         "additionalProperties": false
@@ -14095,9 +14061,8 @@
           "intervalCount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "billingCycleAnchorDate": {
             "anyOf": [
@@ -14126,6 +14091,9 @@
             "type": "boolean",
             "const": true
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "current": {
             "description": "Whether the subscription is current (statuses \"active\", \"trialing\", \"past_due\", or \"cancellation_scheduled\")",
             "type": "boolean"
@@ -14152,6 +14120,7 @@
           "intervalCount",
           "name",
           "renews",
+          "pricingModelId",
           "current"
         ],
         "additionalProperties": false
@@ -14340,6 +14309,9 @@
             "type": "boolean",
             "const": false
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "current": {
             "description": "Whether the subscription is current (statuses \"active\", \"trialing\", \"past_due\", \"cancellation_scheduled\", or \"credit_trial\")",
             "type": "boolean"
@@ -14370,6 +14342,7 @@
           "billingCycleAnchorDate",
           "name",
           "renews",
+          "pricingModelId",
           "current"
         ],
         "additionalProperties": false
@@ -14576,6 +14549,9 @@
             "type": "boolean",
             "const": false
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "current": {
             "type": "boolean"
           },
@@ -14636,9 +14612,8 @@
                     {
                       "description": "A positive integer",
                       "type": "integer",
-                      "exclusiveMinimum": true,
-                      "maximum": 9007199254740991,
-                      "minimum": 0
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
                     },
                     {
                       "type": "number",
@@ -14651,9 +14626,8 @@
                     {
                       "description": "A positive integer",
                       "type": "integer",
-                      "exclusiveMinimum": true,
-                      "maximum": 9007199254740991,
-                      "minimum": 0
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
                     },
                     {
                       "type": "number",
@@ -14835,6 +14809,7 @@
           "billingCycleAnchorDate",
           "name",
           "renews",
+          "pricingModelId",
           "current",
           "subscriptionItems"
         ],
@@ -15289,9 +15264,8 @@
           "intervalCount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "billingCycleAnchorDate": {
             "anyOf": [
@@ -15319,6 +15293,9 @@
           "renews": {
             "type": "boolean",
             "const": true
+          },
+          "pricingModelId": {
+            "type": "string"
           },
           "current": {
             "type": "boolean"
@@ -15380,9 +15357,8 @@
                     {
                       "description": "A positive integer",
                       "type": "integer",
-                      "exclusiveMinimum": true,
-                      "maximum": 9007199254740991,
-                      "minimum": 0
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
                     },
                     {
                       "type": "number",
@@ -15395,9 +15371,8 @@
                     {
                       "description": "A positive integer",
                       "type": "integer",
-                      "exclusiveMinimum": true,
-                      "maximum": 9007199254740991,
-                      "minimum": 0
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
                     },
                     {
                       "type": "number",
@@ -15575,6 +15550,7 @@
           "intervalCount",
           "name",
           "renews",
+          "pricingModelId",
           "current",
           "subscriptionItems"
         ],
@@ -17038,9 +17014,8 @@
           "amount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "amountType": {
             "type": "string",
@@ -17108,9 +17083,8 @@
           "amount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "amountType": {
             "type": "string",
@@ -17126,9 +17100,8 @@
           "numberOfPayments": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -17183,9 +17156,8 @@
           "amount": {
             "description": "A positive integer",
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "amountType": {
             "type": "string",
@@ -17482,9 +17454,8 @@
           },
           "amount": {
             "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991,
-            "minimum": 0
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "usageDate": {
             "description": "The date the usage occurred. If the usage occurs in a date that is outside of the current billing period, the usage will still be attached to the current billing period. Epoch milliseconds.",
@@ -17520,6 +17491,9 @@
                 "type": "null"
               }
             ]
+          },
+          "pricingModelId": {
+            "type": "string"
           }
         },
         "required": [
@@ -17533,7 +17507,8 @@
           "amount",
           "usageDate",
           "transactionId",
-          "priceId"
+          "priceId",
+          "pricingModelId"
         ],
         "additionalProperties": false
       },
@@ -17579,6 +17554,9 @@
                 "type": "null"
               }
             ]
+          },
+          "pricingModelId": {
+            "type": "string"
           }
         },
         "required": [
@@ -17588,7 +17566,8 @@
           "livemode",
           "productId",
           "featureId",
-          "organizationId"
+          "organizationId",
+          "pricingModelId"
         ],
         "additionalProperties": false
       },
@@ -17650,9 +17629,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",
@@ -17665,9 +17643,8 @@
               {
                 "description": "A positive integer",
                 "type": "integer",
-                "exclusiveMinimum": true,
-                "maximum": 9007199254740991,
-                "minimum": 0
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
               {
                 "type": "number",

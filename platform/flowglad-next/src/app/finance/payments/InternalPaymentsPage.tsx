@@ -1,50 +1,42 @@
 'use client'
 
 import { useState } from 'react'
-import InternalPageContainer from '@/components/InternalPageContainer'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
-import { PageHeader } from '@/components/ui/page-header'
+import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { PaymentStatus } from '@/types'
 import { PaymentsDataTable } from './data-table'
 
+const filterOptions = [
+  { value: 'all', label: 'All' },
+  { value: PaymentStatus.Succeeded, label: 'Succeeded' },
+  { value: PaymentStatus.Processing, label: 'Processing' },
+  { value: PaymentStatus.Refunded, label: 'Refunded' },
+  { value: PaymentStatus.Canceled, label: 'Canceled' },
+]
+
 export default function InternalPaymentsPage() {
-  const [activeFilter, setActiveFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState('all')
 
-  // Filter options for the button group
-  const filterOptions = [
-    { value: 'all', label: 'All' },
-    { value: PaymentStatus.Succeeded, label: 'Succeeded' },
-    { value: PaymentStatus.Processing, label: 'Processing' },
-    { value: PaymentStatus.Refunded, label: 'Refunded' },
-    { value: PaymentStatus.Canceled, label: 'Canceled' },
-  ]
-
-  const getFiltersForTab = (tab: string) => {
-    if (tab === 'all') {
+  const getFilters = () => {
+    if (statusFilter === 'all') {
       return {}
     }
 
     return {
-      status: tab as PaymentStatus,
+      status: statusFilter as PaymentStatus,
     }
   }
 
   return (
-    <InternalPageContainer>
-      <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
-        <Breadcrumb />
-        <div className="flex flex-row justify-between">
-          <PageHeader title="Payments" />
-        </div>
-        <div className="w-full">
-          <PaymentsDataTable
-            filters={getFiltersForTab(activeFilter)}
-            filterOptions={filterOptions}
-            activeFilter={activeFilter}
-            onFilterChange={setActiveFilter}
-          />
-        </div>
-      </div>
-    </InternalPageContainer>
+    <InnerPageContainerNew>
+      <PageHeaderNew title="Payments" hideBorder className="pb-2" />
+      <PaymentsDataTable
+        filters={getFilters()}
+        filterOptions={filterOptions}
+        filterValue={statusFilter}
+        onFilterChange={setStatusFilter}
+        hiddenColumns={['paymentId']}
+      />
+    </InnerPageContainerNew>
   )
 }

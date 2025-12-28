@@ -1,4 +1,11 @@
-import { and, asc, desc, eq, type SQLWrapper } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  type SQLWrapper,
+} from 'drizzle-orm'
 import { z } from 'zod'
 import {
   type Price,
@@ -49,7 +56,11 @@ import {
   selectPricingModelForCustomer,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
 } from './pricingModelMethods'
-import { selectProducts } from './productMethods'
+import {
+  pricingModelIdsForProducts,
+  selectProductById,
+  selectProducts,
+} from './productMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof prices,
@@ -63,16 +74,117 @@ const config: ORMMethodCreatorConfig<
   tableName: 'prices',
 }
 
+/**
+ * Derives pricingModelId from a product.
+ * Used for prices and productFeatures.
+ */
+export const derivePricingModelIdFromProduct = async (
+  productId: string,
+  transaction: DbTransaction
+): Promise<string> => {
+  const product = await selectProductById(productId, transaction)
+  if (!product.pricingModelId) {
+    throw new Error(
+      `Product ${productId} does not have a pricingModelId`
+    )
+  }
+  return product.pricingModelId
+}
+
+/**
+ * Derives pricingModelId from a price (via product).
+ * Used for subscriptions and purchases.
+ */
+export const derivePricingModelIdFromPrice = async (
+  priceId: string,
+  transaction: DbTransaction
+): Promise<string> => {
+  const price = await selectPriceById(priceId, transaction)
+  return derivePricingModelIdFromProduct(price.productId, transaction)
+}
+
+/**
+ * Batch fetch pricingModelIds for multiple prices.
+ * More efficient than calling derivePricingModelIdFromPrice for each price individually.
+ * Used by bulk insert operations in purchases and subscriptions.
+ */
+export const pricingModelIdsForPrices = async (
+  priceIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, string>> => {
+  const priceRows = await transaction
+    .select({
+      id: prices.id,
+      pricingModelId: prices.pricingModelId,
+    })
+    .from(prices)
+    .where(inArray(prices.id, priceIds))
+
+  const pricingModelIdMap = new Map<string, string>()
+  for (const priceRow of priceRows) {
+    if (!priceRow.pricingModelId) {
+      throw new Error(
+        `Price ${priceRow.id} does not have a pricingModelId`
+      )
+    }
+    pricingModelIdMap.set(priceRow.id, priceRow.pricingModelId)
+  }
+  return pricingModelIdMap
+}
+
 export const selectPriceById = createSelectById(prices, config)
 
-export const bulkInsertPrices = createBulkInsertFunction(
-  prices,
-  config
-)
+const baseBulkInsertPrices = createBulkInsertFunction(prices, config)
+
+export const bulkInsertPrices = async (
+  priceInserts: Price.Insert[],
+  transaction: DbTransaction
+): Promise<Price.Record[]> => {
+  const pricingModelIdMap = await pricingModelIdsForProducts(
+    priceInserts.map((insert) => insert.productId),
+    transaction
+  )
+  const pricesWithPricingModelId = priceInserts.map(
+    (priceInsert): Price.Insert => {
+      const pricingModelId =
+        priceInsert.pricingModelId ??
+        pricingModelIdMap.get(priceInsert.productId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Pricing model id not found for product ${priceInsert.productId}`
+        )
+      }
+      return {
+        ...priceInsert,
+        pricingModelId,
+      }
+    }
+  )
+  return baseBulkInsertPrices(pricesWithPricingModelId, transaction)
+}
 
 export const selectPrices = createSelectFunction(prices, config)
 
-export const insertPrice = createInsertFunction(prices, config)
+const baseInsertPrice = createInsertFunction(prices, config)
+
+export const insertPrice = async (
+  priceInsert: Price.Insert,
+  transaction: DbTransaction
+): Promise<Price.Record> => {
+  const pricingModelId = priceInsert.pricingModelId
+    ? priceInsert.pricingModelId
+    : await derivePricingModelIdFromProduct(
+        priceInsert.productId,
+        transaction
+      )
+  return baseInsertPrice(
+    {
+      ...priceInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updatePrice = createUpdateFunction(prices, config)
 
@@ -520,12 +632,32 @@ export const isPriceTypeSubscription = (
 const bulkInsertOrDoNothingPrices =
   createBulkInsertOrDoNothingFunction(prices, config)
 
-export const bulkInsertOrDoNothingPricesByExternalId = (
+export const bulkInsertOrDoNothingPricesByExternalId = async (
   priceInserts: Price.Insert[],
   transaction: DbTransaction
 ) => {
+  const pricingModelIdMap = await pricingModelIdsForProducts(
+    priceInserts.map((insert) => insert.productId),
+    transaction
+  )
+  const pricesWithPricingModelId = priceInserts.map(
+    (priceInsert): Price.Insert => {
+      const pricingModelId =
+        priceInsert.pricingModelId ??
+        pricingModelIdMap.get(priceInsert.productId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Pricing model id not found for product ${priceInsert.productId}`
+        )
+      }
+      return {
+        ...priceInsert,
+        pricingModelId,
+      }
+    }
+  )
   return bulkInsertOrDoNothingPrices(
-    priceInserts,
+    pricesWithPricingModelId,
     [prices.externalId, prices.productId],
     transaction
   )
@@ -557,10 +689,29 @@ const setPricesForProductToNonDefaultNonActive = async (
     })
 }
 
-export const dangerouslyInsertPrice = createInsertFunction(
+const baseDangerouslyInsertPrice = createInsertFunction(
   prices,
   config
 )
+
+export const dangerouslyInsertPrice = async (
+  priceInsert: Price.Insert,
+  transaction: DbTransaction
+): Promise<Price.Record> => {
+  const pricingModelId = priceInsert.pricingModelId
+    ? priceInsert.pricingModelId
+    : await derivePricingModelIdFromProduct(
+        priceInsert.productId,
+        transaction
+      )
+  return baseDangerouslyInsertPrice(
+    {
+      ...priceInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const safelyInsertPrice = async (
   price: Omit<Price.Insert, 'isDefault' | 'active'>,

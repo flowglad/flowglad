@@ -5,6 +5,10 @@ description: "Learn how to set up Flowglad server client using your auth provide
 
 Flowglad provides flexible authentication integration that works with any auth provider. You have complete control over how you define your customers, whether you're building a B2C app with individual users or a B2B platform with organization customers.
 
+<Info>
+**Using Better Auth?** Check out the [Flowglad Better Auth plugin](/sdks/better-auth) for automatic customer creation and simplified integration.
+</Info>
+
 ## Scoped Server Pattern
 
 The scoped server pattern gives you maximum flexibility for defining customers and works seamlessly with any authentication provider. This approach uses a factory function that creates a `FlowgladServer` instance scoped to a specific customer.
@@ -42,6 +46,10 @@ export const flowglad = (customerExternalId: string) => {
   })
 }
 ```
+
+<Info>
+**Better Auth users:** Flowglad provides a [Better Auth plugin](/sdks/better-auth) that simplifies integration by automatically creating customers and providing a convenient `getExternalId` endpoint. The plugin handles customer creation on sign-up and supports both user and organization-based customers.
+</Info>
 
 ```ts Supabase Auth
 import { FlowgladServer } from '@flowglad/nextjs/server'
@@ -144,6 +152,10 @@ export const { GET, POST } = nextRouteHandler({
   },
 })
 ```
+
+<Info>
+**Better Auth users:** If you're using the [Flowglad Better Auth plugin](/sdks/better-auth), you can use `auth.api.getExternalId()` instead of manually extracting the user ID. The plugin automatically handles customer type configuration (user vs organization).
+</Info>
 
 ```ts Supabase Auth
 import { nextRouteHandler } from '@flowglad/nextjs/server'

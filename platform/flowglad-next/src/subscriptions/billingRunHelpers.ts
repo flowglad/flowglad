@@ -696,8 +696,8 @@ export const isFirstPayment = async (
 
 /**
  * FIXME : support discount redemptions
- * @param billingRun
- * @param livemode
+ * @param billingRunId - billing run ID
+ * @param adjustmentParams - Optional adjustment parameters for adjustment billing runs
  */
 export const executeBillingRun = async (
   billingRunId: string,

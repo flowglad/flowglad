@@ -22,6 +22,8 @@ import type { DbTransaction } from '@/db/types'
 import { features, featuresSelectSchema } from '../schema/features'
 import type { Product } from '../schema/products'
 import { createDateNotPassedFilter } from '../tableUtils'
+import { derivePricingModelIdFromProduct } from './priceMethods'
+import { pricingModelIdsForProducts } from './productMethods'
 import { detachSubscriptionItemFeaturesFromProductFeature } from './subscriptionItemFeatureMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -41,10 +43,29 @@ export const selectProductFeatureById = createSelectById(
   config
 )
 
-export const insertProductFeature = createInsertFunction(
+const baseInsertProductFeature = createInsertFunction(
   productFeatures,
   config
 )
+
+export const insertProductFeature = async (
+  productFeatureInsert: ProductFeature.Insert,
+  transaction: DbTransaction
+): Promise<ProductFeature.Record> => {
+  const pricingModelId = productFeatureInsert.pricingModelId
+    ? productFeatureInsert.pricingModelId
+    : await derivePricingModelIdFromProduct(
+        productFeatureInsert.productId,
+        transaction
+      )
+  return baseInsertProductFeature(
+    {
+      ...productFeatureInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 /**
  * No need to "update" a product feature in our business logic,
@@ -142,12 +163,42 @@ export const selectFeaturesByProductFeatureWhere = async (
   }))
 }
 
-export const bulkInsertProductFeatures = createBulkInsertFunction(
+const baseBulkInsertProductFeatures = createBulkInsertFunction(
   productFeatures,
   config
 )
 
-export const bulkInsertOrDoNothingProductFeatures =
+export const bulkInsertProductFeatures = async (
+  productFeatureInserts: ProductFeature.Insert[],
+  transaction: DbTransaction
+): Promise<ProductFeature.Record[]> => {
+  const pricingModelIdMap = await pricingModelIdsForProducts(
+    productFeatureInserts.map((insert) => insert.productId),
+    transaction
+  )
+  const productFeaturesWithPricingModelId = productFeatureInserts.map(
+    (productFeatureInsert): ProductFeature.Insert => {
+      const pricingModelId =
+        productFeatureInsert.pricingModelId ??
+        pricingModelIdMap.get(productFeatureInsert.productId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Pricing model id not found for product ${productFeatureInsert.productId}`
+        )
+      }
+      return {
+        ...productFeatureInsert,
+        pricingModelId,
+      }
+    }
+  )
+  return baseBulkInsertProductFeatures(
+    productFeaturesWithPricingModelId,
+    transaction
+  )
+}
+
+const baseBulkInsertOrDoNothingProductFeatures =
   createBulkInsertOrDoNothingFunction(productFeatures, config)
 
 export const bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId =
@@ -155,8 +206,28 @@ export const bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId =
     inserts: ProductFeature.Insert[],
     transaction: DbTransaction
   ) => {
-    return bulkInsertOrDoNothingProductFeatures(
-      inserts,
+    const pricingModelIdMap = await pricingModelIdsForProducts(
+      inserts.map((insert) => insert.productId),
+      transaction
+    )
+    const productFeaturesWithPricingModelId = inserts.map(
+      (productFeatureInsert): ProductFeature.Insert => {
+        const pricingModelId =
+          productFeatureInsert.pricingModelId ??
+          pricingModelIdMap.get(productFeatureInsert.productId)
+        if (!pricingModelId) {
+          throw new Error(
+            `Pricing model id not found for product ${productFeatureInsert.productId}`
+          )
+        }
+        return {
+          ...productFeatureInsert,
+          pricingModelId,
+        }
+      }
+    )
+    return baseBulkInsertOrDoNothingProductFeatures(
+      productFeaturesWithPricingModelId,
       [productFeatures.productId, productFeatures.featureId],
       transaction
     )

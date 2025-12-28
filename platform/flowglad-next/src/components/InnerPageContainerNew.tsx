@@ -17,19 +17,7 @@ const InnerPageContainerNew = ({
         className
       )}
     >
-      <div
-        className="h-full w-full max-w-[38rem] mx-auto flex gap-8"
-        style={{
-          borderLeftStyle: 'dashed',
-          borderLeftWidth: '1px',
-          borderRightStyle: 'dashed',
-          borderRightWidth: '1px',
-          borderImageSlice: 1,
-          borderImageRepeat: 'round',
-          borderImageSource:
-            'repeating-linear-gradient(to bottom, hsl(var(--sidebar-border)) 0, hsl(var(--sidebar-border)) 4px, transparent 4px, transparent 8px)',
-        }}
-      >
+      <div className="h-full w-full max-w-[38rem] mx-auto flex gap-8 border-l border-r border-dashed border-sidebar-border">
         <div className="h-full w-full flex flex-col">{children}</div>
       </div>
     </div>

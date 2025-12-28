@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/react",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -40,6 +40,10 @@
   },
   "peerDependencies": {
     "react": "^19.0.0 || ^18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowglad/flowglad"
   },
   "publishConfig": {
     "access": "public"

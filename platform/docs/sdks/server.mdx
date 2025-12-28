@@ -334,13 +334,27 @@ if (hasAccess) {
 
 #### `createUsageEvent`
 
-Record a usage event for metered billing.
+Record a usage event for metered billing. You can create usage events with either a price (for tracking usage with billing) or a usage meter (for tracking usage without billing).
 
 ```typescript
 // Pass YOUR app's user/organization ID, not Flowglad's customer ID
+
+// Example: With price (for tracking usage with billing)
 const usageEvent = await flowglad(userId).createUsageEvent({
   amount: 125,
   priceSlug: 'price_usage_meter',
+  subscriptionId: 'sub_123',
+  transactionId: 'txn_unique',
+  usageDate: Date.now(),
+  properties: {
+    endpoint: '/api/data',
+  },
+})
+
+// Example: With usage meter (for tracking usage without billing)
+const usageEvent = await flowglad(userId).createUsageEvent({
+  amount: 125,
+  usageMeterSlug: 'api_calls',
   subscriptionId: 'sub_123',
   transactionId: 'txn_unique',
   usageDate: Date.now(),
@@ -357,11 +371,15 @@ type CreateUsageEventParams =
   {
     amount: number
     /**
-     * Must specify either priceSlug or priceId
+     * Must specify exactly one of:
+     * - priceSlug or priceId (for billing)
+     * - usageMeterSlug or usageMeterId (for tracking usage without billing)
      * Slug is encouraged over Id
      */
     priceSlug?: string
     priceId?: string
+    usageMeterSlug?: string
+    usageMeterId?: string
     subscriptionId: string
     transactionId: string
     usageDate?: number
@@ -422,12 +440,28 @@ app.get('/api/premium-endpoint', requireFeature('premium_feature'), (req, res) =
 ### Usage Metering
 
 ```typescript
+// Example: Track usage with price
 export async function trackAPIUsage(endpoint: string, customerExternalId: string) {
   // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
   await flowglad(customerExternalId).createUsageEvent({
     priceSlug: 'price_usage_api_calls',
     subscriptionId: 'sub_current',
     amount: 1,
+    transactionId: `api_call_${Date.now()}_${endpoint}`,
+    properties: {
+      endpoint,
+    },
+  })
+}
+
+// Example: Track usage without price (for tracking usage without billing)
+export async function trackAPIUsageNoBilling(endpoint: string, customerExternalId: string) {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  await flowglad(customerExternalId).createUsageEvent({
+    usageMeterSlug: 'api_calls',
+    subscriptionId: 'sub_current',
+    amount: 1,
+    transactionId: `api_call_${Date.now()}_${endpoint}`,
     properties: {
       endpoint,
     },
@@ -436,7 +470,8 @@ export async function trackAPIUsage(endpoint: string, customerExternalId: string
 
 // Usage
 app.get('/api/data', async (req, res) => {
-  await trackAPIUsage('/api/data')
+  const userId = await getUserIdFromRequest(req)
+  await trackAPIUsage('/api/data', userId)
   res.json({ data: 'response' })
 })
 ```
@@ -502,9 +537,6 @@ const billing = await flowglad(userId).getBilling()
 <CardGroup cols={2}>
   <Card title="Next.js SDK" icon="react" href="/sdks/nextjs">
     Use with Next.js applications
-  </Card>
-  <Card title="Express SDK" icon="node" href="/sdks/express">
-    Use with Express applications
   </Card>
 </CardGroup>
 

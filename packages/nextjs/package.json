@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/nextjs",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -55,6 +55,10 @@
     "better-auth": {
       "optional": true
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowglad/flowglad"
   },
   "publishConfig": {
     "access": "public"

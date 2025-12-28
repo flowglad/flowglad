@@ -9,7 +9,11 @@ import { adminTransaction } from '@/db/adminTransaction'
 import type { Feature } from '@/db/schema/features'
 import type { Organization } from '@/db/schema/organizations'
 import type { Product } from '@/db/schema/products'
+import { core } from '@/utils/core'
 import {
+  bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId,
+  bulkInsertProductFeatures,
+  insertProductFeature,
   selectFeaturesByProductFeatureWhere,
   selectProductFeatures,
   syncProductFeatures,
@@ -271,6 +275,12 @@ describe('syncProductFeatures', () => {
     const resultFeatureIds = new Set(result.map((pf) => pf.featureId))
     expect(resultFeatureIds.has(featureA.id)).toBe(true)
     expect(resultFeatureIds.has(featureB.id)).toBe(true)
+    // Verify pricingModelId is correctly derived from product
+    expect(
+      result.every(
+        (pf) => pf.pricingModelId === product.pricingModelId
+      )
+    ).toBe(true)
 
     // - A database query should confirm that two new, active product features now link the product to the desired features.
     const allFeatures = await adminTransaction(
@@ -279,6 +289,12 @@ describe('syncProductFeatures', () => {
     )
     expect(allFeatures).toHaveLength(2)
     expect(allFeatures.every((pf) => !pf.expiredAt)).toBe(true)
+    // Verify pricingModelId matches product for all features
+    expect(
+      allFeatures.every(
+        (pf) => pf.pricingModelId === product.pricingModelId
+      )
+    ).toBe(true)
   })
 
   it('should expire all existing active product features when an empty array is provided', async () => {
@@ -682,5 +698,238 @@ describe('selectFeaturesByProductFeatureWhere', () => {
     // Should return only the active feature A
     expect(result).toHaveLength(1)
     expect(result[0].feature.id).toBe(featureA.id)
+  })
+})
+
+describe('insertProductFeature', () => {
+  it('should successfully insert product feature and derive pricingModelId from product', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const productFeature = await insertProductFeature(
+        {
+          productId: product.id,
+          featureId: featureA.id,
+          organizationId: organization.id,
+          livemode: true,
+        },
+        transaction
+      )
+
+      // Verify pricingModelId is correctly derived from product
+      expect(productFeature.pricingModelId).toBe(
+        product.pricingModelId
+      )
+    })
+  })
+
+  it('should use provided pricingModelId without derivation', async () => {
+    const customPricingModelId = product.pricingModelId
+
+    await adminTransaction(async ({ transaction }) => {
+      const productFeature = await insertProductFeature(
+        {
+          productId: product.id,
+          featureId: featureA.id,
+          organizationId: organization.id,
+          livemode: true,
+          pricingModelId: customPricingModelId, // Pre-provided
+        },
+        transaction
+      )
+
+      // Verify the provided pricingModelId is used
+      expect(productFeature.pricingModelId).toBe(customPricingModelId)
+    })
+  })
+
+  it('should throw an error when productId does not exist', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const nonExistentProductId = `prod_${core.nanoid()}`
+
+      await expect(
+        insertProductFeature(
+          {
+            productId: nonExistentProductId,
+            featureId: featureA.id,
+            organizationId: organization.id,
+            livemode: true,
+          },
+          transaction
+        )
+      ).rejects.toThrow()
+    })
+  })
+})
+
+describe('bulkInsertProductFeatures', () => {
+  let product2: Product.Record
+
+  beforeEach(async () => {
+    product2 = await setupProduct({
+      organizationId: organization.id,
+      name: 'Test Product 2',
+      pricingModelId: product.pricingModelId,
+      livemode: true,
+    })
+  })
+
+  it('should bulk insert product features and derive pricingModelId for each', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const productFeatures = await bulkInsertProductFeatures(
+        [
+          {
+            productId: product.id,
+            featureId: featureA.id,
+            organizationId: organization.id,
+            livemode: true,
+          },
+          {
+            productId: product2.id,
+            featureId: featureB.id,
+            organizationId: organization.id,
+            livemode: true,
+          },
+        ],
+        transaction
+      )
+
+      expect(productFeatures).toHaveLength(2)
+      expect(productFeatures[0]!.pricingModelId).toBe(
+        product.pricingModelId
+      )
+      expect(productFeatures[1]!.pricingModelId).toBe(
+        product2.pricingModelId
+      )
+    })
+  })
+
+  it('should honor pre-provided pricingModelId in bulk insert', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const productFeatures = await bulkInsertProductFeatures(
+        [
+          {
+            productId: product.id,
+            featureId: featureA.id,
+            organizationId: organization.id,
+            livemode: true,
+            pricingModelId: product.pricingModelId, // Pre-provided
+          },
+          {
+            productId: product2.id,
+            featureId: featureB.id,
+            organizationId: organization.id,
+            livemode: true,
+            // No pricingModelId - should derive
+          },
+        ],
+        transaction
+      )
+
+      expect(productFeatures).toHaveLength(2)
+      expect(productFeatures[0]!.pricingModelId).toBe(
+        product.pricingModelId
+      )
+      expect(productFeatures[1]!.pricingModelId).toBe(
+        product2.pricingModelId
+      )
+    })
+  })
+
+  it('should throw an error if a product does not exist for derivation', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const nonExistentProductId = `prod_${core.nanoid()}`
+
+      await expect(
+        bulkInsertProductFeatures(
+          [
+            {
+              productId: nonExistentProductId,
+              featureId: featureA.id,
+              organizationId: organization.id,
+              livemode: true,
+            },
+          ],
+          transaction
+        )
+      ).rejects.toThrow()
+    })
+  })
+})
+
+describe('bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId', () => {
+  let product2: Product.Record
+
+  beforeEach(async () => {
+    product2 = await setupProduct({
+      organizationId: organization.id,
+      name: 'Test Product 2',
+      pricingModelId: product.pricingModelId,
+      livemode: true,
+    })
+  })
+
+  it('should bulk insert or do nothing for product features', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      // First insert
+      const firstResult =
+        await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(
+          [
+            {
+              productId: product.id,
+              featureId: featureA.id,
+              organizationId: organization.id,
+              livemode: true,
+            },
+          ],
+          transaction
+        )
+      expect(firstResult).toHaveLength(1)
+      expect(firstResult[0]!.pricingModelId).toBe(
+        product.pricingModelId
+      )
+
+      // Second insert with same product-feature pair should do nothing
+      const secondResult =
+        await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(
+          [
+            {
+              productId: product.id,
+              featureId: featureA.id,
+              organizationId: organization.id,
+              livemode: true,
+            },
+          ],
+          transaction
+        )
+      expect(secondResult).toHaveLength(0)
+    })
+  })
+
+  it('should honor pre-provided pricingModelId', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result =
+        await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(
+          [
+            {
+              productId: product.id,
+              featureId: featureA.id,
+              organizationId: organization.id,
+              livemode: true,
+              pricingModelId: product.pricingModelId, // Pre-provided
+            },
+            {
+              productId: product2.id,
+              featureId: featureB.id,
+              organizationId: organization.id,
+              livemode: true,
+              // No pricingModelId - should derive
+            },
+          ],
+          transaction
+        )
+
+      expect(result).toHaveLength(2)
+      expect(result[0]!.pricingModelId).toBe(product.pricingModelId)
+      expect(result[1]!.pricingModelId).toBe(product2.pricingModelId)
+    })
   })
 })

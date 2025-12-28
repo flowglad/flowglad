@@ -1,11 +1,16 @@
 'use client'
-import { Check, Copy, Download, Pencil, Sparkles } from 'lucide-react'
+import {
+  Check,
+  CopyPlus,
+  Download,
+  Pencil,
+  Sparkles,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import { CustomersDataTable } from '@/app/customers/data-table'
-import { ProductsDataTable } from '@/app/products/data-table'
 import { UsageMetersDataTable } from '@/app/usage-meters/data-table'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 import { ExpandSection } from '@/components/ExpandSection'
@@ -22,6 +27,7 @@ import { MoreIcon } from '@/components/icons/MoreIcon'
 import PopoverMenu, {
   type PopoverMenuItem,
 } from '@/components/PopoverMenu'
+import { ProductsGridSection } from '@/components/ProductsGridSection'
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import {
@@ -167,7 +173,7 @@ function InnerPricingModelDetailsPage({
         setIsMoreMenuOpen(false)
         setIsCloneOpen(true)
       },
-      icon: <Copy className="h-4 w-4" />,
+      icon: <CopyPlus className="h-4 w-4" />,
     },
     {
       label: 'Export',
@@ -243,14 +249,14 @@ function InnerPricingModelDetailsPage({
           defaultExpanded={true}
           contentPadding={false}
         >
-          <ProductsDataTable
+          <ProductsGridSection
             filters={getProductFilterForTab(activeProductFilter)}
             filterOptions={productFilterOptions}
             activeFilter={activeProductFilter}
             onFilterChange={setActiveProductFilter}
             onCreateProduct={() => setIsCreateProductModalOpen(true)}
-            buttonVariant="secondary"
-            hiddenColumns={['productId', 'slug', 'status']}
+            // TODO: Add viewAllHref once dedicated products page is implemented
+            // viewAllHref={`/products?pricingModelId=${pricingModel.id}`}
           />
         </ExpandSection>
         <ExpandSection

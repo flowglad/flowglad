@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import {
   type UsageMeter,
   usageMeters,
@@ -40,6 +40,58 @@ export const selectUsageMeterById = createSelectById(
   usageMeters,
   config
 )
+
+/**
+ * Derives pricingModelId from a usage meter.
+ * Used for usageEvents, usageCredits, ledgerAccounts, subscriptionMeterPeriodCalculations.
+ */
+export const derivePricingModelIdFromUsageMeter = async (
+  usageMeterId: string,
+  transaction: DbTransaction
+): Promise<string> => {
+  const usageMeter = await selectUsageMeterById(
+    usageMeterId,
+    transaction
+  )
+  if (!usageMeter.pricingModelId) {
+    throw new Error(
+      `Usage meter ${usageMeterId} does not have a pricingModelId`
+    )
+  }
+  return usageMeter.pricingModelId
+}
+
+/**
+ * Batch fetch pricingModelIds for multiple usage meters.
+ * More efficient than calling derivePricingModelIdFromUsageMeter for each usage meter individually.
+ * Used by bulk insert operations in usage events, usage credits, ledger accounts, and subscription meter period calculations.
+ */
+export const pricingModelIdsForUsageMeters = async (
+  usageMeterIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, string>> => {
+  const usageMeterRows = await transaction
+    .select({
+      id: usageMeters.id,
+      pricingModelId: usageMeters.pricingModelId,
+    })
+    .from(usageMeters)
+    .where(inArray(usageMeters.id, usageMeterIds))
+
+  const pricingModelIdMap = new Map<string, string>()
+  for (const usageMeterRow of usageMeterRows) {
+    if (!usageMeterRow.pricingModelId) {
+      throw new Error(
+        `Usage meter ${usageMeterRow.id} does not have a pricingModelId`
+      )
+    }
+    pricingModelIdMap.set(
+      usageMeterRow.id,
+      usageMeterRow.pricingModelId
+    )
+  }
+  return pricingModelIdMap
+}
 
 export const insertUsageMeter = createInsertFunction(
   usageMeters,

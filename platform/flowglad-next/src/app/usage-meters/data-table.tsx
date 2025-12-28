@@ -11,15 +11,13 @@ import {
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
-import { Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
-import { Button } from '@/components/ui/button'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { InlineSearch } from '@/components/ui/inline-search'
+import { DataTableToolbar } from '@/components/ui/data-table-toolbar'
 import {
   Table,
   TableBody,
@@ -160,27 +158,25 @@ export function UsageMetersDataTable({
             <h3 className="text-lg truncate">{title}</h3>
           </div>
         )}
-        {/* Redesigned toolbar matching Figma specs */}
-        <div className="flex items-center gap-1">
-          <InlineSearch
-            value={inputValue}
-            onChange={setInputValue}
-            placeholder="Search usage meters..."
-            isLoading={isFetching}
-            disabled={isLoading}
-            className="flex-1"
-          />
-          {onCreateUsageMeter && (
-            <Button
-              onClick={onCreateUsageMeter}
-              variant={buttonVariant}
-              size="sm"
-            >
-              <Plus className="w-4 h-4" />
-              Create Usage Meter
-            </Button>
-          )}
-        </div>
+        {/* Toolbar */}
+        <DataTableToolbar
+          search={{
+            value: inputValue,
+            onChange: setInputValue,
+            placeholder: 'Search usage meters...',
+          }}
+          actionButton={
+            onCreateUsageMeter
+              ? {
+                  onClick: onCreateUsageMeter,
+                  text: 'Create Usage Meter',
+                  variant: buttonVariant,
+                }
+              : undefined
+          }
+          isLoading={isLoading}
+          isFetching={isFetching}
+        />
       </div>
 
       {/* Table - NO extra wrapper div */}

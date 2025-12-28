@@ -7,9 +7,10 @@ import {
   pgTable,
   text,
 } from 'drizzle-orm/pg-core'
-import type { z } from 'zod'
+import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { usageMeters } from '@/db/schema/usageMeters'
 import {
@@ -67,6 +68,10 @@ export const ledgerAccounts = pgTable(
     livemode: boolean('livemode').notNull(),
     description: text('description'),
     metadata: jsonb('metadata'),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => {
     return [
@@ -77,6 +82,7 @@ export const ledgerAccounts = pgTable(
         table.usageMeterId,
         //   table.currency,
       ]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       merchantPolicy(
         `Enable read for own organizations (${TABLE_NAME})`,
         {
@@ -101,6 +107,9 @@ export const {
   update: ledgerAccountsUpdateSchema,
 } = buildSchemas(ledgerAccounts, {
   refine: columnRefinements,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   entityName: 'LedgerAccount',
 })
 

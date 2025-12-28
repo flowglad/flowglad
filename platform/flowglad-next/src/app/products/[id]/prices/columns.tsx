@@ -55,21 +55,9 @@ const PriceTypeCellView = ({ type }: { type: PriceType }) => {
 
 export const columns: ColumnDef<PriceTableRowData>[] = [
   {
-    id: 'type',
-    accessorFn: (row) => row.price.type,
-    header: 'Type',
-    cell: ({ row }) => {
-      const type = row.getValue('type') as PriceType
-      return <PriceTypeCellView type={type} />
-    },
-    size: 140,
-    minSize: 120,
-    maxSize: 160,
-  },
-  {
     id: 'pricing',
     accessorFn: (row) => row.price,
-    header: 'Pricing',
+    header: 'Price',
     cell: ({ row }) => {
       const price = row.getValue('pricing') as Price.ClientRecord
       return (
@@ -83,6 +71,18 @@ export const columns: ColumnDef<PriceTableRowData>[] = [
     maxSize: 120,
   },
   {
+    id: 'type',
+    accessorFn: (row) => row.price.type,
+    header: 'Type',
+    cell: ({ row }) => {
+      const type = row.getValue('type') as PriceType
+      return <PriceTypeCellView type={type} />
+    },
+    size: 140,
+    minSize: 120,
+    maxSize: 160,
+  },
+  {
     id: 'active',
     accessorFn: (row) => row.price.active,
     header: 'Status',
@@ -93,6 +93,22 @@ export const columns: ColumnDef<PriceTableRowData>[] = [
     size: 110,
     minSize: 105,
     maxSize: 115,
+  },
+  {
+    id: 'createdAt',
+    accessorFn: (row) => row.price.createdAt,
+    header: 'Created',
+    cell: ({ row }) => {
+      const date = row.getValue('createdAt') as Date
+      return (
+        <div className="whitespace-nowrap">
+          {core.formatDate(date)}
+        </div>
+      )
+    },
+    size: 100,
+    minSize: 100,
+    maxSize: 150,
   },
   {
     id: 'slug',
@@ -111,22 +127,6 @@ export const columns: ColumnDef<PriceTableRowData>[] = [
     size: 180,
     minSize: 125,
     maxSize: 250,
-  },
-  {
-    id: 'createdAt',
-    accessorFn: (row) => row.price.createdAt,
-    header: 'Created',
-    cell: ({ row }) => {
-      const date = row.getValue('createdAt') as Date
-      return (
-        <div className="whitespace-nowrap">
-          {core.formatDate(date)}
-        </div>
-      )
-    },
-    size: 100,
-    minSize: 100,
-    maxSize: 150,
   },
   {
     id: 'id',
