@@ -520,7 +520,6 @@ export const generateLedgerCommandsForBulkUsageEvents = async (
   type ProcessedEventData = {
     usageEvent: UsageEvent.Record
     subscription: NonNullable<ReturnType<typeof subscriptionById.get>>
-    isCountDistinctProperties: boolean
     combinationKey: string | null
   }
   const processedEventData: ProcessedEventData[] = []
@@ -554,28 +553,22 @@ export const generateLedgerCommandsForBulkUsageEvents = async (
       usageMeter.aggregationType ===
       UsageMeterAggregationType.CountDistinctProperties
 
-    // Throw if CountDistinctProperties meter is missing billing period (consistent with single event processing)
-    if (isCountDistinctPropertiesMeter && billingPeriod === null) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Billing period is required for usage meter of type "count_distinct_properties".`,
-      })
-    }
-
-    const isCountDistinctProperties =
-      isCountDistinctPropertiesMeter && billingPeriod !== null
-
     // Generate combination key for deduplication (null for non-CountDistinctProperties)
-    const combinationKey = isCountDistinctProperties
-      ? countDistinctPropertiesCombinationKey({
-          usageMeterId: usageEvent.usageMeterId,
-          billingPeriodId: billingPeriod.id,
-          properties: usageEvent.properties,
+    let combinationKey: string | null = null
+    if (isCountDistinctPropertiesMeter) {
+      if (billingPeriod === null) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Billing period is required for usage meter of type "count_distinct_properties".`,
         })
-      : null
+      }
+      combinationKey = countDistinctPropertiesCombinationKey({
+        usageMeterId: usageEvent.usageMeterId,
+        billingPeriodId: billingPeriod.id,
+        properties: usageEvent.properties,
+      })
 
-    // Collect CountDistinctProperties events for batch duplicate checking
-    if (isCountDistinctProperties) {
+      // Collect CountDistinctProperties events for batch duplicate checking
       countDistinctEvents.push({
         usageEvent,
         usageMeterId: usageEvent.usageMeterId,
@@ -586,7 +579,6 @@ export const generateLedgerCommandsForBulkUsageEvents = async (
     processedEventData.push({
       usageEvent,
       subscription,
-      isCountDistinctProperties,
       combinationKey,
     })
   }
@@ -607,7 +599,6 @@ export const generateLedgerCommandsForBulkUsageEvents = async (
   for (const {
     usageEvent,
     subscription,
-    isCountDistinctProperties,
     combinationKey,
   } of processedEventData) {
     // Skip if this combination was already processed in this batch
