@@ -5,6 +5,7 @@
  * (features, products, usage meters) to identify what needs to be created, updated, or removed.
  */
 
+import * as R from 'ramda'
 import type {
   SetupPricingModelInput,
   SetupPricingModelProductInput,
@@ -256,10 +257,8 @@ const pricesAreDifferent = (
   if (existingPrice === undefined || proposedPrice === undefined) {
     return true
   }
-  // Both defined - compare by JSON stringification
-  return (
-    JSON.stringify(existingPrice) !== JSON.stringify(proposedPrice)
-  )
+  // Both defined - compare using deep equality
+  return !R.equals(existingPrice, proposedPrice)
 }
 
 /**
