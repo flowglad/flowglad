@@ -306,12 +306,12 @@ export const calculateTotalFeeAmount = (
     'Discount amount fixed'
   )
   validateNumericAmount(
-    parseFloat(internationalFeePercentage),
-    'International fee percentage'
-  )
-  validateNumericAmount(
     parseFloat(morSurchargePercentage ?? '0'),
     'MoR surcharge percentage'
+  )
+  validateNumericAmount(
+    parseFloat(internationalFeePercentage),
+    'International fee percentage'
   )
   const safeDiscount = discountAmountFixed
     ? Math.max(discountAmountFixed, 0)

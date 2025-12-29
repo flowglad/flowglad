@@ -307,6 +307,29 @@ describe('calculatePaymentMethodFeeAmount', () => {
   })
 })
 
+describe('calculateMoRSurchargePercentage', () => {
+  it('returns 1.1 for MerchantOfRecord organizations', () => {
+    const organization = {
+      stripeConnectContractType:
+        StripeConnectContractType.MerchantOfRecord,
+      feePercentage: '0',
+    } as Organization.Record
+
+    expect(calculateMoRSurchargePercentage({ organization })).toBe(
+      1.1
+    )
+  })
+
+  it('returns 0 for non-MerchantOfRecord organizations', () => {
+    const organization = {
+      stripeConnectContractType: StripeConnectContractType.Platform,
+      feePercentage: '0',
+    } as Organization.Record
+
+    expect(calculateMoRSurchargePercentage({ organization })).toBe(0)
+  })
+})
+
 describe('calculateTotalFeeAmount', () => {
   const coreFeeCalculation: TotalFeeAmountInput = {
     baseAmount: 1000,
@@ -326,6 +349,23 @@ describe('calculateTotalFeeAmount', () => {
       internationalFeePercentage: '2.5',
     } satisfies TotalFeeAmountInput
     expect(calculateTotalFeeAmount(feeCalculation)).toBe(262)
+  })
+
+  it('includes MoR surcharge when present', () => {
+    const feeCalculation = {
+      ...coreFeeCalculation,
+      discountAmountFixed: 100,
+      internationalFeePercentage: '2.5',
+      morSurchargePercentage: '1.1',
+    } as FeeCalculation.Record
+
+    // discountInclusiveAmount = 900
+    // flowFixed = 10% of 900 = 90
+    // morSurchargeFixed = 1.1% of 900 = 9.9 -> 10
+    // intlFixed = 2.5% of 900 = 22.5 -> 23
+    // paymentMethodFeeFixed = 59
+    // taxAmountFixed = 90
+    expect(calculateTotalFeeAmount(feeCalculation)).toBe(272)
   })
 
   it('handles null or undefined fee percentages by throwing error for parseFloat', () => {
