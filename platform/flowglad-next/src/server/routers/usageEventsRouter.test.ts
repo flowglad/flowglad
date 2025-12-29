@@ -1025,8 +1025,11 @@ describe('usageEventsRouter', () => {
 
       // Verify endpoint is wired and returns expected structure
       expect(result.usageEvents).toHaveLength(1)
-      expect(result.usageEvents[0].id).toBeDefined()
-      expect(result.usageEvents[0].amount).toBe(100)
+      const event = result.usageEvents[0]
+      expect(event.subscriptionId).toBe(subscription1.id)
+      expect(event.priceId).toBe(price1.id)
+      expect(event.customerId).toBe(customer1.id)
+      expect(event.amount).toBe(100)
     })
 
     it('should return error for invalid input', async () => {

@@ -444,7 +444,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       expect(firstResult.result.usageEvents).toHaveLength(1)
-      expect(firstResult.ledgerCommands).toBeDefined()
       expect(firstResult.ledgerCommands?.length).toBeGreaterThan(0)
 
       // Resubmit the same payload
@@ -471,7 +470,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Should return empty array (no new events inserted)
       expect(secondResult.result.usageEvents).toHaveLength(0)
       // Should not generate ledger commands for deduped entries
-      expect(secondResult.ledgerCommands).toBeDefined()
       expect(secondResult.ledgerCommands?.length).toBe(0)
     })
 
@@ -578,7 +576,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
       expect(result.result.usageEvents).toHaveLength(2)
       expect(result.result.usageEvents[0].amount).toBe(100)
       expect(result.result.usageEvents[1].amount).toBe(200)
-      expect(result.ledgerCommands).toBeDefined()
       expect(result.ledgerCommands?.length).toBeGreaterThan(0)
     })
 
