@@ -307,6 +307,29 @@ describe('calculatePaymentMethodFeeAmount', () => {
   })
 })
 
+describe('calculateMoRSurchargePercentage', () => {
+  it('returns 1.1 for MerchantOfRecord organizations', () => {
+    const organization = {
+      stripeConnectContractType:
+        StripeConnectContractType.MerchantOfRecord,
+      feePercentage: '0',
+    } as Organization.Record
+
+    expect(calculateMoRSurchargePercentage({ organization })).toBe(
+      1.1
+    )
+  })
+
+  it('returns 0 for non-MerchantOfRecord organizations', () => {
+    const organization = {
+      stripeConnectContractType: StripeConnectContractType.Platform,
+      feePercentage: '0',
+    } as Organization.Record
+
+    expect(calculateMoRSurchargePercentage({ organization })).toBe(0)
+  })
+})
+
 describe('calculateTotalFeeAmount', () => {
   const coreFeeCalculation: TotalFeeAmountInput = {
     baseAmount: 1000,
