@@ -1939,7 +1939,7 @@ describe('diffPricingModel', () => {
     )
   })
 
-  it('should handle empty existing pricing model', () => {
+  it('should add all proposed resources to toCreate when existing pricing model is empty', () => {
     // Setup: empty existing, proposed with resources
     const existing = createPricingModelInput({
       features: [],
@@ -1993,7 +1993,7 @@ describe('diffPricingModel', () => {
     expect(result.usageMeters.toUpdate).toEqual([])
   })
 
-  it('should handle empty proposed pricing model (except usage meters throw)', () => {
+  it('should throw when usage meters are removed in empty proposed pricing model', () => {
     // Setup: existing with resources, empty proposed
     const existing = createPricingModelInput({
       features: [
@@ -2032,7 +2032,7 @@ describe('diffPricingModel', () => {
     )
   })
 
-  it('should handle empty proposed pricing model without usage meters', () => {
+  it('should add features and products to toRemove when proposed pricing model is empty', () => {
     // Setup: existing without usage meters, empty proposed
     const existing = createPricingModelInput({
       features: [
@@ -2219,7 +2219,7 @@ describe('diffPricingModel', () => {
     expect(result.usageMeters.toCreate).toHaveLength(1)
   })
 
-  it('should handle complex diff with multiple changes', () => {
+  it('should handle complex diff by correctly categorizing removes, creates, and updates across all resource types', () => {
     // Setup: complex scenario with remove, create, and update across all types
     const existing = createPricingModelInput({
       features: [
@@ -2340,7 +2340,7 @@ describe('diffPricingModel', () => {
     )
   })
 
-  it('should handle identical pricing models', () => {
+  it('should handle identical pricing models by placing all resources in toUpdate with empty toRemove and toCreate', () => {
     // Setup: completely identical pricing models
     const pricingModel = createPricingModelInput({
       features: [
