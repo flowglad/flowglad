@@ -102,10 +102,7 @@ export const deleteApiKey = protectedProcedure
           userId,
           livemode,
           organizationId,
-        }),
-      {
-        apiKey: ctx.apiKey,
-      }
+        })
     )
     return { success: true }
   })

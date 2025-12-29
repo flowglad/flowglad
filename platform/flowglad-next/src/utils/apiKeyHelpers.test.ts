@@ -5,13 +5,19 @@ import {
   setupOrg,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { CreateApiKeyInput } from '@/db/schema/apiKeys'
+import type { ApiKey, CreateApiKeyInput } from '@/db/schema/apiKeys'
 import type { Organization } from '@/db/schema/organizations'
+import {
+  insertApiKey,
+  selectApiKeyById,
+} from '@/db/tableMethods/apiKeyMethods'
 import { updateMembership } from '@/db/tableMethods/membershipMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { FlowgladApiKeyType } from '@/types'
+import core from '@/utils/core'
 import {
   createSecretApiKeyTransaction,
+  deleteSecretApiKeyTransaction,
   getApiKeyHeader,
 } from './apiKeyHelpers'
 
@@ -197,6 +203,198 @@ describe('apiKeyHelpers', () => {
       ).rejects.toThrow(
         'createSecretApiKeyTransaction: Only secret keys are supported. Received type: publishable'
       )
+    })
+  })
+
+  describe('deleteSecretApiKeyTransaction', () => {
+    /**
+     * Tests for deleting secret API keys in livemode.
+     */
+    let secretApiKey: ApiKey.Record
+
+    beforeEach(async () => {
+      // Create a livemode secret API key for testing deletion
+      secretApiKey = await adminTransaction(
+        async ({ transaction }) => {
+          return insertApiKey(
+            {
+              organizationId: organization.id,
+              name: 'Test Secret API Key for Deletion',
+              token: `live_sk_${core.nanoid()}`,
+              type: FlowgladApiKeyType.Secret,
+              active: true,
+              livemode: true,
+              hashText: `hash_${core.nanoid()}`,
+            },
+            transaction
+          )
+        }
+      )
+    })
+
+    it('should successfully delete a secret API key', async () => {
+      // Verify the key exists before deletion
+      const keyBeforeDelete = await adminTransaction(
+        async ({ transaction }) => {
+          return selectApiKeyById(secretApiKey.id, transaction)
+        }
+      )
+      expect(keyBeforeDelete).toBeDefined()
+      expect(keyBeforeDelete.id).toBe(secretApiKey.id)
+
+      // Delete the livemode API key
+      await adminTransaction(async ({ transaction }) => {
+        await deleteSecretApiKeyTransaction(
+          { id: secretApiKey.id },
+          {
+            transaction,
+            userId,
+            livemode: true,
+            organizationId: organization.id,
+          }
+        )
+      })
+
+      // Verify the key no longer exists
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return selectApiKeyById(secretApiKey.id, transaction)
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should throw an error if the API key does not exist', async () => {
+      const nonExistentId = `apikey_${core.nanoid()}`
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await deleteSecretApiKeyTransaction(
+            { id: nonExistentId },
+            {
+              transaction,
+              userId,
+              livemode: true,
+              organizationId: organization.id,
+            }
+          )
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should throw an error if the API key is not a secret key', async () => {
+      // Create a livemode publishable API key
+      const publishableApiKey = await adminTransaction(
+        async ({ transaction }) => {
+          return insertApiKey(
+            {
+              organizationId: organization.id,
+              name: 'Test Publishable API Key',
+              token: `live_pk_${core.nanoid()}`,
+              type: FlowgladApiKeyType.Publishable,
+              active: true,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await deleteSecretApiKeyTransaction(
+            { id: publishableApiKey.id },
+            {
+              transaction,
+              userId,
+              livemode: true,
+              organizationId: organization.id,
+            }
+          )
+        })
+      ).rejects.toThrow(
+        'deleteSecretApiKeyTransaction: Only secret keys can be deleted. Received type: publishable'
+      )
+    })
+
+    it('should successfully delete a secret API key without unkeyId', async () => {
+      // Create a livemode legacy API key without unkeyId
+      const legacyApiKey = await adminTransaction(
+        async ({ transaction }) => {
+          return insertApiKey(
+            {
+              organizationId: organization.id,
+              name: 'Secret API Key without Unkey ID',
+              token: `live_sk_${core.nanoid()}`,
+              type: FlowgladApiKeyType.Secret,
+              active: true,
+              livemode: true,
+              // No unkeyId - legacy key
+              hashText: `hash_${core.nanoid()}`,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Delete should succeed without calling Unkey
+      await adminTransaction(async ({ transaction }) => {
+        await deleteSecretApiKeyTransaction(
+          { id: legacyApiKey.id },
+          {
+            transaction,
+            userId,
+            livemode: true,
+            organizationId: organization.id,
+          }
+        )
+      })
+
+      // Verify the key no longer exists
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return selectApiKeyById(legacyApiKey.id, transaction)
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should successfully delete a secret API key without hashText', async () => {
+      // Create a livemode API key without hashText
+      const apiKeyNoHash = await adminTransaction(
+        async ({ transaction }) => {
+          return insertApiKey(
+            {
+              organizationId: organization.id,
+              name: 'API Key Without Hash',
+              token: `live_sk_nohash_${core.nanoid()}`,
+              type: FlowgladApiKeyType.Secret,
+              active: true,
+              livemode: true,
+              // No hashText
+            },
+            transaction
+          )
+        }
+      )
+
+      // Delete should succeed without Redis cache invalidation
+      await adminTransaction(async ({ transaction }) => {
+        await deleteSecretApiKeyTransaction(
+          { id: apiKeyNoHash.id },
+          {
+            transaction,
+            userId,
+            livemode: true,
+            organizationId: organization.id,
+          }
+        )
+      })
+
+      // Verify the key no longer exists
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return selectApiKeyById(apiKeyNoHash.id, transaction)
+        })
+      ).rejects.toThrow()
     })
   })
 
