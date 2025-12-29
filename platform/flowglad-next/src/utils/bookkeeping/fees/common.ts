@@ -36,6 +36,7 @@ const BANK_ACCOUNT_FEE_PERCENTAGE = 0.8
 const BANK_ACCOUNT_MAX_FEE_CENTS = 500
 const SEPA_DEBIT_FEE_PERCENTAGE = 0.8
 const SEPA_DEBIT_MAX_FEE_CENTS = 600
+const MOR_SURCHARGE_PERCENTAGE = 1.1
 
 /* Helper Functions */
 export const parseFeePercentage = (feePercentage: string): number =>
@@ -134,6 +135,20 @@ export const calculateFlowgladFeePercentage = ({
 }: {
   organization: Organization.Record
 }): number => parseFeePercentage(organization.feePercentage)
+
+export const calculateMoRSurchargePercentage = ({
+  organization,
+}: {
+  organization: Organization.Record
+}): number => {
+  if (
+    organization.stripeConnectContractType ===
+    StripeConnectContractType.MerchantOfRecord
+  ) {
+    return MOR_SURCHARGE_PERCENTAGE
+  }
+  return 0
+}
 
 export const calculateInternationalFeePercentage = ({
   paymentMethod,
@@ -266,6 +281,7 @@ export const calculateTotalFeeAmount = (
     baseAmount,
     discountAmountFixed,
     flowgladFeePercentage,
+    morSurchargePercentage,
     internationalFeePercentage,
     paymentMethodFeeFixed,
     taxAmountFixed,
@@ -274,6 +290,10 @@ export const calculateTotalFeeAmount = (
   validateNumericAmount(
     discountAmountFixed ?? 0,
     'Discount amount fixed'
+  )
+  validateNumericAmount(
+    parseFloat(morSurchargePercentage),
+    'MoR surcharge percentage'
   )
   validateNumericAmount(
     parseFloat(internationalFeePercentage),
@@ -287,12 +307,20 @@ export const calculateTotalFeeAmount = (
     discountInclusiveAmount,
     parseFloat(flowgladFeePercentage!)
   )
+  const morSurchargeFixed = calculatePercentageFee(
+    discountInclusiveAmount,
+    parseFloat(morSurchargePercentage)
+  )
   const intlFixed = calculatePercentageFee(
     discountInclusiveAmount,
     parseFloat(internationalFeePercentage!)
   )
   return Math.round(
-    flowFixed + intlFixed + paymentMethodFeeFixed + taxAmountFixed
+    flowFixed +
+      morSurchargeFixed +
+      intlFixed +
+      paymentMethodFeeFixed +
+      taxAmountFixed
   )
 }
 

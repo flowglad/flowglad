@@ -68,6 +68,7 @@ describe('createCheckoutSessionFeeCalculationInsertForPrice', () => {
 
     expect(feeCalculationInsert.taxAmountFixed).toBe(0)
     expect(feeCalculationInsert.stripeTaxCalculationId).toBeNull()
+    expect(feeCalculationInsert.morSurchargePercentage).toBe('0')
   })
 })
 
@@ -117,6 +118,7 @@ describe('createCheckoutSessionFeeCalculationInsertForInvoice', () => {
     expect(insert.taxAmountFixed).toBe(0)
     expect(insert.stripeTaxCalculationId).toBeNull()
     expect(insert.stripeTaxTransactionId).toBeNull()
+    expect(insert.morSurchargePercentage).toBe('0')
   })
 
   it('applies international fee for an invoice session with non-domestic address', async () => {
@@ -160,5 +162,42 @@ describe('createCheckoutSessionFeeCalculationInsertForInvoice', () => {
     // Payment method fee: 2.9%+30 on 2000
     const expectedPaymentFee = Math.round(2000 * 0.029 + 30)
     expect(insert.paymentMethodFeeFixed).toBe(expectedPaymentFee)
+    expect(insert.morSurchargePercentage).toBe('0')
+  })
+
+  it('sets morSurchargePercentage to 1.1 for MerchantOfRecord invoice fee calculations', async () => {
+    const organization = {
+      id: 'org_mor',
+      stripeConnectContractType:
+        StripeConnectContractType.MerchantOfRecord,
+      feePercentage: '2.5',
+    } as Organization.Record
+    const organizationCountry = {
+      code: CountryCode.US,
+    } as Country.Record
+    const invoice = {
+      id: 'inv_mor',
+      currency: CurrencyCode.USD,
+      livemode: false,
+    } as Invoice.Record
+    const invoiceLineItems = [
+      { price: 1000, quantity: 1 },
+    ] as InvoiceLineItem.ClientRecord[]
+    const billingAddress = {
+      address: { country: CountryCode.US },
+    } as BillingAddress
+
+    const insert =
+      await createCheckoutSessionFeeCalculationInsertForInvoice({
+        organization,
+        invoice,
+        invoiceLineItems,
+        billingAddress,
+        paymentMethodType: PaymentMethodType.Card,
+        checkoutSessionId: 'sess_inv_mor',
+        organizationCountry,
+      })
+
+    expect(insert.morSurchargePercentage).toBe('1.1')
   })
 })
