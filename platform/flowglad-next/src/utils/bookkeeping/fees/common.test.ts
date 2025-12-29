@@ -38,6 +38,7 @@ import {
   calculateTotalDueAmount,
   calculateTotalFeeAmount,
   finalizeFeeCalculation,
+  type TotalFeeAmountInput,
 } from './common'
 
 // Price and Discount Utilities
@@ -307,7 +308,7 @@ describe('calculatePaymentMethodFeeAmount', () => {
 })
 
 describe('calculateTotalFeeAmount', () => {
-  const coreFeeCalculation = {
+  const coreFeeCalculation: TotalFeeAmountInput = {
     baseAmount: 1000,
     discountAmountFixed: 0,
     taxAmountFixed: 90,
@@ -315,7 +316,7 @@ describe('calculateTotalFeeAmount', () => {
     morSurchargePercentage: '0',
     internationalFeePercentage: '0',
     paymentMethodFeeFixed: 59,
-  } as FeeCalculation.Record
+  }
 
   it('calculates total fee with all components', () => {
     const feeCalculation = {
@@ -323,7 +324,7 @@ describe('calculateTotalFeeAmount', () => {
       discountAmountFixed: 100,
       morSurchargePercentage: '0',
       internationalFeePercentage: '2.5',
-    } as FeeCalculation.Record
+    } satisfies TotalFeeAmountInput
     expect(calculateTotalFeeAmount(feeCalculation)).toBe(262)
   })
 
@@ -345,7 +346,7 @@ describe('calculateTotalFeeAmount', () => {
     const feeCalculation = {
       ...coreFeeCalculation,
       discountAmountFixed: -100,
-    } as FeeCalculation.Record
+    } satisfies TotalFeeAmountInput
     expect(calculateTotalFeeAmount(feeCalculation)).toBe(249)
   })
 
@@ -353,7 +354,7 @@ describe('calculateTotalFeeAmount', () => {
     const feeCalculation = {
       ...coreFeeCalculation,
       baseAmount: 0,
-    } as FeeCalculation.Record
+    } satisfies TotalFeeAmountInput
     expect(calculateTotalFeeAmount(feeCalculation)).toBe(149)
   })
 
