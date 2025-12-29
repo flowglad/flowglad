@@ -31,6 +31,7 @@ import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
+import type { UsageCredit } from '@/db/schema/usageCredits'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import {
   CurrencyCode,
@@ -3595,7 +3596,7 @@ describe('ledgerEntryMethods', () => {
 
   describe('pricingModelId derivation', () => {
     let testLedgerTransaction: LedgerTransaction.Record
-    let usageCredit: any
+    let usageCredit: UsageCredit.Record
 
     beforeEach(async () => {
       testLedgerTransaction = await setupLedgerTransaction({

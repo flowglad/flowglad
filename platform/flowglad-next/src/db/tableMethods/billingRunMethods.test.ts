@@ -396,7 +396,7 @@ describe('billingRunMethods', () => {
             transaction
           )
         })
-      ).rejects.toThrow()
+      ).rejects.toThrowError('No subscriptions found with id')
     })
   })
 })
