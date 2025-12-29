@@ -2219,7 +2219,7 @@ describe('diffPricingModel', () => {
     expect(result.usageMeters.toCreate).toHaveLength(1)
   })
 
-  it('should handle complex diff by correctly categorizing removes, creates, and updates across all resource types', () => {
+  it('correctly categorizes removes, creates, and updates across all resource types for complex diff scenario', () => {
     // Setup: complex scenario with remove, create, and update across all types
     const existing = createPricingModelInput({
       features: [
