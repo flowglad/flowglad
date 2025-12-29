@@ -17,6 +17,7 @@ import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { BillingRunStatus, SubscriptionStatus } from '@/types'
+import { core } from '@/utils/core'
 import {
   safelyInsertBillingRun,
   selectBillingRunsDueForExecution,
@@ -333,6 +334,69 @@ describe('billingRunMethods', () => {
       expect(foundRun?.status).toBe(BillingRunStatus.Scheduled)
       expect(foundRun?.scheduledFor).toBeLessThan(now)
       expect(foundRun?.livemode).toBe(true)
+    })
+  })
+
+  describe('pricingModelId derivation', () => {
+    it('should derive pricingModelId from subscription when creating billing run', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return safelyInsertBillingRun(
+            {
+              billingPeriodId: billingPeriod.id,
+              scheduledFor: Date.now(),
+              status: BillingRunStatus.Scheduled,
+              subscriptionId: subscription.id,
+              paymentMethodId: paymentMethod.id,
+              livemode: billingPeriod.livemode,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(result.pricingModelId).toBe(subscription.pricingModelId)
+      expect(result.pricingModelId).toBe(pricingModel.id)
+    })
+
+    it('should honor provided pricingModelId', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return safelyInsertBillingRun(
+            {
+              billingPeriodId: billingPeriod.id,
+              scheduledFor: Date.now(),
+              status: BillingRunStatus.Scheduled,
+              subscriptionId: subscription.id,
+              paymentMethodId: paymentMethod.id,
+              livemode: billingPeriod.livemode,
+              pricingModelId: pricingModel.id, // explicitly provided
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(result.pricingModelId).toBe(pricingModel.id)
+    })
+
+    it('should throw error when subscription does not exist during pricingModelId derivation', async () => {
+      const nonExistentSubscriptionId = `sub_${core.nanoid()}`
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return safelyInsertBillingRun(
+            {
+              billingPeriodId: billingPeriod.id,
+              scheduledFor: Date.now(),
+              status: BillingRunStatus.Scheduled,
+              subscriptionId: nonExistentSubscriptionId,
+              paymentMethodId: paymentMethod.id,
+              livemode: billingPeriod.livemode,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
     })
   })
 })

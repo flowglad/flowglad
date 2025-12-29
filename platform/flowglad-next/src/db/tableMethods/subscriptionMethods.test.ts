@@ -20,6 +20,7 @@ import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
 import { core } from '@/utils/core'
 import {
   bulkInsertOrDoNothingSubscriptionsByExternalId,
+  derivePricingModelIdFromSubscription,
   insertSubscription,
   type SubscriptionTableFilters,
   selectDistinctSubscriptionProductNames,
@@ -1477,6 +1478,81 @@ describe('bulkInsertOrDoNothingSubscriptionsByExternalId', () => {
       insertedSubscriptions.forEach((sub) => {
         expect(sub.pricingModelId).toBe(pricingModel.id)
       })
+    })
+  })
+})
+
+describe('derivePricingModelIdFromSubscription', () => {
+  let organization: Organization.Record
+  let pricingModel: { id: string }
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
+  let product: { id: string }
+  let price: { id: string }
+  let subscription: Subscription.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    product = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Product',
+    })
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      type: PriceType.Subscription,
+      unitPrice: 1000,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: price.id,
+    })
+  })
+
+  it('should derive pricingModelId from an existing subscription', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const derivedPricingModelId =
+        await derivePricingModelIdFromSubscription(
+          subscription.id,
+          transaction
+        )
+
+      expect(derivedPricingModelId).toBe(pricingModel.id)
+      expect(derivedPricingModelId).toBe(subscription.pricingModelId)
+    })
+  })
+
+  it('should throw error when subscription does not exist', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const nonExistentSubscriptionId = `sub_${core.nanoid()}`
+
+      await expect(
+        derivePricingModelIdFromSubscription(
+          nonExistentSubscriptionId,
+          transaction
+        )
+      ).rejects.toThrow()
     })
   })
 })

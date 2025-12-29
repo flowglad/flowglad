@@ -58,6 +58,8 @@ import {
   aggregateBalanceForLedgerAccountFromEntries,
   aggregateOutstandingBalanceForUsageCosts,
   bulkInsertLedgerEntries,
+  derivePricingModelIdForLedgerEntry,
+  insertLedgerEntry,
 } from './ledgerEntryMethods'
 
 describe('ledgerEntryMethods', () => {
@@ -3587,6 +3589,512 @@ describe('ledgerEntryMethods', () => {
         })
         expect(billingInfo.description).toContain(usageEvent1.id)
         expect(billingInfo.description).toContain(usageEvent2.id)
+      })
+    })
+  })
+
+  describe('pricingModelId derivation', () => {
+    let testLedgerTransaction: LedgerTransaction.Record
+    let usageCredit: any
+
+    beforeEach(async () => {
+      testLedgerTransaction = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+      })
+
+      usageCredit = await setupUsageCredit({
+        organizationId: organization.id,
+        livemode: true,
+        issuedAmount: 1000,
+        creditType: UsageCreditType.Grant,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+      })
+    })
+
+    describe('derivePricingModelIdForLedgerEntry', () => {
+      it('should derive pricingModelId from subscription when subscriptionId is provided', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const pricingModelId =
+            await derivePricingModelIdForLedgerEntry(
+              {
+                subscriptionId: subscription.id,
+              },
+              transaction
+            )
+
+          expect(pricingModelId).toBe(subscription.pricingModelId)
+          expect(pricingModelId).toBe(pricingModel.id)
+        })
+      })
+
+      it('should derive pricingModelId from usage meter when usageMeterId is provided', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const pricingModelId =
+            await derivePricingModelIdForLedgerEntry(
+              {
+                usageMeterId: usageMeter.id,
+              },
+              transaction
+            )
+
+          expect(pricingModelId).toBe(usageMeter.pricingModelId)
+          expect(pricingModelId).toBe(pricingModel.id)
+        })
+      })
+
+      it('should prioritize subscriptionId over usageMeterId when both are provided', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const pricingModelId =
+            await derivePricingModelIdForLedgerEntry(
+              {
+                subscriptionId: subscription.id,
+                usageMeterId: usageMeter.id,
+              },
+              transaction
+            )
+
+          // Should use subscription's pricingModelId, not usage meter's
+          expect(pricingModelId).toBe(subscription.pricingModelId)
+        })
+      })
+
+      it('should throw error when subscription does not exist', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const nonExistentSubscriptionId = `sub_${core.nanoid()}`
+
+          await expect(
+            derivePricingModelIdForLedgerEntry(
+              {
+                subscriptionId: nonExistentSubscriptionId,
+              },
+              transaction
+            )
+          ).rejects.toThrow()
+        })
+      })
+
+      it('should throw error when usage meter does not exist', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const nonExistentUsageMeterId = `um_${core.nanoid()}`
+
+          await expect(
+            derivePricingModelIdForLedgerEntry(
+              {
+                usageMeterId: nonExistentUsageMeterId,
+              },
+              transaction
+            )
+          ).rejects.toThrow()
+        })
+      })
+
+      it('should throw error when neither subscriptionId nor usageMeterId is provided', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          await expect(
+            derivePricingModelIdForLedgerEntry({}, transaction)
+          ).rejects.toThrow()
+        })
+      })
+    })
+
+    describe('insertLedgerEntry', () => {
+      it('should insert ledger entry and derive pricingModelId from subscription', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const entry = await insertLedgerEntry(
+            {
+              ...ledgerEntryNulledSourceIdColumns,
+              metadata: {},
+              discardedAt: null,
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              direction: LedgerEntryDirection.Credit,
+              amount: 1000,
+              status: LedgerEntryStatus.Posted,
+              livemode: true,
+              entryTimestamp: Date.now(),
+              sourceUsageCreditId: usageCredit.id,
+              claimedByBillingRunId: null,
+            },
+            transaction
+          )
+
+          expect(entry.pricingModelId).toBe(
+            subscription.pricingModelId
+          )
+          expect(entry.pricingModelId).toBe(pricingModel.id)
+        })
+      })
+
+      it('should insert ledger entry and derive pricingModelId from usage meter', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const usageEvent = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            livemode: true,
+            amount: 100,
+            priceId: price.id,
+            billingPeriodId: billingPeriod.id,
+            transactionId: testLedgerTransaction.id,
+            customerId: customer.id,
+          })
+
+          const entry = await insertLedgerEntry(
+            {
+              ...ledgerEntryNulledSourceIdColumns,
+              metadata: {},
+              discardedAt: null,
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              direction: LedgerEntryDirection.Debit,
+              amount: 1000,
+              status: LedgerEntryStatus.Posted,
+              livemode: true,
+              entryTimestamp: Date.now(),
+              sourceUsageEventId: usageEvent.id,
+            },
+            transaction
+          )
+
+          expect(entry.pricingModelId).toBe(usageMeter.pricingModelId)
+          expect(entry.pricingModelId).toBe(pricingModel.id)
+        })
+      })
+
+      it('should prioritize subscriptionId over usageMeterId', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const entry = await insertLedgerEntry(
+            {
+              ...ledgerEntryNulledSourceIdColumns,
+              metadata: {},
+              discardedAt: null,
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id, // both provided
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              direction: LedgerEntryDirection.Credit,
+              amount: 1000,
+              status: LedgerEntryStatus.Posted,
+              livemode: true,
+              entryTimestamp: Date.now(),
+              sourceUsageCreditId: usageCredit.id,
+              claimedByBillingRunId: null,
+            },
+            transaction
+          )
+
+          // Should use subscription's pricingModelId
+          expect(entry.pricingModelId).toBe(
+            subscription.pricingModelId
+          )
+        })
+      })
+
+      it('should honor provided pricingModelId', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const entry = await insertLedgerEntry(
+            {
+              ...ledgerEntryNulledSourceIdColumns,
+              metadata: {},
+              discardedAt: null,
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              direction: LedgerEntryDirection.Credit,
+              amount: 1000,
+              status: LedgerEntryStatus.Posted,
+              livemode: true,
+              entryTimestamp: Date.now(),
+              sourceUsageCreditId: usageCredit.id,
+              claimedByBillingRunId: null,
+              pricingModelId: pricingModel.id, // explicitly provided
+            },
+            transaction
+          )
+
+          expect(entry.pricingModelId).toBe(pricingModel.id)
+        })
+      })
+
+      it('should throw error when subscription does not exist', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const nonExistentSubscriptionId = `sub_${core.nanoid()}`
+
+          await expect(
+            insertLedgerEntry(
+              {
+                ...ledgerEntryNulledSourceIdColumns,
+                metadata: {},
+                discardedAt: null,
+                organizationId: organization.id,
+                subscriptionId: nonExistentSubscriptionId,
+                usageMeterId: ledgerAccount.usageMeterId!,
+                ledgerAccountId: ledgerAccount.id,
+                ledgerTransactionId: testLedgerTransaction.id,
+                entryType: LedgerEntryType.CreditGrantRecognized,
+                direction: LedgerEntryDirection.Credit,
+                amount: 1000,
+                status: LedgerEntryStatus.Posted,
+                livemode: true,
+                entryTimestamp: Date.now(),
+                sourceUsageCreditId: usageCredit.id,
+                claimedByBillingRunId: null,
+              },
+              transaction
+            )
+          ).rejects.toThrow()
+        })
+      })
+
+      it('should throw error when usage meter does not exist', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const nonExistentUsageMeterId = `um_${core.nanoid()}`
+          const usageEvent = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            livemode: true,
+            amount: 100,
+            priceId: price.id,
+            billingPeriodId: billingPeriod.id,
+            transactionId: testLedgerTransaction.id,
+            customerId: customer.id,
+          })
+
+          await expect(
+            insertLedgerEntry(
+              {
+                ...ledgerEntryNulledSourceIdColumns,
+                metadata: {},
+                discardedAt: null,
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                usageMeterId: nonExistentUsageMeterId,
+                ledgerAccountId: ledgerAccount.id,
+                ledgerTransactionId: testLedgerTransaction.id,
+                entryType: LedgerEntryType.UsageCost,
+                direction: LedgerEntryDirection.Debit,
+                amount: 1000,
+                status: LedgerEntryStatus.Posted,
+                livemode: true,
+                entryTimestamp: Date.now(),
+                sourceUsageEventId: usageEvent.id,
+              },
+              transaction
+            )
+          ).rejects.toThrow()
+        })
+      })
+    })
+
+    describe('bulkInsertLedgerEntries', () => {
+      it('should derive pricingModelId for all entries', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const usageEvent = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            livemode: true,
+            amount: 100,
+            priceId: price.id,
+            billingPeriodId: billingPeriod.id,
+            transactionId: testLedgerTransaction.id,
+            customerId: customer.id,
+          })
+
+          const entries = await bulkInsertLedgerEntries(
+            [
+              {
+                ...ledgerEntryNulledSourceIdColumns,
+                metadata: {},
+                discardedAt: null,
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                usageMeterId: ledgerAccount.usageMeterId!,
+                ledgerAccountId: ledgerAccount.id,
+                ledgerTransactionId: testLedgerTransaction.id,
+                entryType: LedgerEntryType.CreditGrantRecognized,
+                direction: LedgerEntryDirection.Credit,
+                amount: 1000,
+                status: LedgerEntryStatus.Posted,
+                livemode: true,
+                entryTimestamp: Date.now(),
+                sourceUsageCreditId: usageCredit.id,
+                claimedByBillingRunId: null,
+              },
+              {
+                ...ledgerEntryNulledSourceIdColumns,
+                metadata: {},
+                discardedAt: null,
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                usageMeterId: usageMeter.id,
+                ledgerAccountId: ledgerAccount.id,
+                ledgerTransactionId: testLedgerTransaction.id,
+                entryType: LedgerEntryType.UsageCost,
+                direction: LedgerEntryDirection.Debit,
+                amount: 2000,
+                status: LedgerEntryStatus.Posted,
+                livemode: true,
+                entryTimestamp: Date.now(),
+                sourceUsageEventId: usageEvent.id,
+              },
+            ],
+            transaction
+          )
+
+          expect(entries).toHaveLength(2)
+          expect(entries[0].pricingModelId).toBe(
+            subscription.pricingModelId
+          )
+          expect(entries[1].pricingModelId).toBe(
+            usageMeter.pricingModelId
+          )
+        })
+      })
+
+      it('should handle mixed derivation sources efficiently', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const usageEvent = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            livemode: true,
+            amount: 100,
+            priceId: price.id,
+            billingPeriodId: billingPeriod.id,
+            transactionId: testLedgerTransaction.id,
+            customerId: customer.id,
+          })
+
+          const entries = await bulkInsertLedgerEntries(
+            [
+              {
+                ...ledgerEntryNulledSourceIdColumns,
+                metadata: {},
+                discardedAt: null,
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                usageMeterId: ledgerAccount.usageMeterId!,
+                ledgerAccountId: ledgerAccount.id,
+                ledgerTransactionId: testLedgerTransaction.id,
+                entryType: LedgerEntryType.CreditGrantRecognized,
+                direction: LedgerEntryDirection.Credit,
+                amount: 100,
+                status: LedgerEntryStatus.Posted,
+                livemode: true,
+                entryTimestamp: Date.now(),
+                sourceUsageCreditId: usageCredit.id,
+                claimedByBillingRunId: null,
+              },
+              {
+                ...ledgerEntryNulledSourceIdColumns,
+                metadata: {},
+                discardedAt: null,
+                organizationId: organization.id,
+                subscriptionId: subscription.id, // same subscription
+                usageMeterId: ledgerAccount.usageMeterId!,
+                ledgerAccountId: ledgerAccount.id,
+                ledgerTransactionId: testLedgerTransaction.id,
+                entryType: LedgerEntryType.CreditGrantRecognized,
+                direction: LedgerEntryDirection.Credit,
+                amount: 200,
+                status: LedgerEntryStatus.Posted,
+                livemode: true,
+                entryTimestamp: Date.now(),
+                sourceUsageCreditId: usageCredit.id,
+                claimedByBillingRunId: null,
+              },
+              {
+                ...ledgerEntryNulledSourceIdColumns,
+                metadata: {},
+                discardedAt: null,
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                usageMeterId: usageMeter.id,
+                ledgerAccountId: ledgerAccount.id,
+                ledgerTransactionId: testLedgerTransaction.id,
+                entryType: LedgerEntryType.UsageCost,
+                direction: LedgerEntryDirection.Debit,
+                amount: 300,
+                status: LedgerEntryStatus.Posted,
+                livemode: true,
+                entryTimestamp: Date.now(),
+                sourceUsageEventId: usageEvent.id,
+              },
+            ],
+            transaction
+          )
+
+          expect(entries).toHaveLength(3)
+          expect(entries[0].pricingModelId).toBe(
+            subscription.pricingModelId
+          )
+          expect(entries[1].pricingModelId).toBe(
+            subscription.pricingModelId
+          )
+          expect(entries[2].pricingModelId).toBe(
+            usageMeter.pricingModelId
+          )
+        })
+      })
+
+      it('should handle empty array', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const entries = await bulkInsertLedgerEntries(
+            [],
+            transaction
+          )
+          expect(entries).toEqual([])
+        })
+      })
+
+      it('should throw error when subscription does not exist for bulk insert', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const nonExistentSubscriptionId = `sub_${core.nanoid()}`
+
+          await expect(
+            bulkInsertLedgerEntries(
+              [
+                {
+                  ...ledgerEntryNulledSourceIdColumns,
+                  metadata: {},
+                  discardedAt: null,
+                  organizationId: organization.id,
+                  subscriptionId: nonExistentSubscriptionId,
+                  usageMeterId: ledgerAccount.usageMeterId!,
+                  ledgerAccountId: ledgerAccount.id,
+                  ledgerTransactionId: testLedgerTransaction.id,
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  direction: LedgerEntryDirection.Credit,
+                  amount: 1000,
+                  status: LedgerEntryStatus.Posted,
+                  livemode: true,
+                  entryTimestamp: Date.now(),
+                  sourceUsageCreditId: usageCredit.id,
+                  claimedByBillingRunId: null,
+                },
+              ],
+              transaction
+            )
+          ).rejects.toThrow()
+        })
       })
     })
   })
