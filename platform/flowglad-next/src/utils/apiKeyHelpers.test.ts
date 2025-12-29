@@ -239,7 +239,6 @@ describe('apiKeyHelpers', () => {
           return selectApiKeyById(secretApiKey.id, transaction)
         }
       )
-      expect(keyBeforeDelete).toBeDefined()
       expect(keyBeforeDelete.id).toBe(secretApiKey.id)
 
       // Delete the livemode API key
