@@ -330,11 +330,11 @@ describe('calculateTotalFeeAmount', () => {
   it('handles null or undefined fee percentages by throwing error for parseFloat', () => {
     const feeCalculation: FeeCalculation.Record = {
       ...coreFeeCalculation,
-      // @ts-expect-error <CHORUS_TAG>ts-expect-error</CHORUS_TAG> Intentionally pass null to verify runtime parseFloat error handling.
+      // @ts-expect-error Intentionally pass null to verify runtime parseFloat error handling.
       flowgladFeePercentage: null,
-      // @ts-expect-error <CHORUS_TAG>ts-expect-error</CHORUS_TAG> Intentionally pass null to verify runtime parseFloat error handling.
+      // @ts-expect-error Intentionally pass null to verify runtime parseFloat error handling.
       morSurchargePercentage: null,
-      // @ts-expect-error <CHORUS_TAG>ts-expect-error</CHORUS_TAG> Intentionally pass null to verify runtime parseFloat error handling.
+      // @ts-expect-error Intentionally pass null to verify runtime parseFloat error handling.
       internationalFeePercentage: null,
     }
 
