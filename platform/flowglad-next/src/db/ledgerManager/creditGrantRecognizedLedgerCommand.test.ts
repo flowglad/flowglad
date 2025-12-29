@@ -528,7 +528,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
           transaction
         )
       })
-    ).rejects.toThrow()
+    ).rejects.toThrowError('No subscriptions found with id')
 
     // Verify that no partial/rogue transactions were persisted due to the error.
     // This ensures the database transaction was properly rolled back.

@@ -1032,7 +1032,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           transaction
         )
       })
-    ).rejects.toThrow()
+    ).rejects.toThrowError('No subscriptions found with id')
     const rogueTransactions = await adminTransaction(
       async ({ transaction }) => {
         return selectLedgerTransactions(
