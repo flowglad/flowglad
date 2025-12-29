@@ -1747,7 +1747,9 @@ describe('subscriptionItemHelpers', () => {
             expect(result.usageCredits.length).toBe(2)
 
             // Verify each credit is for a different usage meter
-            const meterIds = result.usageCredits.map((c) => c.usageMeterId)
+            const meterIds = result.usageCredits.map(
+              (c) => c.usageMeterId
+            )
             expect(meterIds).toContain(usageMeter.id)
             expect(meterIds).toContain(usageMeter2.id)
 
