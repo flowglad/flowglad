@@ -2340,7 +2340,7 @@ describe('diffPricingModel', () => {
     )
   })
 
-  it('should handle identical pricing models by placing all resources in toUpdate with empty toRemove and toCreate', () => {
+  it('places all resources in toUpdate with empty toRemove and toCreate for identical pricing models', () => {
     // Setup: completely identical pricing models
     const pricingModel = createPricingModelInput({
       features: [
