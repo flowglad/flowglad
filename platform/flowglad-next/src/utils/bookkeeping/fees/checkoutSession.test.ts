@@ -198,6 +198,32 @@ describe('createCheckoutSessionFeeCalculationInsertForInvoice', () => {
         organizationCountry,
       })
 
+    // Base amount = 1000*1 = 1000
+    expect(insert.baseAmount).toBe(1000)
+    expect(insert.pretaxTotal).toBe(1000)
+    expect(insert.discountAmountFixed).toBe(0)
+    expect(insert.flowgladFeePercentage).toBe('2.5')
     expect(insert.morSurchargePercentage).toBe('1.1')
+    expect(insert.internationalFeePercentage).toBe('0')
+
+    // Payment method fee: 2.9%+30 on 1000
+    const expectedPaymentFee = Math.round(1000 * 0.029 + 30)
+    expect(insert.paymentMethodFeeFixed).toBe(expectedPaymentFee)
+
+    // MoR invoice fee calc does not calculate taxes (only MoR checkout sessions for Price do, currently)
+    expect(insert.taxAmountFixed).toBe(0)
+    expect(insert.stripeTaxCalculationId).toBeNull()
+    expect(insert.stripeTaxTransactionId).toBeNull()
+
+    expect(insert.currency).toBe(CurrencyCode.USD)
+    expect(insert.livemode).toBe(false)
+    expect(insert.organizationId).toBe(organization.id)
+    expect(insert.checkoutSessionId).toBe('sess_inv_mor')
+    expect(insert.paymentMethodType).toBe(PaymentMethodType.Card)
+    expect(insert.billingAddress).toEqual(billingAddress)
+    expect(insert.billingPeriodId).toBeNull()
+    expect(insert.priceId).toBeNull()
+    expect(insert.discountId).toBeNull()
+    expect(insert.purchaseId).toBeNull()
   })
 })
