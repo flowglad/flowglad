@@ -1599,5 +1599,1051 @@ describe('subscriptionItemHelpers', () => {
         })
       })
     })
+
+    describe('grantProratedCreditsForFeatures - deduplication by stable featureId', () => {
+      describe('basic deduplication', () => {
+        it('should NOT grant duplicate credits when subscription items are recreated (downgrade/upgrade cycle)', async () => {
+          // This tests the core fix: deduplication uses stable featureId, not ephemeral subscription_item_feature.id
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriodDate =
+              billingPeriodStartDate + 15 * oneDayInMs
+
+            // First adjustment: creates new subscription items and grants credits
+            const firstAdjustmentItems: SubscriptionItem.Insert[] = [
+              {
+                subscriptionId: subscription.id,
+                name: 'First Adjustment Item',
+                quantity: 1,
+                unitPrice: price.unitPrice,
+                priceId: price.id,
+                livemode: true,
+                addedDate: midPeriodDate,
+                type: SubscriptionItemType.Static,
+              },
+            ]
+
+            const result1 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: firstAdjustmentItems,
+              adjustmentDate: midPeriodDate,
+              transaction,
+            })
+
+            // Verify first adjustment granted credits
+            expect(result1.usageCredits.length).toBe(1)
+            const firstCreditAmount =
+              result1.usageCredits[0].issuedAmount
+            expect(firstCreditAmount).toBeGreaterThan(0)
+
+            // Get the subscription_item_feature.id from first adjustment
+            const firstSubItemFeatureId =
+              result1.usageCredits[0].sourceReferenceId
+
+            // Second adjustment: creates NEW subscription items (different IDs) for same product
+            // This simulates a downgrade/upgrade cycle where items are recreated
+            const secondAdjustmentItems: SubscriptionItem.Insert[] = [
+              {
+                subscriptionId: subscription.id,
+                name: 'Second Adjustment Item',
+                quantity: 1,
+                unitPrice: price.unitPrice,
+                priceId: price.id,
+                livemode: true,
+                addedDate: midPeriodDate + 1000, // slightly later
+                type: SubscriptionItemType.Static,
+              },
+            ]
+
+            const result2 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: secondAdjustmentItems,
+              adjustmentDate: midPeriodDate + 1000,
+              transaction,
+            })
+
+            // KEY ASSERTION: Second adjustment should NOT grant additional credits
+            // because we already have credits for this featureId in this billing period
+            expect(result2.usageCredits.length).toBe(0)
+
+            // Verify the second adjustment created different subscription_item_feature IDs
+            expect(result2.createdFeatures.length).toBeGreaterThan(0)
+            const secondSubItemFeatureId =
+              result2.createdFeatures.find(
+                (f) => f.featureId === feature.id
+              )?.id
+            expect(secondSubItemFeatureId).toBeDefined()
+            expect(secondSubItemFeatureId).not.toBe(
+              firstSubItemFeatureId
+            )
+
+            // Verify total credits in the database: should be exactly 1 (from first adjustment)
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.ManualAdjustment,
+              },
+              transaction
+            )
+            expect(allCredits.length).toBe(1)
+            expect(allCredits[0].issuedAmount).toBe(firstCreditAmount)
+          })
+        })
+
+        it('should grant credits for DIFFERENT features in the same billing period', async () => {
+          // Create a second feature with a different usageMeterId
+          const usageMeter2 = await setupUsageMeter({
+            organizationId: orgData.organization.id,
+            name: 'Second Usage Meter',
+            livemode: true,
+            pricingModelId: orgData.pricingModel.id,
+          })
+
+          const feature2 = await setupUsageCreditGrantFeature({
+            organizationId: orgData.organization.id,
+            name: 'Second Credit Feature',
+            usageMeterId: usageMeter2.id,
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+            livemode: true,
+            amount: 200,
+            pricingModelId: orgData.pricingModel.id,
+          })
+
+          // Create a second product with the second feature
+          const product2 = await setupProduct({
+            organizationId: orgData.organization.id,
+            name: 'Test Product 2',
+            livemode: true,
+            pricingModelId: orgData.pricingModel.id,
+          })
+
+          await setupProductFeature({
+            organizationId: orgData.organization.id,
+            productId: product2.id,
+            featureId: feature2.id,
+          })
+
+          const price2 = await setupPrice({
+            productId: product2.id,
+            name: 'Test Price 2',
+            type: PriceType.Subscription,
+            unitPrice: 2000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+          })
+
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriodDate =
+              billingPeriodStartDate + 15 * oneDayInMs
+
+            // First adjustment: Add feature A
+            const firstAdjustmentItems: SubscriptionItem.Insert[] = [
+              {
+                subscriptionId: subscription.id,
+                name: 'Item With Feature A',
+                quantity: 1,
+                unitPrice: price.unitPrice,
+                priceId: price.id,
+                livemode: true,
+                addedDate: midPeriodDate,
+                type: SubscriptionItemType.Static,
+              },
+            ]
+
+            const result1 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: firstAdjustmentItems,
+              adjustmentDate: midPeriodDate,
+              transaction,
+            })
+
+            expect(result1.usageCredits.length).toBe(1)
+
+            // Second adjustment: Add feature B (different feature)
+            const secondAdjustmentItems: SubscriptionItem.Insert[] = [
+              {
+                subscriptionId: subscription.id,
+                name: 'Item With Feature B',
+                quantity: 1,
+                unitPrice: price2.unitPrice,
+                priceId: price2.id,
+                livemode: true,
+                addedDate: midPeriodDate + 1000,
+                type: SubscriptionItemType.Static,
+              },
+            ]
+
+            const result2 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: secondAdjustmentItems,
+              adjustmentDate: midPeriodDate + 1000,
+              transaction,
+            })
+
+            // KEY ASSERTION: Second adjustment SHOULD grant credits
+            // because feature B is different from feature A
+            expect(result2.usageCredits.length).toBe(1)
+
+            // Verify we have 2 credits total (one for each feature)
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.ManualAdjustment,
+              },
+              transaction
+            )
+            expect(allCredits.length).toBe(2)
+
+            // Verify each credit is for a different usage meter
+            const meterIds = allCredits.map((c) => c.usageMeterId)
+            expect(meterIds).toContain(usageMeter.id)
+            expect(meterIds).toContain(usageMeter2.id)
+          })
+        })
+
+        it('should NOT grant credits when feature already has credits from earlier adjustment (same featureId, different subscription_item_feature.id)', async () => {
+          // This explicitly tests that deduplication uses featureId, not subscription_item_feature.id
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriodDate =
+              billingPeriodStartDate + 15 * oneDayInMs
+
+            // First adjustment creates sub_feature_AAA
+            const firstAdjustmentItems: SubscriptionItem.Insert[] = [
+              {
+                subscriptionId: subscription.id,
+                name: 'Adjustment 1',
+                quantity: 1,
+                unitPrice: price.unitPrice,
+                priceId: price.id,
+                livemode: true,
+                addedDate: midPeriodDate,
+                type: SubscriptionItemType.Static,
+              },
+            ]
+
+            const result1 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: firstAdjustmentItems,
+              adjustmentDate: midPeriodDate,
+              transaction,
+            })
+
+            expect(result1.usageCredits.length).toBe(1)
+            const originalCredit = result1.usageCredits[0]
+            const originalSourceRefId =
+              originalCredit.sourceReferenceId
+
+            // Verify the original credit is linked to a subscription_item_feature
+            expect(originalSourceRefId).toBeDefined()
+
+            // Second adjustment creates sub_feature_BBB (different ID)
+            const secondAdjustmentItems: SubscriptionItem.Insert[] = [
+              {
+                subscriptionId: subscription.id,
+                name: 'Adjustment 2',
+                quantity: 1,
+                unitPrice: price.unitPrice,
+                priceId: price.id,
+                livemode: true,
+                addedDate: midPeriodDate + 1000,
+                type: SubscriptionItemType.Static,
+              },
+            ]
+
+            const result2 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: secondAdjustmentItems,
+              adjustmentDate: midPeriodDate + 1000,
+              transaction,
+            })
+
+            // No new credits should be created
+            expect(result2.usageCredits.length).toBe(0)
+
+            // Verify new subscription_item_feature was created with different ID
+            const newFeature = result2.createdFeatures.find(
+              (f) => f.featureId === feature.id
+            )
+            expect(newFeature).toBeDefined()
+            expect(newFeature!.id).not.toBe(originalSourceRefId)
+
+            // Verify the only credit still references the original subscription_item_feature
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.ManualAdjustment,
+              },
+              transaction
+            )
+            expect(allCredits.length).toBe(1)
+            expect(allCredits[0].sourceReferenceId).toBe(
+              originalSourceRefId
+            )
+          })
+        })
+      })
+
+      describe('multiple adjustments within the same billing period', () => {
+        it('should prevent credit grants on 3 consecutive adjustments (simulating rapid exploit attempt)', async () => {
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriodDate =
+              billingPeriodStartDate + 15 * oneDayInMs
+
+            // Adjustment 1: Downgrade (new subscription items, credits granted)
+            const adjustment1Items: SubscriptionItem.Insert[] = [
+              {
+                subscriptionId: subscription.id,
+                name: 'Downgrade Item',
+                quantity: 1,
+                unitPrice: price.unitPrice,
+                priceId: price.id,
+                livemode: true,
+                addedDate: midPeriodDate,
+                type: SubscriptionItemType.Static,
+              },
+            ]
+
+            const result1 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: adjustment1Items,
+              adjustmentDate: midPeriodDate,
+              transaction,
+            })
+
+            expect(result1.usageCredits.length).toBe(1)
+            const firstCreditAmount =
+              result1.usageCredits[0].issuedAmount
+            // At 50% through the period, expect ~50 credits (100 * 0.5)
+            expect(firstCreditAmount).toBe(50)
+
+            // Adjustment 2: Upgrade back (new subscription items again)
+            const adjustment2Items: SubscriptionItem.Insert[] = [
+              {
+                subscriptionId: subscription.id,
+                name: 'Upgrade Item',
+                quantity: 1,
+                unitPrice: price.unitPrice,
+                priceId: price.id,
+                livemode: true,
+                addedDate: midPeriodDate + 1000,
+                type: SubscriptionItemType.Static,
+              },
+            ]
+
+            const result2 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: adjustment2Items,
+              adjustmentDate: midPeriodDate + 1000,
+              transaction,
+            })
+
+            expect(result2.usageCredits.length).toBe(0) // Deduplicated!
+
+            // Adjustment 3: Downgrade again (yet more new subscription items)
+            const adjustment3Items: SubscriptionItem.Insert[] = [
+              {
+                subscriptionId: subscription.id,
+                name: 'Downgrade Again Item',
+                quantity: 1,
+                unitPrice: price.unitPrice,
+                priceId: price.id,
+                livemode: true,
+                addedDate: midPeriodDate + 2000,
+                type: SubscriptionItemType.Static,
+              },
+            ]
+
+            const result3 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: adjustment3Items,
+              adjustmentDate: midPeriodDate + 2000,
+              transaction,
+            })
+
+            expect(result3.usageCredits.length).toBe(0) // Deduplicated!
+
+            // Verify total: only 1 credit exists for this feature/billing period
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.ManualAdjustment,
+              },
+              transaction
+            )
+            expect(allCredits.length).toBe(1)
+            expect(allCredits[0].issuedAmount).toBe(50)
+          })
+        })
+
+        it('should prevent credit grants on 5 consecutive adjustments within minutes', async () => {
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriodDate =
+              billingPeriodStartDate + 15 * oneDayInMs
+
+            const subItemFeatureIds: string[] = []
+
+            for (let i = 0; i < 5; i++) {
+              const adjustmentItems: SubscriptionItem.Insert[] = [
+                {
+                  subscriptionId: subscription.id,
+                  name: `Adjustment ${i + 1}`,
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate + i * 1000,
+                  type: SubscriptionItemType.Static,
+                },
+              ]
+
+              const result = await handleSubscriptionItemAdjustment({
+                subscriptionId: subscription.id,
+                newSubscriptionItems: adjustmentItems,
+                adjustmentDate: midPeriodDate + i * 1000,
+                transaction,
+              })
+
+              // Only first adjustment should grant credits
+              if (i === 0) {
+                expect(result.usageCredits.length).toBe(1)
+              } else {
+                expect(result.usageCredits.length).toBe(0)
+              }
+
+              // Track subscription_item_feature IDs to verify they're all different
+              const featureRecord = result.createdFeatures.find(
+                (f) => f.featureId === feature.id
+              )
+              if (featureRecord) {
+                subItemFeatureIds.push(featureRecord.id)
+              }
+            }
+
+            // Verify all 5 adjustments created different subscription_item_feature IDs
+            expect(subItemFeatureIds.length).toBe(5)
+            const uniqueIds = new Set(subItemFeatureIds)
+            expect(uniqueIds.size).toBe(5) // All different
+
+            // Verify only 1 credit exists
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.ManualAdjustment,
+              },
+              transaction
+            )
+            expect(allCredits.length).toBe(1)
+            // Only the first subscription_item_feature should appear in credits
+            expect(allCredits[0].sourceReferenceId).toBe(
+              subItemFeatureIds[0]
+            )
+          })
+        })
+
+        it('should track which subscription_item_feature.id granted the credit (first adjustment wins)', async () => {
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriodDate =
+              billingPeriodStartDate + 15 * oneDayInMs
+
+            // First adjustment creates sub_feature_AAA
+            const result1 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'First',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriodDate,
+              transaction,
+            })
+
+            const firstSubFeatureId = result1.createdFeatures.find(
+              (f) => f.featureId === feature.id
+            )!.id
+
+            // Second adjustment creates sub_feature_BBB
+            const result2 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Second',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate + 1000,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriodDate + 1000,
+              transaction,
+            })
+
+            const secondSubFeatureId = result2.createdFeatures.find(
+              (f) => f.featureId === feature.id
+            )!.id
+
+            // Third adjustment creates sub_feature_CCC
+            const result3 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Third',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate + 2000,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriodDate + 2000,
+              transaction,
+            })
+
+            const thirdSubFeatureId = result3.createdFeatures.find(
+              (f) => f.featureId === feature.id
+            )!.id
+
+            // Verify all three subscription_item_feature IDs are different
+            expect(firstSubFeatureId).not.toBe(secondSubFeatureId)
+            expect(secondSubFeatureId).not.toBe(thirdSubFeatureId)
+            expect(firstSubFeatureId).not.toBe(thirdSubFeatureId)
+
+            // The single credit record should reference the FIRST subscription_item_feature
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.ManualAdjustment,
+              },
+              transaction
+            )
+            expect(allCredits.length).toBe(1)
+            expect(allCredits[0].sourceReferenceId).toBe(
+              firstSubFeatureId
+            )
+          })
+        })
+
+        it('should correctly prorate credits based on first adjustment time, not subsequent adjustments', async () => {
+          await adminTransaction(async ({ transaction }) => {
+            // Day 10 of 30-day period = 66.7% remaining
+            const day10 = billingPeriodStartDate + 10 * oneDayInMs
+            // Day 20 of 30-day period = 33.3% remaining
+            const day20 = billingPeriodStartDate + 20 * oneDayInMs
+            // Day 25 of 30-day period = 16.7% remaining
+            const day25 = billingPeriodStartDate + 25 * oneDayInMs
+
+            // First adjustment at day 10 should grant ~67 credits (100 * 0.667)
+            const result1 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Day 10 Adjustment',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: day10,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: day10,
+              transaction,
+            })
+
+            expect(result1.usageCredits.length).toBe(1)
+            const firstCreditAmount =
+              result1.usageCredits[0].issuedAmount
+            // Approximately 67 credits (100 * 0.667, rounded)
+            expect(firstCreditAmount).toBeGreaterThan(60)
+            expect(firstCreditAmount).toBeLessThan(70)
+
+            // Second adjustment at day 20 (would be ~33 credits if granted)
+            const result2 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Day 20 Adjustment',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: day20,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: day20,
+              transaction,
+            })
+
+            expect(result2.usageCredits.length).toBe(0) // Deduplicated
+
+            // Third adjustment at day 25 (would be ~17 credits if granted)
+            const result3 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Day 25 Adjustment',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: day25,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: day25,
+              transaction,
+            })
+
+            expect(result3.usageCredits.length).toBe(0) // Deduplicated
+
+            // Verify only 1 credit exists with the day-10 prorated amount
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.ManualAdjustment,
+              },
+              transaction
+            )
+            expect(allCredits.length).toBe(1)
+            expect(allCredits[0].issuedAmount).toBe(firstCreditAmount)
+            // The credit amount was NOT reduced by later adjustments
+          })
+        })
+      })
+
+      describe('cross-period behavior', () => {
+        it('should grant new credits in a new billing period (fresh period = fresh credits)', async () => {
+          // Create a second billing period
+          const period2StartDate = billingPeriodEndDate
+          const period2EndDate = period2StartDate + 30 * oneDayInMs
+
+          const billingPeriod2 = await setupBillingPeriod({
+            subscriptionId: subscription.id,
+            startDate: period2StartDate,
+            endDate: period2EndDate,
+            status: BillingPeriodStatus.Active,
+          })
+
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriod1 =
+              billingPeriodStartDate + 15 * oneDayInMs
+            const midPeriod2 = period2StartDate + 15 * oneDayInMs
+
+            // Grant credits in billing period 1
+            const result1 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Period 1 Item',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriod1,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriod1,
+              transaction,
+            })
+
+            expect(result1.usageCredits.length).toBe(1)
+
+            // Advance to billing period 2 and adjust again
+            const result2 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Period 2 Item',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriod2,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriod2,
+              transaction,
+            })
+
+            // KEY ASSERTION: Period 2 SHOULD grant new credits
+            expect(result2.usageCredits.length).toBe(1)
+
+            // Verify credits exist in BOTH billing periods
+            const period1Credits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.ManualAdjustment,
+              },
+              transaction
+            )
+            expect(period1Credits.length).toBe(1)
+
+            const period2Credits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod2.id,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.ManualAdjustment,
+              },
+              transaction
+            )
+            expect(period2Credits.length).toBe(1)
+          })
+        })
+
+        it('should allow credits in period 2 even after multiple adjustments blocked credits in period 1', async () => {
+          // Create a second billing period
+          const period2StartDate = billingPeriodEndDate
+          const period2EndDate = period2StartDate + 30 * oneDayInMs
+
+          const billingPeriod2 = await setupBillingPeriod({
+            subscriptionId: subscription.id,
+            startDate: period2StartDate,
+            endDate: period2EndDate,
+            status: BillingPeriodStatus.Active,
+          })
+
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriod1 =
+              billingPeriodStartDate + 15 * oneDayInMs
+
+            // 3 adjustments in period 1 (only first grants credits)
+            for (let i = 0; i < 3; i++) {
+              const result = await handleSubscriptionItemAdjustment({
+                subscriptionId: subscription.id,
+                newSubscriptionItems: [
+                  {
+                    subscriptionId: subscription.id,
+                    name: `Period 1 Adjustment ${i + 1}`,
+                    quantity: 1,
+                    unitPrice: price.unitPrice,
+                    priceId: price.id,
+                    livemode: true,
+                    addedDate: midPeriod1 + i * 1000,
+                    type: SubscriptionItemType.Static,
+                  },
+                ],
+                adjustmentDate: midPeriod1 + i * 1000,
+                transaction,
+              })
+
+              if (i === 0) {
+                expect(result.usageCredits.length).toBe(1)
+              } else {
+                expect(result.usageCredits.length).toBe(0)
+              }
+            }
+
+            // Period 1 should have exactly 1 credit
+            const period1Credits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.ManualAdjustment,
+              },
+              transaction
+            )
+            expect(period1Credits.length).toBe(1)
+
+            // First adjustment in period 2 should grant credits
+            const midPeriod2 = period2StartDate + 15 * oneDayInMs
+            const result = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Period 2 First Adjustment',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriod2,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriod2,
+              transaction,
+            })
+
+            expect(result.usageCredits.length).toBe(1)
+
+            // Period 2 should also have exactly 1 credit
+            const period2Credits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod2.id,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.ManualAdjustment,
+              },
+              transaction
+            )
+            expect(period2Credits.length).toBe(1)
+
+            // Total across both periods: 2 credits
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.ManualAdjustment,
+              },
+              transaction
+            )
+            expect(allCredits.length).toBe(2)
+          })
+        })
+      })
+
+      describe('feature type handling', () => {
+        it('should work correctly with Once frequency features across multiple adjustments', async () => {
+          // Create a Once frequency feature
+          const onceFeature = await setupUsageCreditGrantFeature({
+            organizationId: orgData.organization.id,
+            name: 'Once Credit Grant Feature',
+            pricingModelId: orgData.pricingModel.id,
+            livemode: true,
+            amount: 500,
+            renewalFrequency: FeatureUsageGrantFrequency.Once,
+            usageMeterId: usageMeter.id,
+          })
+
+          await setupProductFeature({
+            organizationId: orgData.organization.id,
+            productId: product.id,
+            featureId: onceFeature.id,
+          })
+
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriodDate =
+              billingPeriodStartDate + 15 * oneDayInMs
+
+            // First adjustment: grants full 500 credits (Once = no proration)
+            const result1 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'First With Once',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriodDate,
+              transaction,
+            })
+
+            // Should have 2 credits: one for EveryBillingPeriod, one for Once
+            const onceCredits = result1.usageCredits.filter(
+              (c) => c.issuedAmount === 500
+            )
+            expect(onceCredits.length).toBe(1)
+            expect(onceCredits[0].expiresAt).toBeNull() // Once credits don't expire
+
+            // Second adjustment
+            const result2 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Second With Once',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate + 1000,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriodDate + 1000,
+              transaction,
+            })
+
+            // No new Once credits should be granted
+            const newOnceCredits = result2.usageCredits.filter(
+              (c) => c.issuedAmount === 500
+            )
+            expect(newOnceCredits.length).toBe(0)
+
+            // Third adjustment
+            const result3 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Third With Once',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate + 2000,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriodDate + 2000,
+              transaction,
+            })
+
+            // Still no new Once credits
+            expect(
+              result3.usageCredits.filter(
+                (c) => c.issuedAmount === 500
+              ).length
+            ).toBe(0)
+
+            // Verify only 1 Once credit exists total
+            const allOnceCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+              },
+              transaction
+            )
+            const finalOnceCredits = allOnceCredits.filter(
+              (c) => c.issuedAmount === 500
+            )
+            expect(finalOnceCredits.length).toBe(1)
+            expect(finalOnceCredits[0].expiresAt).toBeNull()
+          })
+        })
+
+        it('should handle mix of Once and EveryBillingPeriod features in same subscription', async () => {
+          // Create a Once frequency feature
+          const onceFeature = await setupUsageCreditGrantFeature({
+            organizationId: orgData.organization.id,
+            name: 'Once Feature',
+            pricingModelId: orgData.pricingModel.id,
+            livemode: true,
+            amount: 500,
+            renewalFrequency: FeatureUsageGrantFrequency.Once,
+            usageMeterId: usageMeter.id,
+          })
+
+          await setupProductFeature({
+            organizationId: orgData.organization.id,
+            productId: product.id,
+            featureId: onceFeature.id,
+          })
+
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriodDate =
+              billingPeriodStartDate + 15 * oneDayInMs
+
+            // First adjustment: grants both Once (500) and EveryBillingPeriod (50 prorated)
+            const result1 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Item With Both',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriodDate,
+              transaction,
+            })
+
+            // Should have 2 credits (one for each feature type)
+            expect(result1.usageCredits.length).toBe(2)
+
+            const onceCredit = result1.usageCredits.find(
+              (c) => c.issuedAmount === 500
+            )
+            const everyBillingPeriodCredit =
+              result1.usageCredits.find((c) => c.issuedAmount === 50)
+
+            expect(onceCredit).toBeDefined()
+            expect(everyBillingPeriodCredit).toBeDefined()
+
+            // Once credit has no expiry
+            expect(onceCredit!.expiresAt).toBeNull()
+            // EveryBillingPeriod credit expires at period end
+            expect(everyBillingPeriodCredit!.expiresAt).toBe(
+              billingPeriod.endDate
+            )
+
+            // Second adjustment: no new credits for either feature
+            const result2 = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Item 2 With Both',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate + 1000,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriodDate + 1000,
+              transaction,
+            })
+
+            expect(result2.usageCredits.length).toBe(0)
+
+            // Total: 2 credits (1 Once, 1 EveryBillingPeriod)
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.ManualAdjustment,
+              },
+              transaction
+            )
+            expect(allCredits.length).toBe(2)
+          })
+        })
+      })
+    })
   })
 })
