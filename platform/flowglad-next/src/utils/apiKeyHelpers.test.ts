@@ -395,6 +395,54 @@ describe('apiKeyHelpers', () => {
         })
       ).rejects.toThrow()
     })
+
+    it('should NOT delete the database record if Unkey deletion fails', async () => {
+      // Create a livemode API key WITH a fake unkeyId
+      // When we try to delete, Unkey will fail because this ID doesn't exist in Unkey
+      const apiKeyWithUnkeyId = await adminTransaction(
+        async ({ transaction }) => {
+          return insertApiKey(
+            {
+              organizationId: organization.id,
+              name: 'API Key With Fake Unkey ID',
+              token: `live_sk_unkey_${core.nanoid()}`,
+              type: FlowgladApiKeyType.Secret,
+              active: true,
+              livemode: true,
+              unkeyId: `fake_unkey_id_${core.nanoid()}`, // Fake Unkey ID that will fail
+              hashText: `hash_${core.nanoid()}`,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Attempt to delete should fail because Unkey deletion will fail
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await deleteSecretApiKeyTransaction(
+            { id: apiKeyWithUnkeyId.id },
+            {
+              transaction,
+              userId,
+              livemode: true,
+              organizationId: organization.id,
+            }
+          )
+        })
+      ).rejects.toThrow('Failed to delete API key from Unkey')
+
+      // Verify the key STILL EXISTS in the database (deletion was aborted)
+      const keyAfterFailedDelete = await adminTransaction(
+        async ({ transaction }) => {
+          return selectApiKeyById(apiKeyWithUnkeyId.id, transaction)
+        }
+      )
+      expect(keyAfterFailedDelete.id).toBe(apiKeyWithUnkeyId.id)
+      expect(keyAfterFailedDelete.name).toBe(
+        'API Key With Fake Unkey ID'
+      )
+    })
   })
 
   // it('should return null if no customer is found', async () => {

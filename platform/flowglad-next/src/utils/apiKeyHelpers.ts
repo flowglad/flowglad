@@ -126,6 +126,8 @@ export const deleteSecretApiKeyTransaction = async (
     )
   }
 
+  // Delete from Unkey first - if this fails, we abort the entire operation
+  // to prevent orphaned keys that could still authenticate via Unkey
   if (apiKey.unkeyId) {
     try {
       await deleteApiKeyFromUnkey(apiKey.unkeyId)
@@ -137,6 +139,9 @@ export const deleteSecretApiKeyTransaction = async (
         apiKeyId: apiKey.id,
         userId,
       })
+      throw new Error(
+        `Failed to delete API key from Unkey. Database deletion aborted to prevent orphaned key. unkeyId: ${apiKey.unkeyId}`
+      )
     }
   }
 
