@@ -1,7 +1,6 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import type { UsageEventProcessedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
-import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import {
   type CreateUsageEventInput,
   type UsageEvent,
@@ -298,75 +297,6 @@ export const resolveUsageEventInput = async (
       usageMeterId,
     },
   }
-}
-
-/**
- * Determines whether a usage event should generate a ledger command.
- * For CountDistinctProperties meters, only processes events with unique property combinations
- * within the same billing period. For all other aggregation types, always returns true.
- *
- * @param params - Object containing:
- *   - usageEvent: The usage event to check
- *   - usageMeterAggregationType: The aggregation type of the usage meter
- *   - billingPeriod: The billing period (required for CountDistinctProperties)
- * @param transaction - Database transaction
- * @returns true if the event should generate a ledger command, false otherwise
- * @throws TRPCError if billing period is required but not provided for CountDistinctProperties meters
- */
-export const shouldProcessUsageEventLedgerCommand = async (
-  params: {
-    usageEvent: UsageEvent.Record
-    usageMeterAggregationType: UsageMeterAggregationType
-    billingPeriod: BillingPeriod.Record | null
-  },
-  transaction: DbTransaction
-): Promise<boolean> => {
-  const { usageEvent, usageMeterAggregationType, billingPeriod } =
-    params
-
-  // For non-CountDistinctProperties meters, always process
-  if (
-    usageMeterAggregationType !==
-    UsageMeterAggregationType.CountDistinctProperties
-  ) {
-    return true
-  }
-
-  // CountDistinctProperties requires a billing period for deduplication
-  if (!billingPeriod) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: `Billing period is required for usage meter of type "count_distinct_properties".`,
-    })
-  }
-
-  // Fetch all events in the same billing period for this usage meter
-  const eventsInPeriod = await selectUsageEvents(
-    {
-      usageMeterId: usageEvent.usageMeterId,
-      billingPeriodId: billingPeriod.id,
-    },
-    transaction
-  )
-
-  // Create a set of event IDs to exclude from duplicate checking (exclude the current event)
-  const excludeSet = new Set([usageEvent.id])
-  const currentEventPropertiesKey =
-    stableStringifyUsageEventProperties(usageEvent.properties)
-
-  // Check if any existing event has the same properties (using stable stringification)
-  const existingUsageEvent = eventsInPeriod.find((event) => {
-    if (excludeSet.has(event.id)) {
-      return false
-    }
-    const eventPropertiesKey = stableStringifyUsageEventProperties(
-      event.properties
-    )
-    return eventPropertiesKey === currentEventPropertiesKey
-  })
-
-  // Only process if no duplicate exists
-  return !existingUsageEvent
 }
 
 /**
@@ -789,17 +719,47 @@ export const ingestAndProcessUsageEvent = async (
     transaction
   )
 
-  const shouldProcess = await shouldProcessUsageEventLedgerCommand(
-    {
-      usageEvent,
-      usageMeterAggregationType: usageMeter.aggregationType,
-      billingPeriod,
-    },
-    transaction
-  )
+  // For CountDistinctProperties meters, check for duplicates in the same billing period
+  if (
+    usageMeter.aggregationType ===
+    UsageMeterAggregationType.CountDistinctProperties
+  ) {
+    if (!billingPeriod) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Billing period is required for usage meter of type "count_distinct_properties".`,
+      })
+    }
 
-  if (!shouldProcess) {
-    return { result: { usageEvent } }
+    // Fetch all events in the same billing period for this usage meter
+    const eventsInPeriod = await selectUsageEvents(
+      {
+        usageMeterId: usageEvent.usageMeterId,
+        billingPeriodId: billingPeriod.id,
+      },
+      transaction
+    )
+
+    // Create a set of event IDs to exclude from duplicate checking (exclude the current event)
+    const excludeSet = new Set([usageEvent.id])
+    const currentEventPropertiesKey =
+      stableStringifyUsageEventProperties(usageEvent.properties)
+
+    // Check if any existing event has the same properties (using stable stringification)
+    const existingUsageEvent = eventsInPeriod.find((event) => {
+      if (excludeSet.has(event.id)) {
+        return false
+      }
+      const eventPropertiesKey = stableStringifyUsageEventProperties(
+        event.properties
+      )
+      return eventPropertiesKey === currentEventPropertiesKey
+    })
+
+    // Only process if no duplicate exists
+    if (existingUsageEvent) {
+      return { result: { usageEvent } }
+    }
   }
 
   return {
