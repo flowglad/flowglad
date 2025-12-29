@@ -31,6 +31,7 @@ import {
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
+  NotFoundError,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
@@ -74,16 +75,9 @@ export const derivePricingModelIdForInvoice = async (
         transaction
       )
     } catch (error) {
-      // Only fall through when the subscription exists but lacks a pricingModelId.
-      // If the subscription doesn't exist (NotFoundError), that's a data integrity issue
-      // that will cause an FK violation on insert anyway - fail fast with a clear error.
-      if (
-        error instanceof Error &&
-        error.message.includes('does not have a pricingModelId')
-      ) {
-        // Fall through to try purchase or customer
-      } else {
-        // Subscription doesn't exist or some other error occurred - re-throw
+      // If subscription doesn't exist (NotFoundError), fail immediately.
+      // Fall through to purchase otherwise.
+      if (error instanceof NotFoundError) {
         throw error
       }
     }
@@ -97,16 +91,9 @@ export const derivePricingModelIdForInvoice = async (
         transaction
       )
     } catch (error) {
-      // Only fall through when the purchase exists but lacks a pricingModelId.
-      // If the purchase doesn't exist (NotFoundError), that's a data integrity issue
-      // that will cause an FK violation on insert anyway - fail fast with a clear error.
-      if (
-        error instanceof Error &&
-        error.message.includes('does not have a pricingModelId')
-      ) {
-        // Fall through to customer
-      } else {
-        // Purchase doesn't exist or some other error occurred - re-throw
+      // If purchase doesn't exist (NotFoundError), fail immediately.
+      // Fall through to customer otherwise.
+      if (error instanceof NotFoundError) {
         throw error
       }
     }

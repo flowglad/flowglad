@@ -61,12 +61,7 @@ export const safelyInsertBillingRun = async (
       'Cannot create billing run for doNotCharge subscription'
     )
   }
-  const pricingModelId =
-    insert.pricingModelId ??
-    (await derivePricingModelIdFromSubscription(
-      insert.subscriptionId,
-      transaction
-    ))
+  const pricingModelId = subscription.pricingModelId
   return dangerouslyInsertBillingRun(
     {
       ...insert,

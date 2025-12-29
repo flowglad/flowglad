@@ -12,6 +12,7 @@ import {
   createSelectById,
   createSelectFunction,
   createUpdateFunction,
+  NotFoundError,
   type ORMMethodCreatorConfig,
   whereClauseFromObject,
 } from '@/db/tableUtils'
@@ -82,14 +83,9 @@ export const derivePricingModelIdForLedgerEntry = async (
         transaction
       )
     } catch (error) {
-      // Only fall through when the subscription exists but lacks a pricingModelId.
-      if (
-        error instanceof Error &&
-        error.message.includes('does not have a pricingModelId')
-      ) {
-        // fall through to usage meter if provided
-      } else {
-        // subscription is missing or some other error occurred – rethrow
+      // If subscription doesn't exist (NotFoundError), fail immediately.
+      // Fall through to usage meter otherwise.
+      if (error instanceof NotFoundError) {
         throw error
       }
     }
@@ -103,7 +99,8 @@ export const derivePricingModelIdForLedgerEntry = async (
         transaction
       )
     } catch (error) {
-      // For usage meters we don't have another fallback – surface the real error.
+      // For usage meters we don't have another fallback – always throw
+      // (whether it's NotFoundError, missing pricingModelId, or other error)
       throw error
     }
   }
