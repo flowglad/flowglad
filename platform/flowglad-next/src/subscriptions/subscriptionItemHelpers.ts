@@ -12,7 +12,7 @@ import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import {
   type UsageCredit,
-  usageCredits,
+  usageCredits as usageCreditsTable,
 } from '@/db/schema/usageCredits'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import { findOrCreateLedgerAccountsForSubscriptionAndUsageMeters } from '@/db/tableMethods/ledgerAccountMethods'
@@ -161,27 +161,33 @@ const grantProratedCreditsForFeatures = async (params: {
   // Query existing credits by joining with subscription_item_features to check stable featureId
   const existingCreditsWithFeatures = await transaction
     .select({
-      usageCredit: usageCredits,
+      usageCredit: usageCreditsTable,
       subscriptionItemFeature: subscriptionItemFeatures,
     })
-    .from(usageCredits)
+    .from(usageCreditsTable)
     .innerJoin(
       subscriptionItemFeatures,
-      eq(usageCredits.sourceReferenceId, subscriptionItemFeatures.id)
+      eq(
+        usageCreditsTable.sourceReferenceId,
+        subscriptionItemFeatures.id
+      )
     )
     .where(
       and(
-        eq(usageCredits.subscriptionId, subscription.id),
-        eq(usageCredits.billingPeriodId, currentBillingPeriod.id),
+        eq(usageCreditsTable.subscriptionId, subscription.id),
         eq(
-          usageCredits.sourceReferenceType,
+          usageCreditsTable.billingPeriodId,
+          currentBillingPeriod.id
+        ),
+        eq(
+          usageCreditsTable.sourceReferenceType,
           UsageCreditSourceReferenceType.ManualAdjustment
         ),
         inArray(subscriptionItemFeatures.featureId, stableFeatureIds),
         ...(creditGrantUsageMeterIds.length > 0
           ? [
               inArray(
-                usageCredits.usageMeterId,
+                usageCreditsTable.usageMeterId,
                 creditGrantUsageMeterIds
               ),
             ]
