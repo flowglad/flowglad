@@ -82,7 +82,16 @@ export const derivePricingModelIdForLedgerEntry = async (
         transaction
       )
     } catch (error) {
-      // If subscription doesn't have pricingModelId, fall through to usage meter
+      // Only fall through when the subscription exists but lacks a pricingModelId.
+      if (
+        error instanceof Error &&
+        error.message.includes('does not have a pricingModelId')
+      ) {
+        // fall through to usage meter if provided
+      } else {
+        // subscription is missing or some other error occurred – rethrow
+        throw error
+      }
     }
   }
 
@@ -94,7 +103,8 @@ export const derivePricingModelIdForLedgerEntry = async (
         transaction
       )
     } catch (error) {
-      // If usage meter doesn't have pricingModelId, throw error
+      // For usage meters we don't have another fallback – surface the real error.
+      throw error
     }
   }
 
@@ -181,35 +191,45 @@ export const bulkInsertLedgerEntries = async (
         return ledgerEntryInsert
       }
 
-      // Try subscription first
-      const subscriptionPricingModelId =
-        ledgerEntryInsert.subscriptionId
-          ? subscriptionPricingModelIdMap.get(
-              ledgerEntryInsert.subscriptionId
-            )
-          : undefined
+      // If we have a subscriptionId, we expect it to resolve in the batch map.
+      if (ledgerEntryInsert.subscriptionId) {
+        const subscriptionPricingModelId =
+          subscriptionPricingModelIdMap.get(
+            ledgerEntryInsert.subscriptionId
+          )
 
-      if (subscriptionPricingModelId) {
+        if (!subscriptionPricingModelId) {
+          throw new Error(
+            `Cannot derive pricingModelId: subscription ${ledgerEntryInsert.subscriptionId} not found or missing pricingModelId`
+          )
+        }
+
         return {
           ...ledgerEntryInsert,
           pricingModelId: subscriptionPricingModelId,
         }
       }
 
-      // Try usage meter second
-      const usageMeterPricingModelId = ledgerEntryInsert.usageMeterId
-        ? usageMeterPricingModelIdMap.get(
+      // Otherwise fall back to usage meter if provided.
+      if (ledgerEntryInsert.usageMeterId) {
+        const usageMeterPricingModelId =
+          usageMeterPricingModelIdMap.get(
             ledgerEntryInsert.usageMeterId
           )
-        : undefined
 
-      if (usageMeterPricingModelId) {
+        if (!usageMeterPricingModelId) {
+          throw new Error(
+            `Cannot derive pricingModelId: usage meter ${ledgerEntryInsert.usageMeterId} not found or missing pricingModelId`
+          )
+        }
+
         return {
           ...ledgerEntryInsert,
           pricingModelId: usageMeterPricingModelId,
         }
       }
 
+      // No subscriptionId and no usageMeterId – nothing to derive from.
       throw new Error(
         'Cannot derive pricingModelId: subscriptionId and usageMeterId are both null or missing pricingModelId'
       )
