@@ -1442,116 +1442,111 @@ describe('usageEventHelpers', () => {
       })
     })
 
-    it('should skip ledger commands for CountDistinctProperties duplicates in same period, including when properties key order differs', async () => {
+    it('should skip ledger commands for CountDistinctProperties duplicates in same period, including intra-batch duplicates (with different key order) and existing database duplicates', async () => {
+      // Setup CountDistinctProperties meter using existing org setup
+      const {
+        distinctMeter,
+        distinctPrice,
+        distinctSubscription,
+        distinctBillingPeriod,
+      } = await setupCountDistinctPropertiesMeter({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        pricingModelId: orgSetup.pricingModel.id,
+        productId: orgSetup.product.id,
+      })
+
+      // Create an existing event in the database first (for testing duplicates against DB)
+      const existingEventProps = {
+        user_id: 'user_789',
+        feature: 'delete',
+      }
+      await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: distinctSubscription.id,
+        usageMeterId: distinctMeter.id,
+        customerId: customer.id,
+        amount: 1,
+        transactionId: `txn_${core.nanoid()}`,
+        priceId: distinctPrice.id,
+        properties: existingEventProps,
+        billingPeriodId: distinctBillingPeriod.id,
+      })
+
+      // Setup two events with same property values but different key order to test intra-batch deduplication and stable stringification
+      const propsA = {
+        user_id: 'user_456',
+        feature: 'import',
+      }
+      const propsB = {
+        feature: 'import',
+        user_id: 'user_456',
+      }
+      const event1 = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: distinctSubscription.id,
+        usageMeterId: distinctMeter.id,
+        customerId: customer.id,
+        amount: 1,
+        transactionId: `txn_${core.nanoid()}`,
+        priceId: distinctPrice.id,
+        properties: propsA,
+        billingPeriodId: distinctBillingPeriod.id,
+      })
+      const event2 = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: distinctSubscription.id,
+        usageMeterId: distinctMeter.id,
+        customerId: customer.id,
+        amount: 1,
+        transactionId: `txn_${core.nanoid()}`,
+        priceId: distinctPrice.id,
+        properties: propsB,
+        billingPeriodId: distinctBillingPeriod.id,
+      })
+
+      // Setup event with properties matching the existing database event to test DB duplicate detection
+      const newEventWithDuplicateProps = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: distinctSubscription.id,
+        usageMeterId: distinctMeter.id,
+        customerId: customer.id,
+        amount: 1,
+        transactionId: `txn_${core.nanoid()}`,
+        priceId: distinctPrice.id,
+        properties: existingEventProps,
+        billingPeriodId: distinctBillingPeriod.id,
+      })
+
       await adminTransaction(async ({ transaction }) => {
-        // Setup CountDistinctProperties meter using existing org setup
-        const {
-          distinctMeter,
-          distinctPrice,
-          distinctSubscription,
-          distinctBillingPeriod,
-        } = await setupCountDistinctPropertiesMeter({
-          organizationId: organization.id,
-          customerId: customer.id,
-          paymentMethodId: paymentMethod.id,
-          pricingModelId: orgSetup.pricingModel.id,
-          productId: orgSetup.product.id,
-        })
-
-        const testProperties = {
-          user_id: 'user_123',
-          feature: 'export',
-        }
-
-        // Test 1: Create first event with unique properties
-        const event1 = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: distinctSubscription.id,
-          usageMeterId: distinctMeter.id,
-          customerId: customer.id,
-          amount: 1,
-          transactionId: `txn_${core.nanoid()}`,
-          priceId: distinctPrice.id,
-          properties: testProperties,
-          billingPeriodId: distinctBillingPeriod.id,
-        })
-
-        // Test 1: Create second event with same properties (duplicate)
-        const event2 = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: distinctSubscription.id,
-          usageMeterId: distinctMeter.id,
-          customerId: customer.id,
-          amount: 1,
-          transactionId: `txn_${core.nanoid()}`,
-          priceId: distinctPrice.id,
-          properties: testProperties,
-          billingPeriodId: distinctBillingPeriod.id,
-        })
-
-        const ledgerCommands1 =
+        const ledgerCommands =
           await generateLedgerCommandsForBulkUsageEvents(
             {
-              insertedUsageEvents: [event1, event2],
+              insertedUsageEvents: [
+                event1,
+                event2,
+                newEventWithDuplicateProps,
+              ],
               livemode: true,
             },
             transaction
           )
 
-        // Should only generate command for first event (second is duplicate)
-        expect(ledgerCommands1.length).toBe(1)
-        expect(ledgerCommands1[0].payload.usageEvent.id).toBe(
+        // Should generate 1 command:
+        // - event1 (event2 is intra-batch duplicate with different key order)
+        // - newEventWithDuplicateProps is skipped (duplicate of existing DB event)
+        expect(ledgerCommands.length).toBe(1)
+        expect(ledgerCommands[0].payload.usageEvent.id).toBe(
           event1.id
         )
 
-        // Test 2: Test deduplication with different key order
-        const propsA = {
-          user_id: 'user_456',
-          feature: 'import',
-        }
-        const propsB = {
-          feature: 'import',
-          user_id: 'user_456',
-        }
-
-        const event3 = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: distinctSubscription.id,
-          usageMeterId: distinctMeter.id,
-          customerId: customer.id,
-          amount: 1,
-          transactionId: `txn_${core.nanoid()}`,
-          priceId: distinctPrice.id,
-          properties: propsA,
-          billingPeriodId: distinctBillingPeriod.id,
-        })
-
-        const event4 = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: distinctSubscription.id,
-          usageMeterId: distinctMeter.id,
-          customerId: customer.id,
-          amount: 1,
-          transactionId: `txn_${core.nanoid()}`,
-          priceId: distinctPrice.id,
-          properties: propsB,
-          billingPeriodId: distinctBillingPeriod.id,
-        })
-
-        const ledgerCommands2 =
-          await generateLedgerCommandsForBulkUsageEvents(
-            {
-              insertedUsageEvents: [event3, event4],
-              livemode: true,
-            },
-            transaction
-          )
-
-        // Should only generate command for first event (second is duplicate even with different key order)
-        expect(ledgerCommands2.length).toBe(1)
-        expect(ledgerCommands2[0].payload.usageEvent.id).toBe(
-          event3.id
+        // Explicitly verify that duplicate events are not included
+        const eventIds = ledgerCommands.map(
+          (cmd) => cmd.payload.usageEvent.id
         )
+        expect(eventIds).not.toContain(event2.id)
+        expect(eventIds).not.toContain(newEventWithDuplicateProps.id)
       })
     })
 
