@@ -230,6 +230,20 @@ export interface TaxCalculationResult {
   stripeTaxTransactionId: string | null
 }
 
+export type TotalFeeAmountInput = Omit<
+  Pick<
+    FeeCalculation.Record,
+    | 'baseAmount'
+    | 'discountAmountFixed'
+    | 'flowgladFeePercentage'
+    | 'morSurchargePercentage'
+    | 'internationalFeePercentage'
+    | 'paymentMethodFeeFixed'
+    | 'taxAmountFixed'
+  >,
+  'morSurchargePercentage'
+> & { morSurchargePercentage?: string | null }
+
 export const calculateTaxes = async ({
   discountInclusiveAmount,
   product,
@@ -275,7 +289,7 @@ export const calculateTaxes = async ({
 
 /* Total Fee and Due Amount Calculations */
 export const calculateTotalFeeAmount = (
-  feeCalculation: FeeCalculation.Record
+  feeCalculation: TotalFeeAmountInput
 ): number => {
   const {
     baseAmount,
@@ -292,12 +306,12 @@ export const calculateTotalFeeAmount = (
     'Discount amount fixed'
   )
   validateNumericAmount(
-    parseFloat(morSurchargePercentage),
-    'MoR surcharge percentage'
-  )
-  validateNumericAmount(
     parseFloat(internationalFeePercentage),
     'International fee percentage'
+  )
+  validateNumericAmount(
+    parseFloat(morSurchargePercentage ?? '0'),
+    'MoR surcharge percentage'
   )
   const safeDiscount = discountAmountFixed
     ? Math.max(discountAmountFixed, 0)
@@ -307,13 +321,13 @@ export const calculateTotalFeeAmount = (
     discountInclusiveAmount,
     parseFloat(flowgladFeePercentage!)
   )
-  const morSurchargeFixed = calculatePercentageFee(
-    discountInclusiveAmount,
-    parseFloat(morSurchargePercentage)
-  )
   const intlFixed = calculatePercentageFee(
     discountInclusiveAmount,
     parseFloat(internationalFeePercentage!)
+  )
+  const morSurchargeFixed = calculatePercentageFee(
+    discountInclusiveAmount,
+    parseFloat(morSurchargePercentage ?? '0')
   )
   return Math.round(
     flowFixed +
