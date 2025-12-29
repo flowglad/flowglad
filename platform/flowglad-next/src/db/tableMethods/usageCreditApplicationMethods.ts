@@ -1,4 +1,5 @@
 import {
+  type UsageCreditApplication,
   usageCreditApplications,
   usageCreditApplicationsInsertSchema,
   usageCreditApplicationsSelectSchema,
@@ -12,6 +13,11 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
+import {
+  derivePricingModelIdFromUsageCredit,
+  pricingModelIdsForUsageCredits,
+} from './usageCreditMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof usageCreditApplications,
@@ -30,10 +36,30 @@ export const selectUsageCreditApplicationById = createSelectById(
   config
 )
 
-export const insertUsageCreditApplication = createInsertFunction(
+const baseInsertUsageCreditApplication = createInsertFunction(
   usageCreditApplications,
   config
 )
+
+export const insertUsageCreditApplication = async (
+  usageCreditApplicationInsert: UsageCreditApplication.Insert,
+  transaction: DbTransaction
+): Promise<UsageCreditApplication.Record> => {
+  const pricingModelId = usageCreditApplicationInsert.pricingModelId
+    ? usageCreditApplicationInsert.pricingModelId
+    : await derivePricingModelIdFromUsageCredit(
+        usageCreditApplicationInsert.usageCreditId,
+        transaction
+      )
+
+  return baseInsertUsageCreditApplication(
+    {
+      ...usageCreditApplicationInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateUsageCreditApplication = createUpdateFunction(
   usageCreditApplications,
@@ -45,5 +71,35 @@ export const selectUsageCreditApplications = createSelectFunction(
   config
 )
 
-export const bulkInsertUsageCreditApplications =
+const baseBulkInsertUsageCreditApplications =
   createBulkInsertFunction(usageCreditApplications, config)
+
+export const bulkInsertUsageCreditApplications = async (
+  inserts: UsageCreditApplication.Insert[],
+  transaction: DbTransaction
+): Promise<UsageCreditApplication.Record[]> => {
+  const pricingModelIdMap = await pricingModelIdsForUsageCredits(
+    inserts.map((insert) => insert.usageCreditId),
+    transaction
+  )
+  const insertsWithPricingModelId = inserts.map(
+    (insert): UsageCreditApplication.Insert => {
+      const pricingModelId =
+        insert.pricingModelId ??
+        pricingModelIdMap.get(insert.usageCreditId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Pricing model id not found for usage credit ${insert.usageCreditId}`
+        )
+      }
+      return {
+        ...insert,
+        pricingModelId,
+      }
+    }
+  )
+  return baseBulkInsertUsageCreditApplications(
+    insertsWithPricingModelId,
+    transaction
+  )
+}

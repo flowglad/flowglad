@@ -28,6 +28,7 @@ import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   idInputSchema,
+  NotFoundError,
 } from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
 import { PriceType } from '@/types'
@@ -171,11 +172,7 @@ export const getPrice = protectedProcedure
         try {
           return await selectPriceById(input.id, transaction)
         } catch (error) {
-          if (
-            error instanceof Error &&
-            (error.message.includes('No prices found with id') ||
-              error.message.includes('Failed to select prices by id'))
-          ) {
+          if (error instanceof NotFoundError) {
             throw new TRPCError({
               code: 'NOT_FOUND',
               message: 'Price not found',

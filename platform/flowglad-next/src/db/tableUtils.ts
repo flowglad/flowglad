@@ -54,6 +54,27 @@ import { countryCodeSchema } from './commonZodSchema'
 import { timestamptzMs } from './timestampMs'
 import type { PgTimestampColumn } from './types'
 
+/**
+ * Custom error class for when a database record is not found.
+ * Use `instanceof NotFoundError` for type-safe error discrimination
+ * instead of string matching on error messages.
+ */
+export class NotFoundError extends Error {
+  readonly resourceType: string
+  readonly resourceId: string | number
+
+  constructor(resourceType: string, resourceId: string | number) {
+    super(`No ${noCase(resourceType)} found with id: ${resourceId}`)
+    this.name = 'NotFoundError'
+    this.resourceType = resourceType
+    this.resourceId = resourceId
+    // Maintain proper stack trace in V8 environments
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, NotFoundError)
+    }
+  }
+}
+
 export const merchantRole = pgRole('merchant', {
   createRole: false,
   createDb: false,
@@ -144,13 +165,15 @@ export const createSelectById = <
         .from(table as SelectTable)
         .where(eq(table.id, id))
       if (results.length === 0) {
-        throw Error(
-          `No ${noCase(config.tableName)} found with id: ${id}`
-        )
+        throw new NotFoundError(config.tableName, id)
       }
       const result = results[0]
       return selectSchema.parse(result)
     } catch (error) {
+      // Re-throw NotFoundError as-is to preserve type-safe error handling
+      if (error instanceof NotFoundError) {
+        throw error
+      }
       if (!IS_TEST) {
         console.error(
           `[selectById] Error selecting ${config.tableName} with id ${id}:`,
@@ -353,9 +376,7 @@ export const createUpdateFunction = <
           .where(eq(table.id, update.id))
           .limit(1)
         if (!latestItem) {
-          throw Error(
-            `No ${noCase(config.tableName)} found with id: ${update.id}`
-          )
+          throw new NotFoundError(config.tableName, update.id)
         }
         return selectSchema.parse(latestItem)
       }
@@ -378,14 +399,15 @@ export const createUpdateFunction = <
       }
       return parsed.data
     } catch (error) {
+      // Re-throw NotFoundError as-is to preserve type-safe error handling
+      if (error instanceof NotFoundError) {
+        throw error
+      }
       if (!IS_TEST) {
         console.error(
           `[createUpdateFunction] Error updating ${config.tableName} with id ${update.id}:`,
           error
         )
-      }
-      if (error instanceof Error && error.message.includes('No ')) {
-        throw error
       }
       throw new Error(
         `Failed to update ${config.tableName} with id ${update.id}: ${error instanceof Error ? error.message : String(error)}`,

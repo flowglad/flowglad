@@ -1,3 +1,4 @@
+import { inArray } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
@@ -11,11 +12,18 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { Customer } from '@/db/schema/customers'
 import { Organization } from '@/db/schema/organizations'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
 import {
+  Subscription,
+  subscriptions,
+} from '@/db/schema/subscriptions'
+import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
+import { core } from '@/utils/core'
+import {
+  bulkInsertOrDoNothingSubscriptionsByExternalId,
+  insertSubscription,
   type SubscriptionTableFilters,
   selectDistinctSubscriptionProductNames,
+  selectSubscriptions,
   selectSubscriptionsTableRowData,
 } from './subscriptionMethods'
 
@@ -124,34 +132,43 @@ describe('selectDistinctSubscriptionProductNames', () => {
     })
 
     // Create subscriptions - some with same product to test deduplication
-    await setupSubscription({
+    const subscription1 = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       paymentMethodId: paymentMethod.id,
       priceId: price1.id,
     })
+    // Verify pricingModelId is derived from price's product
+    expect(subscription1.pricingModelId).toBe(product1.pricingModelId)
+    expect(subscription1.pricingModelId).toBe(pricingModel.id)
 
-    await setupSubscription({
+    const subscription2 = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       paymentMethodId: paymentMethod.id,
       priceId: price2.id,
     })
+    expect(subscription2.pricingModelId).toBe(product2.pricingModelId)
+    expect(subscription2.pricingModelId).toBe(pricingModel.id)
 
-    await setupSubscription({
+    const subscription3 = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       paymentMethodId: paymentMethod.id,
       priceId: price3.id,
     })
+    expect(subscription3.pricingModelId).toBe(product3.pricingModelId)
+    expect(subscription3.pricingModelId).toBe(pricingModel.id)
 
     // Add another subscription with product2 to verify deduplication
-    await setupSubscription({
+    const subscription4 = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       paymentMethodId: paymentMethod.id,
       priceId: price4.id,
     })
+    expect(subscription4.pricingModelId).toBe(product2.pricingModelId)
+    expect(subscription4.pricingModelId).toBe(pricingModel.id)
 
     await adminTransaction(async ({ transaction }) => {
       const result = await selectDistinctSubscriptionProductNames(
@@ -208,19 +225,27 @@ describe('selectDistinctSubscriptionProductNames', () => {
       customerId: customer2.id,
     })
 
-    await setupSubscription({
+    const subscriptionOrg1 = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       paymentMethodId: paymentMethod.id,
       priceId: price1.id,
     })
+    expect(subscriptionOrg1.pricingModelId).toBe(
+      product1.pricingModelId
+    )
+    expect(subscriptionOrg1.pricingModelId).toBe(pricingModel.id)
 
-    await setupSubscription({
+    const subscriptionOrg2 = await setupSubscription({
       organizationId: organization2.id,
       customerId: customer2.id,
       paymentMethodId: paymentMethod2.id,
       priceId: price2.id,
     })
+    expect(subscriptionOrg2.pricingModelId).toBe(
+      product2.pricingModelId
+    )
+    expect(subscriptionOrg2.pricingModelId).toBe(pricingModel2.id)
 
     await adminTransaction(async ({ transaction }) => {
       const result1 = await selectDistinctSubscriptionProductNames(
@@ -1194,6 +1219,263 @@ describe('selectSubscriptionsTableRowData', () => {
         expect(resultWithFilters.items.length).toBe(1)
         expect(resultWithFilters.total).toBe(1)
         expect(resultWithFilters.hasNextPage).toBe(false)
+      })
+    })
+  })
+})
+
+describe('insertSubscription', () => {
+  let organization: Organization.Record
+  let pricingModel: { id: string }
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
+  let product: { id: string }
+  let price: { id: string }
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    product = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Product',
+    })
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      type: PriceType.Subscription,
+      unitPrice: 1000,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+    })
+  })
+
+  it('should derive pricingModelId from price', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const subscription = await insertSubscription(
+        {
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          defaultPaymentMethodId: paymentMethod.id,
+          backupPaymentMethodId: null,
+          status: SubscriptionStatus.Active,
+          livemode: true,
+          startDate: Date.now(),
+          trialEnd: null,
+          currentBillingPeriodStart: Date.now(),
+          currentBillingPeriodEnd:
+            Date.now() + 30 * 24 * 60 * 60 * 1000,
+          billingCycleAnchorDate: Date.now(),
+          canceledAt: null,
+          cancelScheduledAt: null,
+          metadata: {},
+          stripeSetupIntentId: `si_${core.nanoid()}`,
+          name: 'Test Subscription',
+          runBillingAtPeriodStart: true,
+          externalId: null,
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          renews: true,
+          isFreePlan: false,
+          doNotCharge: false,
+          cancellationReason: null,
+          replacedBySubscriptionId: null,
+        },
+        transaction
+      )
+
+      // Verify pricingModelId was derived from price
+      expect(subscription.pricingModelId).toBe(pricingModel.id)
+    })
+  })
+
+  it('should use provided pricingModelId without derivation', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const subscription = await insertSubscription(
+        {
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          defaultPaymentMethodId: paymentMethod.id,
+          backupPaymentMethodId: null,
+          status: SubscriptionStatus.Active,
+          livemode: true,
+          startDate: Date.now(),
+          trialEnd: null,
+          currentBillingPeriodStart: Date.now(),
+          currentBillingPeriodEnd:
+            Date.now() + 30 * 24 * 60 * 60 * 1000,
+          billingCycleAnchorDate: Date.now(),
+          canceledAt: null,
+          cancelScheduledAt: null,
+          metadata: {},
+          stripeSetupIntentId: `si_${core.nanoid()}`,
+          name: 'Test Subscription',
+          runBillingAtPeriodStart: true,
+          externalId: null,
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          renews: true,
+          isFreePlan: false,
+          doNotCharge: false,
+          cancellationReason: null,
+          replacedBySubscriptionId: null,
+          pricingModelId: pricingModel.id, // Pre-provided
+        },
+        transaction
+      )
+
+      // Verify the provided pricingModelId is used
+      expect(subscription.pricingModelId).toBe(pricingModel.id)
+    })
+  })
+})
+
+describe('bulkInsertOrDoNothingSubscriptionsByExternalId', () => {
+  let organization: Organization.Record
+  let pricingModel: { id: string }
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
+  let product: { id: string }
+  let price1: { id: string }
+  let price2: { id: string }
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    product = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Product',
+    })
+
+    price1 = await setupPrice({
+      productId: product.id,
+      name: 'Test Price 1',
+      type: PriceType.Subscription,
+      unitPrice: 1000,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+    })
+
+    price2 = await setupPrice({
+      productId: product.id,
+      name: 'Test Price 2',
+      type: PriceType.Subscription,
+      unitPrice: 2000,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+    })
+  })
+
+  it('should bulk insert subscriptions and derive pricingModelId for each', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const externalId1 = `ext_sub_1_${core.nanoid()}`
+      const externalId2 = `ext_sub_2_${core.nanoid()}`
+
+      await bulkInsertOrDoNothingSubscriptionsByExternalId(
+        [
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            priceId: price1.id,
+            defaultPaymentMethodId: paymentMethod.id,
+            backupPaymentMethodId: null,
+            status: SubscriptionStatus.Active,
+            livemode: true,
+            startDate: Date.now(),
+            trialEnd: null,
+            currentBillingPeriodStart: Date.now(),
+            currentBillingPeriodEnd:
+              Date.now() + 30 * 24 * 60 * 60 * 1000,
+            billingCycleAnchorDate: Date.now(),
+            canceledAt: null,
+            cancelScheduledAt: null,
+            metadata: {},
+            stripeSetupIntentId: `si_${core.nanoid()}`,
+            name: 'Test Subscription 1',
+            runBillingAtPeriodStart: true,
+            externalId: externalId1,
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            renews: true,
+            isFreePlan: false,
+            doNotCharge: false,
+            cancellationReason: null,
+            replacedBySubscriptionId: null,
+          },
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            priceId: price2.id,
+            defaultPaymentMethodId: paymentMethod.id,
+            backupPaymentMethodId: null,
+            status: SubscriptionStatus.Active,
+            livemode: true,
+            startDate: Date.now(),
+            trialEnd: null,
+            currentBillingPeriodStart: Date.now(),
+            currentBillingPeriodEnd:
+              Date.now() + 30 * 24 * 60 * 60 * 1000,
+            billingCycleAnchorDate: Date.now(),
+            canceledAt: null,
+            cancelScheduledAt: null,
+            metadata: {},
+            stripeSetupIntentId: `si_${core.nanoid()}`,
+            name: 'Test Subscription 2',
+            runBillingAtPeriodStart: true,
+            externalId: externalId2,
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            renews: true,
+            isFreePlan: false,
+            doNotCharge: false,
+            cancellationReason: null,
+            replacedBySubscriptionId: null,
+          },
+        ],
+        transaction
+      )
+
+      // Verify by selecting the inserted subscriptions
+      const insertedSubscriptions = await selectSubscriptions(
+        { externalId: [externalId1, externalId2] },
+        transaction
+      )
+
+      expect(insertedSubscriptions.length).toBe(2)
+      insertedSubscriptions.forEach((sub) => {
+        expect(sub.pricingModelId).toBe(pricingModel.id)
       })
     })
   })

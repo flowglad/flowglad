@@ -13,6 +13,7 @@ import core from '@/utils/core'
 import {
   getProductTableRows,
   insertProduct,
+  pricingModelIdsForProducts,
   selectProductPriceAndFeaturesByProductId,
   selectProductsCursorPaginated,
   updateProduct,
@@ -786,6 +787,69 @@ describe('selectProductsCursorPaginated search', () => {
 
       expect(resultEmpty.items.length).toBeGreaterThanOrEqual(1)
       expect(resultEmpty.total).toBe(resultUndefined.total)
+    })
+  })
+})
+
+describe('pricingModelIdsForProducts', () => {
+  let organization: Product.Record['organizationId']
+  let pricingModel: { id: string }
+  let product1: Product.Record
+  let product2: Product.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization.id
+    pricingModel = orgData.pricingModel
+
+    product1 = await setupProduct({
+      organizationId: organization,
+      pricingModelId: pricingModel.id,
+      name: 'Test Product 1',
+    })
+
+    product2 = await setupProduct({
+      organizationId: organization,
+      pricingModelId: pricingModel.id,
+      name: 'Test Product 2',
+    })
+  })
+
+  it('should successfully return map of pricingModelIds for multiple products', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const pricingModelIdMap = await pricingModelIdsForProducts(
+        [product1.id, product2.id],
+        transaction
+      )
+
+      expect(pricingModelIdMap.size).toBe(2)
+      expect(pricingModelIdMap.get(product1.id)).toBe(pricingModel.id)
+      expect(pricingModelIdMap.get(product2.id)).toBe(pricingModel.id)
+    })
+  })
+
+  it('should return empty map when no product IDs are provided', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const pricingModelIdMap = await pricingModelIdsForProducts(
+        [],
+        transaction
+      )
+
+      expect(pricingModelIdMap.size).toBe(0)
+    })
+  })
+
+  it('should only return entries for existing products', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const nonExistentProductId = `prod_${core.nanoid()}`
+      const pricingModelIdMap = await pricingModelIdsForProducts(
+        [product1.id, nonExistentProductId],
+        transaction
+      )
+
+      expect(pricingModelIdMap.size).toBe(1)
+      expect(pricingModelIdMap.get(product1.id)).toBe(pricingModel.id)
+      expect(pricingModelIdMap.has(nonExistentProductId)).toBe(false)
     })
   })
 })

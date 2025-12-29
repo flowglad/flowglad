@@ -92,36 +92,20 @@ function SubscriptionActionsMenu({
 
 export const columns: ColumnDef<Subscription.TableRowData>[] = [
   {
-    id: 'customerName',
-    accessorFn: (row) => row.customer.name || row.customer.email,
-    header: 'Customer',
+    id: 'createdAt',
+    accessorFn: (row) => row.subscription.createdAt,
+    header: 'Date',
     cell: ({ row }) => {
-      const customer = row.original.customer
-      const displayName =
-        customer.name.length === 0 ? customer.email : customer.name
+      const date = row.getValue('createdAt') as Date
       return (
-        <div>
-          <DataTableLinkableCell href={`/customers/${customer.id}`}>
-            {displayName}
-          </DataTableLinkableCell>
+        <div className="whitespace-nowrap">
+          {formatDate(date, false)}
         </div>
       )
     },
-    size: 200,
-    minSize: 200,
-    maxSize: 275,
-  },
-  {
-    id: 'status',
-    accessorFn: (row) => row.subscription.status,
-    header: 'Status',
-    cell: ({ row }) => {
-      const status = row.getValue('status') as SubscriptionStatus
-      return <SubscriptionStatusBadge status={status} />
-    },
-    size: 110,
-    minSize: 105,
-    maxSize: 115,
+    size: 120,
+    minSize: 120,
+    maxSize: 165,
   },
   {
     id: 'productName',
@@ -137,25 +121,40 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
         </div>
       )
     },
-    size: 200,
-    minSize: 120,
-    maxSize: 300,
+    size: 160,
+    minSize: 96,
+    maxSize: 240,
   },
   {
-    id: 'createdAt',
-    accessorFn: (row) => row.subscription.createdAt,
-    header: 'Created',
+    id: 'status',
+    accessorFn: (row) => row.subscription.status,
+    header: 'Status',
     cell: ({ row }) => {
-      const date = row.getValue('createdAt') as Date
+      const status = row.getValue('status') as SubscriptionStatus
+      return <SubscriptionStatusBadge status={status} />
+    },
+    size: 110,
+    minSize: 105,
+    maxSize: 115,
+  },
+  {
+    id: 'customerName',
+    accessorFn: (row) => row.customer.name || row.customer.email,
+    header: 'Customer',
+    cell: ({ row }) => {
+      const customer = row.original.customer
+      const displayName = customer.name || customer.email
       return (
-        <div className="whitespace-nowrap">
-          {formatDate(date, false)}
+        <div>
+          <DataTableLinkableCell href={`/customers/${customer.id}`}>
+            {displayName}
+          </DataTableLinkableCell>
         </div>
       )
     },
-    size: 100,
-    minSize: 100,
-    maxSize: 150,
+    size: 160,
+    minSize: 160,
+    maxSize: 248,
   },
   {
     id: 'actions',

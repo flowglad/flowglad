@@ -40,6 +40,7 @@ import { IntervalUnit, SubscriptionStatus } from '@/types'
 import core from '@/utils/core'
 import { organizations } from './organizations'
 import { paymentMethods } from './paymentMethods'
+import { pricingModels } from './pricingModels'
 import { productsClientSelectSchema } from './products'
 
 const TABLE_NAME = 'subscriptions'
@@ -112,6 +113,10 @@ const columns = {
    * from external processors onto Flowglad
    */
   externalId: text('external_id'),
+  pricingModelId: notNullStringForeignKey(
+    'pricing_model_id',
+    pricingModels
+  ),
 }
 
 export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
@@ -123,6 +128,7 @@ export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
     constructIndex(TABLE_NAME, [table.isFreePlan]),
     constructIndex(TABLE_NAME, [table.cancellationReason]),
     constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
     constructUniqueIndex(TABLE_NAME, [table.stripeSetupIntentId]),
     constructUniqueIndex(TABLE_NAME, [
       table.externalId,
@@ -201,6 +207,9 @@ export const {
 } = buildSchemas(subscriptions, {
   discriminator: 'renews',
   refine: standardColumnRefinements,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns: {
       stripeSetupIntentId: true,
@@ -209,6 +218,7 @@ export const {
     },
     readOnlyColumns: {
       livemode: true,
+      pricingModelId: true,
     },
     createOnlyColumns: {
       customerId: true,
@@ -230,6 +240,9 @@ export const {
 } = buildSchemas(subscriptions, {
   discriminator: 'renews',
   refine: nonRenewingColumnRefinements,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns: {
       stripeSetupIntentId: true,
@@ -238,6 +251,7 @@ export const {
     },
     readOnlyColumns: {
       livemode: true,
+      pricingModelId: true,
     },
     createOnlyColumns: {
       customerId: true,

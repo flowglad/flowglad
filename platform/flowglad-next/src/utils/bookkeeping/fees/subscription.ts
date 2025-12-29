@@ -1,7 +1,9 @@
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Country } from '@/db/schema/countries'
 import type { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
@@ -17,13 +19,14 @@ import {
   calculateDiscountAmountFromRedemption,
   calculateFlowgladFeePercentage,
   calculateInternationalFeePercentage,
+  calculateMoRSurchargePercentage,
   calculatePaymentMethodFeeAmount,
   finalizeFeeCalculation,
 } from './common'
 
 export interface SubscriptionFeeCalculationParams {
-  organization: any
-  billingPeriod: any
+  organization: Organization.Record
+  billingPeriod: BillingPeriod.Record
   billingPeriodItems: BillingPeriodItem.Record[]
   paymentMethod: PaymentMethod.Record
   discountRedemption?: DiscountRedemption.Record
@@ -87,6 +90,9 @@ export const createSubscriptionFeeCalculationInsert = (
   )
   const pretax = Math.max(baseAmt - (discountAmt ?? 0), 0)
   const flowPct = calculateFlowgladFeePercentage({ organization })
+  const morSurchargePct = calculateMoRSurchargePercentage({
+    organization,
+  })
   const intlPct = calculateInternationalFeePercentage({
     paymentMethod: paymentMethod.type,
     paymentMethodCountry: (paymentMethod.billingDetails.address
@@ -112,6 +118,7 @@ export const createSubscriptionFeeCalculationInsert = (
     baseAmount: baseAmt,
     currency,
     flowgladFeePercentage: flowPct.toString(),
+    morSurchargePercentage: morSurchargePct.toString(),
     internationalFeePercentage: intlPct.toString(),
     paymentMethodFeeFixed: payFee,
     taxAmountFixed: 0,

@@ -310,12 +310,6 @@ export const editInvoiceSchema = z.object({
 
 export type EditInvoiceInput = z.infer<typeof editInvoiceSchema>
 
-export const sendInvoiceReminderSchema = z.object({
-  id: z.string(),
-  to: z.array(z.string().email()),
-  cc: z.array(z.string().email()).optional(),
-})
-
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>
 
 export const invoiceWithLineItemsSchema = z.object({

@@ -45,6 +45,10 @@ import {
   products,
   productsClientSelectSchema,
 } from '../schema/products'
+import {
+  derivePricingModelIdFromPrice,
+  pricingModelIdsForPrices,
+} from './priceMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptions,
@@ -74,10 +78,29 @@ export const selectSubscriptionById = createSelectById(
   config
 )
 
-export const insertSubscription = createInsertFunction(
+const baseInsertSubscription = createInsertFunction(
   subscriptions,
   config
 )
+
+export const insertSubscription = async (
+  subscriptionInsert: Subscription.Insert,
+  transaction: DbTransaction
+): Promise<Subscription.Record> => {
+  const pricingModelId = subscriptionInsert.pricingModelId
+    ? subscriptionInsert.pricingModelId
+    : await derivePricingModelIdFromPrice(
+        subscriptionInsert.priceId,
+        transaction
+      )
+  return baseInsertSubscription(
+    {
+      ...subscriptionInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateSubscription = createUpdateFunction(
   subscriptions,
@@ -391,13 +414,33 @@ export const subscriptionWithCurrent = <
   }
 }
 
-export const bulkInsertOrDoNothingSubscriptionsByExternalId = (
+export const bulkInsertOrDoNothingSubscriptionsByExternalId = async (
   subscriptionInserts: Subscription.Insert[],
   transaction: DbTransaction
 ) => {
+  const pricingModelIdMap = await pricingModelIdsForPrices(
+    subscriptionInserts.map((insert) => insert.priceId),
+    transaction
+  )
+  const subscriptionsWithPricingModelId = subscriptionInserts.map(
+    (subscriptionInsert) => {
+      const pricingModelId =
+        subscriptionInsert.pricingModelId ??
+        pricingModelIdMap.get(subscriptionInsert.priceId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Pricing model id not found for price ${subscriptionInsert.priceId}`
+        )
+      }
+      return {
+        ...subscriptionInsert,
+        pricingModelId,
+      }
+    }
+  )
   return transaction
     .insert(subscriptions)
-    .values(subscriptionInserts)
+    .values(subscriptionsWithPricingModelId)
     .onConflictDoUpdate({
       target: [
         subscriptions.externalId,

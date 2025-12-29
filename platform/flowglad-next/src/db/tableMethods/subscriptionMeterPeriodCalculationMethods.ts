@@ -40,10 +40,12 @@ export const insertSubscriptionMeterPeriodCalculation = async (
   calculationInsert: SubscriptionMeterPeriodCalculation.Insert,
   transaction: DbTransaction
 ): Promise<SubscriptionMeterPeriodCalculation.Record> => {
-  const pricingModelId = await derivePricingModelIdFromUsageMeter(
-    calculationInsert.usageMeterId,
-    transaction
-  )
+  const pricingModelId = calculationInsert.pricingModelId
+    ? calculationInsert.pricingModelId
+    : await derivePricingModelIdFromUsageMeter(
+        calculationInsert.usageMeterId,
+        transaction
+      )
   return baseInsertSubscriptionMeterPeriodCalculation(
     {
       ...calculationInsert,

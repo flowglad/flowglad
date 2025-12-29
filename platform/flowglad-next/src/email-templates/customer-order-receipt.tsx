@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import type { CurrencyCode } from '@/types'
 import core from '@/utils/core'
 import { calculateInvoiceTotalsWithDiscounts } from '@/utils/discountHelpers'
@@ -26,6 +27,7 @@ export const OrderReceiptEmail = ({
   customerId,
   discountInfo,
   livemode,
+  isMoR,
 }: {
   invoiceNumber: string
   orderDate: string
@@ -50,6 +52,8 @@ export const OrderReceiptEmail = ({
     discountAmountType: string
   } | null
   livemode: boolean
+  /** Whether this is a Merchant of Record invoice (Flowglad as seller) */
+  isMoR?: boolean
 }) => {
   const totals = calculateInvoiceTotalsWithDiscounts(
     lineItems,
@@ -57,12 +61,26 @@ export const OrderReceiptEmail = ({
     discountInfo
   )
 
+  // MoR branding: use Flowglad logo and name as seller
+  const sellerName = isMoR
+    ? FLOWGLAD_LEGAL_ENTITY.name
+    : organizationName
+  const sellerLogo = isMoR
+    ? FLOWGLAD_LEGAL_ENTITY.logoURL
+    : organizationLogoUrl
+  const previewText = isMoR
+    ? `Thanks for your order with ${organizationName}!`
+    : 'Thanks for your order!'
+  const signatureName = isMoR
+    ? `${sellerName} for ${organizationName}`
+    : organizationName
+
   return (
-    <EmailLayout previewText="Thanks for your order!">
+    <EmailLayout previewText={previewText}>
       <TestModeBanner livemode={livemode} />
       <Header
         title="Thanks for your order!"
-        organizationLogoUrl={organizationLogoUrl}
+        organizationLogoUrl={sellerLogo}
       />
 
       <DetailSection>
@@ -112,9 +130,24 @@ export const OrderReceiptEmail = ({
         View Order →
       </EmailButton>
 
+      {isMoR && (
+        <Paragraph
+          style={{
+            fontSize: '12px',
+            color: '#666',
+            marginTop: '20px',
+          }}
+        >
+          This purchase was processed by {FLOWGLAD_LEGAL_ENTITY.name}{' '}
+          for {organizationName}. You may see "
+          {FLOWGLAD_LEGAL_ENTITY.cardStatementDescriptor}" on your
+          card statement.
+        </Paragraph>
+      )}
+
       <Signature
         greeting="Thanks,"
-        name={organizationName}
+        name={signatureName}
         greetingDataTestId="signature-thanks"
         nameDataTestId="signature-org-name"
       />

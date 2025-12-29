@@ -1,5 +1,11 @@
 'use client'
-import { Check, Copy, Download, Pencil, Sparkles } from 'lucide-react'
+import {
+  Check,
+  CopyPlus,
+  Download,
+  Pencil,
+  Sparkles,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -167,7 +173,7 @@ function InnerPricingModelDetailsPage({
         setIsMoreMenuOpen(false)
         setIsCloneOpen(true)
       },
-      icon: <Copy className="h-4 w-4" />,
+      icon: <CopyPlus className="h-4 w-4" />,
     },
     {
       label: 'Export',

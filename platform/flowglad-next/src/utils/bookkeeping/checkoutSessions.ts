@@ -367,11 +367,11 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
         `Unsupported price type for checkout session ${checkoutSession.id}`
       )
     }
-    const results = await upsertPurchaseById(
+    const result = await upsertPurchaseById(
       purchaseInsert,
       transaction
     )
-    purchase = results[0]
+    purchase = result
   }
   let discount: Discount.Record | null = null
   let discountRedemption: DiscountRedemption.Record | null = null

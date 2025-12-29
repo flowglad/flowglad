@@ -1,25 +1,19 @@
 'use client'
 
 import {
-  type ColumnFiltersState,
   type ColumnSizingState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  type SortingState,
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
-import { Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-import { Button } from '@/components/ui/button'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
-import { FilterButtonGroup } from '@/components/ui/filter-button-group'
+import { DataTableToolbar } from '@/components/ui/data-table-toolbar'
 import {
   Table,
   TableBody,
@@ -38,19 +32,25 @@ export interface DiscountsTableFilters {
 interface DiscountsDataTableProps {
   filters?: DiscountsTableFilters
   onCreateDiscount?: () => void
+  hiddenColumns?: string[]
   filterOptions?: { value: string; label: string }[]
-  activeFilter?: string
+  filterValue?: string
   onFilterChange?: (value: string) => void
 }
 
 export function DiscountsDataTable({
   filters = {},
   onCreateDiscount,
+  hiddenColumns = [],
   filterOptions,
-  activeFilter,
+  filterValue,
   onFilterChange,
 }: DiscountsDataTableProps) {
   const router = useRouter()
+
+  // Server-side filtering with debounced search
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(300)
 
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -70,23 +70,27 @@ export function DiscountsDataTable({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
+    searchQuery: searchQuery,
     useQuery: trpc.discounts.getTableRows.useQuery,
   })
 
   // Reset to first page when filters change
-  // Use JSON.stringify to get stable comparison of filter object
   const filtersKey = JSON.stringify(filters)
   React.useEffect(() => {
     goToFirstPage()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey])
 
-  // Client-side features (Shadcn patterns)
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] =
-    React.useState<ColumnFiltersState>([])
+  // Reset to first page when debounced search changes
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
+
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>(() =>
+      Object.fromEntries(hiddenColumns.map((col) => [col, false]))
+    )
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
 
@@ -100,12 +104,11 @@ export function DiscountsDataTable({
       minSize: 50,
       maxSize: 500,
     },
-    manualPagination: true, // Server-side pagination
-    manualSorting: false, // Client-side sorting on current page
-    manualFiltering: false, // Client-side filtering on current page
+    enableSorting: false,
+    manualPagination: true,
+    manualSorting: true,
+    manualFiltering: true,
     pageCount: Math.ceil((data?.total || 0) / currentPageSize),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     onColumnSizingChange: setColumnSizing,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: (updater) => {
@@ -117,7 +120,7 @@ export function DiscountsDataTable({
       // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        goToFirstPage() // Properly clears both cursors to avoid stale pagination state
+        goToFirstPage()
       }
       // Handle page index changes (page navigation)
       else if (newPagination.pageIndex !== pageIndex) {
@@ -125,11 +128,7 @@ export function DiscountsDataTable({
       }
     },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     state: {
-      sorting,
-      columnFilters,
       columnVisibility,
       columnSizing,
       pagination: { pageIndex, pageSize: currentPageSize },
@@ -138,29 +137,37 @@ export function DiscountsDataTable({
 
   return (
     <div className="w-full">
-      {/* Enhanced toolbar */}
-      <div className="flex items-center justify-between pt-4 pb-2 gap-4 min-w-0">
-        {/* Filter buttons on the left */}
-        <div className="flex items-center min-w-0 flex-shrink overflow-hidden">
-          {filterOptions && activeFilter && onFilterChange && (
-            <FilterButtonGroup
-              options={filterOptions}
-              value={activeFilter}
-              onValueChange={onFilterChange}
-            />
-          )}
-        </div>
-
-        {/* View options and create button on the right */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <DataTableViewOptions table={table} />
-          {onCreateDiscount && (
-            <Button onClick={onCreateDiscount}>
-              <Plus className="w-4 h-4" />
-              Create Discount
-            </Button>
-          )}
-        </div>
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 pt-1 pb-2 px-4">
+        <DataTableToolbar
+          search={{
+            value: inputValue,
+            onChange: setInputValue,
+            placeholder: 'Search discounts...',
+          }}
+          filter={
+            filterOptions &&
+            filterValue !== undefined &&
+            filterValue !== null &&
+            onFilterChange
+              ? {
+                  value: filterValue,
+                  options: filterOptions,
+                  onChange: onFilterChange,
+                }
+              : undefined
+          }
+          actionButton={
+            onCreateDiscount
+              ? {
+                  onClick: onCreateDiscount,
+                  text: 'Create Discount',
+                }
+              : undefined
+          }
+          isLoading={isLoading}
+          isFetching={isFetching}
+        />
       </div>
 
       {/* Table */}
@@ -244,11 +251,13 @@ export function DiscountsDataTable({
       </Table>
 
       {/* Pagination */}
-      <div className="py-2">
+      <div className="py-2 px-4">
         <DataTablePagination
           table={table}
           totalCount={data?.total}
-          isFiltered={Object.keys(filters).length > 0}
+          isFiltered={
+            !!searchQuery || Object.keys(filters).length > 0
+          }
           filteredCount={data?.total}
           entityName="discount"
         />

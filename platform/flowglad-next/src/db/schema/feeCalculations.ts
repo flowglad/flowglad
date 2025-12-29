@@ -79,6 +79,9 @@ export const feeCalculations = pgTable(
       'international_fee_percentage'
     ).notNull(),
     flowgladFeePercentage: text('flowglad_fee_percentage').notNull(),
+    morSurchargePercentage: text('mor_surcharge_percentage')
+      .notNull()
+      .default('0'),
     billingAddress: jsonb('billing_address').notNull(),
     /**
      * Tax columns
@@ -250,6 +253,7 @@ export const feeCalculationClientSelectSchema = z
 
 const customerHiddenColumns = {
   flowgladFeePercentage: true,
+  morSurchargePercentage: true,
   internationalFeePercentage: true,
 } as const
 

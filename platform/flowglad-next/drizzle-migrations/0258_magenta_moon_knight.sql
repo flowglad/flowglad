@@ -1,0 +1,1 @@
+ALTER TABLE "fee_calculations" ADD COLUMN "mor_surcharge_percentage" text DEFAULT '0' NOT NULL;

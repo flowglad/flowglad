@@ -30,7 +30,10 @@ import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { subscriptionMeterPeriodCalculations } from '@/db/schema/subscriptionMeterPeriodCalculations'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { type UsageCreditApplication } from '@/db/schema/usageCreditApplications'
-import type { usageCreditBalanceAdjustments } from '@/db/schema/usageCreditBalanceAdjustments'
+import type {
+  UsageCreditBalanceAdjustment,
+  usageCreditBalanceAdjustments,
+} from '@/db/schema/usageCreditBalanceAdjustments'
 import { type UsageCredit } from '@/db/schema/usageCredits'
 import { type UsageEvent } from '@/db/schema/usageEvents'
 import { users } from '@/db/schema/users'
@@ -83,6 +86,7 @@ import {
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
 import { insertUsageCreditApplication } from '@/db/tableMethods/usageCreditApplicationMethods'
+import { insertUsageCreditBalanceAdjustment } from '@/db/tableMethods/usageCreditBalanceAdjustmentMethods'
 import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
 import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
@@ -157,6 +161,7 @@ export const dropDatabase = async () => {
 export const setupOrg = async (params?: {
   monthlyBillingVolumeFreeTier?: number
   feePercentage?: string
+  stripeConnectContractType?: StripeConnectContractType
 }) => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
@@ -170,7 +175,9 @@ export const setupOrg = async (params?: {
           params?.monthlyBillingVolumeFreeTier ?? undefined,
         feePercentage: params?.feePercentage ?? undefined,
         onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
-        stripeConnectContractType: StripeConnectContractType.Platform,
+        stripeConnectContractType:
+          params?.stripeConnectContractType ??
+          StripeConnectContractType.Platform,
         featureFlags: {},
         contactEmail: 'test@test.com',
         billingAddress: {
@@ -2137,25 +2144,20 @@ export const setupUsageCreditBalanceAdjustment = async (
   > & {
     organizationId: string
     adjustedUsageCreditId: string
-    adjustmentType: string
     amountAdjusted: number
-    currency: CurrencyCode
     usageMeterId: string
     reason: string
   }
-): Promise<typeof usageCreditBalanceAdjustments.$inferSelect> => {
+): Promise<UsageCreditBalanceAdjustment.Record> => {
   return adminTransaction(async ({ transaction }) => {
-    const now = new Date()
-    // @ts-expect-error Assume insertUsageCreditBalanceAdjustment is defined and imported
     return insertUsageCreditBalanceAdjustment(
       {
         livemode: true,
-        adjustmentInitiatedAt: now,
-        adjustedByUserId: `user_${core.nanoid()}`,
-        metadata: {},
+        adjustmentInitiatedAt: Date.now(),
+        adjustedByUserId: null,
         notes: 'Test Usage Credit Balance Adjustment',
         ...params,
-      },
+      } as UsageCreditBalanceAdjustment.Insert,
       transaction
     )
   })
