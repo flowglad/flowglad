@@ -9471,6 +9471,9 @@
           },
           "manuallyCreated": {
             "type": "boolean"
+          },
+          "pricingModelId": {
+            "type": "string"
           }
         },
         "required": [
@@ -9486,7 +9489,8 @@
           "quantity",
           "type",
           "externalId",
-          "manuallyCreated"
+          "manuallyCreated",
+          "pricingModelId"
         ]
       },
       "AdjustSubscriptionAtEndOfCurrentBillingPeriodInput": {
@@ -14674,6 +14678,9 @@
                 "manuallyCreated": {
                   "type": "boolean"
                 },
+                "pricingModelId": {
+                  "type": "string"
+                },
                 "price": {
                   "$ref": "#/components/schemas/PriceRecord"
                 }
@@ -14692,6 +14699,7 @@
                 "type",
                 "externalId",
                 "manuallyCreated",
+                "pricingModelId",
                 "price"
               ],
               "additionalProperties": false
@@ -15419,6 +15427,9 @@
                 "manuallyCreated": {
                   "type": "boolean"
                 },
+                "pricingModelId": {
+                  "type": "string"
+                },
                 "price": {
                   "$ref": "#/components/schemas/PriceRecord"
                 }
@@ -15437,6 +15448,7 @@
                 "type",
                 "externalId",
                 "manuallyCreated",
+                "pricingModelId",
                 "price"
               ],
               "additionalProperties": false
@@ -15804,6 +15816,9 @@
                 "type": "null"
               }
             ]
+          },
+          "pricingModelId": {
+            "type": "string"
           }
         },
         "required": [
@@ -15827,7 +15842,8 @@
           "subtotal",
           "taxState",
           "taxRatePercentage",
-          "applicationFee"
+          "applicationFee",
+          "pricingModelId"
         ],
         "additionalProperties": false
       },
@@ -16098,6 +16114,9 @@
                 "type": "null"
               }
             ]
+          },
+          "pricingModelId": {
+            "type": "string"
           }
         },
         "required": [
@@ -16123,7 +16142,8 @@
           "subtotal",
           "taxState",
           "taxRatePercentage",
-          "applicationFee"
+          "applicationFee",
+          "pricingModelId"
         ],
         "additionalProperties": false
       },
@@ -16395,6 +16415,9 @@
                 "type": "null"
               }
             ]
+          },
+          "pricingModelId": {
+            "type": "string"
           }
         },
         "required": [
@@ -16423,7 +16446,8 @@
           "stripeTaxTransactionId",
           "taxState",
           "taxRatePercentage",
-          "applicationFee"
+          "applicationFee",
+          "pricingModelId"
         ],
         "additionalProperties": false
       },
@@ -17690,6 +17714,9 @@
           },
           "manuallyCreated": {
             "type": "boolean"
+          },
+          "pricingModelId": {
+            "type": "string"
           }
         },
         "required": [
@@ -17705,7 +17732,8 @@
           "quantity",
           "type",
           "externalId",
-          "manuallyCreated"
+          "manuallyCreated",
+          "pricingModelId"
         ],
         "additionalProperties": false
       }

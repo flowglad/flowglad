@@ -30,7 +30,10 @@ import {
   selectSubscriptionItemById,
   selectSubscriptionItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
+import {
+  derivePricingModelIdFromSubscription,
+  selectSubscriptionById,
+} from '@/db/tableMethods/subscriptionMethods'
 import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { DbTransaction } from '@/db/types'
@@ -437,7 +440,14 @@ const findOrCreateManualSubscriptionItem = async (
   livemode: boolean,
   transaction: DbTransaction
 ): Promise<SubscriptionItem.Record> => {
-  const manualItemInsert: SubscriptionItem.Insert = {
+  const pricingModelId = await derivePricingModelIdFromSubscription(
+    subscriptionId,
+    transaction
+  )
+
+  const manualItemInsert: SubscriptionItem.Insert & {
+    pricingModelId: string
+  } = {
     subscriptionId,
     name: 'Manual Features',
     priceId: null,
@@ -450,6 +460,7 @@ const findOrCreateManualSubscriptionItem = async (
     type: SubscriptionItemType.Static,
     manuallyCreated: true,
     livemode,
+    pricingModelId,
   }
 
   // Try to insert, do nothing if conflict occurs due to unique constraint

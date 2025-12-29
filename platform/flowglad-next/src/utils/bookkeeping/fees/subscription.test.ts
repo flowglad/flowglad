@@ -195,6 +195,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       purchaseId: core.nanoid(),
       discountName: testDiscount.name,
       fullyRedeemed: false,
+      pricingModelId: orgData.pricingModel.id,
     }
 
     let internationalPaymentMethod = await setupPaymentMethod({
