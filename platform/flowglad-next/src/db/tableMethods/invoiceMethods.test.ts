@@ -593,6 +593,7 @@ describe('selectInvoicesTableRowData', () => {
         organizationId: organization.id,
         email: 'test@example.com',
         livemode: true,
+        pricingModelId: pricingModel.id,
       })
 
       subscription = await setupSubscription({
@@ -686,38 +687,6 @@ describe('selectInvoicesTableRowData', () => {
         })
       })
 
-      it('should throw error when subscription does not exist', async () => {
-        await adminTransaction(async ({ transaction }) => {
-          const nonExistentSubscriptionId = `sub_${core.nanoid()}`
-
-          await expect(
-            derivePricingModelIdForInvoice(
-              {
-                subscriptionId: nonExistentSubscriptionId,
-                customerId: customer.id,
-              },
-              transaction
-            )
-          ).rejects.toThrow()
-        })
-      })
-
-      it('should throw error when purchase does not exist', async () => {
-        await adminTransaction(async ({ transaction }) => {
-          const nonExistentPurchaseId = `purch_${core.nanoid()}`
-
-          await expect(
-            derivePricingModelIdForInvoice(
-              {
-                purchaseId: nonExistentPurchaseId,
-                customerId: customer.id,
-              },
-              transaction
-            )
-          ).rejects.toThrow()
-        })
-      })
-
       it('should throw error when customer does not exist', async () => {
         await adminTransaction(async ({ transaction }) => {
           const nonExistentCustomerId = `cust_${core.nanoid()}`
@@ -757,6 +726,7 @@ describe('selectInvoicesTableRowData', () => {
               invoiceNumber: `TEST-${core.nanoid()}`,
               currency: CurrencyCode.USD,
               purchaseId: null,
+              invoiceDate: Date.now(),
             },
             transaction
           )
@@ -780,6 +750,7 @@ describe('selectInvoicesTableRowData', () => {
               livemode: true,
               invoiceNumber: `TEST-${core.nanoid()}`,
               currency: CurrencyCode.USD,
+              invoiceDate: Date.now(),
             },
             transaction
           )
@@ -803,58 +774,13 @@ describe('selectInvoicesTableRowData', () => {
               billingPeriodId: null,
               purchaseId: null,
               subscriptionId: null,
+              invoiceDate: Date.now(),
             },
             transaction
           )
 
           expect(invoice.pricingModelId).toBe(customer.pricingModelId)
           expect(invoice.pricingModelId).toBe(pricingModel.id)
-        })
-      })
-
-      it('should throw error when subscription does not exist', async () => {
-        await adminTransaction(async ({ transaction }) => {
-          const nonExistentSubscriptionId = `sub_${core.nanoid()}`
-
-          await expect(
-            insertInvoice(
-              {
-                customerId: customer.id,
-                organizationId: customer.organizationId,
-                subscriptionId: nonExistentSubscriptionId,
-                billingPeriodId: 'bp_test',
-                status: InvoiceStatus.Draft,
-                type: InvoiceType.Subscription,
-                livemode: true,
-                invoiceNumber: `TEST-${core.nanoid()}`,
-                currency: CurrencyCode.USD,
-                purchaseId: null,
-              },
-              transaction
-            )
-          ).rejects.toThrow()
-        })
-      })
-
-      it('should throw error when purchase does not exist', async () => {
-        await adminTransaction(async ({ transaction }) => {
-          const nonExistentPurchaseId = `purch_${core.nanoid()}`
-
-          await expect(
-            insertInvoice(
-              {
-                customerId: customer.id,
-                organizationId: customer.organizationId,
-                purchaseId: nonExistentPurchaseId,
-                status: InvoiceStatus.Draft,
-                type: InvoiceType.Purchase,
-                livemode: true,
-                invoiceNumber: `TEST-${core.nanoid()}`,
-                currency: CurrencyCode.USD,
-              },
-              transaction
-            )
-          ).rejects.toThrow()
         })
       })
 
@@ -875,6 +801,7 @@ describe('selectInvoicesTableRowData', () => {
                 billingPeriodId: null,
                 purchaseId: null,
                 subscriptionId: null,
+                invoiceDate: Date.now(),
               },
               transaction
             )

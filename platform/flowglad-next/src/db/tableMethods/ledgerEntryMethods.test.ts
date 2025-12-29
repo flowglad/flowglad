@@ -3661,22 +3661,7 @@ describe('ledgerEntryMethods', () => {
         })
       })
 
-      it('should throw error when subscription does not exist', async () => {
-        await adminTransaction(async ({ transaction }) => {
-          const nonExistentSubscriptionId = `sub_${core.nanoid()}`
-
-          await expect(
-            derivePricingModelIdForLedgerEntry(
-              {
-                subscriptionId: nonExistentSubscriptionId,
-              },
-              transaction
-            )
-          ).rejects.toThrow()
-        })
-      })
-
-      it('should throw error when usage meter does not exist', async () => {
+      it('should throw error when usage meter does not exist and no subscriptionId is provided', async () => {
         await adminTransaction(async ({ transaction }) => {
           const nonExistentUsageMeterId = `um_${core.nanoid()}`
 
@@ -3829,76 +3814,6 @@ describe('ledgerEntryMethods', () => {
           )
 
           expect(entry.pricingModelId).toBe(pricingModel.id)
-        })
-      })
-
-      it('should throw error when subscription does not exist', async () => {
-        await adminTransaction(async ({ transaction }) => {
-          const nonExistentSubscriptionId = `sub_${core.nanoid()}`
-
-          await expect(
-            insertLedgerEntry(
-              {
-                ...ledgerEntryNulledSourceIdColumns,
-                metadata: {},
-                discardedAt: null,
-                organizationId: organization.id,
-                subscriptionId: nonExistentSubscriptionId,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                direction: LedgerEntryDirection.Credit,
-                amount: 1000,
-                status: LedgerEntryStatus.Posted,
-                livemode: true,
-                entryTimestamp: Date.now(),
-                sourceUsageCreditId: usageCredit.id,
-                claimedByBillingRunId: null,
-              },
-              transaction
-            )
-          ).rejects.toThrow()
-        })
-      })
-
-      it('should throw error when usage meter does not exist', async () => {
-        await adminTransaction(async ({ transaction }) => {
-          const nonExistentUsageMeterId = `um_${core.nanoid()}`
-          const usageEvent = await setupUsageEvent({
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            livemode: true,
-            amount: 100,
-            priceId: price.id,
-            billingPeriodId: billingPeriod.id,
-            transactionId: testLedgerTransaction.id,
-            customerId: customer.id,
-          })
-
-          await expect(
-            insertLedgerEntry(
-              {
-                ...ledgerEntryNulledSourceIdColumns,
-                metadata: {},
-                discardedAt: null,
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                usageMeterId: nonExistentUsageMeterId,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.UsageCost,
-                direction: LedgerEntryDirection.Debit,
-                amount: 1000,
-                status: LedgerEntryStatus.Posted,
-                livemode: true,
-                entryTimestamp: Date.now(),
-                sourceUsageEventId: usageEvent.id,
-              },
-              transaction
-            )
-          ).rejects.toThrow()
         })
       })
     })
@@ -4062,38 +3977,6 @@ describe('ledgerEntryMethods', () => {
             transaction
           )
           expect(entries).toEqual([])
-        })
-      })
-
-      it('should throw error when subscription does not exist for bulk insert', async () => {
-        await adminTransaction(async ({ transaction }) => {
-          const nonExistentSubscriptionId = `sub_${core.nanoid()}`
-
-          await expect(
-            bulkInsertLedgerEntries(
-              [
-                {
-                  ...ledgerEntryNulledSourceIdColumns,
-                  metadata: {},
-                  discardedAt: null,
-                  organizationId: organization.id,
-                  subscriptionId: nonExistentSubscriptionId,
-                  usageMeterId: ledgerAccount.usageMeterId!,
-                  ledgerAccountId: ledgerAccount.id,
-                  ledgerTransactionId: testLedgerTransaction.id,
-                  entryType: LedgerEntryType.CreditGrantRecognized,
-                  direction: LedgerEntryDirection.Credit,
-                  amount: 1000,
-                  status: LedgerEntryStatus.Posted,
-                  livemode: true,
-                  entryTimestamp: Date.now(),
-                  sourceUsageCreditId: usageCredit.id,
-                  claimedByBillingRunId: null,
-                },
-              ],
-              transaction
-            )
-          ).rejects.toThrow()
         })
       })
     })

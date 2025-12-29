@@ -1310,6 +1310,7 @@ describe('subscriptionItemMethods', async () => {
             unitPrice: 1000,
             quantity: 1,
             livemode: true,
+            priceId: price.id,
           },
           transaction
         )
@@ -1329,6 +1330,7 @@ describe('subscriptionItemMethods', async () => {
             unitPrice: 1000,
             quantity: 1,
             livemode: true,
+            priceId: price.id,
             pricingModelId: orgData.pricingModel.id, // explicitly provided
           },
           transaction
@@ -1349,6 +1351,7 @@ describe('subscriptionItemMethods', async () => {
               unitPrice: 1000,
               quantity: 1,
               livemode: true,
+              priceId: price.id,
             },
             {
               subscriptionId: subscription.id,
@@ -1357,6 +1360,7 @@ describe('subscriptionItemMethods', async () => {
               unitPrice: 2000,
               quantity: 2,
               livemode: true,
+              priceId: price.id,
             },
           ],
           transaction
@@ -1388,6 +1392,7 @@ describe('subscriptionItemMethods', async () => {
                 quantity: 1,
                 livemode: true,
                 externalId: externalId1,
+                priceId: price.id,
               },
               {
                 subscriptionId: subscription.id,
@@ -1397,6 +1402,7 @@ describe('subscriptionItemMethods', async () => {
                 quantity: 2,
                 livemode: true,
                 externalId: externalId2,
+                priceId: price.id,
               },
             ],
             transaction
@@ -1421,6 +1427,7 @@ describe('subscriptionItemMethods', async () => {
           unitPrice: 1000,
           quantity: 1,
           livemode: true,
+          priceId: price.id,
         } as const
 
         const items = await bulkCreateOrUpdateSubscriptionItems(
@@ -1448,6 +1455,7 @@ describe('subscriptionItemMethods', async () => {
               unitPrice: 1000,
               quantity: 1,
               livemode: true,
+              priceId: price.id,
             },
             transaction
           )
@@ -1469,6 +1477,7 @@ describe('subscriptionItemMethods', async () => {
                 unitPrice: 1000,
                 quantity: 1,
                 livemode: true,
+                priceId: price.id,
               },
               {
                 subscriptionId: nonExistentSubscriptionId, // invalid
@@ -1477,6 +1486,7 @@ describe('subscriptionItemMethods', async () => {
                 unitPrice: 2000,
                 quantity: 2,
                 livemode: true,
+                priceId: price.id,
               },
             ],
             transaction
@@ -1501,6 +1511,7 @@ describe('subscriptionItemMethods', async () => {
                 quantity: 1,
                 livemode: true,
                 externalId,
+                priceId: price.id,
               },
             ],
             transaction
@@ -1523,6 +1534,7 @@ describe('subscriptionItemMethods', async () => {
                 unitPrice: 1000,
                 quantity: 1,
                 livemode: true,
+                priceId: price.id,
               },
             ],
             transaction

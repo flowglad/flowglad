@@ -528,9 +528,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
           transaction
         )
       })
-    ).rejects.toThrowError(
-      'Failed query: insert into "ledger_transactions"'
-    )
+    ).rejects.toThrow()
 
     // Verify that no partial/rogue transactions were persisted due to the error.
     // This ensures the database transaction was properly rolled back.

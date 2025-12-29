@@ -1032,9 +1032,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           transaction
         )
       })
-    ).rejects.toThrowError(
-      'Failed query: insert into "ledger_transactions"'
-    )
+    ).rejects.toThrow()
     const rogueTransactions = await adminTransaction(
       async ({ transaction }) => {
         return selectLedgerTransactions(

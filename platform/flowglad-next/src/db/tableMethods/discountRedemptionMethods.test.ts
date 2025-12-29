@@ -24,6 +24,7 @@ import type { Product } from '../schema/products'
 import type { Purchase } from '../schema/purchases'
 import {
   insertDiscountRedemption,
+  selectDiscountRedemptions,
   upsertDiscountRedemptionByPurchaseId,
 } from './discountRedemptionMethods'
 
@@ -68,7 +69,7 @@ describe('Discount Redemption Methods', () => {
     discount = await setupDiscount({
       organizationId: organization.id,
       name: 'Test Discount',
-      code: `TESTCODE_${core.nanoid()}`,
+      code: `TEST${core.nanoid().substring(0, 15)}`, // Keep under 20 chars
       amount: 500,
       amountType: DiscountAmountType.Fixed,
       livemode: true,
@@ -182,9 +183,9 @@ describe('Discount Redemption Methods', () => {
       })
     })
 
-    it('should update existing discount redemption on upsert', async () => {
+    it('should do nothing on conflict with existing discount redemption', async () => {
       await adminTransaction(async ({ transaction }) => {
-        // First upsert
+        // First upsert (insert)
         const firstResult =
           await upsertDiscountRedemptionByPurchaseId(
             {
@@ -203,8 +204,10 @@ describe('Discount Redemption Methods', () => {
 
         expect(firstResult).toHaveLength(1)
         const firstRedemption = firstResult[0]
+        expect(firstRedemption.discountAmount).toBe(500)
 
-        // Second upsert with same purchaseId but different amount
+        // Second upsert with same purchaseId - should do nothing (returns empty)
+        // Note: createUpsertFunction actually does onConflictDoNothing, not update
         const secondResult =
           await upsertDiscountRedemptionByPurchaseId(
             {
@@ -221,11 +224,16 @@ describe('Discount Redemption Methods', () => {
             transaction
           )
 
-        expect(secondResult).toHaveLength(1)
-        const secondRedemption = secondResult[0]
-        expect(secondRedemption.id).toBe(firstRedemption.id) // same record
-        expect(secondRedemption.discountAmount).toBe(750) // updated amount
-        expect(secondRedemption.pricingModelId).toBe(pricingModel.id)
+        // On conflict, it does nothing and returns empty array
+        expect(secondResult).toHaveLength(0)
+
+        // Verify the original record is unchanged
+        const existingRedemptions = await selectDiscountRedemptions(
+          { purchaseId: purchase.id },
+          transaction
+        )
+        expect(existingRedemptions).toHaveLength(1)
+        expect(existingRedemptions[0].discountAmount).toBe(500) // unchanged
       })
     })
 
