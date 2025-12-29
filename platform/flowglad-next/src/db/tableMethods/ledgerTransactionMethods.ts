@@ -14,7 +14,10 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '../types'
-import { derivePricingModelIdFromSubscription } from './subscriptionMethods'
+import {
+  derivePricingModelIdFromSubscription,
+  pricingModelIdsForSubscriptions,
+} from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof ledgerTransactions,
@@ -77,21 +80,39 @@ const bulkInsertOrDoNothingLedgerTransaction = async (
   >[1],
   transaction: DbTransaction
 ) => {
-  // Derive pricingModelId if not provided
-  const insertsWithPricingModelId = await Promise.all(
-    ledgerTransactionInserts.map(async (insert) => {
+  // Collect unique subscriptionIds that need pricingModelId derivation
+  const subscriptionIdsNeedingDerivation = Array.from(
+    new Set(
+      ledgerTransactionInserts
+        .filter((insert) => !insert.pricingModelId)
+        .map((insert) => insert.subscriptionId)
+    )
+  )
+
+  // Batch fetch pricingModelIds for all subscriptions in one query
+  const pricingModelIdMap = await pricingModelIdsForSubscriptions(
+    subscriptionIdsNeedingDerivation,
+    transaction
+  )
+
+  // Derive pricingModelId using the batch-fetched map
+  const insertsWithPricingModelId = ledgerTransactionInserts.map(
+    (insert) => {
       const pricingModelId =
         insert.pricingModelId ??
-        (await derivePricingModelIdFromSubscription(
-          insert.subscriptionId,
-          transaction
-        ))
+        pricingModelIdMap.get(insert.subscriptionId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Could not derive pricingModelId for subscription ${insert.subscriptionId}`
+        )
+      }
       return {
         ...insert,
         pricingModelId,
       }
-    })
+    }
   )
+
   return baseBulkInsertOrDoNothingLedgerTransaction(
     insertsWithPricingModelId,
     conflictColumns,
