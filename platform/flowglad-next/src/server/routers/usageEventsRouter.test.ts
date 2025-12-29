@@ -1141,13 +1141,31 @@ describe('usageEventsRouter', () => {
           const relevantTransactions = ledgerTransactions.filter(
             (lt) =>
               result.usageEvents.some(
-                (ue) =>
-                  lt.initiatingSourceId === ue.id &&
-                  (lt.subscriptionId === subscription1.id ||
-                    lt.subscriptionId === subscription1b.id)
+                (ue) => lt.initiatingSourceId === ue.id
               )
           )
           expect(relevantTransactions.length).toBe(4)
+
+          // Verify ledger transaction content for each usage event
+          for (const usageEvent of result.usageEvents) {
+            const ledgerTransaction = relevantTransactions.find(
+              (lt) => lt.initiatingSourceId === usageEvent.id
+            )
+            expect(ledgerTransaction).toBeDefined()
+            expect(ledgerTransaction?.type).toBe(
+              LedgerTransactionType.UsageEventProcessed
+            )
+            expect(ledgerTransaction?.initiatingSourceType).toBe(
+              LedgerTransactionInitiatingSourceType.UsageEvent
+            )
+            expect(ledgerTransaction?.subscriptionId).toBe(
+              usageEvent.subscriptionId
+            )
+            expect(ledgerTransaction?.organizationId).toBe(
+              org1Data.organization.id
+            )
+            expect(ledgerTransaction?.livemode).toBe(true)
+          }
         },
         { apiKey: org1ApiKeyToken }
       )
