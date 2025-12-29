@@ -1,12 +1,19 @@
+import { and, eq, inArray } from 'drizzle-orm'
 import * as R from 'ramda'
 import {
   type LedgerEntry,
   ledgerEntryNulledSourceIdColumns,
 } from '@/db/schema/ledgerEntries'
-import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
+import {
+  SubscriptionItemFeature,
+  subscriptionItemFeatures,
+} from '@/db/schema/subscriptionItemFeatures'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
-import type { UsageCredit } from '@/db/schema/usageCredits'
+import {
+  type UsageCredit,
+  usageCredits,
+} from '@/db/schema/usageCredits'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import { findOrCreateLedgerAccountsForSubscriptionAndUsageMeters } from '@/db/tableMethods/ledgerAccountMethods'
 import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
@@ -21,10 +28,7 @@ import {
   selectCurrentlyActiveSubscriptionItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
-import {
-  bulkInsertUsageCredits,
-  selectUsageCredits,
-} from '@/db/tableMethods/usageCreditMethods'
+import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import type { DbTransaction } from '@/db/types'
 import {
   FeatureType,
@@ -142,26 +146,63 @@ const grantProratedCreditsForFeatures = async (params: {
     currentBillingPeriod
   )
 
-  // Check for existing credits (to avoid double-granting) - batch query
-  const existingCredits = await selectUsageCredits(
-    {
-      subscriptionId: subscription.id,
-      billingPeriodId: currentBillingPeriod.id,
-      sourceReferenceId: creditGrantFeatures.map(
-        (feature) => feature.id
-      ),
-    },
-    transaction
+  // Extract stable feature IDs (featureId column, not the subscription_item_feature.id)
+  const stableFeatureIds = creditGrantFeatures
+    .map((feature) => feature.featureId)
+    .filter((id): id is string => id !== null)
+
+  // Extract usage meter IDs for additional filtering
+  const creditGrantUsageMeterIds = R.uniq(
+    creditGrantFeatures
+      .map((feature) => feature.usageMeterId)
+      .filter((id): id is string => id !== null)
   )
-  const existingFeatureIds = new Set(
-    existingCredits.map(
-      (existingCredit) => existingCredit.sourceReferenceId
+
+  // Query existing credits by joining with subscription_item_features to check stable featureId
+  const existingCreditsWithFeatures = await transaction
+    .select({
+      usageCredit: usageCredits,
+      subscriptionItemFeature: subscriptionItemFeatures,
+    })
+    .from(usageCredits)
+    .innerJoin(
+      subscriptionItemFeatures,
+      eq(usageCredits.sourceReferenceId, subscriptionItemFeatures.id)
+    )
+    .where(
+      and(
+        eq(usageCredits.subscriptionId, subscription.id),
+        eq(usageCredits.billingPeriodId, currentBillingPeriod.id),
+        eq(
+          usageCredits.sourceReferenceType,
+          UsageCreditSourceReferenceType.ManualAdjustment
+        ),
+        inArray(subscriptionItemFeatures.featureId, stableFeatureIds),
+        ...(creditGrantUsageMeterIds.length > 0
+          ? [
+              inArray(
+                usageCredits.usageMeterId,
+                creditGrantUsageMeterIds
+              ),
+            ]
+          : [])
+      )
+    )
+
+  // Build set of stable featureIds that already have credits in this billing period
+  const existingStableFeatureIds = new Set(
+    existingCreditsWithFeatures.map(
+      (row) => row.subscriptionItemFeature.featureId
     )
   )
 
   // Build usage credit inserts for features that don't already have credits
   const usageCreditInserts: UsageCredit.Insert[] = creditGrantFeatures
-    .filter((feature) => !existingFeatureIds.has(feature.id))
+    .filter(
+      (feature) =>
+        feature.featureId !== null &&
+        !existingStableFeatureIds.has(feature.featureId)
+    )
     .map((feature) => {
       const isEveryBillingPeriod =
         feature.renewalFrequency ===
