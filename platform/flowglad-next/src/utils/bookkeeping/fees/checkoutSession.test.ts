@@ -70,6 +70,56 @@ describe('createCheckoutSessionFeeCalculationInsertForPrice', () => {
     expect(feeCalculationInsert.stripeTaxCalculationId).toBeNull()
     expect(feeCalculationInsert.morSurchargePercentage).toBe('0')
   })
+
+  it('sets morSurchargePercentage when calculating fee for MerchantOfRecord organizations', async () => {
+    const organization = {
+      id: 'org_mor',
+      stripeConnectContractType:
+        StripeConnectContractType.MerchantOfRecord,
+      feePercentage: '1.0',
+    } as Organization.Record
+
+    const product = {
+      id: 'prod_1',
+      livemode: true,
+    } as Product.Record
+
+    const price = {
+      id: 'price_1',
+      // Use 0 to avoid hitting Stripe Tax API (calculateTaxes fast-path).
+      unitPrice: 0,
+      currency: CurrencyCode.USD,
+      livemode: true,
+    } as Price.Record
+
+    const checkoutSession = {
+      id: 'sess_mor',
+      paymentMethodType: PaymentMethodType.Card,
+      billingAddress: {
+        address: { country: CountryCode.US },
+      } as BillingAddress,
+    } as CheckoutSession.FeeReadyRecord
+
+    const organizationCountry = {
+      code: CountryCode.US,
+    } as Country.Record
+
+    const feeCalculationInsert =
+      await createCheckoutSessionFeeCalculationInsertForPrice({
+        organization,
+        product,
+        price,
+        purchase: undefined,
+        discount: undefined,
+        checkoutSessionId: checkoutSession.id,
+        billingAddress: checkoutSession.billingAddress!,
+        paymentMethodType: checkoutSession.paymentMethodType!,
+        organizationCountry,
+        livemode: true,
+      })
+
+    expect(feeCalculationInsert.morSurchargePercentage).toBe('1.1')
+  })
 })
 
 describe('createCheckoutSessionFeeCalculationInsertForInvoice', () => {

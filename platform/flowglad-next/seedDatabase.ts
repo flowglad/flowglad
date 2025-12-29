@@ -161,6 +161,7 @@ export const dropDatabase = async () => {
 export const setupOrg = async (params?: {
   monthlyBillingVolumeFreeTier?: number
   feePercentage?: string
+  stripeConnectContractType?: StripeConnectContractType
 }) => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
@@ -174,7 +175,9 @@ export const setupOrg = async (params?: {
           params?.monthlyBillingVolumeFreeTier ?? undefined,
         feePercentage: params?.feePercentage ?? undefined,
         onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
-        stripeConnectContractType: StripeConnectContractType.Platform,
+        stripeConnectContractType:
+          params?.stripeConnectContractType ??
+          StripeConnectContractType.Platform,
         featureFlags: {},
         contactEmail: 'test@test.com',
         billingAddress: {
