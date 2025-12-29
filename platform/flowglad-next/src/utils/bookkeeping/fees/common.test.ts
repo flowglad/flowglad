@@ -328,12 +328,15 @@ describe('calculateTotalFeeAmount', () => {
   })
 
   it('handles null or undefined fee percentages by throwing error for parseFloat', () => {
-    const feeCalculation = {
+    const feeCalculation: FeeCalculation.Record = {
       ...coreFeeCalculation,
-      flowgladFeePercentage: null as any, // Cast to any to allow null for testing runtime behavior
-      morSurchargePercentage: null as any, // Cast to any to allow null for testing runtime behavior
-      internationalFeePercentage: null as any, // Cast to any to allow null for testing runtime behavior
-    } as FeeCalculation.Record
+      // @ts-expect-error <CHORUS_TAG>ts-expect-error</CHORUS_TAG> Intentionally pass null to verify runtime parseFloat error handling.
+      flowgladFeePercentage: null,
+      // @ts-expect-error <CHORUS_TAG>ts-expect-error</CHORUS_TAG> Intentionally pass null to verify runtime parseFloat error handling.
+      morSurchargePercentage: null,
+      // @ts-expect-error <CHORUS_TAG>ts-expect-error</CHORUS_TAG> Intentionally pass null to verify runtime parseFloat error handling.
+      internationalFeePercentage: null,
+    }
 
     expect(() => calculateTotalFeeAmount(feeCalculation)).toThrow()
   })
@@ -422,25 +425,25 @@ describe('calculateTotalDueAmount', () => {
 
 describe('calculatePriceBaseAmount', () => {
   it('returns price unit price when no purchase exists', () => {
-    const price = { unitPrice: 1000 } as any
+    const price = { unitPrice: 1000 } as Price.Record
     expect(calculatePriceBaseAmount({ price, purchase: null })).toBe(
       1000
     )
   })
   it('returns firstInvoiceValue for single payment purchases', () => {
-    const price = { unitPrice: 1000 } as any
+    const price = { unitPrice: 1000 } as Price.Record
     const purchase = {
       priceType: PriceType.SinglePayment,
       firstInvoiceValue: 800,
-    } as any
+    } as Purchase.Record
     expect(calculatePriceBaseAmount({ price, purchase })).toBe(800)
   })
   it('returns pricePerBillingCycle for subscription purchases', () => {
-    const price = { unitPrice: 1000 } as any
+    const price = { unitPrice: 1000 } as Price.Record
     const purchase = {
       priceType: PriceType.Subscription,
       pricePerBillingCycle: 900,
-    } as any
+    } as Purchase.Record
     expect(calculatePriceBaseAmount({ price, purchase })).toBe(900)
   })
 })
@@ -453,14 +456,14 @@ describe('calculateDiscountAmount', () => {
     const discount = {
       amountType: DiscountAmountType.Fixed,
       amount: 500,
-    } as any
+    } as Discount.Record
     expect(calculateDiscountAmount(1000, discount)).toBe(500)
   })
   it('calculates percentage discount correctly', () => {
     const discount = {
       amountType: DiscountAmountType.Percent,
       amount: 20,
-    } as any
+    } as Discount.Record
     expect(calculateDiscountAmount(1000, discount)).toBe(200)
   })
 })
@@ -470,9 +473,9 @@ describe('calculateDiscountAmount', () => {
 describe('calculateInternationalFeePercentage', () => {
   const org = {
     feePercentage: '1.0',
-    stripeConnectContractType: 'Platform',
-  } as any
-  const orgCountry = { code: CountryCode.US } as any
+    stripeConnectContractType: StripeConnectContractType.Platform,
+  } as Organization.Record
+  const orgCountry = { code: CountryCode.US } as Country.Record
   it('returns 0 for same-country transactions', () => {
     expect(
       calculateInternationalFeePercentage({
@@ -489,7 +492,7 @@ describe('calculateInternationalFeePercentage', () => {
         paymentMethod: PaymentMethodType.Card,
         paymentMethodCountry: CountryCode.GB,
         organization: org,
-        organizationCountry: { code: CountryCode.US } as any,
+        organizationCountry: orgCountry,
       })
     ).toBe(1.5)
   })
@@ -524,7 +527,7 @@ describe('calculateTotalFeeAmount & calculateTotalDueAmount', () => {
     morSurchargePercentage: '0',
     internationalFeePercentage: '2.5',
     paymentMethodFeeFixed: 59,
-  } as any
+  } as FeeCalculation.Record
   it('calculates total fee correctly', () => {
     expect(calculateTotalFeeAmount(coreCalc)).toBe(
       Math.round((1000 - 100) * 0.1 + (1000 - 100) * 0.025 + 59 + 90)
@@ -535,7 +538,7 @@ describe('calculateTotalFeeAmount & calculateTotalDueAmount', () => {
       baseAmount: 1000,
       discountAmountFixed: 100,
       taxAmountFixed: 90,
-    } as any
+    } as FeeCalculation.CustomerRecord
     expect(calculateTotalDueAmount(dueCalc)).toBe(990)
   })
 })
