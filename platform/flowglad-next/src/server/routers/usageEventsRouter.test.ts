@@ -1144,14 +1144,13 @@ describe('usageEventsRouter', () => {
                 (ue) => lt.initiatingSourceId === ue.id
               )
           )
-          expect(relevantTransactions.length).toBe(4)
+          expect(relevantTransactions).toHaveLength(4)
 
           // Verify ledger transaction content for each usage event
           for (const usageEvent of result.usageEvents) {
             const ledgerTransaction = relevantTransactions.find(
               (lt) => lt.initiatingSourceId === usageEvent.id
             )
-            expect(ledgerTransaction).toBeDefined()
             expect(ledgerTransaction?.type).toBe(
               LedgerTransactionType.UsageEventProcessed
             )
