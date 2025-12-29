@@ -1807,6 +1807,13 @@
       "when": 1766988730414,
       "tag": "0258_magenta_moon_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 259,
+      "version": "7",
+      "when": 1767039006790,
+      "tag": "0259_harsh_senator_kelly",
+      "breakpoints": true
     }
   ]
 }

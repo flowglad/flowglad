@@ -98,6 +98,7 @@ export const usageCredits = pgTable(
       constructIndex(TABLE_NAME, [table.status]),
       constructIndex(TABLE_NAME, [table.paymentId]),
       constructIndex(TABLE_NAME, [table.pricingModelId]),
+      constructIndex(TABLE_NAME, [table.sourceReferenceId]),
       constructUniqueIndex(TABLE_NAME, [
         table.paymentId,
         table.subscriptionId,
