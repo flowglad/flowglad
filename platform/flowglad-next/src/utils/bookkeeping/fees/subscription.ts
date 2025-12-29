@@ -1,7 +1,9 @@
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Country } from '@/db/schema/countries'
 import type { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
@@ -23,8 +25,8 @@ import {
 } from './common'
 
 export interface SubscriptionFeeCalculationParams {
-  organization: any
-  billingPeriod: any
+  organization: Organization.Record
+  billingPeriod: BillingPeriod.Record
   billingPeriodItems: BillingPeriodItem.Record[]
   paymentMethod: PaymentMethod.Record
   discountRedemption?: DiscountRedemption.Record
