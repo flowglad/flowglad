@@ -35,7 +35,11 @@ import {
   expireSubscriptionItemFeaturesForSubscriptionItems,
   selectSubscriptionItemFeaturesWithFeatureSlug,
 } from './subscriptionItemFeatureMethods'
-import { isSubscriptionCurrent } from './subscriptionMethods'
+import {
+  derivePricingModelIdFromSubscription,
+  isSubscriptionCurrent,
+  pricingModelIdsForSubscriptions,
+} from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionItems,
@@ -54,10 +58,29 @@ export const selectSubscriptionItemById = createSelectById(
   config
 )
 
-export const insertSubscriptionItem = createInsertFunction(
+const baseInsertSubscriptionItem = createInsertFunction(
   subscriptionItems,
   config
 )
+
+export const insertSubscriptionItem = async (
+  subscriptionItemInsert: SubscriptionItem.Insert,
+  transaction: DbTransaction
+): Promise<SubscriptionItem.Record> => {
+  const pricingModelId = subscriptionItemInsert.pricingModelId
+    ? subscriptionItemInsert.pricingModelId
+    : await derivePricingModelIdFromSubscription(
+        subscriptionItemInsert.subscriptionId,
+        transaction
+      )
+  return baseInsertSubscriptionItem(
+    {
+      ...subscriptionItemInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateSubscriptionItem = createUpdateFunction(
   subscriptionItems,
@@ -69,10 +92,46 @@ export const selectSubscriptionItems = createSelectFunction(
   config
 )
 
-export const bulkInsertSubscriptionItems = createBulkInsertFunction(
+const baseBulkInsertSubscriptionItems = createBulkInsertFunction(
   subscriptionItems,
   config
 )
+
+export const bulkInsertSubscriptionItems = async (
+  subscriptionItemInserts: SubscriptionItem.Insert[],
+  transaction: DbTransaction
+): Promise<SubscriptionItem.Record[]> => {
+  const subscriptionIds = Array.from(
+    new Set(
+      subscriptionItemInserts.map((insert) => insert.subscriptionId)
+    )
+  )
+  const pricingModelIdMap = await pricingModelIdsForSubscriptions(
+    subscriptionIds,
+    transaction
+  )
+  const subscriptionItemsWithPricingModelId =
+    subscriptionItemInserts.map(
+      (subscriptionItemInsert): SubscriptionItem.Insert => {
+        const pricingModelId =
+          subscriptionItemInsert.pricingModelId ??
+          pricingModelIdMap.get(subscriptionItemInsert.subscriptionId)
+        if (!pricingModelId) {
+          throw new Error(
+            `Pricing model id not found for subscription ${subscriptionItemInsert.subscriptionId}`
+          )
+        }
+        return {
+          ...subscriptionItemInsert,
+          pricingModelId,
+        }
+      }
+    )
+  return baseBulkInsertSubscriptionItems(
+    subscriptionItemsWithPricingModelId,
+    transaction
+  )
+}
 
 export const selectSubscriptionAndItems = async (
   whereClause: SelectConditions<typeof subscriptions>,
@@ -368,8 +427,48 @@ export const selectRichSubscriptionsAndActiveItems = async (
   )
 }
 
-const bulkInsertOrDoNothingSubscriptionItems =
+const baseBulkInsertOrDoNothingSubscriptionItems =
   createBulkInsertOrDoNothingFunction(subscriptionItems, config)
+
+const bulkInsertOrDoNothingSubscriptionItems = async (
+  subscriptionItemInserts: SubscriptionItem.Insert[],
+  conflictColumns: Parameters<
+    typeof baseBulkInsertOrDoNothingSubscriptionItems
+  >[1],
+  transaction: DbTransaction
+) => {
+  // Derive pricingModelId if not provided
+  const subscriptionIds = Array.from(
+    new Set(
+      subscriptionItemInserts.map((insert) => insert.subscriptionId)
+    )
+  )
+  const pricingModelIdMap = await pricingModelIdsForSubscriptions(
+    subscriptionIds,
+    transaction
+  )
+  const insertsWithPricingModelId = subscriptionItemInserts.map(
+    (insert): SubscriptionItem.Insert => {
+      const pricingModelId =
+        insert.pricingModelId ??
+        pricingModelIdMap.get(insert.subscriptionId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Pricing model id not found for subscription ${insert.subscriptionId}`
+        )
+      }
+      return {
+        ...insert,
+        pricingModelId,
+      }
+    }
+  )
+  return baseBulkInsertOrDoNothingSubscriptionItems(
+    insertsWithPricingModelId,
+    conflictColumns,
+    transaction
+  )
+}
 
 export const bulkInsertOrDoNothingSubscriptionItemsByExternalId = (
   subscriptionItemInserts: SubscriptionItem.Insert[],

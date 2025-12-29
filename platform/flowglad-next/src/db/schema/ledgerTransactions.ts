@@ -14,6 +14,7 @@ import {
 } from '@/db/tableUtils'
 import { LedgerTransactionType } from '@/types'
 import core from '@/utils/core'
+import { pricingModels } from './pricingModels'
 import { subscriptions } from './subscriptions'
 
 const TABLE_NAME = 'ledger_transactions'
@@ -40,6 +41,10 @@ export const ledgerTransactions = pgTable(
       subscriptions
     ),
     idempotencyKey: text('idempotency_key'),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => [
     constructIndex(TABLE_NAME, [
@@ -48,6 +53,7 @@ export const ledgerTransactions = pgTable(
     ]),
     constructIndex(TABLE_NAME, [table.subscriptionId]),
     constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
     constructUniqueIndex(TABLE_NAME, [
       table.idempotencyKey,
       table.subscriptionId,
@@ -77,6 +83,10 @@ const columnRefinements = {
   type: core.createSafeZodEnum(LedgerTransactionType),
 }
 
+const readOnlyColumns = {
+  pricingModelId: true,
+} as const
+
 export const {
   insert: ledgerTransactionsInsertSchema,
   select: ledgerTransactionsSelectSchema,
@@ -88,6 +98,12 @@ export const {
   },
 } = buildSchemas(ledgerTransactions, {
   refine: columnRefinements,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
+  client: {
+    readOnlyColumns,
+  },
   entityName: 'LedgerTransaction',
 })
 

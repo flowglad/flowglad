@@ -36,6 +36,14 @@ import {
 } from '../schema/usageMeters'
 import { createDateNotPassedFilter } from '../tableUtils'
 import type { DbTransaction } from '../types'
+import {
+  derivePricingModelIdFromSubscription,
+  pricingModelIdsForSubscriptions,
+} from './subscriptionMethods'
+import {
+  derivePricingModelIdFromUsageMeter,
+  pricingModelIdsForUsageMeters,
+} from './usageMeterMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof ledgerEntries,
@@ -54,10 +62,73 @@ export const selectLedgerEntryById = createSelectById(
   config
 )
 
-export const insertLedgerEntry = createInsertFunction(
+/**
+ * Derives pricingModelId for a ledger entry with COALESCE logic.
+ * Priority: subscription > usageMeter
+ * Used for ledger entry inserts.
+ */
+export const derivePricingModelIdForLedgerEntry = async (
+  data: {
+    subscriptionId?: string | null
+    usageMeterId?: string | null
+  },
+  transaction: DbTransaction
+): Promise<string> => {
+  // Try subscription first
+  if (data.subscriptionId) {
+    try {
+      return await derivePricingModelIdFromSubscription(
+        data.subscriptionId,
+        transaction
+      )
+    } catch (error) {
+      // If subscription doesn't have pricingModelId, fall through to usage meter
+    }
+  }
+
+  // Try usage meter second
+  if (data.usageMeterId) {
+    try {
+      return await derivePricingModelIdFromUsageMeter(
+        data.usageMeterId,
+        transaction
+      )
+    } catch (error) {
+      // If usage meter doesn't have pricingModelId, throw error
+    }
+  }
+
+  throw new Error(
+    'Cannot derive pricingModelId: subscriptionId and usageMeterId are both null or missing pricingModelId'
+  )
+}
+
+const baseInsertLedgerEntry = createInsertFunction(
   ledgerEntries,
   config
 )
+
+export const insertLedgerEntry = async (
+  ledgerEntryInsert: LedgerEntry.Insert,
+  transaction: DbTransaction
+): Promise<LedgerEntry.Record> => {
+  const pricingModelId = ledgerEntryInsert.pricingModelId
+    ? ledgerEntryInsert.pricingModelId
+    : await derivePricingModelIdForLedgerEntry(
+        {
+          subscriptionId: ledgerEntryInsert.subscriptionId,
+          usageMeterId: ledgerEntryInsert.usageMeterId,
+        },
+        transaction
+      )
+  return baseInsertLedgerEntry(
+    {
+      ...ledgerEntryInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateLedgerEntry = createUpdateFunction(
   ledgerEntries,
@@ -69,10 +140,87 @@ export const selectLedgerEntries = createSelectFunction(
   config
 )
 
-export const bulkInsertLedgerEntries = createBulkInsertFunction(
+const baseBulkInsertLedgerEntries = createBulkInsertFunction(
   ledgerEntries,
   config
 )
+
+export const bulkInsertLedgerEntries = async (
+  ledgerEntryInserts: LedgerEntry.Insert[],
+  transaction: DbTransaction
+): Promise<LedgerEntry.Record[]> => {
+  // Collect all unique subscription and usage meter IDs
+  const subscriptionIds = Array.from(
+    new Set(
+      ledgerEntryInserts
+        .map((insert) => insert.subscriptionId)
+        .filter((id): id is string => !!id)
+    )
+  )
+  const usageMeterIds = Array.from(
+    new Set(
+      ledgerEntryInserts
+        .map((insert) => insert.usageMeterId)
+        .filter((id): id is string => !!id)
+    )
+  )
+
+  // Batch fetch pricingModelIds
+  const subscriptionPricingModelIdMap =
+    await pricingModelIdsForSubscriptions(
+      subscriptionIds,
+      transaction
+    )
+  const usageMeterPricingModelIdMap =
+    await pricingModelIdsForUsageMeters(usageMeterIds, transaction)
+
+  // Derive pricingModelId for each insert
+  const ledgerEntriesWithPricingModelId = ledgerEntryInserts.map(
+    (ledgerEntryInsert): LedgerEntry.Insert => {
+      if (ledgerEntryInsert.pricingModelId) {
+        return ledgerEntryInsert
+      }
+
+      // Try subscription first
+      const subscriptionPricingModelId =
+        ledgerEntryInsert.subscriptionId
+          ? subscriptionPricingModelIdMap.get(
+              ledgerEntryInsert.subscriptionId
+            )
+          : undefined
+
+      if (subscriptionPricingModelId) {
+        return {
+          ...ledgerEntryInsert,
+          pricingModelId: subscriptionPricingModelId,
+        }
+      }
+
+      // Try usage meter second
+      const usageMeterPricingModelId = ledgerEntryInsert.usageMeterId
+        ? usageMeterPricingModelIdMap.get(
+            ledgerEntryInsert.usageMeterId
+          )
+        : undefined
+
+      if (usageMeterPricingModelId) {
+        return {
+          ...ledgerEntryInsert,
+          pricingModelId: usageMeterPricingModelId,
+        }
+      }
+
+      throw new Error(
+        'Cannot derive pricingModelId: subscriptionId and usageMeterId are both null or missing pricingModelId'
+      )
+    }
+  )
+
+  return baseBulkInsertLedgerEntries(
+    ledgerEntriesWithPricingModelId,
+    transaction
+  )
+}
 
 const balanceTypeWhereStatement = (
   balanceType: 'pending' | 'posted' | 'available'

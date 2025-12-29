@@ -16,6 +16,7 @@ import {
 import { BillingPeriodStatus } from '@/types'
 import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
+import { pricingModels } from './pricingModels'
 
 const TABLE_NAME = 'billing_periods'
 
@@ -36,11 +37,16 @@ export const billingPeriods = pgTable(
     }).notNull(),
     trialPeriod: boolean('trial_period').notNull().default(false),
     proratedPeriod: boolean('prorated_period').default(false),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.subscriptionId]),
       constructIndex(TABLE_NAME, [table.status]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       merchantPolicy(
         `Enable read for own organizations (${TABLE_NAME})`,
         {
@@ -60,6 +66,7 @@ const columnRefinements = {
 
 const readOnlyColumns = {
   subscriptionId: true,
+  pricingModelId: true,
 } as const
 
 const hiddenColumns = {
@@ -77,6 +84,9 @@ export const {
   },
 } = buildSchemas(billingPeriods, {
   refine: columnRefinements,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns,
     readOnlyColumns,

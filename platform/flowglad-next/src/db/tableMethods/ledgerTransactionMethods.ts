@@ -14,6 +14,7 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '../types'
+import { derivePricingModelIdFromSubscription } from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof ledgerTransactions,
@@ -32,10 +33,29 @@ export const selectLedgerTransactionById = createSelectById(
   config
 )
 
-export const insertLedgerTransaction = createInsertFunction(
+const baseInsertLedgerTransaction = createInsertFunction(
   ledgerTransactions,
   config
 )
+
+export const insertLedgerTransaction = async (
+  ledgerTransactionInsert: LedgerTransaction.Insert,
+  transaction: DbTransaction
+): Promise<LedgerTransaction.Record> => {
+  const pricingModelId =
+    ledgerTransactionInsert.pricingModelId ??
+    (await derivePricingModelIdFromSubscription(
+      ledgerTransactionInsert.subscriptionId,
+      transaction
+    ))
+  return baseInsertLedgerTransaction(
+    {
+      ...ledgerTransactionInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateLedgerTransaction = createUpdateFunction(
   ledgerTransactions,
@@ -47,8 +67,37 @@ export const selectLedgerTransactions = createSelectFunction(
   config
 )
 
-const bulkInsertOrDoNothingLedgerTransaction =
+const baseBulkInsertOrDoNothingLedgerTransaction =
   createBulkInsertOrDoNothingFunction(ledgerTransactions, config)
+
+const bulkInsertOrDoNothingLedgerTransaction = async (
+  ledgerTransactionInserts: LedgerTransaction.Insert[],
+  conflictColumns: Parameters<
+    typeof baseBulkInsertOrDoNothingLedgerTransaction
+  >[1],
+  transaction: DbTransaction
+) => {
+  // Derive pricingModelId if not provided
+  const insertsWithPricingModelId = await Promise.all(
+    ledgerTransactionInserts.map(async (insert) => {
+      const pricingModelId =
+        insert.pricingModelId ??
+        (await derivePricingModelIdFromSubscription(
+          insert.subscriptionId,
+          transaction
+        ))
+      return {
+        ...insert,
+        pricingModelId,
+      }
+    })
+  )
+  return baseBulkInsertOrDoNothingLedgerTransaction(
+    insertsWithPricingModelId,
+    conflictColumns,
+    transaction
+  )
+}
 
 export const insertLedgerTransactionOrDoNothingByIdempotencyKey =
   async (

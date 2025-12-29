@@ -23,6 +23,7 @@ import {
   discountsSelectSchema,
 } from '../schema/discounts'
 import type { Purchase } from '../schema/purchases'
+import { derivePricingModelIdFromPurchase } from './purchaseMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof discountRedemptions,
@@ -46,22 +47,59 @@ export const selectDiscountRedemptions = createSelectFunction(
   config
 )
 
-export const insertDiscountRedemption = createInsertFunction(
+const baseInsertDiscountRedemption = createInsertFunction(
   discountRedemptions,
   config
 )
+
+export const insertDiscountRedemption = async (
+  discountRedemptionInsert: DiscountRedemption.Insert,
+  transaction: DbTransaction
+): Promise<DiscountRedemption.Record> => {
+  const pricingModelId = discountRedemptionInsert.pricingModelId
+    ? discountRedemptionInsert.pricingModelId
+    : await derivePricingModelIdFromPurchase(
+        discountRedemptionInsert.purchaseId,
+        transaction
+      )
+  return baseInsertDiscountRedemption(
+    {
+      ...discountRedemptionInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateDiscountRedemption = createUpdateFunction(
   discountRedemptions,
   config
 )
 
-export const upsertDiscountRedemptionByPurchaseId =
-  createUpsertFunction(
-    discountRedemptions,
-    [discountRedemptions.purchaseId],
-    config
+const baseUpsertDiscountRedemptionByPurchaseId = createUpsertFunction(
+  discountRedemptions,
+  [discountRedemptions.purchaseId],
+  config
+)
+
+export const upsertDiscountRedemptionByPurchaseId = async (
+  discountRedemptionInsert: DiscountRedemption.Insert,
+  transaction: DbTransaction
+) => {
+  const pricingModelId = discountRedemptionInsert.pricingModelId
+    ? discountRedemptionInsert.pricingModelId
+    : await derivePricingModelIdFromPurchase(
+        discountRedemptionInsert.purchaseId,
+        transaction
+      )
+  return baseUpsertDiscountRedemptionByPurchaseId(
+    {
+      ...discountRedemptionInsert,
+      pricingModelId,
+    },
+    transaction
   )
+}
 
 export const upsertDiscountRedemptionForPurchaseAndDiscount = async (
   purchase: Purchase.Record,

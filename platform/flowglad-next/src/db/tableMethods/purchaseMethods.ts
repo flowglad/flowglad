@@ -126,6 +126,56 @@ export const upsertPurchaseById = async (
 
 export const updatePurchase = createUpdateFunction(purchases, config)
 
+/**
+ * Derives pricingModelId from a purchase (via price).
+ * Used for discountRedemptions.
+ */
+export const derivePricingModelIdFromPurchase = async (
+  purchaseId: string,
+  transaction: DbTransaction
+): Promise<string> => {
+  const purchase = await selectPurchaseById(purchaseId, transaction)
+  if (!purchase.pricingModelId) {
+    throw new Error(
+      `Purchase ${purchaseId} does not have a pricingModelId`
+    )
+  }
+  return purchase.pricingModelId
+}
+
+/**
+ * Batch fetch pricingModelIds for multiple purchases.
+ * More efficient than calling derivePricingModelIdFromPurchase for each purchase individually.
+ * Used by bulk insert operations in discount redemptions.
+ */
+export const pricingModelIdsForPurchases = async (
+  purchaseIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, string>> => {
+  if (purchaseIds.length === 0) {
+    return new Map()
+  }
+
+  const purchaseRows = await transaction
+    .select({
+      id: purchases.id,
+      pricingModelId: purchases.pricingModelId,
+    })
+    .from(purchases)
+    .where(inArray(purchases.id, purchaseIds))
+
+  const pricingModelIdMap = new Map<string, string>()
+  for (const purchaseRow of purchaseRows) {
+    if (!purchaseRow.pricingModelId) {
+      throw new Error(
+        `Purchase ${purchaseRow.id} does not have a pricingModelId`
+      )
+    }
+    pricingModelIdMap.set(purchaseRow.id, purchaseRow.pricingModelId)
+  }
+  return pricingModelIdMap
+}
+
 export const selectPurchasesForCustomer = (
   customerId: string,
   transaction: DbTransaction
