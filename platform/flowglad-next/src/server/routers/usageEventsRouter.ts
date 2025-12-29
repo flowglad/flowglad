@@ -36,6 +36,7 @@ import {
 } from '@/utils/openapi'
 import {
   createUsageEventWithSlugSchema,
+  generateLedgerCommandsForBulkUsageEvents,
   ingestAndProcessUsageEvent,
   resolveUsageEventInput,
 } from '@/utils/usage/usageEventHelpers'
@@ -106,9 +107,9 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
   .output(
     z.object({ usageEvents: z.array(usageEventsClientSelectSchema) })
   )
-  .mutation(async ({ input, ctx }) => {
-    const usageEvents = await authenticatedTransaction(
-      async ({ transaction }) => {
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, ctx, transaction }) => {
         const usageInsertsWithoutBillingPeriodId =
           input.usageEvents.map((usageEvent) => ({
             ...usageEvent,
@@ -535,22 +536,36 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
                 ? { billingPeriodId: billingPeriod.id }
                 : {}),
               usageMeterId: finalUsageMeterId,
+              properties: usageEvent.properties ?? {},
               usageDate: usageEvent.usageDate
                 ? usageEvent.usageDate
                 : Date.now(),
             }
           })
-        return await bulkInsertOrDoNothingUsageEventsByTransactionId(
-          usageInsertsWithBillingPeriodId,
-          transaction
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
+
+        const insertedUsageEvents =
+          await bulkInsertOrDoNothingUsageEventsByTransactionId(
+            usageInsertsWithBillingPeriodId,
+            transaction
+          )
+
+        // Generate ledger commands for the inserted usage events
+        const ledgerCommands =
+          await generateLedgerCommandsForBulkUsageEvents(
+            {
+              insertedUsageEvents,
+              livemode: ctx.livemode,
+            },
+            transaction
+          )
+
+        return {
+          result: { usageEvents: insertedUsageEvents },
+          ledgerCommands,
+        }
       }
     )
-    return { usageEvents }
-  })
+  )
 
 // List usage events with pagination
 const listUsageEventsProcedure = protectedProcedure

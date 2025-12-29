@@ -1,4 +1,3 @@
-import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
@@ -20,12 +19,14 @@ import type { Price } from '@/db/schema/prices'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { UsageEvent } from '@/db/schema/usageEvents'
 import type { UsageMeter } from '@/db/schema/usageMeters'
+import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
-import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
 import { updateUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import type { TRPCApiContext } from '@/server/trpcContext'
 import {
   IntervalUnit,
+  LedgerTransactionInitiatingSourceType,
+  LedgerTransactionType,
   PaymentMethodType,
   PriceType,
   SubscriptionStatus,
@@ -1121,6 +1122,35 @@ describe('usageEventsRouter', () => {
       expect(result.usageEvents[1].amount).toBe(200)
       expect(result.usageEvents[2].amount).toBe(150)
       expect(result.usageEvents[3].amount).toBe(250)
+
+      // Verify ledger transactions were created for all bulk inserted events
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const ledgerTransactions = await selectLedgerTransactions(
+            {
+              organizationId: org1Data.organization.id,
+              type: LedgerTransactionType.UsageEventProcessed,
+              initiatingSourceType:
+                LedgerTransactionInitiatingSourceType.UsageEvent,
+              livemode: true,
+            },
+            transaction
+          )
+
+          // Should have ledger transactions for all 4 bulk inserted events
+          const relevantTransactions = ledgerTransactions.filter(
+            (lt) =>
+              result.usageEvents.some(
+                (ue) =>
+                  lt.initiatingSourceId === ue.id &&
+                  (lt.subscriptionId === subscription1.id ||
+                    lt.subscriptionId === subscription1b.id)
+              )
+          )
+          expect(relevantTransactions.length).toBe(4)
+        },
+        { apiKey: org1ApiKeyToken }
+      )
     })
 
     it('should bulk insert usage events with mixed priceId, priceSlug, usageMeterId, and usageMeterSlug', async () => {
