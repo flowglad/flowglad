@@ -690,6 +690,7 @@ describe('Ledger Management System', async () => {
             createdByCommit: null,
             updatedByCommit: null,
             position: 0,
+            pricingModelId: pricingModel.id,
           }
           const command: SettleInvoiceUsageCostsLedgerCommand = {
             type: LedgerTransactionType.SettleInvoiceUsageCosts,

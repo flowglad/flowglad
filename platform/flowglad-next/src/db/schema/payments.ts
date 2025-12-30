@@ -43,6 +43,7 @@ import { customerClientSelectSchema, customers } from './customers'
 import { invoices } from './invoices'
 import { organizations } from './organizations'
 import { paymentMethods } from './paymentMethods'
+import { pricingModels } from './pricingModels'
 import { purchases } from './purchases'
 import { subscriptions } from './subscriptions'
 
@@ -103,6 +104,10 @@ export const payments = pgTable(
     refundedAt: timestampWithTimezoneColumn('refunded_at'),
     failureMessage: text('failure_message'),
     failureCode: text('failure_code'),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => {
     return [
@@ -115,6 +120,7 @@ export const payments = pgTable(
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructUniqueIndex(TABLE_NAME, [table.stripeChargeId]),
       constructIndex(TABLE_NAME, [table.subscriptionId]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
         {
@@ -153,6 +159,7 @@ const columnEnhancements = {
 const readOnlyColumns = {
   organizationId: true,
   livemode: true,
+  pricingModelId: true,
 } as const
 
 const hiddenColumns = {
@@ -170,6 +177,9 @@ export const {
   client: { select: paymentsClientSelectSchema },
 } = buildSchemas(payments, {
   refine: columnEnhancements,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns,
     readOnlyColumns,

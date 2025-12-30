@@ -370,6 +370,7 @@ describe('calculateBillingPeriodItemsValue', () => {
       updatedByCommit: 'test',
       type: SubscriptionItemType.Static,
       position: 0,
+      pricingModelId: 'pricing_model_test',
     }
   }
 

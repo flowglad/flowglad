@@ -34,6 +34,7 @@ import {
 } from './invoices'
 import { ledgerAccounts } from './ledgerAccounts'
 import { prices } from './prices'
+import { pricingModels } from './pricingModels'
 
 export const TABLE_NAME = 'invoice_line_items'
 
@@ -71,6 +72,10 @@ export const invoiceLineItems = pgTable(
       columnName: 'type',
       enumBase: SubscriptionItemType,
     }).notNull(),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => {
     return [
@@ -78,6 +83,7 @@ export const invoiceLineItems = pgTable(
       constructIndex(TABLE_NAME, [table.priceId]),
       constructIndex(TABLE_NAME, [table.billingRunId]),
       constructIndex(TABLE_NAME, [table.ledgerAccountId]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
         {
@@ -122,6 +128,7 @@ const createOnlyColumns = {
 const readOnlyColumns = {
   ledgerAccountId: true,
   billingRunId: true,
+  pricingModelId: true,
 } as const
 
 const hiddenColumns = {
@@ -143,6 +150,9 @@ export const {
 } = buildSchemas(invoiceLineItems, {
   discriminator: 'type',
   refine: staticInvoiceLineItemColumnRefinements,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns,
     createOnlyColumns,
@@ -162,6 +172,9 @@ export const {
   },
 } = buildSchemas(invoiceLineItems, {
   refine: usageInvoiceLineItemColumnRefinements,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: { hiddenColumns, createOnlyColumns, readOnlyColumns },
   entityName: 'UsageInvoiceLineItem',
 })

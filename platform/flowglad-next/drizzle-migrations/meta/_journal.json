@@ -1828,6 +1828,13 @@
       "when": 1767072083081,
       "tag": "0261_futuristic_gamma_corps",
       "breakpoints": true
+    },
+    {
+      "idx": 262,
+      "version": "7",
+      "when": 1767109549416,
+      "tag": "0262_complex_fenris",
+      "breakpoints": true
     }
   ]
 }
