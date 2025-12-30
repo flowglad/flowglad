@@ -248,25 +248,29 @@ export const createDerivePricingModelIds = <
       return new Map()
     }
 
-    const rows = (await transaction
+    const rows = await transaction
       .select({
-        id: table.id as any,
-        pricingModelId: table.pricingModelId as any,
+        id: table.id as PgStringColumn,
+        pricingModelId: table.pricingModelId as PgStringColumn,
       })
-      .from(table as any)
-      .where(inArray(table.id as any, ids))) as {
-      id: string
-      pricingModelId: string | null
-    }[]
+      .from(table as SelectTable)
+      .where(inArray(table.id, ids))
 
     const pricingModelIdMap = new Map<string, string>()
     for (const row of rows) {
-      if (!row.pricingModelId) {
+      const id = row.id
+      if (typeof id !== 'string') {
         throw new Error(
-          `${config.tableName.replace(/_/g, ' ')} ${row.id} does not have a pricingModelId`
+          `Expected id to be a string, got ${typeof id}`
         )
       }
-      pricingModelIdMap.set(row.id, row.pricingModelId)
+      const pricingModelId = row.pricingModelId
+      if (typeof pricingModelId !== 'string') {
+        throw new Error(
+          `expected ${config.tableName.replace(/_/g, ' ')} ${id} to have a pricingModelId`
+        )
+      }
+      pricingModelIdMap.set(id, pricingModelId)
     }
     return pricingModelIdMap
   }
