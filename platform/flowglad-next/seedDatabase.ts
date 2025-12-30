@@ -163,10 +163,14 @@ export const setupOrg = async (params?: {
   monthlyBillingVolumeFreeTier?: number
   feePercentage?: string
   stripeConnectContractType?: StripeConnectContractType
+  countryCode?: CountryCode
 }) => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
-    const [country] = await selectCountries({}, transaction)
+    const [country] = await selectCountries(
+      { code: params?.countryCode ?? CountryCode.US },
+      transaction
+    )
     const organization = await insertOrganization(
       {
         name: `Flowglad Test ${core.nanoid()}`,
