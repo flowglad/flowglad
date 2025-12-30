@@ -130,31 +130,88 @@ export const selectPayments = createSelectFunction(payments, config)
 
 const baseUpsertPayments = createBulkUpsertFunction(payments, config)
 
-// TODO: improve performance by gathering unique subscriptionIds, purchaseIds, and invoiceIds and deriving pricingModelIds for them
 const upsertPayments = async (
   inserts: Payment.Insert[],
   target: Parameters<typeof baseUpsertPayments>[1],
   transaction: DbTransaction
 ): Promise<Payment.Record[]> => {
-  // Derive pricingModelId for each insert
-  const insertsWithPricingModelId = await Promise.all(
-    inserts.map(async (insert) => {
-      const pricingModelId =
-        insert.pricingModelId ??
-        (await derivePricingModelIdForPayment(
-          {
-            subscriptionId: insert.subscriptionId,
-            purchaseId: insert.purchaseId,
-            invoiceId: insert.invoiceId,
-          },
-          transaction
-        ))
-      return {
-        ...insert,
-        pricingModelId,
-      }
-    })
+  // Collect unique combinations that need pricingModelId derivation
+  const insertsNeedingDerivation = inserts.filter(
+    (insert) => !insert.pricingModelId
   )
+
+  // Create a map key for each unique combination
+  const createMapKey = (
+    subscriptionId: string | null | undefined,
+    purchaseId: string | null | undefined,
+    invoiceId: string
+  ) => `${subscriptionId || ''}|${purchaseId || ''}|${invoiceId}`
+
+  // Collect unique combinations
+  const uniqueCombinations = Array.from(
+    new Set(
+      insertsNeedingDerivation.map((insert) =>
+        createMapKey(
+          insert.subscriptionId,
+          insert.purchaseId,
+          insert.invoiceId
+        )
+      )
+    )
+  ).map((key) => {
+    const [subscriptionId, purchaseId, invoiceId] = key.split('|')
+    return {
+      subscriptionId: subscriptionId || undefined,
+      purchaseId: purchaseId || undefined,
+      invoiceId: invoiceId,
+    }
+  })
+
+  // Batch derive pricingModelIds for unique combinations
+  const pricingModelIdResults = await Promise.all(
+    uniqueCombinations.map(async (combo) => ({
+      key: createMapKey(
+        combo.subscriptionId,
+        combo.purchaseId,
+        combo.invoiceId
+      ),
+      pricingModelId: await derivePricingModelIdForPayment(
+        combo,
+        transaction
+      ),
+    }))
+  )
+
+  // Build map for O(1) lookup
+  const pricingModelIdMap = new Map(
+    pricingModelIdResults.map((r) => [r.key, r.pricingModelId])
+  )
+
+  // Derive pricingModelId for each insert using the map
+  const insertsWithPricingModelId = inserts.map((insert) => {
+    if (insert.pricingModelId) {
+      return insert
+    }
+
+    const key = createMapKey(
+      insert.subscriptionId,
+      insert.purchaseId,
+      insert.invoiceId
+    )
+    const pricingModelId = pricingModelIdMap.get(key)
+
+    if (!pricingModelId) {
+      throw new Error(
+        `Could not derive pricingModelId for payment with invoiceId: ${insert.invoiceId}, subscriptionId: ${insert.subscriptionId}, purchaseId: ${insert.purchaseId}`
+      )
+    }
+
+    return {
+      ...insert,
+      pricingModelId,
+    }
+  })
+
   return baseUpsertPayments(
     insertsWithPricingModelId,
     target,
