@@ -153,6 +153,56 @@ export const transferCountries = [
   'VN',
 ]
 
+const normalizeCountryCode = (countryCode: string): string =>
+  countryCode.trim().toUpperCase()
+
+export const platformEligibleCountries = new Set(
+  cardPaymentsCountries
+)
+
+export const morEligibleCountries = new Set(transferCountries)
+
+export const isCountryEligibleForPlatform = (
+  countryCode: string
+): boolean => {
+  return platformEligibleCountries.has(
+    normalizeCountryCode(countryCode)
+  )
+}
+
+export const isCountryEligibleForMoR = (
+  countryCode: string
+): boolean => {
+  return morEligibleCountries.has(normalizeCountryCode(countryCode))
+}
+
+export const getEligibleFundsFlowsForCountry = (
+  countryCode: string
+): StripeConnectContractType[] => {
+  const normalizedCountryCode = normalizeCountryCode(countryCode)
+  const eligibleFlows: StripeConnectContractType[] = []
+
+  if (platformEligibleCountries.has(normalizedCountryCode)) {
+    eligibleFlows.push(StripeConnectContractType.Platform)
+  }
+
+  if (morEligibleCountries.has(normalizedCountryCode)) {
+    eligibleFlows.push(StripeConnectContractType.MerchantOfRecord)
+  }
+
+  return eligibleFlows
+}
+
+export const isCountryEligibleForAnyFlow = (
+  countryCode: string
+): boolean => {
+  const normalizedCountryCode = normalizeCountryCode(countryCode)
+  return (
+    platformEligibleCountries.has(normalizedCountryCode) ||
+    morEligibleCountries.has(normalizedCountryCode)
+  )
+}
+
 export const zeroDecimalCurrencies = [
   'BIF',
   'CLP',
