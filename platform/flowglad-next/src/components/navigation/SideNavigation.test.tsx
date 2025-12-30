@@ -167,6 +167,10 @@ vi.mock('./NavUser', () => ({
   ),
 }))
 
+vi.mock('./SidebarBannerCarousel', () => ({
+  SidebarBannerCarousel: () => null,
+}))
+
 import { SideNavigation } from './SideNavigation'
 
 describe('SideNavigation', () => {
