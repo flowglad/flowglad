@@ -2,11 +2,12 @@
 import { Check, Clock, Copy } from 'lucide-react'
 import { useState } from 'react'
 import Markdown from 'react-markdown'
+import { trpc } from '@/app/_trpc/client'
+import ErrorLabel from '@/components/ErrorLabel'
 import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
-import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestStripeConnectOnboardingLinkModal'
 import { CursorLogo } from '@/components/icons/CursorLogo'
 import { Button } from '@/components/ui/button'
-import type { Country } from '@/db/schema/countries'
+import { useAuthContext } from '@/contexts/authContext'
 import { cn } from '@/lib/utils'
 import {
   type OnboardingChecklistItem,
@@ -169,26 +170,29 @@ const CodeblockGroup = ({
 
 const OnboardingStatusTable = ({
   onboardingChecklistItems,
-  countries,
   secretApiKey,
   pricingModelsCount,
 }: {
   onboardingChecklistItems: OnboardingChecklistItem[]
-  countries: Country.Record[]
   secretApiKey: string
   pricingModelsCount: number
 }) => {
-  const [
-    isRequestStripeConnectOnboardingLinkModalOpen,
-    setIsRequestStripeConnectOnboardingLinkModalOpen,
-  ] = useState(false)
   const [
     isCreatePricingModelModalOpen,
     setIsCreatePricingModelModalOpen,
   ] = useState(false)
   const [isApiKeyCopied, setIsApiKeyCopied] = useState(false)
   const [isMcpConfigCopied, setIsMcpConfigCopied] = useState(false)
+  const [stripeConnectError, setStripeConnectError] = useState<
+    string | undefined
+  >()
   const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"`
+  const { organization } = useAuthContext()
+  if (!organization) {
+    return null
+  }
+  const requestStripeConnect =
+    trpc.organizations.requestStripeConnect.useMutation()
 
   // MCP configuration for copying (full mcp.json format)
   const mcpConfigForCopy = {
@@ -265,23 +269,69 @@ const OnboardingStatusTable = ({
           </Button>
         }
       />
-      {onboardingChecklistItems.map((item, index) => (
-        <OnboardingStatusRow
-          key={item.title}
-          completed={item.completed}
-          inReview={item.inReview}
-          title={`${index + 3}. ${item.title}`}
-          description={item.description}
-          action={item.action}
-          type={item.type}
-          onClick={() => {
-            if (item.type === OnboardingItemType.Stripe) {
-              setIsRequestStripeConnectOnboardingLinkModalOpen(true)
-              return
-            }
-          }}
-        />
-      ))}
+      {onboardingChecklistItems.map((item, index) => {
+        if (item.type === OnboardingItemType.Stripe) {
+          return (
+            <OnboardingStatusRow
+              key={item.title}
+              completed={item.completed}
+              inReview={item.inReview}
+              title={`${index + 3}. ${item.title}`}
+              description={item.description}
+              type={item.type}
+              actionNode={
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    disabled={requestStripeConnect.isPending}
+                    onClick={async () => {
+                      setStripeConnectError(undefined)
+                      try {
+                        const { onboardingLink } =
+                          await requestStripeConnect.mutateAsync({
+                            CountryId: organization.countryId,
+                          })
+                        window.location.href = onboardingLink
+                      } catch (error) {
+                        setStripeConnectError(
+                          error instanceof Error
+                            ? error.message
+                            : 'Failed to connect Stripe'
+                        )
+                      }
+                    }}
+                  >
+                    {requestStripeConnect.isPending
+                      ? 'Connecting...'
+                      : item.action}
+                  </Button>
+                  {stripeConnectError && (
+                    <ErrorLabel
+                      error={{
+                        message: stripeConnectError,
+                        type: 'manual',
+                      }}
+                    />
+                  )}
+                </div>
+              }
+            />
+          )
+        }
+
+        return (
+          <OnboardingStatusRow
+            key={item.title}
+            completed={item.completed}
+            inReview={item.inReview}
+            title={`${index + 3}. ${item.title}`}
+            description={item.description}
+            action={item.action}
+            type={item.type}
+          />
+        )
+      })}
       <OnboardingStatusRow
         key={'add-flowglad-mcp-server'}
         completed={false}
@@ -330,11 +380,6 @@ const OnboardingStatusTable = ({
             </div>
           </div>
         }
-      />
-      <RequestStripeConnectOnboardingLinkModal
-        isOpen={isRequestStripeConnectOnboardingLinkModalOpen}
-        setIsOpen={setIsRequestStripeConnectOnboardingLinkModalOpen}
-        countries={countries}
       />
       <CreatePricingModelModal
         isOpen={isCreatePricingModelModalOpen}

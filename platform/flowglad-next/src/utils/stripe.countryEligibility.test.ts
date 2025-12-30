@@ -23,6 +23,20 @@ const getPlatformEligibleCountryCode = (): string => {
   return platformEligibleCountryCode
 }
 
+const getPlatformOnlyCountryCode = (): string => {
+  const platformOnlyCountryCode = cardPaymentsCountries.find(
+    (countryCode) => !transferCountries.includes(countryCode)
+  )
+
+  if (!platformOnlyCountryCode) {
+    throw new Error(
+      'Expected cardPaymentsCountries to include at least one country not in transferCountries.'
+    )
+  }
+
+  return platformOnlyCountryCode
+}
+
 const getMoROnlyCountryCode = (): string => {
   const morOnlyCountryCode = transferCountries.find(
     (countryCode) => !cardPaymentsCountries.includes(countryCode)
@@ -75,9 +89,11 @@ describe('stripe country eligibility helpers', () => {
       expect(isCountryEligibleForMoR(morCountryCode)).toBe(true)
     })
 
-    it('returns true for a country in cardPaymentsCountries', () => {
-      const platformCountryCode = getPlatformEligibleCountryCode()
-      expect(isCountryEligibleForMoR(platformCountryCode)).toBe(true)
+    it('returns false for a country in cardPaymentsCountries only', () => {
+      const platformOnlyCountryCode = getPlatformOnlyCountryCode()
+      expect(isCountryEligibleForMoR(platformOnlyCountryCode)).toBe(
+        false
+      )
     })
 
     it('is case-insensitive', () => {
@@ -93,14 +109,11 @@ describe('stripe country eligibility helpers', () => {
   })
 
   describe('getEligibleFundsFlowsForCountry', () => {
-    it('returns both for a Platform-eligible country', () => {
-      const platformCountryCode = getPlatformEligibleCountryCode()
+    it('returns [Platform] for a Platform-only country', () => {
+      const platformCountryCode = getPlatformOnlyCountryCode()
       expect(
         getEligibleFundsFlowsForCountry(platformCountryCode)
-      ).toEqual([
-        StripeConnectContractType.Platform,
-        StripeConnectContractType.MerchantOfRecord,
-      ])
+      ).toEqual([StripeConnectContractType.Platform])
     })
 
     it('returns [MerchantOfRecord] for a MoR-only country', () => {

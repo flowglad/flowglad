@@ -158,12 +158,14 @@ export const {
   insertRefine: {
     monthlyBillingVolumeFreeTier:
       core.safeZodNonNegativeInteger.optional(),
+    stripeConnectContractType: z
+      .nativeEnum(StripeConnectContractType)
+      .optional(),
   },
   client: {
     hiddenColumns: {
       feePercentage: true,
       stripeAccountId: true,
-      stripeConnectContractType: true,
       externalId: true,
       ...hiddenColumnsForClientSchema,
       securitySalt: true,
@@ -180,7 +182,9 @@ export const {
       defaultCurrency: true,
       featureFlags: true,
     },
-    createOnlyColumns: {},
+    createOnlyColumns: {
+      stripeConnectContractType: true,
+    },
   },
   entityName: 'Organization',
 })

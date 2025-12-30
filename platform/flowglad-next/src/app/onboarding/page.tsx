@@ -171,7 +171,6 @@ const OnboardingPage = async () => {
           </div>
           <OnboardingStatusTable
             onboardingChecklistItems={onboardingChecklistItems}
-            countries={countries}
             secretApiKey={secretApiKey.token}
             pricingModelsCount={results.pricingModels?.length ?? 0}
           />

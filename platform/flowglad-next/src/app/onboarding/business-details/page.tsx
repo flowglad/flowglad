@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { trpc } from '@/app/_trpc/client'
 import ErrorLabel from '@/components/ErrorLabel'
-import OrganizationFormFields from '@/components/forms/OrganizationFormFields'
+import OrganizationOnboardingFormFields from '@/components/forms/OrganizationOnboardingFormFields'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { useAuthContext } from '@/contexts/authContext'
@@ -31,6 +31,8 @@ const BusinessDetails = () => {
     defaultValues: {
       organization: {
         name: '',
+        countryId: undefined,
+        stripeConnectContractType: undefined,
       },
     },
   })
@@ -68,7 +70,7 @@ const BusinessDetails = () => {
               className="w-[380px] flex flex-col gap-6"
             >
               {/* FIXME (FG-555): Readd OrganizationLogoInput to this page once we have a way to upload the logo during organization creation */}
-              <OrganizationFormFields
+              <OrganizationOnboardingFormFields
                 setReferralSource={setReferralSource}
                 referralSource={referralSource}
               />
