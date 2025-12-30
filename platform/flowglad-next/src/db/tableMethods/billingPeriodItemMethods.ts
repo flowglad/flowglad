@@ -18,8 +18,6 @@ import {
 } from '@/db/schema/billingPeriodItems'
 import {
   createBulkInsertFunction,
-  createDerivePricingModelId,
-  createDerivePricingModelIds,
   createInsertFunction,
   createSelectById,
   createSelectFunction,
@@ -66,24 +64,6 @@ export const selectBillingPeriodItemById = createSelectById(
   billingPeriodItems,
   config
 )
-
-/**
- * Derives pricingModelId from a billing period item.
- * Used for billing period item inserts.
- */
-export const derivePricingModelIdFromBillingPeriodItem =
-  createDerivePricingModelId(
-    billingPeriodItems,
-    config,
-    selectBillingPeriodItemById
-  )
-
-/**
- * Batch derives pricingModelIds from multiple billing period items.
- * More efficient than calling derivePricingModelIdFromBillingPeriodItem individually.
- */
-export const derivePricingModelIdsFromBillingPeriodItems =
-  createDerivePricingModelIds(billingPeriodItems, config)
 
 const baseInsertBillingPeriodItem = createInsertFunction(
   billingPeriodItems,
