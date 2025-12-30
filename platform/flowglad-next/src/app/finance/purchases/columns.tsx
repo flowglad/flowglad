@@ -8,6 +8,7 @@ import type { Customer } from '@/db/schema/customers'
 import type { Purchase } from '@/db/schema/purchases'
 import { CurrencyCode } from '@/types'
 import { formatDate } from '@/utils/core'
+import { getPurchaseStatusLabel } from '@/utils/purchaseHelpers'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 type PurchaseTableRowData = {
@@ -21,18 +22,11 @@ const PurchaseStatusCell = ({
 }: {
   purchase: Purchase.ClientRecord
 }) => {
-  let badgeLabel: string = 'Pending'
+  const badgeLabel = getPurchaseStatusLabel(purchase)
   let badgeClassName: string = 'bg-muted text-muted-foreground'
 
-  if (purchase.endDate) {
-    badgeClassName = 'bg-muted text-muted-foreground'
-    badgeLabel = 'Concluded'
-  } else if (purchase.purchaseDate) {
+  if (purchase.purchaseDate && !purchase.endDate) {
     badgeClassName = 'bg-jade-background text-jade-foreground'
-    badgeLabel = 'Paid'
-  } else {
-    badgeClassName = 'bg-muted text-muted-foreground'
-    badgeLabel = 'Pending'
   }
 
   return (
@@ -78,12 +72,7 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
   },
   {
     id: 'status',
-    accessorFn: (row) =>
-      row.purchase.endDate
-        ? 'Concluded'
-        : row.purchase.purchaseDate
-          ? 'Paid'
-          : 'Pending',
+    accessorFn: (row) => getPurchaseStatusLabel(row.purchase),
     header: 'Status',
     size: 110,
     minSize: 110,
@@ -116,23 +105,6 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
     },
   },
   {
-    id: 'revenue',
-    accessorFn: (row) => row.revenue ?? 0,
-    header: 'Revenue',
-    size: 120,
-    minSize: 100,
-    maxSize: 150,
-    cell: ({ row }) => {
-      const amount = row.getValue('revenue') as number
-      const formatted =
-        stripeCurrencyAmountToHumanReadableCurrencyAmount(
-          CurrencyCode.USD,
-          amount
-        )
-      return <div>{formatted}</div>
-    },
-  },
-  {
     id: 'id',
     accessorFn: (row) => row.purchase.id,
     header: 'ID',
@@ -146,6 +118,23 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
           {id}
         </DataTableCopyableCell>
       )
+    },
+  },
+  {
+    id: 'revenue',
+    accessorFn: (row) => row.revenue ?? 0,
+    header: () => <div className="text-right">Revenue</div>,
+    size: 120,
+    minSize: 100,
+    maxSize: 150,
+    cell: ({ row }) => {
+      const amount = row.getValue('revenue') as number
+      const formatted =
+        stripeCurrencyAmountToHumanReadableCurrencyAmount(
+          CurrencyCode.USD,
+          amount
+        )
+      return <div className="text-right">{formatted}</div>
     },
   },
 ]

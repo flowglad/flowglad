@@ -1,15 +1,16 @@
 'use client'
-import { MoreHorizontal, Pencil } from 'lucide-react'
+import { Mail, Pencil, RefreshCw } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
 import MigrateCustomerPricingModelModal from '@/components/forms/MigrateCustomerPricingModelModal'
-import InternalPageContainer from '@/components/InternalPageContainer'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
+import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import { MoreIcon } from '@/components/icons/MoreIcon'
 import PopoverMenu, {
   type PopoverMenuItem,
 } from '@/components/PopoverMenu'
-import { Button } from '@/components/ui/button'
-import { PageHeader } from '@/components/ui/page-header'
+import { CopyableField } from '@/components/ui/copyable-field'
+import { PageHeaderNew } from '@/components/ui/page-header-new'
 import {
   Popover,
   PopoverContent,
@@ -31,61 +32,105 @@ function InternalCustomerDetailsScreen({
   prices: Price.ClientRecord[]
   usageEvents: UsageEvent.ClientRecord[]
 }) {
+  const router = useRouter()
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isMigrateOpen, setIsMigrateOpen] = useState(false)
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
 
   const moreMenuItems: PopoverMenuItem[] = [
     {
-      label: 'Migrate Pricing Model',
-      handler: () => setIsMigrateOpen(true),
+      label: 'Edit',
+      handler: () => {
+        setIsMoreMenuOpen(false)
+        setIsEditOpen(true)
+      },
+      icon: <Pencil className="h-4 w-4" />,
     },
     {
-      label: 'Email customer',
+      label: 'Migrate Pricing Model',
       handler: () => {
-        if (customer.email) {
-          window.open(`mailto:${customer.email}`)
-        }
+        setIsMoreMenuOpen(false)
+        setIsMigrateOpen(true)
       },
+      icon: <RefreshCw className="h-4 w-4" />,
     },
+    ...(customer.email
+      ? [
+          {
+            label: 'Email customer',
+            handler: () => {
+              setIsMoreMenuOpen(false)
+              window.open(`mailto:${customer.email}`)
+            },
+            icon: <Mail className="h-4 w-4" />,
+          },
+        ]
+      : []),
   ]
 
   return (
-    <InternalPageContainer>
-      <div className="w-full flex flex-col gap-6">
-        <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
-          <Breadcrumb />
-          <div className="flex flex-row items-center justify-between">
-            <div className="min-w-0 overflow-hidden mr-4">
-              <PageHeader
-                title={customer.name ?? ''}
-                className="truncate whitespace-nowrap overflow-hidden text-ellipsis"
+    <InnerPageContainerNew>
+      <div className="w-full relative flex flex-col justify-center pb-6">
+        <PageHeaderNew
+          title={customer.name ?? ''}
+          breadcrumb="Customers"
+          onBreadcrumbClick={() => router.push('/customers')}
+          className="pb-4"
+          badges={
+            customer.email
+              ? [
+                  {
+                    icon: <Mail className="h-3.5 w-3.5" />,
+                    label: customer.email,
+                    variant: 'muted' as const,
+                  },
+                ]
+              : []
+          }
+          description={
+            <div className="flex items-center gap-2">
+              <CopyableField
+                value={customer.id}
+                label="ID"
+                displayText="Copy ID"
               />
-            </div>
-            <div className="flex flex-row gap-2 justify-end flex-shrink-0">
-              <Popover>
+              <div className="h-[22px] w-px bg-muted-foreground opacity-10" />
+              <Popover
+                open={isMoreMenuOpen}
+                onOpenChange={setIsMoreMenuOpen}
+              >
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
+                  <div
+                    className="inline-flex items-center gap-1 cursor-pointer group"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setIsMoreMenuOpen(true)
+                      }
+                    }}
+                    aria-label="More options"
+                  >
+                    <MoreIcon className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground flex-shrink-0 transition-colors" />
+                    <span className="font-sans font-medium text-sm leading-5 text-muted-foreground group-hover:underline group-hover:text-foreground transition-colors">
+                      More options
+                    </span>
+                  </div>
                 </PopoverTrigger>
-                <PopoverContent className="w-fit p-1" align="end">
+                <PopoverContent className="w-fit p-1" align="start">
                   <PopoverMenu items={moreMenuItems} />
                 </PopoverContent>
               </Popover>
-              <Button onClick={() => setIsEditOpen(true)}>
-                <Pencil className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
             </div>
-          </div>
-        </div>
-        <div className="pt-6">
-          <CustomerBillingSubPage
-            customer={customer}
-            payments={payments}
-            usageEvents={usageEvents}
-          />
-        </div>
+          }
+        />
+
+        <CustomerBillingSubPage
+          customer={customer}
+          payments={payments}
+          usageEvents={usageEvents}
+        />
       </div>
       <EditCustomerModal
         isOpen={isEditOpen}
@@ -97,7 +142,7 @@ function InternalCustomerDetailsScreen({
         setIsOpen={setIsMigrateOpen}
         customer={customer}
       />
-    </InternalPageContainer>
+    </InnerPageContainerNew>
   )
 }
 

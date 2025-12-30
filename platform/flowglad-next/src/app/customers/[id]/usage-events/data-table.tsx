@@ -1,21 +1,18 @@
 'use client'
 
 import {
-  type ColumnFiltersState,
   type ColumnSizingState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  type SortingState,
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
+import { DataTableToolbar } from '@/components/ui/data-table-toolbar'
 import {
   Table,
   TableBody,
@@ -45,10 +42,11 @@ export function UsageEventsDataTable({
 }: UsageEventsDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(300)
 
   const {
     pageIndex,
-    pageSize,
     handlePaginationChange,
     goToFirstPage,
     data,
@@ -61,6 +59,7 @@ export function UsageEventsDataTable({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
+    searchQuery,
     useQuery: trpc.usageEvents.getTableRows.useQuery,
   })
 
@@ -71,10 +70,13 @@ export function UsageEventsDataTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey])
 
-  // Client-side features (Shadcn patterns)
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] =
-    React.useState<ColumnFiltersState>([])
+  // Reset to first page when debounced search changes
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
+
+  // Client-side visibility/sizing (sorting handled server-side)
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [columnSizing, setColumnSizing] =
@@ -90,12 +92,11 @@ export function UsageEventsDataTable({
       minSize: 20,
       maxSize: 500,
     },
-    manualPagination: true,
-    manualSorting: false,
-    manualFiltering: false,
+    enableSorting: false, // Disable header sorting UI/interactions
+    manualPagination: true, // Server-side pagination
+    manualSorting: true, // Disable client-side sorting
+    manualFiltering: true, // Disable client-side filtering
     pageCount: Math.ceil((data?.total || 0) / currentPageSize),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
     onPaginationChange: (updater) => {
@@ -104,19 +105,18 @@ export function UsageEventsDataTable({
           ? updater({ pageIndex, pageSize: currentPageSize })
           : updater
 
+      // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        goToFirstPage()
-      } else if (newPagination.pageIndex !== pageIndex) {
+        goToFirstPage() // Properly clears both cursors to avoid stale pagination state
+      }
+      // Handle page index changes (page navigation)
+      else if (newPagination.pageIndex !== pageIndex) {
         handlePaginationChange(newPagination.pageIndex)
       }
     },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     state: {
-      sorting,
-      columnFilters,
       columnVisibility,
       columnSizing,
       pagination: { pageIndex, pageSize: currentPageSize },
@@ -125,17 +125,24 @@ export function UsageEventsDataTable({
 
   return (
     <div className="w-full">
-      {/* Enhanced toolbar */}
-      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
-        {/* Title on the left (for detail pages) */}
-        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && <h3 className="text-lg truncate">{title}</h3>}
-        </div>
-
-        {/* Controls on the right */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <DataTableViewOptions table={table} />
-        </div>
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 pt-1 pb-2 px-4">
+        {/* Title row */}
+        {title && (
+          <div>
+            <h3 className="text-lg truncate">{title}</h3>
+          </div>
+        )}
+        {/* Toolbar */}
+        <DataTableToolbar
+          search={{
+            value: inputValue,
+            onChange: setInputValue,
+            placeholder: 'Search usage meter, sub_id, or event_id...',
+          }}
+          isLoading={isLoading}
+          isFetching={isFetching}
+        />
       </div>
 
       {/* Table */}
@@ -204,11 +211,13 @@ export function UsageEventsDataTable({
       </Table>
 
       {/* Pagination */}
-      <div className="py-2">
+      <div className="py-2 px-4">
         <DataTablePagination
           table={table}
           totalCount={data?.total}
-          isFiltered={Object.keys(filters).length > 0}
+          isFiltered={
+            !!searchQuery || Object.keys(filters).length > 0
+          }
           filteredCount={data?.total}
           entityName="usage event"
         />

@@ -7,6 +7,7 @@ import {
   text,
 } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
+import { currencyCodeSchema } from '@/db/commonZodSchema'
 import { buildSchemas } from '@/db/createZodSchemas'
 import {
   Customer,
@@ -358,6 +359,7 @@ export const purchasesTableRowDataSchema = z.object({
   product: productsClientSelectSchema,
   customer: customerClientSelectSchema,
   revenue: z.number().optional(),
+  currency: currencyCodeSchema,
 })
 
 export namespace Purchase {

@@ -8,11 +8,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 
 export interface CopyableFieldProps {
   value: string
   label: string
   displayText?: string
+  truncate?: boolean
 }
 
 /**
@@ -23,6 +25,7 @@ export function CopyableField({
   value,
   label,
   displayText,
+  truncate,
 }: CopyableFieldProps) {
   const [copied, setCopied] = useState(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -55,7 +58,10 @@ export function CopyableField({
       <Tooltip>
         <TooltipTrigger asChild>
           <div
-            className="inline-flex items-center gap-1 cursor-pointer group"
+            className={cn(
+              'inline-flex items-center gap-1 cursor-pointer group',
+              truncate && 'max-w-full min-w-0 overflow-hidden'
+            )}
             onClick={handleCopy}
             role="button"
             tabIndex={0}
@@ -72,7 +78,12 @@ export function CopyableField({
             ) : (
               <Copy className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground flex-shrink-0 transition-colors" />
             )}
-            <span className="font-sans font-medium text-sm leading-5 text-muted-foreground group-hover:underline group-hover:text-foreground transition-colors">
+            <span
+              className={cn(
+                'font-sans font-medium text-sm leading-5 text-muted-foreground group-hover:underline group-hover:text-foreground transition-colors',
+                truncate && 'truncate'
+              )}
+            >
               {copied && displayText
                 ? displayText.replace(/^Copy/, 'Copied')
                 : (displayText ?? value)}
