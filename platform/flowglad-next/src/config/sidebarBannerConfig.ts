@@ -37,3 +37,11 @@ export const SIDEBAR_BANNER_SLIDES: BannerSlide[] = [
     ctaText: 'View Repo',
   },
 ]
+
+/**
+ * Set of valid banner IDs for server-side validation.
+ * Prevents arbitrary string injection into Redis.
+ */
+export const VALID_BANNER_IDS = new Set(
+  SIDEBAR_BANNER_SLIDES.map((slide) => slide.id)
+)
