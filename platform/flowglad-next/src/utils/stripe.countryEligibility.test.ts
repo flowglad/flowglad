@@ -89,10 +89,10 @@ describe('stripe country eligibility helpers', () => {
       expect(isCountryEligibleForMoR(morCountryCode)).toBe(true)
     })
 
-    it('returns false for a country in cardPaymentsCountries only', () => {
+    it('returns true for a country in cardPaymentsCountries only', () => {
       const platformOnlyCountryCode = getPlatformOnlyCountryCode()
       expect(isCountryEligibleForMoR(platformOnlyCountryCode)).toBe(
-        false
+        true
       )
     })
 
@@ -109,11 +109,14 @@ describe('stripe country eligibility helpers', () => {
   })
 
   describe('getEligibleFundsFlowsForCountry', () => {
-    it('returns [Platform] for a Platform-only country', () => {
+    it('returns both for a Platform-only country', () => {
       const platformCountryCode = getPlatformOnlyCountryCode()
       expect(
         getEligibleFundsFlowsForCountry(platformCountryCode)
-      ).toEqual([StripeConnectContractType.Platform])
+      ).toEqual([
+        StripeConnectContractType.Platform,
+        StripeConnectContractType.MerchantOfRecord,
+      ])
     })
 
     it('returns [MerchantOfRecord] for a MoR-only country', () => {

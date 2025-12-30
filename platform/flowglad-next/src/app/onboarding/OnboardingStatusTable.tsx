@@ -188,11 +188,11 @@ const OnboardingStatusTable = ({
   >()
   const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"`
   const { organization } = useAuthContext()
+  const requestStripeConnect =
+    trpc.organizations.requestStripeConnect.useMutation()
   if (!organization) {
     return null
   }
-  const requestStripeConnect =
-    trpc.organizations.requestStripeConnect.useMutation()
 
   // MCP configuration for copying (full mcp.json format)
   const mcpConfigForCopy = {

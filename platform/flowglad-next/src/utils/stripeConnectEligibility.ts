@@ -137,7 +137,10 @@ export const platformEligibleCountries = new Set(
   cardPaymentsCountries
 )
 
-export const morEligibleCountries = new Set(transferCountries)
+export const morEligibleCountries = new Set([
+  ...transferCountries,
+  ...cardPaymentsCountries,
+])
 
 export const isCountryEligibleForPlatform = (
   countryCode: string
