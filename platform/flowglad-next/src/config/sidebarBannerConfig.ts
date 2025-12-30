@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import type { BannerSlide } from '@/components/navigation/SidebarBannerCarousel'
 
 /**
  * Valid banner IDs as a const tuple for Zod enum validation.
@@ -20,6 +19,23 @@ const BANNER_IDS = [
 export const bannerIdSchema = z.enum(BANNER_IDS)
 
 export type BannerId = z.infer<typeof bannerIdSchema>
+
+/**
+ * Banner slide configuration for the sidebar carousel.
+ */
+export interface BannerSlide {
+  id: BannerId
+  /** Image URL - if provided, will display the image */
+  imageUrl?: string
+  /** Alt text for image */
+  alt?: string
+  /** Link URL */
+  href?: string
+  /** CTA button text (default: "Learn More") */
+  ctaText?: string
+  /** CTA button link - if different from main href */
+  ctaHref?: string
+}
 
 export const SIDEBAR_BANNER_SLIDES: BannerSlide[] = [
   {

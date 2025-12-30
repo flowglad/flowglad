@@ -13,22 +13,8 @@ import {
   CarouselItem,
 } from '@/components/ui/carousel'
 import { useSidebar } from '@/components/ui/sidebar'
-import type { BannerId } from '@/config/sidebarBannerConfig'
+import type { BannerSlide } from '@/config/sidebarBannerConfig'
 import { cn } from '@/lib/utils'
-
-export interface BannerSlide {
-  id: BannerId
-  /** Image URL - if provided, will display the image */
-  imageUrl?: string
-  /** Alt text for image */
-  alt?: string
-  /** Link URL */
-  href?: string
-  /** CTA button text (default: "Learn More") */
-  ctaText?: string
-  /** CTA button link - if different from main href */
-  ctaHref?: string
-}
 
 export interface SidebarBannerCarouselProps {
   slides: BannerSlide[]
