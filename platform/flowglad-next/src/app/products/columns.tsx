@@ -234,11 +234,15 @@ export const columns: ColumnDef<ProductRow>[] = [
   {
     id: 'actions',
     enableHiding: false,
+    enableResizing: false,
     cell: ({ row }) => {
       const product = row.original.product
       const prices = row.original.prices
       return (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div
+          className="w-8 flex justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
           <ProductActionsMenu product={product} prices={prices} />
         </div>
       )

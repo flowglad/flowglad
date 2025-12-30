@@ -86,7 +86,7 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
         </div>
       )
     },
-    size: 250,
+    size: 430,
     minSize: 150,
   },
   {

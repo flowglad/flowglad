@@ -108,8 +108,8 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
         {row.getValue('name')}
       </div>
     ),
-    size: 200,
-    minSize: 200,
+    size: 160,
+    minSize: 160,
     maxSize: 275,
   },
   {
@@ -126,13 +126,13 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
         </DataTableCopyableCell>
       </div>
     ),
-    size: 220,
-    minSize: 120,
+    size: 210,
+    minSize: 80,
     maxSize: 250,
   },
   {
     accessorKey: 'totalSpend',
-    header: 'Total Spend',
+    header: () => <div className="text-right">Total Spend</div>,
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue('totalSpend') || '0')
       const formatted =
@@ -140,9 +140,13 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
           CurrencyCode.USD,
           amount
         )
-      return <div className="whitespace-nowrap">{formatted}</div>
+      return (
+        <div className="whitespace-nowrap text-right">
+          {formatted}
+        </div>
+      )
     },
-    size: 100,
+    size: 120,
     minSize: 80,
     maxSize: 120,
   },
@@ -193,7 +197,10 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
     cell: ({ row }) => {
       const customer = row.original.customer
       return (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div
+          className="w-8 flex justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
           <CustomerActionsMenu customer={customer} />
         </div>
       )

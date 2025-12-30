@@ -116,23 +116,6 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
     },
   },
   {
-    id: 'revenue',
-    accessorFn: (row) => row.revenue ?? 0,
-    header: 'Revenue',
-    size: 120,
-    minSize: 100,
-    maxSize: 150,
-    cell: ({ row }) => {
-      const amount = row.getValue('revenue') as number
-      const formatted =
-        stripeCurrencyAmountToHumanReadableCurrencyAmount(
-          CurrencyCode.USD,
-          amount
-        )
-      return <div>{formatted}</div>
-    },
-  },
-  {
     id: 'id',
     accessorFn: (row) => row.purchase.id,
     header: 'ID',
@@ -146,6 +129,23 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
           {id}
         </DataTableCopyableCell>
       )
+    },
+  },
+  {
+    id: 'revenue',
+    accessorFn: (row) => row.revenue ?? 0,
+    header: () => <div className="text-right">Revenue</div>,
+    size: 120,
+    minSize: 100,
+    maxSize: 150,
+    cell: ({ row }) => {
+      const amount = row.getValue('revenue') as number
+      const formatted =
+        stripeCurrencyAmountToHumanReadableCurrencyAmount(
+          CurrencyCode.USD,
+          amount
+        )
+      return <div className="text-right">{formatted}</div>
     },
   },
 ]
