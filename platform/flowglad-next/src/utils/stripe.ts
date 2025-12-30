@@ -113,7 +113,6 @@ export const transferCountries = [
   'IN',
   'ID',
   'IL',
-  'IQ',
   'JM',
   'JO',
   'KZ',
