@@ -1,12 +1,19 @@
+import { and, eq, inArray } from 'drizzle-orm'
 import * as R from 'ramda'
 import {
   type LedgerEntry,
   ledgerEntryNulledSourceIdColumns,
 } from '@/db/schema/ledgerEntries'
-import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
+import {
+  SubscriptionItemFeature,
+  subscriptionItemFeatures,
+} from '@/db/schema/subscriptionItemFeatures'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
-import type { UsageCredit } from '@/db/schema/usageCredits'
+import {
+  type UsageCredit,
+  usageCredits as usageCreditsTable,
+} from '@/db/schema/usageCredits'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import { findOrCreateLedgerAccountsForSubscriptionAndUsageMeters } from '@/db/tableMethods/ledgerAccountMethods'
 import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
@@ -21,10 +28,7 @@ import {
   selectCurrentlyActiveSubscriptionItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
-import {
-  bulkInsertUsageCredits,
-  selectUsageCredits,
-} from '@/db/tableMethods/usageCreditMethods'
+import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import type { DbTransaction } from '@/db/types'
 import {
   FeatureType,
@@ -90,6 +94,18 @@ export const isSubscriptionItemActiveAndNonManual = (
  * For EveryBillingPeriod features: grants prorated amount based on remaining time in period
  * For Once features: grants full amount immediately (no proration, no expiration)
  *
+ * IMPORTANT: Deduplication is based on stable featureId, NOT ephemeral subscription_item_feature.id.
+ * This prevents duplicate credit grants during rapid downgrade/upgrade cycles where
+ * subscription items are recreated with new IDs but reference the same underlying feature.
+ *
+ * Deduplication only considers credits with sourceReferenceType = ManualAdjustment.
+ * Credits from BillingPeriodTransition or other source types are not considered when
+ * determining if a feature already has credits in the current billing period.
+ *
+ * ASSUMPTION: UsageCreditGrant features always have a non-null usageMeterId.
+ * This is enforced by the feature schema where UsageCreditGrant type requires usageMeterId.
+ * The non-null assertion (feature.usageMeterId!) at credit insert time relies on this invariant.
+ *
  * @param params.subscription - The subscription record
  * @param params.features - Array of subscription item features to potentially grant credits for
  * @param params.adjustmentDate - The date/time of the adjustment
@@ -142,26 +158,74 @@ const grantProratedCreditsForFeatures = async (params: {
     currentBillingPeriod
   )
 
-  // Check for existing credits (to avoid double-granting) - batch query
-  const existingCredits = await selectUsageCredits(
-    {
-      subscriptionId: subscription.id,
-      billingPeriodId: currentBillingPeriod.id,
-      sourceReferenceId: creditGrantFeatures.map(
-        (feature) => feature.id
-      ),
-    },
-    transaction
+  // Extract stable feature IDs (featureId column, not the subscription_item_feature.id)
+  const stableFeatureIds = creditGrantFeatures
+    .map((feature) => feature.featureId)
+    .filter((id): id is string => id !== null)
+
+  // If no stable feature IDs, skip deduplication query (inArray with empty array causes SQL errors)
+  if (stableFeatureIds.length === 0) {
+    return { usageCredits: [], ledgerEntries: [] }
+  }
+
+  // Extract usage meter IDs for additional filtering
+  const creditGrantUsageMeterIds = R.uniq(
+    creditGrantFeatures
+      .map((feature) => feature.usageMeterId)
+      .filter((id): id is string => id !== null)
   )
-  const existingFeatureIds = new Set(
-    existingCredits.map(
-      (existingCredit) => existingCredit.sourceReferenceId
+
+  // Query existing credits by joining with subscription_item_features to check stable featureId
+  const existingCreditsWithFeatures = await transaction
+    .select({
+      usageCredit: usageCreditsTable,
+      subscriptionItemFeature: subscriptionItemFeatures,
+    })
+    .from(usageCreditsTable)
+    .innerJoin(
+      subscriptionItemFeatures,
+      eq(
+        usageCreditsTable.sourceReferenceId,
+        subscriptionItemFeatures.id
+      )
+    )
+    .where(
+      and(
+        eq(usageCreditsTable.subscriptionId, subscription.id),
+        eq(
+          usageCreditsTable.billingPeriodId,
+          currentBillingPeriod.id
+        ),
+        eq(
+          usageCreditsTable.sourceReferenceType,
+          UsageCreditSourceReferenceType.ManualAdjustment
+        ),
+        inArray(subscriptionItemFeatures.featureId, stableFeatureIds),
+        ...(creditGrantUsageMeterIds.length > 0
+          ? [
+              inArray(
+                usageCreditsTable.usageMeterId,
+                creditGrantUsageMeterIds
+              ),
+            ]
+          : [])
+      )
+    )
+
+  // Build set of stable featureIds that already have credits in this billing period
+  const existingStableFeatureIds = new Set(
+    existingCreditsWithFeatures.map(
+      (row) => row.subscriptionItemFeature.featureId
     )
   )
 
   // Build usage credit inserts for features that don't already have credits
   const usageCreditInserts: UsageCredit.Insert[] = creditGrantFeatures
-    .filter((feature) => !existingFeatureIds.has(feature.id))
+    .filter(
+      (feature) =>
+        feature.featureId !== null &&
+        !existingStableFeatureIds.has(feature.featureId)
+    )
     .map((feature) => {
       const isEveryBillingPeriod =
         feature.renewalFrequency ===
