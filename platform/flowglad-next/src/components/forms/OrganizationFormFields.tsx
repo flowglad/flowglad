@@ -210,6 +210,31 @@ const OrganizationFormFields = ({
                         ? 'cursor-pointer'
                         : 'opacity-50 cursor-not-allowed'
                     )}
+                    role="button"
+                    tabIndex={platformEnabled ? 0 : -1}
+                    aria-disabled={!platformEnabled}
+                    onClick={() => {
+                      if (!platformEnabled) {
+                        return
+                      }
+                      field.onChange(
+                        StripeConnectContractType.Platform
+                      )
+                    }}
+                    onKeyDown={(event) => {
+                      if (!platformEnabled) {
+                        return
+                      }
+                      if (
+                        event.key === 'Enter' ||
+                        event.key === ' '
+                      ) {
+                        event.preventDefault()
+                        field.onChange(
+                          StripeConnectContractType.Platform
+                        )
+                      }
+                    }}
                   >
                     <div className="flex items-start gap-3">
                       <RadioGroupItem
@@ -238,6 +263,31 @@ const OrganizationFormFields = ({
                         ? 'cursor-pointer'
                         : 'opacity-50 cursor-not-allowed'
                     )}
+                    role="button"
+                    tabIndex={morEnabled ? 0 : -1}
+                    aria-disabled={!morEnabled}
+                    onClick={() => {
+                      if (!morEnabled) {
+                        return
+                      }
+                      field.onChange(
+                        StripeConnectContractType.MerchantOfRecord
+                      )
+                    }}
+                    onKeyDown={(event) => {
+                      if (!morEnabled) {
+                        return
+                      }
+                      if (
+                        event.key === 'Enter' ||
+                        event.key === ' '
+                      ) {
+                        event.preventDefault()
+                        field.onChange(
+                          StripeConnectContractType.MerchantOfRecord
+                        )
+                      }
+                    }}
                   >
                     <div className="flex items-start gap-3">
                       <RadioGroupItem
