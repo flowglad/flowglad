@@ -9,6 +9,7 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { UsageEventProcessedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
@@ -16,11 +17,10 @@ import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { UsageMeter } from '@/db/schema/usageMeters'
-import { updatePrice } from '@/db/tableMethods/priceMethods'
-import { updateUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import {
   CurrencyCode,
   IntervalUnit,
+  LedgerTransactionType,
   PriceType,
   UsageMeterAggregationType,
 } from '@/types'
@@ -93,17 +93,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
   describe('slug resolution', () => {
     it('should resolve priceSlug to priceId', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await updatePrice(
-          {
-            id: price.id,
-            slug: 'test-price-slug',
-            type: price.type,
-          },
-          transaction
-        )
-      })
-
       const result = await adminTransaction(async ({ transaction }) =>
         bulkInsertUsageEventsTransaction(
           {
@@ -111,7 +100,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               usageEvents: [
                 {
                   subscriptionId: subscription.id,
-                  priceSlug: 'test-price-slug',
+                  priceSlug: price.slug ?? undefined,
                   amount: 100,
                   transactionId: `txn_slug_${Date.now()}`,
                 },
@@ -131,16 +120,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
     })
 
     it('should resolve usageMeterSlug to usageMeterId', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await updateUsageMeter(
-          {
-            id: usageMeter.id,
-            slug: 'test-usage-meter-slug',
-          },
-          transaction
-        )
-      })
-
       const result = await adminTransaction(async ({ transaction }) =>
         bulkInsertUsageEventsTransaction(
           {
@@ -148,7 +127,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               usageEvents: [
                 {
                   subscriptionId: subscription.id,
-                  usageMeterSlug: 'test-usage-meter-slug',
+                  usageMeterSlug: usageMeter.slug ?? undefined,
                   amount: 200,
                   transactionId: `txn_slug_um_${Date.now()}`,
                 },
@@ -294,7 +273,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       ).rejects.toThrow("not found for this customer's pricing model")
     })
 
-    it('should throw error when CountDistinctProperties meter missing billing period', async () => {
+    it('should throw error when CountDistinctProperties meter is used with subscription missing billing period', async () => {
       const countDistinctMeter = await adminTransaction(
         async ({ transaction }) =>
           setupUsageMeter({
@@ -324,7 +303,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
           })
       )
 
-      // Create subscription without billing period
+      // Create subscription without billing period (no billing period record exists for this subscription)
       const subWithoutBillingPeriod = await adminTransaction(
         async ({ transaction }) =>
           setupSubscription({
@@ -359,32 +338,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
   })
 
   describe('normalization', () => {
-    it('should default properties to empty object', async () => {
-      const result = await adminTransaction(async ({ transaction }) =>
-        bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: [
-                {
-                  subscriptionId: subscription.id,
-                  priceId: price.id,
-                  amount: 100,
-                  transactionId: `txn_no_props_${Date.now()}`,
-                  // properties not provided
-                },
-              ],
-            },
-            livemode: true,
-          },
-          transaction
-        )
-      )
-
-      expect(result.result.usageEvents).toHaveLength(1)
-      expect(result.result.usageEvents[0].properties).toEqual({})
-    })
-
-    it('should default usageDate to current timestamp', async () => {
+    it('should default properties and usageDate when not provided', async () => {
       const before = Date.now()
       const result = await adminTransaction(async ({ transaction }) =>
         bulkInsertUsageEventsTransaction(
@@ -395,8 +349,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
                   subscriptionId: subscription.id,
                   priceId: price.id,
                   amount: 100,
-                  transactionId: `txn_no_date_${Date.now()}`,
-                  // usageDate not provided
+                  transactionId: `txn_no_props_date_${Date.now()}`,
+                  // properties and usageDate not provided
                 },
               ],
             },
@@ -408,6 +362,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const after = Date.now()
 
       expect(result.result.usageEvents).toHaveLength(1)
+      expect(result.result.usageEvents[0].properties).toEqual({})
       expect(
         result.result.usageEvents[0].usageDate
       ).toBeGreaterThanOrEqual(before)
@@ -442,7 +397,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       expect(firstResult.result.usageEvents).toHaveLength(1)
-      expect(firstResult.ledgerCommands?.length).toBeGreaterThan(0)
+      expect(firstResult.ledgerCommands?.length).toBe(1)
 
       // Resubmit the same payload
       const secondResult = await adminTransaction(
@@ -503,7 +458,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       expect(firstResult.result.usageEvents).toHaveLength(2)
-      expect(firstResult.ledgerCommands?.length).toBeGreaterThan(0)
+      expect(firstResult.ledgerCommands?.length).toBe(2)
 
       // Resubmit with one duplicate and one new
       const secondResult = await adminTransaction(
@@ -535,12 +490,11 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Should only insert the new event
       expect(secondResult.result.usageEvents).toHaveLength(1)
       expect(secondResult.result.usageEvents[0].amount).toBe(300)
-      // Should only generate ledger commands for the new event (not for the duplicate)
-      expect(secondResult.ledgerCommands?.length).toBeGreaterThan(0)
       // The first result should have generated commands for 2 events
-      expect(firstResult.ledgerCommands?.length).toBeGreaterThan(0)
+      expect(firstResult.ledgerCommands?.length).toBe(2)
       // The second result should only have commands for 1 new event (the duplicate should not generate commands)
       // This verifies that deduped entries don't generate ledger commands
+      expect(secondResult.ledgerCommands?.length).toBe(1)
     })
   })
 
@@ -574,7 +528,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       expect(result.result.usageEvents).toHaveLength(2)
       expect(result.result.usageEvents[0].amount).toBe(100)
       expect(result.result.usageEvents[1].amount).toBe(200)
-      expect(result.ledgerCommands?.length).toBeGreaterThan(0)
+      expect(result.ledgerCommands?.length).toBe(2)
     })
 
     it('should successfully bulk insert usage events for multiple customers and subscriptions', async () => {
@@ -618,18 +572,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
         }
       )
 
-      // Setup price slug
-      await adminTransaction(async ({ transaction }) => {
-        await updatePrice(
-          {
-            id: price.id,
-            slug: 'multi-customer-price-slug',
-            type: price.type,
-          },
-          transaction
-        )
-      })
-
       const timestamp = Date.now()
       const result = await adminTransaction(async ({ transaction }) =>
         bulkInsertUsageEventsTransaction(
@@ -650,13 +592,13 @@ describe('bulkInsertUsageEventsTransaction', () => {
                 },
                 {
                   subscriptionId: subscription.id,
-                  priceSlug: 'multi-customer-price-slug',
+                  priceSlug: price.slug ?? undefined,
                   amount: 150,
                   transactionId: `txn_multi_customer_3_${timestamp}`,
                 },
                 {
                   subscriptionId: subscription2.id,
-                  priceSlug: 'multi-customer-price-slug',
+                  priceSlug: price.slug ?? undefined,
                   amount: 250,
                   transactionId: `txn_multi_customer_4_${timestamp}`,
                 },
@@ -703,6 +645,23 @@ describe('bulkInsertUsageEventsTransaction', () => {
       expect(result.result.usageEvents[1].amount).toBe(200)
       expect(result.result.usageEvents[2].amount).toBe(150)
       expect(result.result.usageEvents[3].amount).toBe(250)
+
+      expect(result.ledgerCommands?.length).toBe(4)
+      // Verify each ledger command is linked to a usage event
+      result.ledgerCommands?.forEach((cmd) => {
+        // Assert that this is a UsageEventProcessedLedgerCommand
+        expect(cmd.type).toBe(
+          LedgerTransactionType.UsageEventProcessed
+        )
+        const ledgerCmd = cmd as UsageEventProcessedLedgerCommand
+        const linkedEvent = result.result.usageEvents.find(
+          (e) => e.id === ledgerCmd.payload.usageEvent.id
+        )
+        // Verify subscription linkage
+        expect(ledgerCmd.subscriptionId).toBe(
+          linkedEvent!.subscriptionId
+        )
+      })
     })
   })
 })
