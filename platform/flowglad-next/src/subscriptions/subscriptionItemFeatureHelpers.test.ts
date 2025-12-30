@@ -1008,6 +1008,281 @@ describe('SubscriptionItemFeatureHelpers', () => {
         expect(manualItems.length).toBe(1)
       })
     })
+
+    describe('grantCreditsImmediately deduplication', () => {
+      it('should NOT grant duplicate credits on second call with grantCreditsImmediately: true', async () => {
+        const [{ feature: usageFeature }] =
+          await setupTestFeaturesAndProductFeatures(
+            orgData.organization.id,
+            productForFeatures.id,
+            orgData.pricingModel.id,
+            true,
+            [
+              {
+                name: 'Dedup Test Feature',
+                type: FeatureType.UsageCreditGrant,
+                amount: 100,
+                renewalFrequency:
+                  FeatureUsageGrantFrequency.EveryBillingPeriod,
+                usageMeterName: 'dedup-test-meter',
+              },
+            ]
+          )
+
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: usageFeature.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          // First call - should grant credits
+          const firstResult = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+          expect(firstResult.ledgerCommand).toBeDefined()
+
+          // Second call - should NOT grant duplicate credits
+          const secondResult = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+          // Second call should not produce a ledger command (credit was deduplicated)
+          expect(secondResult.ledgerCommand).toBeUndefined()
+
+          // Verify only 1 credit exists
+          const usageCreditRecords = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageFeature.usageMeterId!,
+            },
+            transaction
+          )
+          expect(usageCreditRecords.length).toBe(1)
+        })
+      })
+
+      it('should NOT grant duplicate credits on 5 consecutive calls', async () => {
+        const [{ feature: usageFeature }] =
+          await setupTestFeaturesAndProductFeatures(
+            orgData.organization.id,
+            productForFeatures.id,
+            orgData.pricingModel.id,
+            true,
+            [
+              {
+                name: 'Multi Dedup Test Feature',
+                type: FeatureType.UsageCreditGrant,
+                amount: 50,
+                renewalFrequency:
+                  FeatureUsageGrantFrequency.EveryBillingPeriod,
+                usageMeterName: 'multi-dedup-test-meter',
+              },
+            ]
+          )
+
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: usageFeature.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          // Call 5 times with grantCreditsImmediately: true
+          for (let i = 0; i < 5; i++) {
+            await addFeatureToSubscriptionItem(
+              {
+                subscriptionItemId: subscriptionItem.id,
+                featureId: usageFeature.id,
+                grantCreditsImmediately: true,
+              },
+              transaction
+            )
+          }
+
+          // Verify only 1 credit exists (not 5)
+          const usageCreditRecords = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageFeature.usageMeterId!,
+            },
+            transaction
+          )
+          expect(usageCreditRecords.length).toBe(1)
+          expect(usageCreditRecords[0].issuedAmount).toBe(
+            usageFeature.amount ?? 0
+          )
+        })
+      })
+
+      it('should grant credits for DIFFERENT features', async () => {
+        const [{ feature: featureA }, { feature: featureB }] =
+          await setupTestFeaturesAndProductFeatures(
+            orgData.organization.id,
+            productForFeatures.id,
+            orgData.pricingModel.id,
+            true,
+            [
+              {
+                name: 'Feature A',
+                type: FeatureType.UsageCreditGrant,
+                amount: 100,
+                renewalFrequency:
+                  FeatureUsageGrantFrequency.EveryBillingPeriod,
+                usageMeterName: 'feature-a-meter',
+              },
+              {
+                name: 'Feature B',
+                type: FeatureType.UsageCreditGrant,
+                amount: 200,
+                renewalFrequency:
+                  FeatureUsageGrantFrequency.EveryBillingPeriod,
+                usageMeterName: 'feature-b-meter',
+              },
+            ]
+          )
+
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: featureA.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: featureB.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          // Grant credits for feature A
+          const resultA = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: featureA.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+          expect(resultA.ledgerCommand).toBeDefined()
+
+          // Grant credits for feature B
+          const resultB = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: featureB.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+          expect(resultB.ledgerCommand).toBeDefined()
+
+          // Verify 2 credits exist (one for A, one for B)
+          const creditsA = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: featureA.usageMeterId!,
+            },
+            transaction
+          )
+          const creditsB = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: featureB.usageMeterId!,
+            },
+            transaction
+          )
+          expect(creditsA.length).toBe(1)
+          expect(creditsB.length).toBe(1)
+        })
+      })
+
+      it('should deduplicate using stable featureId, not subscription_item_feature.id', async () => {
+        const [{ feature: usageFeature }] =
+          await setupTestFeaturesAndProductFeatures(
+            orgData.organization.id,
+            productForFeatures.id,
+            orgData.pricingModel.id,
+            true,
+            [
+              {
+                name: 'Stable ID Test Feature',
+                type: FeatureType.UsageCreditGrant,
+                amount: 75,
+                renewalFrequency:
+                  FeatureUsageGrantFrequency.EveryBillingPeriod,
+                usageMeterName: 'stable-id-test-meter',
+              },
+            ]
+          )
+
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: usageFeature.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          // First call creates sub_item_feature_1 and grants credits
+          const result1 = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+          const firstSubFeatureId =
+            result1.result.subscriptionItemFeature.id
+
+          // Second call updates sub_item_feature (same ID due to upsert)
+          // but should NOT grant duplicate credits
+          const result2 = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+
+          // The subscription item feature ID should be the same (due to upsert)
+          expect(result2.result.subscriptionItemFeature.id).toBe(
+            firstSubFeatureId
+          )
+
+          // But no duplicate credit should be created
+          expect(result2.ledgerCommand).toBeUndefined()
+
+          // Verify only 1 credit exists
+          const usageCreditRecords = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageFeature.usageMeterId!,
+            },
+            transaction
+          )
+          expect(usageCreditRecords.length).toBe(1)
+          // The credit's sourceReferenceId should be the first subscription item feature ID
+          expect(usageCreditRecords[0].sourceReferenceId).toBe(
+            firstSubFeatureId
+          )
+        })
+      })
+    })
   })
 
   describe('manual item database constraints', () => {
