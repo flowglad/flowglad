@@ -69,34 +69,18 @@ export const derivePricingModelIdForInvoice = async (
 ): Promise<string> => {
   // Try subscription first
   if (data.subscriptionId) {
-    try {
-      return await derivePricingModelIdFromSubscription(
-        data.subscriptionId,
-        transaction
-      )
-    } catch (error) {
-      // If subscription doesn't exist (NotFoundError), fail immediately.
-      // Fall through to purchase otherwise.
-      if (error instanceof NotFoundError) {
-        throw error
-      }
-    }
+    return await derivePricingModelIdFromSubscription(
+      data.subscriptionId,
+      transaction
+    )
   }
 
   // Try purchase second
   if (data.purchaseId) {
-    try {
-      return await derivePricingModelIdFromPurchase(
-        data.purchaseId,
-        transaction
-      )
-    } catch (error) {
-      // If purchase doesn't exist (NotFoundError), fail immediately.
-      // Fall through to customer otherwise.
-      if (error instanceof NotFoundError) {
-        throw error
-      }
-    }
+    return await derivePricingModelIdFromPurchase(
+      data.purchaseId,
+      transaction
+    )
   }
 
   // Fall back to customer

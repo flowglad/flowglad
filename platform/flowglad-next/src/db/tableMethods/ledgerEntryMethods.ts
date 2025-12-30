@@ -77,32 +77,18 @@ export const derivePricingModelIdForLedgerEntry = async (
 ): Promise<string> => {
   // Try subscription first
   if (data.subscriptionId) {
-    try {
-      return await derivePricingModelIdFromSubscription(
-        data.subscriptionId,
-        transaction
-      )
-    } catch (error) {
-      // If subscription doesn't exist (NotFoundError), fail immediately.
-      // Fall through to usage meter otherwise.
-      if (error instanceof NotFoundError) {
-        throw error
-      }
-    }
+    return await derivePricingModelIdFromSubscription(
+      data.subscriptionId,
+      transaction
+    )
   }
 
   // Try usage meter second
   if (data.usageMeterId) {
-    try {
-      return await derivePricingModelIdFromUsageMeter(
-        data.usageMeterId,
-        transaction
-      )
-    } catch (error) {
-      // For usage meters we don't have another fallback – always throw
-      // (whether it's NotFoundError, missing pricingModelId, or other error)
-      throw error
-    }
+    return await derivePricingModelIdFromUsageMeter(
+      data.usageMeterId,
+      transaction
+    )
   }
 
   throw new Error(
