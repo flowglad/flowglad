@@ -1,0 +1,3 @@
+CREATE POLICY "Ensure organization integrity with pricing_models parent table" ON "prices" AS PERMISSIVE FOR ALL TO "merchant" USING ("pricing_model_id" in (select "id" from "pricing_models"));--> statement-breakpoint
+CREATE POLICY "Ensure organization integrity with pricing_models parent table" ON "product_features" AS PERMISSIVE FOR ALL TO "merchant" USING ("pricing_model_id" in (select "id" from "pricing_models"));--> statement-breakpoint
+CREATE POLICY "Ensure organization integrity with pricing_models parent table" ON "subscription_item_features" AS PERMISSIVE FOR ALL TO "merchant" USING ("pricing_model_id" in (select "id" from "pricing_models"));

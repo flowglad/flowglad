@@ -75,6 +75,11 @@ export const productFeatures = pgTable(
         parentIdColumnInCurrentTable: 'feature_id',
         currentTableName: TABLE_NAME,
       }),
+      parentForeignKeyIntegrityCheckPolicy({
+        parentTableName: 'pricing_models',
+        parentIdColumnInCurrentTable: 'pricing_model_id',
+        currentTableName: TABLE_NAME,
+      }),
       livemodePolicy(TABLE_NAME),
     ]
   }

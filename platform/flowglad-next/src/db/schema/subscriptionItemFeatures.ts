@@ -103,6 +103,11 @@ export const subscriptionItemFeatures = pgTable(
       parentIdColumnInCurrentTable: 'usage_meter_id',
       currentTableName: TABLE_NAME,
     }),
+    parentForeignKeyIntegrityCheckPolicy({
+      parentTableName: 'pricing_models',
+      parentIdColumnInCurrentTable: 'pricing_model_id',
+      currentTableName: TABLE_NAME,
+    }),
     enableCustomerReadPolicy(
       `Enable read for customers (${TABLE_NAME})`,
       {
