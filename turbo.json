@@ -6,12 +6,16 @@
       "outputs": ["dist/**"]
     },
     "check": {
-      "dependsOn": ["^check"],
+      "dependsOn": ["^check", "^build:declarations"],
       "outputs": []
     },
     "build:declarations": {
       "dependsOn": ["^build:declarations"],
       "outputs": ["dist/types/**"]
+    },
+    "test": {
+      "dependsOn": ["^test", "^build", "^build:declarations"],
+      "outputs": []
     },
     "dev": {
       "dependsOn": ["^dev"],

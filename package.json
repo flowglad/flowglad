@@ -5,7 +5,7 @@
   "version": "0.0.0",
   "scripts": {
     "randombytes": "tsx scripts/randomBytes.ts",
-    "test": "bunx turbo run test",
+    "test": "bunx turbo run test --filter=!@flowglad/playground-*",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome lint .",
