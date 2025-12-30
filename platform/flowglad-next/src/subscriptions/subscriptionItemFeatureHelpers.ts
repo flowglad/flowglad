@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 import * as R from 'ramda'
 import type { CreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import { Customer } from '@/db/schema/customers'
@@ -402,6 +402,21 @@ const grantImmediateUsageCredits = async (
   // Use stable featureId (not ephemeral subscription_item_feature.id) for deduplication
   const stableFeatureId = subscriptionItemFeature.featureId
   if (stableFeatureId) {
+    // Acquire a transaction-scoped advisory lock to prevent race conditions
+    // The lock key is a hash of subscription + feature + billing period + meter
+    // This ensures concurrent requests for the same combination wait for each other
+    const billingPeriodKey = currentBillingPeriod?.id ?? 'null'
+    const lockKey = `${subscription.id}:${stableFeatureId}:${billingPeriodKey}:${usageMeterId}`
+    // Use hashCode to convert string to integer for pg_advisory_xact_lock
+    const lockKeyHash =
+      lockKey.split('').reduce((acc, char) => {
+        return ((acc << 5) - acc + char.charCodeAt(0)) | 0
+      }, 0) >>> 0 // Ensure positive integer
+
+    await transaction.execute(
+      sql`SELECT pg_advisory_xact_lock(${lockKeyHash})`
+    )
+
     // Build the WHERE conditions
     const whereConditions = [
       eq(usageCredits.subscriptionId, subscription.id),
