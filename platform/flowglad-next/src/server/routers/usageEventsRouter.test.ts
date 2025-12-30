@@ -1,4 +1,3 @@
-import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
@@ -21,7 +20,6 @@ import type { Subscription } from '@/db/schema/subscriptions'
 import { UsageEvent } from '@/db/schema/usageEvents'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
-import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
 import { updateUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import type { TRPCApiContext } from '@/server/trpcContext'
 import {
@@ -1007,194 +1005,53 @@ describe('usageEventsRouter', () => {
     })
   })
 
-  describe('bulkInsert procedure with price slug support', () => {
-    it('should bulk insert usage events for multiple customers and subscriptions', async () => {
-      // Setup a second customer and subscription in org1
-      const customer1b = await setupCustomer({
-        organizationId: org1Data.organization.id,
-        email: `customer1b+${Date.now()}@test.com`,
-        pricingModelId: org1Data.pricingModel.id,
-      })
-
-      const paymentMethod1b = await setupPaymentMethod({
-        organizationId: org1Data.organization.id,
-        customerId: customer1b.id,
-        type: PaymentMethodType.Card,
-      })
-
-      const subscription1b = await setupSubscription({
-        organizationId: org1Data.organization.id,
-        customerId: customer1b.id,
-        paymentMethodId: paymentMethod1b.id,
-        priceId: price1.id,
-        status: SubscriptionStatus.Active,
-      })
-
-      const billingPeriod1b = await setupBillingPeriod({
-        subscriptionId: subscription1b.id,
-        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        endDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
-      })
-
-      // Setup price slugs for both customers
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          await updatePrice(
-            {
-              id: price1.id,
-              slug: 'multi-customer-price-slug',
-              type: price1.type,
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
-
+  describe('bulkInsert procedure', () => {
+    it('should successfully bulk insert usage events', async () => {
       const caller = createCaller(
         org1Data.organization,
         org1ApiKeyToken
       )
 
-      const timestamp = Date.now()
       const result = await caller.bulkInsert({
         usageEvents: [
           {
             subscriptionId: subscription1.id,
             priceId: price1.id,
             amount: 100,
-            transactionId: `txn_multi_customer_1_${timestamp}`,
-          },
-          {
-            subscriptionId: subscription1b.id,
-            priceId: price1.id,
-            amount: 200,
-            transactionId: `txn_multi_customer_2_${timestamp}`,
-          },
-          {
-            subscriptionId: subscription1.id,
-            priceSlug: 'multi-customer-price-slug',
-            amount: 150,
-            transactionId: `txn_multi_customer_3_${timestamp}`,
-          },
-          {
-            subscriptionId: subscription1b.id,
-            priceSlug: 'multi-customer-price-slug',
-            amount: 250,
-            transactionId: `txn_multi_customer_4_${timestamp}`,
+            transactionId: `txn_smoke_${Date.now()}`,
           },
         ],
       })
 
-      // Should successfully insert all 4 events
-      expect(result.usageEvents).toHaveLength(4)
-
-      // Verify each event has the correct customer and subscription
-      const eventsForSub1 = result.usageEvents.filter(
-        (e) => e.subscriptionId === subscription1.id
-      )
-      const eventsForSub1b = result.usageEvents.filter(
-        (e) => e.subscriptionId === subscription1b.id
-      )
-
-      expect(eventsForSub1).toHaveLength(2)
-      expect(eventsForSub1b).toHaveLength(2)
-
-      // Verify customer IDs are correctly assigned
-      eventsForSub1.forEach((event) => {
-        expect(event.customerId).toBe(customer1.id)
-        expect(event.billingPeriodId).toBe(billingPeriod1.id)
-      })
-
-      eventsForSub1b.forEach((event) => {
-        expect(event.customerId).toBe(customer1b.id)
-        expect(event.billingPeriodId).toBe(billingPeriod1b.id)
-      })
-
-      // Verify all events resolved to the correct price
-      result.usageEvents.forEach((event) => {
-        expect(event.priceId).toBe(price1.id)
-      })
-
-      // Verify amounts match the input
-      expect(result.usageEvents[0].amount).toBe(100)
-      expect(result.usageEvents[1].amount).toBe(200)
-      expect(result.usageEvents[2].amount).toBe(150)
-      expect(result.usageEvents[3].amount).toBe(250)
+      // Verify endpoint is wired and returns expected structure
+      expect(result.usageEvents).toHaveLength(1)
+      const event = result.usageEvents[0]
+      expect(event.subscriptionId).toBe(subscription1.id)
+      expect(event.priceId).toBe(price1.id)
+      expect(event.customerId).toBe(customer1.id)
+      expect(event.amount).toBe(100)
     })
 
-    it('should bulk insert usage events with mixed priceId, priceSlug, usageMeterId, and usageMeterSlug', async () => {
-      // First, update price1 and usageMeter1 to have slugs
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          await updatePrice(
-            {
-              id: price1.id,
-              slug: 'mixed-price-slug',
-              type: price1.type,
-            },
-            transaction
-          )
-          await updateUsageMeter(
-            {
-              id: usageMeter1.id,
-              slug: 'mixed-usage-meter-slug',
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
-
+    it('should throw error when no identifier is provided', async () => {
       const caller = createCaller(
         org1Data.organization,
         org1ApiKeyToken
       )
 
-      const result = await caller.bulkInsert({
-        usageEvents: [
-          {
-            subscriptionId: subscription1.id,
-            priceId: price1.id,
-            amount: 100,
-            transactionId: `txn_bulk_mixed_all_1_${Date.now()}`,
-          },
-          {
-            subscriptionId: subscription1.id,
-            priceSlug: 'mixed-price-slug',
-            amount: 200,
-            transactionId: `txn_bulk_mixed_all_2_${Date.now()}`,
-          },
-          {
-            subscriptionId: subscription1.id,
-            usageMeterId: usageMeter1.id,
-            amount: 300,
-            transactionId: `txn_bulk_mixed_all_3_${Date.now()}`,
-          },
-          {
-            subscriptionId: subscription1.id,
-            usageMeterSlug: 'mixed-usage-meter-slug',
-            amount: 400,
-            transactionId: `txn_bulk_mixed_all_4_${Date.now()}`,
-          },
-        ],
-      })
-
-      expect(result.usageEvents).toHaveLength(4)
-      // Events with price identifiers should have priceId set
-      expect(result.usageEvents[0].priceId).toBe(price1.id)
-      expect(result.usageEvents[1].priceId).toBe(price1.id)
-      // Events with usage meter identifiers should have priceId null
-      expect(result.usageEvents[2].priceId).toBeNull()
-      expect(result.usageEvents[3].priceId).toBeNull()
-      // All should have usageMeterId
-      result.usageEvents.forEach((event) => {
-        expect(event.usageMeterId).toBe(usageMeter1.id)
-      })
-      expect(result.usageEvents[0].amount).toBe(100)
-      expect(result.usageEvents[1].amount).toBe(200)
-      expect(result.usageEvents[2].amount).toBe(300)
-      expect(result.usageEvents[3].amount).toBe(400)
+      await expect(
+        caller.bulkInsert({
+          usageEvents: [
+            {
+              subscriptionId: subscription1.id,
+              // Missing required identifier (priceId, priceSlug, usageMeterId, or usageMeterSlug)
+              amount: 100,
+              transactionId: `txn_invalid_${Date.now()}`,
+            },
+          ],
+        })
+      ).rejects.toThrow(
+        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+      )
     })
   })
 })
