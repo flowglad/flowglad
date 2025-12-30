@@ -991,6 +991,32 @@ export const getStripeTaxCalculation = async (
   return stripe(livemode).tax.calculations.retrieve(id)
 }
 
+export const createStripeTaxTransactionFromCalculation = async ({
+  stripeTaxCalculationId,
+  reference,
+  livemode,
+}: {
+  stripeTaxCalculationId: string | null
+  reference: string
+  livemode: boolean
+}): Promise<Stripe.Tax.Transaction | null> => {
+  if (!stripeTaxCalculationId) {
+    return null
+  }
+  if (stripeTaxCalculationId.startsWith('notaxoverride_')) {
+    return null
+  }
+  return stripe(livemode).tax.transactions.createFromCalculation(
+    {
+      calculation: stripeTaxCalculationId,
+      reference,
+    },
+    {
+      idempotencyKey: `tax_txn_from_calc_${reference}`,
+    }
+  )
+}
+
 const deriveFullyOnboardedStatusFromStripeAccount = (
   account: Stripe.Account
 ): boolean => {
