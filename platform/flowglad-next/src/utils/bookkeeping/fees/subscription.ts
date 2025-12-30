@@ -17,6 +17,7 @@ import {
   calculateDiscountAmountFromRedemption,
   calculateFlowgladFeePercentage,
   calculateInternationalFeePercentage,
+  calculateMoRSurchargePercentage,
   calculatePaymentMethodFeeAmount,
   finalizeFeeCalculation,
 } from './common'
@@ -87,6 +88,9 @@ export const createSubscriptionFeeCalculationInsert = (
   )
   const pretax = Math.max(baseAmt - (discountAmt ?? 0), 0)
   const flowPct = calculateFlowgladFeePercentage({ organization })
+  const morSurchargePct = calculateMoRSurchargePercentage({
+    organization,
+  })
   const intlPct = calculateInternationalFeePercentage({
     paymentMethod: paymentMethod.type,
     paymentMethodCountry: (paymentMethod.billingDetails.address
@@ -112,6 +116,7 @@ export const createSubscriptionFeeCalculationInsert = (
     baseAmount: baseAmt,
     currency,
     flowgladFeePercentage: flowPct.toString(),
+    morSurchargePercentage: morSurchargePct.toString(),
     internationalFeePercentage: intlPct.toString(),
     paymentMethodFeeFixed: payFee,
     taxAmountFixed: 0,
