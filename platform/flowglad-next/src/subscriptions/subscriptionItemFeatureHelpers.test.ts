@@ -1046,7 +1046,9 @@ describe('SubscriptionItemFeatureHelpers', () => {
             },
             transaction
           )
-          expect(firstResult.ledgerCommand).toBeDefined()
+          expect(firstResult.ledgerCommand).toMatchObject({
+            type: LedgerTransactionType.CreditGrantRecognized,
+          })
 
           // Second call - should NOT grant duplicate credits
           const secondResult = await addFeatureToSubscriptionItem(
@@ -1176,7 +1178,9 @@ describe('SubscriptionItemFeatureHelpers', () => {
             },
             transaction
           )
-          expect(resultA.ledgerCommand).toBeDefined()
+          expect(resultA.ledgerCommand).toMatchObject({
+            type: LedgerTransactionType.CreditGrantRecognized,
+          })
 
           // Grant credits for feature B
           const resultB = await addFeatureToSubscriptionItem(
@@ -1187,7 +1191,9 @@ describe('SubscriptionItemFeatureHelpers', () => {
             },
             transaction
           )
-          expect(resultB.ledgerCommand).toBeDefined()
+          expect(resultB.ledgerCommand).toMatchObject({
+            type: LedgerTransactionType.CreditGrantRecognized,
+          })
 
           // Verify 2 credits exist (one for A, one for B)
           const creditsA = await selectUsageCredits(
