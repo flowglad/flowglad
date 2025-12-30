@@ -14,6 +14,7 @@ export type PurchaseTableRowData = {
   purchase: Purchase.ClientRecord
   customer: Customer.ClientRecord
   revenue?: number
+  currency: CurrencyCode
 }
 
 const getPurchaseStatusLabel = (
@@ -142,7 +143,7 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
       const amount = row.getValue('revenue') as number
       const formatted =
         stripeCurrencyAmountToHumanReadableCurrencyAmount(
-          CurrencyCode.USD,
+          row.original.currency,
           amount
         )
       return <div className="text-right">{formatted}</div>

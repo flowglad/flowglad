@@ -26,6 +26,7 @@ import {
 import type { DbTransaction } from '@/db/types'
 import {
   CheckoutFlowType,
+  CurrencyCode,
   PaymentStatus,
   PriceType,
   PurchaseStatus,
@@ -351,6 +352,7 @@ export const selectPurchaseRowDataForOrganization = async (
       purchase: purchases,
       product: products,
       customer: customers,
+      price: prices,
     })
     .from(purchases)
     .innerJoin(prices, eq(purchases.priceId, prices.id))
@@ -362,6 +364,7 @@ export const selectPurchaseRowDataForOrganization = async (
     purchase: purchasesSelectSchema.parse(item.purchase),
     product: productsSelectSchema.parse(item.product),
     customer: customersSelectSchema.parse(item.customer),
+    currency: item.price.currency as CurrencyCode,
   }))
 }
 
@@ -465,6 +468,7 @@ export const selectPurchasesTableRowData =
           product: productsSelectSchema.parse(product),
           customer: customersSelectSchema.parse(customer),
           revenue,
+          currency: price.currency as CurrencyCode,
           customerName,
           customerEmail,
         }
