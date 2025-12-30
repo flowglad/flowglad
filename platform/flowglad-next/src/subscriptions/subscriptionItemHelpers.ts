@@ -151,6 +151,11 @@ const grantProratedCreditsForFeatures = async (params: {
     .map((feature) => feature.featureId)
     .filter((id): id is string => id !== null)
 
+  // If no stable feature IDs, skip deduplication query (inArray with empty array causes SQL errors)
+  if (stableFeatureIds.length === 0) {
+    return { usageCredits: [], ledgerEntries: [] }
+  }
+
   // Extract usage meter IDs for additional filtering
   const creditGrantUsageMeterIds = R.uniq(
     creditGrantFeatures
