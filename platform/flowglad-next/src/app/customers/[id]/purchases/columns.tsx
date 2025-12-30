@@ -16,23 +16,28 @@ export type PurchaseTableRowData = {
   revenue?: number
 }
 
+const getPurchaseStatusLabel = (
+  purchase: Purchase.ClientRecord
+): string => {
+  if (purchase.endDate) {
+    return 'Concluded'
+  }
+  if (purchase.purchaseDate) {
+    return 'Paid'
+  }
+  return 'Pending'
+}
+
 const PurchaseStatusCell = ({
   purchase,
 }: {
   purchase: Purchase.ClientRecord
 }) => {
-  let badgeLabel: string = 'Pending'
+  const badgeLabel = getPurchaseStatusLabel(purchase)
   let badgeClassName: string = 'bg-muted text-muted-foreground'
 
-  if (purchase.endDate) {
-    badgeClassName = 'bg-muted text-muted-foreground'
-    badgeLabel = 'Concluded'
-  } else if (purchase.purchaseDate) {
+  if (purchase.purchaseDate && !purchase.endDate) {
     badgeClassName = 'bg-jade-background text-jade-foreground'
-    badgeLabel = 'Paid'
-  } else {
-    badgeClassName = 'bg-muted text-muted-foreground'
-    badgeLabel = 'Pending'
   }
 
   return (
@@ -78,12 +83,7 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
   },
   {
     id: 'status',
-    accessorFn: (row) =>
-      row.purchase.endDate
-        ? 'Concluded'
-        : row.purchase.purchaseDate
-          ? 'Paid'
-          : 'Pending',
+    accessorFn: (row) => getPurchaseStatusLabel(row.purchase),
     header: 'Status',
     size: 110,
     minSize: 110,
