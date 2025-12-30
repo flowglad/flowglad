@@ -2396,9 +2396,6 @@ describe('subscriptionItemHelpers', () => {
             const everyBillingPeriodCredit =
               result1.usageCredits.find((c) => c.issuedAmount === 50)
 
-            expect(onceCredit).toBeDefined()
-            expect(everyBillingPeriodCredit).toBeDefined()
-
             // Once credit has no expiry
             expect(onceCredit!.expiresAt).toBeNull()
             // EveryBillingPeriod credit expires at period end
