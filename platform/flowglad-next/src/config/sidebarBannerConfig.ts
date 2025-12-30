@@ -1,4 +1,25 @@
+import { z } from 'zod'
 import type { BannerSlide } from '@/components/navigation/SidebarBannerCarousel'
+
+/**
+ * Valid banner IDs as a const tuple for Zod enum validation.
+ * This must be kept in sync with SIDEBAR_BANNER_SLIDES.
+ */
+const BANNER_IDS = [
+  'banner-discord',
+  'banner-docs',
+  'banner-twitter',
+  'banner-blog',
+  'banner-github',
+] as const
+
+/**
+ * Zod schema for validating banner IDs.
+ * Used by tRPC input validation to prevent arbitrary string injection.
+ */
+export const bannerIdSchema = z.enum(BANNER_IDS)
+
+export type BannerId = z.infer<typeof bannerIdSchema>
 
 export const SIDEBAR_BANNER_SLIDES: BannerSlide[] = [
   {
@@ -37,11 +58,3 @@ export const SIDEBAR_BANNER_SLIDES: BannerSlide[] = [
     ctaText: 'View Repo',
   },
 ]
-
-/**
- * Set of valid banner IDs for server-side validation.
- * Prevents arbitrary string injection into Redis.
- */
-export const VALID_BANNER_IDS = new Set(
-  SIDEBAR_BANNER_SLIDES.map((slide) => slide.id)
-)

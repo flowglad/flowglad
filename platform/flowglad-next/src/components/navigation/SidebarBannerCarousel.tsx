@@ -13,10 +13,11 @@ import {
   CarouselItem,
 } from '@/components/ui/carousel'
 import { useSidebar } from '@/components/ui/sidebar'
+import type { BannerId } from '@/config/sidebarBannerConfig'
 import { cn } from '@/lib/utils'
 
 export interface BannerSlide {
-  id: string
+  id: BannerId
   /** Image URL - if provided, will display the image */
   imageUrl?: string
   /** Alt text for image */
