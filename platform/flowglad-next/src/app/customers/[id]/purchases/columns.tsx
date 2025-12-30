@@ -8,6 +8,7 @@ import type { Customer } from '@/db/schema/customers'
 import type { Purchase } from '@/db/schema/purchases'
 import { CurrencyCode } from '@/types'
 import { formatDate } from '@/utils/core'
+import { getPurchaseStatusLabel } from '@/utils/purchaseHelpers'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 export type PurchaseTableRowData = {
@@ -15,18 +16,6 @@ export type PurchaseTableRowData = {
   customer: Customer.ClientRecord
   revenue?: number
   currency: CurrencyCode
-}
-
-const getPurchaseStatusLabel = (
-  purchase: Purchase.ClientRecord
-): string => {
-  if (purchase.endDate) {
-    return 'Concluded'
-  }
-  if (purchase.purchaseDate) {
-    return 'Paid'
-  }
-  return 'Pending'
 }
 
 const PurchaseStatusCell = ({
@@ -104,9 +93,7 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
     cell: ({ row }) => {
       const original = row.original
       const displayName =
-        original.customer.name.length === 0
-          ? original.customer.email
-          : original.customer.name
+        original.customer.name || original.customer.email
       return (
         <DataTableLinkableCell
           href={`/customers/${original.customer.id}`}

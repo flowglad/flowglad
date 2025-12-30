@@ -8,24 +8,13 @@ import type { Customer } from '@/db/schema/customers'
 import type { Purchase } from '@/db/schema/purchases'
 import { CurrencyCode } from '@/types'
 import { formatDate } from '@/utils/core'
+import { getPurchaseStatusLabel } from '@/utils/purchaseHelpers'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 type PurchaseTableRowData = {
   purchase: Purchase.ClientRecord
   customer: Customer.ClientRecord
   revenue?: number
-}
-
-const getPurchaseStatusLabel = (
-  purchase: Purchase.ClientRecord
-): string => {
-  if (purchase.endDate) {
-    return 'Concluded'
-  }
-  if (purchase.purchaseDate) {
-    return 'Paid'
-  }
-  return 'Pending'
 }
 
 const PurchaseStatusCell = ({
