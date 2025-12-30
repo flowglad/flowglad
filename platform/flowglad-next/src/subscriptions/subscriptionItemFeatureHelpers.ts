@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import * as R from 'ramda'
 import type { CreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import { Customer } from '@/db/schema/customers'
@@ -419,6 +419,8 @@ const grantImmediateUsageCredits = async (
       whereConditions.push(
         eq(usageCredits.billingPeriodId, currentBillingPeriod.id)
       )
+    } else {
+      whereConditions.push(isNull(usageCredits.billingPeriodId))
     }
 
     const existingCredits = await transaction
