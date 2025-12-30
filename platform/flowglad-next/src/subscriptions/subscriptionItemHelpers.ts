@@ -94,6 +94,18 @@ export const isSubscriptionItemActiveAndNonManual = (
  * For EveryBillingPeriod features: grants prorated amount based on remaining time in period
  * For Once features: grants full amount immediately (no proration, no expiration)
  *
+ * IMPORTANT: Deduplication is based on stable featureId, NOT ephemeral subscription_item_feature.id.
+ * This prevents duplicate credit grants during rapid downgrade/upgrade cycles where
+ * subscription items are recreated with new IDs but reference the same underlying feature.
+ *
+ * Deduplication only considers credits with sourceReferenceType = ManualAdjustment.
+ * Credits from BillingPeriodTransition or other source types are not considered when
+ * determining if a feature already has credits in the current billing period.
+ *
+ * ASSUMPTION: UsageCreditGrant features always have a non-null usageMeterId.
+ * This is enforced by the feature schema where UsageCreditGrant type requires usageMeterId.
+ * The non-null assertion (feature.usageMeterId!) at credit insert time relies on this invariant.
+ *
  * @param params.subscription - The subscription record
  * @param params.features - Array of subscription item features to potentially grant credits for
  * @param params.adjustmentDate - The date/time of the adjustment
