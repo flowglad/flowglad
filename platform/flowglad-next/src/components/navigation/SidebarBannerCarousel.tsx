@@ -172,7 +172,7 @@ export const SidebarBannerCarousel: React.FC<
       {/* Banner image container with overlaid navigation */}
       <Carousel setApi={setApi} className="w-full">
         <div
-          className="group/banner relative h-[147px] bg-secondary border border-border rounded-[6px] overflow-hidden"
+          className="group/banner relative h-[120px] bg-secondary border border-border rounded-[6px] overflow-hidden"
           onMouseEnter={() => setHasStoppedAutoSlide(true)}
         >
           {/* [&>div]:h-full ensures the embla-carousel overflow wrapper inherits height */}
