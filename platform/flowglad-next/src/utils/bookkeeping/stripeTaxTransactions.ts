@@ -66,11 +66,12 @@ export const createStripeTaxTransactionIfNeededForPayment = async (
   ) {
     return null
   }
+  
+  if (payment.stripeTaxTransactionId) {
+    return payment.stripeTaxTransactionId
+  }
 
   try {
-    if (payment.stripeTaxTransactionId) {
-      return payment.stripeTaxTransactionId
-    }
 
     const feeCalculation = await selectFeeCalculationForPayment(
       { payment, invoice },
