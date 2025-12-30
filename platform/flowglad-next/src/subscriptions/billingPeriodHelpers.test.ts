@@ -546,6 +546,7 @@ describe('Subscription Billing Period Transition', async () => {
         position: 0,
         type: SubscriptionItemType.Static,
         manuallyCreated: false,
+        pricingModelId: pricingModel.id,
       }
     })
 

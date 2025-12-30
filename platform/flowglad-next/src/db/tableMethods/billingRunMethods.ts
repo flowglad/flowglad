@@ -16,7 +16,10 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { BillingRunStatus, SubscriptionStatus } from '@/types'
-import { selectSubscriptionById } from './subscriptionMethods'
+import {
+  derivePricingModelIdFromSubscription,
+  selectSubscriptionById,
+} from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof billingRuns,
@@ -58,7 +61,14 @@ export const safelyInsertBillingRun = async (
       'Cannot create billing run for doNotCharge subscription'
     )
   }
-  return dangerouslyInsertBillingRun(insert, transaction)
+  const pricingModelId = subscription.pricingModelId
+  return dangerouslyInsertBillingRun(
+    {
+      ...insert,
+      pricingModelId,
+    },
+    transaction
+  )
 }
 
 export const updateBillingRun = createUpdateFunction(

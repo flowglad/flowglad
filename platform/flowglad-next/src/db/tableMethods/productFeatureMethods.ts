@@ -22,8 +22,10 @@ import type { DbTransaction } from '@/db/types'
 import { features, featuresSelectSchema } from '../schema/features'
 import type { Product } from '../schema/products'
 import { createDateNotPassedFilter } from '../tableUtils'
-import { derivePricingModelIdFromProduct } from './priceMethods'
-import { pricingModelIdsForProducts } from './productMethods'
+import {
+  derivePricingModelIdFromProduct,
+  pricingModelIdsForProducts,
+} from './productMethods'
 import { detachSubscriptionItemFeaturesFromProductFeature } from './subscriptionItemFeatureMethods'
 
 const config: ORMMethodCreatorConfig<

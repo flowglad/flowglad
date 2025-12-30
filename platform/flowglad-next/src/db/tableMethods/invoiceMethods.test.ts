@@ -1,13 +1,20 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  setupBillingPeriod,
   setupCustomer,
   setupInvoice,
   setupInvoiceLineItem,
   setupOrg,
   setupPrice,
   setupProduct,
+  setupPurchase,
+  setupSubscription,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Purchase } from '@/db/schema/purchases'
+import type { Subscription } from '@/db/schema/subscriptions'
 import {
   CurrencyCode,
   IntervalUnit,
@@ -15,7 +22,12 @@ import {
   InvoiceType,
   PriceType,
 } from '@/types'
-import { selectInvoicesTableRowData } from './invoiceMethods'
+import { core } from '@/utils/core'
+import {
+  derivePricingModelIdForInvoice,
+  insertInvoice,
+  selectInvoicesTableRowData,
+} from './invoiceMethods'
 
 describe('selectInvoicesTableRowData', () => {
   let org1Id: string
@@ -546,6 +558,255 @@ describe('selectInvoicesTableRowData', () => {
           invoice2Id
         )
         expect(resultWithCustomerId.total).toBe(1)
+      })
+    })
+  })
+
+  describe('pricingModelId derivation', () => {
+    let pricingModel: PricingModel.Record
+    let subscription: Subscription.Record
+    let purchase: Purchase.Record
+    let customer: Customer.Record
+
+    beforeEach(async () => {
+      const { organization, pricingModel: pm } = await setupOrg()
+      pricingModel = pm
+
+      const product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Test Price',
+        type: PriceType.SinglePayment,
+        unitPrice: 1000,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+      })
+
+      customer = await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@example.com',
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+
+      subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        livemode: true,
+      })
+
+      purchase = await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        livemode: true,
+      })
+    })
+
+    describe('derivePricingModelIdForInvoice', () => {
+      it('should derive pricingModelId from subscription when subscriptionId is provided', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const pricingModelId = await derivePricingModelIdForInvoice(
+            {
+              subscriptionId: subscription.id,
+              customerId: customer.id,
+            },
+            transaction
+          )
+
+          expect(pricingModelId).toBe(subscription.pricingModelId)
+          expect(pricingModelId).toBe(pricingModel.id)
+        })
+      })
+
+      it('should derive pricingModelId from purchase when purchaseId is provided', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const pricingModelId = await derivePricingModelIdForInvoice(
+            {
+              purchaseId: purchase.id,
+              customerId: customer.id,
+            },
+            transaction
+          )
+
+          expect(pricingModelId).toBe(purchase.pricingModelId)
+          expect(pricingModelId).toBe(pricingModel.id)
+        })
+      })
+
+      it('should derive pricingModelId from customer when neither subscriptionId nor purchaseId is provided', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const pricingModelId = await derivePricingModelIdForInvoice(
+            {
+              customerId: customer.id,
+            },
+            transaction
+          )
+
+          expect(pricingModelId).toBe(customer.pricingModelId)
+          expect(pricingModelId).toBe(pricingModel.id)
+        })
+      })
+
+      it('should prioritize subscription over purchase when both are provided', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const pricingModelId = await derivePricingModelIdForInvoice(
+            {
+              subscriptionId: subscription.id,
+              purchaseId: purchase.id,
+              customerId: customer.id,
+            },
+            transaction
+          )
+
+          // Should use subscription's pricingModelId, not purchase's
+          expect(pricingModelId).toBe(subscription.pricingModelId)
+        })
+      })
+
+      it('should prioritize purchase over customer when both exist but no subscription', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const pricingModelId = await derivePricingModelIdForInvoice(
+            {
+              purchaseId: purchase.id,
+              customerId: customer.id,
+            },
+            transaction
+          )
+
+          // Should use purchase's pricingModelId, not customer's
+          expect(pricingModelId).toBe(purchase.pricingModelId)
+        })
+      })
+
+      it('should throw error when customer does not exist', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const nonExistentCustomerId = `cust_${core.nanoid()}`
+
+          await expect(
+            derivePricingModelIdForInvoice(
+              {
+                customerId: nonExistentCustomerId,
+              },
+              transaction
+            )
+          ).rejects.toThrow()
+        })
+      })
+    })
+
+    describe('insertInvoice', () => {
+      it('should insert invoice and derive pricingModelId from subscription', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const now = Date.now()
+          const billingPeriod = await setupBillingPeriod({
+            subscriptionId: subscription.id,
+            startDate: now,
+            endDate: now + 30 * 24 * 60 * 60 * 1000, // 30 days later
+            livemode: true,
+          })
+
+          const invoice = await insertInvoice(
+            {
+              customerId: customer.id,
+              organizationId: subscription.organizationId,
+              subscriptionId: subscription.id,
+              billingPeriodId: billingPeriod.id,
+              status: InvoiceStatus.Draft,
+              type: InvoiceType.Subscription,
+              livemode: true,
+              invoiceNumber: `TEST-${core.nanoid()}`,
+              currency: CurrencyCode.USD,
+              purchaseId: null,
+              invoiceDate: Date.now(),
+            },
+            transaction
+          )
+
+          expect(invoice.pricingModelId).toBe(
+            subscription.pricingModelId
+          )
+          expect(invoice.pricingModelId).toBe(pricingModel.id)
+        })
+      })
+
+      it('should insert invoice and derive pricingModelId from purchase', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const invoice = await insertInvoice(
+            {
+              customerId: customer.id,
+              organizationId: purchase.organizationId,
+              purchaseId: purchase.id,
+              status: InvoiceStatus.Draft,
+              type: InvoiceType.Purchase,
+              livemode: true,
+              invoiceNumber: `TEST-${core.nanoid()}`,
+              currency: CurrencyCode.USD,
+              invoiceDate: Date.now(),
+            },
+            transaction
+          )
+
+          expect(invoice.pricingModelId).toBe(purchase.pricingModelId)
+          expect(invoice.pricingModelId).toBe(pricingModel.id)
+        })
+      })
+
+      it('should insert invoice and derive pricingModelId from customer', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const invoice = await insertInvoice(
+            {
+              customerId: customer.id,
+              organizationId: customer.organizationId,
+              status: InvoiceStatus.Draft,
+              type: InvoiceType.Standalone,
+              livemode: true,
+              invoiceNumber: `TEST-${core.nanoid()}`,
+              currency: CurrencyCode.USD,
+              billingPeriodId: null,
+              purchaseId: null,
+              subscriptionId: null,
+              invoiceDate: Date.now(),
+            },
+            transaction
+          )
+
+          expect(invoice.pricingModelId).toBe(customer.pricingModelId)
+          expect(invoice.pricingModelId).toBe(pricingModel.id)
+        })
+      })
+
+      it('should throw error when customer does not exist', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const nonExistentCustomerId = `cust_${core.nanoid()}`
+
+          await expect(
+            insertInvoice(
+              {
+                customerId: nonExistentCustomerId,
+                organizationId: customer.organizationId,
+                status: InvoiceStatus.Draft,
+                type: InvoiceType.Standalone,
+                livemode: true,
+                invoiceNumber: `TEST-${core.nanoid()}`,
+                currency: CurrencyCode.USD,
+                billingPeriodId: null,
+                purchaseId: null,
+                subscriptionId: null,
+                invoiceDate: Date.now(),
+              },
+              transaction
+            )
+          ).rejects.toThrow()
+        })
       })
     })
   })

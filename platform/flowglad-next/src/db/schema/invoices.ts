@@ -42,6 +42,7 @@ import { billingRuns } from './billingRuns'
 import { customers } from './customers'
 import { memberships } from './memberships'
 import { organizations } from './organizations'
+import { pricingModels } from './pricingModels'
 import { purchases } from './purchases'
 import { subscriptions } from './subscriptions'
 
@@ -126,6 +127,10 @@ export const invoices = pgTable(
       enumBase: CurrencyCode,
     }).notNull(),
     ...taxColumns(),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => {
     return [
@@ -136,6 +141,7 @@ export const invoices = pgTable(
       constructIndex(TABLE_NAME, [table.stripePaymentIntentId]),
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.billingRunId]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       livemodePolicy(TABLE_NAME),
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
@@ -214,6 +220,7 @@ const readOnlyColumns = {
   applicationFee: true,
   taxRatePercentage: true,
   taxAmount: true,
+  pricingModelId: true,
 } as const
 
 export const {
@@ -230,6 +237,9 @@ export const {
   refine: {
     ...refineColumns,
     ...purchaseInvoiceColumnExtensions,
+  },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
   },
   client: {
     hiddenColumns,
@@ -254,6 +264,9 @@ export const {
     ...refineColumns,
     ...subscriptionInvoiceColumnExtensions,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns,
     readOnlyColumns,
@@ -276,6 +289,9 @@ export const {
   refine: {
     ...refineColumns,
     ...standaloneInvoiceColumnExtensions,
+  },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
   },
   entityName: 'StandaloneInvoice',
 })

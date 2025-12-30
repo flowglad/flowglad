@@ -37,6 +37,7 @@ import {
 import core from '@/utils/core'
 import { billingRuns } from './billingRuns'
 import { ledgerAccounts } from './ledgerAccounts'
+import { pricingModels } from './pricingModels'
 import { refunds } from './refunds'
 
 const TABLE_NAME = 'ledger_entries'
@@ -134,6 +135,10 @@ export const ledgerEntries = pgTable(
       'organization_id',
       organizations
     ),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => [
     constructIndex(TABLE_NAME, [
@@ -147,6 +152,7 @@ export const ledgerEntries = pgTable(
     constructIndex(TABLE_NAME, [table.sourceUsageEventId]),
     constructIndex(TABLE_NAME, [table.sourceUsageCreditId]),
     constructIndex(TABLE_NAME, [table.sourceCreditApplicationId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
     constructIndex(TABLE_NAME, [
       table.sourceCreditBalanceAdjustmentId,
     ]),
@@ -274,6 +280,9 @@ export const {
 } = buildSchemas(ledgerEntries, {
   discriminator: 'entryType',
   refine: { ...columnRefinements, ...usageCostEntryRefinements },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   entityName: 'UsageCostLedgerEntry',
 })
 
@@ -287,6 +296,9 @@ export const {
   refine: {
     ...columnRefinements,
     ...creditGrantRecognizedEntryRefinements,
+  },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
   },
   entityName: 'CreditGrantRecognizedLedgerEntry',
 })
@@ -302,6 +314,9 @@ export const {
     ...columnRefinements,
     ...creditBalanceAdjustedEntryRefinements,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   entityName: 'CreditBalanceAdjustedLedgerEntry',
 })
 
@@ -315,6 +330,9 @@ export const {
   refine: {
     ...columnRefinements,
     ...creditGrantExpiredEntryRefinements,
+  },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
   },
   entityName: 'CreditGrantExpiredLedgerEntry',
 })
@@ -330,6 +348,9 @@ export const {
     ...columnRefinements,
     ...paymentRefundedEntryRefinements,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   entityName: 'PaymentRefundedLedgerEntry',
 })
 
@@ -343,6 +364,9 @@ export const {
   refine: {
     ...columnRefinements,
     ...billingAdjustmentEntryRefinements,
+  },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
   },
   entityName: 'BillingAdjustmentLedgerEntry',
 })
@@ -361,6 +385,9 @@ export const {
     ...columnRefinements,
     ...usageCreditApplicationDebitFromCreditBalanceEntryRefinements,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   entityName: 'UsageCreditApplicationDebitLedgerEntry',
 })
 
@@ -377,6 +404,9 @@ export const {
   refine: {
     ...columnRefinements,
     ...usageCreditApplicationCreditTowardsUsageCostEntryRefinements,
+  },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
   },
   entityName: 'UsageCreditApplicationCreditLedgerEntry',
 })

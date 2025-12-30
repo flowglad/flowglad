@@ -13,6 +13,8 @@ import {
 } from '@/db/schema/purchases'
 import {
   createCursorPaginatedSelectFunction,
+  createDerivePricingModelId,
+  createDerivePricingModelIds,
   createInsertFunction,
   createSelectById,
   createSelectFunction,
@@ -125,6 +127,21 @@ export const upsertPurchaseById = async (
 }
 
 export const updatePurchase = createUpdateFunction(purchases, config)
+
+/**
+ * Derives pricingModelId from a purchase (via price).
+ * Used for discountRedemptions.
+ */
+export const derivePricingModelIdFromPurchase =
+  createDerivePricingModelId(purchases, config, selectPurchaseById)
+
+/**
+ * Batch fetch pricingModelIds for multiple purchases.
+ * More efficient than calling derivePricingModelIdFromPurchase for each purchase individually.
+ * Used by bulk insert operations in discount redemptions.
+ */
+export const pricingModelIdsForPurchases =
+  createDerivePricingModelIds(purchases, config)
 
 export const selectPurchasesForCustomer = (
   customerId: string,

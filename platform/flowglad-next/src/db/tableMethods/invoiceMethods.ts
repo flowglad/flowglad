@@ -1,4 +1,13 @@
-import { and, count, eq, exists, ilike, or, sql } from 'drizzle-orm'
+import {
+  and,
+  count,
+  eq,
+  exists,
+  ilike,
+  inArray,
+  or,
+  sql,
+} from 'drizzle-orm'
 import * as R from 'ramda'
 import { type Customer, customers } from '@/db/schema/customers'
 import { invoicesPaginatedTableRowDataSchema } from '@/db/schema/invoiceLineItems'
@@ -9,7 +18,10 @@ import {
   invoicesSelectSchema,
   invoicesUpdateSchema,
 } from '@/db/schema/invoices'
-import { selectCustomers } from '@/db/tableMethods/customerMethods'
+import {
+  selectCustomerById,
+  selectCustomers,
+} from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
   createCursorPaginatedSelectFunction,
@@ -19,11 +31,14 @@ import {
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
+  NotFoundError,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { InvoiceStatus } from '@/types'
 import type { InvoiceLineItem } from '../schema/invoiceLineItems'
+import { derivePricingModelIdFromPurchase } from './purchaseMethods'
+import { derivePricingModelIdFromSubscription } from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof invoices,
@@ -39,7 +54,72 @@ const config: ORMMethodCreatorConfig<
 
 export const selectInvoiceById = createSelectById(invoices, config)
 
-export const insertInvoice = createInsertFunction(invoices, config)
+/**
+ * Derives pricingModelId for an invoice with COALESCE logic.
+ * Priority: subscription > purchase > customer
+ * Used for invoice inserts.
+ */
+export const derivePricingModelIdForInvoice = async (
+  data: {
+    subscriptionId?: string | null
+    purchaseId?: string | null
+    customerId: string
+  },
+  transaction: DbTransaction
+): Promise<string> => {
+  // Try subscription first
+  if (data.subscriptionId) {
+    return await derivePricingModelIdFromSubscription(
+      data.subscriptionId,
+      transaction
+    )
+  }
+
+  // Try purchase second
+  if (data.purchaseId) {
+    return await derivePricingModelIdFromPurchase(
+      data.purchaseId,
+      transaction
+    )
+  }
+
+  // Fall back to customer
+  const customer = await selectCustomerById(
+    data.customerId,
+    transaction
+  )
+  if (!customer.pricingModelId) {
+    throw new Error(
+      `Customer ${data.customerId} does not have a pricingModelId`
+    )
+  }
+  return customer.pricingModelId
+}
+
+const baseInsertInvoice = createInsertFunction(invoices, config)
+
+export const insertInvoice = async (
+  invoiceInsert: Invoice.Insert,
+  transaction: DbTransaction
+): Promise<Invoice.Record> => {
+  const pricingModelId = invoiceInsert.pricingModelId
+    ? invoiceInsert.pricingModelId
+    : await derivePricingModelIdForInvoice(
+        {
+          subscriptionId: invoiceInsert.subscriptionId,
+          purchaseId: invoiceInsert.purchaseId,
+          customerId: invoiceInsert.customerId,
+        },
+        transaction
+      )
+  return baseInsertInvoice(
+    {
+      ...invoiceInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateInvoice = createUpdateFunction(invoices, config)
 

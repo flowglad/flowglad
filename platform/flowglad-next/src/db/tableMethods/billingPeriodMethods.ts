@@ -37,6 +37,7 @@ import {
   subscriptions,
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
+import { derivePricingModelIdFromSubscription } from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof billingPeriods,
@@ -55,10 +56,29 @@ export const selectBillingPeriodById = createSelectById(
   config
 )
 
-export const insertBillingPeriod = createInsertFunction(
+const baseInsertBillingPeriod = createInsertFunction(
   billingPeriods,
   config
 )
+
+export const insertBillingPeriod = async (
+  billingPeriodInsert: BillingPeriod.Insert,
+  transaction: DbTransaction
+): Promise<BillingPeriod.Record> => {
+  const pricingModelId = billingPeriodInsert.pricingModelId
+    ? billingPeriodInsert.pricingModelId
+    : await derivePricingModelIdFromSubscription(
+        billingPeriodInsert.subscriptionId,
+        transaction
+      )
+  return baseInsertBillingPeriod(
+    {
+      ...billingPeriodInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateBillingPeriod = createUpdateFunction(
   billingPeriods,

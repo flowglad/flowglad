@@ -30,6 +30,7 @@ import {
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
+import { pricingModels } from './pricingModels'
 
 const TABLE_NAME = 'discount_redemptions'
 
@@ -68,6 +69,10 @@ export const discountRedemptions = pgTable(
     ),
     numberOfPayments: integer('number_of_payments'),
     fullyRedeemed: boolean('fully_redeemed').notNull().default(false),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => {
     return [
@@ -75,6 +80,7 @@ export const discountRedemptions = pgTable(
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructUniqueIndex(TABLE_NAME, [table.purchaseId]),
       constructIndex(TABLE_NAME, [table.subscriptionId]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       livemodePolicy(TABLE_NAME),
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
@@ -119,6 +125,7 @@ const readOnlyColumns = {
   discountAmountType: true,
   numberOfPayments: true,
   livemode: true,
+  pricingModelId: true,
 } as const
 
 export const {
@@ -136,6 +143,9 @@ export const {
     ...columnRefinements,
     duration: z.literal(DiscountDuration.Once),
     numberOfPayments: z.null().optional(),
+  },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
   },
   client: {
     hiddenColumns,
@@ -160,6 +170,9 @@ export const {
     duration: z.literal(DiscountDuration.NumberOfPayments),
     numberOfPayments: core.safeZodPositiveInteger,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   entityName: 'NumberOfPaymentsDiscountRedemption',
 })
 
@@ -178,6 +191,9 @@ export const {
     ...columnRefinements,
     duration: z.literal(DiscountDuration.Forever),
     numberOfPayments: z.null().optional(),
+  },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
   },
   entityName: 'ForeverDiscountRedemption',
 })

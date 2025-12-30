@@ -3288,7 +3288,8 @@ describe('billingRunHelpers', async () => {
         livemode: billingPeriod.livemode,
         attemptNumber: 1,
         isAdjustment: false,
-      })
+        pricingModelId: pricingModel.id,
+      }) as BillingRun.Insert & { pricingModelId: string }
       billingRun = await adminTransaction(async ({ transaction }) => {
         const [inserted] = await transaction
           .insert(billingRuns)
