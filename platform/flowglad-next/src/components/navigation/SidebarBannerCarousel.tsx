@@ -108,6 +108,22 @@ export const SidebarBannerCarousel: React.FC<
     }
   }, [api, onSelect])
 
+  // Auto-slide every 3 seconds
+  useEffect(() => {
+    if (!api || visibleSlides.length <= 1) return
+
+    const interval = setInterval(() => {
+      if (api.canScrollNext()) {
+        api.scrollNext()
+      } else {
+        // Loop back to the beginning
+        api.scrollTo(0)
+      }
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [api, visibleSlides.length])
+
   // Handle dismiss - dismisses ALL visible banners in a single mutation
   const handleDismiss = () => {
     const bannerIds = visibleSlides.map((slide) => slide.id)
@@ -144,114 +160,94 @@ export const SidebarBannerCarousel: React.FC<
 
       {/* Banner image container with overlaid navigation */}
       <Carousel setApi={setApi} className="w-full">
-        <div className="group/banner relative">
-          {/* Image container - matches Figma specs (FIXED HEIGHT: 147px) */}
-          <div className="relative h-[147px] bg-secondary border border-border rounded-[6px] p-[10px] overflow-hidden">
-            <CarouselContent className="-ml-0 h-full">
+        <div className="group/banner relative h-[147px] bg-secondary border border-border rounded-[6px] overflow-hidden">
+          {/* [&>div]:h-full ensures the embla-carousel overflow wrapper inherits height */}
+          <div className="h-full [&>div]:h-full">
+            <CarouselContent className="-ml-0 h-full [&>div]:h-full">
               {visibleSlides.map((slide) => (
                 <CarouselItem key={slide.id} className="pl-0 h-full">
                   <div className="relative h-full w-full overflow-hidden rounded">
                     {slide.imageUrl ? (
-                      // Image-based slide
-                      slide.href ? (
-                        <Link
-                          href={slide.href}
-                          className="block h-full"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Image
-                            src={slide.imageUrl}
-                            alt={slide.alt ?? ''}
-                            fill
-                            className="object-cover"
-                          />
-                        </Link>
-                      ) : (
-                        <Image
-                          src={slide.imageUrl}
-                          alt={slide.alt ?? ''}
-                          fill
-                          className="object-cover"
-                        />
-                      )
+                      <Image
+                        src={slide.imageUrl}
+                        alt={slide.alt ?? ''}
+                        fill
+                        className="object-cover"
+                      />
                     ) : (
-                      // Placeholder for slides without images (CTA button will overlay)
                       <div className="h-full w-full" />
                     )}
                   </div>
                 </CarouselItem>
               ))}
             </CarouselContent>
-
-            {/* Navigation buttons - OVERLAID, visible on mobile, hover on desktop, hidden at edges */}
-            {visibleSlides.length > 1 && (
-              <div className="absolute inset-0 flex items-center justify-between px-1 pointer-events-none">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => api?.scrollPrev()}
-                  className={cn(
-                    'h-8 w-8 rounded-full bg-background border-input shadow-sm pointer-events-auto',
-                    'transition-opacity duration-200',
-                    canScrollPrev
-                      ? 'opacity-100 md:opacity-0 md:group-hover/banner:opacity-100'
-                      : 'opacity-0 pointer-events-none'
-                  )}
-                  data-testid="sidebar-banner-prev"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  <span className="sr-only">Previous banner</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => api?.scrollNext()}
-                  className={cn(
-                    'h-8 w-8 rounded-full bg-background border-input shadow-sm pointer-events-auto',
-                    'transition-opacity duration-200',
-                    canScrollNext
-                      ? 'opacity-100 md:opacity-0 md:group-hover/banner:opacity-100'
-                      : 'opacity-0 pointer-events-none'
-                  )}
-                  data-testid="sidebar-banner-next"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                  <span className="sr-only">Next banner</span>
-                </Button>
-              </div>
-            )}
-
-            {/* CTA Button - OVERLAID at bottom, visible on mobile, hover on desktop */}
-            {currentSlide && (
-              <div className="absolute bottom-[3px] left-1/2 -translate-x-1/2 pointer-events-none">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  asChild={!!ctaLink}
-                  className={cn(
-                    'h-[26px] bg-background border-input shadow-sm pointer-events-auto',
-                    'opacity-100 md:opacity-0 md:group-hover/banner:opacity-100 transition-opacity duration-200'
-                  )}
-                  data-testid="sidebar-banner-cta"
-                >
-                  {ctaLink ? (
-                    <Link
-                      href={ctaLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {currentSlide.ctaText ?? 'Learn More'}
-                    </Link>
-                  ) : (
-                    <span>
-                      {currentSlide.ctaText ?? 'Learn More'}
-                    </span>
-                  )}
-                </Button>
-              </div>
-            )}
           </div>
+
+          {/* Navigation buttons - OVERLAID, visible on mobile, hover on desktop, hidden at edges */}
+          {visibleSlides.length > 1 && (
+            <div className="absolute inset-0 flex items-center justify-between px-1 pointer-events-none">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => api?.scrollPrev()}
+                className={cn(
+                  'h-8 w-8 rounded-full bg-background border-input shadow-sm pointer-events-auto',
+                  'transition-opacity duration-200',
+                  canScrollPrev
+                    ? 'opacity-100 md:opacity-0 md:group-hover/banner:opacity-100'
+                    : 'opacity-0 pointer-events-none'
+                )}
+                data-testid="sidebar-banner-prev"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="sr-only">Previous banner</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => api?.scrollNext()}
+                className={cn(
+                  'h-8 w-8 rounded-full bg-background border-input shadow-sm pointer-events-auto',
+                  'transition-opacity duration-200',
+                  canScrollNext
+                    ? 'opacity-100 md:opacity-0 md:group-hover/banner:opacity-100'
+                    : 'opacity-0 pointer-events-none'
+                )}
+                data-testid="sidebar-banner-next"
+              >
+                <ChevronRight className="h-4 w-4" />
+                <span className="sr-only">Next banner</span>
+              </Button>
+            </div>
+          )}
+
+          {/* CTA Button - OVERLAID at bottom, visible on mobile, hover on desktop */}
+          {currentSlide && (
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-none">
+              <Button
+                variant="outline"
+                size="sm"
+                asChild={!!ctaLink}
+                className={cn(
+                  'h-[26px] bg-background border-input shadow-sm pointer-events-auto',
+                  'opacity-100 md:opacity-0 md:group-hover/banner:opacity-100 transition-opacity duration-200'
+                )}
+                data-testid="sidebar-banner-cta"
+              >
+                {ctaLink ? (
+                  <Link
+                    href={ctaLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {currentSlide.ctaText ?? 'Learn More'}
+                  </Link>
+                ) : (
+                  <span>{currentSlide.ctaText ?? 'Learn More'}</span>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </Carousel>
 

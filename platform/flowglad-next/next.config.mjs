@@ -41,6 +41,8 @@ const nextConfig = {
           },
         ]
       : [],
+    // Enable unoptimized images for local development
+    unoptimized: process.env.NODE_ENV === 'development',
   },
   rewrites: async () => {
     return [
