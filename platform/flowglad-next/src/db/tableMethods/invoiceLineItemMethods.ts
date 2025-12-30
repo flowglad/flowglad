@@ -122,10 +122,21 @@ const baseInsertInvoiceLineItems = createInsertManyFunction(
   config
 )
 
-export const insertInvoiceLineItems = async (
+/**
+ * Batch derives and maps pricingModelIds for invoice line item inserts.
+ * This helper efficiently handles multiple inserts by:
+ * 1. Collecting unique (invoiceId, priceId) combinations
+ * 2. Deriving pricingModelIds once per unique combination
+ * 3. Mapping the derived IDs back to all inserts
+ *
+ * @param inserts - Array of invoice line item inserts
+ * @param transaction - Database transaction
+ * @returns Array of inserts with pricingModelId populated
+ */
+const deriveAndMapPricingModelIdsForInserts = async (
   inserts: InvoiceLineItem.Insert[],
   transaction: DbTransaction
-): Promise<InvoiceLineItem.Record[]> => {
+): Promise<InvoiceLineItem.Insert[]> => {
   // Collect unique combinations that need pricingModelId derivation
   const insertsNeedingDerivation = inserts.filter(
     (insert) => !insert.pricingModelId
@@ -169,7 +180,7 @@ export const insertInvoiceLineItems = async (
   )
 
   // Derive pricingModelId for each insert using the map
-  const insertsWithPricingModelId = inserts.map((insert) => {
+  return inserts.map((insert) => {
     if (insert.pricingModelId) {
       return insert
     }
@@ -188,6 +199,14 @@ export const insertInvoiceLineItems = async (
       pricingModelId,
     }
   })
+}
+
+export const insertInvoiceLineItems = async (
+  inserts: InvoiceLineItem.Insert[],
+  transaction: DbTransaction
+): Promise<InvoiceLineItem.Record[]> => {
+  const insertsWithPricingModelId =
+    await deriveAndMapPricingModelIdsForInserts(inserts, transaction)
 
   return baseInsertInvoiceLineItems(
     insertsWithPricingModelId,
@@ -293,74 +312,13 @@ const baseBulkUpsertInvoiceLineItems = createBulkUpsertFunction(
   config
 )
 
-// TODO: improve performance by gathering unique invoiceIds and priceIds and deriving pricingModelIds for them
 export const bulkUpsertInvoiceLineItems = async (
   inserts: InvoiceLineItem.Insert[],
   target: Parameters<typeof baseBulkUpsertInvoiceLineItems>[1],
   transaction: DbTransaction
 ): Promise<InvoiceLineItem.Record[]> => {
-  // Collect unique combinations that need pricingModelId derivation
-  const insertsNeedingDerivation = inserts.filter(
-    (insert) => !insert.pricingModelId
-  )
-
-  // Create a map key for each unique combination
-  const createMapKey = (
-    invoiceId: string,
-    priceId: string | null | undefined
-  ) => `${invoiceId}|${priceId || ''}`
-
-  // Collect unique combinations
-  const uniqueCombinations = Array.from(
-    new Set(
-      insertsNeedingDerivation.map((insert) =>
-        createMapKey(insert.invoiceId, insert.priceId)
-      )
-    )
-  ).map((key) => {
-    const [invoiceId, priceId] = key.split('|')
-    return {
-      invoiceId,
-      priceId: priceId || undefined,
-    }
-  })
-
-  // Batch derive pricingModelIds for unique combinations
-  const pricingModelIdResults = await Promise.all(
-    uniqueCombinations.map(async (combo) => ({
-      key: createMapKey(combo.invoiceId, combo.priceId),
-      pricingModelId: await derivePricingModelIdForInvoiceLineItem(
-        combo,
-        transaction
-      ),
-    }))
-  )
-
-  // Build map for O(1) lookup
-  const pricingModelIdMap = new Map(
-    pricingModelIdResults.map((r) => [r.key, r.pricingModelId])
-  )
-
-  // Derive pricingModelId for each insert using the map
-  const insertsWithPricingModelId = inserts.map((insert) => {
-    if (insert.pricingModelId) {
-      return insert
-    }
-
-    const key = createMapKey(insert.invoiceId, insert.priceId)
-    const pricingModelId = pricingModelIdMap.get(key)
-
-    if (!pricingModelId) {
-      throw new Error(
-        `Could not derive pricingModelId for invoice line item with invoiceId: ${insert.invoiceId}, priceId: ${insert.priceId}`
-      )
-    }
-
-    return {
-      ...insert,
-      pricingModelId,
-    }
-  })
+  const insertsWithPricingModelId =
+    await deriveAndMapPricingModelIdsForInserts(inserts, transaction)
 
   return baseBulkUpsertInvoiceLineItems(
     insertsWithPricingModelId,
