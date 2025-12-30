@@ -73,6 +73,7 @@ export const cardPaymentsCountries = [
   'TH',
   'AE',
   'GB',
+  'MY'
 ]
 
 export const transferCountries = [
