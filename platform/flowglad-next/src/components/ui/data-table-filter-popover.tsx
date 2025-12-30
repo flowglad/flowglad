@@ -363,7 +363,7 @@ export function DataTableFilterPopover<
           variant={triggerVariant}
           size="sm"
           disabled={disabled}
-          className="h-8 w-full sm:w-auto gap-1 text-sm"
+          className="h-8 flex-1 sm:flex-none gap-1 text-sm"
         >
           {triggerIcon === 'settings' && (
             <IconComponent className="size-4" />

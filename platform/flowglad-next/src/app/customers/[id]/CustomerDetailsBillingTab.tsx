@@ -5,10 +5,10 @@ import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import { PaymentsDataTable } from '@/app/finance/payments/data-table'
 import { SubscriptionsDataTable } from '@/app/finance/subscriptions/data-table'
-import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { DetailLabel } from '@/components/DetailLabel'
 import { ExpandSection } from '@/components/ExpandSection'
 import { CreateSubscriptionFormModal } from '@/components/forms/CreateSubscriptionFormModal'
+import { CopyableField } from '@/components/ui/copyable-field'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import type { Customer } from '@/db/schema/customers'
 import type { Payment } from '@/db/schema/payments'
@@ -52,42 +52,48 @@ const CustomerDetailsSection = ({
       : null
 
   return (
-    <div className="w-full min-w-40 flex flex-col gap-4 py-2 rounded-md">
-      <div className="grid grid-cols-2 gap-x-16 gap-y-4">
-        <div className="flex flex-col gap-4">
+    <div className="w-full min-w-40 flex flex-col gap-4 py-2 px-3">
+      <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-x-8 gap-y-4">
+        <div className="flex flex-col gap-4 overflow-hidden min-w-0">
           <DetailLabel
             label="Email"
             value={
-              <CopyableTextTableCell copyText={customer.email}>
-                {customer.email}
-              </CopyableTextTableCell>
+              <CopyableField
+                value={customer.email}
+                label="Email"
+                truncate
+              />
             }
           />
           <DetailLabel
             label="ID"
             value={
-              <CopyableTextTableCell copyText={customer.id}>
-                {customer.id}
-              </CopyableTextTableCell>
+              <CopyableField
+                value={customer.id}
+                label="ID"
+                truncate
+              />
             }
           />
           <DetailLabel
             label="External ID"
             value={
-              <CopyableTextTableCell copyText={customer.externalId}>
-                {customer.externalId}
-              </CopyableTextTableCell>
+              <CopyableField
+                value={customer.externalId}
+                label="External ID"
+                truncate
+              />
             }
           />
           <DetailLabel
             label="Pricing Model ID"
             value={
               customer.pricingModelId ? (
-                <CopyableTextTableCell
-                  copyText={customer.pricingModelId}
-                >
-                  {customer.pricingModelId}
-                </CopyableTextTableCell>
+                <CopyableField
+                  value={customer.pricingModelId}
+                  label="Pricing Model ID"
+                  truncate
+                />
               ) : (
                 '-'
               )
@@ -96,12 +102,11 @@ const CustomerDetailsSection = ({
           <DetailLabel
             label="Portal URL"
             value={
-              <CopyableTextTableCell
-                copyText={billingPortalURL}
-                className="max-w-72"
-              >
-                {billingPortalURL}
-              </CopyableTextTableCell>
+              <CopyableField
+                value={billingPortalURL}
+                label="Portal URL"
+                truncate
+              />
             }
           />
         </div>
