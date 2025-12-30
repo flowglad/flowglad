@@ -2346,7 +2346,7 @@ describe('subscriptionItemHelpers', () => {
           })
         })
 
-        it('should handle mix of Once and EveryBillingPeriod features in same subscription', async () => {
+        it('should grant both Once and EveryBillingPeriod credits on first adjustment then deduplicate both on subsequent adjustments', async () => {
           // Create a Once frequency feature
           const onceFeature = await setupUsageCreditGrantFeature({
             organizationId: orgData.organization.id,
