@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  setupBillingPeriod,
   setupCustomer,
   setupLedgerAccount,
   setupOrg,
@@ -31,7 +32,10 @@ import {
   insertSubscriptionItem,
   selectSubscriptionItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
-import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import {
+  insertUsageCredit,
+  selectUsageCredits,
+} from '@/db/tableMethods/usageCreditMethods'
 import {
   addFeatureToSubscriptionItem,
   createSubscriptionFeatureItems,
@@ -1006,6 +1010,583 @@ describe('SubscriptionItemFeatureHelpers', () => {
           transaction
         )
         expect(manualItems.length).toBe(1)
+      })
+    })
+
+    describe('grantCreditsImmediately deduplication', () => {
+      it('should NOT grant duplicate credits on second call with grantCreditsImmediately: true', async () => {
+        const [{ feature: usageFeature }] =
+          await setupTestFeaturesAndProductFeatures(
+            orgData.organization.id,
+            productForFeatures.id,
+            orgData.pricingModel.id,
+            true,
+            [
+              {
+                name: 'Dedup Test Feature',
+                type: FeatureType.UsageCreditGrant,
+                amount: 100,
+                renewalFrequency:
+                  FeatureUsageGrantFrequency.EveryBillingPeriod,
+                usageMeterName: 'dedup-test-meter',
+              },
+            ]
+          )
+
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: usageFeature.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          // First call - should grant credits
+          const firstResult = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+          expect(firstResult.ledgerCommand).toMatchObject({
+            type: LedgerTransactionType.CreditGrantRecognized,
+          })
+
+          // Second call - should NOT grant duplicate credits
+          const secondResult = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+          // Second call should not produce a ledger command (credit was deduplicated)
+          expect(secondResult.ledgerCommand).toBeUndefined()
+
+          // Verify only 1 credit exists
+          const usageCreditRecords = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageFeature.usageMeterId!,
+            },
+            transaction
+          )
+          expect(usageCreditRecords.length).toBe(1)
+        })
+      })
+
+      it('should NOT grant duplicate credits on 5 consecutive calls', async () => {
+        const [{ feature: usageFeature }] =
+          await setupTestFeaturesAndProductFeatures(
+            orgData.organization.id,
+            productForFeatures.id,
+            orgData.pricingModel.id,
+            true,
+            [
+              {
+                name: 'Multi Dedup Test Feature',
+                type: FeatureType.UsageCreditGrant,
+                amount: 50,
+                renewalFrequency:
+                  FeatureUsageGrantFrequency.EveryBillingPeriod,
+                usageMeterName: 'multi-dedup-test-meter',
+              },
+            ]
+          )
+
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: usageFeature.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          // Call 5 times with grantCreditsImmediately: true
+          for (let i = 0; i < 5; i++) {
+            await addFeatureToSubscriptionItem(
+              {
+                subscriptionItemId: subscriptionItem.id,
+                featureId: usageFeature.id,
+                grantCreditsImmediately: true,
+              },
+              transaction
+            )
+          }
+
+          // Verify only 1 credit exists (not 5)
+          const usageCreditRecords = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageFeature.usageMeterId!,
+            },
+            transaction
+          )
+          expect(usageCreditRecords.length).toBe(1)
+          expect(usageCreditRecords[0].issuedAmount).toBe(
+            usageFeature.amount ?? 0
+          )
+        })
+      })
+
+      it('should grant credits for DIFFERENT features', async () => {
+        const [{ feature: featureA }, { feature: featureB }] =
+          await setupTestFeaturesAndProductFeatures(
+            orgData.organization.id,
+            productForFeatures.id,
+            orgData.pricingModel.id,
+            true,
+            [
+              {
+                name: 'Feature A',
+                type: FeatureType.UsageCreditGrant,
+                amount: 100,
+                renewalFrequency:
+                  FeatureUsageGrantFrequency.EveryBillingPeriod,
+                usageMeterName: 'feature-a-meter',
+              },
+              {
+                name: 'Feature B',
+                type: FeatureType.UsageCreditGrant,
+                amount: 200,
+                renewalFrequency:
+                  FeatureUsageGrantFrequency.EveryBillingPeriod,
+                usageMeterName: 'feature-b-meter',
+              },
+            ]
+          )
+
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: featureA.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: featureB.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          // Grant credits for feature A
+          const resultA = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: featureA.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+          expect(resultA.ledgerCommand).toMatchObject({
+            type: LedgerTransactionType.CreditGrantRecognized,
+          })
+
+          // Grant credits for feature B
+          const resultB = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: featureB.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+          expect(resultB.ledgerCommand).toMatchObject({
+            type: LedgerTransactionType.CreditGrantRecognized,
+          })
+
+          // Verify 2 credits exist (one for A, one for B)
+          const creditsA = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: featureA.usageMeterId!,
+            },
+            transaction
+          )
+          const creditsB = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: featureB.usageMeterId!,
+            },
+            transaction
+          )
+          expect(creditsA.length).toBe(1)
+          expect(creditsB.length).toBe(1)
+        })
+      })
+
+      it('should deduplicate using stable featureId, not subscription_item_feature.id', async () => {
+        const [{ feature: usageFeature }] =
+          await setupTestFeaturesAndProductFeatures(
+            orgData.organization.id,
+            productForFeatures.id,
+            orgData.pricingModel.id,
+            true,
+            [
+              {
+                name: 'Stable ID Test Feature',
+                type: FeatureType.UsageCreditGrant,
+                amount: 75,
+                renewalFrequency:
+                  FeatureUsageGrantFrequency.EveryBillingPeriod,
+                usageMeterName: 'stable-id-test-meter',
+              },
+            ]
+          )
+
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: usageFeature.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          // First call creates sub_item_feature_1 and grants credits
+          const result1 = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+          const firstSubFeatureId =
+            result1.result.subscriptionItemFeature.id
+
+          // Second call updates sub_item_feature (same ID due to upsert)
+          // but should NOT grant duplicate credits
+          const result2 = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+
+          // The subscription item feature ID should be the same (due to upsert)
+          expect(result2.result.subscriptionItemFeature.id).toBe(
+            firstSubFeatureId
+          )
+
+          // But no duplicate credit should be created
+          expect(result2.ledgerCommand).toBeUndefined()
+
+          // Verify only 1 credit exists
+          const usageCreditRecords = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageFeature.usageMeterId!,
+            },
+            transaction
+          )
+          expect(usageCreditRecords.length).toBe(1)
+          // The credit's sourceReferenceId should be the first subscription item feature ID
+          expect(usageCreditRecords[0].sourceReferenceId).toBe(
+            firstSubFeatureId
+          )
+        })
+      })
+
+      it('should deduplicate when no billing period exists (null billingPeriodId)', async () => {
+        // This test explicitly verifies the isNull(billingPeriodId) branch
+        // Note: The test setup does NOT create a billing period, so credits will have null billingPeriodId
+        const [{ feature: usageFeature }] =
+          await setupTestFeaturesAndProductFeatures(
+            orgData.organization.id,
+            productForFeatures.id,
+            orgData.pricingModel.id,
+            true,
+            [
+              {
+                name: 'No Billing Period Feature',
+                type: FeatureType.UsageCreditGrant,
+                amount: 100,
+                renewalFrequency:
+                  FeatureUsageGrantFrequency.EveryBillingPeriod,
+                usageMeterName: 'no-billing-period-meter',
+              },
+            ]
+          )
+
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: usageFeature.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          // First call - grants credits with null billingPeriodId
+          const firstResult = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+          expect(firstResult.ledgerCommand).toMatchObject({
+            type: LedgerTransactionType.CreditGrantRecognized,
+          })
+
+          // Verify the credit has null billingPeriodId
+          const creditsAfterFirst = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageFeature.usageMeterId!,
+            },
+            transaction
+          )
+          expect(creditsAfterFirst.length).toBe(1)
+          expect(creditsAfterFirst[0].billingPeriodId).toBeNull()
+
+          // Second call - should be deduplicated via isNull(billingPeriodId) check
+          const secondResult = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+          expect(secondResult.ledgerCommand).toBeUndefined()
+
+          // Verify still only 1 credit exists
+          const creditsAfterSecond = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageFeature.usageMeterId!,
+            },
+            transaction
+          )
+          expect(creditsAfterSecond.length).toBe(1)
+        })
+      })
+
+      it('should deduplicate within a billing period when one exists', async () => {
+        // This test explicitly verifies the eq(billingPeriodId, currentBillingPeriod.id) branch
+        const [{ feature: usageFeature }] =
+          await setupTestFeaturesAndProductFeatures(
+            orgData.organization.id,
+            productForFeatures.id,
+            orgData.pricingModel.id,
+            true,
+            [
+              {
+                name: 'With Billing Period Feature',
+                type: FeatureType.UsageCreditGrant,
+                amount: 150,
+                renewalFrequency:
+                  FeatureUsageGrantFrequency.EveryBillingPeriod,
+                usageMeterName: 'with-billing-period-meter',
+              },
+            ]
+          )
+
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: usageFeature.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+
+        // Create a billing period for this subscription
+        const now = Date.now()
+        const billingPeriod = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now - 1000 * 60 * 60 * 24, // 1 day ago
+          endDate: now + 1000 * 60 * 60 * 24 * 29, // 29 days from now
+          livemode: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          // First call - grants credits with the billing period
+          const firstResult = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+          expect(firstResult.ledgerCommand).toMatchObject({
+            type: LedgerTransactionType.CreditGrantRecognized,
+          })
+
+          // Verify the credit has the billing period ID
+          const creditsAfterFirst = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageFeature.usageMeterId!,
+            },
+            transaction
+          )
+          expect(creditsAfterFirst.length).toBe(1)
+          expect(creditsAfterFirst[0].billingPeriodId).toBe(
+            billingPeriod.id
+          )
+
+          // Second call - should be deduplicated within the same billing period
+          const secondResult = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+          expect(secondResult.ledgerCommand).toBeUndefined()
+
+          // Verify still only 1 credit exists
+          const creditsAfterSecond = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageFeature.usageMeterId!,
+            },
+            transaction
+          )
+          expect(creditsAfterSecond.length).toBe(1)
+        })
+      })
+
+      it('should allow new credits in a different billing period (credits in period 1 do not block period 2)', async () => {
+        // This test verifies that deduplication is scoped to the billing period
+        // A credit in period 1 should NOT block grants in period 2
+        const [{ feature: usageFeature }] =
+          await setupTestFeaturesAndProductFeatures(
+            orgData.organization.id,
+            productForFeatures.id,
+            orgData.pricingModel.id,
+            true,
+            [
+              {
+                name: 'Cross Period Feature',
+                type: FeatureType.UsageCreditGrant,
+                amount: 200,
+                renewalFrequency:
+                  FeatureUsageGrantFrequency.EveryBillingPeriod,
+                usageMeterName: 'cross-period-meter',
+              },
+            ]
+          )
+
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: usageFeature.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+
+        const now = Date.now()
+
+        // Create first billing period (in the past)
+        const billingPeriod1 = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now - 1000 * 60 * 60 * 24 * 60, // 60 days ago
+          endDate: now - 1000 * 60 * 60 * 24 * 30, // 30 days ago
+          livemode: true,
+        })
+
+        // Create second billing period (current)
+        const billingPeriod2 = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now - 1000 * 60 * 60 * 24, // 1 day ago
+          endDate: now + 1000 * 60 * 60 * 24 * 29, // 29 days from now
+          livemode: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          // First, manually create a subscription item feature to reference
+          const manualFeatureResult =
+            await addFeatureToSubscriptionItem(
+              {
+                subscriptionItemId: subscriptionItem.id,
+                featureId: usageFeature.id,
+                grantCreditsImmediately: false, // Don't grant yet
+              },
+              transaction
+            )
+          const subItemFeatureId =
+            manualFeatureResult.result.subscriptionItemFeature.id
+
+          // Directly insert a credit for billing period 1 (simulating a past grant)
+          await insertUsageCredit(
+            {
+              subscriptionId: subscription.id,
+              organizationId: orgData.organization.id,
+              livemode: true,
+              creditType: UsageCreditType.Grant,
+              sourceReferenceId: subItemFeatureId,
+              sourceReferenceType:
+                UsageCreditSourceReferenceType.ManualAdjustment,
+              billingPeriodId: billingPeriod1.id,
+              usageMeterId: usageFeature.usageMeterId!,
+              paymentId: null,
+              issuedAmount: 200,
+              issuedAt: now - 1000 * 60 * 60 * 24 * 45, // 45 days ago
+              expiresAt: billingPeriod1.endDate,
+              status: UsageCreditStatus.Posted,
+              notes: null,
+              metadata: null,
+            },
+            transaction
+          )
+
+          // Verify we have 1 credit in period 1
+          const creditsBeforeGrant = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageFeature.usageMeterId!,
+            },
+            transaction
+          )
+          expect(creditsBeforeGrant.length).toBe(1)
+          expect(creditsBeforeGrant[0].billingPeriodId).toBe(
+            billingPeriod1.id
+          )
+
+          // Now call addFeatureToSubscriptionItem with grantCreditsImmediately: true
+          // This should grant credits for period 2, NOT be blocked by the period 1 credit
+          const result = await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            transaction
+          )
+
+          // Should have granted credits (not blocked by period 1 credit)
+          expect(result.ledgerCommand).toMatchObject({
+            type: LedgerTransactionType.CreditGrantRecognized,
+          })
+
+          // Verify we now have 2 credits - one in each period
+          const creditsAfterGrant = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageFeature.usageMeterId!,
+            },
+            transaction
+          )
+          expect(creditsAfterGrant.length).toBe(2)
+
+          // Verify one credit is in period 1 and one is in period 2
+          const period1Credits = creditsAfterGrant.filter(
+            (c) => c.billingPeriodId === billingPeriod1.id
+          )
+          const period2Credits = creditsAfterGrant.filter(
+            (c) => c.billingPeriodId === billingPeriod2.id
+          )
+          expect(period1Credits.length).toBe(1)
+          expect(period2Credits.length).toBe(1)
+        })
       })
     })
   })

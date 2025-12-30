@@ -1,3 +1,4 @@
+import { and, eq, isNull } from 'drizzle-orm'
 import * as R from 'ramda'
 import type { CreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import { Customer } from '@/db/schema/customers'
@@ -8,11 +9,13 @@ import type {
   AddFeatureToSubscriptionInput,
   SubscriptionItemFeature,
 } from '@/db/schema/subscriptionItemFeatures'
+import { subscriptionItemFeatures } from '@/db/schema/subscriptionItemFeatures'
 import {
   type SubscriptionItem,
   subscriptionItems,
 } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
+import { usageCredits } from '@/db/schema/usageCredits'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
@@ -397,6 +400,51 @@ const grantImmediateUsageCredits = async (
       subscription.id,
       transaction
     )
+
+  // Check for existing credits for this feature in this billing period (or without billing period)
+  // Use stable featureId (not ephemeral subscription_item_feature.id) for deduplication
+  const stableFeatureId = subscriptionItemFeature.featureId
+  if (stableFeatureId) {
+    // Build the WHERE conditions
+    const whereConditions = [
+      eq(usageCredits.subscriptionId, subscription.id),
+      eq(
+        usageCredits.sourceReferenceType,
+        UsageCreditSourceReferenceType.ManualAdjustment
+      ),
+      eq(subscriptionItemFeatures.featureId, stableFeatureId),
+      eq(usageCredits.usageMeterId, usageMeterId),
+    ]
+
+    // If we have a billing period, scope deduplication to that period
+    // If not, check for credits with null billingPeriodId
+    if (currentBillingPeriod) {
+      whereConditions.push(
+        eq(usageCredits.billingPeriodId, currentBillingPeriod.id)
+      )
+    } else {
+      whereConditions.push(isNull(usageCredits.billingPeriodId))
+    }
+
+    const existingCredits = await transaction
+      .select({ id: usageCredits.id })
+      .from(usageCredits)
+      .innerJoin(
+        subscriptionItemFeatures,
+        eq(
+          usageCredits.sourceReferenceId,
+          subscriptionItemFeatures.id
+        )
+      )
+      .where(and(...whereConditions))
+      .limit(1)
+
+    if (existingCredits.length > 0) {
+      // Credits already exist for this feature in this billing period - skip
+      return
+    }
+  }
+
   const usageCredit = await insertUsageCredit(
     {
       subscriptionId: subscription.id,
