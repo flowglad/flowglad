@@ -161,20 +161,37 @@ export const upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId =
     const inserts = Array.isArray(insert) ? insert : [insert]
 
     // Derive pricingModelId for each insert
-    const insertsWithPricingModelId = await Promise.all(
-      inserts.map(async (insert) => {
-        const pricingModelId =
-          insert.pricingModelId ??
-          (await derivePricingModelIdFromSubscriptionItem(
-            insert.subscriptionItemId,
-            transaction
-          ))
-        return {
-          ...insert,
-          pricingModelId,
-        }
-      })
+    // Collect unique subscriptionItemIds that need pricingModelId derivation
+    const subscriptionItemIdsNeedingDerivation = Array.from(
+      new Set(
+        inserts
+          .filter((insert) => !insert.pricingModelId)
+          .map((insert) => insert.subscriptionItemId)
+      )
     )
+
+    // Batch fetch pricingModelIds for all subscription items in one query
+    const pricingModelIdMap =
+      await derivePricingModelIdsFromSubscriptionItems(
+        subscriptionItemIdsNeedingDerivation,
+        transaction
+      )
+
+    // Derive pricingModelId using the batch-fetched map
+    const insertsWithPricingModelId = inserts.map((insert) => {
+      const pricingModelId =
+        insert.pricingModelId ??
+        pricingModelIdMap.get(insert.subscriptionItemId)
+      if (!pricingModelId) {
+        throw new Error(
+          `Could not derive pricingModelId for subscription item ${insert.subscriptionItemId}`
+        )
+      }
+      return {
+        ...insert,
+        pricingModelId,
+      }
+    })
 
     return baseUpsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId(
       insertsWithPricingModelId,
