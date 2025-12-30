@@ -73,7 +73,7 @@ export const cardPaymentsCountries = [
   'TH',
   'AE',
   'GB',
-  'MY'
+  'MY',
 ]
 
 export const transferCountries = [
@@ -106,12 +106,14 @@ export const transferCountries = [
   'GA',
   'GM',
   'GH',
+  'GI',
   'GT',
   'GY',
   'IS',
   'IN',
   'ID',
   'IL',
+  'IQ',
   'JM',
   'JO',
   'KZ',
@@ -152,6 +154,7 @@ export const transferCountries = [
   'TT',
   'TN',
   'TR',
+  'US',
   'UY',
   'UZ',
   'VN',
@@ -164,7 +167,10 @@ export const platformEligibleCountries = new Set(
   cardPaymentsCountries
 )
 
-export const morEligibleCountries = new Set([...transferCountries, ...cardPaymentsCountries])
+export const morEligibleCountries = new Set([
+  ...transferCountries,
+  ...cardPaymentsCountries,
+])
 
 export const isCountryEligibleForPlatform = (
   countryCode: string

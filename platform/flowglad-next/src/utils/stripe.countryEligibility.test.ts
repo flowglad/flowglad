@@ -9,18 +9,18 @@ import {
   transferCountries,
 } from './stripe'
 
-const getPlatformOnlyCountryCode = (): string => {
-  const platformOnlyCountryCode = cardPaymentsCountries.find(
-    (countryCode) => !transferCountries.includes(countryCode)
+const getPlatformEligibleCountryCode = (): string => {
+  const platformEligibleCountryCode = cardPaymentsCountries.find(
+    (countryCode) => countryCode.length > 0
   )
 
-  if (!platformOnlyCountryCode) {
+  if (!platformEligibleCountryCode) {
     throw new Error(
-      'Expected cardPaymentsCountries to include at least one country not in transferCountries.'
+      'Expected cardPaymentsCountries to include at least one country.'
     )
   }
 
-  return platformOnlyCountryCode
+  return platformEligibleCountryCode
 }
 
 const getMoROnlyCountryCode = (): string => {
@@ -46,14 +46,14 @@ const getCountryInBothLists = (): string | undefined => {
 describe('stripe country eligibility helpers', () => {
   describe('isCountryEligibleForPlatform', () => {
     it('returns true for a country in cardPaymentsCountries', () => {
-      const platformCountryCode = getPlatformOnlyCountryCode()
+      const platformCountryCode = getPlatformEligibleCountryCode()
       expect(isCountryEligibleForPlatform(platformCountryCode)).toBe(
         true
       )
     })
 
     it('is case-insensitive', () => {
-      const platformCountryCode = getPlatformOnlyCountryCode()
+      const platformCountryCode = getPlatformEligibleCountryCode()
       expect(
         isCountryEligibleForPlatform(
           platformCountryCode.toLowerCase()
@@ -75,6 +75,11 @@ describe('stripe country eligibility helpers', () => {
       expect(isCountryEligibleForMoR(morCountryCode)).toBe(true)
     })
 
+    it('returns true for a country in cardPaymentsCountries', () => {
+      const platformCountryCode = getPlatformEligibleCountryCode()
+      expect(isCountryEligibleForMoR(platformCountryCode)).toBe(true)
+    })
+
     it('is case-insensitive', () => {
       const morCountryCode = getMoROnlyCountryCode()
       expect(
@@ -82,20 +87,20 @@ describe('stripe country eligibility helpers', () => {
       ).toBe(true)
     })
 
-    it('returns false for a country not in transferCountries', () => {
-      const platformOnlyCountryCode = getPlatformOnlyCountryCode()
-      expect(isCountryEligibleForMoR(platformOnlyCountryCode)).toBe(
-        false
-      )
+    it('returns false for a country not in either eligibility list', () => {
+      expect(isCountryEligibleForMoR('ZZ')).toBe(false)
     })
   })
 
   describe('getEligibleFundsFlowsForCountry', () => {
-    it('returns [Platform] for a Platform-only country', () => {
-      const platformOnlyCountryCode = getPlatformOnlyCountryCode()
+    it('returns both for a Platform-eligible country', () => {
+      const platformCountryCode = getPlatformEligibleCountryCode()
       expect(
-        getEligibleFundsFlowsForCountry(platformOnlyCountryCode)
-      ).toEqual([StripeConnectContractType.Platform])
+        getEligibleFundsFlowsForCountry(platformCountryCode)
+      ).toEqual([
+        StripeConnectContractType.Platform,
+        StripeConnectContractType.MerchantOfRecord,
+      ])
     })
 
     it('returns [MerchantOfRecord] for a MoR-only country', () => {
@@ -130,7 +135,7 @@ describe('stripe country eligibility helpers', () => {
 
   describe('isCountryEligibleForAnyFlow', () => {
     it('returns true for countries in cardPaymentsCountries', () => {
-      const platformOnlyCountryCode = getPlatformOnlyCountryCode()
+      const platformOnlyCountryCode = getPlatformEligibleCountryCode()
       expect(
         isCountryEligibleForAnyFlow(platformOnlyCountryCode)
       ).toBe(true)
@@ -148,7 +153,7 @@ describe('stripe country eligibility helpers', () => {
     })
 
     it('is case-insensitive', () => {
-      const platformOnlyCountryCode = getPlatformOnlyCountryCode()
+      const platformOnlyCountryCode = getPlatformEligibleCountryCode()
       expect(
         isCountryEligibleForAnyFlow(
           platformOnlyCountryCode.toLowerCase()
