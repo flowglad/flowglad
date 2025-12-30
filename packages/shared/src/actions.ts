@@ -5,7 +5,7 @@ import { FlowgladActionKey, HTTPMethod } from './types/sdk'
 export type FlowgladActionValidatorMap = {
   [K in FlowgladActionKey]: {
     method: HTTPMethod
-    inputValidator: ZodType<any, any, any>
+    inputValidator: ZodType<unknown>
   }
 }
 

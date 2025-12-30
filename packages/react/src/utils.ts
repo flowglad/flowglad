@@ -2,7 +2,7 @@ const isValidURL = (url: string) => {
   try {
     new URL(url)
     return true
-  } catch (error) {
+  } catch {
     return false
   }
 }
@@ -12,7 +12,9 @@ export const validateUrl = (
   propName: string,
   allowRelative = false
 ) => {
-  if (typeof url === 'undefined') return
+  if (typeof url === 'undefined') {
+    return
+  }
 
   const isValid = allowRelative
     ? url.startsWith('/') || isValidURL(url)
