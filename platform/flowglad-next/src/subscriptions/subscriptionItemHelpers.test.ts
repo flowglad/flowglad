@@ -2231,7 +2231,7 @@ describe('subscriptionItemHelpers', () => {
       // the normal billing period renewal logic, not adjustSubscription.
 
       describe('feature type handling', () => {
-        it('should work correctly with Once frequency features across multiple adjustments', async () => {
+        it('should deduplicate Once frequency feature credits across multiple adjustments within the same billing period', async () => {
           // Create a Once frequency feature
           const onceFeature = await setupUsageCreditGrantFeature({
             organizationId: orgData.organization.id,
