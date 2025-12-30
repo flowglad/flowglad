@@ -16,6 +16,40 @@ const decodeStatusFromId = (
 }
 
 export const stripeHandlers = [
+  http.post(
+    'https://api.stripe.com/v1/tax/transactions/create_from_calculation',
+    async ({ request }) => {
+      const body = await request.text()
+      const params = new URLSearchParams(body)
+      const calculation = params.get('calculation')
+      const reference = params.get('reference')
+      return HttpResponse.json({
+        id: `tax_txn_${nanoid()}`,
+        object: 'tax.transaction',
+        livemode: false,
+        created: Math.floor(Date.now() / 1000),
+        calculation,
+        reference,
+      })
+    }
+  ),
+  http.post(
+    'https://api.stripe.com:443/v1/tax/transactions/create_from_calculation',
+    async ({ request }) => {
+      const body = await request.text()
+      const params = new URLSearchParams(body)
+      const calculation = params.get('calculation')
+      const reference = params.get('reference')
+      return HttpResponse.json({
+        id: `tax_txn_${nanoid()}`,
+        object: 'tax.transaction',
+        livemode: false,
+        created: Math.floor(Date.now() / 1000),
+        calculation,
+        reference,
+      })
+    }
+  ),
   http.post('https://api.stripe.com/v1/payment_intents', (req) => {
     return HttpResponse.json({
       id: 'pi_mock123',
