@@ -268,6 +268,41 @@ describe('createOrganizationTransaction', () => {
     })
   })
 
+  it('should default to MerchantOfRecord for MoR-only countries', async () => {
+    const organizationName = `org_${core.nanoid()}`
+
+    await adminTransaction(async ({ transaction }) => {
+      const countryId = await getMoROnlyCountryId(transaction)
+      const input: CreateOrganizationInput = {
+        organization: {
+          name: organizationName,
+          countryId,
+        },
+      }
+
+      return createOrganizationTransaction(
+        input,
+        {
+          id: core.nanoid(),
+          email: `test+${core.nanoid()}@test.com`,
+          fullName: 'Test User',
+        },
+        transaction
+      )
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const [organization] = await selectOrganizations(
+        { name: organizationName },
+        transaction
+      )
+
+      expect(organization.stripeConnectContractType).toBe(
+        StripeConnectContractType.MerchantOfRecord
+      )
+    })
+  })
+
   it('should reject Platform contract type for MoR-only countries', async () => {
     const organizationName = `org_${core.nanoid()}`
 

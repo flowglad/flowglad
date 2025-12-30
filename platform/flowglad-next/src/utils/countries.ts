@@ -241,7 +241,7 @@ export const countryNameByCountryCode: Record<CountryCode, string> = {
   [CountryCode.VC]: 'Saint Vincent and the Grenadines',
   [CountryCode.VE]: 'Venezuela',
   [CountryCode.VG]: 'Virgin Islands, British',
-  [CountryCode.VI]: 'Virgin Islands, U.s.',
+  [CountryCode.VI]: 'Virgin Islands, U.S.',
   [CountryCode.VN]: 'Viet Nam',
   [CountryCode.VU]: 'Vanuatu',
   [CountryCode.WF]: 'Wallis and Futuna',
