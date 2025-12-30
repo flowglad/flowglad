@@ -1,21 +1,19 @@
 'use client'
 
 import {
-  type ColumnFiltersState,
   type ColumnSizingState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  type SortingState,
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
+import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
+import { DataTableToolbar } from '@/components/ui/data-table-toolbar'
 import {
   Table,
   TableBody,
@@ -24,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { PurchaseStatus } from '@/types'
+import { PurchaseStatus } from '@/types'
 import { columns, type PurchaseTableRowData } from './columns'
 
 export interface PurchasesTableFilters {
@@ -33,17 +31,50 @@ export interface PurchasesTableFilters {
   organizationId?: string
 }
 
+const statusFilterOptions = [
+  { value: 'all', label: 'All' },
+  { value: PurchaseStatus.Open, label: 'Open' },
+  { value: PurchaseStatus.Pending, label: 'Pending' },
+  { value: PurchaseStatus.Paid, label: 'Paid' },
+  { value: PurchaseStatus.Failed, label: 'Failed' },
+  { value: PurchaseStatus.Refunded, label: 'Refunded' },
+  { value: PurchaseStatus.PartialRefund, label: 'Partial Refund' },
+  { value: PurchaseStatus.Fraudulent, label: 'Fraudulent' },
+]
+
 interface PurchasesDataTableProps {
   filters?: PurchasesTableFilters
-  title?: string
+  hiddenColumns?: string[]
 }
 
 export function PurchasesDataTable({
   filters = {},
-  title,
+  hiddenColumns = [],
 }: PurchasesDataTableProps) {
+  const router = useRouter()
+
+  // Server-side filtering with debounced search
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(300)
+
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
+
+  // Status filter state - default to 'all'
+  const [statusFilter, setStatusFilter] = React.useState('all')
+
+  // Derive server filters from UI state
+  const derivedFilters = React.useMemo((): PurchasesTableFilters => {
+    const derivedFiltersObj: PurchasesTableFilters = {
+      ...filters,
+    }
+
+    if (statusFilter !== 'all') {
+      derivedFiltersObj.status = statusFilter as PurchaseStatus
+    }
+
+    return derivedFiltersObj
+  }, [statusFilter, filters])
 
   const {
     pageIndex,
@@ -59,23 +90,28 @@ export function PurchasesDataTable({
   >({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
-    filters: filters,
+    filters: derivedFilters,
+    searchQuery,
     useQuery: trpc.purchases.getTableRows.useQuery,
   })
 
   // Reset to first page when filters change
-  const filtersKey = JSON.stringify(filters)
+  const filtersKey = JSON.stringify(derivedFilters)
   React.useEffect(() => {
     goToFirstPage()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey])
 
-  // Client-side features (Shadcn patterns)
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] =
-    React.useState<ColumnFiltersState>([])
+  // Reset to first page when debounced search changes
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
+
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>(() =>
+      Object.fromEntries(hiddenColumns.map((col) => [col, false]))
+    )
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
 
@@ -86,36 +122,34 @@ export function PurchasesDataTable({
     columnResizeMode: 'onEnd',
     defaultColumn: {
       size: 150,
-      minSize: 20,
+      minSize: 50,
       maxSize: 500,
     },
+    enableSorting: false,
     manualPagination: true,
-    manualSorting: false,
-    manualFiltering: false,
+    manualSorting: true,
+    manualFiltering: true,
     pageCount: Math.ceil((data?.total || 0) / currentPageSize),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
+    onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: (updater) => {
       const newPagination =
         typeof updater === 'function'
           ? updater({ pageIndex, pageSize: currentPageSize })
           : updater
 
+      // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
         goToFirstPage()
-      } else if (newPagination.pageIndex !== pageIndex) {
+      }
+      // Handle page index changes (page navigation)
+      else if (newPagination.pageIndex !== pageIndex) {
         handlePaginationChange(newPagination.pageIndex)
       }
     },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     state: {
-      sorting,
-      columnFilters,
       columnVisibility,
       columnSizing,
       pagination: { pageIndex, pageSize: currentPageSize },
@@ -124,21 +158,27 @@ export function PurchasesDataTable({
 
   return (
     <div className="w-full">
-      {/* Enhanced toolbar */}
-      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
-        {/* Title on the left (for detail pages) */}
-        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && <h3 className="text-lg truncate">{title}</h3>}
-        </div>
-
-        {/* Controls on the right */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <DataTableViewOptions table={table} />
-        </div>
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 pt-1 pb-2 px-4">
+        <DataTableToolbar
+          search={{
+            value: inputValue,
+            onChange: setInputValue,
+            placeholder:
+              'Search by product, customer, or purchase_id',
+          }}
+          filter={{
+            value: statusFilter,
+            options: statusFilterOptions,
+            onChange: setStatusFilter,
+          }}
+          isLoading={isLoading}
+          isFetching={isFetching}
+        />
       </div>
 
       {/* Table */}
-      <Table className="w-full" style={{ tableLayout: 'fixed' }}>
+      <Table style={{ tableLayout: 'fixed' }}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow
@@ -177,7 +217,22 @@ export function PurchasesDataTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className={isFetching ? 'opacity-50' : ''}
+                className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
+                onClick={(e) => {
+                  // Only navigate if not clicking on interactive elements
+                  const target = e.target as HTMLElement
+                  if (
+                    target.closest('button') ||
+                    target.closest('[role="checkbox"]') ||
+                    target.closest('input[type="checkbox"]') ||
+                    target.closest('[data-radix-collection-item]')
+                  ) {
+                    return
+                  }
+                  router.push(
+                    `/finance/purchases/${row.original.purchase.id}`
+                  )
+                }}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
@@ -203,11 +258,11 @@ export function PurchasesDataTable({
       </Table>
 
       {/* Pagination */}
-      <div className="py-2">
+      <div className="py-2 px-4">
         <DataTablePagination
           table={table}
           totalCount={data?.total}
-          isFiltered={Object.keys(filters).length > 0}
+          isFiltered={statusFilter !== 'all' || !!searchQuery}
           filteredCount={data?.total}
           entityName="purchase"
         />
