@@ -41,6 +41,9 @@ export const cardPaymentsCountries = [
   'DK',
   'EE',
   'FI',
+  'GI',
+  'BR',
+  'US',
   'FR',
   'DE',
   'GR',
@@ -70,6 +73,7 @@ export const cardPaymentsCountries = [
   'TH',
   'AE',
   'GB',
+  'MY',
 ]
 
 export const transferCountries = [
@@ -102,6 +106,7 @@ export const transferCountries = [
   'GA',
   'GM',
   'GH',
+  'GI',
   'GT',
   'GY',
   'IS',
@@ -148,10 +153,64 @@ export const transferCountries = [
   'TT',
   'TN',
   'TR',
+  'US',
   'UY',
   'UZ',
   'VN',
 ]
+
+const normalizeCountryCode = (countryCode: string): string =>
+  countryCode.trim().toUpperCase()
+
+export const platformEligibleCountries = new Set(
+  cardPaymentsCountries
+)
+
+export const morEligibleCountries = new Set([
+  ...transferCountries,
+  ...cardPaymentsCountries,
+])
+
+export const isCountryEligibleForPlatform = (
+  countryCode: string
+): boolean => {
+  return platformEligibleCountries.has(
+    normalizeCountryCode(countryCode)
+  )
+}
+
+export const isCountryEligibleForMoR = (
+  countryCode: string
+): boolean => {
+  return morEligibleCountries.has(normalizeCountryCode(countryCode))
+}
+
+export const getEligibleFundsFlowsForCountry = (
+  countryCode: string
+): StripeConnectContractType[] => {
+  const normalizedCountryCode = normalizeCountryCode(countryCode)
+  const eligibleFlows: StripeConnectContractType[] = []
+
+  if (platformEligibleCountries.has(normalizedCountryCode)) {
+    eligibleFlows.push(StripeConnectContractType.Platform)
+  }
+
+  if (morEligibleCountries.has(normalizedCountryCode)) {
+    eligibleFlows.push(StripeConnectContractType.MerchantOfRecord)
+  }
+
+  return eligibleFlows
+}
+
+export const isCountryEligibleForAnyFlow = (
+  countryCode: string
+): boolean => {
+  const normalizedCountryCode = normalizeCountryCode(countryCode)
+  return (
+    platformEligibleCountries.has(normalizedCountryCode) ||
+    morEligibleCountries.has(normalizedCountryCode)
+  )
+}
 
 export const zeroDecimalCurrencies = [
   'BIF',
