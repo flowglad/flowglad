@@ -119,6 +119,8 @@ describe('createSubscriptionFeeCalculationInsert', () => {
         feePercentage: '2.0',
         stripeConnectContractType: StripeConnectContractType.Platform,
       },
+      price: orgData.price,
+      product: orgData.product,
       billingPeriod: billingPeriodRec,
       billingPeriodItems: [staticItem],
       paymentMethod: paymentMethodRec,
@@ -130,7 +132,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
     }
 
     const result =
-      createSubscriptionFeeCalculationInsertFunction(params)
+      await createSubscriptionFeeCalculationInsertFunction(params)
 
     expect(result.baseAmount).toBe(5000)
     expect(result.discountAmountFixed).toBe(0)
@@ -230,20 +232,21 @@ describe('createSubscriptionFeeCalculationInsert', () => {
         feePercentage: '1.5',
         stripeConnectContractType:
           StripeConnectContractType.MerchantOfRecord,
-        livemode: false,
       },
-      billingPeriod: { ...billingPeriodRec, livemode: false },
+      price: orgData.price,
+      product: orgData.product,
+      billingPeriod: billingPeriodRec,
       billingPeriodItems,
       paymentMethod: internationalPaymentMethod,
       organizationCountry: organizationCountryRec,
-      livemode: false,
-      currency: CurrencyCode.EUR,
+      livemode: true,
+      currency: CurrencyCode.USD,
       discountRedemption: discountRedemptionRec,
       usageOverages,
     }
 
     const result =
-      createSubscriptionFeeCalculationInsertFunction(params)
+      await createSubscriptionFeeCalculationInsertFunction(params)
 
     expect(result.baseAmount).toBe(3500)
     expect(result.discountAmountFixed).toBe(350)
@@ -255,8 +258,9 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       Math.round(3150 * 0.029 + 30)
     )
     expect(result.taxAmountFixed).toBe(0)
-    expect(result.stripeTaxCalculationId).toBeNull()
-    expect(result.currency).toBe(CurrencyCode.EUR)
-    expect(result.livemode).toBe(false)
+    expect(result.stripeTaxCalculationId).toMatch(/^testtaxcalc_/)
+    expect(result.stripeTaxTransactionId).toBeNull()
+    expect(result.currency).toBe(CurrencyCode.USD)
+    expect(result.livemode).toBe(true)
   })
 })

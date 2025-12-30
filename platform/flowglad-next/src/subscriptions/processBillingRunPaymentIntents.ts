@@ -51,6 +51,7 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
+import { createStripeTaxTransactionIfNeededForPayment } from '@/utils/bookkeeping/stripeTaxTransactions'
 import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import {
   sendAwaitingPaymentConfirmationEmail,
@@ -310,6 +311,13 @@ export const processOutcomeForBillingRun = async (
     result: { payment },
     eventsToInsert: childeventsToInsert,
   } = await processPaymentIntentStatusUpdated(event, transaction)
+
+  if (billingRunStatus === BillingRunStatus.Succeeded) {
+    await createStripeTaxTransactionIfNeededForPayment(
+      { organization, payment, invoice },
+      transaction
+    )
+  }
 
   /**
    * If there is a payment failure and we are on an adjustment billing run

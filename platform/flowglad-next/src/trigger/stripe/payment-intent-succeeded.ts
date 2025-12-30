@@ -11,6 +11,7 @@ import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPa
 import { InvoiceStatus } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
+import { createStripeTaxTransactionIfNeededForPayment } from '@/utils/bookkeeping/stripeTaxTransactions'
 import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
 import { storeTelemetry } from '@/utils/redis'
 import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
@@ -112,6 +113,14 @@ export const stripePaymentIntentSucceededTask = task({
       },
       {}
     )
+
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await createStripeTaxTransactionIfNeededForPayment(
+        { organization, payment, invoice },
+        transaction
+      )
+      return { result: null }
+    })
 
     /**
      * Generate the invoice PDF, which should be finalized now
