@@ -7,19 +7,63 @@ import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
 import { selectPricesAndProductByProductId } from '@/db/tableMethods/priceMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
-import { FlowgladApiKeyType } from '@/types'
+import {
+  FlowgladApiKeyType,
+  StripeConnectContractType,
+} from '@/types'
+import {
+  cardPaymentsCountries,
+  transferCountries,
+} from '@/utils/countries'
 import { createOrganizationTransaction } from '@/utils/organizationHelpers'
 import core from './core'
+
+const getPlatformEligibleCountryId = async (
+  transaction: Parameters<typeof selectCountries>[1]
+) => {
+  const countries = await selectCountries({}, transaction)
+  const platformEligibleCountry = countries.find((country) =>
+    cardPaymentsCountries.includes(country.code)
+  )
+
+  if (!platformEligibleCountry) {
+    throw new Error(
+      'Expected at least one platform-eligible country in the database.'
+    )
+  }
+
+  return platformEligibleCountry.id
+}
+
+const getMoROnlyCountryId = async (
+  transaction: Parameters<typeof selectCountries>[1]
+) => {
+  const countries = await selectCountries({}, transaction)
+  const morOnlyCountry = countries.find(
+    (country) =>
+      transferCountries.includes(country.code) &&
+      !cardPaymentsCountries.includes(country.code)
+  )
+
+  if (!morOnlyCountry) {
+    throw new Error(
+      'Expected at least one MoR-only country in the database.'
+    )
+  }
+
+  return morOnlyCountry.id
+}
 
 describe('createOrganizationTransaction', () => {
   it('should create an organization', async () => {
     const organizationName = core.nanoid()
     await adminTransaction(async ({ transaction }) => {
-      const [country] = await selectCountries({}, transaction)
+      const countryId =
+        await getPlatformEligibleCountryId(transaction)
       const input: CreateOrganizationInput = {
         organization: {
           name: organizationName,
-          countryId: country.id,
+          countryId,
         },
       }
       return createOrganizationTransaction(
@@ -83,11 +127,12 @@ describe('createOrganizationTransaction', () => {
   it('should create default Free Plan products and prices for live and testmode', async () => {
     const organizationName = `org_${core.nanoid()}`
     await adminTransaction(async ({ transaction }) => {
-      const [country] = await selectCountries({}, transaction)
+      const countryId =
+        await getPlatformEligibleCountryId(transaction)
       const input: CreateOrganizationInput = {
         organization: {
           name: organizationName,
-          countryId: country.id,
+          countryId,
         },
       }
       return createOrganizationTransaction(
@@ -184,5 +229,107 @@ describe('createOrganizationTransaction', () => {
         organization.defaultCurrency
       )
     })
+  })
+
+  it('should persist stripeConnectContractType when provided', async () => {
+    const organizationName = `org_${core.nanoid()}`
+
+    await adminTransaction(async ({ transaction }) => {
+      const countryId = await getMoROnlyCountryId(transaction)
+      const input: CreateOrganizationInput = {
+        organization: {
+          name: organizationName,
+          countryId,
+          stripeConnectContractType:
+            StripeConnectContractType.MerchantOfRecord,
+        },
+      }
+
+      return createOrganizationTransaction(
+        input,
+        {
+          id: core.nanoid(),
+          email: `test+${core.nanoid()}@test.com`,
+          fullName: 'Test User',
+        },
+        transaction
+      )
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const [organization] = await selectOrganizations(
+        { name: organizationName },
+        transaction
+      )
+
+      expect(organization.stripeConnectContractType).toBe(
+        StripeConnectContractType.MerchantOfRecord
+      )
+    })
+  })
+
+  it('should default to MerchantOfRecord for MoR-only countries', async () => {
+    const organizationName = `org_${core.nanoid()}`
+
+    await adminTransaction(async ({ transaction }) => {
+      const countryId = await getMoROnlyCountryId(transaction)
+      const input: CreateOrganizationInput = {
+        organization: {
+          name: organizationName,
+          countryId,
+        },
+      }
+
+      return createOrganizationTransaction(
+        input,
+        {
+          id: core.nanoid(),
+          email: `test+${core.nanoid()}@test.com`,
+          fullName: 'Test User',
+        },
+        transaction
+      )
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const [organization] = await selectOrganizations(
+        { name: organizationName },
+        transaction
+      )
+
+      expect(organization.stripeConnectContractType).toBe(
+        StripeConnectContractType.MerchantOfRecord
+      )
+    })
+  })
+
+  it('should reject Platform contract type for MoR-only countries', async () => {
+    const organizationName = `org_${core.nanoid()}`
+
+    const promise = adminTransaction(async ({ transaction }) => {
+      const countryId = await getMoROnlyCountryId(transaction)
+      const input: CreateOrganizationInput = {
+        organization: {
+          name: organizationName,
+          countryId,
+          stripeConnectContractType:
+            StripeConnectContractType.Platform,
+        },
+      }
+
+      return createOrganizationTransaction(
+        input,
+        {
+          id: core.nanoid(),
+          email: `test+${core.nanoid()}@test.com`,
+          fullName: 'Test User',
+        },
+        transaction
+      )
+    })
+
+    await expect(promise).rejects.toThrow(
+      /Stripe Connect contract type .* is not supported/
+    )
   })
 })

@@ -7,7 +7,7 @@ import {
   isCountryEligibleForMoR,
   isCountryEligibleForPlatform,
   transferCountries,
-} from './stripe'
+} from './countries'
 
 const getPlatformEligibleCountryCode = (): string => {
   const platformEligibleCountryCode = cardPaymentsCountries.find(

@@ -9,7 +9,7 @@ import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { countries } from '@/db/schema/countries'
+import { type Country, countries } from '@/db/schema/countries'
 import type { Discount } from '@/db/schema/discounts'
 import type { Feature } from '@/db/schema/features'
 import type { invoicesInsertSchema } from '@/db/schema/invoices'
@@ -127,6 +127,7 @@ import {
   type UsageMeterAggregationType,
 } from '@/types'
 import { core, isNil } from '@/utils/core'
+import { countryNameByCountryCode } from '@/utils/countries'
 import { projectPriceFieldsOntoPurchaseFields } from '@/utils/purchaseHelpers'
 
 if (process.env.VERCEL_ENV === 'production') {
@@ -136,15 +137,15 @@ if (process.env.VERCEL_ENV === 'production') {
 }
 
 const insertCountries = async () => {
+  const countryInserts: Country.Insert[] = Object.entries(
+    countryNameByCountryCode
+  ).map(([code, name]) => ({
+    code: code as CountryCode,
+    name,
+  }))
   await db
     .insert(countries)
-    .values([
-      {
-        id: core.nanoid(),
-        name: 'United States',
-        code: CountryCode.US,
-      },
-    ])
+    .values(countryInserts)
     .onConflictDoNothing()
 }
 
@@ -162,10 +163,14 @@ export const setupOrg = async (params?: {
   monthlyBillingVolumeFreeTier?: number
   feePercentage?: string
   stripeConnectContractType?: StripeConnectContractType
+  countryCode?: CountryCode
 }) => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
-    const [country] = await selectCountries({}, transaction)
+    const [country] = await selectCountries(
+      { code: params?.countryCode ?? CountryCode.US },
+      transaction
+    )
     const organization = await insertOrganization(
       {
         name: `Flowglad Test ${core.nanoid()}`,
