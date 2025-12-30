@@ -1814,6 +1814,13 @@
       "when": 1767039006790,
       "tag": "0259_harsh_senator_kelly",
       "breakpoints": true
+    },
+    {
+      "idx": 260,
+      "version": "7",
+      "when": 1767050648922,
+      "tag": "0260_real_bloodstrike",
+      "breakpoints": true
     }
   ]
 }

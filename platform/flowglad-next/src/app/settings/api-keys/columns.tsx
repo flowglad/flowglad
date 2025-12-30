@@ -5,6 +5,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { Trash2 } from 'lucide-react'
 import * as React from 'react'
 // UI components last
+import DeleteApiKeyModal from '@/components/forms/DeleteApiKeyModal'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
   type ActionMenuItem,
@@ -27,8 +28,7 @@ function ApiKeyActionsMenu({
 }) {
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false)
 
-  const isKeyDeleteable =
-    apiKey.livemode && apiKey.type === FlowgladApiKeyType.Secret
+  const isKeyDeleteable = apiKey.type === FlowgladApiKeyType.Secret
 
   const actionItems: ActionMenuItem[] = []
 
@@ -48,7 +48,11 @@ function ApiKeyActionsMenu({
 
   return (
     <EnhancedDataTableActionsMenu items={actionItems}>
-      {/* Add delete modal here when needed */}
+      <DeleteApiKeyModal
+        isOpen={isDeleteOpen}
+        setIsOpen={setIsDeleteOpen}
+        id={apiKey.id}
+      />
     </EnhancedDataTableActionsMenu>
   )
 }
