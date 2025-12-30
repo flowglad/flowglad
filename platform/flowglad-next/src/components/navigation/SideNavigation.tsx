@@ -29,6 +29,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { SIDEBAR_BANNER_SLIDES } from '@/config/sidebarBannerConfig'
 import { useAuthContext } from '@/contexts/authContext'
 import { cn } from '@/lib/utils'
 import { BusinessOnboardingStatus } from '@/types'
@@ -42,6 +43,7 @@ import {
 } from '../ui/tooltip'
 import { NavStandalone } from './NavStandalone'
 import { NavUser } from './NavUser'
+import { SidebarBannerCarousel } from './SidebarBannerCarousel'
 
 type StandaloneNavItem = {
   title: string
@@ -307,6 +309,9 @@ export const SideNavigation = () => {
           isCollapsed ? 'px-0 py-2' : 'gap-2'
         )}
       >
+        {/* Banner Carousel - above test mode toggle */}
+        <SidebarBannerCarousel slides={SIDEBAR_BANNER_SLIDES} />
+
         {/* Test Mode Toggle - using official sidebar components */}
         <div
           className={cn('px-0', isCollapsed && 'flex justify-start')}
