@@ -38,4 +38,14 @@ export const routeToHandlerMap: {
       },
     }
   },
+  [FlowgladActionKey.CreateUsageEvent]: async () => {
+    return {
+      data: {},
+      status: 501,
+      error: {
+        code: 'Not Implemented',
+        json: {},
+      },
+    }
+  },
 }

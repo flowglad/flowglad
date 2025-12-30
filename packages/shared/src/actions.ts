@@ -149,6 +149,75 @@ export const bulkCreateUsageEventsSchema = z.object({
   usageEvents: z.array(createUsageEventSchema).min(1),
 })
 
+/**
+ * Client-facing schema for creating a usage event.
+ * This schema allows optional fields that the server will auto-resolve:
+ * - `subscriptionId`: Auto-inferred from currentSubscription if not provided
+ * - `amount`: Defaults to 1 if not provided
+ * - `transactionId`: Auto-generated if not provided
+ */
+const clientBaseUsageEventFields = z.object({
+  amount: z.number().optional(),
+  subscriptionId: z.string().optional(),
+  properties: z.record(z.string(), z.unknown()).optional(),
+  transactionId: z.string().optional(),
+  usageDate: z.number().optional(),
+})
+
+const clientUsageEventWithPriceId = clientBaseUsageEventFields.extend(
+  {
+    priceId: z.string(),
+    priceSlug: z.never().optional(),
+    usageMeterId: z.never().optional(),
+    usageMeterSlug: z.never().optional(),
+  }
+)
+
+const clientUsageEventWithPriceSlug =
+  clientBaseUsageEventFields.extend({
+    priceSlug: z.string(),
+    priceId: z.never().optional(),
+    usageMeterId: z.never().optional(),
+    usageMeterSlug: z.never().optional(),
+  })
+
+const clientUsageEventWithUsageMeterId =
+  clientBaseUsageEventFields.extend({
+    usageMeterId: z.string(),
+    priceId: z.never().optional(),
+    priceSlug: z.never().optional(),
+    usageMeterSlug: z.never().optional(),
+  })
+
+const clientUsageEventWithUsageMeterSlug =
+  clientBaseUsageEventFields.extend({
+    usageMeterSlug: z.string(),
+    priceId: z.never().optional(),
+    priceSlug: z.never().optional(),
+    usageMeterId: z.never().optional(),
+  })
+
+/**
+ * Client-facing schema for creating a usage event. You must provide exactly one identifier:
+ * - `priceId` or `priceSlug`: For price-based usage tracking
+ * - `usageMeterId` or `usageMeterSlug`: For usage meter-based tracking
+ *
+ * Optional fields will be auto-resolved by the server:
+ * - `subscriptionId`: Auto-inferred from currentSubscription
+ * - `amount`: Defaults to 1
+ * - `transactionId`: Auto-generated (nanoid)
+ */
+export const clientCreateUsageEventSchema = z.union([
+  clientUsageEventWithPriceId,
+  clientUsageEventWithPriceSlug,
+  clientUsageEventWithUsageMeterId,
+  clientUsageEventWithUsageMeterSlug,
+])
+
+export type ClientCreateUsageEventParams = z.infer<
+  typeof clientCreateUsageEventSchema
+>
+
 export type BulkCreateUsageEventsParams = z.infer<
   typeof bulkCreateUsageEventsSchema
 >
@@ -280,5 +349,9 @@ export const flowgladActionValidators = {
   [FlowgladActionKey.UpdateCustomer]: {
     method: HTTPMethod.POST,
     inputValidator: updateCustomerSchema,
+  },
+  [FlowgladActionKey.CreateUsageEvent]: {
+    method: HTTPMethod.POST,
+    inputValidator: clientCreateUsageEventSchema,
   },
 } as const satisfies FlowgladActionValidatorMap
