@@ -5,6 +5,7 @@ import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
 import { logout } from './mutations/logout'
 import { setReferralSelection } from './mutations/setReferralSelection'
 import { toggleTestMode } from './mutations/toggleTestMode'
+import { getFundsFlowEligibilityForCountry } from './queries/getFundsFlowEligibilityForCountry'
 import { ping } from './queries/ping'
 import { apiKeysRouter } from './routers/apiKeysRouter'
 import { checkoutSessionsRouter } from './routers/checkoutSessionsRouter'
@@ -48,6 +49,7 @@ export const appRouter = router({
   // Utility endpoints
   utils: router({
     ping,
+    getFundsFlowEligibilityForCountry,
     pong,
     generateDescription,
     getPresignedURL,

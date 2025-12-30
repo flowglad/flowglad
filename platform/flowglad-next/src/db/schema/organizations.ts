@@ -163,7 +163,7 @@ export const {
     hiddenColumns: {
       feePercentage: true,
       stripeAccountId: true,
-      stripeConnectContractType: true,
+      ...(core.IS_DEV ? {} : { stripeConnectContractType: true }),
       externalId: true,
       ...hiddenColumnsForClientSchema,
       securitySalt: true,
@@ -180,7 +180,9 @@ export const {
       defaultCurrency: true,
       featureFlags: true,
     },
-    createOnlyColumns: {},
+    createOnlyColumns: {
+      ...(core.IS_DEV ? { stripeConnectContractType: true } : {}),
+    },
   },
   entityName: 'Organization',
 })
@@ -206,9 +208,14 @@ export const createOrganizationSchema = z.object({
   codebaseMarkdown: z.string().optional(),
 })
 
-export type CreateOrganizationInput = z.infer<
-  typeof createOrganizationSchema
->
+export type CreateOrganizationInput = Omit<
+  z.infer<typeof createOrganizationSchema>,
+  'organization'
+> & {
+  organization: z.infer<typeof organizationsClientInsertSchema> & {
+    stripeConnectContractType?: StripeConnectContractType
+  }
+}
 
 export const editOrganizationSchema = z.object({
   organization: organizationsClientUpdateSchema,
