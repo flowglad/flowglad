@@ -25,6 +25,8 @@ import {
 import {
   createCursorPaginatedSelectFunction,
   createDateNotPassedFilter,
+  createDerivePricingModelId,
+  createDerivePricingModelIds,
   createInsertFunction,
   createPaginatedSelectFunction,
   createSelectById,
@@ -564,57 +566,20 @@ export const safelyUpdateSubscriptionsForCustomerToNewPaymentMethod =
  * Derives pricingModelId from a subscription.
  * Used for billingPeriods, billingRuns, subscriptionItems, ledgerTransactions.
  */
-export const derivePricingModelIdFromSubscription = async (
-  subscriptionId: string,
-  transaction: DbTransaction
-): Promise<string> => {
-  const subscription = await selectSubscriptionById(
-    subscriptionId,
-    transaction
+export const derivePricingModelIdFromSubscription =
+  createDerivePricingModelId(
+    subscriptions,
+    config,
+    selectSubscriptionById
   )
-  if (!subscription.pricingModelId) {
-    throw new Error(
-      `Subscription ${subscriptionId} does not have a pricingModelId`
-    )
-  }
-  return subscription.pricingModelId
-}
 
 /**
  * Batch fetch pricingModelIds for multiple subscriptions.
  * More efficient than calling derivePricingModelIdFromSubscription for each subscription individually.
  * Used by bulk insert operations in billing periods, billing runs, subscription items, ledger transactions.
  */
-export const pricingModelIdsForSubscriptions = async (
-  subscriptionIds: string[],
-  transaction: DbTransaction
-): Promise<Map<string, string>> => {
-  if (subscriptionIds.length === 0) {
-    return new Map()
-  }
-
-  const subscriptionRows = await transaction
-    .select({
-      id: subscriptions.id,
-      pricingModelId: subscriptions.pricingModelId,
-    })
-    .from(subscriptions)
-    .where(inArray(subscriptions.id, subscriptionIds))
-
-  const pricingModelIdMap = new Map<string, string>()
-  for (const subscriptionRow of subscriptionRows) {
-    if (!subscriptionRow.pricingModelId) {
-      throw new Error(
-        `Subscription ${subscriptionRow.id} does not have a pricingModelId`
-      )
-    }
-    pricingModelIdMap.set(
-      subscriptionRow.id,
-      subscriptionRow.pricingModelId
-    )
-  }
-  return pricingModelIdMap
-}
+export const pricingModelIdsForSubscriptions =
+  createDerivePricingModelIds(subscriptions, config)
 
 /**
  * Selects active subscriptions for a customer, excluding those that were upgraded away.

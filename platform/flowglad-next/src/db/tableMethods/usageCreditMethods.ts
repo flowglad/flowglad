@@ -9,6 +9,8 @@ import {
 import {
   createBulkInsertFunction,
   createBulkInsertOrDoNothingFunction,
+  createDerivePricingModelId,
+  createDerivePricingModelIds,
   createInsertFunction,
   createSelectById,
   createSelectFunction,
@@ -45,47 +47,15 @@ export const selectUsageCreditById = createSelectById(
  * Derives pricingModelId from a usage credit (via usage meter).
  * Used for usageCreditApplications and usageCreditBalanceAdjustments.
  */
-export const derivePricingModelIdFromUsageCredit = async (
-  usageCreditId: string,
-  transaction: DbTransaction
-): Promise<string> => {
-  const usageCredit = await selectUsageCreditById(
-    usageCreditId,
-    transaction
+export const derivePricingModelIdFromUsageCredit =
+  createDerivePricingModelId(
+    usageCredits,
+    config,
+    selectUsageCreditById
   )
-  if (!usageCredit.pricingModelId) {
-    throw new Error(
-      `Usage credit ${usageCreditId} does not have a pricingModelId`
-    )
-  }
-  return usageCredit.pricingModelId
-}
 
-export const pricingModelIdsForUsageCredits = async (
-  usageCreditIds: string[],
-  transaction: DbTransaction
-): Promise<Map<string, string>> => {
-  const usageCreditRows = await transaction
-    .select({
-      id: usageCredits.id,
-      pricingModelId: usageCredits.pricingModelId,
-    })
-    .from(usageCredits)
-    .where(inArray(usageCredits.id, usageCreditIds))
-  const pricingModelIdMap = new Map<string, string>()
-  for (const usageCreditRow of usageCreditRows) {
-    if (!usageCreditRow.pricingModelId) {
-      throw new Error(
-        `Usage credit ${usageCreditRow.id} does not have a pricingModelId`
-      )
-    }
-    pricingModelIdMap.set(
-      usageCreditRow.id,
-      usageCreditRow.pricingModelId
-    )
-  }
-  return pricingModelIdMap
-}
+export const pricingModelIdsForUsageCredits =
+  createDerivePricingModelIds(usageCredits, config)
 
 const baseInsertUsageCredit = createInsertFunction(
   usageCredits,

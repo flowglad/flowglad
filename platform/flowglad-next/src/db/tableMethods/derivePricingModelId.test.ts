@@ -18,10 +18,8 @@ import type { Product } from '../schema/products'
 import type { Subscription } from '../schema/subscriptions'
 import type { UsageCredit } from '../schema/usageCredits'
 import type { UsageMeter } from '../schema/usageMeters'
-import {
-  derivePricingModelIdFromPrice,
-  derivePricingModelIdFromProduct,
-} from './priceMethods'
+import { derivePricingModelIdFromPrice } from './priceMethods'
+import { derivePricingModelIdFromProduct } from './productMethods'
 import { derivePricingModelIdFromUsageCredit } from './usageCreditMethods'
 import { derivePricingModelIdFromUsageMeter } from './usageMeterMethods'
 

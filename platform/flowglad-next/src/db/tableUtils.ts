@@ -46,6 +46,7 @@ import type {
   PgStringColumn,
   PgTableWithCreatedAtAndId,
   PgTableWithId,
+  PgTableWithIdAndPricingModelId,
   PgTableWithPosition,
 } from '@/db/types'
 import { CountryCode, SupabasePayloadType, TaxType } from '@/types'
@@ -185,6 +186,89 @@ export const createSelectById = <
         { cause: error }
       )
     }
+  }
+}
+
+/**
+ * Creates a function to derive pricingModelId from a single record.
+ * Used to fetch the pricingModelId of an existing database record.
+ * @param table - The Drizzle table with id and pricingModelId columns
+ * @param config - The ORM method creator config with tableName for error messages
+ * @param selectById - The selectById function for this table
+ * @returns A function that takes an id and returns the pricingModelId
+ */
+export const createDerivePricingModelId = <
+  T extends PgTableWithIdAndPricingModelId,
+  S extends ZodTableUnionOrType<InferSelectModel<T>>,
+  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
+  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
+>(
+  table: T,
+  config: ORMMethodCreatorConfig<T, S, I, U>,
+  selectById: (
+    id: string,
+    transaction: DbTransaction
+  ) => Promise<{ pricingModelId?: string | null }>
+) => {
+  return async (
+    id: string,
+    transaction: DbTransaction
+  ): Promise<string> => {
+    const record = await selectById(id, transaction)
+    if (!record.pricingModelId) {
+      throw new Error(
+        `${config.tableName.replace(/_/g, ' ')} ${id} does not have a pricingModelId`
+      )
+    }
+    return record.pricingModelId
+  }
+}
+
+/**
+ * Creates a function to batch derive pricingModelIds from multiple records.
+ * More efficient than calling derivePricingModelId for each id individually.
+ * @param table - The Drizzle table with id and pricingModelId columns
+ * @param config - The ORM method creator config with tableName for error messages
+ * @returns A function that takes an array of ids and returns a Map of id -> pricingModelId
+ */
+export const createDerivePricingModelIds = <
+  T extends PgTableWithIdAndPricingModelId,
+  S extends ZodTableUnionOrType<InferSelectModel<T>>,
+  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
+  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
+>(
+  table: T,
+  config: ORMMethodCreatorConfig<T, S, I, U>
+) => {
+  return async (
+    ids: string[],
+    transaction: DbTransaction
+  ): Promise<Map<string, string>> => {
+    if (ids.length === 0) {
+      return new Map()
+    }
+
+    const rows = (await transaction
+      .select({
+        id: table.id as any,
+        pricingModelId: table.pricingModelId as any,
+      })
+      .from(table as any)
+      .where(inArray(table.id as any, ids))) as {
+      id: string
+      pricingModelId: string | null
+    }[]
+
+    const pricingModelIdMap = new Map<string, string>()
+    for (const row of rows) {
+      if (!row.pricingModelId) {
+        throw new Error(
+          `${config.tableName.replace(/_/g, ' ')} ${row.id} does not have a pricingModelId`
+        )
+      }
+      pricingModelIdMap.set(row.id, row.pricingModelId)
+    }
+    return pricingModelIdMap
   }
 }
 

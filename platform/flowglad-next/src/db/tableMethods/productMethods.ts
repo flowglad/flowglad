@@ -21,6 +21,8 @@ import {
 import {
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
+  createDerivePricingModelId,
+  createDerivePricingModelIds,
   createInsertFunction,
   createPaginatedSelectFunction,
   createSelectById,
@@ -57,33 +59,21 @@ export const selectProductById = createSelectById(products, config)
 export const selectProducts = createSelectFunction(products, config)
 
 /**
+ * Derives pricingModelId from a product.
+ * Used for prices and productFeatures.
+ */
+export const derivePricingModelIdFromProduct =
+  createDerivePricingModelId(products, config, selectProductById)
+
+/**
  * Batch fetch pricingModelIds for multiple products.
  * More efficient than calling derivePricingModelIdFromProduct for each product individually.
  * Used by bulk insert operations in prices and productFeatures.
  */
-export const pricingModelIdsForProducts = async (
-  productIds: string[],
-  transaction: DbTransaction
-): Promise<Map<string, string>> => {
-  const productRows = await transaction
-    .select({
-      id: products.id,
-      pricingModelId: products.pricingModelId,
-    })
-    .from(products)
-    .where(inArray(products.id, productIds))
-
-  const pricingModelIdMap = new Map<string, string>()
-  for (const productRow of productRows) {
-    if (!productRow.pricingModelId) {
-      throw new Error(
-        `Product ${productRow.id} does not have a pricingModelId`
-      )
-    }
-    pricingModelIdMap.set(productRow.id, productRow.pricingModelId)
-  }
-  return pricingModelIdMap
-}
+export const pricingModelIdsForProducts = createDerivePricingModelIds(
+  products,
+  config
+)
 
 export const insertProduct = createInsertFunction(products, config)
 
