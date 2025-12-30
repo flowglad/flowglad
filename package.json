@@ -28,7 +28,7 @@
     "tsx": "4.17.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.8",
+    "@biomejs/biome": "2.3.10",
     "@changesets/cli": "^2.26.0",
     "@types/minimatch": "^5.1.2",
     "@types/node": "^18.0.0",
@@ -40,7 +40,11 @@
     "react-dom": "19.2.1",
     "tsup": "8.3.6",
     "turbo": "^2.4.4",
-    "typescript": "5.8.2"
+    "typescript": "5.8.2",
+    "ultracite": "6.5.0"
+  },
+  "overrides": {
+    "esbuild": "0.25.12"
   },
   "workspaces": [
     "packages/*",

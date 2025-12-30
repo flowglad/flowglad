@@ -30,7 +30,7 @@ export function humanReadableCurrencyAmount(
 ) {
   const formatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: currency,
+    currency,
   })
   if (!isCurrencyZeroDecimal(currency)) {
     return formatter.format(Number((amount / 100).toFixed(2)))

@@ -13,7 +13,8 @@
     "baseUrl": "./src",
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "strictNullChecks": true
   },
   "include": [
     "src/index.ts",

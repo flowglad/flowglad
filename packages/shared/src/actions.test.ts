@@ -469,7 +469,7 @@ describe('createSubscriptionSchema', () => {
       ...validInput,
       quantity: 2,
       startDate: '2025-01-01T00:00:00Z',
-      trialEnd: Date.now() + 86400000, // 1 day from now
+      trialEnd: Date.now() + 86_400_000, // 1 day from now
       metadata: { source: 'api' },
       name: 'Pro Subscription',
       backupPaymentMethodId: 'pm_backup',

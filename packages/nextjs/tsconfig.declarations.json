@@ -10,7 +10,8 @@
     "outDir": "./dist/types",
     "declarationDir": "./dist/types",
     "noImplicitReturns": false,
-    "paths": {}
+    "paths": {},
+    "strictNullChecks": true
   },
   "include": [
     "src/index.ts",

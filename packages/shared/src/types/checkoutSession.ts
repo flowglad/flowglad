@@ -1,4 +1,4 @@
-import { type Flowglad } from '@flowglad/node'
+import type { Flowglad } from '@flowglad/node'
 
 // NOTE: some checkout types are duplicate of types in action.ts
 // currently a consumer that imports these types will get the ones from actions.ts
