@@ -48,7 +48,7 @@ export const bannersRouter = router({
    * This is the preferred method when dismissing the entire carousel.
    */
   dismissAll: protectedProcedure
-    .input(z.object({ bannerIds: z.array(z.string()) }))
+    .input(z.object({ bannerIds: z.array(z.string()).max(10) }))
     .mutation(async ({ ctx, input }) => {
       const userId = getUserIdOrThrow(ctx)
       await dismissBanners(userId, input.bannerIds)

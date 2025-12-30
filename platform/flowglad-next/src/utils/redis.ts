@@ -250,18 +250,14 @@ export const dismissBanner = async (
   userId: string,
   bannerId: string
 ): Promise<void> => {
-  try {
-    const redisClient = redis()
-    const key = `${RedisKeyNamespace.BannerDismissals}:${userId}`
-    await redisClient.sadd(key, bannerId)
-    // Set TTL so banners reappear after the expiry period
-    await redisClient.expire(
-      key,
-      evictionPolicy[RedisKeyNamespace.BannerDismissals].ttl
-    )
-  } catch (error) {
-    console.error('Error dismissing banner', error)
-  }
+  const redisClient = redis()
+  const key = `${RedisKeyNamespace.BannerDismissals}:${userId}`
+  await redisClient.sadd(key, bannerId)
+  // Set TTL so banners reappear after the expiry period
+  await redisClient.expire(
+    key,
+    evictionPolicy[RedisKeyNamespace.BannerDismissals].ttl
+  )
 }
 
 /**
@@ -275,22 +271,15 @@ export const dismissBanners = async (
 ): Promise<void> => {
   if (bannerIds.length === 0) return
 
-  try {
-    const redisClient = redis()
-    const key = `${RedisKeyNamespace.BannerDismissals}:${userId}`
-    // Redis SADD accepts multiple members - cast to satisfy Upstash's tuple types
-    await redisClient.sadd(
-      key,
-      ...(bannerIds as [string, ...string[]])
-    )
-    // Set TTL so banners reappear after the expiry period
-    await redisClient.expire(
-      key,
-      evictionPolicy[RedisKeyNamespace.BannerDismissals].ttl
-    )
-  } catch (error) {
-    console.error('Error dismissing banners', error)
-  }
+  const redisClient = redis()
+  const key = `${RedisKeyNamespace.BannerDismissals}:${userId}`
+  // Redis SADD accepts multiple members - cast to satisfy Upstash's tuple types
+  await redisClient.sadd(key, ...(bannerIds as [string, ...string[]]))
+  // Set TTL so banners reappear after the expiry period
+  await redisClient.expire(
+    key,
+    evictionPolicy[RedisKeyNamespace.BannerDismissals].ttl
+  )
 }
 
 /**
@@ -316,11 +305,7 @@ export const getDismissedBannerIds = async (
 export const resetDismissedBanners = async (
   userId: string
 ): Promise<void> => {
-  try {
-    const redisClient = redis()
-    const key = `${RedisKeyNamespace.BannerDismissals}:${userId}`
-    await redisClient.del(key)
-  } catch (error) {
-    console.error('Error resetting dismissed banners', error)
-  }
+  const redisClient = redis()
+  const key = `${RedisKeyNamespace.BannerDismissals}:${userId}`
+  await redisClient.del(key)
 }

@@ -110,6 +110,14 @@ export const SidebarBannerCarousel: React.FC<
     }
   }, [api, onSelect])
 
+  // Reset carousel to valid index when visibleSlides shrinks
+  // (e.g., after dismissedIds loads with pre-existing dismissals)
+  useEffect(() => {
+    if (current >= visibleSlides.length && visibleSlides.length > 0) {
+      api?.scrollTo(0)
+    }
+  }, [visibleSlides.length, current, api])
+
   // Auto-slide every 3 seconds (stops permanently on hover)
   useEffect(() => {
     if (!api || visibleSlides.length <= 1 || hasStoppedAutoSlide)
