@@ -13,6 +13,7 @@ import {
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import { FlowgladApiKeyType } from '@/types'
+import { deleteSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { hashData } from '@/utils/backendCore'
 import core from '@/utils/core'
 import { adminTransaction } from './adminTransaction'
@@ -27,6 +28,11 @@ import type { Organization } from './schema/organizations'
 import type { Product } from './schema/products'
 import type { User } from './schema/users'
 import { users } from './schema/users'
+import {
+  deleteApiKey,
+  insertApiKey,
+  selectApiKeys,
+} from './tableMethods/apiKeyMethods'
 import { selectCustomers } from './tableMethods/customerMethods'
 import {
   insertMembership,
@@ -408,6 +414,223 @@ describe('API Key RLS', () => {
       expect(
         resultB.customers.every((c) => c.organizationId === orgB.id)
       ).toBe(true)
+    })
+  })
+
+  describe('API Key DELETE RLS', () => {
+    /**
+     * Tests for the DELETE RLS policy on api_keys table.
+     * Ensures users can only delete API keys within their own organization
+     * and matching livemode.
+     *
+     * These tests use livemode: true to test the live mode deletion flow.
+     */
+
+    let apiKeyToDelete: ApiKey.Record
+    let livemodeApiKeyOrgA: ApiKey.Record & { token: string }
+
+    beforeEach(async () => {
+      // Create a livemode API key for authentication in DELETE tests
+      const livemodeToken = `live_sk_auth_${core.nanoid()}`
+      livemodeApiKeyOrgA = await adminTransaction(
+        async ({ transaction }) => {
+          const key = await insertApiKey(
+            {
+              organizationId: orgA.id,
+              name: 'Livemode Auth API Key',
+              token: livemodeToken,
+              type: FlowgladApiKeyType.Secret,
+              active: true,
+              livemode: true,
+              hashText: hashData(livemodeToken),
+            },
+            transaction
+          )
+          return { ...key, token: livemodeToken }
+        }
+      )
+
+      // Create an additional livemode API key in orgA for testing deletion
+      apiKeyToDelete = await adminTransaction(
+        async ({ transaction }) => {
+          return insertApiKey(
+            {
+              organizationId: orgA.id,
+              name: 'API Key To Delete',
+              token: `live_sk_delete_${core.nanoid()}`,
+              type: FlowgladApiKeyType.Secret,
+              active: true,
+              livemode: true, // livemode to match the livemode API keys
+              hashText: `hash_delete_${core.nanoid()}`,
+            },
+            transaction
+          )
+        }
+      )
+    })
+
+    it('should ALLOW a user to delete API keys within their organization', async () => {
+      // Use orgA's livemode API key to delete another livemode key in orgA
+      // This should succeed because both keys belong to the same organization and livemode
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          await deleteApiKey(apiKeyToDelete.id, transaction)
+        },
+        { apiKey: livemodeApiKeyOrgA.token }
+      )
+
+      // Verify the key no longer exists
+      const remainingKeys = await adminTransaction(
+        async ({ transaction }) => {
+          return selectApiKeys({ id: apiKeyToDelete.id }, transaction)
+        }
+      )
+      expect(remainingKeys).toHaveLength(0)
+    })
+
+    it('should DENY a user from deleting API keys from another organization due to RLS', async () => {
+      // Create a livemode API key in orgB
+      const orgBApiKeyToDelete = await adminTransaction(
+        async ({ transaction }) => {
+          return insertApiKey(
+            {
+              organizationId: orgB.id,
+              name: 'OrgB API Key To Delete',
+              token: `live_sk_orgb_${core.nanoid()}`,
+              type: FlowgladApiKeyType.Secret,
+              active: true,
+              livemode: true,
+              hashText: `hash_orgb_${core.nanoid()}`,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Try to delete orgB's key using orgA's livemode API key
+      // RLS silently prevents the delete (no rows affected, no error thrown)
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          await deleteApiKey(orgBApiKeyToDelete.id, transaction)
+        },
+        { apiKey: livemodeApiKeyOrgA.token }
+      )
+
+      // Verify the key still exists - RLS prevented the delete
+      const remainingKeys = await adminTransaction(
+        async ({ transaction }) => {
+          return selectApiKeys(
+            { id: orgBApiKeyToDelete.id },
+            transaction
+          )
+        }
+      )
+      expect(remainingKeys).toHaveLength(1)
+    })
+
+    it('should DENY deleting API keys in different livemode', async () => {
+      // Create a testmode API key in orgA
+      const testmodeApiKey = await adminTransaction(
+        async ({ transaction }) => {
+          return insertApiKey(
+            {
+              organizationId: orgA.id,
+              name: 'Testmode API Key',
+              token: `test_sk_${core.nanoid()}`,
+              type: FlowgladApiKeyType.Secret,
+              active: true,
+              livemode: false, // testmode key
+              hashText: `hash_test_${core.nanoid()}`,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Try to delete testmode key using livemode API key (livemodeApiKeyOrgA is livemode)
+      // RLS silently prevents the delete due to livemode mismatch (no rows affected, no error thrown)
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          await deleteApiKey(testmodeApiKey.id, transaction)
+        },
+        { apiKey: livemodeApiKeyOrgA.token } // livemode key
+      )
+
+      // Verify the key still exists - RLS livemode policy prevented the delete
+      const remainingKeys = await adminTransaction(
+        async ({ transaction }) => {
+          return selectApiKeys({ id: testmodeApiKey.id }, transaction)
+        }
+      )
+      expect(remainingKeys).toHaveLength(1)
+    })
+
+    it('should successfully delete via deleteSecretApiKeyTransaction for own organization', async () => {
+      // Use the full deleteSecretApiKeyTransaction flow
+      await authenticatedTransaction(
+        async ({ transaction, userId, livemode, organizationId }) => {
+          await deleteSecretApiKeyTransaction(
+            { id: apiKeyToDelete.id },
+            { transaction, userId, livemode, organizationId }
+          )
+        },
+        { apiKey: livemodeApiKeyOrgA.token }
+      )
+
+      // Verify the key no longer exists
+      const remainingKeys = await adminTransaction(
+        async ({ transaction }) => {
+          return selectApiKeys({ id: apiKeyToDelete.id }, transaction)
+        }
+      )
+      expect(remainingKeys).toHaveLength(0)
+    })
+
+    it('should DENY deleteSecretApiKeyTransaction for another organizations key', async () => {
+      // Create an API key in orgB
+      const orgBSecretKey = await adminTransaction(
+        async ({ transaction }) => {
+          return insertApiKey(
+            {
+              organizationId: orgB.id,
+              name: 'OrgB Secret Key',
+              token: `test_sk_orgb_secret_${core.nanoid()}`,
+              type: FlowgladApiKeyType.Secret,
+              active: true,
+              livemode: false,
+              hashText: `hash_orgb_secret_${core.nanoid()}`,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Try to use deleteSecretApiKeyTransaction with orgA's context to delete orgB's key
+      // This should fail because selectApiKeyById won't find the key (RLS prevents visibility)
+      await expect(
+        authenticatedTransaction(
+          async ({
+            transaction,
+            userId,
+            livemode,
+            organizationId,
+          }) => {
+            await deleteSecretApiKeyTransaction(
+              { id: orgBSecretKey.id },
+              { transaction, userId, livemode, organizationId }
+            )
+          },
+          { apiKey: apiKeyOrgA.token }
+        )
+      ).rejects.toThrow()
+
+      // Verify the key still exists
+      const remainingKeys = await adminTransaction(
+        async ({ transaction }) => {
+          return selectApiKeys({ id: orgBSecretKey.id }, transaction)
+        }
+      )
+      expect(remainingKeys).toHaveLength(1)
     })
   })
 })

@@ -136,6 +136,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
     expect(result.discountAmountFixed).toBe(0)
     expect(result.pretaxTotal).toBe(5000)
     expect(result.flowgladFeePercentage).toBe('2')
+    expect(result.morSurchargePercentage).toBe('0')
     expect(result.internationalFeePercentage).toBe('0')
     expect(result.paymentMethodFeeFixed).toBe(
       Math.round(5000 * 0.029 + 30)
@@ -248,6 +249,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
     expect(result.discountAmountFixed).toBe(350)
     expect(result.pretaxTotal).toBe(3150)
     expect(result.flowgladFeePercentage).toBe('1.5')
+    expect(result.morSurchargePercentage).toBe('1.1')
     expect(result.internationalFeePercentage).toBe('1.5')
     expect(result.paymentMethodFeeFixed).toBe(
       Math.round(3150 * 0.029 + 30)

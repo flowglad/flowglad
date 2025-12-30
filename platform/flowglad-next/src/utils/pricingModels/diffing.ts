@@ -655,3 +655,96 @@ export const validateProductDiff = (
     }
   }
 }
+
+/**
+ * Result of diffing two pricing models.
+ *
+ * Contains the diff results for all resource types (features, products, usage meters).
+ */
+export type PricingModelDiffResult = {
+  /**
+   * Diff result for features.
+   */
+  features: DiffResult<FeatureDiffInput>
+  /**
+   * Diff result for products, including price comparison.
+   */
+  products: ProductDiffResult
+  /**
+   * Diff result for usage meters.
+   */
+  usageMeters: DiffResult<UsageMeterDiffInput>
+}
+
+/**
+ * Diffs two pricing models to identify what needs to be created, updated, or removed.
+ *
+ * This is the main entry point for pricing model diffing. It performs the following:
+ * 1. Diffs features, products, and usage meters by their slugs
+ * 2. Validates all diffs to ensure only valid changes are allowed
+ * 3. Returns a comprehensive diff result
+ *
+ * This is a pure function - it does not access the database or have side effects.
+ * All validation is performed via Zod parsing with strict mode to ensure only
+ * mutable fields can be updated.
+ *
+ * @param existing - The existing pricing model setup
+ * @param proposed - The proposed pricing model setup
+ * @returns A PricingModelDiffResult containing all diffs for features, products, and usage meters
+ * @throws Error if any validation fails (e.g., trying to remove usage meters, changing immutable fields)
+ *
+ * @example
+ * ```typescript
+ * const existing = {
+ *   features: [{ slug: 'feature-a', name: 'Feature A', type: 'toggle', active: true }],
+ *   products: [{
+ *     product: { slug: 'pro', name: 'Pro Plan', ... },
+ *     price: { type: 'subscription', unitPrice: 1000, ... },
+ *     features: ['feature-a']
+ *   }],
+ *   usageMeters: [{ slug: 'api-calls', name: 'API Calls', aggregationType: 'sum' }]
+ * }
+ *
+ * const proposed = {
+ *   features: [{ slug: 'feature-a', name: 'Feature A Updated', type: 'toggle', active: true }],
+ *   products: [{
+ *     product: { slug: 'pro', name: 'Pro Plan', ... },
+ *     price: { type: 'subscription', unitPrice: 2000, ... },
+ *     features: ['feature-a']
+ *   }],
+ *   usageMeters: [{ slug: 'api-calls', name: 'API Calls', aggregationType: 'sum' }]
+ * }
+ *
+ * const diff = diffPricingModel(existing, proposed)
+ * // diff.features.toUpdate will contain the feature with name change
+ * // diff.products.toUpdate will contain the product with price unitPrice change
+ * // diff.usageMeters will have empty toRemove, toCreate, and toUpdate arrays
+ * ```
+ */
+export const diffPricingModel = (
+  existing: SetupPricingModelInput,
+  proposed: SetupPricingModelInput
+): PricingModelDiffResult => {
+  const featuresDiff = diffFeatures(
+    existing.features,
+    proposed.features
+  )
+  const productsDiff = diffProducts(
+    existing.products,
+    proposed.products
+  )
+  const usageMetersDiff = diffUsageMeters(
+    existing.usageMeters,
+    proposed.usageMeters
+  )
+
+  validateFeatureDiff(featuresDiff)
+  validateProductDiff(productsDiff)
+  validateUsageMeterDiff(usageMetersDiff)
+
+  return {
+    features: featuresDiff,
+    products: productsDiff,
+    usageMeters: usageMetersDiff,
+  }
+}
