@@ -250,7 +250,7 @@ export const CustomerBillingSubPage = ({
 
         <ExpandSection
           title="Subscriptions"
-          defaultExpanded={true}
+          defaultExpanded={false}
           contentPadding={false}
         >
           <SubscriptionsDataTable
