@@ -86,7 +86,7 @@
         "@trigger.dev/sdk": "4.0.2",
         "@trpc/client": "11.5.0",
         "@trpc/react-query": "11.5.0",
-        "@trpc/server": "11.5.0",
+        "@trpc/server": "11.8.0",
         "@turbopuffer/turbopuffer": "^1.7.0",
         "@unkey/api": "2.2.1",
         "@unkey/nextjs": "2.0.0",
@@ -1516,7 +1516,7 @@
 
     "@trpc/react-query": ["@trpc/react-query@11.5.0", "", { "peerDependencies": { "@tanstack/react-query": "^5.80.3", "@trpc/client": "11.5.0", "@trpc/server": "11.5.0", "react": ">=18.2.0", "react-dom": ">=18.2.0", "typescript": ">=5.7.2" } }, "sha512-BPrMbYi5/oW11SSRUmD3dONCAG/JJjxfniSyFbsY5VSS6qHXDF1RcfLAkiF+Ofo7MPchqmHc2iNqSl5Eumh8iA=="],
 
-    "@trpc/server": ["@trpc/server@11.5.0", "", { "peerDependencies": { "typescript": ">=5.7.2" } }, "sha512-0IBtkmUCeO2ycn4K45/cqsujnlCQrSvkCo7lFDpg3kGMIPiLyLRciID5IiS7prEjRjeITa+od2aaHTIwONApVw=="],
+    "@trpc/server": ["@trpc/server@11.8.0", "", { "peerDependencies": { "typescript": ">=5.7.2" } }, "sha512-DphyQnLuyX2nwJCQGWQ9zYz4hZGvRhSBqDhQ0SH3tDhQ3PU4u68xofA0pJ741Ir4InEAFD+TtJVLAQy+wVOkiQ=="],
 
     "@ts-morph/common": ["@ts-morph/common@0.19.0", "", { "dependencies": { "fast-glob": "^3.2.12", "minimatch": "^7.4.3", "mkdirp": "^2.1.6", "path-browserify": "^1.0.1" } }, "sha512-Unz/WHmd4pGax91rdIKWi51wnVUW11QttMEPpBiBgIewnc9UQIX7UDLxr5vRlqeByXCwhkF6VabSsI0raWcyAQ=="],
 
