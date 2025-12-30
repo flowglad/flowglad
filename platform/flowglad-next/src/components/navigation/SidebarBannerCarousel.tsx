@@ -42,6 +42,8 @@ export const SidebarBannerCarousel: React.FC<
   const [current, setCurrent] = useState(0)
   const [canScrollPrev, setCanScrollPrev] = useState(false)
   const [canScrollNext, setCanScrollNext] = useState(false)
+  const [hasStoppedAutoSlide, setHasStoppedAutoSlide] =
+    useState(false)
 
   // Fetch dismissed banner IDs from Redis via tRPC
   const { data: dismissedIds, isLoading } =
@@ -108,9 +110,10 @@ export const SidebarBannerCarousel: React.FC<
     }
   }, [api, onSelect])
 
-  // Auto-slide every 3 seconds
+  // Auto-slide every 3 seconds (stops permanently on hover)
   useEffect(() => {
-    if (!api || visibleSlides.length <= 1) return
+    if (!api || visibleSlides.length <= 1 || hasStoppedAutoSlide)
+      return
 
     const interval = setInterval(() => {
       if (api.canScrollNext()) {
@@ -122,7 +125,7 @@ export const SidebarBannerCarousel: React.FC<
     }, 3000)
 
     return () => clearInterval(interval)
-  }, [api, visibleSlides.length])
+  }, [api, visibleSlides.length, hasStoppedAutoSlide])
 
   // Handle dismiss - dismisses ALL visible banners in a single mutation
   const handleDismiss = () => {
@@ -160,7 +163,10 @@ export const SidebarBannerCarousel: React.FC<
 
       {/* Banner image container with overlaid navigation */}
       <Carousel setApi={setApi} className="w-full">
-        <div className="group/banner relative h-[147px] bg-secondary border border-border rounded-[6px] overflow-hidden">
+        <div
+          className="group/banner relative h-[147px] bg-secondary border border-border rounded-[6px] overflow-hidden"
+          onMouseEnter={() => setHasStoppedAutoSlide(true)}
+        >
           {/* [&>div]:h-full ensures the embla-carousel overflow wrapper inherits height */}
           <div className="h-full [&>div]:h-full">
             <CarouselContent className="-ml-0 h-full [&>div]:h-full">
