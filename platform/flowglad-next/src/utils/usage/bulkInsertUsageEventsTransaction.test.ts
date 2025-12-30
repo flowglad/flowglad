@@ -43,53 +43,51 @@ describe('bulkInsertUsageEventsTransaction', () => {
     pricingModelId = orgSetup.pricingModel.id
     productId = orgSetup.product.id
 
-    await adminTransaction(async ({ transaction }) => {
-      customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: orgSetup.pricingModel.id,
-      })
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      pricingModelId: orgSetup.pricingModel.id,
+    })
 
-      paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
 
-      usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Test Usage Meter',
-        livemode: true,
-        pricingModelId,
-      })
+    usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Test Usage Meter',
+      livemode: true,
+      pricingModelId,
+    })
 
-      price = await setupPrice({
-        productId,
-        name: 'Test Usage Price',
-        type: PriceType.Usage,
-        unitPrice: 10,
-        intervalUnit: IntervalUnit.Day,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: false,
-        currency: CurrencyCode.USD,
-        usageMeterId: usageMeter.id,
-      })
+    price = await setupPrice({
+      productId,
+      name: 'Test Usage Price',
+      type: PriceType.Usage,
+      unitPrice: 10,
+      intervalUnit: IntervalUnit.Day,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+      usageMeterId: usageMeter.id,
+    })
 
-      subscription = await setupSubscription({
-        organizationId: organization.id,
-        customerId: customer.id,
-        paymentMethodId: paymentMethod.id,
-        priceId: price.id,
-      })
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: price.id,
+    })
 
-      const now = new Date()
-      const endDate = new Date(now)
-      endDate.setDate(endDate.getDate() + 30)
+    const now = new Date()
+    const endDate = new Date(now)
+    endDate.setDate(endDate.getDate() + 30)
 
-      billingPeriod = await setupBillingPeriod({
-        subscriptionId: subscription.id,
-        startDate: now,
-        endDate,
-      })
+    billingPeriod = await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate: now,
+      endDate,
     })
   })
 

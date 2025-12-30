@@ -1032,7 +1032,7 @@ describe('usageEventsRouter', () => {
       expect(event.amount).toBe(100)
     })
 
-    it('should return error for invalid input', async () => {
+    it('should throw error when no identifier is provided', async () => {
       const caller = createCaller(
         org1Data.organization,
         org1ApiKeyToken
@@ -1049,7 +1049,9 @@ describe('usageEventsRouter', () => {
             },
           ],
         })
-      ).rejects.toThrow()
+      ).rejects.toThrow(
+        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+      )
     })
   })
 })
