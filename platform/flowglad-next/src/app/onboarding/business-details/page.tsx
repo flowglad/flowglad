@@ -5,9 +5,21 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { trpc } from '@/app/_trpc/client'
 import ErrorLabel from '@/components/ErrorLabel'
-import OrganizationFormFields from '@/components/forms/OrganizationFormFields'
+import OrganizationOnboardingFormFields from '@/components/forms/OrganizationOnboardingFormFields'
 import { Button } from '@/components/ui/button'
-import { Form } from '@/components/ui/form'
+import {
+  Form,
+  FormControl,
+  FormItem,
+  FormLabel,
+} from '@/components/ui/form'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useAuthContext } from '@/contexts/authContext'
 import {
   type CreateOrganizationInput,
@@ -18,10 +30,26 @@ import {
   type ReferralOption,
 } from '@/utils/referrals'
 
+const isReferralOption = (value: string): value is ReferralOption => {
+  return REFERRAL_OPTIONS.some((option) => option === value)
+}
+
+const errorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message
+  }
+  if (typeof error === 'string') {
+    return error
+  }
+  return 'Something went wrong.'
+}
+
 const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
   const setReferralSelection =
     trpc.utils.setReferralSelection.useMutation()
+  const { data: countriesList, isLoading: countriesLoading } =
+    trpc.countries.list.useQuery()
   const { setOrganization } = useAuthContext()
   const [referralSource, setReferralSource] = useState<
     ReferralOption | undefined
@@ -31,12 +59,26 @@ const BusinessDetails = () => {
     defaultValues: {
       organization: {
         name: '',
+        countryId: undefined,
+        stripeConnectContractType: undefined,
       },
+      codebaseMarkdown: '',
     },
   })
   const router = useRouter()
+  const selectedCountryId = form.watch('organization.countryId')
+  const selectedStripeConnectContractType = form.watch(
+    'organization.stripeConnectContractType'
+  )
   const onSubmit = form.handleSubmit(async (data) => {
     try {
+      if (!data.organization.stripeConnectContractType) {
+        form.setError('organization.stripeConnectContractType', {
+          message: 'Select a payment processing option.',
+        })
+        return
+      }
+
       const { organization } =
         await createOrganization.mutateAsync(data)
 
@@ -54,7 +96,7 @@ const BusinessDetails = () => {
       router.refresh()
       router.push('/onboarding')
     } catch (error) {
-      form.setError('root', { message: (error as Error).message })
+      form.setError('root', { message: errorMessage(error) })
     }
   })
 
@@ -68,16 +110,46 @@ const BusinessDetails = () => {
               className="w-[380px] flex flex-col gap-6"
             >
               {/* FIXME (FG-555): Readd OrganizationLogoInput to this page once we have a way to upload the logo during organization creation */}
-              <OrganizationFormFields
-                setReferralSource={setReferralSource}
-                referralSource={referralSource}
+              <OrganizationOnboardingFormFields
+                countries={countriesList?.countries ?? []}
               />
+              <FormItem>
+                <FormLabel>How did you hear about us?</FormLabel>
+                <FormControl>
+                  <Select
+                    value={referralSource}
+                    onValueChange={(val: string) => {
+                      if (isReferralOption(val)) {
+                        setReferralSource(val)
+                        return
+                      }
+                      setReferralSource(undefined)
+                    }}
+                    disabled={countriesLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an option" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {REFERRAL_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+              </FormItem>
               <Button
                 variant="default"
                 size="default"
                 type="submit"
                 disabled={
-                  form.formState.isSubmitting || !referralSource
+                  form.formState.isSubmitting ||
+                  countriesLoading ||
+                  !referralSource ||
+                  !selectedCountryId ||
+                  !selectedStripeConnectContractType
                 }
                 className="w-full"
               >

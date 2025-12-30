@@ -2,11 +2,11 @@
 import { Check, Clock, Copy } from 'lucide-react'
 import { useState } from 'react'
 import Markdown from 'react-markdown'
+import { trpc } from '@/app/_trpc/client'
 import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
-import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestStripeConnectOnboardingLinkModal'
 import { CursorLogo } from '@/components/icons/CursorLogo'
 import { Button } from '@/components/ui/button'
-import type { Country } from '@/db/schema/countries'
+import { useAuthContext } from '@/contexts/authContext'
 import { cn } from '@/lib/utils'
 import {
   type OnboardingChecklistItem,
@@ -169,19 +169,16 @@ const CodeblockGroup = ({
 
 const OnboardingStatusTable = ({
   onboardingChecklistItems,
-  countries,
   secretApiKey,
   pricingModelsCount,
 }: {
   onboardingChecklistItems: OnboardingChecklistItem[]
-  countries: Country.Record[]
   secretApiKey: string
   pricingModelsCount: number
 }) => {
-  const [
-    isRequestStripeConnectOnboardingLinkModalOpen,
-    setIsRequestStripeConnectOnboardingLinkModalOpen,
-  ] = useState(false)
+  const requestStripeConnect =
+    trpc.organizations.requestStripeConnect.useMutation()
+  const { organization } = useAuthContext()
   const [
     isCreatePricingModelModalOpen,
     setIsCreatePricingModelModalOpen,
@@ -218,6 +215,22 @@ const OnboardingStatusTable = ({
 
   const cursorDeepLink = generateCursorDeepLink()
   const mcpConfigText = JSON.stringify(mcpConfigForCopy, null, 2)
+
+  const handleEnablePayments = async () => {
+    const countryId = organization?.countryId
+    if (!countryId) {
+      throw new Error(
+        'Organization country is required to enable payments.'
+      )
+    }
+
+    const { onboardingLink } = await requestStripeConnect.mutateAsync(
+      {
+        CountryId: countryId,
+      }
+    )
+    window.location.href = onboardingLink
+  }
 
   return (
     <div className="flex flex-col w-full gap-4">
@@ -265,23 +278,43 @@ const OnboardingStatusTable = ({
           </Button>
         }
       />
-      {onboardingChecklistItems.map((item, index) => (
-        <OnboardingStatusRow
-          key={item.title}
-          completed={item.completed}
-          inReview={item.inReview}
-          title={`${index + 3}. ${item.title}`}
-          description={item.description}
-          action={item.action}
-          type={item.type}
-          onClick={() => {
-            if (item.type === OnboardingItemType.Stripe) {
-              setIsRequestStripeConnectOnboardingLinkModalOpen(true)
-              return
-            }
-          }}
-        />
-      ))}
+      {onboardingChecklistItems.map((item, index) => {
+        let actionNode: React.ReactNode | undefined
+        if (
+          item.type === OnboardingItemType.Stripe &&
+          !item.completed &&
+          !item.inReview
+        ) {
+          actionNode = (
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={handleEnablePayments}
+              disabled={
+                requestStripeConnect.isPending ||
+                !organization?.countryId
+              }
+            >
+              {requestStripeConnect.isPending
+                ? 'Connecting...'
+                : (item.action ?? 'Connect')}
+            </Button>
+          )
+        }
+
+        return (
+          <OnboardingStatusRow
+            key={item.title}
+            completed={item.completed}
+            inReview={item.inReview}
+            title={`${index + 3}. ${item.title}`}
+            description={item.description}
+            action={item.action}
+            type={item.type}
+            actionNode={actionNode}
+          />
+        )
+      })}
       <OnboardingStatusRow
         key={'add-flowglad-mcp-server'}
         completed={false}
@@ -330,11 +363,6 @@ const OnboardingStatusTable = ({
             </div>
           </div>
         }
-      />
-      <RequestStripeConnectOnboardingLinkModal
-        isOpen={isRequestStripeConnectOnboardingLinkModalOpen}
-        setIsOpen={setIsRequestStripeConnectOnboardingLinkModalOpen}
-        countries={countries}
       />
       <CreatePricingModelModal
         isOpen={isCreatePricingModelModalOpen}

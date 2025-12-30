@@ -4,7 +4,6 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import type { ApiKey } from '@/db/schema/apiKeys'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
-import { selectAllCountries } from '@/db/tableMethods/countryMethods'
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
@@ -32,9 +31,13 @@ const OnboardingPage = async () => {
           },
           transaction
         )
-      const countries = await selectAllCountries(transaction)
       if (membershipsAndOrganizations.length === 0) {
-        return { countries }
+        return {
+          organization: undefined,
+          products: undefined,
+          discounts: undefined,
+          pricingModels: undefined,
+        }
       }
       const organization = membershipsAndOrganizations[0].organization
       const products = await selectPricesAndProductsForOrganization(
@@ -52,14 +55,12 @@ const OnboardingPage = async () => {
       )
       return {
         organization,
-        countries,
         products,
         discounts,
         pricingModels,
       }
     }
   )
-  const { countries } = results
 
   if (!results.organization) {
     return redirect('/onboarding/business-details')
@@ -171,7 +172,6 @@ const OnboardingPage = async () => {
           </div>
           <OnboardingStatusTable
             onboardingChecklistItems={onboardingChecklistItems}
-            countries={countries}
             secretApiKey={secretApiKey.token}
             pricingModelsCount={results.pricingModels?.length ?? 0}
           />
