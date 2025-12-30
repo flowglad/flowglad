@@ -158,10 +158,12 @@ export const bulkInsertUsageEventsTransaction = async (
     const customerSlugsMap = new Map<string, Set<string>>()
 
     eventsWithPriceSlugs.forEach(({ customerId, slug }) => {
-      if (!customerSlugsMap.has(customerId)) {
-        customerSlugsMap.set(customerId, new Set())
+      const customerSlugs = customerSlugsMap.get(customerId)
+      if (customerSlugs) {
+        customerSlugs.add(slug)
+      } else {
+        customerSlugsMap.set(customerId, new Set([slug]))
       }
-      customerSlugsMap.get(customerId)!.add(slug)
     })
 
     // Perform batch lookups for each customer using cached pricing models
@@ -204,10 +206,12 @@ export const bulkInsertUsageEventsTransaction = async (
     const customerSlugsMap = new Map<string, Set<string>>()
 
     eventsWithUsageMeterSlugs.forEach(({ customerId, slug }) => {
-      if (!customerSlugsMap.has(customerId)) {
-        customerSlugsMap.set(customerId, new Set())
+      const customerSlugs = customerSlugsMap.get(customerId)
+      if (customerSlugs) {
+        customerSlugs.add(slug)
+      } else {
+        customerSlugsMap.set(customerId, new Set([slug]))
       }
-      customerSlugsMap.get(customerId)!.add(slug)
     })
 
     // Perform batch lookups for each customer using cached pricing models
@@ -381,14 +385,20 @@ export const bulkInsertUsageEventsTransaction = async (
       }
       const customerId = subscription.customerId
 
-      if (!customerEventsMap.has(customerId)) {
-        customerEventsMap.set(customerId, [])
+      const customerEvents = customerEventsMap.get(customerId)
+      if (customerEvents) {
+        customerEvents.push({
+          usageMeterId: usageEvent.usageMeterId!,
+          index,
+        })
+      } else {
+        customerEventsMap.set(customerId, [
+          {
+            usageMeterId: usageEvent.usageMeterId!,
+            index,
+          },
+        ])
       }
-
-      customerEventsMap.get(customerId)!.push({
-        usageMeterId: usageEvent.usageMeterId!,
-        index,
-      })
     })
 
     // Batch validate for each customer using cached pricing models
@@ -478,9 +488,7 @@ export const bulkInsertUsageEventsTransaction = async (
           : {}),
         usageMeterId: finalUsageMeterId,
         properties: usageEvent.properties ?? {},
-        usageDate: usageEvent.usageDate
-          ? usageEvent.usageDate
-          : Date.now(),
+        usageDate: usageEvent.usageDate ?? Date.now(),
       }
     })
 
