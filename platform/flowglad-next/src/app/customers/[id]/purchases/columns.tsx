@@ -1,13 +1,13 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import * as React from 'react'
 import { Badge } from '@/components/ui/badge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
+import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 import type { Customer } from '@/db/schema/customers'
 import type { Purchase } from '@/db/schema/purchases'
 import { CurrencyCode } from '@/types'
-import core from '@/utils/core'
+import { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 export type PurchaseTableRowData = {
@@ -44,94 +44,108 @@ const PurchaseStatusCell = ({
 
 export const columns: ColumnDef<PurchaseTableRowData>[] = [
   {
+    id: 'purchaseDate',
+    accessorFn: (row) => row.purchase.purchaseDate,
+    header: 'Date',
+    size: 115,
+    minSize: 115,
+    maxSize: 144,
+    cell: ({ row }) => {
+      const date = row.getValue('purchaseDate') as Date | null
+      return <div>{date ? formatDate(date) : '-'}</div>
+    },
+  },
+  {
     id: 'name',
     accessorFn: (row) => row.purchase.name,
-    header: 'Name',
-    cell: ({ row }) => (
-      <div className="truncate" title={row.getValue('name')}>
-        {row.getValue('name')}
-      </div>
-    ),
-    size: 300,
-    minSize: 150,
-    maxSize: 400,
+    header: 'Product',
+    size: 175,
+    minSize: 110,
+    maxSize: 250,
+    cell: ({ row }) => {
+      const name = row.getValue('name') as string
+      const purchaseId = row.original.purchase.id
+      return (
+        <DataTableLinkableCell
+          href={`/finance/purchases/${purchaseId}`}
+        >
+          <div className="truncate" title={name}>
+            {name}
+          </div>
+        </DataTableLinkableCell>
+      )
+    },
   },
   {
     id: 'status',
-    accessorFn: (row) => row.purchase,
+    accessorFn: (row) =>
+      row.purchase.endDate
+        ? 'Concluded'
+        : row.purchase.purchaseDate
+          ? 'Paid'
+          : 'Pending',
     header: 'Status',
+    size: 110,
+    minSize: 110,
+    maxSize: 130,
     cell: ({ row }) => {
-      const purchase = row.getValue('status') as Purchase.ClientRecord
+      const purchase = row.original.purchase
       return <PurchaseStatusCell purchase={purchase} />
     },
-    size: 110,
-    minSize: 105,
-    maxSize: 115,
-  },
-  {
-    id: 'revenue',
-    accessorFn: (row) => row.revenue,
-    header: 'Revenue',
-    cell: ({ row }) => {
-      const revenue = row.getValue('revenue') as number | undefined
-      return (
-        <div className="whitespace-nowrap">
-          {stripeCurrencyAmountToHumanReadableCurrencyAmount(
-            CurrencyCode.USD,
-            revenue ?? 0
-          )}
-        </div>
-      )
-    },
-    size: 100,
-    minSize: 80,
-    maxSize: 120,
   },
   {
     id: 'customerName',
     accessorFn: (row) => row.customer.name || row.customer.email,
     header: 'Customer',
-    cell: ({ row }) => (
-      <div className="truncate" title={row.getValue('customerName')}>
-        {row.getValue('customerName')}
-      </div>
-    ),
-    size: 150,
-    minSize: 120,
-    maxSize: 200,
-  },
-  {
-    id: 'purchaseDate',
-    accessorFn: (row) => row.purchase.purchaseDate,
-    header: 'Purchase Date',
+    size: 165,
+    minSize: 113,
+    maxSize: 225,
     cell: ({ row }) => {
-      const date = row.getValue('purchaseDate') as Date | null
+      const original = row.original
+      const displayName =
+        original.customer.name.length === 0
+          ? original.customer.email
+          : original.customer.name
       return (
-        <div className="whitespace-nowrap">
-          {date ? core.formatDate(date) : '-'}
-        </div>
+        <DataTableLinkableCell
+          href={`/customers/${original.customer.id}`}
+        >
+          {displayName}
+        </DataTableLinkableCell>
       )
     },
-    size: 125,
+  },
+  {
+    id: 'revenue',
+    accessorFn: (row) => row.revenue ?? 0,
+    header: 'Revenue',
+    size: 120,
     minSize: 100,
     maxSize: 150,
+    cell: ({ row }) => {
+      const amount = row.getValue('revenue') as number
+      const formatted =
+        stripeCurrencyAmountToHumanReadableCurrencyAmount(
+          CurrencyCode.USD,
+          amount
+        )
+      return <div>{formatted}</div>
+    },
   },
   {
     id: 'id',
     accessorFn: (row) => row.purchase.id,
     header: 'ID',
+    size: 200,
+    minSize: 150,
+    maxSize: 300,
     cell: ({ row }) => {
       const id = row.getValue('id') as string
       return (
-        <div onClick={(e) => e.stopPropagation()}>
-          <DataTableCopyableCell copyText={id}>
-            {id}
-          </DataTableCopyableCell>
-        </div>
+        <DataTableCopyableCell copyText={id}>
+          {id}
+        </DataTableCopyableCell>
       )
     },
-    size: 180,
-    minSize: 125,
-    maxSize: 250,
   },
 ]
