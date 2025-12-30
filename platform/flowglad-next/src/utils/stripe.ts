@@ -1000,10 +1000,10 @@ export const createStripeTaxTransactionFromCalculation = async ({
   reference: string
   livemode: boolean
 }): Promise<Stripe.Tax.Transaction | null> => {
-  if (!stripeTaxCalculationId) {
-    return null
-  }
-  if (stripeTaxCalculationId.startsWith('notaxoverride_')) {
+  if (
+    !stripeTaxCalculationId ||
+    stripeTaxCalculationId.startsWith('notaxoverride_')
+  ) {
     return null
   }
   return stripe(livemode).tax.transactions.createFromCalculation(
