@@ -28,8 +28,7 @@ function ApiKeyActionsMenu({
 }) {
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false)
 
-  const isKeyDeleteable =
-    apiKey.livemode && apiKey.type === FlowgladApiKeyType.Secret
+  const isKeyDeleteable = apiKey.type === FlowgladApiKeyType.Secret
 
   const actionItems: ActionMenuItem[] = []
 
