@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { countryCodeSchema } from '@/db/commonZodSchema'
 import { protectedProcedure } from '@/server/trpc'
 import { StripeConnectContractType } from '@/types'
 import { getEligibleFundsFlowsForCountry } from '@/utils/countries'
@@ -6,7 +7,7 @@ import { getEligibleFundsFlowsForCountry } from '@/utils/countries'
 export const getFundsFlowEligibilityForCountry = protectedProcedure
   .input(
     z.object({
-      countryCode: z.string(),
+      countryCode: countryCodeSchema,
     })
   )
   .output(
