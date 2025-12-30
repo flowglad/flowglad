@@ -119,6 +119,16 @@ export const createOrganizationTransaction = async (
     )
   }
 
+  // In production, check if country is MoR-only (not eligible for Platform)
+  if (
+    core.IS_PROD &&
+    !eligibleFlows.includes(StripeConnectContractType.Platform)
+  ) {
+    throw new Error(
+      `Country ${country.code} is not yet supported in production. Only countries eligible for Platform funds flow are currently supported.`
+    )
+  }
+
   const stripeConnectContractType = core.IS_PROD
     ? StripeConnectContractType.Platform
     : (requestedStripeConnectContractType ??
