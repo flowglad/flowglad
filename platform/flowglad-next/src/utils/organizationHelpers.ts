@@ -23,6 +23,7 @@ import {
 } from '@/types'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
+import core from '@/utils/core'
 import { getEligibleFundsFlowsForCountry } from '@/utils/countries'
 import { defaultCurrencyForCountry } from '@/utils/stripe'
 import { findOrCreateSvixApplication } from '@/utils/svix'
@@ -105,9 +106,23 @@ export const createOrganizationTransaction = async (
     )
   }
 
-  const stripeConnectContractType =
-    organization.stripeConnectContractType ??
-    defaultStripeConnectContractTypeForCountry(eligibleFlows)
+  const requestedStripeConnectContractType =
+    organization.stripeConnectContractType
+
+  if (
+    core.IS_PROD &&
+    requestedStripeConnectContractType ===
+      StripeConnectContractType.MerchantOfRecord
+  ) {
+    throw new Error(
+      'Merchant-of-record funds flow is not available in production yet.'
+    )
+  }
+
+  const stripeConnectContractType = core.IS_PROD
+    ? StripeConnectContractType.Platform
+    : (requestedStripeConnectContractType ??
+      defaultStripeConnectContractTypeForCountry(eligibleFlows))
 
   if (!eligibleFlows.includes(stripeConnectContractType)) {
     throw new Error(

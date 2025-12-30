@@ -158,12 +158,14 @@ export const {
   insertRefine: {
     monthlyBillingVolumeFreeTier:
       core.safeZodNonNegativeInteger.optional(),
+    stripeConnectContractType: z
+      .nativeEnum(StripeConnectContractType)
+      .optional(),
   },
   client: {
     hiddenColumns: {
       feePercentage: true,
       stripeAccountId: true,
-      ...(core.IS_DEV ? {} : { stripeConnectContractType: true }),
       externalId: true,
       ...hiddenColumnsForClientSchema,
       securitySalt: true,
@@ -181,7 +183,7 @@ export const {
       featureFlags: true,
     },
     createOnlyColumns: {
-      ...(core.IS_DEV ? { stripeConnectContractType: true } : {}),
+      stripeConnectContractType: true,
     },
   },
   entityName: 'Organization',
@@ -208,14 +210,9 @@ export const createOrganizationSchema = z.object({
   codebaseMarkdown: z.string().optional(),
 })
 
-export type CreateOrganizationInput = Omit<
-  z.infer<typeof createOrganizationSchema>,
-  'organization'
-> & {
-  organization: z.infer<typeof organizationsClientInsertSchema> & {
-    stripeConnectContractType?: StripeConnectContractType
-  }
-}
+export type CreateOrganizationInput = z.infer<
+  typeof createOrganizationSchema
+>
 
 export const editOrganizationSchema = z.object({
   organization: organizationsClientUpdateSchema,
