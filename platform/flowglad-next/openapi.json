@@ -10503,6 +10503,9 @@
                 "type": "null"
               }
             ]
+          },
+          "pricingModelId": {
+            "type": "string"
           }
         },
         "required": [
@@ -10531,7 +10534,8 @@
           "refunded",
           "refundedAmount",
           "failureMessage",
-          "failureCode"
+          "failureCode",
+          "pricingModelId"
         ],
         "additionalProperties": false
       },
@@ -14931,6 +14935,9 @@
           "manuallyCreated": {
             "type": "boolean"
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -14947,6 +14954,7 @@
           "featureId",
           "type",
           "manuallyCreated",
+          "pricingModelId",
           "name",
           "slug"
         ],
@@ -15044,6 +15052,9 @@
           "manuallyCreated": {
             "type": "boolean"
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -15063,6 +15074,7 @@
           "usageMeterId",
           "renewalFrequency",
           "manuallyCreated",
+          "pricingModelId",
           "name",
           "slug"
         ],
@@ -16527,6 +16539,9 @@
             "type": "string",
             "const": "static"
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "ledgerAccountId": {
             "type": "null"
           },
@@ -16544,7 +16559,8 @@
           "priceId",
           "description",
           "price",
-          "type"
+          "type",
+          "pricingModelId"
         ],
         "additionalProperties": false
       },
@@ -16606,6 +16622,9 @@
             "type": "string",
             "const": "usage"
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "billingRunId": {
             "type": "string"
           },
@@ -16627,6 +16646,7 @@
           "description",
           "price",
           "type",
+          "pricingModelId",
           "billingRunId",
           "ledgerAccountId",
           "ledgerAccountCredit"
