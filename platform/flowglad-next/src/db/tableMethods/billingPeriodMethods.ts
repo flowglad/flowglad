@@ -60,7 +60,7 @@ export const selectBillingPeriodById = createSelectById(
 
 /**
  * Derives pricingModelId from a billing period.
- * Used for billing period inserts.
+ * Used for billing period item inserts.
  */
 export const derivePricingModelIdFromBillingPeriod =
   createDerivePricingModelId(
