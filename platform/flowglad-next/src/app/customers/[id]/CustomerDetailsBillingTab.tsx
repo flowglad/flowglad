@@ -284,7 +284,7 @@ export const CustomerBillingSubPage = ({
             filters={{
               customerId: customer.id,
             }}
-            hiddenColumns={['customerName']}
+            hiddenColumns={['customerName', 'id']}
           />
         </ExpandSection>
 
