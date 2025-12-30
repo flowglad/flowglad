@@ -282,7 +282,7 @@ export const calculateTaxes = async ({
       })
   return {
     taxAmountFixed: calc.tax_amount_exclusive,
-    stripeTaxCalculationId: calc.id!,
+    stripeTaxCalculationId: calc.id,
     stripeTaxTransactionId: null,
   }
 }

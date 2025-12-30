@@ -991,7 +991,15 @@ export const createStripeTaxCalculationByPrice = async ({
   discountInclusiveAmount: number
   product: Product.Record
   livemode: boolean
-}) => {
+}): Promise<
+  Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
+> => {
+  if (core.IS_TEST) {
+    return {
+      id: `testtaxcalc_${core.nanoid()}`,
+      tax_amount_exclusive: 0,
+    }
+  }
   const lineItems: Stripe.Tax.CalculationCreateParams.LineItem[] = [
     {
       quantity: 1,
@@ -1024,7 +1032,15 @@ export const createStripeTaxCalculationByPurchase = async ({
   price: Price.Record
   product: Product.Record
   livemode: boolean
-}) => {
+}): Promise<
+  Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
+> => {
+  if (core.IS_TEST) {
+    return {
+      id: `testtaxcalc_${core.nanoid()}`,
+      tax_amount_exclusive: 0,
+    }
+  }
   const lineItems: Stripe.Tax.CalculationCreateParams.LineItem[] = [
     {
       quantity: 1,
