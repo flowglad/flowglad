@@ -11,6 +11,7 @@ export enum FlowgladActionKey {
   UncancelSubscription = 'subscriptions/uncancel',
   CreateSubscription = 'subscriptions/create',
   UpdateCustomer = 'customers/update',
+  CreateUsageEvent = 'usage-events/create',
 }
 
 export enum HTTPMethod {
