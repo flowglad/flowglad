@@ -13,10 +13,11 @@ import {
   CarouselItem,
 } from '@/components/ui/carousel'
 import { useSidebar } from '@/components/ui/sidebar'
+import type { BannerId } from '@/config/sidebarBannerConfig'
 import { cn } from '@/lib/utils'
 
 export interface BannerSlide {
-  id: string
+  id: BannerId
   /** Image URL - if provided, will display the image */
   imageUrl?: string
   /** Alt text for image */
@@ -172,7 +173,7 @@ export const SidebarBannerCarousel: React.FC<
       {/* Banner image container with overlaid navigation */}
       <Carousel setApi={setApi} className="w-full">
         <div
-          className="group/banner relative h-[120px] bg-secondary border border-border rounded-[6px] overflow-hidden"
+          className="group/banner relative h-[147px] bg-secondary border border-border rounded-[6px] overflow-hidden"
           onMouseEnter={() => setHasStoppedAutoSlide(true)}
         >
           {/* [&>div]:h-full ensures the embla-carousel overflow wrapper inherits height */}

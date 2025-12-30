@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import { bannerIdSchema } from '@/config/sidebarBannerConfig'
 import { protectedProcedure, router } from '@/server/trpc'
 import {
   dismissBanner,
@@ -36,7 +37,7 @@ export const bannersRouter = router({
    * Dismiss a single banner for the current user.
    */
   dismiss: protectedProcedure
-    .input(z.object({ bannerId: z.string() }))
+    .input(z.object({ bannerId: bannerIdSchema }))
     .mutation(async ({ ctx, input }) => {
       const userId = getUserIdOrThrow(ctx)
       await dismissBanner(userId, input.bannerId)
@@ -48,7 +49,7 @@ export const bannersRouter = router({
    * This is the preferred method when dismissing the entire carousel.
    */
   dismissAll: protectedProcedure
-    .input(z.object({ bannerIds: z.array(z.string()).max(10) }))
+    .input(z.object({ bannerIds: z.array(bannerIdSchema).max(10) }))
     .mutation(async ({ ctx, input }) => {
       const userId = getUserIdOrThrow(ctx)
       await dismissBanners(userId, input.bannerIds)
@@ -56,7 +57,8 @@ export const bannersRouter = router({
     }),
 
   /**
-   * Reset all dismissed banners for the current user (admin/testing only).
+   * Reset all dismissed banners for the current user.
+   * Useful for testing or if user wants to see banners again.
    */
   resetDismissed: protectedProcedure.mutation(async ({ ctx }) => {
     const userId = getUserIdOrThrow(ctx)
