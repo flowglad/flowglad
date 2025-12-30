@@ -10,7 +10,7 @@ permissions: read-all
 
 jobs:
   flowglad-next-lint:
-    name: flowglad-next: bun run check
+    name: "flowglad-next: bun run check"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -59,7 +59,7 @@ jobs:
         run: docker run -d -p 3000:3000 --name flowglad-next-app flowglad-next:latest
 
   packages-build-and-lint:
-    name: packages: bun run check (build only on merge queue)
+    name: "packages: bun run check (build only on merge queue)"
     runs-on: ubuntu-latest
     defaults:
       run:
