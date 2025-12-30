@@ -112,16 +112,18 @@ export const createStripeTaxTransactionIfNeededForPayment = async (
       transaction
     )
 
-    if (feeCalculation) {
-      await updateFeeCalculation(
-        {
-          id: feeCalculation.id,
-          type: feeCalculation.type,
-          stripeTaxTransactionId: stripeTaxTransaction.id,
-        },
-        transaction
-      )
+    if (!feeCalculation) {
+      return stripeTaxTransaction.id
     }
+
+    await updateFeeCalculation(
+      {
+        id: feeCalculation.id,
+        type: feeCalculation.type,
+        stripeTaxTransactionId: stripeTaxTransaction.id,
+      },
+      transaction
+    )
 
     return stripeTaxTransaction.id
   } catch (error) {
