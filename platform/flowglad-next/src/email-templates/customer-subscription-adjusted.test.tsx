@@ -72,7 +72,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
   })
 
   describe('downgrade emails', () => {
-    it('renders updated title, no proration amount, and no-charge notice', () => {
+    it('renders title, no proration, no-charge notice, and previous/new plan pricing', () => {
       const { getByTestId, getByText, queryByTestId } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -89,43 +89,31 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
         />
       )
 
+      // Title and body text
       expect(getByTestId('email-title')).toHaveTextContent(
         'Your subscription has been updated'
       )
       expect(
         getByText('Your subscription has been successfully updated.')
       ).toBeInTheDocument()
+
+      // No proration for downgrade
       expect(
         queryByTestId('proration-amount')
       ).not.toBeInTheDocument()
       expect(getByTestId('no-charge-notice')).toHaveTextContent(
         'No charge for this change.'
       )
-    })
 
-    it('displays previous plan at $25/month and new plan at $10/month', () => {
-      const { getByTestId } = render(
-        <CustomerSubscriptionAdjustedEmail
-          {...baseProps}
-          adjustmentType="downgrade"
-          prorationAmount={null}
-          previousItems={[
-            { name: 'Pro Plan', unitPrice: 2500, quantity: 1 },
-          ]}
-          newItems={[
-            { name: 'Basic Plan', unitPrice: 1000, quantity: 1 },
-          ]}
-          previousTotalPrice={2500}
-          newTotalPrice={1000}
-        />
-      )
-
+      // Previous plan pricing
       expect(getByTestId('previous-plan-label')).toHaveTextContent(
         'Previous plan ($25.00/month):'
       )
       expect(getByTestId('previous-item-0')).toHaveTextContent(
         '• Pro Plan: $25.00/month'
       )
+
+      // New plan pricing
       expect(getByTestId('new-plan-label')).toHaveTextContent(
         'New plan ($10.00/month):'
       )
