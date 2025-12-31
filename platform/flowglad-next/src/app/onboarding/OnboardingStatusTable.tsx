@@ -2,7 +2,9 @@
 import { Check, Clock, Copy } from 'lucide-react'
 import { useState } from 'react'
 import Markdown from 'react-markdown'
+import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
+import ErrorLabel from '@/components/ErrorLabel'
 import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
 import { CursorLogo } from '@/components/icons/CursorLogo'
 import { Button } from '@/components/ui/button'
@@ -18,6 +20,16 @@ interface OnboardingStatusRowProps extends OnboardingChecklistItem {
   onClick?: () => void
   children?: React.ReactNode
   actionNode?: React.ReactNode
+}
+
+const userFacingErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message
+  }
+  if (typeof error === 'string') {
+    return error
+  }
+  return 'Something went wrong. Please try again.'
 }
 
 const OnboardingItemDescriptionLabel = ({
@@ -179,6 +191,11 @@ const OnboardingStatusTable = ({
   const requestStripeConnect =
     trpc.organizations.requestStripeConnect.useMutation()
   const { organization } = useAuthContext()
+  const [enablePaymentsError, setEnablePaymentsError] = useState<
+    string | undefined
+  >()
+  const [isEnablePaymentsLoading, setIsEnablePaymentsLoading] =
+    useState(false)
   const [
     isCreatePricingModelModalOpen,
     setIsCreatePricingModelModalOpen,
@@ -217,19 +234,32 @@ const OnboardingStatusTable = ({
   const mcpConfigText = JSON.stringify(mcpConfigForCopy, null, 2)
 
   const handleEnablePayments = async () => {
-    const countryId = organization?.countryId
-    if (!countryId) {
-      throw new Error(
-        'Organization country is required to enable payments.'
-      )
-    }
+    try {
+      setEnablePaymentsError(undefined)
+      setIsEnablePaymentsLoading(true)
 
-    const { onboardingLink } = await requestStripeConnect.mutateAsync(
-      {
-        CountryId: countryId,
+      const countryId = organization?.countryId
+      if (!countryId) {
+        const message =
+          'Country is required before you can enable payments.'
+        toast.error(message)
+        setEnablePaymentsError(message)
+        return
       }
-    )
-    window.location.href = onboardingLink
+
+      const { onboardingLink } =
+        await requestStripeConnect.mutateAsync({
+          CountryId: countryId,
+        })
+      window.location.href = onboardingLink
+    } catch (error) {
+      console.error('Failed to request Stripe onboarding link', error)
+      const message = userFacingErrorMessage(error)
+      toast.error(message)
+      setEnablePaymentsError(message)
+    } finally {
+      setIsEnablePaymentsLoading(false)
+    }
   }
 
   return (
@@ -286,19 +316,21 @@ const OnboardingStatusTable = ({
           !item.inReview
         ) {
           actionNode = (
-            <Button
-              variant="secondary"
-              className="w-full"
-              onClick={handleEnablePayments}
-              disabled={
-                requestStripeConnect.isPending ||
-                !organization?.countryId
-              }
-            >
-              {requestStripeConnect.isPending
-                ? 'Connecting...'
-                : (item.action ?? 'Connect')}
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => {
+                  void handleEnablePayments()
+                }}
+                disabled={isEnablePaymentsLoading}
+              >
+                {isEnablePaymentsLoading
+                  ? 'Connecting...'
+                  : (item.action ?? 'Connect')}
+              </Button>
+              <ErrorLabel error={enablePaymentsError} />
+            </div>
           )
         }
 
