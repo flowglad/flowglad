@@ -23,7 +23,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
   }
 
   describe('upgrade emails', () => {
-    it('should render upgrade email with proration amount', () => {
+    it('renders title, proration amount, previous items, new items, and effective date', () => {
       const { getByTestId, getByText } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -32,60 +32,36 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
         />
       )
 
+      // Title and body text
       expect(getByTestId('email-title')).toHaveTextContent(
         'Your subscription has been upgraded'
       )
       expect(
         getByText('Your subscription has been successfully upgraded.')
       ).toBeInTheDocument()
+
+      // Proration amount
       expect(getByTestId('proration-amount')).toHaveTextContent(
         'Prorated charge: $15.00'
       )
-    })
 
-    it('should show previous items with prices', () => {
-      const { getByTestId } = render(
-        <CustomerSubscriptionAdjustedEmail
-          {...baseProps}
-          adjustmentType="upgrade"
-          prorationAmount={1500}
-        />
-      )
-
+      // Previous items with prices
       expect(getByTestId('previous-plan-label')).toHaveTextContent(
         'Previous plan ($10.00/month):'
       )
       expect(getByTestId('previous-item-0')).toHaveTextContent(
         '• Basic Plan: $10.00/month'
       )
-    })
 
-    it('should show new items with prices', () => {
-      const { getByTestId } = render(
-        <CustomerSubscriptionAdjustedEmail
-          {...baseProps}
-          adjustmentType="upgrade"
-          prorationAmount={1500}
-        />
-      )
-
+      // New items with prices
       expect(getByTestId('new-plan-label')).toHaveTextContent(
         'New plan ($25.00/month):'
       )
       expect(getByTestId('new-item-0')).toHaveTextContent(
         '• Pro Plan: $25.00/month'
       )
-    })
 
-    it('should show effective date', () => {
-      const { getByTestId } = render(
-        <CustomerSubscriptionAdjustedEmail
-          {...baseProps}
-          adjustmentType="upgrade"
-          prorationAmount={1500}
-        />
-      )
-
+      // Effective date
       expect(getByTestId('effective-date')).toHaveTextContent(
         'Effective date:'
       )
@@ -96,7 +72,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
   })
 
   describe('downgrade emails', () => {
-    it('should render downgrade email without proration', () => {
+    it('renders updated title, no proration amount, and no-charge notice', () => {
       const { getByTestId, getByText, queryByTestId } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -127,7 +103,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
       )
     })
 
-    it('should show previous and new items for downgrade', () => {
+    it('displays previous plan at $25/month and new plan at $10/month', () => {
       const { getByTestId } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -160,7 +136,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
   })
 
   describe('multiple subscription items', () => {
-    it('should handle multiple subscription items', () => {
+    it('renders all previous and new items with quantities when subscription has multiple items', () => {
       const { getByTestId } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -202,7 +178,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
   })
 
   describe('interval formatting', () => {
-    it('formats yearly pricing correctly', () => {
+    it('displays prices with /year suffix when interval is Year', () => {
       const { getByTestId } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -222,7 +198,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
       )
     })
 
-    it('formats weekly pricing correctly', () => {
+    it('displays prices with /week suffix when interval is Week', () => {
       const { getByTestId } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -239,7 +215,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
       )
     })
 
-    it('formats daily pricing correctly', () => {
+    it('displays prices with /day suffix when interval is Day', () => {
       const { getByTestId } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -256,7 +232,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
       )
     })
 
-    it('handles non-recurring subscription without interval', () => {
+    it('displays prices without interval suffix when interval is undefined', () => {
       const { getByTestId } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -277,7 +253,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
   })
 
   describe('currency formatting', () => {
-    it('handles different currency codes correctly', () => {
+    it('formats prices with EUR currency symbol when currency is EUR', () => {
       const { getByTestId } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -300,7 +276,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
   })
 
   describe('UI elements', () => {
-    it('includes billing portal link', () => {
+    it('includes billing portal link with correct URL and button text', () => {
       const { getByTestId } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -318,7 +294,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
       expect(button).toHaveTextContent('Manage Subscription →')
     })
 
-    it('displays customer greeting correctly', () => {
+    it('displays greeting with customer name', () => {
       const { getByText } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -332,7 +308,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
       ).toBeInTheDocument()
     })
 
-    it('shows organization name in signature', () => {
+    it('displays organization name in signature', () => {
       const { getByTestId } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -349,7 +325,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
       )
     })
 
-    it('displays correct header with organization logo', () => {
+    it('displays organization logo in header when provided', () => {
       const { getByAltText } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -364,7 +340,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
       )
     })
 
-    it('renders without organization logo when not provided', () => {
+    it('omits logo when organizationLogoUrl is not provided', () => {
       const { queryByAltText } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -377,7 +353,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
       expect(queryByAltText('Logo')).not.toBeInTheDocument()
     })
 
-    it('shows next billing date when provided', () => {
+    it('displays next billing date when provided', () => {
       const { getByTestId } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -394,7 +370,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
       )
     })
 
-    it('hides next billing date when not provided', () => {
+    it('omits next billing date section when nextBillingDate is not provided', () => {
       const { queryByTestId } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
