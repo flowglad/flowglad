@@ -128,7 +128,7 @@ const sendCustomerSubscriptionAdjustedNotificationTask = task({
         previousTotalPrice,
         newTotalPrice,
         currency: price.currency,
-        interval: subscription.interval as IntervalUnit | undefined,
+        interval: subscription.interval ?? undefined,
         prorationAmount: payload.prorationAmount,
         effectiveDate: new Date(payload.effectiveDate),
         nextBillingDate,
