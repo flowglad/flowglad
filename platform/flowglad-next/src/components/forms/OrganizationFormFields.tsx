@@ -1,6 +1,7 @@
 'use client'
 import { Copy } from 'lucide-react'
 import type { useState } from 'react'
+import { useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { trpc } from '@/app/_trpc/client'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
@@ -14,6 +15,11 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  RadioGroup,
+  RadioGroupItem,
+} from '@/components/ui/radio-group'
 import {
   Select,
   SelectContent,
@@ -22,7 +28,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { CreateOrganizationInput } from '@/db/schema/organizations'
+import { cn } from '@/lib/utils'
 import analyzeCodebasePrompt from '@/prompts/analyze-codebase.md'
+import { StripeConnectContractType } from '@/types'
+import core from '@/utils/core'
+import {
+  getEligibleFundsFlowsForCountry,
+  isCountryEligibleForAnyFlow,
+} from '@/utils/countries'
 import { cursorDeepLink } from '@/utils/cursor'
 import {
   REFERRAL_OPTIONS,
@@ -30,6 +43,10 @@ import {
 } from '@/utils/referrals'
 import { Button } from '../ui/button'
 import { Textarea } from '../ui/textarea'
+
+const isReferralOption = (value: string): value is ReferralOption => {
+  return REFERRAL_OPTIONS.some((option) => option === value)
+}
 
 const OrganizationFormFields = ({
   setReferralSource,
@@ -46,13 +63,87 @@ const OrganizationFormFields = ({
     text: analyzeCodebasePrompt,
   })
 
-  const countryOptions =
-    countries?.countries
-      .map((country) => ({
-        label: country.name,
-        value: country.id,
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label)) ?? []
+  const countriesList = countries?.countries ?? []
+
+  const eligibleCountries = countriesList
+    .filter((country) => isCountryEligibleForAnyFlow(country.code))
+    .sort((a, b) =>
+      `${a.name} (${a.code})`.localeCompare(`${b.name} (${b.code})`)
+    )
+
+  const selectedCountryId = form.watch('organization.countryId')
+
+  const selectedCountry = eligibleCountries.find(
+    (country) => country.id === selectedCountryId
+  )
+
+  const eligibleFlowsForSelectedCountry = selectedCountry
+    ? getEligibleFundsFlowsForCountry(selectedCountry.code)
+    : []
+
+  const allowedFlowsForSelectedCountry = core.IS_PROD
+    ? eligibleFlowsForSelectedCountry.filter(
+        (flow) => flow === StripeConnectContractType.Platform
+      )
+    : eligibleFlowsForSelectedCountry
+
+  useEffect(() => {
+    const selectedContractType = form.getValues(
+      'organization.stripeConnectContractType'
+    )
+    const selectedCountryId = form.getValues('organization.countryId')
+
+    if (core.IS_PROD) {
+      if (selectedContractType !== undefined) {
+        form.setValue(
+          'organization.stripeConnectContractType',
+          undefined
+        )
+      }
+      return
+    }
+
+    if (
+      !selectedCountryId ||
+      allowedFlowsForSelectedCountry.length === 0
+    ) {
+      if (selectedContractType !== undefined) {
+        form.setValue(
+          'organization.stripeConnectContractType',
+          undefined
+        )
+      }
+      return
+    }
+
+    if (allowedFlowsForSelectedCountry.length === 1) {
+      const onlyAllowedFlow = allowedFlowsForSelectedCountry[0]
+      if (selectedContractType !== onlyAllowedFlow) {
+        form.setValue(
+          'organization.stripeConnectContractType',
+          onlyAllowedFlow
+        )
+      }
+      return
+    }
+
+    if (
+      selectedContractType &&
+      !allowedFlowsForSelectedCountry.includes(selectedContractType)
+    ) {
+      form.setValue(
+        'organization.stripeConnectContractType',
+        undefined
+      )
+    }
+  }, [allowedFlowsForSelectedCountry, form])
+
+  const platformEnabled = allowedFlowsForSelectedCountry.includes(
+    StripeConnectContractType.Platform
+  )
+  const morEnabled = allowedFlowsForSelectedCountry.includes(
+    StripeConnectContractType.MerchantOfRecord
+  )
 
   return (
     <div className="flex flex-col gap-4">
@@ -84,12 +175,9 @@ const OrganizationFormFields = ({
                   <SelectValue placeholder="Select Country" />
                 </SelectTrigger>
                 <SelectContent>
-                  {countryOptions.map((option) => (
-                    <SelectItem
-                      key={option.value}
-                      value={option.value}
-                    >
-                      {option.label}
+                  {eligibleCountries.map((country) => (
+                    <SelectItem key={country.id} value={country.id}>
+                      {country.name} ({country.code})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -97,11 +185,139 @@ const OrganizationFormFields = ({
             </FormControl>
             <FormMessage />
             <FormDescription>
-              Used to determine your default currency
+              Cannot be changed after organization is created.
             </FormDescription>
           </FormItem>
         )}
       />
+
+      {!core.IS_PROD && selectedCountry ? (
+        <FormField
+          control={form.control}
+          name="organization.stripeConnectContractType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Payment Processing</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <div
+                    className={cn(
+                      'border rounded-lg p-4',
+                      platformEnabled
+                        ? 'cursor-pointer'
+                        : 'opacity-50 cursor-not-allowed'
+                    )}
+                    role="button"
+                    tabIndex={platformEnabled ? 0 : -1}
+                    aria-disabled={!platformEnabled}
+                    onClick={() => {
+                      if (!platformEnabled) {
+                        return
+                      }
+                      field.onChange(
+                        StripeConnectContractType.Platform
+                      )
+                    }}
+                    onKeyDown={(event) => {
+                      if (!platformEnabled) {
+                        return
+                      }
+                      if (
+                        event.key === 'Enter' ||
+                        event.key === ' '
+                      ) {
+                        event.preventDefault()
+                        field.onChange(
+                          StripeConnectContractType.Platform
+                        )
+                      }
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem
+                        value={StripeConnectContractType.Platform}
+                        id="stripeConnectContractType-platform"
+                        disabled={!platformEnabled}
+                      />
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="stripeConnectContractType-platform">
+                          Direct Processing
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          You are the merchant of record. You process
+                          payments directly and handle tax compliance.
+                          Customers will see your business name on
+                          their statements.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className={cn(
+                      'border rounded-lg p-4',
+                      morEnabled
+                        ? 'cursor-pointer'
+                        : 'opacity-50 cursor-not-allowed'
+                    )}
+                    role="button"
+                    tabIndex={morEnabled ? 0 : -1}
+                    aria-disabled={!morEnabled}
+                    onClick={() => {
+                      if (!morEnabled) {
+                        return
+                      }
+                      field.onChange(
+                        StripeConnectContractType.MerchantOfRecord
+                      )
+                    }}
+                    onKeyDown={(event) => {
+                      if (!morEnabled) {
+                        return
+                      }
+                      if (
+                        event.key === 'Enter' ||
+                        event.key === ' '
+                      ) {
+                        event.preventDefault()
+                        field.onChange(
+                          StripeConnectContractType.MerchantOfRecord
+                        )
+                      }
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem
+                        value={
+                          StripeConnectContractType.MerchantOfRecord
+                        }
+                        id="stripeConnectContractType-mor"
+                        disabled={!morEnabled}
+                      />
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="stripeConnectContractType-mor">
+                          Merchant of Record
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Flowglad is the merchant of record. We
+                          handle payment processing, tax collection,
+                          and compliance. Customers will see
+                          &quot;Flowglad&quot; on their statements.
+                          All transactions are in USD.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      ) : null}
       <FormField
         control={form.control}
         name="codebaseMarkdown"
@@ -155,9 +371,13 @@ const OrganizationFormFields = ({
           <FormControl>
             <Select
               value={referralSource}
-              onValueChange={(val: string) =>
-                setReferralSource(val as ReferralOption)
-              }
+              onValueChange={(val: string) => {
+                if (isReferralOption(val)) {
+                  setReferralSource(val)
+                  return
+                }
+                setReferralSource(undefined)
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select an option" />

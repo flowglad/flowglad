@@ -13,10 +13,18 @@ import {
   type CreateOrganizationInput,
   createOrganizationSchema,
 } from '@/db/schema/organizations'
-import {
-  REFERRAL_OPTIONS,
-  type ReferralOption,
-} from '@/utils/referrals'
+import core from '@/utils/core'
+import { type ReferralOption } from '@/utils/referrals'
+
+const errorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message
+  }
+  if (typeof error === 'string') {
+    return error
+  }
+  return 'Something went wrong.'
+}
 
 const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
@@ -31,12 +39,29 @@ const BusinessDetails = () => {
     defaultValues: {
       organization: {
         name: '',
+        countryId: undefined,
+        stripeConnectContractType: undefined,
       },
+      codebaseMarkdown: '',
     },
   })
   const router = useRouter()
+  const selectedCountryId = form.watch('organization.countryId')
+  const selectedStripeConnectContractType = form.watch(
+    'organization.stripeConnectContractType'
+  )
   const onSubmit = form.handleSubmit(async (data) => {
     try {
+      if (
+        !core.IS_PROD &&
+        !data.organization.stripeConnectContractType
+      ) {
+        form.setError('organization.stripeConnectContractType', {
+          message: 'Select a payment processing option.',
+        })
+        return
+      }
+
       const { organization } =
         await createOrganization.mutateAsync(data)
 
@@ -54,7 +79,7 @@ const BusinessDetails = () => {
       router.refresh()
       router.push('/onboarding')
     } catch (error) {
-      form.setError('root', { message: (error as Error).message })
+      form.setError('root', { message: errorMessage(error) })
     }
   })
 
@@ -77,7 +102,11 @@ const BusinessDetails = () => {
                 size="default"
                 type="submit"
                 disabled={
-                  form.formState.isSubmitting || !referralSource
+                  form.formState.isSubmitting ||
+                  !referralSource ||
+                  !selectedCountryId ||
+                  (!core.IS_PROD &&
+                    !selectedStripeConnectContractType)
                 }
                 className="w-full"
               >
