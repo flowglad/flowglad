@@ -72,9 +72,6 @@ const OrganizationFormFields = ({
     )
 
   const selectedCountryId = form.watch('organization.countryId')
-  const selectedContractType = form.watch(
-    'organization.stripeConnectContractType'
-  )
 
   const selectedCountry = eligibleCountries.find(
     (country) => country.id === selectedCountryId
@@ -91,6 +88,11 @@ const OrganizationFormFields = ({
     : eligibleFlowsForSelectedCountry
 
   useEffect(() => {
+    const selectedContractType = form.getValues(
+      'organization.stripeConnectContractType'
+    )
+    const selectedCountryId = form.getValues('organization.countryId')
+
     if (core.IS_PROD) {
       if (selectedContractType !== undefined) {
         form.setValue(
@@ -101,7 +103,10 @@ const OrganizationFormFields = ({
       return
     }
 
-    if (!selectedCountry) {
+    if (
+      !selectedCountryId ||
+      allowedFlowsForSelectedCountry.length === 0
+    ) {
       if (selectedContractType !== undefined) {
         form.setValue(
           'organization.stripeConnectContractType',
@@ -131,12 +136,7 @@ const OrganizationFormFields = ({
         undefined
       )
     }
-  }, [
-    allowedFlowsForSelectedCountry,
-    form,
-    selectedContractType,
-    selectedCountry,
-  ])
+  }, [allowedFlowsForSelectedCountry, form])
 
   const platformEnabled = allowedFlowsForSelectedCountry.includes(
     StripeConnectContractType.Platform
