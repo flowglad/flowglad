@@ -59,20 +59,26 @@ const getMoROnlyCountryId = async (
 /**
  * Gets a non-US Platform-eligible country for testing default currency logic.
  * This allows us to verify that Platform orgs get country-specific currencies.
+ *
+ * Note: Some countries (HR, CY, LI) are Platform-eligible but fall through to
+ * USD in defaultCurrencyForCountry. We filter these out to ensure we test
+ * with a country that has a distinct non-USD currency.
  */
 const getNonUSPlatformEligibleCountry = async (
   transaction: Parameters<typeof selectCountries>[1]
 ) => {
   const countries = await selectCountries({}, transaction)
-  const nonUSPlatformCountry = countries.find(
-    (country) =>
-      cardPaymentsCountries.includes(country.code) &&
-      country.code !== 'US'
-  )
+  const nonUSPlatformCountry = countries.find((country) => {
+    if (!cardPaymentsCountries.includes(country.code)) return false
+    if (country.code === 'US') return false
+    // Ensure country has a non-USD default currency
+    const currency = defaultCurrencyForCountry(country)
+    return currency !== CurrencyCode.USD
+  })
 
   if (!nonUSPlatformCountry) {
     throw new Error(
-      'Expected at least one non-US platform-eligible country in the database.'
+      'Expected at least one non-US platform-eligible country with non-USD currency in the database.'
     )
   }
 
