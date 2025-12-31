@@ -1835,13 +1835,6 @@
       "when": 1767109549416,
       "tag": "0262_complex_fenris",
       "breakpoints": true
-    },
-    {
-      "idx": 263,
-      "version": "7",
-      "when": 1767128904058,
-      "tag": "0263_colossal_vivisector",
-      "breakpoints": true
     }
   ]
 }

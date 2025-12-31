@@ -161,11 +161,6 @@ export const prices = pgTable(
         parentIdColumnInCurrentTable: 'product_id',
         currentTableName: TABLE_NAME,
       }),
-      parentForeignKeyIntegrityCheckPolicy({
-        parentTableName: 'pricing_models',
-        parentIdColumnInCurrentTable: 'pricing_model_id',
-        currentTableName: TABLE_NAME,
-      }),
       livemodePolicy(TABLE_NAME),
     ]
   }
