@@ -78,6 +78,7 @@
       "dependencies": {
         "@flowglad/node": "0.24.0",
         "@flowglad/shared": "workspace:*",
+        "nanoid": "^3.3.11",
         "zod": "4.1.5",
       },
       "devDependencies": {

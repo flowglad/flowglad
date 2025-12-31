@@ -14,6 +14,7 @@ import {
   uncancelSubscription,
 } from './subscriptionHandlers'
 import type { SubRouteHandler } from './types'
+import { createUsageEvent } from './usageEventHandlers'
 
 export const routeToHandlerMap: {
   [K in FlowgladActionKey]: SubRouteHandler<K>
@@ -38,14 +39,5 @@ export const routeToHandlerMap: {
       },
     }
   },
-  [FlowgladActionKey.CreateUsageEvent]: async () => {
-    return {
-      data: {},
-      status: 501,
-      error: {
-        code: 'Not Implemented',
-        json: {},
-      },
-    }
-  },
+  [FlowgladActionKey.CreateUsageEvent]: createUsageEvent,
 }

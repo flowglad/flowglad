@@ -203,6 +203,11 @@ export function HomeClient() {
       return
     }
 
+    if (!billing.createUsageEvent) {
+      setGenerateError('createUsageEvent is not available')
+      return
+    }
+
     setIsGeneratingFastImage(true)
     setGenerateError(null)
 
@@ -212,22 +217,19 @@ export function HomeClient() {
       // Random amount between 3-5
       const amount = Math.floor(Math.random() * 3) + 3
 
-      const response = await fetch('/api/usage-events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          usageMeterSlug: 'fast_generations',
-          amount,
-          transactionId,
-        }),
+      const result = await billing.createUsageEvent({
+        usageMeterSlug: 'fast_generations',
+        amount,
+        transactionId,
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
+      if ('error' in result) {
         throw new Error(
-          errorData.error || 'Failed to create usage event'
+          typeof result.error.json === 'object' &&
+            result.error.json !== null &&
+            'message' in result.error.json
+            ? String(result.error.json.message)
+            : 'Failed to create usage event'
         )
       }
 
@@ -257,6 +259,11 @@ export function HomeClient() {
       return
     }
 
+    if (!billing.createUsageEvent) {
+      setHdVideoError('createUsageEvent is not available')
+      return
+    }
+
     setIsGeneratingHDVideo(true)
     setHdVideoError(null)
 
@@ -266,22 +273,19 @@ export function HomeClient() {
       // Random amount between 1-3 minutes
       const amount = Math.floor(Math.random() * 3) + 1
 
-      const response = await fetch('/api/usage-events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          usageMeterSlug: 'hd_video_minutes',
-          amount,
-          transactionId,
-        }),
+      const result = await billing.createUsageEvent({
+        usageMeterSlug: 'hd_video_minutes',
+        amount,
+        transactionId,
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
+      if ('error' in result) {
         throw new Error(
-          errorData.error || 'Failed to create usage event'
+          typeof result.error.json === 'object' &&
+            result.error.json !== null &&
+            'message' in result.error.json
+            ? String(result.error.json.message)
+            : 'Failed to create usage event'
         )
       }
 
