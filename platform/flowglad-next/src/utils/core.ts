@@ -492,7 +492,21 @@ const NEXT_PUBLIC_APP_URL = IS_TEST
   ? LOCALHOST_URL
   : process.env.NEXT_PUBLIC_APP_URL || LOCALHOST_URL
 
-export const emailBaseUrl = NEXT_PUBLIC_APP_URL
+const normalizeAbsoluteBaseUrl = (urlBase: string): string => {
+  const trimmed = urlBase.trim().replace(/\/+$/, '')
+  if (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://')
+  ) {
+    return trimmed
+  }
+  const protocol = trimmed.includes('localhost') ? 'http' : 'https'
+  return `${protocol}://${trimmed}`
+}
+
+export const emailBaseUrl = normalizeAbsoluteBaseUrl(
+  NEXT_PUBLIC_APP_URL
+)
 
 export const customerBillingPortalURL = (params: {
   organizationId: string
