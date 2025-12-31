@@ -1743,25 +1743,13 @@ export const defaultCurrencyForCountry = (
   }
 }
 
-const stripeOAuthStateSchema = z.object({
-  organizationId: z.string().min(1),
-})
-
-const encodeStripeOAuthState = (state: {
-  organizationId: string
-}) => {
-  const payload = JSON.stringify(state)
-  return Buffer.from(payload, 'utf8').toString('base64')
-}
-
-export const decodeStripeOAuthState = (state: string) => {
-  const decoded = decodeURIComponent(state)
-  const parsedJson = Buffer.from(decoded, 'base64').toString('utf8')
-  return stripeOAuthStateSchema.parse(JSON.parse(parsedJson))
-}
-
-export const getStripeOAuthUrl = (organizationId: string) => {
-  const state = encodeStripeOAuthState({ organizationId })
+/**
+ * Generates the Stripe Connect OAuth authorization URL.
+ *
+ * @param state - The encoded OAuth state parameter (contains CSRF token)
+ * @returns The full Stripe OAuth authorization URL
+ */
+export const getStripeOAuthUrl = (state: string) => {
   return `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${core.envVariable('STRIPE_CONNECT_CLIENT_ID')}&scope=read_write&state=${encodeURIComponent(state)}`
 }
 

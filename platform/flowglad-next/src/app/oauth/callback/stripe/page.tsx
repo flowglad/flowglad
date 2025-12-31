@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { completeStripeOAuthFlow } from '@/utils/stripe'
 import {
-  completeStripeOAuthFlow,
   decodeStripeOAuthState,
-} from '@/utils/stripe'
+  validateAndConsumeStripeOAuthCsrfToken,
+} from '@/utils/stripeOAuthState'
 
 export default async function StripeOAuthCallbackPage({
   searchParams,
@@ -15,49 +15,49 @@ export default async function StripeOAuthCallbackPage({
 }) {
   const { code, state } = await searchParams
 
+  // Require both code and state parameters
   if (!code || !state) {
     redirect('/dashboard')
   }
 
   try {
-    const { organizationId } = decodeStripeOAuthState(state)
+    // Step 1: Decode the state parameter to extract CSRF token
+    const csrfToken = decodeStripeOAuthState(state)
 
-    // Step 1: Verify the user has access to the organization from state
-    const membership = await authenticatedTransaction(
-      async ({ transaction, userId }) => {
-        const [membership] = await selectMemberships(
-          { userId, organizationId },
-          transaction
-        )
-        return membership
-      }
+    // Step 2: Get the current authenticated user
+    const userId = await authenticatedTransaction(
+      async ({ userId }) => userId
     )
 
-    if (!membership) {
-      throw new Error(
-        'Unauthorized: user not a member of organization'
-      )
+    // Step 3: Validate and consume the CSRF token (single-use)
+    const validation = await validateAndConsumeStripeOAuthCsrfToken({
+      csrfToken,
+      expectedUserId: userId,
+    })
+
+    if (!validation) {
+      throw new Error('CSRF validation failed')
     }
 
-    // Step 2: Complete the Stripe OAuth flow with the code
+    // Step 4: Complete the Stripe OAuth flow with the code
     const stripeResponse = await completeStripeOAuthFlow({ code })
-    const stripeAccountId = stripeResponse.stripe_user_id
-    if (!stripeAccountId) {
+
+    if (!stripeResponse.stripe_user_id) {
       throw new Error('Stripe OAuth response missing stripe_user_id')
     }
 
-    // Step 3: Update the organization with the Stripe account ID
+    // Step 5: Update the organization with the Stripe account ID
     await adminTransaction(async ({ transaction }) => {
       await updateOrganization(
         {
-          id: organizationId,
-          stripeAccountId: stripeAccountId,
+          id: validation.organizationId,
+          stripeAccountId: stripeResponse.stripe_user_id,
         },
         transaction
       )
     })
 
-    // Redirect to dashboard after successful connection
+    // Redirect to onboarding after successful connection
     redirect('/onboarding')
   } catch (error) {
     console.error('Error connecting Stripe account:', error)
