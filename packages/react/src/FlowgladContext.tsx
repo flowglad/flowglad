@@ -3,6 +3,7 @@ import type { Flowglad } from '@flowglad/node'
 import {
   type BillingWithChecks,
   type CancelSubscriptionParams,
+  type ClientCreateUsageEventParams,
   type CreateActivateSubscriptionCheckoutSessionParams,
   type CreateAddPaymentMethodCheckoutSessionParams,
   type CreateProductCheckoutSessionParams,
@@ -69,6 +70,12 @@ export type LoadedFlowgladContextValues = BillingWithChecks & {
   createActivateSubscriptionCheckoutSession: (
     params: FrontendCreateActivateSubscriptionCheckoutSessionParams
   ) => Promise<CreateCheckoutSessionResponse>
+  createUsageEvent: (
+    params: ClientCreateUsageEventParams
+  ) => Promise<
+    | { usageEvent: { id: string } }
+    | { error: { code: string; json: Record<string, unknown> } }
+  >
   errors: null
 }
 
@@ -78,6 +85,7 @@ export interface NonPresentContextValues {
   createCheckoutSession: null
   createAddPaymentMethodCheckoutSession: null
   createActivateSubscriptionCheckoutSession: null
+  createUsageEvent: null
   checkFeatureAccess: null
   checkUsageBalance: null
   hasPurchased: null
@@ -127,6 +135,7 @@ const notPresentContextValues: NonPresentContextValues = {
   createCheckoutSession: null,
   createAddPaymentMethodCheckoutSession: null,
   createActivateSubscriptionCheckoutSession: null,
+  createUsageEvent: null,
   checkFeatureAccess: null,
   checkUsageBalance: null,
   hasPurchased: null,
@@ -304,6 +313,46 @@ const constructUncancelSubscription =
     return {
       subscription: data,
     }
+  }
+
+interface ConstructCreateUsageEventParams {
+  baseURL: string | undefined
+  requestConfig?: RequestConfig
+}
+
+const constructCreateUsageEvent =
+  (constructParams: ConstructCreateUsageEventParams) =>
+  async (
+    params: ClientCreateUsageEventParams
+  ): Promise<
+    | { usageEvent: { id: string } }
+    | { error: { code: string; json: Record<string, unknown> } }
+  > => {
+    const { baseURL, requestConfig } = constructParams
+    const headers = requestConfig?.headers
+    const flowgladRoute = getFlowgladRoute(baseURL)
+
+    const response = await fetch(
+      `${flowgladRoute}/${FlowgladActionKey.CreateUsageEvent}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify(params),
+      }
+    )
+
+    const json = await response.json()
+    if (json.error) {
+      console.error(
+        'FlowgladContext: Usage event creation failed',
+        json
+      )
+      return { error: json.error }
+    }
+    return { usageEvent: { id: json.data.usageEvent.id } }
   }
 
 /**
@@ -533,6 +582,10 @@ export const FlowgladContextProvider = (
               },
             })
           },
+          createUsageEvent: () =>
+            Promise.resolve({
+              usageEvent: { id: 'dev-usage-event-id' },
+            }),
           checkFeatureAccess,
           checkUsageBalance,
           hasPurchased,
@@ -605,6 +658,11 @@ export const FlowgladContextProvider = (
     queryClient,
   })
 
+  const createUsageEvent = constructCreateUsageEvent({
+    baseURL,
+    requestConfig,
+  })
+
   let value: FlowgladContextValues
   if (!loadBilling) {
     value = {
@@ -644,6 +702,7 @@ export const FlowgladContextProvider = (
         cancelSubscription,
         uncancelSubscription,
         createActivateSubscriptionCheckoutSession,
+        createUsageEvent,
         getProduct,
         getPrice,
         hasPurchased,
