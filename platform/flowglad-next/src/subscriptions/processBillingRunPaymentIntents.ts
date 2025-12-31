@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type Stripe from 'stripe'
 import type {
   BillingPeriodTransitionLedgerCommand,
@@ -37,12 +38,15 @@ import {
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { DbTransaction } from '@/db/types'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
+import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
+import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
 import {
   BillingRunStatus,
   FeatureType,
@@ -423,6 +427,14 @@ export const processOutcomeForBillingRun = async (
     adjustmentParams &&
     billingRunStatus === BillingRunStatus.Succeeded
   ) {
+    // Get existing items BEFORE the adjustment for notification
+    const existingSubscriptionItems =
+      await selectCurrentlyActiveSubscriptionItems(
+        { subscriptionId: subscription.id },
+        new Date(),
+        transaction
+      )
+
     await handleSubscriptionItemAdjustment({
       subscriptionId: subscription.id,
       newSubscriptionItems: adjustmentParams.newSubscriptionItems,
@@ -438,6 +450,65 @@ export const processOutcomeForBillingRun = async (
       },
       transaction
     )
+
+    // Send upgrade notifications AFTER payment succeeded and items updated
+    const adjustmentId = randomUUID()
+    const price = await selectPriceById(
+      subscription.priceId,
+      transaction
+    )
+
+    // Calculate proration amount from billing period items
+    const prorationAmount = billingPeriodItems
+      .filter((item) => item.name.includes('Proration'))
+      .reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
+
+    await idempotentSendCustomerSubscriptionAdjustedNotification({
+      adjustmentId,
+      subscriptionId: subscription.id,
+      customerId: customer.id,
+      organizationId: organization.id,
+      adjustmentType: 'upgrade',
+      previousItems: existingSubscriptionItems.map((item) => ({
+        name: item.name ?? '',
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+      })),
+      newItems: adjustmentParams.newSubscriptionItems.map((item) => ({
+        name: item.name ?? '',
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+      })),
+      prorationAmount,
+      effectiveDate:
+        typeof adjustmentParams.adjustmentDate === 'number'
+          ? adjustmentParams.adjustmentDate
+          : adjustmentParams.adjustmentDate.getTime(),
+    })
+
+    await idempotentSendOrganizationSubscriptionAdjustedNotification({
+      adjustmentId,
+      subscriptionId: subscription.id,
+      customerId: customer.id,
+      organizationId: organization.id,
+      adjustmentType: 'upgrade',
+      previousItems: existingSubscriptionItems.map((item) => ({
+        name: item.name ?? '',
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+      })),
+      newItems: adjustmentParams.newSubscriptionItems.map((item) => ({
+        name: item.name ?? '',
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+      })),
+      prorationAmount,
+      effectiveDate:
+        typeof adjustmentParams.adjustmentDate === 'number'
+          ? adjustmentParams.adjustmentDate
+          : adjustmentParams.adjustmentDate.getTime(),
+      currency: price.currency,
+    })
   }
 
   const usersAndMemberships =
