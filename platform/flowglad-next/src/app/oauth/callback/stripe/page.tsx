@@ -1,45 +1,57 @@
 import { redirect } from 'next/navigation'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
+import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import { completeStripeOAuthFlow } from '@/utils/stripe'
+import {
+  completeStripeOAuthFlow,
+  decodeStripeOAuthState,
+} from '@/utils/stripe'
 
 export default async function StripeOAuthCallbackPage({
   searchParams,
 }: {
-  searchParams: Promise<{ code?: string }>
+  searchParams: Promise<{ code?: string; state?: string }>
 }) {
-  const { code } = await searchParams
+  const { code, state } = await searchParams
 
-  if (!code) {
+  if (!code || !state) {
     redirect('/dashboard')
   }
 
   try {
-    // Step 1: Complete the Stripe OAuth flow with the code
-    const stripeResponse = await completeStripeOAuthFlow({ code })
+    const { organizationId } = decodeStripeOAuthState(state)
 
-    // Step 2: Get the focused membership to identify the organization
-    const focusedMembership = await authenticatedTransaction(
+    // Step 1: Verify the user has access to the organization from state
+    const membership = await authenticatedTransaction(
       async ({ transaction, userId }) => {
-        return selectFocusedMembershipAndOrganization(
-          userId,
+        const [membership] = await selectMemberships(
+          { userId, organizationId },
           transaction
         )
+        return membership
       }
     )
 
-    if (!focusedMembership) {
-      throw new Error('No focused membership found')
+    if (!membership) {
+      throw new Error(
+        'Unauthorized: user not a member of organization'
+      )
+    }
+
+    // Step 2: Complete the Stripe OAuth flow with the code
+    const stripeResponse = await completeStripeOAuthFlow({ code })
+    const stripeAccountId = stripeResponse.stripe_user_id
+    if (!stripeAccountId) {
+      throw new Error('Stripe OAuth response missing stripe_user_id')
     }
 
     // Step 3: Update the organization with the Stripe account ID
     await adminTransaction(async ({ transaction }) => {
       await updateOrganization(
         {
-          id: focusedMembership.membership.organizationId,
-          stripeAccountId: stripeResponse.stripe_user_id,
+          id: organizationId,
+          stripeAccountId: stripeAccountId,
         },
         transaction
       )

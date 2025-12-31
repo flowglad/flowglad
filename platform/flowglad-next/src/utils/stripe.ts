@@ -1743,8 +1743,26 @@ export const defaultCurrencyForCountry = (
   }
 }
 
-export const getStripeOAuthUrl = () => {
-  return `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${core.envVariable('STRIPE_CONNECT_CLIENT_ID')}&scope=read_write`
+const stripeOAuthStateSchema = z.object({
+  organizationId: z.string().min(1),
+})
+
+const encodeStripeOAuthState = (state: {
+  organizationId: string
+}) => {
+  const payload = JSON.stringify(state)
+  return Buffer.from(payload, 'utf8').toString('base64')
+}
+
+export const decodeStripeOAuthState = (state: string) => {
+  const decoded = decodeURIComponent(state)
+  const parsedJson = Buffer.from(decoded, 'base64').toString('utf8')
+  return stripeOAuthStateSchema.parse(JSON.parse(parsedJson))
+}
+
+export const getStripeOAuthUrl = (organizationId: string) => {
+  const state = encodeStripeOAuthState({ organizationId })
+  return `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${core.envVariable('STRIPE_CONNECT_CLIENT_ID')}&scope=read_write&state=${encodeURIComponent(state)}`
 }
 
 export const completeStripeOAuthFlow = async (params: {
