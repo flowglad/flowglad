@@ -121,7 +121,7 @@ const sendOrganizationSubscriptionAdjustedNotificationTask = task({
         `Subscription ${subjectAction}: ${customer.name} ${subjectAction} their subscription`,
         subscription.livemode
       ),
-      react: OrganizationSubscriptionAdjustedEmail({
+      react: await OrganizationSubscriptionAdjustedEmail({
         organizationName: organization.name,
         customerName: customer.name,
         customerEmail: customer.email,
