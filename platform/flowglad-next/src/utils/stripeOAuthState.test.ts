@@ -134,12 +134,11 @@ describe('stripeOAuthState', () => {
       const storedData = mockRedisStore.get(
         `stripeOAuthCsrfToken:${token}`
       )
-      expect(storedData).toBeDefined()
 
       const parsedData = JSON.parse(storedData!)
       expect(parsedData.userId).toBe(userId)
       expect(parsedData.organizationId).toBe(organizationId)
-      expect(parsedData.createdAt).toBeDefined()
+      expect(typeof parsedData.createdAt).toBe('string')
     })
 
     it('stores createdAt timestamp in ISO format', async () => {
