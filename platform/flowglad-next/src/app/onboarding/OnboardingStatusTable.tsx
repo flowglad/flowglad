@@ -248,9 +248,7 @@ const OnboardingStatusTable = ({
       }
 
       const { onboardingLink } =
-        await requestStripeConnect.mutateAsync({
-          CountryId: countryId,
-        })
+        await requestStripeConnect.mutateAsync({})
       window.location.href = onboardingLink
     } catch (error) {
       console.error('Failed to request Stripe onboarding link', error)
