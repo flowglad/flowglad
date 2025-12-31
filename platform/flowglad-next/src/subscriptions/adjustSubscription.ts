@@ -482,6 +482,12 @@ export const adjustSubscription = async (
       transaction
     )
 
+    if (!price) {
+      throw new Error(
+        `Price ${subscription.priceId} not found for subscription ${subscription.id}`
+      )
+    }
+
     await idempotentSendCustomerSubscriptionAdjustedNotification({
       adjustmentId,
       subscriptionId: id,

@@ -458,9 +458,16 @@ export const processOutcomeForBillingRun = async (
       transaction
     )
 
+    if (!price) {
+      throw new Error(
+        `Price ${subscription.priceId} not found for subscription ${subscription.id}`
+      )
+    }
+
     // Calculate proration amount from billing period items
+    // Proration items are created in adjustSubscription.ts with name "Proration: Net charge adjustment"
     const prorationAmount = billingPeriodItems
-      .filter((item) => item.name.includes('Proration'))
+      .filter((item) => item.name.startsWith('Proration:'))
       .reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
 
     await idempotentSendCustomerSubscriptionAdjustedNotification({
