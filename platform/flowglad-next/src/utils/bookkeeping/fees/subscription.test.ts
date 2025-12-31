@@ -111,6 +111,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       createdByCommit: null,
       updatedByCommit: null,
       position: 0,
+      pricingModelId: orgData.pricingModel.id,
     }
 
     const params = {
@@ -168,6 +169,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       createdByCommit: null,
       updatedByCommit: null,
       position: 0,
+      pricingModelId: orgData.pricingModel.id,
     }
     const billingPeriodItems = [staticItem]
     const usageOverages = [

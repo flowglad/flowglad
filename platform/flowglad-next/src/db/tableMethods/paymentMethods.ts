@@ -44,6 +44,9 @@ import type { GetRevenueDataInput } from '../schema/payments'
 import { prices } from '../schema/prices'
 import { purchases } from '../schema/purchases'
 import { selectCustomers } from './customerMethods'
+import { selectInvoiceById } from './invoiceMethods'
+import { derivePricingModelIdFromPurchase } from './purchaseMethods'
+import { derivePricingModelIdFromSubscription } from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof payments,
@@ -59,13 +62,162 @@ const config: ORMMethodCreatorConfig<
 
 export const selectPaymentById = createSelectById(payments, config)
 
-export const insertPayment = createInsertFunction(payments, config)
+/**
+ * Derives pricingModelId for a payment with COALESCE logic.
+ * Priority: subscription > purchase > invoice
+ * Used for payment inserts.
+ */
+export const derivePricingModelIdForPayment = async (
+  data: {
+    subscriptionId?: string | null
+    purchaseId?: string | null
+    invoiceId: string
+  },
+  transaction: DbTransaction
+): Promise<string> => {
+  // Try subscription first
+  if (data.subscriptionId) {
+    return await derivePricingModelIdFromSubscription(
+      data.subscriptionId,
+      transaction
+    )
+  }
+
+  // Try purchase second
+  if (data.purchaseId) {
+    return await derivePricingModelIdFromPurchase(
+      data.purchaseId,
+      transaction
+    )
+  }
+
+  // Fall back to invoice (invoiceId is always present)
+  const invoiceRecord = await selectInvoiceById(
+    data.invoiceId,
+    transaction
+  )
+  return invoiceRecord.pricingModelId
+}
+
+const baseInsertPayment = createInsertFunction(payments, config)
+
+export const insertPayment = async (
+  paymentInsert: Payment.Insert,
+  transaction: DbTransaction
+): Promise<Payment.Record> => {
+  const pricingModelId =
+    paymentInsert.pricingModelId ??
+    (await derivePricingModelIdForPayment(
+      {
+        subscriptionId: paymentInsert.subscriptionId,
+        purchaseId: paymentInsert.purchaseId,
+        invoiceId: paymentInsert.invoiceId,
+      },
+      transaction
+    ))
+  return baseInsertPayment(
+    {
+      ...paymentInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updatePayment = createUpdateFunction(payments, config)
 
 export const selectPayments = createSelectFunction(payments, config)
 
-const upsertPayments = createBulkUpsertFunction(payments, config)
+const baseUpsertPayments = createBulkUpsertFunction(payments, config)
+
+const upsertPayments = async (
+  inserts: Payment.Insert[],
+  target: Parameters<typeof baseUpsertPayments>[1],
+  transaction: DbTransaction
+): Promise<Payment.Record[]> => {
+  // Collect unique combinations that need pricingModelId derivation
+  const insertsNeedingDerivation = inserts.filter(
+    (insert) => !insert.pricingModelId
+  )
+
+  // Create a map key for each unique combination
+  const createMapKey = (
+    subscriptionId: string | null | undefined,
+    purchaseId: string | null | undefined,
+    invoiceId: string
+  ) => `${subscriptionId || ''}|${purchaseId || ''}|${invoiceId}`
+
+  // Collect unique combinations
+  const uniqueCombinations = Array.from(
+    new Set(
+      insertsNeedingDerivation.map((insert) =>
+        createMapKey(
+          insert.subscriptionId,
+          insert.purchaseId,
+          insert.invoiceId
+        )
+      )
+    )
+  ).map((key) => {
+    const [subscriptionId, purchaseId, invoiceId] = key.split('|')
+    return {
+      subscriptionId: subscriptionId || undefined,
+      purchaseId: purchaseId || undefined,
+      invoiceId: invoiceId,
+    }
+  })
+
+  // Batch derive pricingModelIds for unique combinations
+  const pricingModelIdResults = await Promise.all(
+    uniqueCombinations.map(async (combo) => ({
+      key: createMapKey(
+        combo.subscriptionId,
+        combo.purchaseId,
+        combo.invoiceId
+      ),
+      pricingModelId: await derivePricingModelIdForPayment(
+        combo,
+        transaction
+      ),
+    }))
+  )
+
+  // Build map for O(1) lookup
+  const pricingModelIdMap = new Map(
+    pricingModelIdResults.map((r) => [r.key, r.pricingModelId])
+  )
+
+  // Derive pricingModelId for each insert using the map
+  const insertsWithPricingModelId = inserts.map((insert) => {
+    if (insert.pricingModelId) {
+      return insert
+    }
+
+    const key = createMapKey(
+      insert.subscriptionId,
+      insert.purchaseId,
+      insert.invoiceId
+    )
+    const pricingModelId = pricingModelIdMap.get(key)
+
+    if (!pricingModelId) {
+      throw new Error(
+        `Could not derive pricingModelId for payment with invoiceId: ${insert.invoiceId}, subscriptionId: ${insert.subscriptionId}, purchaseId: ${insert.purchaseId}`
+      )
+    }
+
+    return {
+      ...insert,
+      pricingModelId,
+    }
+  })
+
+  return baseUpsertPayments(
+    insertsWithPricingModelId,
+    target,
+    transaction
+  )
+}
 
 export const upsertPaymentByStripeChargeId = async (
   payment: Payment.Insert,

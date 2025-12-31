@@ -3,6 +3,8 @@ import {
   setupCustomer,
   setupOrg,
   setupPaymentMethod,
+  setupPrice,
+  setupProductFeature,
   setupSubscription,
   setupSubscriptionItem,
   setupTestFeaturesAndProductFeatures,
@@ -15,10 +17,22 @@ import {
   subscriptionItemFeatures,
 } from '@/db/schema/subscriptionItemFeatures'
 import {
+  CurrencyCode,
   FeatureType,
   FeatureUsageGrantFrequency,
+  PriceType,
   SubscriptionItemType,
 } from '@/types'
+import core from '@/utils/core'
+import type { Customer } from '../schema/customers'
+import { Feature } from '../schema/features'
+import type { Organization } from '../schema/organizations'
+import type { Price } from '../schema/prices'
+import type { PricingModel } from '../schema/pricingModels'
+import type { ProductFeature } from '../schema/productFeatures'
+import type { Product } from '../schema/products'
+import type { SubscriptionItem } from '../schema/subscriptionItems'
+import type { Subscription } from '../schema/subscriptions'
 import {
   bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId,
   detachSubscriptionItemFeaturesFromProductFeature,
@@ -512,6 +526,187 @@ describe('subscriptionItemFeatureMethods', () => {
         expect(detached.length).toBe(1)
         expect(detached[0].productFeatureId).toBeNull()
         expect(detached[0].detachedReason).toBe('test')
+      })
+    })
+  })
+})
+
+// Tests for pricingModelId derivation functionality added in Wave 4
+describe('pricingModelId derivation', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let subscription: Subscription.Record
+  let subscriptionItem: SubscriptionItem.Record
+  let feature: Feature.Record
+  let productFeature: ProductFeature.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price for pricingModelId',
+      unitPrice: 1000,
+      type: PriceType.Subscription,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test-pricing-model@test.com',
+      livemode: true,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+    })
+
+    subscriptionItem = await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      name: 'Test Subscription Item',
+      quantity: 1,
+      unitPrice: 1000,
+      priceId: price.id,
+    })
+
+    const featureData = await setupTestFeaturesAndProductFeatures({
+      organizationId: organization.id,
+      productId: product.id,
+      livemode: true,
+      featureSpecs: [
+        { name: 'Test Toggle Feature', type: FeatureType.Toggle },
+      ],
+    })
+    ;[{ feature, productFeature }] = featureData
+  })
+
+  describe('insertSubscriptionItemFeature', () => {
+    it('should derive pricingModelId from subscription item', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const subscriptionItemFeature =
+          await insertSubscriptionItemFeature(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: feature.id,
+              productFeatureId: productFeature.id,
+              type: FeatureType.Toggle,
+              livemode: true,
+            },
+            transaction
+          )
+
+        expect(subscriptionItemFeature.pricingModelId).toBe(
+          subscriptionItem.pricingModelId
+        )
+        expect(subscriptionItemFeature.pricingModelId).toBe(
+          pricingModel.id
+        )
+      })
+    })
+
+    it('should use provided pricingModelId without derivation', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const subscriptionItemFeature =
+          await insertSubscriptionItemFeature(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: feature.id,
+              productFeatureId: productFeature.id,
+              type: FeatureType.Toggle,
+              livemode: true,
+              pricingModelId: pricingModel.id,
+            },
+            transaction
+          )
+
+        expect(subscriptionItemFeature.pricingModelId).toBe(
+          pricingModel.id
+        )
+      })
+    })
+
+    it('should throw error when subscription item does not exist', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentSubscriptionItemId = `si_${core.nanoid()}`
+
+        await expect(
+          insertSubscriptionItemFeature(
+            {
+              subscriptionItemId: nonExistentSubscriptionItemId,
+              featureId: feature.id,
+              productFeatureId: productFeature.id,
+              type: FeatureType.Toggle,
+              livemode: true,
+            },
+            transaction
+          )
+        ).rejects.toThrow()
+      })
+    })
+  })
+
+  describe('bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId', () => {
+    it('should derive pricingModelId for each feature in bulk upsert', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const subscriptionItemFeatures =
+          await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
+            [
+              {
+                subscriptionItemId: subscriptionItem.id,
+                featureId: feature.id,
+                productFeatureId: productFeature.id,
+                type: FeatureType.Toggle,
+                livemode: true,
+              },
+            ],
+            transaction
+          )
+
+        expect(subscriptionItemFeatures).toHaveLength(1)
+        expect(subscriptionItemFeatures[0].pricingModelId).toBe(
+          subscriptionItem.pricingModelId
+        )
+        expect(subscriptionItemFeatures[0].pricingModelId).toBe(
+          pricingModel.id
+        )
+      })
+    })
+
+    it('should throw error when one subscription item does not exist in bulk upsert', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentSubscriptionItemId = `si_${core.nanoid()}`
+
+        await expect(
+          bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
+            [
+              {
+                subscriptionItemId: subscriptionItem.id,
+                featureId: feature.id,
+                productFeatureId: productFeature.id,
+                type: FeatureType.Toggle,
+                livemode: true,
+              },
+              {
+                subscriptionItemId: nonExistentSubscriptionItemId,
+                featureId: feature.id,
+                productFeatureId: productFeature.id,
+                type: FeatureType.Toggle,
+                livemode: true,
+              },
+            ],
+            transaction
+          )
+        ).rejects.toThrow()
       })
     })
   })

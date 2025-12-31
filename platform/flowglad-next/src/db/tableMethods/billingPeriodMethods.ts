@@ -17,6 +17,8 @@ import {
   billingPeriodsUpdateSchema,
 } from '@/db/schema/billingPeriods'
 import {
+  createDerivePricingModelId,
+  createDerivePricingModelIds,
   createInsertFunction,
   createSelectById,
   createSelectFunction,
@@ -55,6 +57,24 @@ export const selectBillingPeriodById = createSelectById(
   billingPeriods,
   config
 )
+
+/**
+ * Derives pricingModelId from a billing period.
+ * Used for billing period item inserts.
+ */
+export const derivePricingModelIdFromBillingPeriod =
+  createDerivePricingModelId(
+    billingPeriods,
+    config,
+    selectBillingPeriodById
+  )
+
+/**
+ * Batch derives pricingModelIds from multiple billing periods.
+ * More efficient than calling derivePricingModelIdFromBillingPeriod individually.
+ */
+export const derivePricingModelIdsFromBillingPeriods =
+  createDerivePricingModelIds(billingPeriods, config)
 
 const baseInsertBillingPeriod = createInsertFunction(
   billingPeriods,

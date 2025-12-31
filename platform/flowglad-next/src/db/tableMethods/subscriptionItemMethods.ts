@@ -9,6 +9,8 @@ import {
 import {
   createBulkInsertFunction,
   createBulkInsertOrDoNothingFunction,
+  createDerivePricingModelId,
+  createDerivePricingModelIds,
   createInsertFunction,
   createSelectById,
   createSelectFunction,
@@ -57,6 +59,24 @@ export const selectSubscriptionItemById = createSelectById(
   subscriptionItems,
   config
 )
+
+/**
+ * Derives pricingModelId from a subscription item.
+ * Used for subscription item inserts.
+ */
+export const derivePricingModelIdFromSubscriptionItem =
+  createDerivePricingModelId(
+    subscriptionItems,
+    config,
+    selectSubscriptionItemById
+  )
+
+/**
+ * Batch derives pricingModelIds from multiple subscription items.
+ * More efficient than calling derivePricingModelIdFromSubscriptionItem individually.
+ */
+export const derivePricingModelIdsFromSubscriptionItems =
+  createDerivePricingModelIds(subscriptionItems, config)
 
 const baseInsertSubscriptionItem = createInsertFunction(
   subscriptionItems,

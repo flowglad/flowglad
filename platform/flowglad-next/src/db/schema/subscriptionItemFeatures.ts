@@ -11,6 +11,7 @@ import * as R from 'ramda'
 import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { features } from '@/db/schema/features'
+import { pricingModels } from '@/db/schema/pricingModels'
 import { productFeatures } from '@/db/schema/productFeatures'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import { usageMeters } from '@/db/schema/usageMeters'
@@ -70,12 +71,17 @@ export const subscriptionItemFeatures = pgTable(
     manuallyCreated: boolean('manually_created')
       .notNull()
       .default(false),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.subscriptionItemId]),
     constructIndex(TABLE_NAME, [table.featureId]),
     constructIndex(TABLE_NAME, [table.productFeatureId]),
     constructIndex(TABLE_NAME, [table.type]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
     constructUniqueIndex(TABLE_NAME, [
       table.featureId,
       table.subscriptionItemId,
@@ -170,11 +176,16 @@ export const {
     ...columnRefinements,
     ...toggleSubscriptionItemFeatureSharedColumns,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns: {
       ...baseHiddenColumnsForClientSchema,
     },
-    readOnlyColumns: {},
+    readOnlyColumns: {
+      pricingModelId: true,
+    },
     createOnlyColumns: {},
   },
   entityName: 'ToggleSubscriptionItemFeature',
@@ -208,11 +219,16 @@ export const {
     ...columnRefinements,
     ...usageCreditGrantSubscriptionItemFeatureSharedColumns,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns: {
       ...baseHiddenColumnsForClientSchema,
     },
-    readOnlyColumns: {},
+    readOnlyColumns: {
+      pricingModelId: true,
+    },
     createOnlyColumns: {},
   },
   entityName: 'UsageCreditGrantSubscriptionItemFeature',
