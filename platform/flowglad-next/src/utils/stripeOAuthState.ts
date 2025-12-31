@@ -78,7 +78,7 @@ export async function createStripeOAuthCsrfToken(params: {
     logger.info('Stripe OAuth CSRF token created', {
       userId,
       organizationId,
-      tokenPrefix: csrfToken.substring(0, 8),
+      tokenPrefix: csrfToken.substring(0, 4),
     })
 
     return csrfToken
@@ -94,7 +94,10 @@ export async function createStripeOAuthCsrfToken(params: {
 
 /**
  * Validates and consumes a CSRF token. This is a single-use operation -
- * the token is deleted from Redis regardless of validation result.
+ * the token is atomically retrieved and deleted from Redis.
+ *
+ * Uses Redis GETDEL command for atomic get-and-delete to prevent race conditions
+ * where two concurrent requests could both read the same token before deletion.
  *
  * @param params - Token and expected user ID for validation
  * @returns Organization ID if valid, null if invalid/expired/already used
@@ -109,18 +112,19 @@ export async function validateAndConsumeStripeOAuthCsrfToken(params: {
   try {
     const redisClient = redis()
 
-    // Get token data
-    const rawData = await redisClient.get(key)
-
-    // Always delete the token (single-use) - do this before validation
-    // to prevent timing attacks and ensure tokens can't be reused
-    await redisClient.del(key)
+    // Atomic get-and-delete using Redis GETDEL command (Redis 6.2+)
+    // This prevents race conditions where concurrent callbacks could
+    // both read the token before either deletes it
+    const rawData = await redisClient.getdel(key)
 
     if (!rawData) {
-      logger.warn('Stripe OAuth CSRF token not found', {
-        tokenPrefix: csrfToken.substring(0, 8),
-        expectedUserId,
-      })
+      logger.warn(
+        'Stripe OAuth CSRF token not found or already consumed',
+        {
+          tokenPrefix: csrfToken.substring(0, 4),
+          expectedUserId,
+        }
+      )
       return null
     }
 
@@ -131,7 +135,7 @@ export async function validateAndConsumeStripeOAuthCsrfToken(params: {
 
     if (!parseResult.success) {
       logger.warn('Stripe OAuth CSRF token data invalid', {
-        tokenPrefix: csrfToken.substring(0, 8),
+        tokenPrefix: csrfToken.substring(0, 4),
         error: parseResult.error.message,
       })
       return null
@@ -142,7 +146,7 @@ export async function validateAndConsumeStripeOAuthCsrfToken(params: {
     // Verify user binding with timing-safe comparison
     if (!safeCompare(tokenData.userId, expectedUserId)) {
       logger.warn('Stripe OAuth CSRF token user mismatch', {
-        tokenPrefix: csrfToken.substring(0, 8),
+        tokenPrefix: csrfToken.substring(0, 4),
         expectedUserId,
         // Don't log actual stored userId for security
       })
@@ -152,14 +156,14 @@ export async function validateAndConsumeStripeOAuthCsrfToken(params: {
     logger.info('Stripe OAuth CSRF token validated', {
       userId: expectedUserId,
       organizationId: tokenData.organizationId,
-      tokenPrefix: csrfToken.substring(0, 8),
+      tokenPrefix: csrfToken.substring(0, 4),
     })
 
     return { organizationId: tokenData.organizationId }
   } catch (error) {
     logger.error('Error validating Stripe OAuth CSRF token', {
       error: error instanceof Error ? error.message : String(error),
-      tokenPrefix: csrfToken.substring(0, 8),
+      tokenPrefix: csrfToken.substring(0, 4),
     })
     return null
   }

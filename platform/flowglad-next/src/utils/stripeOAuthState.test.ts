@@ -18,6 +18,12 @@ const mockRedisStore: Map<string, string> = new Map()
 vi.mock('./redis', () => ({
   redis: () => ({
     get: vi.fn((key: string) => mockRedisStore.get(key) || null),
+    // Atomic get-and-delete operation (Redis GETDEL)
+    getdel: vi.fn((key: string) => {
+      const value = mockRedisStore.get(key) || null
+      mockRedisStore.delete(key)
+      return value
+    }),
     set: vi.fn(
       (key: string, value: string, _options?: { ex?: number }) => {
         mockRedisStore.set(key, value)

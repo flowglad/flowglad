@@ -84,6 +84,7 @@ export const redis = () => {
   if (core.IS_TEST) {
     return {
       get: () => null,
+      getdel: () => null,
       set: () => null,
       del: () => null,
       sadd: () => 0,
