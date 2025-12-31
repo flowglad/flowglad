@@ -17,6 +17,7 @@ import { upsertUserById } from '@/db/tableMethods/userMethods'
 import type { DbTransaction } from '@/db/types'
 import {
   BusinessOnboardingStatus,
+  CurrencyCode,
   type FeatureFlag,
   FlowgladApiKeyType,
   StripeConnectContractType,
@@ -153,7 +154,15 @@ export const createOrganizationTransaction = async (
         feePercentage: '0.65',
         onboardingStatus: BusinessOnboardingStatus.Unauthorized,
         stripeConnectContractType,
-        defaultCurrency: defaultCurrencyForCountry(country),
+        /**
+         * MoR organizations always use USD as their default currency
+         * to simplify tax reporting and payout calculations.
+         */
+        defaultCurrency:
+          stripeConnectContractType ===
+          StripeConnectContractType.MerchantOfRecord
+            ? CurrencyCode.USD
+            : defaultCurrencyForCountry(country),
         /**
          * Use this hash to prevent a race condition where a user may accidentally double-submit createOrganization
          */
