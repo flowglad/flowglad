@@ -28,6 +28,7 @@ import {
   bulkInsertUsageCredits,
   derivePricingModelIdFromUsageCredit,
   insertUsageCredit,
+  insertUsageCreditOrDoNothing,
   pricingModelIdsForUsageCredits,
 } from './usageCreditMethods'
 
@@ -330,6 +331,91 @@ describe('Usage Credit Methods', () => {
           usageMeter.pricingModelId
         )
         expect(usageCredits[1]!.pricingModelId).toBe(pricingModel.id)
+      })
+    })
+  })
+
+  describe('insertUsageCreditOrDoNothing', () => {
+    it('successfully inserts a new credit when no conflict exists', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result = await insertUsageCreditOrDoNothing(
+          {
+            subscriptionId: subscription.id,
+            organizationId: organization.id,
+            livemode: true,
+            creditType: UsageCreditType.Grant,
+            sourceReferenceId: `src_ref_${core.nanoid()}`,
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.ManualAdjustment,
+            billingPeriodId: null,
+            usageMeterId: usageMeter.id,
+            paymentId: null,
+            issuedAmount: 100,
+            issuedAt: Date.now(),
+            expiresAt: null,
+            status: UsageCreditStatus.Posted,
+            notes: null,
+            metadata: null,
+          },
+          transaction
+        )
+        expect(result).toBeDefined()
+        expect(result?.id).toBeDefined()
+        expect(result?.issuedAmount).toBe(100)
+      })
+    })
+
+    it('returns undefined when a conflict exists (idempotency)', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const sourceRefId = `src_ref_${core.nanoid()}`
+        
+        // First insert a credit that will cause a conflict
+        await insertUsageCredit(
+          {
+            subscriptionId: subscription.id,
+            organizationId: organization.id,
+            livemode: true,
+            creditType: UsageCreditType.Grant,
+            sourceReferenceId: sourceRefId,
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.ManualAdjustment,
+            billingPeriodId: null,
+            usageMeterId: usageMeter.id,
+            paymentId: null,
+            issuedAmount: 100,
+            issuedAt: Date.now(),
+            expiresAt: null,
+            status: UsageCreditStatus.Posted,
+            notes: null,
+            metadata: null,
+          },
+          transaction
+        )
+
+        // Attempt to insert the same credit via insertUsageCreditOrDoNothing
+        const result = await insertUsageCreditOrDoNothing(
+          {
+            subscriptionId: subscription.id,
+            organizationId: organization.id,
+            livemode: true,
+            creditType: UsageCreditType.Grant,
+            sourceReferenceId: sourceRefId,
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.ManualAdjustment,
+            billingPeriodId: null, // Same null period
+            usageMeterId: usageMeter.id,
+            paymentId: null,
+            issuedAmount: 100, 
+            issuedAt: Date.now(),
+            expiresAt: null,
+            status: UsageCreditStatus.Posted,
+            notes: null,
+            metadata: null,
+          },
+          transaction
+        )
+
+        expect(result).toBeUndefined()
       })
     })
   })
