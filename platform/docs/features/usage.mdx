@@ -204,3 +204,63 @@ reportUsage({
 
 By following these steps, you can effectively model, track, and bill for various types of usage with Flowglad. Remember that usage events roll up and are used to calculate charges at the end of each billing period.
 
+## Client-Side Usage Tracking
+
+In addition to server-side usage event creation, you can also create usage events directly from the client using the `useBilling()` hook from `@flowglad/react`. This is useful for real-time tracking where you want immediate feedback in the UI.
+
+### When to Use Client-Side vs Server-Side
+
+| Approach | Best For |
+|---|---|
+| **Client-Side** (`useBilling().createUsageEvent`) | Real-time UI feedback, simple tracking (clicks, page views), single events per user action |
+| **Server-Side** (`FlowgladServer.createUsageEvent`) | High-frequency events, sensitive billing logic, bulk recording, full parameter control |
+
+### Client-Side Example
+
+```tsx
+import { useBilling } from '@flowglad/react'
+
+function TokenCounter() {
+  const { createUsageEvent } = useBilling()
+
+  const handleGenerateText = async () => {
+    const response = await generateAIText(prompt)
+
+    // Record the tokens consumed
+    await createUsageEvent({
+      usageMeterSlug: 'ai_tokens',
+      amount: response.tokensUsed,
+    })
+  }
+
+  return (
+    <div>
+      <button onClick={handleGenerateText}>Generate</button>
+    </div>
+  )
+}
+```
+
+### Smart Defaults
+
+The client-side `createUsageEvent` provides convenient defaults to simplify common use cases:
+
+- **`amount`**: Defaults to `1` if not provided
+- **`subscriptionId`**: Auto-inferred from the customer's current subscription
+- **`transactionId`**: Auto-generated for idempotency if not provided
+
+This means for simple tracking, you only need to specify what you're tracking:
+
+```tsx
+// Track a single API call
+await createUsageEvent({ priceSlug: 'api_calls' })
+
+// Track with custom amount
+await createUsageEvent({ usageMeterSlug: 'tokens', amount: 150 })
+```
+
+<Note>
+Client-side usage events do not automatically refresh billing data to avoid performance issues with high-frequency events. Call `reload()` from `useBilling()` manually if you need to update the displayed usage balance after recording usage.
+</Note>
+
+For more details on the client-side API, see the [React SDK documentation](/sdks/react#createusageevent).
