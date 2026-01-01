@@ -62,6 +62,8 @@ const baseInsertUsageCredit = createInsertFunction(
   config
 )
 
+
+
 export const insertUsageCredit = async (
   usageCreditInsert: UsageCredit.Insert,
   transaction: DbTransaction
@@ -79,6 +81,33 @@ export const insertUsageCredit = async (
     },
     transaction
   )
+}
+
+export const insertUsageCreditOrDoNothing = async (
+  usageCreditInsert: UsageCredit.Insert,
+  transaction: DbTransaction
+): Promise<UsageCredit.Record | undefined> => {
+  const pricingModelId = usageCreditInsert.pricingModelId
+    ? usageCreditInsert.pricingModelId
+    : await derivePricingModelIdFromUsageMeter(
+        usageCreditInsert.usageMeterId,
+        transaction
+      )
+
+  const [result] = await transaction
+    .insert(usageCredits)
+    .values({
+      ...usageCreditInsert,
+      pricingModelId,
+    })
+    .onConflictDoNothing()
+    .returning()
+
+  if (!result) {
+    return undefined
+  }
+
+  return usageCreditsSelectSchema.parse(result)
 }
 
 export const updateUsageCredit = createUpdateFunction(

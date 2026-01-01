@@ -15,7 +15,10 @@ import {
   subscriptionItems,
 } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
-import { usageCredits } from '@/db/schema/usageCredits'
+import {
+  usageCredits,
+  usageCreditsSelectSchema,
+} from '@/db/schema/usageCredits'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
@@ -37,7 +40,10 @@ import {
   derivePricingModelIdFromSubscription,
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
-import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
+import {
+  insertUsageCredit,
+  insertUsageCreditOrDoNothing,
+} from '@/db/tableMethods/usageCreditMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { DbTransaction } from '@/db/types'
 import {
@@ -401,51 +407,11 @@ const grantImmediateUsageCredits = async (
       transaction
     )
 
-  // Check for existing credits for this feature in this billing period (or without billing period)
-  // Use stable featureId (not ephemeral subscription_item_feature.id) for deduplication
-  const stableFeatureId = subscriptionItemFeature.featureId
-  if (stableFeatureId) {
-    // Build the WHERE conditions
-    const whereConditions = [
-      eq(usageCredits.subscriptionId, subscription.id),
-      eq(
-        usageCredits.sourceReferenceType,
-        UsageCreditSourceReferenceType.ManualAdjustment
-      ),
-      eq(subscriptionItemFeatures.featureId, stableFeatureId),
-      eq(usageCredits.usageMeterId, usageMeterId),
-    ]
-
-    // If we have a billing period, scope deduplication to that period
-    // If not, check for credits with null billingPeriodId
-    if (currentBillingPeriod) {
-      whereConditions.push(
-        eq(usageCredits.billingPeriodId, currentBillingPeriod.id)
-      )
-    } else {
-      whereConditions.push(isNull(usageCredits.billingPeriodId))
-    }
-
-    const existingCredits = await transaction
-      .select({ id: usageCredits.id })
-      .from(usageCredits)
-      .innerJoin(
-        subscriptionItemFeatures,
-        eq(
-          usageCredits.sourceReferenceId,
-          subscriptionItemFeatures.id
-        )
-      )
-      .where(and(...whereConditions))
-      .limit(1)
-
-    if (existingCredits.length > 0) {
-      // Credits already exist for this feature in this billing period - skip
-      return
-    }
-  }
-
-  const usageCredit = await insertUsageCredit(
+  /*
+   * We rely on the database unique index on (sourceReferenceId, sourceReferenceType, billingPeriodId)
+   * to prevent duplicate grants. The helper `insertUsageCreditOrDoNothing` handles the conflict gracefully.
+   */
+  let usageCredit = await insertUsageCreditOrDoNothing(
     {
       subscriptionId: subscription.id,
       organizationId: subscription.organizationId,
@@ -466,6 +432,36 @@ const grantImmediateUsageCredits = async (
     },
     transaction
   )
+
+  if (!usageCredit) {
+    // If undefined, it means the credit already existed (conflict).
+    // fetch the existing one to return it, ensuring idempotency.
+    const [existing] = await transaction
+      .select()
+      .from(usageCredits)
+      .where(
+        and(
+          eq(usageCredits.sourceReferenceId, subscriptionItemFeature.id),
+          eq(
+            usageCredits.sourceReferenceType,
+            UsageCreditSourceReferenceType.ManualAdjustment
+          ),
+          currentBillingPeriod
+            ? eq(usageCredits.billingPeriodId, currentBillingPeriod.id)
+            : isNull(usageCredits.billingPeriodId)
+        )
+      )
+      .limit(1)
+
+    // Parse the existing record to ensure it matches UsageCredit.Record strict types if necessary,
+    // though distinct from insert return it should be fine as both are from the same table.
+    // However, to be safe and satisfy TS flow:
+    if (!existing) {
+       // Should technically not happen if onConflictDoNothing returned undefined due to conflict
+       return undefined
+    }
+    usageCredit = usageCreditsSelectSchema.parse(existing)
+  }
 
   const ledgerCommand: CreditGrantRecognizedLedgerCommand = {
     type: LedgerTransactionType.CreditGrantRecognized,

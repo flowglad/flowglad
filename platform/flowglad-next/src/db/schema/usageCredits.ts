@@ -104,6 +104,11 @@ export const usageCredits = pgTable(
         table.subscriptionId,
         table.usageMeterId,
       ]),
+      constructUniqueIndex(TABLE_NAME, [
+        table.sourceReferenceId,
+        table.sourceReferenceType,  
+        table.billingPeriodId,
+      ]),
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
         {
