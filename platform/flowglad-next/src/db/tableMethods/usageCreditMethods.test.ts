@@ -359,8 +359,8 @@ describe('Usage Credit Methods', () => {
           },
           transaction
         )
-        expect(result).toBeDefined()
-        expect(result?.id).toBeDefined()
+
+        expect(result?.id).toMatch(/^uc_/)
         expect(result?.issuedAmount).toBe(100)
       })
     })
