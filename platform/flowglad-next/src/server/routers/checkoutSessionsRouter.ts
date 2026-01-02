@@ -11,7 +11,6 @@ import {
   checkoutSessionsPaginatedSelectSchema,
   createCheckoutSessionInputSchema,
   editCheckoutSessionInputSchema,
-  getIntentStatusInputSchema,
   singleCheckoutSessionOutputSchema,
 } from '@/db/schema/checkoutSessions'
 import { billingAddressSchema } from '@/db/schema/organizations'

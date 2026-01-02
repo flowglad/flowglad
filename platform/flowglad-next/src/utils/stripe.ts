@@ -1743,8 +1743,14 @@ export const defaultCurrencyForCountry = (
   }
 }
 
-export const getStripeOAuthUrl = () => {
-  return `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${core.envVariable('STRIPE_CONNECT_CLIENT_ID')}&scope=read_write`
+/**
+ * Generates the Stripe Connect OAuth authorization URL.
+ *
+ * @param state - The encoded OAuth state parameter (contains CSRF token)
+ * @returns The full Stripe OAuth authorization URL
+ */
+export const getStripeOAuthUrl = (state: string) => {
+  return `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${core.envVariable('STRIPE_CONNECT_CLIENT_ID')}&scope=read_write&state=${encodeURIComponent(state)}`
 }
 
 export const completeStripeOAuthFlow = async (params: {

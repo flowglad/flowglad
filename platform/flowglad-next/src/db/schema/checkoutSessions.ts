@@ -646,19 +646,6 @@ export const getCheckoutIntentStatusInputSchema = z.object({
   type: z.literal('checkoutSession'),
 })
 
-export const getIntentStatusInputSchema = z.discriminatedUnion(
-  'type',
-  [
-    getPaymentIntentStatusInputSchema,
-    getSetupIntentStatusInputSchema,
-    getCheckoutIntentStatusInputSchema,
-  ]
-)
-
-export type GetIntentStatusInput = z.infer<
-  typeof getIntentStatusInputSchema
->
-
 const coreCheckoutSessionInputSchema = z.object({
   customerExternalId: z
     .string()
