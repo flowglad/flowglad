@@ -15,6 +15,29 @@ const decodeStatusFromId = (
   return 'succeeded'
 }
 
+const paymentIntentStatusToChargeStatus = (
+  status: string
+): Stripe.Charge.Status => {
+  switch (status) {
+    case 'succeeded':
+      return 'succeeded'
+    case 'processing':
+      return 'pending'
+    case 'requires_confirmation':
+      return 'pending'
+    case 'requires_payment_method':
+      return 'pending'
+    case 'requires_capture':
+      return 'pending'
+    case 'requires_action':
+      return 'pending'
+    case 'canceled':
+      return 'failed'
+    default:
+      return 'pending'
+  }
+}
+
 export const stripeHandlers = [
   http.post(
     'https://api.stripe.com/v1/tax/transactions/create_from_calculation',
@@ -104,11 +127,13 @@ export const stripeHandlers = [
     if (typeof id === 'string' && id.includes('___')) {
       status = id.split('___')[1]
     }
+    const chargeStatus = paymentIntentStatusToChargeStatus(status)
     return HttpResponse.json({
       id,
       amount: 1000,
       currency: 'usd',
       status,
+      latest_charge: `ch_${nanoid()}___${chargeStatus}`,
     })
   }),
   // Port-explicit variant
@@ -120,11 +145,39 @@ export const stripeHandlers = [
       if (typeof id === 'string' && id.includes('___')) {
         status = id.split('___')[1]
       }
+      const chargeStatus = paymentIntentStatusToChargeStatus(status)
       return HttpResponse.json({
         id,
         amount: 1000,
         currency: 'usd',
         status,
+        latest_charge: `ch_${nanoid()}___${chargeStatus}`,
+      })
+    }
+  ),
+  http.post(
+    'https://api.stripe.com/v1/payment_intents/:id/confirm',
+    (req) => {
+      const { id } = req.params
+      return HttpResponse.json({
+        id,
+        amount: 1000,
+        currency: 'usd',
+        status: 'succeeded',
+        latest_charge: `ch_${nanoid()}___succeeded`,
+      })
+    }
+  ),
+  http.post(
+    'https://api.stripe.com:443/v1/payment_intents/:id/confirm',
+    (req) => {
+      const { id } = req.params
+      return HttpResponse.json({
+        id,
+        amount: 1000,
+        currency: 'usd',
+        status: 'succeeded',
+        latest_charge: `ch_${nanoid()}___succeeded`,
       })
     }
   ),
@@ -346,29 +399,6 @@ export const stripeHandlers = [
 ]
 
 export const stripeServer = setupServer(...stripeHandlers)
-
-const paymentIntentStatusToChargeStatus = (
-  status: Stripe.PaymentIntent.Status
-): Stripe.Charge.Status => {
-  switch (status) {
-    case 'succeeded':
-      return 'succeeded'
-    case 'processing':
-      return 'pending'
-    case 'requires_confirmation':
-      return 'pending'
-    case 'requires_payment_method':
-      return 'pending'
-    case 'requires_capture':
-      return 'pending'
-    case 'requires_action':
-      return 'pending'
-    case 'canceled':
-      return 'failed'
-    default:
-      throw new Error(`Unknown payment intent status: ${status}`)
-  }
-}
 
 export const createStripePaymentIntentAndChargeId = (params: {
   paymentIntentStatus: Stripe.PaymentIntent.Status

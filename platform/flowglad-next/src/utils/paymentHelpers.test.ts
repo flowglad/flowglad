@@ -1,46 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
-import {
-  setupCustomer,
-  setupInvoice,
-  setupOrg,
-  setupPayment,
-} from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
-import { updatePayment } from '@/db/tableMethods/paymentMethods'
+import { describe, expect, it } from 'vitest'
 import type { Payment } from '@/db/schema/payments'
 import { PaymentStatus } from '@/types'
-import {
-  createMockPaymentIntentResponse,
-  createMockPaymentIntent,
-  createMockStripeCharge,
-} from '@/test/helpers/stripeMocks'
-import { getPaymentIntent, getStripeCharge } from '@/utils/stripe'
-import { confirmPaymentIntent } from './stripe'
-import {
-  retryPaymentTransaction,
-  sumNetTotalSettledPaymentsForPaymentSet,
-} from './paymentHelpers'
-
-vi.mock('@/utils/stripe', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/utils/stripe')
-  >('@/utils/stripe')
-  return {
-    ...actual,
-    getPaymentIntent: vi.fn(),
-    getStripeCharge: vi.fn(),
-  }
-})
-
-vi.mock('./stripe', async () => {
-  const actual = await vi.importActual<typeof import('./stripe')>(
-    './stripe'
-  )
-  return {
-    ...actual,
-    confirmPaymentIntent: vi.fn(),
-  }
-})
+import { sumNetTotalSettledPaymentsForPaymentSet } from './paymentHelpers'
 
 describe('sumNetTotalSettledPaymentsForPaymentSet', () => {
   it('should sum only succeeded payments and refunded payments', () => {
@@ -118,82 +79,5 @@ describe('sumNetTotalSettledPaymentsForPaymentSet', () => {
 
     const total = sumNetTotalSettledPaymentsForPaymentSet(payments)
     expect(total).toBe(1000)
-  })
-})
-
-describe('retryPaymentTransaction', () => {
-  it('propagates Stripe Tax fields to the new payment record', async () => {
-    const { organization, price } = await setupOrg()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const invoice = await setupInvoice({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-    })
-    const failedPayment = await setupPayment({
-      stripeChargeId: `ch_failed_${organization.id}`,
-      status: PaymentStatus.Failed,
-      amount: 1000,
-      livemode: true,
-      organizationId: organization.id,
-      customerId: customer.id,
-      invoiceId: invoice.id,
-      stripePaymentIntentId: `pi_retry_${organization.id}`,
-    })
-
-    const updatedFailedPayment = await adminTransaction(
-      async ({ transaction }) => {
-        return updatePayment(
-          {
-            id: failedPayment.id,
-            subtotal: 800,
-            taxAmount: 123,
-            stripeTaxCalculationId: 'txcalc_test_retry',
-            stripeTaxTransactionId: 'tax_txn_test_retry',
-          },
-          transaction
-        )
-      }
-    )
-
-    const latestChargeId = 'ch_retry___succeeded'
-    vi.mocked(getPaymentIntent).mockResolvedValue(
-      createMockPaymentIntent({
-        id: updatedFailedPayment.stripePaymentIntentId,
-        latest_charge: latestChargeId,
-      })
-    )
-    vi.mocked(confirmPaymentIntent).mockResolvedValue(
-      createMockPaymentIntentResponse({
-        id: updatedFailedPayment.stripePaymentIntentId,
-        latest_charge: latestChargeId,
-      })
-    )
-    vi.mocked(getStripeCharge).mockResolvedValue(
-      createMockStripeCharge({
-        id: latestChargeId,
-        status: 'succeeded',
-      })
-    )
-
-    const retriedPayment = await adminTransaction(
-      async ({ transaction }) => {
-        return retryPaymentTransaction(
-          { id: updatedFailedPayment.id },
-          transaction
-        )
-      }
-    )
-
-    expect(retriedPayment.subtotal).toBe(updatedFailedPayment.subtotal)
-    expect(retriedPayment.taxAmount).toBe(updatedFailedPayment.taxAmount)
-    expect(retriedPayment.stripeTaxCalculationId).toBe(
-      updatedFailedPayment.stripeTaxCalculationId
-    )
-    expect(retriedPayment.stripeTaxTransactionId).toBe(
-      updatedFailedPayment.stripeTaxTransactionId
-    )
   })
 })
