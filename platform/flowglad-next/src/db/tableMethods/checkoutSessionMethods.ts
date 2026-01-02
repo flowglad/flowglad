@@ -22,6 +22,10 @@ import {
   PaymentMethodType,
 } from '@/types'
 import { feeCalculations } from '../schema/feeCalculations'
+import { selectCustomerById } from './customerMethods'
+import { selectInvoiceById } from './invoiceMethods'
+import { derivePricingModelIdFromPrice } from './priceMethods'
+import { derivePricingModelIdFromPurchase } from './purchaseMethods'
 
 const CHECKOUT_SESSION_RETENTION_MS = 14 * 24 * 60 * 60 * 1000
 
@@ -42,10 +46,96 @@ export const selectCheckoutSessionById = createSelectById(
   config
 )
 
-export const insertCheckoutSession = createInsertFunction(
+/**
+ * Derives pricingModelId for a checkout session with complex COALESCE logic.
+ * Priority: priceId > purchaseId > invoiceId > customerId (for AddPaymentMethod)
+ * Used for checkout session inserts.
+ */
+export const derivePricingModelIdForCheckoutSession = async (
+  data: {
+    priceId?: string | null
+    purchaseId?: string | null
+    invoiceId?: string | null
+    customerId?: string | null
+    type: CheckoutSessionType
+  },
+  transaction: DbTransaction
+): Promise<string> => {
+  // Try price first (for Product sessions)
+  if (data.priceId) {
+    return await derivePricingModelIdFromPrice(
+      data.priceId,
+      transaction
+    )
+  }
+
+  // Try purchase second (for Purchase sessions)
+  if (data.purchaseId) {
+    return await derivePricingModelIdFromPurchase(
+      data.purchaseId,
+      transaction
+    )
+  }
+
+  // Try invoice third (for Invoice sessions)
+  if (data.invoiceId) {
+    // Invoice already has pricingModelId from Wave 3
+    const invoice = await selectInvoiceById(
+      data.invoiceId,
+      transaction
+    )
+    return invoice.pricingModelId
+  }
+
+  // Fall back to customer (for AddPaymentMethod sessions)
+  if (
+    data.customerId &&
+    data.type === CheckoutSessionType.AddPaymentMethod
+  ) {
+    const customer = await selectCustomerById(
+      data.customerId,
+      transaction
+    )
+    if (!customer.pricingModelId) {
+      throw new Error(
+        `Customer ${data.customerId} does not have a pricingModelId`
+      )
+    }
+    return customer.pricingModelId
+  }
+
+  throw new Error(
+    'Cannot derive pricingModelId for checkout session: no valid parent found'
+  )
+}
+
+const baseInsertCheckoutSession = createInsertFunction(
   checkoutSessions,
   config
 )
+
+export const insertCheckoutSession = async (
+  insertData: Omit<CheckoutSession.Insert, 'pricingModelId'>,
+  transaction: DbTransaction
+): Promise<CheckoutSession.Record> => {
+  const pricingModelId = await derivePricingModelIdForCheckoutSession(
+    {
+      priceId: insertData.priceId,
+      purchaseId: insertData.purchaseId,
+      invoiceId: insertData.invoiceId,
+      customerId: insertData.customerId,
+      type: insertData.type,
+    },
+    transaction
+  )
+  return baseInsertCheckoutSession(
+    {
+      ...insertData,
+      pricingModelId,
+    } as CheckoutSession.Insert,
+    transaction
+  )
+}
 
 export const updateCheckoutSession = createUpdateFunction(
   checkoutSessions,

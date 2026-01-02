@@ -8,11 +8,12 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
-import type { z } from 'zod'
+import { z } from 'zod'
 import { currencyCodeSchema } from '@/db/commonZodSchema'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { organizations } from '@/db/schema/organizations'
 import { payments } from '@/db/schema/payments'
+import { pricingModels } from '@/db/schema/pricingModels'
 import { subscriptions } from '@/db/schema/subscriptions'
 import {
   constructIndex,
@@ -35,6 +36,10 @@ export const refunds = pgTable(
   TABLE_NAME,
   {
     ...tableBase('refund'),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
     paymentId: notNullStringForeignKey('payment_id', payments),
     subscriptionId: nullableStringForeignKey(
       'subscription_id',
@@ -64,6 +69,7 @@ export const refunds = pgTable(
     initiatedByUserId: text('initiated_by_user_id'),
   },
   (table) => [
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
     constructIndex(TABLE_NAME, [table.paymentId]),
     constructIndex(TABLE_NAME, [table.subscriptionId]),
     constructIndex(TABLE_NAME, [table.status]),
@@ -92,9 +98,14 @@ const columnRefinements = {
   currency: currencyCodeSchema,
 }
 
+const insertRefine = {
+  pricingModelId: z.string().optional(),
+}
+
 const createOnlyColumns = {} as const
 const readOnlyColumns = {
   organizationId: true,
+  pricingModelId: true,
 } as const
 const hiddenColumns = {} as const
 
@@ -109,6 +120,7 @@ export const {
   },
 } = buildSchemas(refunds, {
   refine: columnRefinements,
+  insertRefine,
   client: {
     hiddenColumns,
     readOnlyColumns,

@@ -1,4 +1,5 @@
 import {
+  type Refund,
   refunds,
   refundsInsertSchema,
   refundsSelectSchema,
@@ -11,6 +12,8 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
+import { selectPaymentById } from './paymentMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof refunds,
@@ -25,6 +28,42 @@ const config: ORMMethodCreatorConfig<
 }
 
 export const selectRefundById = createSelectById(refunds, config)
-export const insertRefund = createInsertFunction(refunds, config)
+
+/**
+ * Derives pricingModelId from a payment.
+ * Used for refund inserts.
+ */
+export const derivePricingModelIdFromPayment = async (
+  paymentId: string,
+  transaction: DbTransaction
+): Promise<string> => {
+  const payment = await selectPaymentById(paymentId, transaction)
+  if (!payment.pricingModelId) {
+    throw new Error(
+      `Payment ${paymentId} does not have a pricingModelId`
+    )
+  }
+  return payment.pricingModelId
+}
+
+const baseInsertRefund = createInsertFunction(refunds, config)
+
+export const insertRefund = async (
+  insertData: Omit<Refund.Insert, 'pricingModelId'>,
+  transaction: DbTransaction
+): Promise<Refund.Record> => {
+  const pricingModelId = await derivePricingModelIdFromPayment(
+    insertData.paymentId,
+    transaction
+  )
+  return baseInsertRefund(
+    {
+      ...insertData,
+      pricingModelId,
+    },
+    transaction
+  )
+}
+
 export const updateRefund = createUpdateFunction(refunds, config)
 export const selectRefunds = createSelectFunction(refunds, config)

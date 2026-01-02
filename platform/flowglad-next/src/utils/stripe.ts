@@ -417,7 +417,7 @@ export const stripe = (livemode: boolean) => {
       : undefined,
   })
 }
-
+// dummy
 export const createConnectedAccount = async ({
   countryCode,
   organization,

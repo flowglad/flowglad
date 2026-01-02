@@ -342,6 +342,7 @@ describe('createCheckoutSessionTransaction', () => {
     customer = await setupCustomer({
       organizationId: organization.id,
       stripeCustomerId: `cus_${core.nanoid()}`,
+      pricingModelId: pricingModel.id,
     })
     usageMeter = await setupUsageMeter({
       organizationId: organization.id,
