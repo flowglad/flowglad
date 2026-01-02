@@ -56,7 +56,10 @@ import {
   UsageCreditType,
 } from '@/types'
 import core from '@/utils/core'
-import { aggregateBalanceForLedgerAccountFromEntries } from '../tableMethods/ledgerEntryMethods'
+import {
+  aggregateAvailableBalanceForUsageCredit,
+  aggregateBalanceForLedgerAccountFromEntries,
+} from '../tableMethods/ledgerEntryMethods'
 import { selectLedgerTransactions } from '../tableMethods/ledgerTransactionMethods'
 
 const TEST_LIVEMODE = true
@@ -359,6 +362,100 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
       expect(application.status).toBe(
         UsageCreditApplicationStatus.Posted
       )
+    })
+  })
+})
+
+describe('aggregateAvailableBalanceForUsageCredit', () => {
+  it('should order credit balances by expiresAt (earliest first, null last)', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const baseTime = 1_700_000_000_000
+      const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000
+
+      const creditExpiringSoonest = await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: 50,
+        expiresAt: baseTime + thirtyDaysMs,
+        livemode: TEST_LIVEMODE,
+      })
+      const creditExpiringMiddle = await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: 50,
+        expiresAt: baseTime + 2 * thirtyDaysMs,
+        livemode: TEST_LIVEMODE,
+      })
+      const creditExpiringLast = await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: 50,
+        expiresAt: baseTime + 3 * thirtyDaysMs,
+        livemode: TEST_LIVEMODE,
+      })
+      const creditNonExpiring = await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: 50,
+        expiresAt: null,
+        livemode: TEST_LIVEMODE,
+      })
+
+      for (const usageCredit of [
+        creditExpiringLast,
+        creditNonExpiring,
+        creditExpiringSoonest,
+        creditExpiringMiddle,
+      ]) {
+        await setupCreditLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerTransactionId: defaultLedgerTransaction.id,
+          ledgerAccountId: ledgerAccount.id,
+          usageMeterId: usageMeter.id,
+          entryType: LedgerEntryType.CreditGrantRecognized,
+          sourceUsageCreditId: usageCredit.id,
+          amount: 50,
+          livemode: TEST_LIVEMODE,
+        })
+      }
+
+      const createdCreditIds = new Set([
+        creditExpiringSoonest.id,
+        creditExpiringMiddle.id,
+        creditExpiringLast.id,
+        creditNonExpiring.id,
+      ])
+
+      const balances = await aggregateAvailableBalanceForUsageCredit(
+        { ledgerAccountId: ledgerAccount.id },
+        transaction
+      )
+
+      const createdBalances = balances.filter((balance) =>
+        createdCreditIds.has(balance.usageCreditId)
+      )
+
+      expect(createdBalances.map((b) => b.usageCreditId)).toEqual([
+        creditExpiringSoonest.id,
+        creditExpiringMiddle.id,
+        creditExpiringLast.id,
+        creditNonExpiring.id,
+      ])
+      expect(createdBalances.map((b) => b.expiresAt)).toEqual([
+        baseTime + thirtyDaysMs,
+        baseTime + 2 * thirtyDaysMs,
+        baseTime + 3 * thirtyDaysMs,
+        null,
+      ])
     })
   })
 })
