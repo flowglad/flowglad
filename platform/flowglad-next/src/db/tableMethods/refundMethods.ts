@@ -49,13 +49,15 @@ export const derivePricingModelIdFromPayment = async (
 const baseInsertRefund = createInsertFunction(refunds, config)
 
 export const insertRefund = async (
-  insertData: Omit<Refund.Insert, 'pricingModelId'>,
+  insertData: Refund.Insert,
   transaction: DbTransaction
 ): Promise<Refund.Record> => {
-  const pricingModelId = await derivePricingModelIdFromPayment(
-    insertData.paymentId,
-    transaction
-  )
+  const pricingModelId = insertData.pricingModelId
+    ? insertData.pricingModelId
+    : await derivePricingModelIdFromPayment(
+        insertData.paymentId,
+        transaction
+      )
   return baseInsertRefund(
     {
       ...insertData,

@@ -115,19 +115,21 @@ const baseInsertCheckoutSession = createInsertFunction(
 )
 
 export const insertCheckoutSession = async (
-  insertData: Omit<CheckoutSession.Insert, 'pricingModelId'>,
+  insertData: CheckoutSession.Insert,
   transaction: DbTransaction
 ): Promise<CheckoutSession.Record> => {
-  const pricingModelId = await derivePricingModelIdForCheckoutSession(
-    {
-      priceId: insertData.priceId,
-      purchaseId: insertData.purchaseId,
-      invoiceId: insertData.invoiceId,
-      customerId: insertData.customerId,
-      type: insertData.type,
-    },
-    transaction
-  )
+  const pricingModelId = insertData.pricingModelId
+    ? insertData.pricingModelId
+    : await derivePricingModelIdForCheckoutSession(
+        {
+          priceId: insertData.priceId,
+          purchaseId: insertData.purchaseId,
+          invoiceId: insertData.invoiceId,
+          customerId: insertData.customerId,
+          type: insertData.type,
+        },
+        transaction
+      )
   return baseInsertCheckoutSession(
     {
       ...insertData,
