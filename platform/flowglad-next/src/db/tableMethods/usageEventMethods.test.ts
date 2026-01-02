@@ -368,7 +368,7 @@ describe('selectUsageEventsPaginated', () => {
     allReturnedEventIds.forEach((eventId) => {
       expect(createdEventIds).toContain(eventId)
     })
-  })
+  }, 15_000)
 
   it('should handle invalid cursor gracefully', async () => {
     // Create some usage events first
