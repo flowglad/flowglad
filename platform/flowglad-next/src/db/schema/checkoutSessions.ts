@@ -37,6 +37,7 @@ import { discounts } from './discounts'
 import { invoices } from './invoices'
 import { organizations } from './organizations'
 import { prices } from './prices'
+import { pricingModels } from './pricingModels'
 import { purchases } from './purchases'
 
 const TABLE_NAME = 'checkout_sessions'
@@ -57,6 +58,10 @@ const ACTIVATE_SUBSCRIPTION_CHECKOUT_SESSION_DESCRIPTION =
 
 const columns = {
   ...tableBase('chckt_session'),
+  pricingModelId: notNullStringForeignKey(
+    'pricing_model_id',
+    pricingModels
+  ),
   status: pgEnumColumn({
     enumName: 'CheckoutSessionStatus',
     columnName: 'status',
@@ -115,6 +120,7 @@ export const checkoutSessions = pgTable(
   columns,
   (table) => {
     return [
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       constructIndex(TABLE_NAME, [table.priceId]),
       constructIndex(TABLE_NAME, [table.stripePaymentIntentId]),
       constructIndex(TABLE_NAME, [table.organizationId]),
@@ -146,6 +152,7 @@ const insertRefine = {
   expires: zodEpochMs
     .default(() => Date.now() + 1000 * 60 * 60 * 24)
     .optional(),
+  pricingModelId: z.string().optional(),
 }
 
 // Common refinements for all schemas (validation logic)
@@ -254,6 +261,7 @@ const readOnlyColumns = {
   stripePaymentIntentId: true,
   stripeSetupIntentId: true,
   purchaseId: true,
+  pricingModelId: true,
 } as const
 
 const clientRefinements = {

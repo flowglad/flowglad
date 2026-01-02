@@ -360,7 +360,7 @@ describe('Usage Credit Methods', () => {
           transaction
         )
 
-        expect(result?.id).toMatch(/^uc_/)
+        expect(result?.id).toMatch(/^usage_credit/)
         expect(result?.issuedAmount).toBe(100)
       })
     })

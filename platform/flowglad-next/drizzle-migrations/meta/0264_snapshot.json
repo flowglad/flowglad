@@ -1,6 +1,6 @@
 {
-  "id": "669a7309-3aa3-4011-a5fd-27cd934f3424",
-  "prevId": "0efff4d8-3e4d-4c1a-980e-dd1eea705833",
+  "id": "289d2cab-99df-4f64-abe7-b895811b2576",
+  "prevId": "669a7309-3aa3-4011-a5fd-27cd934f3424",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -10150,6 +10150,33 @@
             },
             {
               "expression": "usage_meter_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "usage_credits_source_reference_id_source_reference_type_billing_period_id_unique_idx": {
+          "name": "usage_credits_source_reference_id_source_reference_type_billing_period_id_unique_idx",
+          "columns": [
+            {
+              "expression": "source_reference_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_reference_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "billing_period_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

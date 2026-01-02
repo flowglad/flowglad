@@ -4151,7 +4151,7 @@
       "post": {
         "operationId": "subscriptions-adjust",
         "summary": "Adjust Subscription",
-        "description": "Note: Immediate adjustments are in private preview (Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616). Adjustments at the end of the current billing period are generally available.",
+        "description": "Adjust an active subscription by changing its plan or quantity. Supports immediate adjustments with proration and end-of-billing-period adjustments for downgrades.",
         "tags": ["Subscriptions"],
         "security": [
           {
@@ -9210,7 +9210,7 @@
         "type": "object",
         "properties": {
           "timing": {
-            "description": "Note: Immediate adjustments are in private preview. Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616.",
+            "description": "Apply the adjustment immediately.",
             "type": "string",
             "const": "immediately"
           },
@@ -11033,6 +11033,9 @@
           "livemode": {
             "type": "boolean"
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -11203,6 +11206,7 @@
           "createdAt",
           "updatedAt",
           "livemode",
+          "pricingModelId",
           "status",
           "priceId",
           "purchaseId",
@@ -11372,6 +11376,9 @@
           "livemode": {
             "type": "boolean"
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -11531,6 +11538,7 @@
           "createdAt",
           "updatedAt",
           "livemode",
+          "pricingModelId",
           "status",
           "priceId",
           "purchaseId",
@@ -11573,6 +11581,9 @@
           },
           "livemode": {
             "type": "boolean"
+          },
+          "pricingModelId": {
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -11744,6 +11755,7 @@
           "createdAt",
           "updatedAt",
           "livemode",
+          "pricingModelId",
           "status",
           "priceId",
           "purchaseId",
@@ -11782,6 +11794,9 @@
           },
           "livemode": {
             "type": "boolean"
+          },
+          "pricingModelId": {
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -11974,6 +11989,7 @@
           "createdAt",
           "updatedAt",
           "livemode",
+          "pricingModelId",
           "status",
           "priceId",
           "purchaseId",
@@ -12014,6 +12030,9 @@
           },
           "livemode": {
             "type": "boolean"
+          },
+          "pricingModelId": {
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -12190,6 +12209,7 @@
           "createdAt",
           "updatedAt",
           "livemode",
+          "pricingModelId",
           "status",
           "priceId",
           "quantity",

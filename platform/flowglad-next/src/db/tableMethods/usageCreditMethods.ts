@@ -1,4 +1,4 @@
-import { inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 import {
   type UsageCredit,
   usageCredits,
@@ -18,6 +18,7 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import { UsageCreditStatus } from '@/types'
+import { isNil } from '@/utils/core'
 import type { Payment } from '../schema/payments'
 import type { UsageMeter } from '../schema/usageMeters'
 import type { DbTransaction } from '../types'
@@ -92,13 +93,50 @@ export const insertUsageCreditOrDoNothing = async (
         transaction
       )
 
+  // Check if a row already exists with the same unique constraint values
+  // PostgreSQL unique constraints allow multiple NULLs, so we need to check explicitly
+  const existing = await transaction
+    .select()
+    .from(usageCredits)
+    .where(
+      and(
+        isNil(usageCreditInsert.sourceReferenceId)
+          ? isNull(usageCredits.sourceReferenceId)
+          : eq(
+              usageCredits.sourceReferenceId,
+              usageCreditInsert.sourceReferenceId
+            ),
+        eq(
+          usageCredits.sourceReferenceType,
+          usageCreditInsert.sourceReferenceType
+        ),
+        isNil(usageCreditInsert.billingPeriodId)
+          ? isNull(usageCredits.billingPeriodId)
+          : eq(
+              usageCredits.billingPeriodId,
+              usageCreditInsert.billingPeriodId
+            )
+      )
+    )
+    .limit(1)
+
+  if (existing.length > 0) {
+    return undefined
+  }
+
   const [result] = await transaction
     .insert(usageCredits)
     .values({
       ...usageCreditInsert,
       pricingModelId,
     })
-    .onConflictDoNothing()
+    .onConflictDoNothing({
+      target: [
+        usageCredits.sourceReferenceId,
+        usageCredits.sourceReferenceType,
+        usageCredits.billingPeriodId,
+      ],
+    })
     .returning()
 
   if (!result) {
