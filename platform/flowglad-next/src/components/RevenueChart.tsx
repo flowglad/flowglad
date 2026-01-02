@@ -78,6 +78,41 @@ function formatDateUTC(
 }
 
 /**
+ * Computes the best default interval based on the date range.
+ * Prefers month > week > day > hour, but only if the timespan supports it.
+ * Never returns Year as a default - users must explicitly select it.
+ */
+function getDefaultInterval(
+  fromDate: Date,
+  toDate: Date
+): RevenueChartIntervalUnit {
+  const timespanInHours = differenceInHours(toDate, fromDate)
+
+  if (
+    timespanInHours >=
+    minimumUnitInHours[RevenueChartIntervalUnit.Month]
+  ) {
+    return RevenueChartIntervalUnit.Month
+  }
+
+  if (
+    timespanInHours >=
+    minimumUnitInHours[RevenueChartIntervalUnit.Week]
+  ) {
+    return RevenueChartIntervalUnit.Week
+  }
+
+  if (
+    timespanInHours >=
+    minimumUnitInHours[RevenueChartIntervalUnit.Day]
+  ) {
+    return RevenueChartIntervalUnit.Day
+  }
+
+  return RevenueChartIntervalUnit.Hour
+}
+
+/**
  * NOTE: this component has a weird bug (that seems to ship with Tremor?)
  * where the chart lines will show up underneath the X axis if there's a single point above zero.
  * This seems to be an issue with how Tremor handles single > 0 point data sets.
@@ -95,10 +130,29 @@ export function RevenueChart({
   productId?: string
 }) {
   const { organization } = useAuthenticatedContext()
+
+  const timespanInHours = differenceInHours(toDate, fromDate)
+
+  // Compute the best default interval based on available options
+  const defaultInterval = React.useMemo(
+    () => getDefaultInterval(fromDate, toDate),
+    [fromDate, toDate]
+  )
+
   const [interval, setInterval] =
-    React.useState<RevenueChartIntervalUnit>(
-      RevenueChartIntervalUnit.Month
-    )
+    React.useState<RevenueChartIntervalUnit>(defaultInterval)
+
+  // Update interval if current selection becomes invalid due to date range change
+  // Hour is always valid as the absolute minimum fallback
+  React.useEffect(() => {
+    const isCurrentIntervalInvalid =
+      interval !== RevenueChartIntervalUnit.Hour &&
+      timespanInHours < minimumUnitInHours[interval]
+
+    if (isCurrentIntervalInvalid) {
+      setInterval(getDefaultInterval(fromDate, toDate))
+    }
+  }, [timespanInHours, interval, fromDate, toDate])
 
   const { data: revenueData, isLoading } =
     trpc.organizations.getRevenue.useQuery({
@@ -190,7 +244,6 @@ export function RevenueChart({
     cumulativeRevenueInDecimals,
   ])
 
-  const timespanInHours = differenceInHours(toDate, fromDate)
   const intervalOptions = React.useMemo(() => {
     const options = []
 
