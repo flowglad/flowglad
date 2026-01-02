@@ -155,6 +155,10 @@ export const retryPaymentTransaction = async (
       refunded: false,
       refundedAmount: 0,
       refundedAt: null,
+      subtotal: payment.subtotal,
+      taxAmount: payment.taxAmount,
+      stripeTaxCalculationId: payment.stripeTaxCalculationId,
+      stripeTaxTransactionId: payment.stripeTaxTransactionId,
       stripeChargeId: stripeIdFromObjectOrId(
         paymentIntent.latest_charge!
       ),
