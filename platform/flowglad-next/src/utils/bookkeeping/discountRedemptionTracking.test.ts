@@ -449,6 +449,54 @@ describe('Discount Redemption Tracking', () => {
 
       expect(updatedDiscountRedemption.fullyRedeemed).toBe(false)
     })
+
+    it('throws when discount redemption has neither purchaseId nor subscriptionId', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        discountRedemption = await insertDiscountRedemption(
+          {
+            discountId: discount.id,
+            purchaseId: purchase.id,
+            discountName: discount.name,
+            discountCode: discount.code,
+            discountAmount: discount.amount,
+            discountAmountType: discount.amountType,
+            subscriptionId: subscription.id,
+            duration: DiscountDuration.NumberOfPayments,
+            numberOfPayments: 2,
+            livemode: true,
+            fullyRedeemed: false,
+          },
+          transaction
+        )
+      })
+
+      const payment = await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 1000,
+        customerId: customer.id,
+        organizationId: organization.id,
+        stripePaymentIntentId: `pi_${core.nanoid()}`,
+        invoiceId: invoice.id,
+        paymentMethod: PaymentMethodType.Card,
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await incrementNumberOfPaymentsForDiscountRedemption(
+            {
+              ...discountRedemption,
+              purchaseId: '',
+              subscriptionId: null,
+            },
+            payment,
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        'Expected discountRedemption to have purchaseId or subscriptionId'
+      )
+    })
   })
 
   describe('safelyIncrementDiscountRedemptionSubscriptionPayment', () => {
