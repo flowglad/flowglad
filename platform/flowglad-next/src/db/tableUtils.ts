@@ -98,6 +98,21 @@ export const merchantPolicy = (
   })
 }
 
+/**
+ * Returns a SQL condition checking if the "organization_id" column
+ * matches the result of the `current_organization_id()` Postgres function.
+ *
+ * Use in policies or queries to scope access to the current user's organization.
+ *
+ * @returns SQL tagged template for organization ID check
+ *
+ * @example
+ * const condition = orgIdEqualsCurrentSQL()
+ * // -> SQL: "organization_id" = current_organization_id()
+ */
+export const orgIdEqualsCurrentSQL = () =>
+  sql`"organization_id" = current_organization_id()`
+
 export const customerPolicy = (
   name: string,
   Params: Omit<Parameters<typeof pgPolicy>[1], 'to'>

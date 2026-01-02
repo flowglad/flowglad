@@ -1,5 +1,5 @@
 {
-  "id": "289d2cab-99df-4f64-abe7-b895811b2576",
+  "id": "6b670efb-b935-4ba7-bf53-088cbb21cc6d",
   "prevId": "669a7309-3aa3-4011-a5fd-27cd934f3424",
   "version": "7",
   "dialect": "postgresql",
@@ -151,7 +151,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (api_keys)": {
           "name": "Check mode (api_keys)",
@@ -653,7 +653,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"billing_period_id\" in (select \"id\" from \"billing_periods\" where \"subscription_id\" in (select \"id\" from \"subscriptions\" where \"organization_id\" in (select \"organization_id\" from \"memberships\")))"
+          "using": "\"billing_period_id\" in (select \"id\" from \"billing_periods\" where \"subscription_id\" in (select \"id\" from \"subscriptions\" where \"organization_id\"=current_organization_id()))"
         },
         "Check mode (billing_period_items)": {
           "name": "Check mode (billing_period_items)",
@@ -841,7 +841,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"subscription_id\" in (select \"id\" from \"subscriptions\" where \"organization_id\" in (select \"organization_id\" from \"memberships\"))"
+          "using": "\"subscription_id\" in (select \"id\" from \"subscriptions\" where \"organization_id\"=current_organization_id())"
         },
         "Check mode (billing_periods)": {
           "name": "Check mode (billing_periods)",
@@ -1083,7 +1083,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"billing_period_id\" in (select \"id\" from \"billing_periods\" where \"subscription_id\" in (select \"id\" from \"subscriptions\" where \"organization_id\" in (select \"organization_id\" from \"memberships\")))"
+          "using": "\"billing_period_id\" in (select \"id\" from \"billing_periods\" where \"subscription_id\" in (select \"id\" from \"subscriptions\" where \"organization_id\"=current_organization_id()))"
         },
         "Check mode (billing_runs)": {
           "name": "Check mode (billing_runs)",
@@ -1510,7 +1510,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Enable select for customer": {
           "name": "Enable select for customer",
@@ -2011,7 +2011,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Enable read for customers (customers)": {
           "name": "Enable read for customers (customers)",
@@ -2299,7 +2299,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"discountId\" in (select \"discountId\" from \"Discounts\" where \"organization_id\" in (select \"organization_id\" from \"memberships\"))"
+          "using": "\"discount_id\" in (select \"id\" from \"discounts\" where \"organization_id\"=current_organization_id())"
         }
       },
       "checkConstraints": {},
@@ -2503,7 +2503,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         }
       },
       "checkConstraints": {},
@@ -2725,14 +2725,14 @@
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": ["merchant"],
-          "withCheck": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "withCheck": "\"organization_id\" = current_organization_id()"
         },
         "Enable all actions for own organization": {
           "name": "Enable all actions for own organization",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         }
       },
       "checkConstraints": {},
@@ -2967,7 +2967,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Enable read for customers (features)": {
           "name": "Enable read for customers (features)",
@@ -3305,7 +3305,7 @@
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         }
       },
       "checkConstraints": {},
@@ -4038,7 +4038,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         }
       },
       "checkConstraints": {},
@@ -4292,7 +4292,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (ledger_accounts)": {
           "name": "Check mode (ledger_accounts)",
@@ -4889,7 +4889,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (ledger_entries)": {
           "name": "Check mode (ledger_entries)",
@@ -5177,7 +5177,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (ledger_transactions)": {
           "name": "Check mode (ledger_transactions)",
@@ -6370,14 +6370,14 @@
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Enable update for own organization": {
           "name": "Enable update for own organization",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (payments)": {
           "name": "Check mode (payments)",
@@ -6840,7 +6840,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (pricing_models)": {
           "name": "Check mode (pricing_models)",
@@ -7073,7 +7073,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Ensure organization integrity with features parent table": {
           "name": "Ensure organization integrity with features parent table",
@@ -7335,7 +7335,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (products)": {
           "name": "Check mode (products)",
@@ -7665,7 +7665,7 @@
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         }
       },
       "checkConstraints": {},
@@ -7915,7 +7915,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (refunds)": {
           "name": "Check mode (refunds)",
@@ -8895,7 +8895,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (subscription_meter_period_calculations)": {
           "name": "Check mode (subscription_meter_period_calculations)",
@@ -9573,7 +9573,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (usage_credit_applications)": {
           "name": "Check mode (usage_credit_applications)",
@@ -9826,7 +9826,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (usage_credit_balance_adjustments)": {
           "name": "Check mode (usage_credit_balance_adjustments)",
@@ -10159,33 +10159,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "usage_credits_source_reference_id_source_reference_type_billing_period_id_unique_idx": {
-          "name": "usage_credits_source_reference_id_source_reference_type_billing_period_id_unique_idx",
-          "columns": [
-            {
-              "expression": "source_reference_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "source_reference_type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "billing_period_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -10265,7 +10238,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (usage_credits)": {
           "name": "Check mode (usage_credits)",
@@ -10571,7 +10544,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"customer_id\" in (select \"id\" from \"customers\" where \"organization_id\" in (select \"organization_id\" from \"memberships\"))"
+          "using": "\"customer_id\" in (select \"id\" from \"customers\" where \"organization_id\"=current_organization_id())"
         },
         "On insert, only allow usage events for prices with matching usage meter": {
           "name": "On insert, only allow usage events for prices with matching usage meter",
@@ -10814,7 +10787,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (usage_meters)": {
           "name": "Check mode (usage_meters)",
@@ -11097,7 +11070,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+          "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (webhooks)": {
           "name": "Check mode (webhooks)",

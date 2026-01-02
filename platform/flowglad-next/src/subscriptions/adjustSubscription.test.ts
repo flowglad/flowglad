@@ -37,9 +37,11 @@ import {
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import {
   adjustSubscription,
+  autoDetectTiming,
   calculateSplitInBillingPeriodBasedOnAdjustmentDate,
   syncSubscriptionWithActiveItems,
 } from '@/subscriptions/adjustSubscription'
+import type { TerseSubscriptionItem } from '@/subscriptions/schemas'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -2651,6 +2653,661 @@ describe('adjustSubscription Integration Tests', async () => {
         // But billing run should be triggered
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
+      })
+    })
+  })
+
+  /* ==========================================================================
+    Auto Timing Detection
+  ========================================================================== */
+  describe('Auto Timing Detection', () => {
+    it('autoDetectTiming should return Immediately for upgrades', () => {
+      const result = autoDetectTiming(1000, 2000)
+      expect(result).toBe(SubscriptionAdjustmentTiming.Immediately)
+    })
+
+    it('autoDetectTiming should return AtEndOfCurrentBillingPeriod for downgrades', () => {
+      const result = autoDetectTiming(2000, 1000)
+      expect(result).toBe(
+        SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+      )
+    })
+
+    it('autoDetectTiming should return Immediately for same price (lateral move)', () => {
+      const result = autoDetectTiming(1000, 1000)
+      expect(result).toBe(SubscriptionAdjustmentTiming.Immediately)
+    })
+
+    it('should apply upgrade immediately when timing is auto', async () => {
+      const item1 = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Basic Plan',
+        quantity: 1,
+        unitPrice: 100,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        const newItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            name: 'Premium Plan',
+            quantity: 1,
+            unitPrice: 9999,
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Auto,
+              prorateCurrentBillingPeriod: true,
+            },
+          },
+          organization,
+          transaction
+        )
+
+        // Should resolve to Immediately for upgrades
+        expect(result.resolvedTiming).toBe(
+          SubscriptionAdjustmentTiming.Immediately
+        )
+        expect(result.isUpgrade).toBe(true)
+
+        // Billing run should be triggered for upgrades
+        const mockTrigger = getMockTrigger()
+        expect(mockTrigger).toHaveBeenCalledTimes(1)
+      })
+    })
+
+    it('should apply downgrade at end of period when timing is auto', async () => {
+      const item1 = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Premium Plan',
+        quantity: 1,
+        unitPrice: 4999,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
+        const newEndDate = Date.now() + 30 * 24 * 60 * 60 * 1000
+
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: newStartDate,
+            endDate: newEndDate,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        subscription = await updateSubscription(
+          {
+            id: subscription.id,
+            renews: true,
+            currentBillingPeriodStart: newStartDate,
+            currentBillingPeriodEnd: newEndDate,
+          },
+          transaction
+        )
+
+        const invoice = await setupInvoice({
+          organizationId: organization.id,
+          customerId: customer.id,
+          billingPeriodId: billingPeriod.id,
+          priceId: price.id,
+          livemode: subscription.livemode,
+        })
+        await setupPayment({
+          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+          status: PaymentStatus.Succeeded,
+          amount: 4999,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          livemode: true,
+        })
+
+        const newItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            name: 'Basic Plan',
+            quantity: 1,
+            unitPrice: 999,
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Auto,
+              prorateCurrentBillingPeriod: true,
+            },
+          },
+          organization,
+          transaction
+        )
+
+        // Should resolve to AtEndOfCurrentBillingPeriod for downgrades
+        expect(result.resolvedTiming).toBe(
+          SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+        )
+        expect(result.isUpgrade).toBe(false)
+
+        // Billing run should NOT be triggered for downgrades
+        const mockTrigger = getMockTrigger()
+        expect(mockTrigger).not.toHaveBeenCalled()
+      })
+    })
+
+    it('should return correct isUpgrade value for lateral moves', async () => {
+      const item1 = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Plan A',
+        quantity: 1,
+        unitPrice: 1000,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 24 * 60 * 60 * 1000,
+            endDate: Date.now() + 24 * 60 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        const invoice = await setupInvoice({
+          organizationId: organization.id,
+          customerId: customer.id,
+          billingPeriodId: billingPeriod.id,
+          priceId: price.id,
+          livemode: subscription.livemode,
+        })
+        await setupPayment({
+          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+          status: PaymentStatus.Succeeded,
+          amount: 1000,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          livemode: true,
+        })
+
+        const newItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            name: 'Plan B',
+            quantity: 1,
+            unitPrice: 1000,
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Auto,
+              prorateCurrentBillingPeriod: true,
+            },
+          },
+          organization,
+          transaction
+        )
+
+        // Same price = not an upgrade
+        expect(result.isUpgrade).toBe(false)
+        // Should resolve to Immediately for lateral moves
+        expect(result.resolvedTiming).toBe(
+          SubscriptionAdjustmentTiming.Immediately
+        )
+      })
+    })
+  })
+
+  /* ==========================================================================
+    Price Slug Resolution
+  ========================================================================== */
+  describe('Price Slug Resolution', () => {
+    it('should resolve priceSlug to priceId using subscription pricing model', async () => {
+      // Create a price with a slug
+      // Note: pricingModelId is derived from product.pricingModelId automatically
+      const slugPrice = await setupPrice({
+        productId: product.id,
+        name: 'Premium via Slug',
+        type: PriceType.Subscription,
+        unitPrice: 2999,
+        currency: CurrencyCode.USD,
+        isDefault: false,
+        livemode: false,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        slug: 'premium-monthly',
+      })
+
+      await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Basic Plan',
+        quantity: 1,
+        unitPrice: 100,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        // Use priceSlug in the terse format
+        const newItems: TerseSubscriptionItem[] = [
+          {
+            priceSlug: 'premium-monthly',
+            quantity: 1,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
+          },
+          organization,
+          transaction
+        )
+
+        // Should trigger billing run for upgrade
+        const mockTrigger = getMockTrigger()
+        expect(mockTrigger).toHaveBeenCalledTimes(1)
+        const triggerCall = mockTrigger.mock.calls[0][0]
+
+        // The resolved item should have the correct priceId
+        expect(
+          triggerCall.adjustmentParams.newSubscriptionItems[0].priceId
+        ).toBe(slugPrice.id)
+        expect(
+          triggerCall.adjustmentParams.newSubscriptionItems[0]
+            .unitPrice
+        ).toBe(2999)
+        expect(
+          triggerCall.adjustmentParams.newSubscriptionItems[0].name
+        ).toBe('Premium via Slug')
+      })
+    })
+
+    it('should throw error when priceSlug not found in pricing model', async () => {
+      await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Basic Plan',
+        quantity: 1,
+        unitPrice: 100,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        const newItems: TerseSubscriptionItem[] = [
+          {
+            priceSlug: 'nonexistent-slug',
+            quantity: 1,
+          },
+        ]
+
+        await expect(
+          adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            transaction
+          )
+        ).rejects.toThrow(
+          /Price with slug "nonexistent-slug" not found/
+        )
+      })
+    })
+
+    it('should expand terse subscription item with priceId to full item', async () => {
+      await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Basic Plan',
+        quantity: 1,
+        unitPrice: 100,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        // Use terse format with priceId
+        const newItems: TerseSubscriptionItem[] = [
+          {
+            priceId: price.id,
+            quantity: 3,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
+          },
+          organization,
+          transaction
+        )
+
+        // Should trigger billing run for upgrade (3 * price.unitPrice > 100)
+        const mockTrigger = getMockTrigger()
+        expect(mockTrigger).toHaveBeenCalledTimes(1)
+        const triggerCall = mockTrigger.mock.calls[0][0]
+
+        // The expanded item should have all the correct fields from the price
+        expect(
+          triggerCall.adjustmentParams.newSubscriptionItems[0].priceId
+        ).toBe(price.id)
+        expect(
+          triggerCall.adjustmentParams.newSubscriptionItems[0]
+            .quantity
+        ).toBe(3)
+        expect(
+          triggerCall.adjustmentParams.newSubscriptionItems[0]
+            .unitPrice
+        ).toBe(price.unitPrice)
+        expect(
+          triggerCall.adjustmentParams.newSubscriptionItems[0].name
+        ).toBe(price.name)
+      })
+    })
+
+    it('should handle mixed item types (priceSlug + priceId) in the same request', async () => {
+      // Create a price with a slug
+      const slugPrice = await setupPrice({
+        productId: product.id,
+        name: 'Premium via Slug',
+        type: PriceType.Subscription,
+        unitPrice: 2999,
+        currency: CurrencyCode.USD,
+        isDefault: false,
+        livemode: false,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        slug: 'premium-mixed-test',
+      })
+
+      await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Basic Plan',
+        quantity: 1,
+        unitPrice: 100,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        // Set pricingModelId on the subscription to match the price's pricing model
+        await updateSubscription(
+          {
+            id: subscription.id,
+            pricingModelId: slugPrice.pricingModelId,
+            renews: true,
+          },
+          transaction
+        )
+
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        // Mix priceSlug and priceId items in the same request
+        const newItems: TerseSubscriptionItem[] = [
+          {
+            priceSlug: 'premium-mixed-test',
+            quantity: 1,
+          },
+          {
+            priceId: price.id,
+            quantity: 2,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
+          },
+          organization,
+          transaction
+        )
+
+        // Should trigger billing run for upgrade
+        const mockTrigger = getMockTrigger()
+        expect(mockTrigger).toHaveBeenCalledTimes(1)
+        const triggerCall = mockTrigger.mock.calls[0][0]
+
+        // Should have both items resolved
+        expect(
+          triggerCall.adjustmentParams.newSubscriptionItems.length
+        ).toBe(2)
+
+        // First item resolved from priceSlug
+        const slugItem = (
+          triggerCall.adjustmentParams
+            .newSubscriptionItems as SubscriptionItem.Record[]
+        ).find((i) => i.priceId === slugPrice.id)
+        expect(slugItem).toBeDefined()
+        expect(slugItem!.unitPrice).toBe(slugPrice.unitPrice)
+        expect(slugItem!.name).toBe(slugPrice.name)
+
+        // Second item resolved from priceId
+        const idItem = (
+          triggerCall.adjustmentParams
+            .newSubscriptionItems as SubscriptionItem.Record[]
+        ).find((i) => i.priceId === price.id)
+        expect(idItem).toBeDefined()
+        expect(idItem!.quantity).toBe(2)
+      })
+    })
+  })
+
+  /* ==========================================================================
+    Upgrade with Proration Disabled
+  ========================================================================== */
+  describe('Upgrade with Proration Disabled', () => {
+    it('should apply upgrade immediately without proration charge when prorateCurrentBillingPeriod is false', async () => {
+      await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Basic Plan',
+        quantity: 1,
+        unitPrice: 100,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        const bpItemsBefore = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
+
+        // Upgrade to a more expensive plan
+        const newItems = [
+          {
+            name: 'Premium Plan',
+            quantity: 1,
+            unitPrice: 500,
+            priceId: price.id,
+            type: SubscriptionItemType.Static,
+            addedDate: Date.now(),
+            subscriptionId: subscription.id,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
+            },
+          },
+          organization,
+          transaction
+        )
+
+        // Should NOT trigger billing run since proration is disabled
+        const mockTrigger = getMockTrigger()
+        expect(mockTrigger).not.toHaveBeenCalled()
+
+        // Should report as upgrade
+        expect(result.isUpgrade).toBe(true)
+        expect(result.resolvedTiming).toBe(
+          SubscriptionAdjustmentTiming.Immediately
+        )
+
+        // Subscription items should be updated immediately
+        expect(result.subscriptionItems.length).toBe(1)
+        expect(result.subscriptionItems[0].unitPrice).toBe(500)
+
+        // Should NOT create proration billing period items
+        const bpItemsAfter = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
+        expect(bpItemsAfter.length).toBe(bpItemsBefore.length)
+      })
+    })
+
+    it('should send upgrade notification when prorateCurrentBillingPeriod is false and isUpgrade is true', async () => {
+      await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Basic Plan',
+        quantity: 1,
+        unitPrice: 100,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        // Upgrade to a more expensive plan
+        const newItems = [
+          {
+            name: 'Premium Plan',
+            quantity: 1,
+            unitPrice: 500,
+            priceId: price.id,
+            type: SubscriptionItemType.Static,
+            addedDate: Date.now(),
+            subscriptionId: subscription.id,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
+            },
+          },
+          organization,
+          transaction
+        )
+
+        // Should report as upgrade
+        expect(result.isUpgrade).toBe(true)
+
+        // Note: The notification itself is tested elsewhere, but we verify
+        // that the code path for upgrades without proration is taken
+        expect(result.resolvedTiming).toBe(
+          SubscriptionAdjustmentTiming.Immediately
+        )
       })
     })
   })

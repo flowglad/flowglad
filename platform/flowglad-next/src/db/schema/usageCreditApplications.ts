@@ -14,6 +14,7 @@ import {
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   tableBase,
   timestampWithTimezoneColumn,
@@ -73,7 +74,7 @@ export const usageCreditApplications = pgTable(
         as: 'permissive',
         to: 'all',
         for: 'all',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        using: orgIdEqualsCurrentSQL(),
       }
     ),
     livemodePolicy(TABLE_NAME),
