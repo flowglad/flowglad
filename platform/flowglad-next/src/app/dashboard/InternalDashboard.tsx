@@ -65,7 +65,7 @@ function InternalDashboardPage({
           />
         }
       />
-      <div className="w-full flex flex-col gap-12 pt-4 pb-16">
+      <div className="w-full flex flex-col gap-6 pt-4 pb-16">
         <ChartContainer>
           <RevenueChart fromDate={range.from} toDate={range.to} />
         </ChartContainer>

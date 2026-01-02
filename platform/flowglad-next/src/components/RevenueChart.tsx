@@ -210,12 +210,30 @@ export function RevenueChart({
   return (
     <div className="w-full h-full">
       <div className="flex flex-row gap-2 justify-between px-4">
-        <div className="text-foreground w-fit flex items-center flex-row">
+        <div className="text-foreground w-fit flex items-center flex-row gap-0.5">
           <p className="whitespace-nowrap">Revenue</p>
+          <Select
+            value={interval}
+            onValueChange={(value) =>
+              setInterval(value as RevenueChartIntervalUnit)
+            }
+          >
+            <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground shadow-none h-auto py-0 gap-0 text-base">
+              <span className="text-muted-foreground">by&nbsp;</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {intervalOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div>
+      <div className="mt-1">
         {isLoading ? (
           <Skeleton className="w-36 h-12" />
         ) : (
@@ -223,31 +241,6 @@ export function RevenueChart({
             <p className="text-xl font-semibold text-foreground">
               {formattedRevenueValue}
             </p>
-            <div className="flex items-center flex-row w-fit">
-              <p className="whitespace-nowrap text-sm text-muted-foreground">
-                Revenue by
-              </p>
-              <Select
-                value={interval}
-                onValueChange={(value) =>
-                  setInterval(value as RevenueChartIntervalUnit)
-                }
-              >
-                <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground shadow-none">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {intervalOptions.map((option) => (
-                    <SelectItem
-                      key={option.value}
-                      value={option.value}
-                    >
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         )}
       </div>
