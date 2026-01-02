@@ -14,7 +14,6 @@ import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/bil
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   selectPriceById,
-  selectPriceBySlugAndPricingModelId,
   selectPrices,
 } from '@/db/tableMethods/priceMethods'
 import {
@@ -83,37 +82,6 @@ const hasSlug = (
   item: FlexibleSubscriptionItem
 ): item is FlexibleSubscriptionItem & { priceSlug: string } => {
   return 'priceSlug' in item && typeof item.priceSlug === 'string'
-}
-
-/**
- * Resolves a price from either priceId or priceSlug.
- * For priceSlug, we use the subscription's pricingModelId to scope the lookup.
- */
-const resolvePriceFromSlugOrId = async (
-  params: { priceId?: string | null; priceSlug?: string },
-  pricingModelId: string,
-  transaction: DbTransaction
-): Promise<Price.Record> => {
-  if (params.priceId) {
-    const price = await selectPriceById(params.priceId, transaction)
-    if (!price) {
-      throw new Error(`Price with id ${params.priceId} not found`)
-    }
-    return price
-  }
-  if (params.priceSlug) {
-    const price = await selectPriceBySlugAndPricingModelId(
-      { slug: params.priceSlug, pricingModelId },
-      transaction
-    )
-    if (!price) {
-      throw new Error(
-        `Price with slug "${params.priceSlug}" not found in the subscription's pricing model`
-      )
-    }
-    return price
-  }
-  throw new Error('Either priceId or priceSlug must be provided')
 }
 
 /**
@@ -404,17 +372,58 @@ export const adjustSubscription = async (
   // Get the subscription's pricing model for resolving priceSlug
   const pricingModelId = subscription.pricingModelId
 
+  // Batch fetch prices for better performance
+  // Collect all slugs and priceIds that need resolution
+  const slugsToResolve = newSubscriptionItems
+    .filter(hasSlug)
+    .map((item) => item.priceSlug)
+  const priceIdsToResolve = newSubscriptionItems
+    .filter((item) => isTerseSubscriptionItem(item) && !hasSlug(item))
+    .map((item) => (item as TerseSubscriptionItem).priceId)
+    .filter((id): id is string => !!id)
+
+  // Batch fetch prices by slug (scoped to pricing model)
+  const pricesBySlug = new Map<string, Price.Record>()
+  if (slugsToResolve.length > 0) {
+    const slugPrices = await selectPrices(
+      {
+        slug: slugsToResolve,
+        pricingModelId,
+        active: true,
+      },
+      transaction
+    )
+    for (const price of slugPrices) {
+      if (price.slug) {
+        pricesBySlug.set(price.slug, price)
+      }
+    }
+  }
+
+  // Batch fetch prices by id
+  const pricesById = new Map<string, Price.Record>()
+  if (priceIdsToResolve.length > 0) {
+    const idPrices = await selectPrices(
+      { id: priceIdsToResolve },
+      transaction
+    )
+    for (const price of idPrices) {
+      pricesById.set(price.id, price)
+    }
+  }
+
   // Resolve priceSlug to priceId and expand terse items to full subscription items
   const resolvedSubscriptionItems: SubscriptionItem.ClientInsert[] =
     []
   for (const item of newSubscriptionItems) {
     // Check if item has priceSlug that needs resolution
     if (hasSlug(item)) {
-      const resolvedPrice = await resolvePriceFromSlugOrId(
-        { priceSlug: item.priceSlug },
-        pricingModelId,
-        transaction
-      )
+      const resolvedPrice = pricesBySlug.get(item.priceSlug)
+      if (!resolvedPrice) {
+        throw new Error(
+          `Price with slug "${item.priceSlug}" not found in the subscription's pricing model`
+        )
+      }
 
       // Check if this is a terse item or a full item with priceSlug
       if (isTerseSubscriptionItem(item)) {
@@ -438,7 +447,7 @@ export const adjustSubscription = async (
       }
     } else if (isTerseSubscriptionItem(item) && item.priceId) {
       // Terse item with priceId: expand to full subscription item
-      const price = await selectPriceById(item.priceId, transaction)
+      const price = pricesById.get(item.priceId)
       if (!price) {
         throw new Error(`Price with id ${item.priceId} not found`)
       }

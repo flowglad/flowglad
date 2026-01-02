@@ -46,8 +46,7 @@ export const terseSubscriptionItemSchema = z
     (data) => (data.priceId ? !data.priceSlug : !!data.priceSlug),
     {
       message:
-        'Either priceId or priceSlug must be provided, but not both',
-      path: ['priceId'],
+        'Price identifier required: exactly one of priceId or priceSlug must be provided, not both or neither',
     }
   )
   .meta({ id: 'TerseSubscriptionItem' })
@@ -77,8 +76,7 @@ export const subscriptionItemWithPriceSlugSchema =
       },
       {
         message:
-          'Either priceId or priceSlug must be provided, but not both',
-        path: ['priceId'],
+          'Price identifier required: exactly one of priceId or priceSlug must be provided, not both or neither',
       }
     )
     .meta({ id: 'SubscriptionItemWithPriceSlugInput' })
