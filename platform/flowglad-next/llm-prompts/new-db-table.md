@@ -13,7 +13,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
   - If the schema requires a new enum, declare and export that enum in src/types.ts, and then use that enum in the schema via pgEnumColumn.
   - Add pgPolicy to the schema to enable row level security. By default, the policy should be "permissive", and the "to" should be "authenticated". The "for" should be "all". And the policy can be:
   ```ts
-  using: sql`"organization_id" in (select "organization_id" from "memberships") // if there is a foreign key to a table that has an organizationId, you can use that instead
+  using: sql`"organization_id" in (select "organization_id" from "memberships" where "user_id" = requesting_user_id() union select current_organization_id() where current_auth_type() = 'api_key') // if there is a foreign key to a table that has an organizationId, you can use that instead
   ```
   - Here's a quick example of what the start of the file should look like, roughly:
   ```ts
@@ -63,7 +63,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
           as: 'permissive',
           to: merchantRole,,
           for: 'all',
-          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+          using: sql`"organization_id" in (select "organization_id" from "memberships" where "user_id" = requesting_user_id() union select current_organization_id() where current_auth_type() = 'api_key')`,
         }),
         livemodePolicy(TABLE_NAME),
       ]

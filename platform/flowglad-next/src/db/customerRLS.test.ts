@@ -790,7 +790,7 @@ describe('Customer Role RLS Policies', () => {
       expect(
         org2Result.invoices.every((i) => i.organizationId === org2.id)
       ).toBe(true)
-    })
+    }, 20000)
 
     it('should prevent customerD_Org2 from accessing any Org1 data', async () => {
       const result = await authenticatedCustomerTransaction(

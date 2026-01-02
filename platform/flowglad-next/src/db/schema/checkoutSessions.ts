@@ -20,6 +20,7 @@ import {
   metadataSchema,
   notNullStringForeignKey,
   nullableStringForeignKey,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   type SelectConditions,
   tableBase,
@@ -129,7 +130,7 @@ export const checkoutSessions = pgTable(
           as: 'permissive',
           to: 'all',
           for: 'all',
-          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+          using: orgIdEqualsCurrentSQL(),
         }
       ),
       customerPolicy('Enable select for customer', {

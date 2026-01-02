@@ -30,6 +30,7 @@ import {
   notNullStringForeignKey,
   nullableStringForeignKey,
   ommittedColumnsForInsertSchema,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   type SelectConditions,
   tableBase,
@@ -117,7 +118,7 @@ export const feeCalculations = pgTable(
         as: 'permissive',
         to: 'merchant',
         for: 'select',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        using: orgIdEqualsCurrentSQL(),
       }),
     ]
   }
