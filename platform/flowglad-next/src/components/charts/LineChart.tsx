@@ -740,8 +740,8 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             }
             margin={{
               bottom: xAxisLabel ? 30 : undefined,
-              left: yAxisLabel ? 20 : undefined,
-              right: yAxisLabel ? 5 : undefined,
+              left: 16,
+              right: 16,
               top: 5,
             }}
           >
@@ -871,8 +871,6 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 strokeWidth: 1,
               }}
               offset={20}
-              position={{ y: 0 }}
-              allowEscapeViewBox={{ x: true, y: true }}
               content={({ active, payload, label }) => {
                 const cleanPayload: TooltipProps['payload'] = payload
                   ? payload.map((item: any) => ({

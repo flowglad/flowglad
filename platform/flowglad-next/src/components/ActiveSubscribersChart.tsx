@@ -70,9 +70,8 @@ const SubscriberCountTooltip = ({
                         'bg'
                       )
                     : 'bg-muted-foreground',
-                  'w-2 h-2 rounded-full'
+                  'w-2.5 h-2.5 rounded-full border border-border'
                 )}
-                style={{ width: '10px', height: '10px' }}
               />
             </div>
           )}
@@ -172,13 +171,13 @@ export const ActiveSubscribersChart = ({
   }
   return (
     <div className="w-full h-full">
-      <div className="flex flex-row gap-2 justify-between">
+      <div className="flex flex-row gap-2 justify-between px-4">
         <div className="text-foreground w-fit flex items-center flex-row">
           <p className="whitespace-nowrap">Active Subscribers</p>
         </div>
       </div>
 
-      <div className="mt-2">
+      <div className="px-4">
         {isLoading ? (
           <Skeleton className="w-36 h-12" />
         ) : (
