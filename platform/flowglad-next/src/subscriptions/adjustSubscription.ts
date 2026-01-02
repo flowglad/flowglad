@@ -64,7 +64,16 @@ const isTerseSubscriptionItem = (
     (k) => item[k as keyof typeof item] !== undefined
   )
   const terseKeys = ['priceId', 'priceSlug', 'quantity']
-  return keys.every((key) => terseKeys.includes(key))
+
+  // Must have at least one of priceId or priceSlug
+  const hasPriceIdentifier =
+    ('priceId' in item && typeof item.priceId === 'string') ||
+    ('priceSlug' in item && typeof item.priceSlug === 'string')
+
+  // All keys must be within the allowed terse keys
+  const allKeysAreTerse = keys.every((key) => terseKeys.includes(key))
+
+  return hasPriceIdentifier && allKeysAreTerse
 }
 
 /**

@@ -81,6 +81,7 @@ export const subscriptionItemWithPriceSlugSchema =
         path: ['priceId'],
       }
     )
+    .meta({ id: 'SubscriptionItemWithPriceSlugInput' })
 
 export type SubscriptionItemWithPriceSlug = z.infer<
   typeof subscriptionItemWithPriceSlugSchema
