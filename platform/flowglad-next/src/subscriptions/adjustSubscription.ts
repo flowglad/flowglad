@@ -30,14 +30,12 @@ import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
 import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
 import {
-  FeatureFlag,
   PaymentStatus,
   PriceType,
   SubscriptionAdjustmentTiming,
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
-import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
   createBillingRun,
@@ -248,17 +246,6 @@ export const adjustSubscription = async (
   const { adjustment, id } = input
   const { newSubscriptionItems, timing } = adjustment
 
-  if (
-    timing === SubscriptionAdjustmentTiming.Immediately &&
-    !hasFeatureFlag(
-      organization,
-      FeatureFlag.ImmediateSubscriptionAdjustments
-    )
-  ) {
-    throw new Error(
-      'Immediate adjustments are in private preview. Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616'
-    )
-  }
   const subscription = await selectSubscriptionById(id, transaction)
   if (isSubscriptionInTerminalState(subscription.status)) {
     throw new Error('Subscription is in terminal state')
