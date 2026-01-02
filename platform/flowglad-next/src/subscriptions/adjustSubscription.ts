@@ -657,7 +657,7 @@ export const adjustSubscription = async (
       transaction
     )
 
-    // Send downgrade notifications
+    // Send adjustment notifications (no proration - either downgrade or upgrade with proration disabled)
     const price = await selectPriceById(
       subscription.priceId,
       transaction
@@ -673,7 +673,7 @@ export const adjustSubscription = async (
       subscriptionId: id,
       customerId: subscription.customerId,
       organizationId: subscription.organizationId,
-      adjustmentType: 'downgrade',
+      adjustmentType: isUpgrade ? 'upgrade' : 'downgrade',
       previousItems: existingSubscriptionItems.map((item) => ({
         name: item.name ?? '',
         unitPrice: item.unitPrice,
@@ -692,7 +692,7 @@ export const adjustSubscription = async (
       subscriptionId: id,
       customerId: subscription.customerId,
       organizationId: subscription.organizationId,
-      adjustmentType: 'downgrade',
+      adjustmentType: isUpgrade ? 'upgrade' : 'downgrade',
       previousItems: existingSubscriptionItems.map((item) => ({
         name: item.name ?? '',
         unitPrice: item.unitPrice,
