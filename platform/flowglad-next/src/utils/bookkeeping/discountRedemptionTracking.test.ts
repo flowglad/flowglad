@@ -345,6 +345,110 @@ describe('Discount Redemption Tracking', () => {
 
       expect(updatedDiscountRedemption.fullyRedeemed).toBe(true)
     })
+
+    it('does not count payments for other purchases when subscriptionId is null', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        discountRedemption = await insertDiscountRedemption(
+          {
+            discountId: discount.id,
+            purchaseId: purchase.id,
+            discountName: discount.name,
+            discountCode: discount.code,
+            discountAmount: discount.amount,
+            discountAmountType: discount.amountType,
+            subscriptionId: null,
+            duration: DiscountDuration.NumberOfPayments,
+            numberOfPayments: 2,
+            livemode: true,
+            fullyRedeemed: false,
+          },
+          transaction
+        )
+      })
+
+      const otherCustomer = await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+      })
+      const otherInvoice = await setupInvoice({
+        organizationId: organization.id,
+        customerId: otherCustomer.id,
+        priceId: price.id,
+      })
+      const otherPurchase = await setupPurchase({
+        organizationId: organization.id,
+        customerId: otherCustomer.id,
+        priceId: price.id,
+      })
+
+      await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 1000,
+        customerId: otherCustomer.id,
+        organizationId: organization.id,
+        stripePaymentIntentId: `pi_${core.nanoid()}`,
+        invoiceId: otherInvoice.id,
+        paymentMethod: PaymentMethodType.Card,
+        purchaseId: otherPurchase.id,
+      })
+      await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 1000,
+        customerId: otherCustomer.id,
+        organizationId: organization.id,
+        stripePaymentIntentId: `pi_${core.nanoid()}`,
+        invoiceId: otherInvoice.id,
+        paymentMethod: PaymentMethodType.Card,
+        purchaseId: otherPurchase.id,
+      })
+      await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 1000,
+        customerId: otherCustomer.id,
+        organizationId: organization.id,
+        stripePaymentIntentId: `pi_${core.nanoid()}`,
+        invoiceId: otherInvoice.id,
+        paymentMethod: PaymentMethodType.Card,
+        purchaseId: otherPurchase.id,
+      })
+
+      const paymentForDiscountRedemptionPurchase = await setupPayment(
+        {
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 1000,
+          customerId: customer.id,
+          organizationId: organization.id,
+          stripePaymentIntentId: `pi_${core.nanoid()}`,
+          invoiceId: invoice.id,
+          paymentMethod: PaymentMethodType.Card,
+          purchaseId: purchase.id,
+        }
+      )
+
+      await adminTransaction(async ({ transaction }) => {
+        await incrementNumberOfPaymentsForDiscountRedemption(
+          discountRedemption,
+          paymentForDiscountRedemptionPurchase,
+          transaction
+        )
+      })
+
+      const updatedDiscountRedemption = await adminTransaction(
+        async ({ transaction }) => {
+          const [redemption] = await selectDiscountRedemptions(
+            { id: discountRedemption.id },
+            transaction
+          )
+          return redemption
+        }
+      )
+
+      expect(updatedDiscountRedemption.fullyRedeemed).toBe(false)
+    })
   })
 
   describe('safelyIncrementDiscountRedemptionSubscriptionPayment', () => {

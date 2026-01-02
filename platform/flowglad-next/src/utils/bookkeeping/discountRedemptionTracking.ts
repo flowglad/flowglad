@@ -16,19 +16,30 @@ export const incrementNumberOfPaymentsForDiscountRedemption = async (
   if (!discountRedemption.numberOfPayments) {
     return
   }
-  const successfulPaymentsForSubscription = await selectPayments(
-    {
-      subscriptionId: discountRedemption.subscriptionId,
-      status: PaymentStatus.Succeeded,
-    },
-    transaction
-  )
-  const priorSuccessfulPaymentsForSubscription =
-    successfulPaymentsForSubscription.filter(
+  const selectConditions: {
+    purchaseId?: string
+    subscriptionId?: string
+    status: PaymentStatus
+  } = {
+    status: PaymentStatus.Succeeded,
+  }
+
+  if (discountRedemption.subscriptionId) {
+    selectConditions.subscriptionId =
+      discountRedemption.subscriptionId
+  } else {
+    selectConditions.purchaseId = discountRedemption.purchaseId
+  }
+
+  const successfulPaymentsForDiscountRedemption =
+    await selectPayments(selectConditions, transaction)
+
+  const priorSuccessfulPaymentsForDiscountRedemption =
+    successfulPaymentsForDiscountRedemption.filter(
       (successfulPayment) => successfulPayment.id !== payment.id
     )
   const numberOfPayments =
-    priorSuccessfulPaymentsForSubscription.length + 1
+    priorSuccessfulPaymentsForDiscountRedemption.length + 1
   if (numberOfPayments >= discountRedemption.numberOfPayments) {
     await updateDiscountRedemption(
       {
