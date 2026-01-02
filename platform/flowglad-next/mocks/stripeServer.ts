@@ -16,21 +16,11 @@ const decodeStatusFromId = (
 }
 
 const paymentIntentStatusToChargeStatus = (
-  status: string
+  status: Stripe.PaymentIntent.Status
 ): Stripe.Charge.Status => {
   switch (status) {
     case 'succeeded':
       return 'succeeded'
-    case 'processing':
-      return 'pending'
-    case 'requires_confirmation':
-      return 'pending'
-    case 'requires_payment_method':
-      return 'pending'
-    case 'requires_capture':
-      return 'pending'
-    case 'requires_action':
-      return 'pending'
     case 'canceled':
       return 'failed'
     default:
