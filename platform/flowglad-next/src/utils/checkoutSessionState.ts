@@ -199,6 +199,7 @@ export const createNonInvoiceCheckoutSession = async (
     organizationId,
     livemode: price.livemode,
     productId: price.productId,
+    pricingModelId: price.pricingModelId,
   } as const
 
   let checkoutSessionInsert: CheckoutSession.Insert = {
@@ -371,6 +372,7 @@ const createInvoiceCheckoutSession = async (
       outputMetadata: null,
       targetSubscriptionId: null,
       automaticallyUpdateSubscriptions: null,
+      pricingModelId: invoice.pricingModelId,
     },
     transaction
   )
