@@ -100,11 +100,13 @@ export function RevenueChart({
         date: format(dateObj, 'd MMM'),
         // Store the ISO date string for the tooltip to use for proper year formatting
         isoDate: dateObj.toISOString(),
+        // Store the interval unit for the tooltip to format dates appropriately
+        intervalUnit: interval,
         formattedRevenue,
         revenue: Number(item.revenue).toFixed(2),
       }
     })
-  }, [revenueData, organization?.defaultCurrency])
+  }, [revenueData, organization?.defaultCurrency, interval])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data

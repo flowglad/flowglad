@@ -687,7 +687,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       autoMinValue,
       minValue,
       maxValue,
-      0.1 // 10% padding above max value for visual breathing room
+      0.2 // 20% padding above max value for visual breathing room
     )
 
     // When startEndOnly is true, we want grid lines at actual data positions
@@ -916,7 +916,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 strokeWidth: 1,
               }}
               offset={8}
-              position={{ y: 0 }}
+              position={{ y: 16 }}
               content={({ active, payload, label }) => {
                 const cleanPayload: TooltipProps['payload'] = payload
                   ? payload.map((item: any) => ({
