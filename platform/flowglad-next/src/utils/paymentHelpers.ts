@@ -87,9 +87,12 @@ export const refundPaymentTransaction = async (
   const updatedPayment = await safelyUpdatePaymentForRefund(
     {
       id: payment.id,
-      status: PaymentStatus.Refunded,
-      refunded: true,
-      refundedAmount: payment.amount,
+      status:
+        refund.amount >= payment.amount
+          ? PaymentStatus.Refunded
+          : PaymentStatus.Succeeded,
+      refunded: refund.amount >= payment.amount,
+      refundedAmount: refund.amount,
       refundedAt: dateFromStripeTimestamp(refund.created).getTime(),
     },
     transaction
@@ -184,7 +187,8 @@ export const sumNetTotalSettledPaymentsForPaymentSet = (
 ) => {
   const total = paymentSet.reduce((acc, payment) => {
     if (payment.status === PaymentStatus.Succeeded) {
-      return acc + payment.amount
+      // Subtract any partial refunds from succeeded payments
+      return acc + (payment.amount - (payment.refundedAmount ?? 0))
     }
     if (payment.status === PaymentStatus.Refunded) {
       return acc + (payment.amount - (payment.refundedAmount ?? 0))
