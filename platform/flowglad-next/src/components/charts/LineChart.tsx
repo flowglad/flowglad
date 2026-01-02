@@ -127,7 +127,7 @@ const LegendItem = ({
           // base
           'truncate whitespace-nowrap text-xs',
           // text color
-          'text-gray-700 dark:text-gray-300',
+          'text-muted-foreground',
           hasOnValueChange && 'group-hover:text-accent-foreground',
           activeLegend && activeLegend !== name
             ? 'opacity-40'
@@ -180,7 +180,7 @@ const ScrollButton = ({
         // base
         'group inline-flex size-5 items-center truncate rounded transition',
         disabled
-          ? 'cursor-not-allowed text-gray-400 dark:text-gray-600'
+          ? 'cursor-not-allowed text-muted-foreground opacity-50'
           : 'cursor-pointer text-muted-foreground hover:bg-accent hover:text-accent-foreground'
       )}
       disabled={disabled}
@@ -353,7 +353,7 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>(
                 // base
                 'absolute bottom-0 right-0 top-0 flex h-full items-center justify-center pr-1',
                 // background color
-                'bg-white dark:bg-gray-950'
+                'bg-background'
               )}
             >
               <ScrollButton
@@ -470,9 +470,9 @@ const ChartTooltip = ({
           // base
           'rounded-md border text-sm shadow-md',
           // border color
-          'border-gray-200 dark:border-gray-800',
+          'border-border',
           // background color
-          'bg-white dark:bg-gray-950'
+          'bg-popover'
         )}
       >
         <div className={cn('border-b border-inherit px-4 py-2')}>
@@ -481,7 +481,7 @@ const ChartTooltip = ({
               // base
               'font-medium',
               // text color
-              'text-gray-900 dark:text-gray-50'
+              'text-foreground'
             )}
           >
             {label} LABEL LABEL LABEL
@@ -506,7 +506,7 @@ const ChartTooltip = ({
                     // base
                     'whitespace-nowrap text-right',
                     // text color
-                    'text-gray-700 dark:text-gray-300'
+                    'text-muted-foreground'
                   )}
                 >
                   {category} TEST TEST TEST
@@ -517,7 +517,7 @@ const ChartTooltip = ({
                   // base
                   'whitespace-nowrap text-right font-medium tabular-nums',
                   // text color
-                  'text-gray-900 dark:text-gray-50'
+                  'text-foreground'
                 )}
               >
                 {valueFormatter(value)}
@@ -641,8 +641,19 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
     const yAxisDomain = getYAxisDomain(
       autoMinValue,
       minValue,
-      maxValue
+      maxValue,
+      0.1 // 10% padding above max value for visual breathing room
     )
+
+    // When startEndOnly is true, we want grid lines at actual data positions
+    // but only show labels for start/end. Calculate a sensible interval
+    // to avoid too many grid lines (target ~8 lines for readability).
+    const xAxisInterval = React.useMemo(() => {
+      if (!startEndOnly) return intervalType
+      if (data.length <= 8) return 0 // Show all if few data points
+      return Math.max(1, Math.floor(data.length / 8))
+    }, [startEndOnly, data.length, intervalType])
+
     const hasOnValueChange = !!onValueChange
     const prevActiveRef = React.useRef<boolean | undefined>(undefined)
     const prevLabelRef = React.useRef<string | undefined>(undefined)
@@ -734,45 +745,72 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               top: 5,
             }}
           >
-            {/* {showGridLines ? (
+            {showGridLines ? (
               <CartesianGrid
-                className={cn(
-                  'stroke-gray-200 stroke-1 dark:stroke-gray-800'
-                )}
-                // horizontal={true}
-                vertical={false}
+                className="stroke-border stroke-1"
+                horizontal={false}
+                vertical={true}
               />
-            ) : null} */}
+            ) : null}
             <XAxis
               padding={{ left: paddingValue, right: paddingValue }}
               hide={!showXAxis}
               dataKey={index}
-              interval={
-                startEndOnly ? 'preserveStartEnd' : intervalType
-              }
-              tick={{ transform: 'translate(0, 6)' }}
-              ticks={
-                startEndOnly && data.length > 0
-                  ? [data[0][index], data[data.length - 1][index]]
-                  : undefined
+              interval={xAxisInterval}
+              tick={
+                startEndOnly
+                  ? (props: any) => {
+                      const {
+                        x,
+                        y,
+                        payload,
+                        index: tickIndex,
+                      } = props
+                      const isFirst = tickIndex === 0
+                      const isLast =
+                        tickIndex >=
+                        data.length - 1 - (xAxisInterval as number)
+
+                      // Only render first and last labels
+                      if (!isFirst && !isLast) return <g />
+
+                      // Adjust text anchor to prevent clipping at edges
+                      const textAnchor = isFirst ? 'start' : 'end'
+
+                      return (
+                        <text
+                          x={x}
+                          y={y + 12}
+                          textAnchor={textAnchor}
+                          className="text-sm fill-muted-foreground"
+                        >
+                          {payload.value}
+                        </text>
+                      )
+                    }
+                  : { transform: 'translate(0, 6)' }
               }
               fill=""
               stroke=""
               className={cn(
                 // base
-                'text-xs',
+                'text-sm',
                 // text fill
-                'fill-gray-500 dark:fill-gray-500'
+                'fill-muted-foreground'
               )}
-              tickLine={false}
-              axisLine={false}
+              tickLine={
+                startEndOnly
+                  ? false
+                  : { stroke: 'hsl(var(--border))' }
+              }
+              axisLine={{ stroke: 'hsl(var(--border))' }}
               minTickGap={tickGap}
             >
               {xAxisLabel && (
                 <Label
                   position="insideBottom"
                   offset={-20}
-                  className="fill-gray-800 text-sm font-medium dark:fill-gray-200"
+                  className="fill-foreground text-sm font-medium"
                 >
                   {xAxisLabel}
                 </Label>
@@ -796,7 +834,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 // base
                 'text-xs',
                 // text fill
-                'fill-gray-500 dark:fill-gray-500'
+                'fill-muted-foreground'
               )}
               ticks={
                 minValue !== undefined &&
@@ -818,7 +856,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                   style={{ textAnchor: 'middle' }}
                   angle={-90}
                   offset={-15}
-                  className="fill-gray-800 text-sm font-medium dark:fill-gray-200"
+                  className="fill-foreground text-sm font-medium"
                 >
                   {yAxisLabel}
                 </Label>
@@ -828,9 +866,13 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               wrapperStyle={{ outline: 'none' }}
               isAnimationActive={true}
               animationDuration={100}
-              cursor={{ stroke: '#d1d5db', strokeWidth: 1 }}
+              cursor={{
+                stroke: 'hsl(var(--foreground))',
+                strokeWidth: 1,
+              }}
               offset={20}
               position={{ y: 0 }}
+              allowEscapeViewBox={{ x: true, y: true }}
               content={({ active, payload, label }) => {
                 const cleanPayload: TooltipProps['payload'] = payload
                   ? payload.map((item: any) => ({
