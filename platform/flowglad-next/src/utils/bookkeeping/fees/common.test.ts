@@ -634,6 +634,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: '10.00',
             baseAmount: 1000,
@@ -707,6 +708,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: '10.00',
             baseAmount: 1000,
@@ -769,6 +771,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: organization.feePercentage,
             baseAmount: 1000,
@@ -839,6 +842,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: '10.00',
             baseAmount: 1000,
@@ -899,6 +903,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: '10.00', // This should be ignored
             baseAmount: 1000,
@@ -961,6 +966,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: '10.00',
             baseAmount: 20000,
@@ -1022,6 +1028,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: baseFeePercentage,
             baseAmount: 1000,
@@ -1100,6 +1107,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: '10.00',
             baseAmount: 1000,
@@ -1183,6 +1191,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: org1.id,
             priceId: price1.id,
+            pricingModelId: price1.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: '10.00',
             baseAmount: 1000,
