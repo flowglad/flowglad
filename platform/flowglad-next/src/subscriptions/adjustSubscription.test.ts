@@ -41,6 +41,7 @@ import {
   calculateSplitInBillingPeriodBasedOnAdjustmentDate,
   syncSubscriptionWithActiveItems,
 } from '@/subscriptions/adjustSubscription'
+import type { TerseSubscriptionItem } from '@/subscriptions/schemas'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -2932,7 +2933,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Use priceSlug in the terse format
-        const newItems = [
+        const newItems: TerseSubscriptionItem[] = [
           {
             priceSlug: 'premium-monthly',
             quantity: 1,
@@ -2943,7 +2944,7 @@ describe('adjustSubscription Integration Tests', async () => {
           {
             id: subscription.id,
             adjustment: {
-              newSubscriptionItems: newItems as any,
+              newSubscriptionItems: newItems,
               timing: SubscriptionAdjustmentTiming.Immediately,
               prorateCurrentBillingPeriod: true,
             },
@@ -2990,7 +2991,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        const newItems = [
+        const newItems: TerseSubscriptionItem[] = [
           {
             priceSlug: 'nonexistent-slug',
             quantity: 1,
@@ -3002,7 +3003,7 @@ describe('adjustSubscription Integration Tests', async () => {
             {
               id: subscription.id,
               adjustment: {
-                newSubscriptionItems: newItems as any,
+                newSubscriptionItems: newItems,
                 timing: SubscriptionAdjustmentTiming.Immediately,
                 prorateCurrentBillingPeriod: true,
               },
@@ -3036,7 +3037,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Use terse format with priceId
-        const newItems = [
+        const newItems: TerseSubscriptionItem[] = [
           {
             priceId: price.id,
             quantity: 3,
@@ -3047,7 +3048,7 @@ describe('adjustSubscription Integration Tests', async () => {
           {
             id: subscription.id,
             adjustment: {
-              newSubscriptionItems: newItems as any,
+              newSubscriptionItems: newItems,
               timing: SubscriptionAdjustmentTiming.Immediately,
               prorateCurrentBillingPeriod: true,
             },
@@ -3123,7 +3124,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Mix priceSlug and priceId items in the same request
-        const newItems = [
+        const newItems: TerseSubscriptionItem[] = [
           {
             priceSlug: 'premium-mixed-test',
             quantity: 1,
@@ -3138,7 +3139,7 @@ describe('adjustSubscription Integration Tests', async () => {
           {
             id: subscription.id,
             adjustment: {
-              newSubscriptionItems: newItems as any,
+              newSubscriptionItems: newItems,
               timing: SubscriptionAdjustmentTiming.Immediately,
               prorateCurrentBillingPeriod: true,
             },
@@ -3158,21 +3159,21 @@ describe('adjustSubscription Integration Tests', async () => {
         ).toBe(2)
 
         // First item resolved from priceSlug
-        const slugItem =
-          triggerCall.adjustmentParams.newSubscriptionItems.find(
-            (i: any) => i.priceId === slugPrice.id
-          )
+        const slugItem = (
+          triggerCall.adjustmentParams
+            .newSubscriptionItems as SubscriptionItem.Record[]
+        ).find((i) => i.priceId === slugPrice.id)
         expect(slugItem).toBeDefined()
-        expect(slugItem.unitPrice).toBe(slugPrice.unitPrice)
-        expect(slugItem.name).toBe(slugPrice.name)
+        expect(slugItem!.unitPrice).toBe(slugPrice.unitPrice)
+        expect(slugItem!.name).toBe(slugPrice.name)
 
         // Second item resolved from priceId
-        const idItem =
-          triggerCall.adjustmentParams.newSubscriptionItems.find(
-            (i: any) => i.priceId === price.id
-          )
+        const idItem = (
+          triggerCall.adjustmentParams
+            .newSubscriptionItems as SubscriptionItem.Record[]
+        ).find((i) => i.priceId === price.id)
         expect(idItem).toBeDefined()
-        expect(idItem.quantity).toBe(2)
+        expect(idItem!.quantity).toBe(2)
       })
     })
   })

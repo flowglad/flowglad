@@ -53,26 +53,44 @@ import {
 } from './subscriptionItemHelpers'
 
 /**
- * Helper type guard to check if an item is a terse subscription item (priceId/priceSlug + quantity only)
+ * Helper type guard to check if an item is a terse subscription item (priceId/priceSlug + quantity only).
+ * A terse item must:
+ * - Have at least one of priceId or priceSlug defined (as a string)
+ * - Have quantity defined (as a number)
+ * - Only contain keys from the allowed set: ['priceId', 'priceSlug', 'quantity']
  */
 const isTerseSubscriptionItem = (
   item: FlexibleSubscriptionItem
 ): item is TerseSubscriptionItem => {
-  // Terse items only have priceId/priceSlug and quantity, no other fields
-  const keys = Object.keys(item).filter(
+  // Get only the defined keys (filter out undefined values)
+  const definedKeys = Object.keys(item).filter(
     (k) => item[k as keyof typeof item] !== undefined
   )
-  const terseKeys = ['priceId', 'priceSlug', 'quantity']
+  const allowedTerseKeys = ['priceId', 'priceSlug', 'quantity']
 
-  // Must have at least one of priceId or priceSlug
+  // All defined keys must be within the allowed terse keys
+  const allKeysAreTerse = definedKeys.every((key) =>
+    allowedTerseKeys.includes(key)
+  )
+  if (!allKeysAreTerse) {
+    return false
+  }
+
+  // Must have at least one of priceId or priceSlug defined as a string
   const hasPriceIdentifier =
     ('priceId' in item && typeof item.priceId === 'string') ||
     ('priceSlug' in item && typeof item.priceSlug === 'string')
+  if (!hasPriceIdentifier) {
+    return false
+  }
 
-  // All keys must be within the allowed terse keys
-  const allKeysAreTerse = keys.every((key) => terseKeys.includes(key))
+  // Quantity must be defined and be a number (when present)
+  // Note: quantity has a default of 1 in the schema, so it should always be present after parsing
+  if ('quantity' in item && typeof item.quantity !== 'number') {
+    return false
+  }
 
-  return hasPriceIdentifier && allKeysAreTerse
+  return true
 }
 
 /**
@@ -525,18 +543,12 @@ export const adjustSubscription = async (
   const isUpgrade = newPlanTotalPrice > oldPlanTotalPrice
 
   // Resolve 'auto' timing to actual timing based on upgrade vs downgrade
-  let resolvedTiming:
+  const resolvedTiming:
     | SubscriptionAdjustmentTiming.Immediately
-    | SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
-
-  if (requestedTiming === SubscriptionAdjustmentTiming.Auto) {
-    resolvedTiming = autoDetectTiming(
-      oldPlanTotalPrice,
-      newPlanTotalPrice
-    )
-  } else {
-    resolvedTiming = requestedTiming
-  }
+    | SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod =
+    requestedTiming === SubscriptionAdjustmentTiming.Auto
+      ? autoDetectTiming(oldPlanTotalPrice, newPlanTotalPrice)
+      : requestedTiming
 
   const adjustmentDate =
     resolvedTiming === SubscriptionAdjustmentTiming.Immediately
