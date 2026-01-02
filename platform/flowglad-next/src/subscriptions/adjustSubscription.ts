@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { eq } from 'drizzle-orm'
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
@@ -476,7 +475,8 @@ export const adjustSubscription = async (
     )
 
     // Send downgrade notifications
-    const adjustmentId = randomUUID()
+    // Use subscription.id + adjustmentDate for idempotency (unique per adjustment)
+    const adjustmentId = `${id}-${adjustmentDate}`
     const price = await selectPriceById(
       subscription.priceId,
       transaction

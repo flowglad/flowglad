@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import type Stripe from 'stripe'
 import type {
   BillingPeriodTransitionLedgerCommand,
@@ -452,7 +451,8 @@ export const processOutcomeForBillingRun = async (
     )
 
     // Send upgrade notifications AFTER payment succeeded and items updated
-    const adjustmentId = randomUUID()
+    // Use billingRun.id as adjustmentId for idempotency (unique per adjustment)
+    const adjustmentId = billingRun.id
     const price = await selectPriceById(
       subscription.priceId,
       transaction

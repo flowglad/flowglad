@@ -3177,10 +3177,8 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(customerAdjustmentId).toBeDefined()
         expect(orgAdjustmentId).toBeDefined()
         expect(customerAdjustmentId).toBe(orgAdjustmentId)
-        // Verify it's a valid UUID format
-        expect(customerAdjustmentId).toMatch(
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        )
+        // Verify it contains the subscription ID (format: subscriptionId-adjustmentDate)
+        expect(customerAdjustmentId).toContain(subscription.id)
       })
     })
   })
