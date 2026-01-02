@@ -1,4 +1,4 @@
-import { addDays, addHours, format, isValid } from 'date-fns'
+import { isValid } from 'date-fns'
 import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { cn } from '@/lib/utils'
@@ -6,8 +6,77 @@ import { RevenueChartIntervalUnit } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import ErrorBoundary from './ErrorBoundary'
 
+const MONTH_NAMES_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
+const MONTH_NAMES_FULL = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+
 /**
- * Formats a date for the tooltip based on the interval unit.
+ * Formats a UTC date without timezone conversion for tooltip display.
+ */
+function formatDateUTC(
+  date: Date,
+  pattern: 'HH:mm' | 'd MMM, yyyy' | 'MMMM yyyy'
+): string {
+  const day = date.getUTCDate()
+  const month = date.getUTCMonth()
+  const year = date.getUTCFullYear()
+  const hours = date.getUTCHours().toString().padStart(2, '0')
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0')
+
+  switch (pattern) {
+    case 'HH:mm':
+      return `${hours}:${minutes}`
+    case 'd MMM, yyyy':
+      return `${day} ${MONTH_NAMES_SHORT[month]}, ${year}`
+    case 'MMMM yyyy':
+      return `${MONTH_NAMES_FULL[month]} ${year}`
+    default:
+      return `${day} ${MONTH_NAMES_SHORT[month]}, ${year}`
+  }
+}
+
+/**
+ * Adds hours to a UTC date and returns a new date.
+ */
+function addHoursUTC(date: Date, hours: number): Date {
+  return new Date(date.getTime() + hours * 60 * 60 * 1000)
+}
+
+/**
+ * Adds days to a UTC date and returns a new date.
+ */
+function addDaysUTC(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000)
+}
+
+/**
+ * Formats a date for the tooltip based on the interval unit using UTC.
  * - Hour: "10:00 - 11:00, 21 Oct, 2025" (hour range first, then date)
  * - Week: "12 Oct, 2025 - 18 Oct, 2025" (week range)
  * - Day: "21 Oct, 2025"
@@ -19,18 +88,18 @@ function formatDateForInterval(
 ): string {
   if (intervalUnit === RevenueChartIntervalUnit.Hour) {
     const hourStart = date
-    const hourEnd = addHours(hourStart, 1)
-    return `${format(hourStart, 'HH:mm')} - ${format(hourEnd, 'HH:mm')}, ${format(hourStart, 'd MMM, yyyy')}`
+    const hourEnd = addHoursUTC(hourStart, 1)
+    return `${formatDateUTC(hourStart, 'HH:mm')} - ${formatDateUTC(hourEnd, 'HH:mm')}, ${formatDateUTC(hourStart, 'd MMM, yyyy')}`
   }
   if (intervalUnit === RevenueChartIntervalUnit.Week) {
     const weekStart = date
-    const weekEnd = addDays(weekStart, 6)
-    return `${format(weekStart, 'd MMM, yyyy')} - ${format(weekEnd, 'd MMM, yyyy')}`
+    const weekEnd = addDaysUTC(weekStart, 6)
+    return `${formatDateUTC(weekStart, 'd MMM, yyyy')} - ${formatDateUTC(weekEnd, 'd MMM, yyyy')}`
   }
   if (intervalUnit === RevenueChartIntervalUnit.Day) {
-    return format(date, 'd MMM, yyyy')
+    return formatDateUTC(date, 'd MMM, yyyy')
   }
-  return format(date, 'MMMM yyyy')
+  return formatDateUTC(date, 'MMMM yyyy')
 }
 
 /**
