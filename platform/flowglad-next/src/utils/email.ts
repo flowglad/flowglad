@@ -424,7 +424,7 @@ export const sendCustomerBillingPortalOTP = async ({
     from: 'notifications@flowglad.com',
     to: to.map(safeTo),
     subject: formatEmailSubject(
-      `Sign in to your ${organizationName} billing portal - Your code is ${otp}`,
+      `${otp} is your ${organizationName} billing portal code`,
       livemode
     ),
     react: await CustomerBillingPortalOTPEmail({

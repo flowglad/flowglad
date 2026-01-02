@@ -40,7 +40,7 @@ export const CustomerBillingPortalOTPEmail = ({
       <Paragraph variant="customer">Hi {displayName},</Paragraph>
       <Paragraph variant="customer">
         You requested a verification code to sign in to your billing
-        portal for {organizationName}.w
+        portal for {organizationName}.
       </Paragraph>
       <Section
         style={{ textAlign: 'center' as const, marginTop: '32px' }}
