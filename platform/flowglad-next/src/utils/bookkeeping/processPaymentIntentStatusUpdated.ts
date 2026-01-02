@@ -4,12 +4,14 @@ import type {
   LedgerCommand,
 } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { Event } from '@/db/schema/events'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import type { Payment } from '@/db/schema/payments'
 import type { Purchase } from '@/db/schema/purchases'
 import type { UsageCredit } from '@/db/schema/usageCredits'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
 import {
@@ -78,6 +80,28 @@ export const chargeStatusToPaymentStatus = (
   return paymentStatus
 }
 
+const selectFeeCalculationForPaymentIntent = async (
+  params: { type: IntentMetadataType } & (
+    | { type: IntentMetadataType.BillingRun; billingPeriodId: string }
+    | {
+        type: IntentMetadataType.CheckoutSession
+        checkoutSessionId: string
+      }
+  ),
+  transaction: DbTransaction
+): Promise<FeeCalculation.Record | null> => {
+  if (params.type === IntentMetadataType.BillingRun) {
+    return selectLatestFeeCalculation(
+      { billingPeriodId: params.billingPeriodId },
+      transaction
+    )
+  }
+  return selectLatestFeeCalculation(
+    { checkoutSessionId: params.checkoutSessionId },
+    transaction
+  )
+}
+
 export const upsertPaymentForStripeCharge = async (
   {
     charge,
@@ -114,6 +138,7 @@ export const upsertPaymentForStripeCharge = async (
   let currency: Nullish<CurrencyCode> = null
   let subscriptionId: Nullish<string> = null
   let checkoutSessionEvents: Event.Insert[] = []
+  let feeCalculation: FeeCalculation.Record | null = null
   if (paymentIntentMetadata.type === IntentMetadataType.BillingRun) {
     const billingRun = await selectBillingRunById(
       paymentIntentMetadata.billingRunId,
@@ -141,9 +166,23 @@ export const upsertPaymentForStripeCharge = async (
     organizationId = subscription.organizationId
     livemode = subscription.livemode
     subscriptionId = subscription.id
+    feeCalculation = await selectFeeCalculationForPaymentIntent(
+      {
+        type: IntentMetadataType.BillingRun,
+        billingPeriodId: billingRun.billingPeriodId,
+      },
+      transaction
+    )
   } else if (
     paymentIntentMetadata.type === IntentMetadataType.CheckoutSession
   ) {
+    feeCalculation = await selectFeeCalculationForPaymentIntent(
+      {
+        type: IntentMetadataType.CheckoutSession,
+        checkoutSessionId: paymentIntentMetadata.checkoutSessionId,
+      },
+      transaction
+    )
     const {
       result: { checkoutSession, purchase: updatedPurchase, invoice },
       eventsToInsert: eventsFromCheckoutSession = [],
@@ -261,6 +300,16 @@ export const upsertPaymentForStripeCharge = async (
     stripeChargeId: stripeIdFromObjectOrId(charge),
     customerId,
     livemode,
+    ...(feeCalculation
+      ? {
+          subtotal: feeCalculation.pretaxTotal,
+          taxAmount: feeCalculation.taxAmountFixed,
+          stripeTaxCalculationId:
+            feeCalculation.stripeTaxCalculationId,
+          stripeTaxTransactionId:
+            feeCalculation.stripeTaxTransactionId,
+        }
+      : {}),
   }
   const payment = await upsertPaymentByStripeChargeId(
     paymentInsert,

@@ -108,6 +108,7 @@ import {
   PaymentMethodType,
   PaymentStatus,
   PriceType,
+  StripeConnectContractType,
   SubscriptionItemType,
   SubscriptionStatus,
   UsageCreditStatus,
@@ -1758,6 +1759,39 @@ describe('billingRunHelpers', async () => {
         )
         expect(result.payment.livemode).toBe(billingPeriod.livemode)
       }
+    })
+
+    it('copies Stripe Tax calculation fields from fee calculation onto payment (MoR)', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        organization = await updateOrganization(
+          {
+            id: organization.id,
+            stripeConnectContractType:
+              StripeConnectContractType.MerchantOfRecord,
+          },
+          transaction
+        )
+      })
+
+      const result = await adminTransaction(({ transaction }) =>
+        executeBillingRunCalculationAndBookkeepingSteps(
+          billingRun,
+          transaction
+        )
+      )
+
+      expect(result.feeCalculation.stripeTaxCalculationId).toMatch(
+        /^testtaxcalc_/
+      )
+      expect(result.payment?.stripeTaxCalculationId).toBe(
+        result.feeCalculation.stripeTaxCalculationId
+      )
+      expect(result.payment?.subtotal).toBe(
+        result.feeCalculation.pretaxTotal
+      )
+      expect(result.payment?.taxAmount).toBe(
+        result.feeCalculation.taxAmountFixed
+      )
     })
 
     it('should update billing run status to AwaitingPaymentConfirmation', async () => {
