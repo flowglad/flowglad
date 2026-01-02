@@ -11,7 +11,10 @@ import { standardSubscriptionSelectSchema } from '@/db/schema/subscriptions'
 import { bulkInsertBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
-import { selectPrices } from '@/db/tableMethods/priceMethods'
+import {
+  selectPriceById,
+  selectPrices,
+} from '@/db/tableMethods/priceMethods'
 import {
   bulkCreateOrUpdateSubscriptionItems,
   expireSubscriptionItems,
@@ -24,15 +27,15 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
+import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
+import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
 import {
-  FeatureFlag,
   PaymentStatus,
   PriceType,
   SubscriptionAdjustmentTiming,
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
-import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
   createBillingRun,
@@ -243,17 +246,6 @@ export const adjustSubscription = async (
   const { adjustment, id } = input
   const { newSubscriptionItems, timing } = adjustment
 
-  if (
-    timing === SubscriptionAdjustmentTiming.Immediately &&
-    !hasFeatureFlag(
-      organization,
-      FeatureFlag.ImmediateSubscriptionAdjustments
-    )
-  ) {
-    throw new Error(
-      'Immediate adjustments are in private preview. Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616'
-    )
-  }
   const subscription = await selectSubscriptionById(id, transaction)
   if (isSubscriptionInTerminalState(subscription.status)) {
     throw new Error('Subscription is in terminal state')
@@ -468,6 +460,57 @@ export const adjustSubscription = async (
       },
       transaction
     )
+
+    // Send downgrade notifications
+    const price = await selectPriceById(
+      subscription.priceId,
+      transaction
+    )
+
+    if (!price) {
+      throw new Error(
+        `Price ${subscription.priceId} not found for subscription ${subscription.id}`
+      )
+    }
+
+    await idempotentSendCustomerSubscriptionAdjustedNotification({
+      subscriptionId: id,
+      customerId: subscription.customerId,
+      organizationId: subscription.organizationId,
+      adjustmentType: 'downgrade',
+      previousItems: existingSubscriptionItems.map((item) => ({
+        name: item.name ?? '',
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+      })),
+      newItems: nonManualSubscriptionItems.map((item) => ({
+        name: item.name ?? '',
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+      })),
+      prorationAmount: null,
+      effectiveDate: adjustmentDate,
+    })
+
+    await idempotentSendOrganizationSubscriptionAdjustedNotification({
+      subscriptionId: id,
+      customerId: subscription.customerId,
+      organizationId: subscription.organizationId,
+      adjustmentType: 'downgrade',
+      previousItems: existingSubscriptionItems.map((item) => ({
+        name: item.name ?? '',
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+      })),
+      newItems: nonManualSubscriptionItems.map((item) => ({
+        name: item.name ?? '',
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+      })),
+      prorationAmount: null,
+      effectiveDate: adjustmentDate,
+      currency: price.currency,
+    })
   }
 
   // Get currently active subscription items to return
