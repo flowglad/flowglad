@@ -129,13 +129,15 @@ export const RecurringRevenueChart = ({
   }
   return (
     <div className="w-full h-full">
-      <div className="flex flex-row gap-2 justify-between">
+      <div className="flex flex-row gap-2 justify-between px-4">
         <div className="text-foreground w-fit flex items-center flex-row">
-          <p className="whitespace-nowrap">MRR</p>
+          <p className="whitespace-nowrap">
+            Monthly Recurring Revenue
+          </p>
         </div>
       </div>
 
-      <div className="mt-2">
+      <div className="px-4">
         {isLoading ? (
           <Skeleton className="w-36 h-12" />
         ) : (

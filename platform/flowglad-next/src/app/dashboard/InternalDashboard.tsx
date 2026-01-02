@@ -41,6 +41,7 @@ function InternalDashboardPage({
       <PageHeaderNew
         title={greeting}
         hideBorder
+        className="pb-2"
         description={
           <DateRangePicker
             fromDate={range.from}
@@ -59,7 +60,7 @@ function InternalDashboardPage({
           />
         }
       />
-      <div className="w-full flex flex-col gap-12 py-4 px-4">
+      <div className="w-full flex flex-col gap-12 pb-16">
         <ChartContainer>
           <RevenueChart fromDate={range.from} toDate={range.to} />
         </ChartContainer>
