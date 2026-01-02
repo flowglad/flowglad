@@ -13,6 +13,7 @@ import {
   merchantPolicy,
   notNullStringForeignKey,
   ommittedColumnsForInsertSchema,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   type SelectConditions,
   tableBase,
@@ -54,7 +55,7 @@ export const apiKeys = pgTable(
       merchantPolicy('Enable all actions for own organizations', {
         as: 'permissive',
         for: 'all',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        using: orgIdEqualsCurrentSQL(),
       }),
       livemodePolicy(TABLE_NAME),
     ]

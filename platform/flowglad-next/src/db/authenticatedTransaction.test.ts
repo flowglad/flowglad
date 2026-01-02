@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { sql } from 'drizzle-orm'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { z } from 'zod'
 import {
   setupMemberships,
   setupOrg,
@@ -41,6 +43,42 @@ import {
   selectProducts,
   updateProduct,
 } from './tableMethods/productMethods'
+import { insertUser } from './tableMethods/userMethods'
+import type { DbTransaction } from './types'
+
+const mockedAuth = vi.hoisted(
+  (): {
+    session: null | { user: { id: string; email: string } }
+  } => ({ session: null })
+)
+
+vi.mock('@/utils/auth', () => {
+  return {
+    getSession: async () => mockedAuth.session,
+  }
+})
+
+const currentOrganizationIdQueryResultSchema = z
+  .object({ organization_id: z.string() })
+  .array()
+
+/**
+ * Read `current_organization_id()` inside an authenticated transaction.
+ * This is used to ensure authenticatedTransaction correctly sets the request
+ * context for RLS policies that depend on it.
+ */
+const selectCurrentOrganizationId = async (
+  transaction: DbTransaction
+): Promise<string> => {
+  const rows = await transaction.execute(
+    sql`select current_organization_id() as organization_id`
+  )
+  const [row] = currentOrganizationIdQueryResultSchema.parse(rows)
+  if (!row) {
+    throw new Error('Expected at least one row for current org query')
+  }
+  return row.organization_id
+}
 
 describe('authenticatedTransaction', () => {
   // Global test state variables
@@ -55,6 +93,8 @@ describe('authenticatedTransaction', () => {
   let membershipB2: Membership.Record // userB in testOrg2
 
   beforeEach(async () => {
+    mockedAuth.session = null
+
     // Setup two test organizations
     const org1Setup = await setupOrg()
     testOrg1 = org1Setup.organization
@@ -194,6 +234,77 @@ describe('authenticatedTransaction', () => {
           { apiKey: apiKeyA.token }
         )
       ).rejects.toThrow('Transaction function error')
+    })
+  })
+
+  describe('current_organization_id()', () => {
+    it('is set for API key authenticated requests', async () => {
+      const result = await authenticatedTransaction(
+        async ({ transaction, organizationId }) => {
+          const currentOrganizationId =
+            await selectCurrentOrganizationId(transaction)
+          expect(currentOrganizationId).toBe(organizationId)
+          return currentOrganizationId
+        },
+        { apiKey: apiKeyA.token }
+      )
+      expect(result).toBe(testOrg1.id)
+    })
+
+    it('is set for webapp authenticated requests', async () => {
+      const betterAuthId = `bau_test_${hashData(
+        `betterAuth-${Date.now()}`
+      )}`
+      const email = `webapp-${Date.now()}@test.com`
+      const userId = `usr_test_${hashData(`user-${Date.now()}`)}`
+
+      await adminTransaction(async ({ transaction }) => {
+        await insertUser(
+          {
+            id: userId,
+            email,
+            name: 'Webapp User',
+            betterAuthId,
+          },
+          transaction
+        )
+        await insertMembership(
+          {
+            organizationId: testOrg1.id,
+            userId,
+            focused: true,
+            livemode: true,
+          },
+          transaction
+        )
+        await insertMembership(
+          {
+            organizationId: testOrg2.id,
+            userId,
+            focused: false,
+            livemode: true,
+          },
+          transaction
+        )
+      })
+
+      mockedAuth.session = {
+        user: {
+          id: betterAuthId,
+          email,
+        },
+      }
+
+      const result = await authenticatedTransaction(
+        async ({ transaction, organizationId }) => {
+          const currentOrganizationId =
+            await selectCurrentOrganizationId(transaction)
+          expect(currentOrganizationId).toBe(organizationId)
+          return currentOrganizationId
+        }
+      )
+
+      expect(result).toBe(testOrg1.id)
     })
   })
 })
