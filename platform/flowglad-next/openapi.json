@@ -1707,10 +1707,13 @@
                     "type": "object",
                     "properties": {
                       "email": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "email",
+                        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                       },
                       "name": {
-                        "type": "string"
+                        "type": "string",
+                        "minLength": 2
                       },
                       "archived": {
                         "type": "boolean"
@@ -1755,7 +1758,8 @@
                           }
                         ]
                       }
-                    }
+                    },
+                    "required": ["email", "name"]
                   }
                 },
                 "required": ["customer"]
@@ -8722,10 +8726,13 @@
         "type": "object",
         "properties": {
           "email": {
-            "type": "string"
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "minLength": 2
           },
           "archived": {
             "type": "boolean"
@@ -13746,10 +13753,13 @@
             "type": "string"
           },
           "email": {
-            "type": "string"
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "minLength": 2
           },
           "invoiceNumberBase": {
             "anyOf": [

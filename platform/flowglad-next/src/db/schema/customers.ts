@@ -128,6 +128,9 @@ const hiddenColumns = {
 
 const zodSchemaEnhancementColumns = {
   billingAddress: billingAddressSchema.nullable().optional(),
+
+  name: z.string().min(1, "Please enter the customer's name"),
+  email: z.email('Please enter a valid email address'),
 }
 
 export const {
@@ -226,7 +229,7 @@ export interface CustomerTableRowData {
 export const requestBillingPortalLinkSchema = z.object({
   customerId: z.string(),
   organizationId: z.string(),
-  email: z.string().email(),
+  email: z.email(),
 })
 
 export type RequestBillingPortalLinkInput = z.infer<
