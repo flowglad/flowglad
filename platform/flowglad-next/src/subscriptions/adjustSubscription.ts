@@ -475,8 +475,6 @@ export const adjustSubscription = async (
     )
 
     // Send downgrade notifications
-    // Use subscription.id + adjustmentDate for idempotency (unique per adjustment)
-    const adjustmentId = `${id}-${adjustmentDate}`
     const price = await selectPriceById(
       subscription.priceId,
       transaction
@@ -489,7 +487,6 @@ export const adjustSubscription = async (
     }
 
     await idempotentSendCustomerSubscriptionAdjustedNotification({
-      adjustmentId,
       subscriptionId: id,
       customerId: subscription.customerId,
       organizationId: subscription.organizationId,
@@ -509,7 +506,6 @@ export const adjustSubscription = async (
     })
 
     await idempotentSendOrganizationSubscriptionAdjustedNotification({
-      adjustmentId,
       subscriptionId: id,
       customerId: subscription.customerId,
       organizationId: subscription.organizationId,

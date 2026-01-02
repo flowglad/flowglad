@@ -24,7 +24,6 @@ interface SubscriptionItemPayload {
 }
 
 export interface SendCustomerSubscriptionAdjustedNotificationPayload {
-  adjustmentId: string
   subscriptionId: string
   customerId: string
   organizationId: string
@@ -161,7 +160,7 @@ export const idempotentSendCustomerSubscriptionAdjustedNotification =
         params,
         {
           idempotencyKey: await createTriggerIdempotencyKey(
-            `send-customer-subscription-adjusted-notification-${params.adjustmentId}`
+            `send-customer-subscription-adjusted-notification-${params.subscriptionId}-${params.effectiveDate}`
           ),
         }
       )

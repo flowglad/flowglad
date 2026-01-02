@@ -451,8 +451,6 @@ export const processOutcomeForBillingRun = async (
     )
 
     // Send upgrade notifications AFTER payment succeeded and items updated
-    // Use billingRun.id as adjustmentId for idempotency (unique per adjustment)
-    const adjustmentId = billingRun.id
     const price = await selectPriceById(
       subscription.priceId,
       transaction
@@ -471,7 +469,6 @@ export const processOutcomeForBillingRun = async (
       .reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
 
     await idempotentSendCustomerSubscriptionAdjustedNotification({
-      adjustmentId,
       subscriptionId: subscription.id,
       customerId: customer.id,
       organizationId: organization.id,
@@ -494,7 +491,6 @@ export const processOutcomeForBillingRun = async (
     })
 
     await idempotentSendOrganizationSubscriptionAdjustedNotification({
-      adjustmentId,
       subscriptionId: subscription.id,
       customerId: customer.id,
       organizationId: organization.id,

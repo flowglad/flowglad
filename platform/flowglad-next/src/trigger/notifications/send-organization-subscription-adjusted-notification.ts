@@ -21,7 +21,6 @@ import {
 } from '@/utils/email'
 
 export interface SendOrganizationSubscriptionAdjustedNotificationPayload {
-  adjustmentId: string
   subscriptionId: string
   customerId: string
   organizationId: string
@@ -48,7 +47,6 @@ const sendOrganizationSubscriptionAdjustedNotificationTask = task({
     )
 
     const {
-      adjustmentId,
       subscriptionId,
       customerId,
       organizationId,
@@ -154,7 +152,7 @@ export const idempotentSendOrganizationSubscriptionAdjustedNotification =
         params,
         {
           idempotencyKey: await createTriggerIdempotencyKey(
-            `send-organization-subscription-adjusted-notification-${params.adjustmentId}`
+            `send-organization-subscription-adjusted-notification-${params.subscriptionId}-${params.effectiveDate}`
           ),
         }
       )
