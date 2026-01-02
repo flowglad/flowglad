@@ -162,6 +162,10 @@ describe('createNonInvoiceCheckoutSession', () => {
       expect(checkoutSession.stripeSetupIntentId).toBeNull()
       expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
       expect(checkoutSession.priceId).toBe(singlePaymentPrice.id)
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+      expect(checkoutSession.pricingModelId).toBe(
+        singlePaymentPrice.pricingModelId
+      )
     })
 
     it('should create a checkout session for a Subscription product', async () => {
@@ -180,6 +184,10 @@ describe('createNonInvoiceCheckoutSession', () => {
       expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
       expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
       expect(checkoutSession.priceId).toBe(subscriptionPrice.id)
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+      expect(checkoutSession.pricingModelId).toBe(
+        subscriptionPrice.pricingModelId
+      )
     })
 
     it('should create a checkout session for a Usage-based product', async () => {
@@ -197,6 +205,10 @@ describe('createNonInvoiceCheckoutSession', () => {
       expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
       expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
       expect(checkoutSession.priceId).toBe(usagePrice.id)
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+      expect(checkoutSession.pricingModelId).toBe(
+        usagePrice.pricingModelId
+      )
     })
   })
 
@@ -221,184 +233,96 @@ describe('createNonInvoiceCheckoutSession', () => {
       )
       expect(checkoutSession.targetSubscriptionId).toBe('sub_123')
       expect(checkoutSession.customerId).toBe(customer.id)
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+      expect(checkoutSession.pricingModelId).toBe(
+        subscriptionPrice.pricingModelId
+      )
     })
   })
 
-  describe('pricingModelId derivation', () => {
-    describe('Product checkout sessions', () => {
-      it('should derive pricingModelId from price for SinglePayment product', async () => {
-        const checkoutSession = await adminTransaction(
-          async ({ transaction }) =>
-            createNonInvoiceCheckoutSession(
-              {
-                price: singlePaymentPrice,
-                organizationId: organization.id,
-              },
-              transaction
-            )
-        )
-
-        expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
-        expect(checkoutSession.pricingModelId).toBe(
-          singlePaymentPrice.pricingModelId
-        )
-        expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
+  describe('Purchase checkout sessions', () => {
+    it('should derive pricingModelId from price for SinglePayment purchase', async () => {
+      const purchase = await setupPurchase({
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: singlePaymentPrice.id,
+        livemode: false,
       })
 
-      it('should derive pricingModelId from price for Subscription product', async () => {
-        const checkoutSession = await adminTransaction(
-          async ({ transaction }) =>
-            createNonInvoiceCheckoutSession(
-              {
-                price: subscriptionPrice,
-                organizationId: organization.id,
-              },
-              transaction
-            )
-        )
+      const checkoutSession = await adminTransaction(
+        async ({ transaction }) =>
+          createNonInvoiceCheckoutSession(
+            {
+              price: singlePaymentPrice,
+              organizationId: organization.id,
+              purchase,
+            },
+            transaction
+          )
+      )
 
-        expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
-        expect(checkoutSession.pricingModelId).toBe(
-          subscriptionPrice.pricingModelId
-        )
-        expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
-      })
-
-      it('should derive pricingModelId from price for Usage product', async () => {
-        const checkoutSession = await adminTransaction(
-          async ({ transaction }) =>
-            createNonInvoiceCheckoutSession(
-              {
-                price: usagePrice,
-                organizationId: organization.id,
-              },
-              transaction
-            )
-        )
-
-        expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
-        expect(checkoutSession.pricingModelId).toBe(
-          usagePrice.pricingModelId
-        )
-        expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
-      })
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+      expect(checkoutSession.pricingModelId).toBe(
+        singlePaymentPrice.pricingModelId
+      )
+      expect(checkoutSession.type).toBe(CheckoutSessionType.Purchase)
+      expect(checkoutSession.purchaseId).toBe(purchase.id)
     })
 
-    describe('Purchase checkout sessions', () => {
-      it('should derive pricingModelId from price for SinglePayment purchase', async () => {
-        const purchase = await setupPurchase({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: singlePaymentPrice.id,
-          livemode: false,
-        })
-
-        const checkoutSession = await adminTransaction(
-          async ({ transaction }) =>
-            createNonInvoiceCheckoutSession(
-              {
-                price: singlePaymentPrice,
-                organizationId: organization.id,
-                purchase,
-              },
-              transaction
-            )
-        )
-
-        expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
-        expect(checkoutSession.pricingModelId).toBe(
-          singlePaymentPrice.pricingModelId
-        )
-        expect(checkoutSession.type).toBe(
-          CheckoutSessionType.Purchase
-        )
-        expect(checkoutSession.purchaseId).toBe(purchase.id)
+    it('should derive pricingModelId from price for Subscription purchase', async () => {
+      const purchase = await setupPurchase({
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: subscriptionPrice.id,
+        livemode: false,
       })
 
-      it('should derive pricingModelId from price for Subscription purchase', async () => {
-        const purchase = await setupPurchase({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: subscriptionPrice.id,
-          livemode: false,
-        })
+      const checkoutSession = await adminTransaction(
+        async ({ transaction }) =>
+          createNonInvoiceCheckoutSession(
+            {
+              price: subscriptionPrice,
+              organizationId: organization.id,
+              purchase,
+            },
+            transaction
+          )
+      )
 
-        const checkoutSession = await adminTransaction(
-          async ({ transaction }) =>
-            createNonInvoiceCheckoutSession(
-              {
-                price: subscriptionPrice,
-                organizationId: organization.id,
-                purchase,
-              },
-              transaction
-            )
-        )
-
-        expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
-        expect(checkoutSession.pricingModelId).toBe(
-          subscriptionPrice.pricingModelId
-        )
-        expect(checkoutSession.type).toBe(
-          CheckoutSessionType.Purchase
-        )
-        expect(checkoutSession.purchaseId).toBe(purchase.id)
-      })
-
-      it('should derive pricingModelId from price for Usage purchase', async () => {
-        const purchase = await setupPurchase({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: usagePrice.id,
-          livemode: false,
-        })
-
-        const checkoutSession = await adminTransaction(
-          async ({ transaction }) =>
-            createNonInvoiceCheckoutSession(
-              {
-                price: usagePrice,
-                organizationId: organization.id,
-                purchase,
-              },
-              transaction
-            )
-        )
-
-        expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
-        expect(checkoutSession.pricingModelId).toBe(
-          usagePrice.pricingModelId
-        )
-        expect(checkoutSession.type).toBe(
-          CheckoutSessionType.Purchase
-        )
-        expect(checkoutSession.purchaseId).toBe(purchase.id)
-      })
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+      expect(checkoutSession.pricingModelId).toBe(
+        subscriptionPrice.pricingModelId
+      )
+      expect(checkoutSession.type).toBe(CheckoutSessionType.Purchase)
+      expect(checkoutSession.purchaseId).toBe(purchase.id)
     })
 
-    describe('AddPaymentMethod checkout sessions', () => {
-      it('should derive pricingModelId from price for AddPaymentMethod', async () => {
-        const checkoutSession = await adminTransaction(
-          async ({ transaction }) =>
-            createNonInvoiceCheckoutSession(
-              {
-                price: subscriptionPrice,
-                organizationId: organization.id,
-                targetSubscriptionId: 'sub_123',
-                customerId: customer.id,
-              },
-              transaction
-            )
-        )
-
-        expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
-        expect(checkoutSession.pricingModelId).toBe(
-          subscriptionPrice.pricingModelId
-        )
-        expect(checkoutSession.type).toBe(
-          CheckoutSessionType.AddPaymentMethod
-        )
+    it('should derive pricingModelId from price for Usage purchase', async () => {
+      const purchase = await setupPurchase({
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: usagePrice.id,
+        livemode: false,
       })
+
+      const checkoutSession = await adminTransaction(
+        async ({ transaction }) =>
+          createNonInvoiceCheckoutSession(
+            {
+              price: usagePrice,
+              organizationId: organization.id,
+              purchase,
+            },
+            transaction
+          )
+      )
+
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+      expect(checkoutSession.pricingModelId).toBe(
+        usagePrice.pricingModelId
+      )
+      expect(checkoutSession.type).toBe(CheckoutSessionType.Purchase)
+      expect(checkoutSession.purchaseId).toBe(purchase.id)
     })
   })
 })
