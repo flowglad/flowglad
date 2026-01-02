@@ -709,3 +709,31 @@ export const safelyUpdatePrice = async (
   }
   return updatePrice(price, transaction)
 }
+
+/**
+ * Selects a price by slug within a specific pricing model.
+ * Price slugs are scoped to a pricing model, so we need the pricingModelId to resolve.
+ *
+ * @param params - Object containing slug and pricingModelId
+ * @param transaction - Database transaction
+ * @returns The price record if found, null otherwise
+ */
+export const selectPriceBySlugAndPricingModelId = async (
+  params: { slug: string; pricingModelId: string },
+  transaction: DbTransaction
+): Promise<Price.Record | null> => {
+  const result = await selectPrices(
+    {
+      slug: params.slug,
+      pricingModelId: params.pricingModelId,
+      active: true,
+    },
+    transaction
+  )
+
+  if (result.length === 0) {
+    return null
+  }
+
+  return result[0]
+}

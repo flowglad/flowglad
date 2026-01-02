@@ -796,6 +796,7 @@ export enum SubscriptionCancellationRefundPolicy {
 export enum SubscriptionAdjustmentTiming {
   Immediately = 'immediately',
   AtEndOfCurrentBillingPeriod = 'at_end_of_current_billing_period',
+  Auto = 'auto',
   // AtFutureDate = 'at_future_date',
 }
 
