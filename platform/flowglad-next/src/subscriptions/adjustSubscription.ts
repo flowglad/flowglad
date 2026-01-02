@@ -325,11 +325,15 @@ export interface AdjustSubscriptionResult {
 /**
  * Adjusts a subscription by changing its subscription items and handling proration.
  *
- * For adjustments with a net charge (> 0):
+ * For adjustments with a net charge (> 0) and proration enabled:
  * - Calculates proration based on fair value (old plan for time used + new plan for time remaining)
  * - Creates billing period items for the proration amount
  * - Creates and executes a billing run immediately to charge the customer
  * - Subscription items are updated in processOutcomeForBillingRun after payment succeeds
+ *
+ * For adjustments with proration disabled (prorateCurrentBillingPeriod: false):
+ * - Applies subscription item changes immediately without mid-period charge
+ * - New pricing takes effect immediately but customer is not charged until next billing period
  *
  * For zero-amount adjustments (downgrades with no refund):
  * - Handles subscription item changes directly via handleSubscriptionItemAdjustment
@@ -340,6 +344,7 @@ export interface AdjustSubscriptionResult {
  * - priceSlug resolution: Use priceSlug instead of priceId to reference prices
  * - Terse subscription items: Just specify priceId/priceSlug and quantity
  * - Auto timing: Automatically determines timing based on upgrade vs downgrade
+ * - prorateCurrentBillingPeriod: Control whether mid-period charges are applied (default: true)
  *
  * @param input - The adjustment parameters including new subscription items and timing
  * @param organization - The organization making the adjustment
@@ -353,7 +358,12 @@ export const adjustSubscription = async (
 ): Promise<AdjustSubscriptionResult> => {
   const { adjustment, id } = input
   const { newSubscriptionItems } = adjustment
-  let requestedTiming = adjustment.timing
+  const requestedTiming = adjustment.timing
+  // Extract prorateCurrentBillingPeriod - defaults to true if not provided
+  const shouldProrate =
+    'prorateCurrentBillingPeriod' in adjustment
+      ? adjustment.prorateCurrentBillingPeriod
+      : true
 
   const subscription = await selectSubscriptionById(id, transaction)
   if (isSubscriptionInTerminalState(subscription.status)) {
@@ -462,7 +472,7 @@ export const adjustSubscription = async (
 
   const priceIds = nonManualSubscriptionItems
     .map((item) => item.priceId)
-    .filter((priceId): priceId is string => priceId !== null)
+    .filter((priceId): priceId is string => priceId != null)
   const prices = await selectPrices({ id: priceIds }, transaction)
   const priceMap = new Map(prices.map((price) => [price.id, price]))
   nonManualSubscriptionItems.forEach((item) => {
@@ -542,10 +552,10 @@ export const adjustSubscription = async (
     )
   }
 
-  // Create proration adjustments when there's a net charge
+  // Create proration adjustments when there's a net charge AND proration is enabled
   const prorationAdjustments: BillingPeriodItem.Insert[] = []
 
-  if (netChargeAmount > 0) {
+  if (netChargeAmount > 0 && shouldProrate) {
     // Format description similar to createSubscription pattern: single-line with key info
     const prorationPercentage = (split.afterPercentage * 100).toFixed(
       1
@@ -613,6 +623,9 @@ export const adjustSubscription = async (
       },
     })
   } else {
+    // Either:
+    // - Zero-amount adjustment (downgrade with no refund)
+    // - Upgrade with proration disabled (apply changes without mid-period charge)
     // Zero-amount adjustment: handle subscription items directly (no payment needed)
     // Prepare items with required fields (livemode) before passing to handleSubscriptionItemAdjustment
     const preparedItems = nonManualSubscriptionItems.map((item) => ({
