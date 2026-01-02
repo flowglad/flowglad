@@ -332,6 +332,33 @@ describe('derivePricingModelIdForCheckoutSession', () => {
     })
   })
 
+  it('should derive pricingModelId from priceId for ActivateSubscription session', async () => {
+    const subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      livemode: true,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const derivedPricingModelId =
+        await derivePricingModelIdForCheckoutSession(
+          {
+            priceId: price.id,
+            purchaseId: null,
+            invoiceId: null,
+            customerId: customer.id,
+            type: CheckoutSessionType.ActivateSubscription,
+          },
+          transaction
+        )
+
+      expect(derivedPricingModelId).toBe(product.pricingModelId)
+      expect(derivedPricingModelId).toBe(subscription.pricingModelId)
+      expect(derivedPricingModelId).toBe(pricingModel.id)
+    })
+  })
+
   it('should derive pricingModelId from purchaseId when priceId not provided (Purchase session)', async () => {
     await adminTransaction(async ({ transaction }) => {
       const derivedPricingModelId =

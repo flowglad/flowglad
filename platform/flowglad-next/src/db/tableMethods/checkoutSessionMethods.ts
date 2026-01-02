@@ -61,7 +61,7 @@ export const derivePricingModelIdForCheckoutSession = async (
   },
   transaction: DbTransaction
 ): Promise<string> => {
-  // Try price first (for Product sessions)
+  // Try price first (for Product and ActivateSubscription sessions)
   if (data.priceId) {
     return await derivePricingModelIdFromPrice(
       data.priceId,
