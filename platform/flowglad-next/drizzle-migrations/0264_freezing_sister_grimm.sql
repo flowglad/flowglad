@@ -29,4 +29,5 @@ ALTER POLICY "Enable read for own organizations (usage_credit_balance_adjustment
 ALTER POLICY "Enable read for own organizations (usage_credits)" ON "usage_credits" TO merchant USING ("organization_id" = current_organization_id());--> statement-breakpoint
 ALTER POLICY "Enable read for own organizations (usage_events)" ON "usage_events" TO merchant USING ("customer_id" in (select "id" from "customers" where "organization_id"=current_organization_id()));--> statement-breakpoint
 ALTER POLICY "Enable read for own organizations (usage_meters)" ON "usage_meters" TO merchant USING ("organization_id" = current_organization_id());--> statement-breakpoint
-ALTER POLICY "Enable read for own organizations (webhooks)" ON "webhooks" TO merchant USING ("organization_id" = current_organization_id());
+ALTER POLICY "Enable read for own organizations (webhooks)" ON "webhooks" TO merchant USING ("organization_id" = current_organization_id());--> statement-breakpoint
+ALTER POLICY "Enable all actions for discounts in own organization" ON "checkout_sessions" RENAME TO "Enable all actions for checkout_sessions in own organization";

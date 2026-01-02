@@ -131,7 +131,7 @@ export const checkoutSessions = pgTable(
       constructIndex(TABLE_NAME, [table.discountId]),
       constructIndex(TABLE_NAME, [table.customerId]),
       merchantPolicy(
-        'Enable all actions for discounts in own organization',
+        'Enable all actions for checkout_sessions in own organization',
         {
           as: 'permissive',
           to: 'all',
