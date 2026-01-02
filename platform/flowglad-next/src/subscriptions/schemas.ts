@@ -39,6 +39,9 @@ export const terseSubscriptionItemSchema = z
       .default(1)
       .describe('The quantity of units. Defaults to 1.'),
   })
+  .describe(
+    'A terse subscription item with just price reference and quantity. Exactly one of priceId or priceSlug must be provided (server-side validation enforces this constraint).'
+  )
   .refine(
     (data) => (data.priceId ? !data.priceSlug : !!data.priceSlug),
     {
