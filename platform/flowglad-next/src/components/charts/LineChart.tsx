@@ -782,7 +782,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                           x={x}
                           y={y + 12}
                           textAnchor={textAnchor}
-                          className="text-sm fill-muted-foreground"
+                          className="text-sm fill-muted-foreground font-medium"
                         >
                           {payload.value}
                         </text>
@@ -794,7 +794,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               stroke=""
               className={cn(
                 // base
-                'text-sm',
+                'text-sm font-medium',
                 // text fill
                 'fill-muted-foreground'
               )}
@@ -832,7 +832,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               stroke=""
               className={cn(
                 // base
-                'text-xs',
+                'text-xs font-medium',
                 // text fill
                 'fill-muted-foreground'
               )}

@@ -182,7 +182,7 @@ export const ActiveSubscribersChart = ({
         </div>
       </div>
 
-      <div className="px-4">
+      <div className="px-4 mt-1">
         {isLoading ? (
           <Skeleton className="w-36 h-12" />
         ) : (
