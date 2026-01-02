@@ -1,5 +1,5 @@
 'use client'
-import { differenceInHours, isDate } from 'date-fns'
+import { differenceInHours, format, isDate } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import {
@@ -97,7 +97,7 @@ export function RevenueChart({
           item.revenue
         )
       return {
-        date: item.date.toLocaleDateString(),
+        date: format(item.date, 'd MMM'),
         formattedRevenue,
         revenue: Number(item.revenue).toFixed(2),
       }
@@ -258,7 +258,7 @@ export function RevenueChart({
         )}
       </div>
       {isLoading ? (
-        <div className="-mb-2 mt-8 flex items-center">
+        <div className="-mb-2 mt-2 flex items-center">
           <Skeleton className="h-80 w-full" />
         </div>
       ) : (
@@ -267,7 +267,7 @@ export function RevenueChart({
           index="date"
           categories={['revenue']}
           // startEndOnly={true}
-          className="-mb-2 mt-8"
+          className="-mb-2 mt-2"
           colors={['foreground']}
           customTooltip={RevenueTooltip}
           maxValue={maxValue}
@@ -275,6 +275,7 @@ export function RevenueChart({
           minValue={0}
           startEndOnly={true}
           startEndOnlyYAxis={true}
+          showYAxis={false}
           valueFormatter={(value: number) =>
             stripeCurrencyAmountToHumanReadableCurrencyAmount(
               organization?.defaultCurrency!,

@@ -1,5 +1,5 @@
 'use client'
-import { differenceInHours } from 'date-fns'
+import { differenceInHours, format } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
@@ -129,7 +129,7 @@ export const ActiveSubscribersChart = ({
     if (!subscriberData) return []
     return subscriberData.map((item) => {
       return {
-        date: item.month.toLocaleDateString(),
+        date: format(item.month, 'd MMM'),
         subscribers: item.count,
       }
     })
@@ -173,7 +173,7 @@ export const ActiveSubscribersChart = ({
   return (
     <div className="w-full h-full">
       <div className="flex flex-row gap-2 justify-between">
-        <div className="text-sm text-muted-foreground w-fit flex items-center flex-row">
+        <div className="text-foreground w-fit flex items-center flex-row">
           <p className="whitespace-nowrap">Active Subscribers</p>
         </div>
       </div>
@@ -182,20 +182,13 @@ export const ActiveSubscribersChart = ({
         {isLoading ? (
           <Skeleton className="w-36 h-12" />
         ) : (
-          <>
-            <p className="text-xl font-semibold text-foreground">
-              {formattedSubscriberValue}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {isTooltipLabelDate
-                ? core.formatDate(new Date(tooltipLabel as string))
-                : core.formatDateRange({ fromDate, toDate })}
-            </p>
-          </>
+          <p className="text-xl font-semibold text-foreground">
+            {formattedSubscriberValue}
+          </p>
         )}
       </div>
       {isLoading ? (
-        <div className="-mb-2 mt-8 w-full flex items-center justify-center">
+        <div className="-mb-2 mt-2 w-full flex items-center justify-center">
           <Skeleton className="h-80 w-full" />
         </div>
       ) : (
@@ -203,7 +196,7 @@ export const ActiveSubscribersChart = ({
           data={chartData}
           index="date"
           categories={['subscribers']}
-          className="-mb-2 mt-8"
+          className="-mb-2 mt-2"
           colors={['foreground']}
           customTooltip={SubscriberCountTooltip}
           maxValue={maxValue}
@@ -211,6 +204,7 @@ export const ActiveSubscribersChart = ({
           minValue={0}
           startEndOnly={true}
           startEndOnlyYAxis={true}
+          showYAxis={false}
           valueFormatter={(value: number) => value.toString()}
           tooltipCallback={(props: any) => {
             // Store tooltip data in ref during render, useEffect will update state safely

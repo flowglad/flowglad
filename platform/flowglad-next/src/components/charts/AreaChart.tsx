@@ -621,7 +621,8 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
     const yAxisDomain = getYAxisDomain(
       autoMinValue,
       minValue,
-      maxValue
+      maxValue,
+      0.1 // 10% padding above max value for visual breathing room
     )
     const hasOnValueChange = !!onValueChange
     const stacked = type === 'stacked' || type === 'percent'
