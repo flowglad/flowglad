@@ -14,6 +14,96 @@ import { core } from '@/utils/core'
 import { updateInvoiceTransaction } from './invoiceHelpers'
 
 describe('updateInvoiceTransaction', () => {
+  describe('ID Mismatch Security Tests', () => {
+    it('should throw error when id parameter does not match invoice.id', async () => {
+      const { organization, price } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      // Create a draft invoice (non-terminal)
+      const draftInvoice = await setupInvoice({
+        customerId: customer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Draft,
+        priceId: price.id,
+      })
+      // Create a paid invoice (terminal)
+      const paidInvoice = await setupInvoice({
+        customerId: customer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Paid,
+        priceId: price.id,
+      })
+
+      // Attempt to exploit by passing draft invoice ID for validation
+      // but paid invoice ID in the invoice object for the actual update
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return updateInvoiceTransaction(
+            {
+              id: draftInvoice.id, // Use draft invoice ID for terminal check
+              invoice: {
+                id: paidInvoice.id, // But try to update paid invoice
+                type: InvoiceType.Purchase,
+                status: InvoiceStatus.Open,
+                currency: paidInvoice.currency,
+                dueDate: paidInvoice.dueDate,
+                invoiceDate: paidInvoice.invoiceDate,
+              },
+              invoiceLineItems: [],
+            },
+            true,
+            transaction
+          )
+        })
+      ).rejects.toThrow(/ID mismatch/)
+    })
+
+    it('should succeed when id parameter matches invoice.id', async () => {
+      const { organization, price } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const invoice = await setupInvoice({
+        customerId: customer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Draft,
+        priceId: price.id,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await updateInvoiceTransaction(
+          {
+            id: invoice.id,
+            invoice: {
+              id: invoice.id, // IDs match
+              type: InvoiceType.Purchase,
+              status: InvoiceStatus.Open,
+              currency: invoice.currency,
+              dueDate: invoice.dueDate,
+              invoiceDate: invoice.invoiceDate,
+            },
+            invoiceLineItems: [
+              {
+                invoiceId: invoice.id,
+                description: 'Test line item',
+                quantity: 1,
+                price: 1000,
+                type: SubscriptionItemType.Static,
+                priceId: null,
+              },
+            ],
+          },
+          true,
+          transaction
+        )
+
+        expect(result.invoice.id).toBe(invoice.id)
+        expect(result.invoice.status).toBe(InvoiceStatus.Open)
+      })
+    })
+  })
+
   describe('Invoice Status Tests', () => {
     //     it('should successfully update a non-terminal invoice', async () => {
     //       const { organization, price } = await setupOrg()
