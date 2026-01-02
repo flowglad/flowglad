@@ -782,7 +782,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                           x={x}
                           y={y + 12}
                           textAnchor={textAnchor}
-                          className="text-sm fill-muted-foreground font-medium"
+                          className="text-sm fill-muted-foreground"
                         >
                           {payload.value}
                         </text>
@@ -794,7 +794,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               stroke=""
               className={cn(
                 // base
-                'text-sm font-medium',
+                'text-sm',
                 // text fill
                 'fill-muted-foreground'
               )}
@@ -832,7 +832,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               stroke=""
               className={cn(
                 // base
-                'text-xs font-medium',
+                'text-xs',
                 // text fill
                 'fill-muted-foreground'
               )}
@@ -866,11 +866,9 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               wrapperStyle={{ outline: 'none' }}
               isAnimationActive={true}
               animationDuration={100}
-              cursor={{
-                stroke: 'hsl(var(--foreground))',
-                strokeWidth: 1,
-              }}
+              cursor={{ stroke: '#d1d5db', strokeWidth: 1 }}
               offset={20}
+              position={{ y: 0 }}
               content={({ active, payload, label }) => {
                 const cleanPayload: TooltipProps['payload'] = payload
                   ? payload.map((item: any) => ({
