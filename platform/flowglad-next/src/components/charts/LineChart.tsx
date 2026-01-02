@@ -988,8 +988,8 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             {/* Gradient definitions for area fills */}
             {fill !== 'none' && (
               <defs>
-                {categories.map((category) => {
-                  const categoryId = `${areaId}-${category.replace(/[^a-zA-Z0-9]/g, '')}`
+                {categories.map((category, index) => {
+                  const categoryId = `${areaId}-${index}-${category.replace(/[^a-zA-Z0-9]/g, '')}`
                   return (
                     <linearGradient
                       key={categoryId}
@@ -1007,8 +1007,8 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             )}
             {/* Gradient fill areas - rendered behind the lines */}
             {fill !== 'none' &&
-              categories.map((category) => {
-                const categoryId = `${areaId}-${category.replace(/[^a-zA-Z0-9]/g, '')}`
+              categories.map((category, index) => {
+                const categoryId = `${areaId}-${index}-${category.replace(/[^a-zA-Z0-9]/g, '')}`
                 return (
                   <Area
                     key={`area-${category}`}
