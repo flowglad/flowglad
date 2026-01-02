@@ -49,7 +49,9 @@ import {
 } from '@/utils/bookkeeping/customerBilling'
 import core from '@/utils/core'
 import {
+  getCustomerBillingPortalEmail,
   getCustomerBillingPortalOrganizationId,
+  setCustomerBillingPortalEmail,
   setCustomerBillingPortalOrganizationId,
 } from '@/utils/customerBillingPortalState'
 import { maskEmail } from '@/utils/email'
@@ -686,10 +688,6 @@ const sendOTPToCustomerProcedure = publicProcedure
         .string()
         .optional()
         .describe('Masked email for display'),
-      actualEmail: z
-        .string()
-        .optional()
-        .describe('Actual email for OTP verification'),
     })
   )
   .mutation(async ({ input }) => {
@@ -812,7 +810,11 @@ const sendOTPToCustomerProcedure = publicProcedure
         return { success: true }
       })
 
-      // 4. Send OTP using Better Auth
+      // 4. Store email in secure cookie for server-side OTP verification
+      // This prevents exposing actual email to client
+      await setCustomerBillingPortalEmail(customer.email)
+
+      // 5. Send OTP using Better Auth
       await auth.api.sendVerificationOTP({
         body: {
           email: customer.email,
@@ -821,28 +823,89 @@ const sendOTPToCustomerProcedure = publicProcedure
         headers: await headers(),
       })
 
-      // 5. Return success with masked email and actual email (for OTP verification)
+      // 6. Return success with masked email only (actual email stored server-side)
       return {
         success: true,
         email: maskEmail(customer.email),
-        actualEmail: customer.email, // Return actual email for client-side Better Auth API
       }
     } catch (error) {
       console.error('sendOTPToCustomerProcedure error:', error)
       if (!core.IS_PROD) {
         throw error
       }
-      // If organization or customer not found, throw error
+      // Only throw NOT_FOUND for organization to prevent enumeration
+      // (aligns with requestMagicLinkProcedure error handling pattern)
       if (
         error instanceof TRPCError &&
-        (error.code === 'NOT_FOUND' ||
-          error.code === 'FORBIDDEN' ||
-          error.code === 'BAD_REQUEST')
+        error.code === 'NOT_FOUND' &&
+        error.message === 'Organization not found'
       ) {
         throw error
       }
       // For any other errors, quietly return success for security
       return { success: true }
+    }
+  })
+
+// verifyOTPForCustomer procedure - server-side OTP verification
+// This keeps the actual email secure by reading it from the server-side cookie
+const verifyOTPForCustomerProcedure = publicProcedure
+  .input(
+    z.object({
+      otp: z.string().length(6).describe('The 6-digit OTP code'),
+    })
+  )
+  .output(
+    z.object({
+      success: z.boolean(),
+    })
+  )
+  .mutation(async ({ input }) => {
+    const { otp } = input
+
+    // Get email from secure cookie (set during sendOTP)
+    const email = await getCustomerBillingPortalEmail()
+
+    if (!email) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message:
+          'Session expired. Please request a new verification code.',
+      })
+    }
+
+    try {
+      // Verify OTP server-side using Better Auth
+      await auth.api.signInEmailOTP({
+        body: {
+          email,
+          otp,
+        },
+        headers: await headers(),
+      })
+
+      return { success: true }
+    } catch (error) {
+      console.error('verifyOTPForCustomerProcedure error:', error)
+
+      // Check if error is from Better Auth (invalid OTP, expired, etc.)
+      if (error instanceof Error) {
+        if (
+          error.message.includes('Invalid') ||
+          error.message.includes('invalid') ||
+          error.message.includes('expired')
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Invalid or expired verification code.',
+          })
+        }
+      }
+
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to verify code. Please try again.',
+      })
     }
   })
 
@@ -861,4 +924,5 @@ export const customerBillingPortalRouter = router({
   getCustomersForUserAndOrganization:
     getCustomersForUserAndOrganizationProcedure,
   sendOTPToCustomer: sendOTPToCustomerProcedure,
+  verifyOTPForCustomer: verifyOTPForCustomerProcedure,
 })

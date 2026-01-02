@@ -2,7 +2,7 @@
 
 import { Loader2 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import ErrorLabel from '@/components/ErrorLabel'
@@ -17,29 +17,29 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { signIn, useSession } from '@/utils/authClient'
-import { maskEmail } from '@/utils/email'
 
 export default function CustomerBillingPortalOTPSignIn() {
   const params = useParams()
   const router = useRouter()
   const organizationId = params.organizationId as string
   const customerId = params.customerId as string
-  const { data: session } = useSession()
 
   const [otp, setOtp] = useState('')
   const [maskedEmail, setMaskedEmail] = useState<string | null>(null)
-  const [customerEmail, setCustomerEmail] = useState<string | null>(
-    null
-  )
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [resendCooldown, setResendCooldown] = useState(0)
-  const [otpSent, setOtpSent] = useState(false)
   const [useMagicLink, setUseMagicLink] = useState(false)
 
-  // Auto-send OTP on mount
+  // Ref to prevent double-send in React Strict Mode
+  const otpSentRef = useRef(false)
+  // Ref for cooldown interval
+  const cooldownIntervalRef = useRef<ReturnType<
+    typeof setInterval
+  > | null>(null)
+
+  // Send OTP mutation
   const sendOTP =
     trpc.customerBillingPortal.sendOTPToCustomer.useMutation({
       onMutate: () => {
@@ -48,20 +48,13 @@ export default function CustomerBillingPortalOTPSignIn() {
       },
       onSuccess: (data) => {
         setMaskedEmail(data.email || null)
-        // Store actual email for OTP verification
-        if (data.actualEmail) {
-          setCustomerEmail(data.actualEmail)
-        }
-        setOtpSent(true)
         setResendCooldown(60) // Start 60 second cooldown
-        toast.success('Verification code sent to your email')
+        toast.success('Verification code sent to your email', {
+          id: 'otp-sent',
+        })
       },
       onError: (error) => {
-        if (
-          error.message.includes('Customer not found') ||
-          error.message.includes('Organization not found') ||
-          error.message.includes('does not belong')
-        ) {
+        if (error.message.includes('Organization not found')) {
           setError(error.message)
         } else {
           // For security, show generic message
@@ -75,77 +68,83 @@ export default function CustomerBillingPortalOTPSignIn() {
       },
     })
 
-  // Verify OTP using Better Auth client-side API
-  const verifyOTP = async () => {
-    if (!customerEmail) {
-      setError('Customer email not available. Please try again.')
-      return
-    }
-
-    setLoading(true)
-    setError('')
-
-    try {
-      // Call Better Auth client-side API to verify OTP and sign in
-      await signIn.emailOtp(
-        {
-          email: customerEmail,
-          otp: otp,
-        },
-        {
-          onSuccess: () => {
-            toast.success('Signed in successfully')
-            // Redirect directly to dashboard
-            window.location.href = `/billing-portal/${organizationId}/${customerId}`
-          },
-          onError: (ctx: { error: { message: string } }) => {
-            if (
-              ctx.error.message.includes('Invalid') ||
-              ctx.error.message.includes('invalid')
-            ) {
-              setError('Invalid verification code. Please try again.')
-            } else {
-              setError(
-                ctx.error.message ||
-                  'Failed to verify code. Please try again.'
-              )
-            }
-            setOtp('')
-            setLoading(false)
-          },
+  // Verify OTP mutation (server-side verification)
+  const verifyOTP =
+    trpc.customerBillingPortal.verifyOTPForCustomer.useMutation({
+      onMutate: () => {
+        setLoading(true)
+        setError('')
+      },
+      onSuccess: () => {
+        toast.success('Signed in successfully', {
+          id: 'otp-verified',
+        })
+        // Redirect to billing portal
+        window.location.href = `/billing-portal/${organizationId}/${customerId}`
+      },
+      onError: (error) => {
+        if (
+          error.message.includes('Invalid') ||
+          error.message.includes('invalid') ||
+          error.message.includes('expired')
+        ) {
+          setError('Invalid or expired verification code.')
+        } else if (error.message.includes('Session expired')) {
+          setError(
+            'Session expired. Please request a new verification code.'
+          )
+        } else {
+          setError('Failed to verify code. Please try again.')
         }
-      )
-    } catch (error) {
-      setError('Failed to verify code. Please try again.')
-      setOtp('')
-      setLoading(false)
-    }
-  }
+        setOtp('')
+        setLoading(false)
+      },
+      onSettled: () => {
+        setLoading(false)
+      },
+    })
 
-  // Auto-send OTP on mount
+  // Auto-send OTP on mount (with ref to prevent double-send)
   useEffect(() => {
-    if (organizationId && customerId && !otpSent && !sending) {
+    if (organizationId && customerId && !otpSentRef.current) {
+      otpSentRef.current = true
       sendOTP.mutate({
         customerId,
         organizationId,
       })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organizationId, customerId])
+  }, [organizationId, customerId, sendOTP])
 
-  // Resend cooldown timer
+  // Resend cooldown timer using setInterval for efficiency
   useEffect(() => {
-    if (resendCooldown > 0) {
-      const timer = setTimeout(() => {
-        setResendCooldown(resendCooldown - 1)
+    if (resendCooldown > 0 && !cooldownIntervalRef.current) {
+      cooldownIntervalRef.current = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            if (cooldownIntervalRef.current) {
+              clearInterval(cooldownIntervalRef.current)
+              cooldownIntervalRef.current = null
+            }
+            return 0
+          }
+          return prev - 1
+        })
       }, 1000)
-      return () => clearTimeout(timer)
     }
-  }, [resendCooldown])
+
+    return () => {
+      if (cooldownIntervalRef.current) {
+        clearInterval(cooldownIntervalRef.current)
+        cooldownIntervalRef.current = null
+      }
+    }
+  }, [resendCooldown > 0])
 
   const handleResendOTP = () => {
     if (resendCooldown > 0) return
 
+    // Reset ref to allow sending again
+    otpSentRef.current = true
     sendOTP.mutate({
       customerId,
       organizationId,
@@ -156,14 +155,7 @@ export default function CustomerBillingPortalOTPSignIn() {
     e.preventDefault()
     if (otp.length !== 6 || loading) return
 
-    if (!customerEmail) {
-      setError(
-        'Customer email not available. Please request a new code.'
-      )
-      return
-    }
-
-    await verifyOTP()
+    verifyOTP.mutate({ otp })
   }
 
   const handleMagicLinkRedirect = () => {
@@ -228,6 +220,17 @@ export default function CustomerBillingPortalOTPSignIn() {
     )
   }
 
+  // Determine card description based on state
+  const getCardDescription = () => {
+    if (sending) {
+      return 'Sending verification code...'
+    }
+    if (maskedEmail) {
+      return `Enter the verification code sent to ${maskedEmail}`
+    }
+    return 'A verification code will be sent to your email'
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="max-w-lg lg:w-96 w-full">
@@ -235,11 +238,7 @@ export default function CustomerBillingPortalOTPSignIn() {
           <CardTitle className="text-lg md:text-xl">
             Sign In to Billing Portal
           </CardTitle>
-          <CardDescription>
-            {maskedEmail
-              ? `Enter the verification code sent to ${maskedEmail}`
-              : 'Enter the verification code sent to your email'}
-          </CardDescription>
+          <CardDescription>{getCardDescription()}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleOTPSubmit} className="grid gap-4">

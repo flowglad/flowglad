@@ -1,22 +1,7 @@
-import { redirect } from 'next/navigation'
-import { getSession } from '@/utils/auth'
 import InternalBillingPortalPage from './Internal'
 
-interface BillingPortalRedirectPageProps {
-  params: Promise<{
-    organizationId: string
-    customerId: string
-  }>
-}
-export default async ({ params }: BillingPortalRedirectPageProps) => {
-  const { organizationId, customerId } = await params
-  const session = await getSession()
-
-  if (!session) {
-    redirect(
-      `/billing-portal/${organizationId}/${customerId}/sign-in`
-    )
-  }
-
+// Session check is handled by middleware (middlewareLogic.ts)
+// which redirects unauthenticated users to the sign-in page
+export default function BillingPortalPage() {
   return <InternalBillingPortalPage />
 }
