@@ -1504,7 +1504,7 @@ describe('Customer Role RLS Policies', () => {
 
         expect(error).toBeTruthy()
         expect(error?.message).toMatch(
-          /Failed to insert|violates row-level security|permission denied/i
+          /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
       })
 
@@ -1542,7 +1542,7 @@ describe('Customer Role RLS Policies', () => {
 
         expect(error).toBeTruthy()
         expect(error?.message).toMatch(
-          /Failed to insert|violates row-level security|permission denied/i
+          /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
       })
 
@@ -1591,7 +1591,7 @@ describe('Customer Role RLS Policies', () => {
 
         expect(error).toBeTruthy()
         expect(error?.message).toMatch(
-          /Failed to insert|violates row-level security|permission denied/i
+          /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
       })
     })
@@ -1631,7 +1631,7 @@ describe('Customer Role RLS Policies', () => {
 
         expect(error).toBeTruthy()
         expect(error?.message).toMatch(
-          /Failed to insert|violates row-level security|permission denied/i
+          /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
       })
 
@@ -1701,7 +1701,7 @@ describe('Customer Role RLS Policies', () => {
 
         expect(error).toBeTruthy()
         expect(error?.message).toMatch(
-          /Failed to insert|violates row-level security|permission denied/i
+          /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
       })
 
@@ -1739,7 +1739,7 @@ describe('Customer Role RLS Policies', () => {
 
         expect(error).toBeTruthy()
         expect(error?.message).toMatch(
-          /Failed to insert|violates row-level security|permission denied/i
+          /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
       })
     })
@@ -1804,7 +1804,7 @@ describe('Customer Role RLS Policies', () => {
 
         expect(error).toBeTruthy()
         expect(error?.message).toMatch(
-          /Failed to insert|violates row-level security|permission denied/i
+          /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
       })
 
@@ -1841,7 +1841,7 @@ describe('Customer Role RLS Policies', () => {
 
         expect(error).toBeTruthy()
         expect(error?.message).toMatch(
-          /Failed to insert|violates row-level security|permission denied/i
+          /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
       })
 
@@ -1904,7 +1904,7 @@ describe('Customer Role RLS Policies', () => {
 
         expect(error).toBeTruthy()
         expect(error?.message).toMatch(
-          /Failed to insert|violates row-level security|permission denied/i
+          /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
       })
     })

@@ -93,7 +93,7 @@ export const discountRedemptions = pgTable(
         {
           as: 'permissive',
           to: 'all',
-          using: sql`"disocunt_id" in (select "id" from "discounts" where "organization_id"=current_organization_id())`,
+          using: sql`"discount_id" in (select "id" from "discounts" where "organization_id"=current_organization_id())`,
         }
       ),
     ]

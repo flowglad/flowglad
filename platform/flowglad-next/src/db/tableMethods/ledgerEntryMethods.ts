@@ -490,6 +490,16 @@ export const aggregateAvailableBalanceForUsageCredit = async (
       ledgerEntries.ledgerAccountId,
       usageCredits.expiresAt
     )
+    /**
+     * Apply usage credits FIFO by expiration date (earliest expiring first) to
+     * minimize waste from credits expiring unused. Non-expiring credits (null
+     * expiresAt) are applied last.
+     */
+    .orderBy(
+      sql`${usageCredits.expiresAt} IS NULL`,
+      asc(usageCredits.expiresAt),
+      asc(ledgerEntries.sourceUsageCreditId)
+    )
 
   // Transform results to match the expected return type
   return results

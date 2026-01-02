@@ -807,6 +807,7 @@ describe('Ledger Management System', async () => {
           const refund: Refund.Record = {
             id: refundId,
             organizationId: organization.id,
+            pricingModelId: pricingModel.id,
             paymentId: 'payment_123',
             subscriptionId: subscription.id,
             amount: 2000,

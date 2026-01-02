@@ -20,6 +20,7 @@ import {
   PaymentStatus,
   StripeConnectContractType,
 } from '@/types'
+import { nanoid } from '@/utils/core'
 import { createStripeTaxTransactionFromCalculation } from '@/utils/stripe'
 import { createStripeTaxTransactionIfNeededForPayment } from './stripeTaxTransactions'
 
@@ -64,7 +65,7 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
       purchaseId: purchase.id,
     })
     const payment = await setupPayment({
-      stripeChargeId: 'ch_tax_txn_test_1',
+      stripeChargeId: `ch_${nanoid()}`,
       status: PaymentStatus.Succeeded,
       amount: 1100,
       livemode: false,
@@ -158,7 +159,7 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
       purchaseId: purchase.id,
     })
     const payment = await setupPayment({
-      stripeChargeId: 'ch_tax_txn_test_2',
+      stripeChargeId: `ch_${nanoid()}`,
       status: PaymentStatus.Succeeded,
       amount: 1100,
       livemode: false,

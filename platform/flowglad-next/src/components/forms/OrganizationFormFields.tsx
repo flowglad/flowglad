@@ -325,8 +325,8 @@ const OrganizationFormFields = ({
           <FormItem>
             <FormLabel>Codebase Overview</FormLabel>
             <div className="text-sm text-muted-foreground !mt-0 pb-1 max-w-[300px]">
-              Quickly integrate by copying and pasting prompts about
-              your codebase.
+              Provide an analysis of your codebase to generate a
+              tailored integration guide.
             </div>
             <FormControl>
               <Textarea
@@ -344,7 +344,7 @@ const OrganizationFormFields = ({
                 onClick={copyPromptHandler}
               >
                 <Copy className="mr-2 h-4 w-4" />
-                Copy Prompt
+                Copy Analysis Prompt
               </Button>
               <Button
                 type="button"
@@ -358,7 +358,7 @@ const OrganizationFormFields = ({
                   )
                 }}
               >
-                Open in
+                Run Analysis in
                 <CursorLogo />
               </Button>
             </div>

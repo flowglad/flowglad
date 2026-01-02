@@ -80,10 +80,11 @@ type ApiKeyVerificationResult = z.infer<
   typeof apiKeyVerificationResultSchema
 >
 
-const redis = () => {
+export const redis = () => {
   if (core.IS_TEST) {
     return {
       get: () => null,
+      getdel: () => null,
       set: () => null,
       del: () => null,
       sadd: () => 0,
@@ -98,11 +99,12 @@ const redis = () => {
   })
 }
 
-enum RedisKeyNamespace {
+export enum RedisKeyNamespace {
   ApiKeyVerificationResult = 'apiKeyVerificationResult',
   ReferralSelection = 'referralSelection',
   Telemetry = 'telemetry',
   BannerDismissals = 'bannerDismissals',
+  StripeOAuthCsrfToken = 'stripeOAuthCsrfToken',
 }
 
 const evictionPolicy: Record<
@@ -123,6 +125,10 @@ const evictionPolicy: Record<
   [RedisKeyNamespace.BannerDismissals]: {
     max: 100000, // up to 100k users
     ttl: 60 * 60 * 24 * 2, // 2 days - banners reappear after this period
+  },
+  [RedisKeyNamespace.StripeOAuthCsrfToken]: {
+    max: 10000, // up to 10k concurrent OAuth flows
+    ttl: 60 * 15, // 15 minutes - OAuth flow timeout
   },
 }
 
