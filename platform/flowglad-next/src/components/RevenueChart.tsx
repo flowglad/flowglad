@@ -1,5 +1,5 @@
 'use client'
-import { differenceInHours, format, isDate } from 'date-fns'
+import { differenceInHours } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import {
@@ -15,8 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { CurrencyCode, RevenueChartIntervalUnit } from '@/types'
-import core from '@/utils/core'
+import { RevenueChartIntervalUnit } from '@/types'
 import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
@@ -34,6 +33,49 @@ const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
   [RevenueChartIntervalUnit.Day]: 24 * 2,
   [RevenueChartIntervalUnit.Hour]: 1 * 2,
 } as const
+
+const MONTH_NAMES_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
+/**
+ * Formats a UTC date without timezone conversion.
+ * This ensures dates generated in UTC (like from PostgreSQL date_trunc)
+ * display correctly regardless of the user's local timezone.
+ */
+function formatDateUTC(
+  date: Date,
+  granularity: RevenueChartIntervalUnit
+): string {
+  const day = date.getUTCDate()
+  const month = MONTH_NAMES_SHORT[date.getUTCMonth()]
+  const year = date.getUTCFullYear()
+  const hours = date.getUTCHours().toString().padStart(2, '0')
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0')
+
+  switch (granularity) {
+    case RevenueChartIntervalUnit.Year:
+      return `${year}`
+    case RevenueChartIntervalUnit.Hour:
+      return `${day} ${month} ${hours}:${minutes}`
+    case RevenueChartIntervalUnit.Month:
+    case RevenueChartIntervalUnit.Week:
+    case RevenueChartIntervalUnit.Day:
+    default:
+      return `${day} ${month}`
+  }
+}
 
 /**
  * NOTE: this component has a weird bug (that seems to ship with Tremor?)
@@ -97,7 +139,8 @@ export function RevenueChart({
         )
       const dateObj = new Date(item.date)
       return {
-        date: format(dateObj, 'd MMM'),
+        // Use UTC formatting to match PostgreSQL's date_trunc behavior
+        date: formatDateUTC(dateObj, interval),
         // Store the ISO date string for the tooltip to use for proper year formatting
         isoDate: dateObj.toISOString(),
         // Store the interval unit for the tooltip to format dates appropriately

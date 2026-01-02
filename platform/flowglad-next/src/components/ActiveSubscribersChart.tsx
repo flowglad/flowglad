@@ -1,8 +1,15 @@
 'use client'
-import { format, isValid } from 'date-fns'
+import { differenceInHours, format, isValid } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
 import { LineChart } from './charts/LineChart'
@@ -21,10 +28,68 @@ const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
   [RevenueChartIntervalUnit.Hour]: 1 * 2,
 } as const
 
+const MONTH_NAMES_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
 /**
- * Formats a date label for the tooltip.
+ * Formats a UTC date without timezone conversion.
+ * This ensures dates generated in UTC (like from PostgreSQL date_trunc)
+ * display correctly regardless of the user's local timezone.
+ */
+function formatDateUTC(
+  date: Date,
+  granularity: RevenueChartIntervalUnit
+): string {
+  const day = date.getUTCDate()
+  const month = MONTH_NAMES_SHORT[date.getUTCMonth()]
+  const year = date.getUTCFullYear()
+  const hours = date.getUTCHours().toString().padStart(2, '0')
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0')
+
+  switch (granularity) {
+    case RevenueChartIntervalUnit.Year:
+      return `${year}`
+    case RevenueChartIntervalUnit.Hour:
+      return `${day} ${month} ${hours}:${minutes}`
+    case RevenueChartIntervalUnit.Month:
+    case RevenueChartIntervalUnit.Week:
+    case RevenueChartIntervalUnit.Day:
+    default:
+      return `${day} ${month}`
+  }
+}
+
+const MONTH_NAMES_FULL = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+
+/**
+ * Formats a date label for the tooltip using UTC.
  * Uses the ISO date string if available, otherwise attempts to parse the label.
- * Formats as "MMMM yyyy" (e.g., "October 2025").
+ * Formats as "MMMM yyyy" (e.g., "October 2025") in UTC.
  * Falls back to the original label if parsing fails.
  */
 function TooltipDateLabel({
@@ -39,7 +104,9 @@ function TooltipDateLabel({
     const dateString = isoDate ?? label
     const date = new Date(dateString)
     if (isValid(date)) {
-      return <span>{format(date, 'MMMM yyyy')}</span>
+      const month = MONTH_NAMES_FULL[date.getUTCMonth()]
+      const year = date.getUTCFullYear()
+      return <span>{`${month} ${year}`}</span>
     }
     return <span>{label}</span>
   } catch {
@@ -125,19 +192,75 @@ export const ActiveSubscribersChart = ({
       pendingTooltipData.current = null
     }
   })
+
+  const timespanInHours = differenceInHours(toDate, fromDate)
+  const intervalOptions = React.useMemo(() => {
+    const options = []
+
+    // Only show years if span is >= 2 years
+    if (
+      timespanInHours >=
+      minimumUnitInHours[RevenueChartIntervalUnit.Year]
+    ) {
+      options.push({
+        label: 'year',
+        value: RevenueChartIntervalUnit.Year,
+      })
+    }
+
+    // Only show months if span is >= 2 months
+    if (
+      timespanInHours >=
+      minimumUnitInHours[RevenueChartIntervalUnit.Month]
+    ) {
+      options.push({
+        label: 'month',
+        value: RevenueChartIntervalUnit.Month,
+      })
+    }
+
+    // Only show weeks if span is >= 2 weeks
+    if (
+      timespanInHours >=
+      minimumUnitInHours[RevenueChartIntervalUnit.Week]
+    ) {
+      options.push({
+        label: 'week',
+        value: RevenueChartIntervalUnit.Week,
+      })
+    }
+
+    // Always show days and hours
+    options.push(
+      {
+        label: 'day',
+        value: RevenueChartIntervalUnit.Day,
+      },
+      {
+        label: 'hour',
+        value: RevenueChartIntervalUnit.Hour,
+      }
+    )
+
+    return options
+  }, [timespanInHours])
+
   const firstPayloadValue = tooltipData?.payload?.[0]?.value
   const chartData = React.useMemo(() => {
     if (!subscriberData) return []
     return subscriberData.map((item) => {
       const dateObj = new Date(item.month)
       return {
-        date: format(dateObj, 'd MMM'),
+        // Use UTC formatting to match PostgreSQL's date_trunc behavior
+        date: formatDateUTC(dateObj, interval),
         // Store the ISO date string for the tooltip to use for proper year formatting
         isoDate: dateObj.toISOString(),
+        // Store the interval unit for the tooltip to format dates appropriately
+        intervalUnit: interval,
         subscribers: item.count,
       }
     })
-  }, [subscriberData])
+  }, [subscriberData, interval])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data
@@ -164,21 +287,29 @@ export const ActiveSubscribersChart = ({
     return count.toString()
   }, [subscriberData, firstPayloadValue])
 
-  const tooltipLabel = tooltipData?.label
-  let isTooltipLabelDate: boolean = false
-  if (tooltipLabel) {
-    try {
-      new Date(tooltipLabel as string).toISOString()
-      isTooltipLabelDate = true
-    } catch {
-      isTooltipLabelDate = false
-    }
-  }
   return (
     <div className="w-full h-full">
       <div className="flex flex-row gap-2 justify-between px-4">
-        <div className="text-foreground w-fit flex items-center flex-row">
+        <div className="text-foreground w-fit flex items-center flex-row gap-0.5">
           <p className="whitespace-nowrap">Active Subscribers</p>
+          <Select
+            value={interval}
+            onValueChange={(value) =>
+              setInterval(value as RevenueChartIntervalUnit)
+            }
+          >
+            <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground shadow-none h-auto py-0 gap-0 text-base">
+              <span className="text-muted-foreground">by&nbsp;</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {intervalOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
