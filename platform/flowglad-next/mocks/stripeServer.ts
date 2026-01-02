@@ -30,6 +30,80 @@ const paymentIntentStatusToChargeStatus = (
 
 export const stripeHandlers = [
   http.post(
+    'https://api.stripe.com/v1/accounts',
+    async ({ request }) => {
+      const body = await request.text()
+      const params = new URLSearchParams(body)
+      const country = params.get('country')
+      return HttpResponse.json({
+        id: `acct_${nanoid()}`,
+        object: 'account',
+        country,
+        created: Math.floor(Date.now() / 1000),
+        capabilities: {
+          transfers: 'active',
+          card_payments: params.get(
+            'capabilities[card_payments][requested]'
+          )
+            ? 'active'
+            : 'inactive',
+        },
+      })
+    }
+  ),
+  http.post(
+    'https://api.stripe.com:443/v1/accounts',
+    async ({ request }) => {
+      const body = await request.text()
+      const params = new URLSearchParams(body)
+      const country = params.get('country')
+      return HttpResponse.json({
+        id: `acct_${nanoid()}`,
+        object: 'account',
+        country,
+        created: Math.floor(Date.now() / 1000),
+        capabilities: {
+          transfers: 'active',
+          card_payments: params.get(
+            'capabilities[card_payments][requested]'
+          )
+            ? 'active'
+            : 'inactive',
+        },
+      })
+    }
+  ),
+  http.post(
+    'https://api.stripe.com/v1/account_links',
+    async ({ request }) => {
+      const body = await request.text()
+      const params = new URLSearchParams(body)
+      const account = params.get('account')
+      return HttpResponse.json({
+        id: `al_${nanoid()}`,
+        object: 'account_link',
+        created: Math.floor(Date.now() / 1000),
+        expires_at: Math.floor(Date.now() / 1000) + 60 * 30,
+        url: `https://connect.stripe.com/setup/s/${account ?? nanoid()}`,
+      })
+    }
+  ),
+  http.post(
+    'https://api.stripe.com:443/v1/account_links',
+    async ({ request }) => {
+      const body = await request.text()
+      const params = new URLSearchParams(body)
+      const account = params.get('account')
+      return HttpResponse.json({
+        id: `al_${nanoid()}`,
+        object: 'account_link',
+        created: Math.floor(Date.now() / 1000),
+        expires_at: Math.floor(Date.now() / 1000) + 60 * 30,
+        url: `https://connect.stripe.com/setup/s/${account ?? nanoid()}`,
+      })
+    }
+  ),
+  http.post(
     'https://api.stripe.com/v1/tax/transactions/create_from_calculation',
     async ({ request }) => {
       const body = await request.text()
