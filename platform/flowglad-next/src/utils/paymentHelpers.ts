@@ -31,6 +31,9 @@ export const refundPaymentTransaction = async (
     throw new Error('Payment not found')
   }
 
+  // NOTE: This check blocks cumulative partial refunds. Once a payment has any
+  // refund processed (partial or full), additional refunds are not supported.
+  // The refundedAmount field stores the total refunded, not individual refund records.
   if (payment.status === PaymentStatus.Refunded) {
     throw new Error('Payment has already been refunded')
   }
