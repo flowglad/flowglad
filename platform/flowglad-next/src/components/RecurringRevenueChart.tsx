@@ -77,8 +77,11 @@ export const RecurringRevenueChart = ({
           defaultCurrency,
           item.amount
         )
+      const dateObj = new Date(item.month)
       return {
-        date: format(item.month, 'd MMM'),
+        date: format(dateObj, 'd MMM'),
+        // Store the ISO date string for the tooltip to use for proper year formatting
+        isoDate: dateObj.toISOString(),
         formattedRevenue,
         revenue: Number(item.amount).toFixed(2),
       }

@@ -454,6 +454,11 @@ interface ChartTooltipProps {
   valueFormatter: (value: number) => string
 }
 
+/**
+ * Default chart tooltip for LineChart.
+ * Shows a vertical layout: value on top, date below.
+ * Matches the Figma design system tooltip styling.
+ */
 const ChartTooltip = ({
   active,
   payload,
@@ -464,36 +469,45 @@ const ChartTooltip = ({
     const legendPayload = payload.filter(
       (item: any) => item.type !== 'none'
     )
+    // For single category charts, show simplified tooltip
+    if (legendPayload.length === 1) {
+      const { value } = legendPayload[0]
+      return (
+        <div
+          className={cn(
+            'bg-popover flex flex-col gap-2 p-2 rounded border border-border',
+            'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
+          )}
+        >
+          <p className="text-base font-medium text-foreground tracking-tight leading-none">
+            {valueFormatter(value)}
+          </p>
+          <p className="text-sm text-muted-foreground tracking-tight leading-5">
+            {label}
+          </p>
+        </div>
+      )
+    }
+    // For multi-category charts, show category breakdown
     return (
       <div
         className={cn(
-          // base
-          'rounded-md border text-sm shadow-md',
-          // border color
-          'border-border',
-          // background color
-          'bg-popover'
+          'bg-popover rounded border border-border',
+          'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
         )}
       >
-        <div className={cn('border-b border-inherit px-4 py-2')}>
-          <p
-            className={cn(
-              // base
-              'font-medium',
-              // text color
-              'text-foreground'
-            )}
-          >
-            {label} LABEL LABEL LABEL
+        <div className={cn('border-b border-inherit px-3 py-2')}>
+          <p className="text-sm font-medium text-foreground">
+            {label}
           </p>
         </div>
-        <div className={cn('space-y-1 px-4 py-2')}>
+        <div className={cn('space-y-1 px-3 py-2')}>
           {legendPayload.map(({ value, category, color }, index) => (
             <div
               key={`id-${index}`}
-              className="flex items-center justify-between space-x-8"
+              className="flex items-center justify-between gap-4"
             >
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <span
                   aria-hidden="true"
                   className={cn(
@@ -501,25 +515,11 @@ const ChartTooltip = ({
                     getColorClassName(color, 'bg')
                   )}
                 />
-                <p
-                  className={cn(
-                    // base
-                    'whitespace-nowrap text-right',
-                    // text color
-                    'text-muted-foreground'
-                  )}
-                >
-                  {category} TEST TEST TEST
+                <p className="text-sm whitespace-nowrap text-muted-foreground">
+                  {category}
                 </p>
               </div>
-              <p
-                className={cn(
-                  // base
-                  'whitespace-nowrap text-right font-medium tabular-nums',
-                  // text color
-                  'text-foreground'
-                )}
-              >
+              <p className="text-sm whitespace-nowrap font-medium tabular-nums text-foreground">
                 {valueFormatter(value)}
               </p>
             </div>

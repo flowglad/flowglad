@@ -17,6 +17,12 @@ const ChartContainer = ({
     <div className="w-full relative flex flex-col">{children}</div>
   )
 }
+
+const ChartDivider = () => {
+  return (
+    <div className="w-full border-t border-dashed border-border" />
+  )
+}
 export interface DashboardPageProps {
   organizationCreatedAt: Date
 }
@@ -40,7 +46,6 @@ function InternalDashboardPage({
     <InnerPageContainerNew>
       <PageHeaderNew
         title={greeting}
-        hideBorder
         className="pb-2"
         description={
           <DateRangePicker
@@ -60,10 +65,11 @@ function InternalDashboardPage({
           />
         }
       />
-      <div className="w-full flex flex-col gap-12 pb-16">
+      <div className="w-full flex flex-col gap-12 pt-4 pb-16">
         <ChartContainer>
           <RevenueChart fromDate={range.from} toDate={range.to} />
         </ChartContainer>
+        <ChartDivider />
         <ChartContainer>
           <DateRangeRecurringRevenueChart
             organizationCreatedAt={organizationCreatedAt}
@@ -71,6 +77,7 @@ function InternalDashboardPage({
             toDate={range.to}
           />
         </ChartContainer>
+        <ChartDivider />
         <ChartContainer>
           <DateRangeActiveSubscribersChart
             organizationCreatedAt={organizationCreatedAt}

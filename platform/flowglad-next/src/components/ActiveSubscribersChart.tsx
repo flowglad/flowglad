@@ -1,16 +1,10 @@
 'use client'
-import { differenceInHours, format } from 'date-fns'
+import { format, isValid } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
-import { RevenueTooltip } from '@/components/RevenueTooltip'
 import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
-import {
-  type AvailableChartColorsKeys,
-  getColorClassName,
-} from '@/utils/chartStyles'
-import core from '@/utils/core'
 import { LineChart } from './charts/LineChart'
 import ErrorBoundary from './ErrorBoundary'
 import { Skeleton } from './ui/skeleton'
@@ -27,19 +21,36 @@ const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
   [RevenueChartIntervalUnit.Hour]: 1 * 2,
 } as const
 
-// Define a new TooltipDateLabel component for the new tooltip
-function TooltipDateLabel({ label }: { label: string }) {
+/**
+ * Formats a date label for the tooltip.
+ * Uses the ISO date string if available, otherwise attempts to parse the label.
+ * Formats as "MMMM yyyy" (e.g., "October 2025").
+ * Falls back to the original label if parsing fails.
+ */
+function TooltipDateLabel({
+  label,
+  isoDate,
+}: {
+  label: string
+  isoDate?: string
+}) {
   try {
-    const date = new Date(label)
-    const formattedDate = core.formatDate(date)
-    return <div>{formattedDate}</div>
-  } catch (error) {
-    // Fallback if label is not a valid date string
-    return <div>{label}</div>
+    // Prefer isoDate if available, as it contains the full date with year
+    const dateString = isoDate ?? label
+    const date = new Date(dateString)
+    if (isValid(date)) {
+      return <span>{format(date, 'MMMM yyyy')}</span>
+    }
+    return <span>{label}</span>
+  } catch {
+    return <span>{label}</span>
   }
 }
 
-// Define the new SubscriberCountTooltip component
+/**
+ * Tooltip component for subscriber count chart.
+ * Shows subscriber count on top, date below - matching the Figma design.
+ */
 const SubscriberCountTooltip = ({
   active,
   payload,
@@ -49,35 +60,26 @@ const SubscriberCountTooltip = ({
     return null
   }
   const value = payload[0].value as number
-  const color = payload[0].color
+  // Extract the ISO date from the payload data for proper year formatting
+  const isoDate = payload[0].payload?.isoDate as string | undefined
 
   return (
     <ErrorBoundary fallback={<div>Error</div>}>
       <div
         className={cn(
-          'bg-popover flex flex-col gap-2 p-4 rounded-md border border-border shadow-lg'
+          'bg-popover flex flex-col gap-2 p-2 rounded border border-border',
+          'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
         )}
       >
-        <div className="flex justify-between items-center gap-2 text-xs font-medium text-foreground">
-          {color && (
-            <div className="text-left">
-              <div
-                className={cn(
-                  // Use getColorClassName to derive the correct background class
-                  color
-                    ? getColorClassName(
-                        color as AvailableChartColorsKeys,
-                        'bg'
-                      )
-                    : 'bg-muted-foreground',
-                  'w-2.5 h-2.5 rounded-full border border-border'
-                )}
-              />
-            </div>
-          )}
-          <TooltipDateLabel label={label as string} />
-          <div className="text-right">{value.toString()}</div>
-        </div>
+        <p className="text-base font-medium text-foreground tracking-tight leading-none">
+          {value.toLocaleString()}
+        </p>
+        <p className="text-sm text-muted-foreground tracking-tight leading-5">
+          <TooltipDateLabel
+            label={label as string}
+            isoDate={isoDate}
+          />
+        </p>
       </div>
     </ErrorBoundary>
   )
@@ -127,8 +129,11 @@ export const ActiveSubscribersChart = ({
   const chartData = React.useMemo(() => {
     if (!subscriberData) return []
     return subscriberData.map((item) => {
+      const dateObj = new Date(item.month)
       return {
-        date: format(item.month, 'd MMM'),
+        date: format(dateObj, 'd MMM'),
+        // Store the ISO date string for the tooltip to use for proper year formatting
+        isoDate: dateObj.toISOString(),
         subscribers: item.count,
       }
     })

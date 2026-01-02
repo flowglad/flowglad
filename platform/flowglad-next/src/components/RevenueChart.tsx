@@ -96,8 +96,11 @@ export function RevenueChart({
           organization?.defaultCurrency,
           item.revenue
         )
+      const dateObj = new Date(item.date)
       return {
-        date: format(item.date, 'd MMM'),
+        date: format(dateObj, 'd MMM'),
+        // Store the ISO date string for the tooltip to use for proper year formatting
+        isoDate: dateObj.toISOString(),
         formattedRevenue,
         revenue: Number(item.revenue).toFixed(2),
       }
