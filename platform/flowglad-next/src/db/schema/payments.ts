@@ -7,7 +7,6 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 import { currencyCodeSchema } from '@/db/commonZodSchema'
 import {
@@ -22,6 +21,7 @@ import {
   notNullStringForeignKey,
   nullableStringForeignKey,
   ommittedColumnsForInsertSchema,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   type SelectConditions,
   tableBase,
@@ -131,13 +131,13 @@ export const payments = pgTable(
         as: 'permissive',
         to: 'merchant',
         for: 'select',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        using: orgIdEqualsCurrentSQL(),
       }),
       merchantPolicy('Enable update for own organization', {
         as: 'permissive',
         to: 'merchant',
         for: 'update',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        using: orgIdEqualsCurrentSQL(),
       }),
       livemodePolicy(TABLE_NAME),
     ]

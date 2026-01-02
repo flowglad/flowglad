@@ -13,6 +13,7 @@ import {
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   type SelectConditions,
   tableBase,
@@ -69,7 +70,7 @@ export const features = pgTable(
       {
         as: 'permissive',
         for: 'all',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        using: orgIdEqualsCurrentSQL(),
       }
     ),
     enableCustomerReadPolicy(

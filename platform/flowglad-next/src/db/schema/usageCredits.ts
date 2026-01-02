@@ -24,6 +24,7 @@ import {
   metadataSchema,
   notNullStringForeignKey,
   nullableStringForeignKey,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   tableBase,
   timestampWithTimezoneColumn,
@@ -116,7 +117,7 @@ export const usageCredits = pgTable(
           as: 'permissive',
           to: 'merchant',
           for: 'all',
-          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+          using: orgIdEqualsCurrentSQL(),
         }
       ),
       livemodePolicy(TABLE_NAME),
