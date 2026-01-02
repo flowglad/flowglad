@@ -166,7 +166,7 @@ export const ActiveSubscribersChart = ({
 }) => {
   const [interval, setInterval] =
     React.useState<RevenueChartIntervalUnit>(
-      RevenueChartIntervalUnit.Month
+      RevenueChartIntervalUnit.Day
     )
 
   const { data: subscriberData, isLoading } =
