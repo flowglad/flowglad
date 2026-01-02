@@ -16,7 +16,7 @@ const decodeStatusFromId = (
 }
 
 const paymentIntentStatusToChargeStatus = (
-  status: Stripe.PaymentIntent.Status
+  status: Stripe.PaymentIntent.Status | string
 ): Stripe.Charge.Status => {
   switch (status) {
     case 'succeeded':
