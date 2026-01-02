@@ -287,11 +287,11 @@ describe('selectUsageEventsPaginated', () => {
   })
 
   it('should handle cursor-based pagination correctly', async () => {
-    // Create 10 usage events for organization 1 with staggered timestamps
+    // Create 7 usage events for organization 1 with deterministic, unique timestamps
+    // (enough for two pages of 3 and to keep `hasNextPage` true on the second page)
     const createdEvents = []
-    for (let i = 0; i < 10; i++) {
-      // Add a small delay to ensure different timestamps
-      await new Promise((resolve) => setTimeout(resolve, 10))
+    const baseUsageDateMs = 1_700_000_000_000
+    for (let i = 0; i < 7; i++) {
       const event = await setupUsageEvent({
         organizationId: org1Data.organization.id,
         customerId: customer1.id,
@@ -301,7 +301,7 @@ describe('selectUsageEventsPaginated', () => {
         billingPeriodId: billingPeriod1.id,
         amount: 100 + i,
         transactionId: `txn_cursor_${i}`,
-        usageDate: Date.now() + i * 1000, // Stagger timestamps
+        usageDate: baseUsageDateMs + i, // deterministic ordering without sleeping
       })
       createdEvents.push(event)
     }
