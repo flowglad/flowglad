@@ -12,7 +12,13 @@ import {
   insertProduct,
   selectProductById,
 } from '@/db/tableMethods/productMethods'
-import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
+import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
+import {
+  CurrencyCode,
+  IntervalUnit,
+  PriceType,
+  UsageMeterAggregationType,
+} from '@/types'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
 import core from '@/utils/core'
 import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'
@@ -672,5 +678,376 @@ describe('pricesRouter - Default Price Constraints', () => {
         pricesRouter.createCaller(ctx).get({ id: invalidId })
       ).rejects.toThrow(TRPCError)
     })
+  })
+})
+
+describe('prices.getTableRows (usage-meter filters)', () => {
+  let organizationId: string
+  let pricingModelId: string
+  let usageMeterAId: string
+  let usageMeterBId: string
+  let usagePriceAId: string
+  let usagePriceBId: string
+  let subscriptionPriceId: string
+  let inactiveUsagePriceId: string
+  const livemode = true
+
+  beforeEach(async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const { organization } = await setupOrg()
+
+      // Create pricing model with default product
+      const bookkeepingResult = await createPricingModelBookkeeping(
+        {
+          pricingModel: {
+            name: 'Test Pricing Model for Usage Prices',
+            isDefault: false,
+          },
+        },
+        {
+          transaction,
+          organizationId: organization.id,
+          livemode,
+        }
+      )
+
+      const pricingModelId = bookkeepingResult.result.pricingModel.id
+
+      // Create two usage meters
+      const usageMeterA = await insertUsageMeter(
+        {
+          name: 'Fast Generations',
+          slug: 'fast-generations',
+          organizationId: organization.id,
+          pricingModelId,
+          livemode,
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        transaction
+      )
+
+      const usageMeterB = await insertUsageMeter(
+        {
+          name: 'Slow Generations',
+          slug: 'slow-generations',
+          organizationId: organization.id,
+          pricingModelId,
+          livemode,
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        transaction
+      )
+
+      // Create products for usage prices
+      const usageProductA = await insertProduct(
+        {
+          name: 'Usage Product A',
+          slug: 'usage-product-a',
+          default: false,
+          description: null,
+          imageURL: null,
+          singularQuantityLabel: null,
+          pluralQuantityLabel: null,
+          externalId: null,
+          pricingModelId,
+          organizationId: organization.id,
+          livemode,
+          active: true,
+        },
+        transaction
+      )
+
+      const usageProductB = await insertProduct(
+        {
+          name: 'Usage Product B',
+          slug: 'usage-product-b',
+          default: false,
+          description: null,
+          imageURL: null,
+          singularQuantityLabel: null,
+          pluralQuantityLabel: null,
+          externalId: null,
+          pricingModelId,
+          organizationId: organization.id,
+          livemode,
+          active: true,
+        },
+        transaction
+      )
+
+      const usageProductC = await insertProduct(
+        {
+          name: 'Usage Product C',
+          slug: 'usage-product-c',
+          default: false,
+          description: null,
+          imageURL: null,
+          singularQuantityLabel: null,
+          pluralQuantityLabel: null,
+          externalId: null,
+          pricingModelId,
+          organizationId: organization.id,
+          livemode,
+          active: true,
+        },
+        transaction
+      )
+
+      const subscriptionProduct = await insertProduct(
+        {
+          name: 'Subscription Product',
+          slug: 'subscription-product',
+          default: false,
+          description: null,
+          imageURL: null,
+          singularQuantityLabel: null,
+          pluralQuantityLabel: null,
+          externalId: null,
+          pricingModelId,
+          organizationId: organization.id,
+          livemode,
+          active: true,
+        },
+        transaction
+      )
+
+      // Create usage price for meter A (active)
+      const usagePriceA = await insertPrice(
+        {
+          productId: usageProductA.id,
+          unitPrice: 100,
+          isDefault: true,
+          type: PriceType.Usage,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          currency: organization.defaultCurrency,
+          livemode,
+          active: true,
+          name: 'Usage Price A',
+          trialPeriodDays: null,
+          usageEventsPerUnit: 1,
+          usageMeterId: usageMeterA.id,
+          externalId: null,
+          slug: 'usage-price-a',
+        },
+        transaction
+      )
+
+      // Create usage price for meter B (active)
+      const usagePriceB = await insertPrice(
+        {
+          productId: usageProductB.id,
+          unitPrice: 200,
+          isDefault: true,
+          type: PriceType.Usage,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          currency: organization.defaultCurrency,
+          livemode,
+          active: true,
+          name: 'Usage Price B',
+          trialPeriodDays: null,
+          usageEventsPerUnit: 100,
+          usageMeterId: usageMeterB.id,
+          externalId: null,
+          slug: 'usage-price-b',
+        },
+        transaction
+      )
+
+      // Create inactive usage price for meter A
+      const inactiveUsagePrice = await insertPrice(
+        {
+          productId: usageProductC.id,
+          unitPrice: 50,
+          isDefault: true,
+          type: PriceType.Usage,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          currency: organization.defaultCurrency,
+          livemode,
+          active: false,
+          name: 'Inactive Usage Price',
+          trialPeriodDays: null,
+          usageEventsPerUnit: 10,
+          usageMeterId: usageMeterA.id,
+          externalId: null,
+          slug: 'inactive-usage-price',
+        },
+        transaction
+      )
+
+      // Create a subscription price (not usage)
+      const subscriptionPrice = await insertPrice(
+        {
+          productId: subscriptionProduct.id,
+          unitPrice: 1000,
+          isDefault: true,
+          type: PriceType.Subscription,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          currency: organization.defaultCurrency,
+          livemode,
+          active: true,
+          name: 'Subscription Price',
+          trialPeriodDays: null,
+          usageEventsPerUnit: null,
+          usageMeterId: null,
+          externalId: null,
+          slug: 'subscription-price',
+        },
+        transaction
+      )
+
+      return {
+        organizationId: organization.id,
+        pricingModelId,
+        usageMeterAId: usageMeterA.id,
+        usageMeterBId: usageMeterB.id,
+        usagePriceAId: usagePriceA.id,
+        usagePriceBId: usagePriceB.id,
+        subscriptionPriceId: subscriptionPrice.id,
+        inactiveUsagePriceId: inactiveUsagePrice.id,
+      }
+    })
+
+    organizationId = result.organizationId
+    pricingModelId = result.pricingModelId
+    usageMeterAId = result.usageMeterAId
+    usageMeterBId = result.usageMeterBId
+    usagePriceAId = result.usagePriceAId
+    usagePriceBId = result.usagePriceBId
+    subscriptionPriceId = result.subscriptionPriceId
+    inactiveUsagePriceId = result.inactiveUsagePriceId
+  })
+
+  it('returns only usage prices for a given usageMeterId', async () => {
+    const { apiKey, user } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    const ctx = {
+      organizationId,
+      apiKey: apiKey.token!,
+      livemode,
+      environment: 'live' as const,
+      path: '',
+      user,
+    }
+
+    // Query for meter A prices
+    const resultA = await pricesRouter
+      .createCaller(ctx)
+      .getTableRows({
+        filters: {
+          usageMeterId: usageMeterAId,
+          type: PriceType.Usage,
+        },
+      })
+
+    // Should include both active and inactive prices for meter A
+    expect(resultA.items.length).toBe(2)
+    const priceIds = resultA.items.map((item) => item.price.id)
+    expect(priceIds).toContain(usagePriceAId)
+    expect(priceIds).toContain(inactiveUsagePriceId)
+    expect(priceIds).not.toContain(usagePriceBId)
+    expect(priceIds).not.toContain(subscriptionPriceId)
+
+    // Query for meter B prices
+    const resultB = await pricesRouter
+      .createCaller(ctx)
+      .getTableRows({
+        filters: {
+          usageMeterId: usageMeterBId,
+          type: PriceType.Usage,
+        },
+      })
+
+    expect(resultB.items.length).toBe(1)
+    expect(resultB.items[0].price.id).toBe(usagePriceBId)
+  })
+
+  it('respects active filter when provided', async () => {
+    const { apiKey, user } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    const ctx = {
+      organizationId,
+      apiKey: apiKey.token!,
+      livemode,
+      environment: 'live' as const,
+      path: '',
+      user,
+    }
+
+    // Query for active prices only on meter A
+    const activeResult = await pricesRouter
+      .createCaller(ctx)
+      .getTableRows({
+        filters: {
+          usageMeterId: usageMeterAId,
+          type: PriceType.Usage,
+          active: true,
+        },
+      })
+
+    expect(activeResult.items.length).toBe(1)
+    expect(activeResult.items[0].price.id).toBe(usagePriceAId)
+    expect(activeResult.items[0].price.active).toBe(true)
+
+    // Query for inactive prices only on meter A
+    const inactiveResult = await pricesRouter
+      .createCaller(ctx)
+      .getTableRows({
+        filters: {
+          usageMeterId: usageMeterAId,
+          type: PriceType.Usage,
+          active: false,
+        },
+      })
+
+    expect(inactiveResult.items.length).toBe(1)
+    expect(inactiveResult.items[0].price.id).toBe(
+      inactiveUsagePriceId
+    )
+    expect(inactiveResult.items[0].price.active).toBe(false)
+  })
+
+  it('combines usageMeterId and type filters correctly', async () => {
+    const { apiKey, user } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    const ctx = {
+      organizationId,
+      apiKey: apiKey.token!,
+      livemode,
+      environment: 'live' as const,
+      path: '',
+      user,
+    }
+
+    // Query for subscription prices (should not return usage prices even with usageMeterId)
+    const subscriptionResult = await pricesRouter
+      .createCaller(ctx)
+      .getTableRows({
+        filters: {
+          type: PriceType.Subscription,
+        },
+      })
+
+    // Should include the subscription price and the default pricing model price
+    const hasSubscriptionPrice = subscriptionResult.items.some(
+      (item) => item.price.id === subscriptionPriceId
+    )
+    expect(hasSubscriptionPrice).toBe(true)
+
+    // None of the results should have a usageMeterId
+    for (const item of subscriptionResult.items) {
+      if (item.price.type === PriceType.Subscription) {
+        expect(item.price.usageMeterId).toBeNull()
+      }
+    }
   })
 })
