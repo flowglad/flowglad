@@ -368,7 +368,7 @@ describe('Usage Credit Methods', () => {
     it('returns undefined when a conflict exists (idempotency)', async () => {
       await adminTransaction(async ({ transaction }) => {
         const sourceRefId = `src_ref_${core.nanoid()}`
-        
+
         // First insert a credit that will cause a conflict
         await insertUsageCredit(
           {
@@ -405,7 +405,7 @@ describe('Usage Credit Methods', () => {
             billingPeriodId: null, // Same null period
             usageMeterId: usageMeter.id,
             paymentId: null,
-            issuedAmount: 100, 
+            issuedAmount: 100,
             issuedAt: Date.now(),
             expiresAt: null,
             status: UsageCreditStatus.Posted,

@@ -62,8 +62,6 @@ const baseInsertUsageCredit = createInsertFunction(
   config
 )
 
-
-
 export const insertUsageCredit = async (
   usageCreditInsert: UsageCredit.Insert,
   transaction: DbTransaction

@@ -441,13 +441,19 @@ const grantImmediateUsageCredits = async (
       .from(usageCredits)
       .where(
         and(
-          eq(usageCredits.sourceReferenceId, subscriptionItemFeature.id),
+          eq(
+            usageCredits.sourceReferenceId,
+            subscriptionItemFeature.id
+          ),
           eq(
             usageCredits.sourceReferenceType,
             UsageCreditSourceReferenceType.ManualAdjustment
           ),
           currentBillingPeriod
-            ? eq(usageCredits.billingPeriodId, currentBillingPeriod.id)
+            ? eq(
+                usageCredits.billingPeriodId,
+                currentBillingPeriod.id
+              )
             : isNull(usageCredits.billingPeriodId)
         )
       )
@@ -457,8 +463,8 @@ const grantImmediateUsageCredits = async (
     // though distinct from insert return it should be fine as both are from the same table.
     // However, to be safe and satisfy TS flow:
     if (!existing) {
-       // Should technically not happen if onConflictDoNothing returned undefined due to conflict
-       return undefined
+      // Should technically not happen if onConflictDoNothing returned undefined due to conflict
+      return undefined
     }
     usageCredit = usageCreditsSelectSchema.parse(existing)
   }

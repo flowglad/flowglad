@@ -1842,13 +1842,6 @@
       "when": 1767260719705,
       "tag": "0263_salty_vanisher",
       "breakpoints": true
-    },
-    {
-      "idx": 264,
-      "version": "7",
-      "when": 1767263548066,
-      "tag": "0264_worthless_callisto",
-      "breakpoints": true
     }
   ]
 }

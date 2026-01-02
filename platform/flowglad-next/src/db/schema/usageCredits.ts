@@ -106,7 +106,7 @@ export const usageCredits = pgTable(
       ]),
       constructUniqueIndex(TABLE_NAME, [
         table.sourceReferenceId,
-        table.sourceReferenceType,  
+        table.sourceReferenceType,
         table.billingPeriodId,
       ]),
       enableCustomerReadPolicy(
