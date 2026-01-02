@@ -73,6 +73,7 @@ import {
   chargeStatusToPaymentStatus,
   ledgerCommandForPaymentSucceeded,
   processPaymentIntentStatusUpdated,
+  selectFeeCalculationForPaymentIntent,
   updatePaymentToReflectLatestChargeStatus,
   upsertPaymentForStripeCharge,
 } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
@@ -946,6 +947,237 @@ describe('Process payment intent status updated', async () => {
       )
       expect(result.payment.stripeTaxTransactionId).toBe(
         feeCalculation.stripeTaxTransactionId
+      )
+    })
+
+    it('selectFeeCalculationForPaymentIntent selects latest fee calculation for checkout sessions', async () => {
+      const checkoutSession = await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Invoice,
+        quantity: 1,
+        livemode: true,
+        invoiceId: invoice.id,
+      })
+
+      const feeCalculationOld = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeeCalculation(
+            {
+              checkoutSessionId: checkoutSession.id,
+              organizationId: organization.id,
+              priceId: price.id,
+              purchaseId: null,
+              discountId: null,
+              livemode: checkoutSession.livemode,
+              currency: CurrencyCode.USD,
+              type: FeeCalculationType.CheckoutSessionPayment,
+              billingAddress: {
+                address: {
+                  line1: '123 Test St',
+                  line2: 'Apt 1',
+                  city: 'Test City',
+                  state: 'Test State',
+                  postal_code: '12345',
+                  country: CountryCode.US,
+                },
+              },
+              billingPeriodId: null,
+              paymentMethodType: PaymentMethodType.Card,
+              discountAmountFixed: 0,
+              paymentMethodFeeFixed: 0,
+              baseAmount: 1000,
+              pretaxTotal: 1000,
+              taxAmountFixed: 0,
+              stripeTaxCalculationId: 'txcalc_test_old',
+              stripeTaxTransactionId: null,
+              internationalFeePercentage: '0',
+              flowgladFeePercentage: '0.65',
+              internalNotes: 'Old Fee Calculation',
+            },
+            transaction
+          )
+        }
+      )
+
+      await new Promise((resolve) => setTimeout(resolve, 5))
+
+      const feeCalculationNew = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeeCalculation(
+            {
+              checkoutSessionId: checkoutSession.id,
+              organizationId: organization.id,
+              priceId: price.id,
+              purchaseId: null,
+              discountId: null,
+              livemode: checkoutSession.livemode,
+              currency: CurrencyCode.USD,
+              type: FeeCalculationType.CheckoutSessionPayment,
+              billingAddress: {
+                address: {
+                  line1: '123 Test St',
+                  line2: 'Apt 1',
+                  city: 'Test City',
+                  state: 'Test State',
+                  postal_code: '12345',
+                  country: CountryCode.US,
+                },
+              },
+              billingPeriodId: null,
+              paymentMethodType: PaymentMethodType.Card,
+              discountAmountFixed: 0,
+              paymentMethodFeeFixed: 0,
+              baseAmount: 1000,
+              pretaxTotal: 1000,
+              taxAmountFixed: 0,
+              stripeTaxCalculationId: 'txcalc_test_new',
+              stripeTaxTransactionId: null,
+              internationalFeePercentage: '0',
+              flowgladFeePercentage: '0.65',
+              internalNotes: 'New Fee Calculation',
+            },
+            transaction
+          )
+        }
+      )
+
+      const selectedFeeCalculation = await adminTransaction(
+        async ({ transaction }) => {
+          return selectFeeCalculationForPaymentIntent(
+            {
+              type: IntentMetadataType.CheckoutSession,
+              checkoutSessionId: checkoutSession.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(selectedFeeCalculation?.id).toBe(feeCalculationNew.id)
+      expect(selectedFeeCalculation?.id).not.toBe(
+        feeCalculationOld.id
+      )
+    })
+
+    it('selectFeeCalculationForPaymentIntent selects latest fee calculation for billing runs', async () => {
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        livemode: true,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+      })
+      const billingPeriod = await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        livemode: true,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+      })
+
+      const feeCalculationOld = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeeCalculation(
+            {
+              billingPeriodId: billingPeriod.id,
+              organizationId: organization.id,
+              checkoutSessionId: null,
+              purchaseId: null,
+              discountId: null,
+              priceId: null,
+              livemode: billingPeriod.livemode,
+              currency: CurrencyCode.USD,
+              type: FeeCalculationType.SubscriptionPayment,
+              paymentMethodType: PaymentMethodType.Card,
+              discountAmountFixed: 0,
+              paymentMethodFeeFixed: 0,
+              baseAmount: 1000,
+              pretaxTotal: 1000,
+              taxAmountFixed: 0,
+              stripeTaxCalculationId: 'txcalc_br_old',
+              stripeTaxTransactionId: null,
+              internationalFeePercentage: '0',
+              flowgladFeePercentage: '0.65',
+              billingAddress: {
+                address: {
+                  line1: '123 Test St',
+                  line2: 'Apt 1',
+                  city: 'Test City',
+                  state: 'Test State',
+                  postal_code: '12345',
+                  country: CountryCode.US,
+                },
+              },
+              internalNotes: 'Old billing run fee calculation',
+            },
+            transaction
+          )
+        }
+      )
+
+      await new Promise((resolve) => setTimeout(resolve, 5))
+
+      const feeCalculationNew = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeeCalculation(
+            {
+              billingPeriodId: billingPeriod.id,
+              organizationId: organization.id,
+              checkoutSessionId: null,
+              purchaseId: null,
+              discountId: null,
+              priceId: null,
+              livemode: billingPeriod.livemode,
+              currency: CurrencyCode.USD,
+              type: FeeCalculationType.SubscriptionPayment,
+              paymentMethodType: PaymentMethodType.Card,
+              discountAmountFixed: 0,
+              paymentMethodFeeFixed: 0,
+              baseAmount: 1000,
+              pretaxTotal: 1000,
+              taxAmountFixed: 0,
+              stripeTaxCalculationId: 'txcalc_br_new',
+              stripeTaxTransactionId: null,
+              internationalFeePercentage: '0',
+              flowgladFeePercentage: '0.65',
+              billingAddress: {
+                address: {
+                  line1: '123 Test St',
+                  line2: 'Apt 1',
+                  city: 'Test City',
+                  state: 'Test State',
+                  postal_code: '12345',
+                  country: CountryCode.US,
+                },
+              },
+              internalNotes: 'New billing run fee calculation',
+            },
+            transaction
+          )
+        }
+      )
+
+      const selectedFeeCalculation = await adminTransaction(
+        async ({ transaction }) => {
+          return selectFeeCalculationForPaymentIntent(
+            {
+              type: IntentMetadataType.BillingRun,
+              billingPeriodId: billingPeriod.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(selectedFeeCalculation?.id).toBe(feeCalculationNew.id)
+      expect(selectedFeeCalculation?.id).not.toBe(
+        feeCalculationOld.id
       )
     })
 

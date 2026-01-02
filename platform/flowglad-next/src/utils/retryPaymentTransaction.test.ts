@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest'
+import {
+  setupCustomer,
+  setupInvoice,
+  setupOrg,
+  setupPayment,
+} from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { updatePayment } from '@/db/tableMethods/paymentMethods'
 import { PaymentStatus } from '@/types'
+import { retryPaymentTransaction } from './paymentHelpers'
 
 describe('retryPaymentTransaction', () => {
   it('propagates Stripe Tax fields to the new payment record', async () => {
-    const { setupCustomer, setupInvoice, setupOrg, setupPayment } =
-      await import('@/../seedDatabase')
-    const { retryPaymentTransaction } = await import(
-      './paymentHelpers'
-    )
-
     const { organization, price } = await setupOrg()
     const customer = await setupCustomer({
       organizationId: organization.id,
@@ -55,6 +56,10 @@ describe('retryPaymentTransaction', () => {
       }
     )
 
+    expect(retriedPayment.id).not.toBe(updatedFailedPayment.id)
+    expect(retriedPayment.stripeChargeId).not.toBe(
+      updatedFailedPayment.stripeChargeId
+    )
     expect(retriedPayment.subtotal).toBe(
       updatedFailedPayment.subtotal
     )

@@ -80,7 +80,7 @@ export const chargeStatusToPaymentStatus = (
   return paymentStatus
 }
 
-const selectFeeCalculationForPaymentIntent = async (
+export const selectFeeCalculationForPaymentIntent = async (
   params: { type: IntentMetadataType } & (
     | { type: IntentMetadataType.BillingRun; billingPeriodId: string }
     | {

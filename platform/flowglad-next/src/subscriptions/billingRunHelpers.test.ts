@@ -1792,6 +1792,9 @@ describe('billingRunHelpers', async () => {
       expect(result.payment?.taxAmount).toBe(
         result.feeCalculation.taxAmountFixed
       )
+      expect(result.payment?.stripeTaxTransactionId).toBe(
+        result.feeCalculation.stripeTaxTransactionId
+      )
     })
 
     it('should update billing run status to AwaitingPaymentConfirmation', async () => {
