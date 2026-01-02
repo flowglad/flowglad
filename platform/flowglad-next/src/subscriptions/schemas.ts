@@ -40,12 +40,12 @@ export const terseSubscriptionItemSchema = z
       .describe('The quantity of units. Defaults to 1.'),
   })
   .describe(
-    'A terse subscription item with just price reference and quantity. Exactly one of priceId or priceSlug must be provided (server-side validation enforces this constraint).'
+    'A terse subscription item with just price reference and quantity. Exactly one of priceId or priceSlug must be provided (validated at parse-time by Zod).'
   )
   .refine(
     (data) => (data.priceId ? !data.priceSlug : !!data.priceSlug),
     {
-      message:
+      error:
         'Price identifier required: exactly one of priceId or priceSlug must be provided, not both or neither',
     }
   )
@@ -75,7 +75,7 @@ export const subscriptionItemWithPriceSlugSchema =
         return hasPriceId !== hasPriceSlug
       },
       {
-        message:
+        error:
           'Price identifier required: exactly one of priceId or priceSlug must be provided, not both or neither',
       }
     )
