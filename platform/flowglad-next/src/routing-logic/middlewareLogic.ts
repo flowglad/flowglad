@@ -36,6 +36,18 @@ export const middlewareLogic = (
       const organizationId = pathParts[1]
       const customerId = pathParts[2]
 
+      // Guard: If no organizationId, redirect to general sign-in
+      // (this shouldn't happen with valid Next.js routes but provides defensive handling)
+      if (!organizationId) {
+        return {
+          proceed: false,
+          redirect: {
+            url: '/sign-in',
+            status: 307,
+          },
+        }
+      }
+
       // If path includes a customerId and it's not already a sign-in page, redirect to customer-specific sign-in
       if (customerId && !pathName.includes('/sign-in')) {
         return {

@@ -4,15 +4,14 @@ import { middlewareLogic } from './middlewareLogic'
 describe('middlewareLogic', () => {
   describe('no session cookie scenarios', () => {
     describe('protected route', () => {
-      it('should redirect to billing portal sign-in when path starts with /billing-portal/', () => {
+      it('should redirect to org-level sign-in when path has org only (no customer segment)', () => {
         const result = middlewareLogic({
           sessionCookie: null,
           isProtectedRoute: true,
-          pathName: '/billing-portal/org_123/dashboard',
+          pathName: '/billing-portal/org_123',
           customerBillingPortalOrganizationId: null,
           req: {
-            nextUrl:
-              'https://example.com/billing-portal/org_123/dashboard',
+            nextUrl: 'https://example.com/billing-portal/org_123',
           },
         })
 
@@ -832,7 +831,44 @@ describe('middlewareLogic', () => {
       }
     })
 
-    it('should extract organization ID correctly from nested billing portal paths', () => {
+    it('should redirect to customer-specific sign-in when path includes customerId', () => {
+      const result = middlewareLogic({
+        sessionCookie: null,
+        isProtectedRoute: true,
+        pathName: '/billing-portal/org_123/cust_456/dashboard',
+        customerBillingPortalOrganizationId: null,
+        req: {
+          nextUrl:
+            'https://example.com/billing-portal/org_123/cust_456/dashboard',
+        },
+      })
+
+      expect(result.proceed).toBe(false)
+      if (!result.proceed) {
+        // Should redirect to customer-specific sign-in, not org-level
+        expect(result.redirect.url).toBe(
+          '/billing-portal/org_123/cust_456/sign-in'
+        )
+        expect(result.redirect.status).toBe(307)
+      }
+    })
+
+    it('should not redirect again when already on customer-specific sign-in page', () => {
+      const result = middlewareLogic({
+        sessionCookie: null,
+        isProtectedRoute: false, // sign-in pages are public
+        pathName: '/billing-portal/org_123/cust_456/sign-in',
+        customerBillingPortalOrganizationId: null,
+        req: {
+          nextUrl:
+            'https://example.com/billing-portal/org_123/cust_456/sign-in',
+        },
+      })
+
+      expect(result.proceed).toBe(true)
+    })
+
+    it('should redirect to org-level sign-in when path has only organizationId (no customerId)', () => {
       const result = middlewareLogic({
         sessionCookie: null,
         isProtectedRoute: true,
@@ -846,9 +882,28 @@ describe('middlewareLogic', () => {
 
       expect(result.proceed).toBe(false)
       if (!result.proceed) {
+        // 'nested' is treated as customerId, so redirects to customer-specific sign-in
         expect(result.redirect.url).toBe(
-          '/billing-portal/org_complex_123/sign-in'
+          '/billing-portal/org_complex_123/nested/sign-in'
         )
+        expect(result.redirect.status).toBe(307)
+      }
+    })
+
+    it('should redirect to general sign-in when billing-portal path has no organizationId', () => {
+      const result = middlewareLogic({
+        sessionCookie: null,
+        isProtectedRoute: true,
+        pathName: '/billing-portal/',
+        customerBillingPortalOrganizationId: null,
+        req: {
+          nextUrl: 'https://example.com/billing-portal/',
+        },
+      })
+
+      expect(result.proceed).toBe(false)
+      if (!result.proceed) {
+        expect(result.redirect.url).toBe('/sign-in')
         expect(result.redirect.status).toBe(307)
       }
     })
@@ -884,19 +939,20 @@ describe('middlewareLogic', () => {
       const result = middlewareLogic({
         sessionCookie: null,
         isProtectedRoute: true,
-        pathName: '/billing-portal/org_123/page',
+        pathName: '/billing-portal/org_123/cust_456',
         customerBillingPortalOrganizationId: null,
         req: {
           nextUrl:
-            'https://example.com/billing-portal/org_123/page?param=value',
+            'https://example.com/billing-portal/org_123/cust_456?param=value',
         },
       })
 
       // Query params should not affect path matching
+      // With customer ID segment, redirects to customer-specific sign-in
       expect(result.proceed).toBe(false)
       if (!result.proceed) {
         expect(result.redirect.url).toBe(
-          '/billing-portal/org_123/sign-in'
+          '/billing-portal/org_123/cust_456/sign-in'
         )
         expect(result.redirect.status).toBe(307)
       }
@@ -906,19 +962,20 @@ describe('middlewareLogic', () => {
       const result = middlewareLogic({
         sessionCookie: null,
         isProtectedRoute: true,
-        pathName: '/billing-portal/org_123/page',
+        pathName: '/billing-portal/org_123/cust_789',
         customerBillingPortalOrganizationId: null,
         req: {
           nextUrl:
-            'https://example.com/billing-portal/org_123/page#section',
+            'https://example.com/billing-portal/org_123/cust_789#section',
         },
       })
 
       // URL fragments should not affect path matching
+      // With customer ID segment, redirects to customer-specific sign-in
       expect(result.proceed).toBe(false)
       if (!result.proceed) {
         expect(result.redirect.url).toBe(
-          '/billing-portal/org_123/sign-in'
+          '/billing-portal/org_123/cust_789/sign-in'
         )
         expect(result.redirect.status).toBe(307)
       }
