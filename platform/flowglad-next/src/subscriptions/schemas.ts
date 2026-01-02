@@ -23,9 +23,7 @@ export const adjustSubscriptionImmediatelySchema = z
   .object({
     timing: z
       .literal(SubscriptionAdjustmentTiming.Immediately)
-      .describe(
-        'Note: Immediate adjustments are in private preview. Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616.'
-      ),
+      .describe('Apply the adjustment immediately.'),
     newSubscriptionItems: z.array(
       z.union([
         subscriptionItemClientInsertSchema,
