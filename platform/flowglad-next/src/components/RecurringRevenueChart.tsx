@@ -160,6 +160,7 @@ export const RecurringRevenueChart = ({
           categories={['revenue']}
           className="-mb-2 mt-2"
           colors={['foreground']}
+          fill="gradient"
           customTooltip={RevenueTooltip}
           maxValue={maxValue}
           autoMinValue={false}

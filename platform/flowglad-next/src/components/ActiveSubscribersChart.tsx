@@ -202,6 +202,7 @@ export const ActiveSubscribersChart = ({
           categories={['subscribers']}
           className="-mb-2 mt-2"
           colors={['foreground']}
+          fill="gradient"
           customTooltip={SubscriberCountTooltip}
           maxValue={maxValue}
           autoMinValue={false}

@@ -3,9 +3,9 @@ import { differenceInHours, format, isDate } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import {
-  AreaChart,
-  type TooltipCallbackProps,
-} from '@/components/charts/AreaChart'
+  LineChart,
+  type TooltipProps as TooltipCallbackProps,
+} from '@/components/charts/LineChart'
 import { RevenueTooltip } from '@/components/RevenueTooltip'
 import {
   Select,
@@ -21,7 +21,6 @@ import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
 } from '@/utils/stripe'
-import { LineChart } from './charts/LineChart'
 import { Skeleton } from './ui/skeleton'
 
 /**
@@ -256,6 +255,7 @@ export function RevenueChart({
           // startEndOnly={true}
           className="-mb-2 mt-2"
           colors={['foreground']}
+          fill="gradient"
           customTooltip={RevenueTooltip}
           maxValue={maxValue}
           autoMinValue={false}

@@ -6,12 +6,13 @@ import { RiArrowLeftSLine, RiArrowRightSLine } from '@remixicon/react'
 import React from 'react'
 import { mergeRefs } from 'react-merge-refs'
 import {
+  Area,
   CartesianGrid,
   Dot,
   Label,
   Line,
+  ComposedChart as RechartsComposedChart,
   Legend as RechartsLegend,
-  LineChart as RechartsLineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -576,6 +577,8 @@ interface LineChartProps
   tooltipCallback?: (tooltipCallbackContent: TooltipProps) => void
   customTooltip?: React.ComponentType<TooltipProps>
   startEndOnlyYAxis?: boolean
+  /** Fill style for the area under the line. Defaults to 'none' for backwards compatibility. */
+  fill?: 'gradient' | 'solid' | 'none'
 }
 
 /**
@@ -615,6 +618,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       tooltipCallback,
       customTooltip,
       startEndOnlyYAxis = false,
+      fill = 'none',
       ...other
     } = props
     const { containerRef, width, height } = useContainerSize()
@@ -631,6 +635,47 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       string | undefined
     >(undefined)
     const categoryColors = constructCategoryColors(categories, colors)
+    const areaId = React.useId()
+
+    /**
+     * Returns the SVG gradient stop content based on fill type.
+     * Uses the actual CSS color value to avoid currentColor inheritance issues in SVG defs.
+     */
+    const getFillContent = (category: string) => {
+      const stopOpacity =
+        activeDot || (activeLegend && activeLegend !== category)
+          ? 0.01
+          : 0.1
+
+      const colorValue = getCSSColorValue(
+        categoryColors.get(category) as AvailableChartColorsKeys
+      )
+
+      switch (fill) {
+        case 'none':
+          return <stop stopColor={colorValue} stopOpacity={0} />
+        case 'gradient':
+          return (
+            <>
+              <stop
+                offset="5%"
+                stopColor={colorValue}
+                stopOpacity={stopOpacity}
+              />
+              <stop
+                offset="95%"
+                stopColor={colorValue}
+                stopOpacity={0}
+              />
+            </>
+          )
+        case 'solid':
+        default:
+          return (
+            <stop stopColor={colorValue} stopOpacity={stopOpacity} />
+          )
+      }
+    }
 
     const dataWithUniqueIds = React.useMemo(
       () =>
@@ -725,7 +770,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
          *    - ResponsiveContainer ensures smooth transitions and maintains aspect ratio
          */}
         <ResponsiveContainer width={'100%'} height={'100%'}>
-          <RechartsLineChart
+          <RechartsComposedChart
             data={dataWithUniqueIds}
             width={width || 800}
             height={height || 300}
@@ -866,8 +911,11 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               wrapperStyle={{ outline: 'none' }}
               isAnimationActive={true}
               animationDuration={100}
-              cursor={{ stroke: '#d1d5db', strokeWidth: 1 }}
-              offset={20}
+              cursor={{
+                stroke: 'hsl(var(--muted-foreground))',
+                strokeWidth: 1,
+              }}
+              offset={8}
               position={{ y: 0 }}
               content={({ active, payload, label }) => {
                 const cleanPayload: TooltipProps['payload'] = payload
@@ -937,6 +985,49 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 }
               />
             ) : null}
+            {/* Gradient definitions for area fills */}
+            {fill !== 'none' && (
+              <defs>
+                {categories.map((category) => {
+                  const categoryId = `${areaId}-${category.replace(/[^a-zA-Z0-9]/g, '')}`
+                  return (
+                    <linearGradient
+                      key={categoryId}
+                      id={categoryId}
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      {getFillContent(category)}
+                    </linearGradient>
+                  )
+                })}
+              </defs>
+            )}
+            {/* Gradient fill areas - rendered behind the lines */}
+            {fill !== 'none' &&
+              categories.map((category) => {
+                const categoryId = `${areaId}-${category.replace(/[^a-zA-Z0-9]/g, '')}`
+                return (
+                  <Area
+                    key={`area-${category}`}
+                    type="linear"
+                    dataKey={category}
+                    name={`${category}-area`}
+                    stroke="transparent"
+                    strokeWidth={0}
+                    fill={`url(#${categoryId})`}
+                    fillOpacity={1}
+                    isAnimationActive={false}
+                    connectNulls={connectNulls}
+                    activeDot={false}
+                    dot={false}
+                    legendType="none"
+                    tooltipType="none"
+                  />
+                )
+              })}
             {categories.map((category) => (
               <Line
                 className={cn(
@@ -962,26 +1053,22 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                   const {
                     cx: cxCoord,
                     cy: cyCoord,
-                    stroke,
                     strokeLinecap,
                     strokeLinejoin,
-                    strokeWidth,
-                    dataKey,
                   } = props
                   return (
                     <Dot
                       className={cn(
-                        'stroke-foreground fill-foreground',
                         onValueChange ? 'cursor-pointer' : ''
                       )}
                       cx={cxCoord}
                       cy={cyCoord}
                       r={5}
-                      fill=""
-                      stroke={stroke}
+                      fill="hsl(var(--background))"
+                      stroke="hsl(var(--foreground))"
                       strokeLinecap={strokeLinecap}
                       strokeLinejoin={strokeLinejoin}
-                      strokeWidth={strokeWidth}
+                      strokeWidth={2}
                       onClick={(_, event) => onDotClick(props, event)}
                     />
                   )
@@ -1031,7 +1118,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 name={category}
                 type="linear"
                 dataKey={category}
-                strokeWidth={2}
+                strokeWidth={1.5}
                 strokeLinejoin="round"
                 strokeLinecap="round"
                 isAnimationActive={false}
@@ -1062,7 +1149,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                   />
                 ))
               : null}
-          </RechartsLineChart>
+          </RechartsComposedChart>
         </ResponsiveContainer>
       </div>
     )
