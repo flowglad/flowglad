@@ -8,6 +8,7 @@ import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-billing-portal-magic-link'
+import { CustomerBillingPortalOTPEmail } from '@/email-templates/customer-billing-portal-otp'
 import { OrderReceiptEmail } from '@/email-templates/customer-order-receipt'
 import { PaymentFailedEmail } from '@/email-templates/customer-payment-failed'
 import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
@@ -406,6 +407,36 @@ export const sendCustomerBillingPortalMagicLink = async ({
   })
 }
 
+export const sendCustomerBillingPortalOTP = async ({
+  to,
+  otp,
+  customerName,
+  organizationName,
+  livemode,
+}: {
+  to: string[]
+  otp: string
+  customerName?: string
+  organizationName: string
+  livemode: boolean
+}) => {
+  return safeSend({
+    from: 'notifications@flowglad.com',
+    to: to.map(safeTo),
+    subject: formatEmailSubject(
+      `Sign in to your ${organizationName} billing portal - Your code is ${otp}`,
+      livemode
+    ),
+    react: await CustomerBillingPortalOTPEmail({
+      email: to[0],
+      otp,
+      customerName,
+      organizationName,
+      livemode,
+    }),
+  })
+}
+
 export const sendOrganizationOnboardingCompletedNotificationEmail =
   async ({
     to,
@@ -483,4 +514,19 @@ export const sendCustomersCsvExportReadyEmail = async ({
       },
     ],
   })
+}
+
+/**
+ * Masks an email address for display purposes.
+ * Example: "user@example.com" -> "u***@example.com"
+ */
+export const maskEmail = (email: string): string => {
+  const [local, domain] = email.split('@')
+  if (local.length <= 2) {
+    return `${local[0]}***@${domain}`
+  }
+  const visibleChars = Math.min(2, Math.floor(local.length / 3))
+  const masked =
+    local.slice(0, visibleChars) + '***' + local.slice(-1)
+  return `${masked}@${domain}`
 }
