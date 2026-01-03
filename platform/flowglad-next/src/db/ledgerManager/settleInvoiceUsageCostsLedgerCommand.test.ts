@@ -119,7 +119,8 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       // execute:
       const usageCreditInsert = usageCreditInsertFromInvoiceLineItem(
         usageInvoiceLineItem,
-        ledgerAccount
+        ledgerAccount,
+        billingRun.billingPeriodId
       )
       // expects:
       expect(usageCreditInsert).toBeDefined()
@@ -133,7 +134,10 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         UsageCreditSourceReferenceType.InvoiceSettlement
       )
       expect(usageCreditInsert.sourceReferenceId).toBe(
-        usageInvoiceLineItem.invoiceId
+        usageInvoiceLineItem.id
+      )
+      expect(usageCreditInsert.billingPeriodId).toBe(
+        billingRun.billingPeriodId
       )
       expect(usageCreditInsert.usageMeterId).toBe(
         ledgerAccount.usageMeterId
@@ -151,7 +155,8 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       expect(() =>
         usageCreditInsertFromInvoiceLineItem(
           staticLineItem,
-          ledgerAccount
+          ledgerAccount,
+          billingRun.billingPeriodId
         )
       ).toThrowError('Invoice line item type static is not supported')
     })
@@ -166,7 +171,8 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       expect(() =>
         usageCreditInsertFromInvoiceLineItem(
           usageInvoiceLineItem,
-          mismatchedLedgerAccount
+          mismatchedLedgerAccount,
+          billingRun.billingPeriodId
         )
       ).toThrowError('Ledger account ID la_mismatched does not match')
     })

@@ -11,7 +11,7 @@ import type { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import type { UsageCredit } from '@/db/schema/usageCredits'
 import { findOrCreateLedgerAccountsForSubscriptionAndUsageMeters } from '@/db/tableMethods/ledgerAccountMethods'
 import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
-import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import { bulkInsertOrDoNothingUsageCreditsBySourceReferenceAndBillingPeriod } from '@/db/tableMethods/usageCreditMethods'
 import type { DbTransaction } from '@/db/types'
 import {
   FeatureUsageGrantFrequency,
@@ -80,6 +80,18 @@ export const grantEntitlementUsageCredits = async (
    */
   const usageCreditInserts: UsageCredit.Insert[] =
     featureItemsToGrant.map((featureItem) => {
+      const billingPeriodId =
+        standardPayload.type === 'standard'
+          ? standardPayload.newBillingPeriod.id
+          : null
+      let expiresAt: number | null = null
+      if (
+        featureItem.renewalFrequency ===
+          FeatureUsageGrantFrequency.EveryBillingPeriod &&
+        standardPayload.type === 'standard'
+      ) {
+        expiresAt = standardPayload.newBillingPeriod.endDate
+      }
       return {
         organizationId: command.organizationId,
         livemode: command.livemode,
@@ -87,26 +99,23 @@ export const grantEntitlementUsageCredits = async (
         status: UsageCreditStatus.Posted,
         usageMeterId: featureItem.usageMeterId!,
         subscriptionId: command.subscriptionId!,
-        billingPeriodId:
-          standardPayload.type === 'standard'
-            ? standardPayload.newBillingPeriod?.id
-            : null,
+        billingPeriodId,
         notes: null,
         metadata: null,
         // Credits from recurring grants expire at the end of the billing period.
         // Credits from one-time grants are evergreen and do not expire.
-        expiresAt:
-          featureItem.renewalFrequency ===
-          FeatureUsageGrantFrequency.EveryBillingPeriod
-            ? standardPayload.type === 'standard'
-              ? standardPayload.newBillingPeriod.endDate
-              : null
-            : null,
+        expiresAt,
         issuedAmount: featureItem.amount,
         issuedAt: Date.now(),
         creditType: UsageCreditType.Grant,
         sourceReferenceType:
           UsageCreditSourceReferenceType.BillingPeriodTransition,
+        /**
+         * For BillingPeriodTransition, we can create multiple credits (one per feature item).
+         * This must be non-null + stable so we can safely de-dupe on retries via the unique index:
+         * (source_reference_id, source_reference_type, billing_period_id).
+         */
+        sourceReferenceId: featureItem.id,
         paymentId: null,
       }
     })
@@ -118,10 +127,11 @@ export const grantEntitlementUsageCredits = async (
     }
   }
 
-  const usageCredits = await bulkInsertUsageCredits(
-    usageCreditInserts,
-    transaction
-  )
+  const usageCredits =
+    await bulkInsertOrDoNothingUsageCreditsBySourceReferenceAndBillingPeriod(
+      usageCreditInserts,
+      transaction
+    )
   const entitlementCreditLedgerInserts: LedgerEntry.CreditGrantRecognizedInsert[] =
     usageCredits.map((usageCredit) => {
       const entitlementCreditLedgerEntry: LedgerEntry.CreditGrantRecognizedInsert =

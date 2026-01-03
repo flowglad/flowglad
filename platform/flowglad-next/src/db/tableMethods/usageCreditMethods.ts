@@ -156,6 +156,39 @@ export const selectUsageCredits = createSelectFunction(
   config
 )
 
+export const selectUsageCreditBySourceReferenceAndBillingPeriod =
+  async (
+    params: Pick<
+      UsageCredit.Record,
+      'sourceReferenceId' | 'sourceReferenceType' | 'billingPeriodId'
+    >,
+    transaction: DbTransaction
+  ): Promise<UsageCredit.Record | undefined> => {
+    const [result] = await transaction
+      .select()
+      .from(usageCredits)
+      .where(
+        and(
+          params.sourceReferenceId === null
+            ? isNull(usageCredits.sourceReferenceId)
+            : eq(
+                usageCredits.sourceReferenceId,
+                params.sourceReferenceId
+              ),
+          eq(
+            usageCredits.sourceReferenceType,
+            params.sourceReferenceType
+          ),
+          params.billingPeriodId === null
+            ? isNull(usageCredits.billingPeriodId)
+            : eq(usageCredits.billingPeriodId, params.billingPeriodId)
+        )
+      )
+      .limit(1)
+
+    return result ? usageCreditsSelectSchema.parse(result) : undefined
+  }
+
 const baseBulkInsertUsageCredits = createBulkInsertFunction(
   usageCredits,
   config
@@ -190,6 +223,49 @@ export const bulkInsertUsageCredits = async (
     transaction
   )
 }
+
+/**
+ * Bulk inserts usage credits and ignores duplicates by the dedupe unique index:
+ * (sourceReferenceId, sourceReferenceType, billingPeriodId).
+ *
+ * This is used for idempotency in cases where it's safe/expected to retry the same
+ * logical issuance (e.g. billing period transitions).
+ */
+export const bulkInsertOrDoNothingUsageCreditsBySourceReferenceAndBillingPeriod =
+  async (
+    usageCreditInserts: UsageCredit.Insert[],
+    transaction: DbTransaction
+  ): Promise<UsageCredit.Record[]> => {
+    const pricingModelIdMap = await pricingModelIdsForUsageMeters(
+      usageCreditInserts.map((insert) => insert.usageMeterId),
+      transaction
+    )
+    const usageCreditsWithPricingModelId = usageCreditInserts.map(
+      (usageCreditInsert): UsageCredit.Insert => {
+        const pricingModelId =
+          usageCreditInsert.pricingModelId ??
+          pricingModelIdMap.get(usageCreditInsert.usageMeterId)
+        if (!pricingModelId) {
+          throw new Error(
+            `Pricing model id not found for usage meter ${usageCreditInsert.usageMeterId}`
+          )
+        }
+        return {
+          ...usageCreditInsert,
+          pricingModelId,
+        }
+      }
+    )
+    return baseBulkInsertOrDoNothingUsageCredits(
+      usageCreditsWithPricingModelId,
+      [
+        usageCredits.sourceReferenceId,
+        usageCredits.sourceReferenceType,
+        usageCredits.billingPeriodId,
+      ],
+      transaction
+    )
+  }
 
 const baseBulkInsertOrDoNothingUsageCredits =
   createBulkInsertOrDoNothingFunction(usageCredits, config)

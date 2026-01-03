@@ -38,7 +38,10 @@ import {
 } from '@/db/tableMethods/ledgerEntryMethods'
 import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
 import { bulkInsertUsageCreditApplications } from '@/db/tableMethods/usageCreditApplicationMethods'
-import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import {
+  insertUsageCreditOrDoNothing,
+  selectUsageCreditBySourceReferenceAndBillingPeriod,
+} from '@/db/tableMethods/usageCreditMethods'
 import type { DbTransaction } from '@/db/types'
 import {
   LedgerEntryDirection,
@@ -66,7 +69,8 @@ import { selectBillingRunById } from '../tableMethods/billingRunMethods'
  */
 export const usageCreditInsertFromInvoiceLineItem = (
   invoiceLineItem: InvoiceLineItem.Record,
-  ledgerAccount: LedgerAccount.Record
+  ledgerAccount: LedgerAccount.Record,
+  billingPeriodId: string | null
 ): UsageCredit.Insert => {
   if (invoiceLineItem.type !== SubscriptionItemType.Usage) {
     throw new Error(
@@ -95,7 +99,9 @@ export const usageCreditInsertFromInvoiceLineItem = (
     metadata: {},
     sourceReferenceType:
       UsageCreditSourceReferenceType.InvoiceSettlement,
-    sourceReferenceId: invoiceLineItem.invoiceId,
+    // Must be unique per usage line item to allow multiple usage meters per invoice.
+    sourceReferenceId: invoiceLineItem.id,
+    billingPeriodId,
     issuedAt: invoiceLineItem.createdAt,
     expiresAt: null,
     paymentId: null,
@@ -351,13 +357,14 @@ const creditGrantRecognizedLedgerEntryInserts = (
 const createUsageCreditsForInvoiceLineItems = async (
   invoiceLineItems: InvoiceLineItem.Record[],
   ledgerAccountsById: Map<string, LedgerAccount.Record>,
+  billingPeriodId: string | null,
   transaction: DbTransaction
 ): Promise<UsageCredit.Record[]> => {
-  const usageCreditInserts: UsageCredit.Insert[] = []
+  const usageCredits: UsageCredit.Record[] = []
   const usageCostLineItems = invoiceLineItems.filter(
     (lineItem) => lineItem.type === SubscriptionItemType.Usage
   )
-  usageCostLineItems.forEach((lineItem) => {
+  for (const lineItem of usageCostLineItems) {
     const ledgerAccount = ledgerAccountsById.get(
       lineItem.ledgerAccountId!
     )
@@ -366,11 +373,39 @@ const createUsageCreditsForInvoiceLineItems = async (
         `Ledger account not found for line item ${lineItem.id}.`
       )
     }
-    usageCreditInserts.push(
-      usageCreditInsertFromInvoiceLineItem(lineItem, ledgerAccount)
+    const usageCreditInsert = usageCreditInsertFromInvoiceLineItem(
+      lineItem,
+      ledgerAccount,
+      billingPeriodId
     )
-  })
-  return await bulkInsertUsageCredits(usageCreditInserts, transaction)
+
+    const inserted = await insertUsageCreditOrDoNothing(
+      usageCreditInsert,
+      transaction
+    )
+    if (inserted) {
+      usageCredits.push(inserted)
+      continue
+    }
+
+    const existing =
+      await selectUsageCreditBySourceReferenceAndBillingPeriod(
+        {
+          sourceReferenceId:
+            usageCreditInsert.sourceReferenceId ?? null,
+          sourceReferenceType: usageCreditInsert.sourceReferenceType,
+          billingPeriodId: usageCreditInsert.billingPeriodId ?? null,
+        },
+        transaction
+      )
+    if (!existing) {
+      throw new Error(
+        `Usage credit already existed but could not be found for invoice line item ${lineItem.id}.`
+      )
+    }
+    usageCredits.push(existing)
+  }
+  return usageCredits
 }
 
 /**
@@ -386,6 +421,20 @@ export const processSettleInvoiceUsageCostsLedgerCommand = async (
   command: SettleInvoiceUsageCostsLedgerCommand,
   transaction: DbTransaction
 ): Promise<LedgerCommandResult> => {
+  if (!command.payload.invoice.billingRunId) {
+    throw new Error(
+      `Invoice ${command.payload.invoice.id} does not have a billing run ID.`
+    )
+  }
+  const billingRun = await selectBillingRunById(
+    command.payload.invoice.billingRunId,
+    transaction
+  )
+  if (!billingRun) {
+    throw new Error(
+      `Billing run ${command.payload.invoice.billingRunId} not found.`
+    )
+  }
   // 1. Create the parent LedgerTransaction. All subsequent ledger entries created
   // in this command will be linked to this single transaction, providing a clear
   // audit trail for the entire settlement operation.
@@ -454,6 +503,7 @@ export const processSettleInvoiceUsageCostsLedgerCommand = async (
   const usageCredits = await createUsageCreditsForInvoiceLineItems(
     command.payload.invoiceLineItems,
     ledgerAccountsById,
+    billingRun.billingPeriodId,
     transaction
   )
   const usageCreditsById = new Map<string, UsageCredit.Record>(

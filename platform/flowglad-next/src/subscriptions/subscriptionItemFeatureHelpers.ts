@@ -411,7 +411,7 @@ const grantImmediateUsageCredits = async (
    * We rely on the database unique index on (sourceReferenceId, sourceReferenceType, billingPeriodId)
    * to prevent duplicate grants. The helper `insertUsageCreditOrDoNothing` handles the conflict gracefully.
    */
-  let usageCredit = await insertUsageCreditOrDoNothing(
+  const insertedUsageCredit = await insertUsageCreditOrDoNothing(
     {
       subscriptionId: subscription.id,
       organizationId: subscription.organizationId,
@@ -433,9 +433,9 @@ const grantImmediateUsageCredits = async (
     transaction
   )
 
-  if (!usageCredit) {
+  if (!insertedUsageCredit) {
     // If undefined, it means the credit already existed (conflict).
-    // fetch the existing one to return it, ensuring idempotency.
+    // Fetch the existing record for the caller (idempotency), but do NOT emit a new ledger command.
     const [existing] = await transaction
       .select()
       .from(usageCredits)
@@ -459,14 +459,14 @@ const grantImmediateUsageCredits = async (
       )
       .limit(1)
 
-    // Parse the existing record to ensure it matches UsageCredit.Record strict types if necessary,
-    // though distinct from insert return it should be fine as both are from the same table.
-    // However, to be safe and satisfy TS flow:
     if (!existing) {
-      // Should technically not happen if onConflictDoNothing returned undefined due to conflict
       return undefined
     }
-    usageCredit = usageCreditsSelectSchema.parse(existing)
+
+    return {
+      usageCredit: usageCreditsSelectSchema.parse(existing),
+      ledgerCommand: undefined,
+    }
   }
 
   const ledgerCommand: CreditGrantRecognizedLedgerCommand = {
@@ -475,12 +475,12 @@ const grantImmediateUsageCredits = async (
     livemode: subscription.livemode,
     subscriptionId: subscription.id,
     payload: {
-      usageCredit,
+      usageCredit: insertedUsageCredit,
     },
   }
 
   return {
-    usageCredit,
+    usageCredit: insertedUsageCredit,
     ledgerCommand,
   }
 }
