@@ -131,7 +131,10 @@ interface BillingContext {
   // Subscription management
   cancelSubscription: (params: CancelSubscriptionParams) => Promise<void>
   uncancelSubscription: (params: UncancelSubscriptionParams) => Promise<void>
-  
+
+  // Usage tracking
+  createUsageEvent: (params: CreateUsageEventParams) => Promise<UsageEventResult>
+
   // Loading states
   isLoading: boolean
   error: Error | null
@@ -388,6 +391,116 @@ function SubscriptionManager() {
 - Operation is idempotent. If the subscription is not scheduled to cancel, the method will silently succeed without uncanceling
 - For paid subscriptions: requires an active payment method for the subscription
 - Automatically refreshes billing data after success
+
+### createUsageEvent
+
+Record a usage event for usage-based billing directly from the client. This is useful for tracking consumption in real-time as users interact with your application.
+
+#### Parameters
+
+```typescript
+type CreateUsageEventParams = {
+  /**
+   * Identifier for the usage price or meter (exactly one required)
+   */
+  priceSlug?: string
+  priceId?: string
+  usageMeterSlug?: string
+  usageMeterId?: string
+
+  /**
+   * The quantity of usage to record.
+   * Defaults to 1 if not provided.
+   */
+  amount?: number
+
+  /**
+   * The subscription to record usage against.
+   * If not provided, uses the customer's current subscription.
+   */
+  subscriptionId?: string
+
+  /**
+   * A unique identifier for this usage event.
+   * Auto-generated if not provided. Use for idempotency.
+   */
+  transactionId?: string
+
+  /**
+   * Timestamp (in milliseconds) of when the usage occurred.
+   * Defaults to now if not provided.
+   */
+  usageDate?: number
+
+  /**
+   * Additional properties for the usage event.
+   * Required for 'count_distinct_properties' aggregation type.
+   */
+  properties?: Record<string, unknown>
+}
+```
+
+#### Returns
+
+```typescript
+// On success
+{ usageEvent: { id: string } }
+
+// On error
+{ error: { code: string; json: Record<string, unknown> } }
+```
+
+#### Example
+
+```tsx
+import { useBilling } from '@flowglad/react'
+
+function AIChat() {
+  const { createUsageEvent } = useBilling()
+
+  const handleSendMessage = async (message: string) => {
+    // Process the message and get token count
+    const response = await sendToAI(message)
+    const tokensUsed = response.tokensConsumed
+
+    // Record the usage
+    const result = await createUsageEvent({
+      usageMeterSlug: 'ai_tokens',
+      amount: tokensUsed,
+    })
+
+    if ('error' in result) {
+      console.error('Failed to record usage:', result.error)
+    }
+  }
+
+  return (
+    // Chat UI...
+  )
+}
+```
+
+#### Smart Defaults
+
+The client-side `createUsageEvent` provides convenient defaults:
+
+- **`amount`**: Defaults to `1` if not provided
+- **`subscriptionId`**: Auto-inferred from the customer's current subscription
+- **`transactionId`**: Auto-generated for idempotency if not provided
+
+This means for simple use cases, you only need to provide the price or usage meter identifier:
+
+```tsx
+// Minimal usage - just specify what you're tracking
+await createUsageEvent({ priceSlug: 'api_calls' })
+
+// With custom amount
+await createUsageEvent({ usageMeterSlug: 'tokens', amount: 150 })
+```
+
+<Note>
+Usage events do not automatically refresh billing data to avoid performance issues with high-frequency events. Call `reload()` manually if you need to update the displayed usage balance.
+</Note>
 
 ### checkFeatureAccess
 
