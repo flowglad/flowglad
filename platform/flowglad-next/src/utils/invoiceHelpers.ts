@@ -44,6 +44,11 @@ export const updateInvoiceTransaction = async (
   livemode: boolean,
   transaction: DbTransaction
 ) => {
+  if (invoice.id !== id) {
+    throw new Error(
+      `ID mismatch: parameter id (${id}) does not match invoice.id (${invoice.id})`
+    )
+  }
   const existingInvoice = await selectInvoiceById(id, transaction)
   if (invoiceIsInTerminalState(existingInvoice)) {
     throw new Error(

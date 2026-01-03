@@ -278,20 +278,6 @@ export const GET = async (request: NextRequest) => {
         setupIntentId,
         request,
       })
-      if (setupIntentResult.url) {
-        return Response.redirect(setupIntentResult.url, 303)
-      }
-
-      if (!setupIntentResult.purchase) {
-        return Response.json(
-          {
-            success: false,
-          },
-          {
-            status: 400,
-          }
-        )
-      }
       result = setupIntentResult
     } else {
       throw new Error(

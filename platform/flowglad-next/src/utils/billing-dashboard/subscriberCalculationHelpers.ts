@@ -1,10 +1,4 @@
-import {
-  addMonths,
-  endOfDay,
-  endOfMonth,
-  startOfDay,
-  startOfMonth,
-} from 'date-fns'
+import { endOfMonth, startOfMonth } from 'date-fns'
 import { and, eq, lte } from 'drizzle-orm'
 import { subscriptions } from '@/db/schema/subscriptions'
 import {
@@ -33,23 +27,102 @@ export interface SubscriberBreakdown {
 }
 
 /**
- * Calculates the number of active subscribers for each month in the specified date range
+ * Truncates a date to the start of the interval in UTC.
+ * Matches PostgreSQL's date_trunc behavior for consistent bucketing.
+ */
+function dateTruncUTC(
+  date: Date,
+  granularity: RevenueChartIntervalUnit
+): Date {
+  const year = date.getUTCFullYear()
+  const month = date.getUTCMonth()
+  const day = date.getUTCDate()
+  const hour = date.getUTCHours()
+
+  switch (granularity) {
+    case RevenueChartIntervalUnit.Year:
+      return new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0))
+    case RevenueChartIntervalUnit.Month:
+      return new Date(Date.UTC(year, month, 1, 0, 0, 0, 0))
+    case RevenueChartIntervalUnit.Week: {
+      // Get the day of week (0 = Sunday, 1 = Monday, etc.)
+      const tempDate = new Date(Date.UTC(year, month, day))
+      const dayOfWeek = tempDate.getUTCDay()
+      // Adjust to start of week (Monday = 1, so we go back dayOfWeek days, but if Sunday (0), go back 6)
+      const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      return new Date(
+        Date.UTC(year, month, day - daysToSubtract, 0, 0, 0, 0)
+      )
+    }
+    case RevenueChartIntervalUnit.Day:
+      return new Date(Date.UTC(year, month, day, 0, 0, 0, 0))
+    case RevenueChartIntervalUnit.Hour:
+      return new Date(Date.UTC(year, month, day, hour, 0, 0, 0))
+    default:
+      return new Date(Date.UTC(year, month, 1, 0, 0, 0, 0))
+  }
+}
+
+/**
+ * Adds one interval unit to a UTC date.
+ * Matches PostgreSQL's interval addition for consistent series generation.
+ */
+function addIntervalUTC(
+  date: Date,
+  granularity: RevenueChartIntervalUnit
+): Date {
+  const year = date.getUTCFullYear()
+  const month = date.getUTCMonth()
+  const day = date.getUTCDate()
+  const hour = date.getUTCHours()
+
+  switch (granularity) {
+    case RevenueChartIntervalUnit.Year:
+      return new Date(Date.UTC(year + 1, month, day, hour, 0, 0, 0))
+    case RevenueChartIntervalUnit.Month:
+      return new Date(Date.UTC(year, month + 1, day, hour, 0, 0, 0))
+    case RevenueChartIntervalUnit.Week:
+      return new Date(Date.UTC(year, month, day + 7, hour, 0, 0, 0))
+    case RevenueChartIntervalUnit.Day:
+      return new Date(Date.UTC(year, month, day + 1, hour, 0, 0, 0))
+    case RevenueChartIntervalUnit.Hour:
+      return new Date(Date.UTC(year, month, day, hour + 1, 0, 0, 0))
+    default:
+      return new Date(Date.UTC(year, month + 1, day, hour, 0, 0, 0))
+  }
+}
+
+/**
+ * Gets the end of an interval period in UTC (last millisecond).
+ */
+function getIntervalEndUTC(
+  date: Date,
+  granularity: RevenueChartIntervalUnit
+): Date {
+  const nextInterval = addIntervalUTC(date, granularity)
+  return new Date(nextInterval.getTime() - 1)
+}
+
+/**
+ * Calculates the number of active subscribers for each interval in the specified date range.
+ * Uses UTC-based date calculations to match PostgreSQL's date_trunc behavior.
  */
 export async function calculateActiveSubscribersByMonth(
   organizationId: string,
   options: SubscriberCalculationOptions,
   transaction: DbTransaction
 ): Promise<MonthlyActiveSubscribers[]> {
-  const { startDate, endDate } = options
+  const { startDate, endDate, granularity } = options
 
-  // Generate array of months between startDate and endDate
-  const months: Date[] = []
-  let currentDate = startOfMonth(startDate)
-  const endOfLastMonth = endOfMonth(endDate)
+  // Generate array of interval buckets between startDate and endDate using UTC
+  // This matches PostgreSQL's generate_series with date_trunc behavior
+  const intervals: Date[] = []
+  let currentDate = dateTruncUTC(startDate, granularity)
+  const endTruncated = dateTruncUTC(endDate, granularity)
 
-  while (currentDate <= endOfLastMonth) {
-    months.push(currentDate)
-    currentDate = addMonths(currentDate, 1)
+  while (currentDate <= endTruncated) {
+    intervals.push(currentDate)
+    currentDate = addIntervalUTC(currentDate, granularity)
   }
 
   // Get all subscriptions that were active during the entire period
@@ -60,10 +133,9 @@ export async function calculateActiveSubscribersByMonth(
     transaction
   )
 
-  // Calculate active subscribers for each month
-  const subscribersByMonth = months.map((month) => {
-    const monthStart = startOfDay(month)
-    const monthEnd = endOfDay(endOfMonth(month))
+  // Calculate active subscribers for each interval
+  const subscribersByInterval = intervals.map((intervalStart) => {
+    const intervalEnd = getIntervalEndUTC(intervalStart, granularity)
 
     const activeCount = allSubscriptions.filter((subscription) => {
       const wasActive = currentSubscriptionStatuses.includes(
@@ -71,21 +143,21 @@ export async function calculateActiveSubscribersByMonth(
       )
       const hadStarted =
         subscription.startDate &&
-        subscription.startDate <= monthEnd.getTime()
+        subscription.startDate <= intervalEnd.getTime()
       const hadNotEnded =
         !subscription.canceledAt ||
-        subscription.canceledAt >= monthStart.getTime()
+        subscription.canceledAt >= intervalStart.getTime()
 
       return wasActive && hadStarted && hadNotEnded
     }).length
 
     return {
-      month,
+      month: intervalStart,
       count: activeCount,
     }
   })
 
-  return subscribersByMonth
+  return subscribersByInterval
 }
 
 /**

@@ -50,7 +50,6 @@ const makeStripeRefundResponse = ({
     },
   }
 }
-
 // Mock the stripe utils
 vi.mock('./stripe', async () => {
   const actual = await vi.importActual('./stripe')
@@ -347,7 +346,6 @@ describe('refundPaymentTransaction', () => {
         expect(updatedPayment.refundedAmount).toBe(payment.amount)
       })
     })
-
     it('should accumulate refundedAmount across multiple partial refunds', async () => {
       const firstRefundCreatedTimestamp = Math.floor(
         Date.now() / 1000
@@ -470,7 +468,6 @@ describe('refundPaymentTransaction', () => {
         )
       })
     })
-
     it('should throw error when partial amount is not positive', async () => {
       await adminTransaction(async ({ transaction }) => {
         await expect(

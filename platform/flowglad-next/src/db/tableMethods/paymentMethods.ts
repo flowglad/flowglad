@@ -338,7 +338,6 @@ const validatePaymentUpdate = (
   ) {
     errors.push('Refunded amount must be greater than 0')
   }
-
   // Edge case: Refund amount cannot exceed original payment amount
   if (
     paymentUpdate.refundedAmount !== undefined &&

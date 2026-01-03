@@ -1,5 +1,5 @@
 'use client'
-import { differenceInHours } from 'date-fns'
+import { differenceInHours, format } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
@@ -77,8 +77,11 @@ export const RecurringRevenueChart = ({
           defaultCurrency,
           item.amount
         )
+      const dateObj = new Date(item.month)
       return {
-        date: item.month.toLocaleDateString(),
+        date: format(dateObj, 'd MMM'),
+        // Store the ISO date string for the tooltip to use for proper year formatting
+        isoDate: dateObj.toISOString(),
         formattedRevenue,
         revenue: Number(item.amount).toFixed(2),
       }
@@ -129,30 +132,25 @@ export const RecurringRevenueChart = ({
   }
   return (
     <div className="w-full h-full">
-      <div className="flex flex-row gap-2 justify-between">
-        <div className="text-sm text-muted-foreground w-fit flex items-center flex-row">
-          <p className="whitespace-nowrap">MRR</p>
+      <div className="flex flex-row gap-2 justify-between px-4">
+        <div className="text-foreground w-fit flex items-center flex-row">
+          <p className="whitespace-nowrap">
+            Monthly Recurring Revenue
+          </p>
         </div>
       </div>
 
-      <div className="mt-2">
+      <div className="px-4 mt-1">
         {isLoading ? (
           <Skeleton className="w-36 h-12" />
         ) : (
-          <>
-            <p className="text-xl font-semibold text-foreground">
-              {formattedMRRValue}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {isTooltipLabelDate
-                ? core.formatDate(new Date(tooltipLabel as string))
-                : core.formatDateRange({ fromDate, toDate })}
-            </p>
-          </>
+          <p className="text-xl font-semibold text-foreground">
+            {formattedMRRValue}
+          </p>
         )}
       </div>
       {isLoading ? (
-        <div className="-mb-2 mt-8 flex items-center">
+        <div className="-mb-2 mt-2 flex items-center">
           <Skeleton className="h-80 w-full" />
         </div>
       ) : (
@@ -160,14 +158,16 @@ export const RecurringRevenueChart = ({
           data={chartData}
           index="date"
           categories={['revenue']}
-          className="-mb-2 mt-8"
+          className="-mb-2 mt-2"
           colors={['foreground']}
+          fill="gradient"
           customTooltip={RevenueTooltip}
           maxValue={maxValue}
           autoMinValue={false}
           minValue={0}
           startEndOnly={true}
           startEndOnlyYAxis={true}
+          showYAxis={false}
           valueFormatter={(value: number) =>
             stripeCurrencyAmountToHumanReadableCurrencyAmount(
               organization?.defaultCurrency!,

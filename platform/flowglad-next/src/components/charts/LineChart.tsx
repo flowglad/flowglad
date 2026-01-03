@@ -6,12 +6,13 @@ import { RiArrowLeftSLine, RiArrowRightSLine } from '@remixicon/react'
 import React from 'react'
 import { mergeRefs } from 'react-merge-refs'
 import {
+  Area,
   CartesianGrid,
   Dot,
   Label,
   Line,
+  ComposedChart as RechartsComposedChart,
   Legend as RechartsLegend,
-  LineChart as RechartsLineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -127,7 +128,7 @@ const LegendItem = ({
           // base
           'truncate whitespace-nowrap text-xs',
           // text color
-          'text-gray-700 dark:text-gray-300',
+          'text-muted-foreground',
           hasOnValueChange && 'group-hover:text-accent-foreground',
           activeLegend && activeLegend !== name
             ? 'opacity-40'
@@ -180,7 +181,7 @@ const ScrollButton = ({
         // base
         'group inline-flex size-5 items-center truncate rounded transition',
         disabled
-          ? 'cursor-not-allowed text-gray-400 dark:text-gray-600'
+          ? 'cursor-not-allowed text-muted-foreground opacity-50'
           : 'cursor-pointer text-muted-foreground hover:bg-accent hover:text-accent-foreground'
       )}
       disabled={disabled}
@@ -353,7 +354,7 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>(
                 // base
                 'absolute bottom-0 right-0 top-0 flex h-full items-center justify-center pr-1',
                 // background color
-                'bg-white dark:bg-gray-950'
+                'bg-background'
               )}
             >
               <ScrollButton
@@ -454,6 +455,11 @@ interface ChartTooltipProps {
   valueFormatter: (value: number) => string
 }
 
+/**
+ * Default chart tooltip for LineChart.
+ * Shows a vertical layout: value on top, date below.
+ * Matches the Figma design system tooltip styling.
+ */
 const ChartTooltip = ({
   active,
   payload,
@@ -464,36 +470,45 @@ const ChartTooltip = ({
     const legendPayload = payload.filter(
       (item: any) => item.type !== 'none'
     )
+    // For single category charts, show simplified tooltip
+    if (legendPayload.length === 1) {
+      const { value } = legendPayload[0]
+      return (
+        <div
+          className={cn(
+            'bg-popover flex flex-col gap-2 p-2 rounded border border-border',
+            'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
+          )}
+        >
+          <p className="text-base font-medium text-foreground tracking-tight leading-none">
+            {valueFormatter(value)}
+          </p>
+          <p className="text-sm text-muted-foreground tracking-tight leading-5">
+            {label}
+          </p>
+        </div>
+      )
+    }
+    // For multi-category charts, show category breakdown
     return (
       <div
         className={cn(
-          // base
-          'rounded-md border text-sm shadow-md',
-          // border color
-          'border-gray-200 dark:border-gray-800',
-          // background color
-          'bg-white dark:bg-gray-950'
+          'bg-popover rounded border border-border',
+          'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
         )}
       >
-        <div className={cn('border-b border-inherit px-4 py-2')}>
-          <p
-            className={cn(
-              // base
-              'font-medium',
-              // text color
-              'text-gray-900 dark:text-gray-50'
-            )}
-          >
-            {label} LABEL LABEL LABEL
+        <div className={cn('border-b border-inherit px-3 py-2')}>
+          <p className="text-sm font-medium text-foreground">
+            {label}
           </p>
         </div>
-        <div className={cn('space-y-1 px-4 py-2')}>
+        <div className={cn('space-y-1 px-3 py-2')}>
           {legendPayload.map(({ value, category, color }, index) => (
             <div
               key={`id-${index}`}
-              className="flex items-center justify-between space-x-8"
+              className="flex items-center justify-between gap-4"
             >
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <span
                   aria-hidden="true"
                   className={cn(
@@ -501,25 +516,11 @@ const ChartTooltip = ({
                     getColorClassName(color, 'bg')
                   )}
                 />
-                <p
-                  className={cn(
-                    // base
-                    'whitespace-nowrap text-right',
-                    // text color
-                    'text-gray-700 dark:text-gray-300'
-                  )}
-                >
-                  {category} TEST TEST TEST
+                <p className="text-sm whitespace-nowrap text-muted-foreground">
+                  {category}
                 </p>
               </div>
-              <p
-                className={cn(
-                  // base
-                  'whitespace-nowrap text-right font-medium tabular-nums',
-                  // text color
-                  'text-gray-900 dark:text-gray-50'
-                )}
-              >
+              <p className="text-sm whitespace-nowrap font-medium tabular-nums text-foreground">
                 {valueFormatter(value)}
               </p>
             </div>
@@ -576,6 +577,8 @@ interface LineChartProps
   tooltipCallback?: (tooltipCallbackContent: TooltipProps) => void
   customTooltip?: React.ComponentType<TooltipProps>
   startEndOnlyYAxis?: boolean
+  /** Fill style for the area under the line. Defaults to 'none' for backwards compatibility. */
+  fill?: 'gradient' | 'solid' | 'none'
 }
 
 /**
@@ -615,6 +618,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       tooltipCallback,
       customTooltip,
       startEndOnlyYAxis = false,
+      fill = 'none',
       ...other
     } = props
     const { containerRef, width, height } = useContainerSize()
@@ -631,6 +635,47 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       string | undefined
     >(undefined)
     const categoryColors = constructCategoryColors(categories, colors)
+    const areaId = React.useId()
+
+    /**
+     * Returns the SVG gradient stop content based on fill type.
+     * Uses the actual CSS color value to avoid currentColor inheritance issues in SVG defs.
+     */
+    const getFillContent = (category: string) => {
+      const stopOpacity =
+        activeDot || (activeLegend && activeLegend !== category)
+          ? 0.01
+          : 0.1
+
+      const colorValue = getCSSColorValue(
+        categoryColors.get(category) as AvailableChartColorsKeys
+      )
+
+      switch (fill) {
+        case 'none':
+          return <stop stopColor={colorValue} stopOpacity={0} />
+        case 'gradient':
+          return (
+            <>
+              <stop
+                offset="5%"
+                stopColor={colorValue}
+                stopOpacity={stopOpacity}
+              />
+              <stop
+                offset="95%"
+                stopColor={colorValue}
+                stopOpacity={0}
+              />
+            </>
+          )
+        case 'solid':
+        default:
+          return (
+            <stop stopColor={colorValue} stopOpacity={stopOpacity} />
+          )
+      }
+    }
 
     const dataWithUniqueIds = React.useMemo(
       () =>
@@ -641,8 +686,19 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
     const yAxisDomain = getYAxisDomain(
       autoMinValue,
       minValue,
-      maxValue
+      maxValue,
+      0.2 // 20% padding above max value for visual breathing room
     )
+
+    // When startEndOnly is true, we want grid lines at actual data positions
+    // but only show labels for start/end. Calculate a sensible interval
+    // to avoid too many grid lines (target ~8 lines for readability).
+    const xAxisInterval = React.useMemo(() => {
+      if (!startEndOnly) return intervalType
+      if (data.length <= 8) return 0 // Show all if few data points
+      return Math.max(1, Math.floor(data.length / 8))
+    }, [startEndOnly, data.length, intervalType])
+
     const hasOnValueChange = !!onValueChange
     const prevActiveRef = React.useRef<boolean | undefined>(undefined)
     const prevLabelRef = React.useRef<string | undefined>(undefined)
@@ -714,7 +770,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
          *    - ResponsiveContainer ensures smooth transitions and maintains aspect ratio
          */}
         <ResponsiveContainer width={'100%'} height={'100%'}>
-          <RechartsLineChart
+          <RechartsComposedChart
             data={dataWithUniqueIds}
             width={width || 800}
             height={height || 300}
@@ -729,50 +785,77 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             }
             margin={{
               bottom: xAxisLabel ? 30 : undefined,
-              left: yAxisLabel ? 20 : undefined,
-              right: yAxisLabel ? 5 : undefined,
+              left: 16,
+              right: 16,
               top: 5,
             }}
           >
-            {/* {showGridLines ? (
+            {showGridLines ? (
               <CartesianGrid
-                className={cn(
-                  'stroke-gray-200 stroke-1 dark:stroke-gray-800'
-                )}
-                // horizontal={true}
-                vertical={false}
+                className="stroke-border stroke-1"
+                horizontal={false}
+                vertical={true}
               />
-            ) : null} */}
+            ) : null}
             <XAxis
               padding={{ left: paddingValue, right: paddingValue }}
               hide={!showXAxis}
               dataKey={index}
-              interval={
-                startEndOnly ? 'preserveStartEnd' : intervalType
-              }
-              tick={{ transform: 'translate(0, 6)' }}
-              ticks={
-                startEndOnly && data.length > 0
-                  ? [data[0][index], data[data.length - 1][index]]
-                  : undefined
+              interval={xAxisInterval}
+              tick={
+                startEndOnly
+                  ? (props: any) => {
+                      const {
+                        x,
+                        y,
+                        payload,
+                        index: tickIndex,
+                      } = props
+                      const isFirst = tickIndex === 0
+                      const isLast =
+                        tickIndex >=
+                        data.length - 1 - (xAxisInterval as number)
+
+                      // Only render first and last labels
+                      if (!isFirst && !isLast) return <g />
+
+                      // Adjust text anchor to prevent clipping at edges
+                      const textAnchor = isFirst ? 'start' : 'end'
+
+                      return (
+                        <text
+                          x={x}
+                          y={y + 12}
+                          textAnchor={textAnchor}
+                          className="text-sm fill-muted-foreground"
+                        >
+                          {payload.value}
+                        </text>
+                      )
+                    }
+                  : { transform: 'translate(0, 6)' }
               }
               fill=""
               stroke=""
               className={cn(
                 // base
-                'text-xs',
+                'text-sm',
                 // text fill
-                'fill-gray-500 dark:fill-gray-500'
+                'fill-muted-foreground'
               )}
-              tickLine={false}
-              axisLine={false}
+              tickLine={
+                startEndOnly
+                  ? false
+                  : { stroke: 'hsl(var(--border))' }
+              }
+              axisLine={{ stroke: 'hsl(var(--border))' }}
               minTickGap={tickGap}
             >
               {xAxisLabel && (
                 <Label
                   position="insideBottom"
                   offset={-20}
-                  className="fill-gray-800 text-sm font-medium dark:fill-gray-200"
+                  className="fill-foreground text-sm font-medium"
                 >
                   {xAxisLabel}
                 </Label>
@@ -796,7 +879,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 // base
                 'text-xs',
                 // text fill
-                'fill-gray-500 dark:fill-gray-500'
+                'fill-muted-foreground'
               )}
               ticks={
                 minValue !== undefined &&
@@ -818,7 +901,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                   style={{ textAnchor: 'middle' }}
                   angle={-90}
                   offset={-15}
-                  className="fill-gray-800 text-sm font-medium dark:fill-gray-200"
+                  className="fill-foreground text-sm font-medium"
                 >
                   {yAxisLabel}
                 </Label>
@@ -828,9 +911,12 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               wrapperStyle={{ outline: 'none' }}
               isAnimationActive={true}
               animationDuration={100}
-              cursor={{ stroke: '#d1d5db', strokeWidth: 1 }}
-              offset={20}
-              position={{ y: 0 }}
+              cursor={{
+                stroke: 'hsl(var(--muted-foreground))',
+                strokeWidth: 1,
+              }}
+              offset={8}
+              position={{ y: 16 }}
               content={({ active, payload, label }) => {
                 const cleanPayload: TooltipProps['payload'] = payload
                   ? payload.map((item: any) => ({
@@ -899,6 +985,49 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 }
               />
             ) : null}
+            {/* Gradient definitions for area fills */}
+            {fill !== 'none' && (
+              <defs>
+                {categories.map((category, index) => {
+                  const categoryId = `${areaId}-${index}-${category.replace(/[^a-zA-Z0-9]/g, '')}`
+                  return (
+                    <linearGradient
+                      key={categoryId}
+                      id={categoryId}
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      {getFillContent(category)}
+                    </linearGradient>
+                  )
+                })}
+              </defs>
+            )}
+            {/* Gradient fill areas - rendered behind the lines */}
+            {fill !== 'none' &&
+              categories.map((category, index) => {
+                const categoryId = `${areaId}-${index}-${category.replace(/[^a-zA-Z0-9]/g, '')}`
+                return (
+                  <Area
+                    key={`area-${category}`}
+                    type="linear"
+                    dataKey={category}
+                    name={`${category}-area`}
+                    stroke="transparent"
+                    strokeWidth={0}
+                    fill={`url(#${categoryId})`}
+                    fillOpacity={1}
+                    isAnimationActive={false}
+                    connectNulls={connectNulls}
+                    activeDot={false}
+                    dot={false}
+                    legendType="none"
+                    tooltipType="none"
+                  />
+                )
+              })}
             {categories.map((category) => (
               <Line
                 className={cn(
@@ -924,26 +1053,22 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                   const {
                     cx: cxCoord,
                     cy: cyCoord,
-                    stroke,
                     strokeLinecap,
                     strokeLinejoin,
-                    strokeWidth,
-                    dataKey,
                   } = props
                   return (
                     <Dot
                       className={cn(
-                        'stroke-foreground fill-foreground',
                         onValueChange ? 'cursor-pointer' : ''
                       )}
                       cx={cxCoord}
                       cy={cyCoord}
                       r={5}
-                      fill=""
-                      stroke={stroke}
+                      fill="hsl(var(--background))"
+                      stroke="hsl(var(--foreground))"
                       strokeLinecap={strokeLinecap}
                       strokeLinejoin={strokeLinejoin}
-                      strokeWidth={strokeWidth}
+                      strokeWidth={2}
                       onClick={(_, event) => onDotClick(props, event)}
                     />
                   )
@@ -993,7 +1118,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 name={category}
                 type="linear"
                 dataKey={category}
-                strokeWidth={2}
+                strokeWidth={1.5}
                 strokeLinejoin="round"
                 strokeLinecap="round"
                 isAnimationActive={false}
@@ -1024,7 +1149,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                   />
                 ))
               : null}
-          </RechartsLineChart>
+          </RechartsComposedChart>
         </ResponsiveContainer>
       </div>
     )
