@@ -6,7 +6,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import EditUsageMeterModal from '@/components/components/EditUsageMeterModal'
+import { ExpandSection } from '@/components/ExpandSection'
+import CreateUsagePriceModal from '@/components/forms/CreateUsagePriceModal'
 import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import { UsagePricesGridSection } from '@/components/UsagePricesGridSection'
 import { CopyableField } from '@/components/ui/copyable-field'
 import {
   ContentSection,
@@ -46,6 +49,19 @@ function InnerUsageMeterDetailsPage({
 }: InnerUsageMeterDetailsPageProps) {
   const router = useRouter()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [
+    isCreateUsagePriceModalOpen,
+    setIsCreateUsagePriceModalOpen,
+  ] = useState(false)
+  const [activePriceFilter, setActivePriceFilter] =
+    useState<string>('active')
+
+  // Filter options for the status toggle
+  const priceFilterOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+  ]
 
   // Build badges array
   const badges = [
@@ -132,12 +148,36 @@ function InnerUsageMeterDetailsPage({
             </HelperText>
           </ContentSection>
         </div>
+
+        {/* Prices Section */}
+        <ExpandSection
+          title="Prices"
+          defaultExpanded={true}
+          contentPadding={false}
+        >
+          <UsagePricesGridSection
+            usageMeterId={usageMeter.id}
+            filterOptions={priceFilterOptions}
+            activeFilter={activePriceFilter}
+            onFilterChange={setActivePriceFilter}
+            onCreateUsagePrice={() =>
+              setIsCreateUsagePriceModalOpen(true)
+            }
+          />
+        </ExpandSection>
       </div>
 
       {/* Edit Usage Meter Modal */}
       <EditUsageMeterModal
         isOpen={isEditModalOpen}
         setIsOpen={setIsEditModalOpen}
+        usageMeter={usageMeter}
+      />
+
+      {/* Create Usage Price Modal */}
+      <CreateUsagePriceModal
+        isOpen={isCreateUsagePriceModalOpen}
+        setIsOpen={setIsCreateUsagePriceModalOpen}
         usageMeter={usageMeter}
       />
     </InnerPageContainerNew>
