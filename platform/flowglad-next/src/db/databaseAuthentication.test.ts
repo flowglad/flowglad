@@ -18,6 +18,7 @@ import { type Customer, customers } from '@/db/schema/customers'
 import { type Membership, memberships } from '@/db/schema/memberships'
 import type { Organization } from '@/db/schema/organizations'
 import { type User, users } from '@/db/schema/users'
+import { selectMembershipAndOrganizationsByBetterAuthUserId } from '@/db/tableMethods/membershipMethods'
 import { FlowgladApiKeyType } from '@/types'
 import core from '@/utils/core'
 
@@ -177,19 +178,17 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     expect(result.jwtClaim.app_metadata.provider).toEqual('webapp')
   })
 
-  it('should fall back to the first membership returned when none are focused', async () => {
+  it('should return undefined userId and empty organization_id when no membership is focused', async () => {
     // setup:
     // - create a user "WebUserNoFocus" with a known betterAuthId
-    // - create two memberships for this user with focused=false for both:
-    //   - M1 for OrgA, livemode=false
-    //   - M2 for OrgB, livemode=true
+    // - create memberships for this user with focused=false for all
     // - do not set any membership as focused
-    // - note: selection is determined by DB ordering after orderBy(desc(focused)); with all false, order becomes implementation-defined
     // expects:
-    // - returned record corresponds to the first row yielded by the query (align with fixture creation order)
-    // - returned.jwtClaim.sub equals the selected membership.userId
-    // - returned.jwtClaim.organization_id equals the selected membership.organizationId
-    // - returned.livemode equals the selected membership.livemode
+    // - returned.userId is undefined (no membership selected)
+    // - returned.jwtClaim.organization_id is empty string
+    // - returned.livemode defaults to false
+    // This behavior now matches trpcContext.ts which uses .find() and returns undefined
+    // when no membership has focused=true
     const mockBetterAuthUser = {
       id: (webUser as any).betterAuthId ?? (webUser as any).id,
       email: (webUser as any).email,
@@ -205,11 +204,11 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     const result = await databaseAuthenticationInfoForWebappRequest(
       mockBetterAuthUser
     )
-    expect([
-      webMemA.organizationId,
-      webMemB.organizationId,
-      webMemC.organizationId,
-    ]).toContain(result.jwtClaim.organization_id)
+    // With the fix, when no membership has focused=true, we return undefined/empty
+    // rather than arbitrarily selecting the first membership
+    expect(result.userId).toBeUndefined()
+    expect(result.jwtClaim.organization_id).toEqual('')
+    expect(result.livemode).toEqual(false)
   })
 
   it('should return undefined userId and empty organization_id when the user has no memberships', async () => {
@@ -1028,5 +1027,170 @@ describe('Customer Role vs Merchant Role Authentication', () => {
         })
       ).rejects.toThrow('Customer not found')
     })
+  })
+})
+
+describe('Focused membership consistency between databaseAuthentication and trpcContext', () => {
+  /**
+   * This test suite verifies that databaseAuthentication.ts and trpcContext.ts
+   * have consistent behavior when determining which organization a user is accessing.
+   *
+   * Previously, there was a bug where:
+   * - trpcContext.ts used .find(m => m.focused) which returns undefined if no match
+   * - databaseAuthentication.ts used ORDER BY focused DESC LIMIT 1 which returns
+   *   an arbitrary membership when none are focused
+   *
+   * This inconsistency could cause data to be associated with the wrong organization.
+   */
+
+  it('should return no organization when user has multiple memberships but none focused (matching trpcContext behavior)', async () => {
+    // Create a fresh user with multiple memberships, none focused
+    const testBetterAuthId = `bau_${core.nanoid()}`
+    const testEmail = `consistency-test+${core.nanoid()}@test.com`
+
+    const org1 = (await setupOrg()).organization
+    const org2 = (await setupOrg()).organization
+
+    await adminTransaction(async ({ transaction }) => {
+      const [testUser] = await transaction
+        .insert(users)
+        .values({
+          id: `usr_${core.nanoid()}`,
+          email: testEmail,
+          name: 'Consistency Test User',
+          betterAuthId: testBetterAuthId,
+        })
+        .returning()
+
+      // Create two memberships, NEITHER focused
+      await transaction.insert(memberships).values([
+        {
+          userId: testUser.id,
+          organizationId: org1.id,
+          focused: false,
+          livemode: false,
+        },
+        {
+          userId: testUser.id,
+          organizationId: org2.id,
+          focused: false,
+          livemode: true,
+        },
+      ])
+    })
+
+    const mockBetterAuthUser = {
+      id: testBetterAuthId,
+      email: testEmail,
+      role: 'merchant',
+    } as BetterAuthUserWithRole
+
+    // databaseAuthentication.ts behavior
+    const dbAuthResult =
+      await databaseAuthenticationInfoForWebappRequest(
+        mockBetterAuthUser
+      )
+
+    // Simulate trpcContext.ts behavior (which uses .find())
+    const allMemberships = await adminTransaction(
+      async ({ transaction }) => {
+        return selectMembershipAndOrganizationsByBetterAuthUserId(
+          testBetterAuthId,
+          transaction
+        )
+      }
+    )
+    const trpcContextResult = allMemberships.find(
+      (m) => m.membership.focused
+    )
+
+    // Both should return no organization when none is focused
+    expect(dbAuthResult.jwtClaim.organization_id).toEqual('')
+    expect(dbAuthResult.userId).toBeUndefined()
+    expect(trpcContextResult).toBeUndefined()
+  })
+
+  it('should return the focused organization when user has multiple memberships with one focused', async () => {
+    // Create a fresh user with multiple memberships, one focused
+    const testBetterAuthId = `bau_${core.nanoid()}`
+    const testEmail = `consistency-focused+${core.nanoid()}@test.com`
+
+    const org1 = (await setupOrg()).organization
+    const org2 = (await setupOrg()).organization
+    const org3 = (await setupOrg()).organization
+
+    let focusedOrgId: string
+    let testUserId: string
+
+    await adminTransaction(async ({ transaction }) => {
+      const [testUser] = await transaction
+        .insert(users)
+        .values({
+          id: `usr_${core.nanoid()}`,
+          email: testEmail,
+          name: 'Focused Consistency Test User',
+          betterAuthId: testBetterAuthId,
+        })
+        .returning()
+      testUserId = testUser.id
+
+      // Create three memberships, only org2 is focused
+      focusedOrgId = org2.id
+      await transaction.insert(memberships).values([
+        {
+          userId: testUser.id,
+          organizationId: org1.id,
+          focused: false,
+          livemode: false,
+        },
+        {
+          userId: testUser.id,
+          organizationId: org2.id,
+          focused: true, // This one is focused
+          livemode: true,
+        },
+        {
+          userId: testUser.id,
+          organizationId: org3.id,
+          focused: false,
+          livemode: false,
+        },
+      ])
+    })
+
+    const mockBetterAuthUser = {
+      id: testBetterAuthId,
+      email: testEmail,
+      role: 'merchant',
+    } as BetterAuthUserWithRole
+
+    // databaseAuthentication.ts behavior
+    const dbAuthResult =
+      await databaseAuthenticationInfoForWebappRequest(
+        mockBetterAuthUser
+      )
+
+    // Simulate trpcContext.ts behavior
+    const allMemberships = await adminTransaction(
+      async ({ transaction }) => {
+        return selectMembershipAndOrganizationsByBetterAuthUserId(
+          testBetterAuthId,
+          transaction
+        )
+      }
+    )
+    const trpcContextResult = allMemberships.find(
+      (m) => m.membership.focused
+    )
+
+    // Both should return the focused organization
+    expect(dbAuthResult.jwtClaim.organization_id).toEqual(
+      focusedOrgId!
+    )
+    expect(dbAuthResult.userId).toEqual(testUserId!)
+    expect(trpcContextResult).toBeDefined()
+    expect(trpcContextResult!.membership.organizationId).toEqual(
+      focusedOrgId!
+    )
   })
 })
