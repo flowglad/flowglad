@@ -1,0 +1,3 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "usage_credits_source_reference_id_source_reference_type_billing_period_id_unique_idx" ON "usage_credits" USING btree ("source_reference_id","source_reference_type","billing_period_id") NULLS NOT DISTINCT;--> statement-breakpoint
+DROP POLICY "Enable all actions for discounts in own organization" ON "checkout_sessions" CASCADE;--> statement-breakpoint
+CREATE POLICY "Enable all actions for checkout_sessions in own organization" ON "checkout_sessions" AS PERMISSIVE FOR ALL TO "merchant" USING ("organization_id" = current_organization_id());
