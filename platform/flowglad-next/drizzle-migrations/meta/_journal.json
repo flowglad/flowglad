@@ -1863,6 +1863,13 @@
       "when": 1767419926174,
       "tag": "0266_little_puppet_master",
       "breakpoints": true
+    },
+    {
+      "idx": 267,
+      "version": "7",
+      "when": 1767425000000,
+      "tag": "0267_fix_checkout_sessions_policy",
+      "breakpoints": true
     }
   ]
 }

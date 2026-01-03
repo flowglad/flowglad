@@ -836,9 +836,10 @@ export const createIndexName = (
 
 export const constructUniqueIndex = (
   tableName: string,
-  columns: Parameters<IndexBuilderOn['on']>
+  columns: Parameters<IndexBuilderOn['on']>,
+  explicitIndexName?: string
 ) => {
-  const indexName = createIndexName(tableName, columns, true)
+  const indexName = explicitIndexName ?? createIndexName(tableName, columns, true)
   return uniqueIndex(indexName).on(...columns)
 }
 

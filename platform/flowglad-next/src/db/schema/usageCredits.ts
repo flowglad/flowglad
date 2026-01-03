@@ -109,7 +109,7 @@ export const usageCredits = pgTable(
         table.sourceReferenceId,
         table.sourceReferenceType,
         table.billingPeriodId,
-      ]),
+      ], 'usage_credits_dedup_uidx'),
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
         {
