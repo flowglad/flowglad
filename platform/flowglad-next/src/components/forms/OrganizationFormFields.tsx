@@ -358,7 +358,7 @@ const OrganizationFormFields = ({
                   )
                 }}
               >
-                Run Analysis in
+                Open in
                 <CursorLogo />
               </Button>
             </div>

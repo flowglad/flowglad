@@ -186,14 +186,31 @@ export const getPrice = protectedProcedure
     return { price }
   })
 
+/**
+ * Filter schema for the prices.getTableRows endpoint.
+ *
+ * @property productId - Filter prices by the associated product ID
+ * @property type - Filter prices by price type (Subscription, Usage, SinglePayment)
+ * @property isDefault - Filter prices by whether they are the default price for their product
+ * @property usageMeterId - Filter usage prices by their associated usage meter ID. Only applies to prices with type=Usage
+ * @property active - Filter prices by their active status. When true, returns only active prices; when false, returns only inactive prices
+ */
+export const pricesGetTableRowsFiltersSchema = z.object({
+  productId: z.string().optional(),
+  type: z.enum(PriceType).optional(),
+  isDefault: z.boolean().optional(),
+  usageMeterId: z.string().optional(),
+  active: z.boolean().optional(),
+})
+
+export type PricesGetTableRowsFilters = z.infer<
+  typeof pricesGetTableRowsFiltersSchema
+>
+
 export const getTableRows = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
-      z.object({
-        productId: z.string().optional(),
-        type: z.nativeEnum(PriceType).optional(),
-        isDefault: z.boolean().optional(),
-      })
+      pricesGetTableRowsFiltersSchema
     )
   )
   .output(
