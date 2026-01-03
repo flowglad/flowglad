@@ -62,7 +62,7 @@ function formatUsagePriceRate(price: Price.ClientRecord): {
  * Designed for the Usage Meter details page Prices section.
  */
 const UsagePriceCard = React.forwardRef<
-  HTMLElement,
+  HTMLDivElement,
   UsagePriceCardProps
 >(({ className, state, price, onClick, ...props }, forwardedRef) => {
   const [isHovered, setIsHovered] = React.useState(false)

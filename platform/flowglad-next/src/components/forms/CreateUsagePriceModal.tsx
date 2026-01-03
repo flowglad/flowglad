@@ -148,13 +148,20 @@ export const CreateUsagePriceModal = ({
           input.__rawPriceString!
         )
 
+        const trimmedSlug = input.product.slug?.trim() ?? ''
+
         await createProduct.mutateAsync({
           ...input,
+          product: {
+            ...input.product,
+            name: trimmedSlug,
+            slug: trimmedSlug,
+          },
           price: {
             ...input.price,
             unitPrice,
             // Use the same slug for both product and price
-            slug: input.product.slug,
+            slug: trimmedSlug,
           },
         })
       }}
