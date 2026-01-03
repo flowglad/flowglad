@@ -114,7 +114,7 @@ export const getYAxisDomain = (
   autoMinValue: boolean,
   minValue: number | undefined,
   maxValue: number | undefined,
-  additionalPaddingMultiple: number = 0 // Increased to 50% padding for better visibility
+  additionalPaddingMultiple: number = 0 // e.g., 0.1 = 10% padding above max value
 ): AxisDomain => {
   if (minValue !== undefined && maxValue !== undefined) {
     // Always start from 0 for revenue and add significant padding to top

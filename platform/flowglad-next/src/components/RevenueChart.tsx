@@ -1,11 +1,11 @@
 'use client'
-import { differenceInHours, isDate } from 'date-fns'
+import { differenceInHours } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import {
-  AreaChart,
-  type TooltipCallbackProps,
-} from '@/components/charts/AreaChart'
+  LineChart,
+  type TooltipProps as TooltipCallbackProps,
+} from '@/components/charts/LineChart'
 import { RevenueTooltip } from '@/components/RevenueTooltip'
 import {
   Select,
@@ -15,13 +15,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { CurrencyCode, RevenueChartIntervalUnit } from '@/types'
-import core from '@/utils/core'
+import { RevenueChartIntervalUnit } from '@/types'
 import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
 } from '@/utils/stripe'
-import { LineChart } from './charts/LineChart'
 import { Skeleton } from './ui/skeleton'
 
 /**
@@ -35,6 +33,84 @@ const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
   [RevenueChartIntervalUnit.Day]: 24 * 2,
   [RevenueChartIntervalUnit.Hour]: 1 * 2,
 } as const
+
+const MONTH_NAMES_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
+/**
+ * Formats a UTC date without timezone conversion.
+ * This ensures dates generated in UTC (like from PostgreSQL date_trunc)
+ * display correctly regardless of the user's local timezone.
+ */
+function formatDateUTC(
+  date: Date,
+  granularity: RevenueChartIntervalUnit
+): string {
+  const day = date.getUTCDate()
+  const month = MONTH_NAMES_SHORT[date.getUTCMonth()]
+  const year = date.getUTCFullYear()
+  const hours = date.getUTCHours().toString().padStart(2, '0')
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0')
+
+  switch (granularity) {
+    case RevenueChartIntervalUnit.Year:
+      return `${year}`
+    case RevenueChartIntervalUnit.Hour:
+      return `${day} ${month} ${hours}:${minutes}`
+    case RevenueChartIntervalUnit.Month:
+    case RevenueChartIntervalUnit.Week:
+    case RevenueChartIntervalUnit.Day:
+    default:
+      return `${day} ${month}`
+  }
+}
+
+/**
+ * Computes the best default interval based on the date range.
+ * Prefers month > week > day > hour, but only if the timespan supports it.
+ * Never returns Year as a default - users must explicitly select it.
+ */
+function getDefaultInterval(
+  fromDate: Date,
+  toDate: Date
+): RevenueChartIntervalUnit {
+  const timespanInHours = differenceInHours(toDate, fromDate)
+
+  if (
+    timespanInHours >=
+    minimumUnitInHours[RevenueChartIntervalUnit.Month]
+  ) {
+    return RevenueChartIntervalUnit.Month
+  }
+
+  if (
+    timespanInHours >=
+    minimumUnitInHours[RevenueChartIntervalUnit.Week]
+  ) {
+    return RevenueChartIntervalUnit.Week
+  }
+
+  if (
+    timespanInHours >=
+    minimumUnitInHours[RevenueChartIntervalUnit.Day]
+  ) {
+    return RevenueChartIntervalUnit.Day
+  }
+
+  return RevenueChartIntervalUnit.Hour
+}
 
 /**
  * NOTE: this component has a weird bug (that seems to ship with Tremor?)
@@ -54,10 +130,29 @@ export function RevenueChart({
   productId?: string
 }) {
   const { organization } = useAuthenticatedContext()
+
+  const timespanInHours = differenceInHours(toDate, fromDate)
+
+  // Compute the best default interval based on available options
+  const defaultInterval = React.useMemo(
+    () => getDefaultInterval(fromDate, toDate),
+    [fromDate, toDate]
+  )
+
   const [interval, setInterval] =
-    React.useState<RevenueChartIntervalUnit>(
-      RevenueChartIntervalUnit.Day
-    )
+    React.useState<RevenueChartIntervalUnit>(defaultInterval)
+
+  // Update interval if current selection becomes invalid due to date range change
+  // Hour is always valid as the absolute minimum fallback
+  React.useEffect(() => {
+    const isCurrentIntervalInvalid =
+      interval !== RevenueChartIntervalUnit.Hour &&
+      timespanInHours < minimumUnitInHours[interval]
+
+    if (isCurrentIntervalInvalid) {
+      setInterval(getDefaultInterval(fromDate, toDate))
+    }
+  }, [timespanInHours, interval, fromDate, toDate])
 
   const { data: revenueData, isLoading } =
     trpc.organizations.getRevenue.useQuery({
@@ -96,13 +191,19 @@ export function RevenueChart({
           organization?.defaultCurrency,
           item.revenue
         )
+      const dateObj = new Date(item.date)
       return {
-        date: item.date.toLocaleDateString(),
+        // Use UTC formatting to match PostgreSQL's date_trunc behavior
+        date: formatDateUTC(dateObj, interval),
+        // Store the ISO date string for the tooltip to use for proper year formatting
+        isoDate: dateObj.toISOString(),
+        // Store the interval unit for the tooltip to format dates appropriately
+        intervalUnit: interval,
         formattedRevenue,
         revenue: Number(item.revenue).toFixed(2),
       }
     })
-  }, [revenueData, organization?.defaultCurrency])
+  }, [revenueData, organization?.defaultCurrency, interval])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data
@@ -143,7 +244,6 @@ export function RevenueChart({
     cumulativeRevenueInDecimals,
   ])
 
-  const timespanInHours = differenceInHours(toDate, fromDate)
   const intervalOptions = React.useMemo(() => {
     const options = []
 
@@ -206,59 +306,43 @@ export function RevenueChart({
   }
   return (
     <div className="w-full h-full">
-      <div className="flex gap-2 justify-between">
-        <div className="text-sm text-muted-foreground w-fit flex items-center"></div>
-        {/*         <Button
-          variant="ghost"
-          size="sm"
-          onClick={exportOnClickHandler}
-        >
-          <Export className="w-4 h-4 mr-2" weight={'regular'} />
-          Export
-        </Button>
-        >
-          Export
-        </Button> */}
+      <div className="flex flex-row gap-2 justify-between px-4">
+        <div className="text-foreground w-fit flex items-center flex-row gap-0.5">
+          <p className="whitespace-nowrap">Revenue</p>
+          <Select
+            value={interval}
+            onValueChange={(value) =>
+              setInterval(value as RevenueChartIntervalUnit)
+            }
+          >
+            <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground shadow-none h-auto py-0 gap-0 text-base">
+              <span className="text-muted-foreground">by&nbsp;</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {intervalOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <div>
+      <div className="mt-1">
         {isLoading ? (
           <Skeleton className="w-36 h-12" />
         ) : (
-          <div className="flex flex-col">
+          <div className="flex flex-col px-4">
             <p className="text-xl font-semibold text-foreground">
               {formattedRevenueValue}
             </p>
-            <div className="flex items-center flex-row w-fit">
-              <p className="whitespace-nowrap text-sm text-muted-foreground">
-                Revenue by
-              </p>
-              <Select
-                value={interval}
-                onValueChange={(value) =>
-                  setInterval(value as RevenueChartIntervalUnit)
-                }
-              >
-                <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground shadow-none">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {intervalOptions.map((option) => (
-                    <SelectItem
-                      key={option.value}
-                      value={option.value}
-                    >
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         )}
       </div>
       {isLoading ? (
-        <div className="-mb-2 mt-8 flex items-center">
+        <div className="-mb-2 mt-2 flex items-center">
           <Skeleton className="h-80 w-full" />
         </div>
       ) : (
@@ -267,14 +351,16 @@ export function RevenueChart({
           index="date"
           categories={['revenue']}
           // startEndOnly={true}
-          className="-mb-2 mt-8"
+          className="-mb-2 mt-2"
           colors={['foreground']}
+          fill="gradient"
           customTooltip={RevenueTooltip}
           maxValue={maxValue}
           autoMinValue={false}
           minValue={0}
           startEndOnly={true}
           startEndOnlyYAxis={true}
+          showYAxis={false}
           valueFormatter={(value: number) =>
             stripeCurrencyAmountToHumanReadableCurrencyAmount(
               organization?.defaultCurrency!,

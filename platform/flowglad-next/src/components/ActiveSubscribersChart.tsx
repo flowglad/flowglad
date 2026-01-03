@@ -1,16 +1,17 @@
 'use client'
-import { differenceInHours } from 'date-fns'
+import { differenceInHours, format, isValid } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
-import { RevenueTooltip } from '@/components/RevenueTooltip'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
-import {
-  type AvailableChartColorsKeys,
-  getColorClassName,
-} from '@/utils/chartStyles'
-import core from '@/utils/core'
 import { LineChart } from './charts/LineChart'
 import ErrorBoundary from './ErrorBoundary'
 import { Skeleton } from './ui/skeleton'
@@ -27,19 +28,96 @@ const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
   [RevenueChartIntervalUnit.Hour]: 1 * 2,
 } as const
 
-// Define a new TooltipDateLabel component for the new tooltip
-function TooltipDateLabel({ label }: { label: string }) {
-  try {
-    const date = new Date(label)
-    const formattedDate = core.formatDate(date)
-    return <div>{formattedDate}</div>
-  } catch (error) {
-    // Fallback if label is not a valid date string
-    return <div>{label}</div>
+const MONTH_NAMES_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
+/**
+ * Formats a UTC date without timezone conversion.
+ * This ensures dates generated in UTC (like from PostgreSQL date_trunc)
+ * display correctly regardless of the user's local timezone.
+ */
+function formatDateUTC(
+  date: Date,
+  granularity: RevenueChartIntervalUnit
+): string {
+  const day = date.getUTCDate()
+  const month = MONTH_NAMES_SHORT[date.getUTCMonth()]
+  const year = date.getUTCFullYear()
+  const hours = date.getUTCHours().toString().padStart(2, '0')
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0')
+
+  switch (granularity) {
+    case RevenueChartIntervalUnit.Year:
+      return `${year}`
+    case RevenueChartIntervalUnit.Hour:
+      return `${day} ${month} ${hours}:${minutes}`
+    case RevenueChartIntervalUnit.Month:
+    case RevenueChartIntervalUnit.Week:
+    case RevenueChartIntervalUnit.Day:
+    default:
+      return `${day} ${month}`
   }
 }
 
-// Define the new SubscriberCountTooltip component
+const MONTH_NAMES_FULL = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+
+/**
+ * Formats a date label for the tooltip using UTC.
+ * Uses the ISO date string if available, otherwise attempts to parse the label.
+ * Formats as "MMMM yyyy" (e.g., "October 2025") in UTC.
+ * Falls back to the original label if parsing fails.
+ */
+function TooltipDateLabel({
+  label,
+  isoDate,
+}: {
+  label: string
+  isoDate?: string
+}) {
+  try {
+    // Prefer isoDate if available, as it contains the full date with year
+    const dateString = isoDate ?? label
+    const date = new Date(dateString)
+    if (isValid(date)) {
+      const month = MONTH_NAMES_FULL[date.getUTCMonth()]
+      const year = date.getUTCFullYear()
+      return <span>{`${month} ${year}`}</span>
+    }
+    return <span>{label}</span>
+  } catch {
+    return <span>{label}</span>
+  }
+}
+
+/**
+ * Tooltip component for subscriber count chart.
+ * Shows subscriber count on top, date below - matching the Figma design.
+ */
 const SubscriberCountTooltip = ({
   active,
   payload,
@@ -49,36 +127,26 @@ const SubscriberCountTooltip = ({
     return null
   }
   const value = payload[0].value as number
-  const color = payload[0].color
+  // Extract the ISO date from the payload data for proper year formatting
+  const isoDate = payload[0].payload?.isoDate as string | undefined
 
   return (
     <ErrorBoundary fallback={<div>Error</div>}>
       <div
         className={cn(
-          'bg-popover flex flex-col gap-2 p-4 rounded-md border border-border shadow-lg'
+          'bg-popover flex flex-col gap-2 p-2 rounded border border-border',
+          'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
         )}
       >
-        <div className="flex justify-between items-center gap-2 text-xs font-medium text-foreground">
-          {color && (
-            <div className="text-left">
-              <div
-                className={cn(
-                  // Use getColorClassName to derive the correct background class
-                  color
-                    ? getColorClassName(
-                        color as AvailableChartColorsKeys,
-                        'bg'
-                      )
-                    : 'bg-muted-foreground',
-                  'w-2 h-2 rounded-full'
-                )}
-                style={{ width: '10px', height: '10px' }}
-              />
-            </div>
-          )}
-          <TooltipDateLabel label={label as string} />
-          <div className="text-right">{value.toString()}</div>
-        </div>
+        <p className="text-base font-medium text-foreground tracking-tight leading-none">
+          {value.toLocaleString()}
+        </p>
+        <p className="text-sm text-muted-foreground tracking-tight leading-5">
+          <TooltipDateLabel
+            label={label as string}
+            isoDate={isoDate}
+          />
+        </p>
       </div>
     </ErrorBoundary>
   )
@@ -98,7 +166,7 @@ export const ActiveSubscribersChart = ({
 }) => {
   const [interval, setInterval] =
     React.useState<RevenueChartIntervalUnit>(
-      RevenueChartIntervalUnit.Month
+      RevenueChartIntervalUnit.Day
     )
 
   const { data: subscriberData, isLoading } =
@@ -124,16 +192,75 @@ export const ActiveSubscribersChart = ({
       pendingTooltipData.current = null
     }
   })
+
+  const timespanInHours = differenceInHours(toDate, fromDate)
+  const intervalOptions = React.useMemo(() => {
+    const options = []
+
+    // Only show years if span is >= 2 years
+    if (
+      timespanInHours >=
+      minimumUnitInHours[RevenueChartIntervalUnit.Year]
+    ) {
+      options.push({
+        label: 'year',
+        value: RevenueChartIntervalUnit.Year,
+      })
+    }
+
+    // Only show months if span is >= 2 months
+    if (
+      timespanInHours >=
+      minimumUnitInHours[RevenueChartIntervalUnit.Month]
+    ) {
+      options.push({
+        label: 'month',
+        value: RevenueChartIntervalUnit.Month,
+      })
+    }
+
+    // Only show weeks if span is >= 2 weeks
+    if (
+      timespanInHours >=
+      minimumUnitInHours[RevenueChartIntervalUnit.Week]
+    ) {
+      options.push({
+        label: 'week',
+        value: RevenueChartIntervalUnit.Week,
+      })
+    }
+
+    // Always show days and hours
+    options.push(
+      {
+        label: 'day',
+        value: RevenueChartIntervalUnit.Day,
+      },
+      {
+        label: 'hour',
+        value: RevenueChartIntervalUnit.Hour,
+      }
+    )
+
+    return options
+  }, [timespanInHours])
+
   const firstPayloadValue = tooltipData?.payload?.[0]?.value
   const chartData = React.useMemo(() => {
     if (!subscriberData) return []
     return subscriberData.map((item) => {
+      const dateObj = new Date(item.month)
       return {
-        date: item.month.toLocaleDateString(),
+        // Use UTC formatting to match PostgreSQL's date_trunc behavior
+        date: formatDateUTC(dateObj, interval),
+        // Store the ISO date string for the tooltip to use for proper year formatting
+        isoDate: dateObj.toISOString(),
+        // Store the interval unit for the tooltip to format dates appropriately
+        intervalUnit: interval,
         subscribers: item.count,
       }
     })
-  }, [subscriberData])
+  }, [subscriberData, interval])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data
@@ -160,42 +287,43 @@ export const ActiveSubscribersChart = ({
     return count.toString()
   }, [subscriberData, firstPayloadValue])
 
-  const tooltipLabel = tooltipData?.label
-  let isTooltipLabelDate: boolean = false
-  if (tooltipLabel) {
-    try {
-      new Date(tooltipLabel as string).toISOString()
-      isTooltipLabelDate = true
-    } catch {
-      isTooltipLabelDate = false
-    }
-  }
   return (
     <div className="w-full h-full">
-      <div className="flex flex-row gap-2 justify-between">
-        <div className="text-sm text-muted-foreground w-fit flex items-center flex-row">
+      <div className="flex flex-row gap-2 justify-between px-4">
+        <div className="text-foreground w-fit flex items-center flex-row gap-0.5">
           <p className="whitespace-nowrap">Active Subscribers</p>
+          <Select
+            value={interval}
+            onValueChange={(value) =>
+              setInterval(value as RevenueChartIntervalUnit)
+            }
+          >
+            <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground shadow-none h-auto py-0 gap-0 text-base">
+              <span className="text-muted-foreground">by&nbsp;</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {intervalOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div className="mt-2">
+      <div className="px-4 mt-1">
         {isLoading ? (
           <Skeleton className="w-36 h-12" />
         ) : (
-          <>
-            <p className="text-xl font-semibold text-foreground">
-              {formattedSubscriberValue}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {isTooltipLabelDate
-                ? core.formatDate(new Date(tooltipLabel as string))
-                : core.formatDateRange({ fromDate, toDate })}
-            </p>
-          </>
+          <p className="text-xl font-semibold text-foreground">
+            {formattedSubscriberValue}
+          </p>
         )}
       </div>
       {isLoading ? (
-        <div className="-mb-2 mt-8 w-full flex items-center justify-center">
+        <div className="-mb-2 mt-2 w-full flex items-center justify-center">
           <Skeleton className="h-80 w-full" />
         </div>
       ) : (
@@ -203,14 +331,16 @@ export const ActiveSubscribersChart = ({
           data={chartData}
           index="date"
           categories={['subscribers']}
-          className="-mb-2 mt-8"
+          className="-mb-2 mt-2"
           colors={['foreground']}
+          fill="gradient"
           customTooltip={SubscriberCountTooltip}
           maxValue={maxValue}
           autoMinValue={false}
           minValue={0}
           startEndOnly={true}
           startEndOnlyYAxis={true}
+          showYAxis={false}
           valueFormatter={(value: number) => value.toString()}
           tooltipCallback={(props: any) => {
             // Store tooltip data in ref during render, useEffect will update state safely

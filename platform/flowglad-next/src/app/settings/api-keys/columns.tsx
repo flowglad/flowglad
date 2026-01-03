@@ -93,9 +93,9 @@ export const columns: ColumnDef<ApiKeyTableRowData>[] = [
         </div>
       )
     },
-    size: 300,
-    minSize: 250,
-    maxSize: 400,
+    size: 225,
+    minSize: 180,
+    maxSize: 300,
   },
   {
     id: 'createdAt',
