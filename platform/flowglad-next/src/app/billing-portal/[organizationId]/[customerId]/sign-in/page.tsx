@@ -17,12 +17,14 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { useSession } from '@/utils/authClient'
 
 export default function CustomerBillingPortalOTPSignIn() {
   const params = useParams()
   const router = useRouter()
   const organizationId = params.organizationId as string
   const customerId = params.customerId as string
+  const { data: session, isPending: sessionPending } = useSession()
 
   const [otp, setOtp] = useState('')
   const [maskedEmail, setMaskedEmail] = useState<string | null>(null)
@@ -31,9 +33,12 @@ export default function CustomerBillingPortalOTPSignIn() {
   const [error, setError] = useState('')
   const [resendCooldown, setResendCooldown] = useState(0)
   const [useMagicLink, setUseMagicLink] = useState(false)
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   // Ref to prevent double-send in React Strict Mode
   const otpSentRef = useRef(false)
+  // Ref to track if we're redirecting (persists across renders)
+  const isRedirectingRef = useRef(false)
   // Ref for cooldown interval
   const cooldownIntervalRef = useRef<ReturnType<
     typeof setInterval
@@ -68,52 +73,96 @@ export default function CustomerBillingPortalOTPSignIn() {
       },
     })
 
-  // Verify OTP mutation (server-side verification)
-  const verifyOTP =
-    trpc.customerBillingPortal.verifyOTPForCustomer.useMutation({
-      onMutate: () => {
-        setLoading(true)
-        setError('')
-      },
-      onSuccess: () => {
-        toast.success('Signed in successfully', {
-          id: 'otp-verified',
-        })
-        // Redirect to billing portal
-        window.location.href = `/billing-portal/${organizationId}/${customerId}`
-      },
-      onError: (error) => {
-        if (
-          error.message.includes('Invalid') ||
-          error.message.includes('invalid') ||
-          error.message.includes('expired')
-        ) {
-          setError('Invalid or expired verification code.')
-        } else if (error.message.includes('Session expired')) {
-          setError(
-            'Session expired. Please request a new verification code.'
-          )
-        } else {
-          setError('Failed to verify code. Please try again.')
-        }
+  // Verify OTP using secure API route (email never exposed to client)
+  const verifyOTP = async () => {
+    setLoading(true)
+    setError('')
+
+    try {
+      // Call secure API route - email is read from server-side cookie
+      const response = await fetch('/api/billing-portal/verify-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ otp, organizationId, customerId }),
+        credentials: 'include', // Include cookies
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        setError(
+          data.error || 'Failed to verify code. Please try again.'
+        )
         setOtp('')
         setLoading(false)
-      },
-      onSettled: () => {
-        setLoading(false)
-      },
-    })
+        return
+      }
 
-  // Auto-send OTP on mount (with ref to prevent double-send)
-  useEffect(() => {
-    if (organizationId && customerId && !otpSentRef.current) {
-      otpSentRef.current = true
-      sendOTP.mutate({
-        customerId,
-        organizationId,
+      // Success - BetterAuth cookies should now be set
+      isRedirectingRef.current = true
+      setIsRedirecting(true)
+      toast.success('Signed in successfully', {
+        id: 'otp-verified',
       })
+      // Redirect to dashboard
+      window.location.href =
+        data.redirectUrl ||
+        `/billing-portal/${organizationId}/${customerId}`
+    } catch (error) {
+      console.error('verifyOTP error:', error)
+      setError('Failed to verify code. Please try again.')
+      setOtp('')
+      setLoading(false)
     }
-  }, [organizationId, customerId, sendOTP])
+  }
+
+  const handleOTPSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (otp.length !== 6 || loading) return
+    await verifyOTP()
+  }
+
+  // Handle session check and auto-send OTP
+  // This ensures redirect happens before auto-send
+  useEffect(() => {
+    // Wait for session to finish loading
+    if (sessionPending) {
+      return
+    }
+
+    // If authenticated, redirect immediately (don't send OTP)
+    if (session?.user && !isRedirectingRef.current) {
+      isRedirectingRef.current = true
+      setIsRedirecting(true)
+      window.location.href = `/billing-portal/${organizationId}/${customerId}`
+      return
+    }
+
+    // If not authenticated and not redirecting, send OTP (only once)
+    // Add a small delay to allow session to potentially load if we just verified OTP
+    if (
+      organizationId &&
+      customerId &&
+      !otpSentRef.current &&
+      !isRedirectingRef.current
+    ) {
+      // Small delay to allow session to load if cookies were just set
+      const timeoutId = setTimeout(() => {
+        // Double-check session before sending (in case it loaded during the delay)
+        if (!session?.user && !isRedirectingRef.current) {
+          otpSentRef.current = true
+          sendOTP.mutate({
+            customerId,
+            organizationId,
+          })
+        }
+      }, 200)
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [organizationId, customerId, sendOTP, session, sessionPending])
 
   // Resend cooldown timer using setInterval for efficiency
   useEffect(() => {
@@ -149,13 +198,6 @@ export default function CustomerBillingPortalOTPSignIn() {
       customerId,
       organizationId,
     })
-  }
-
-  const handleOTPSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (otp.length !== 6 || loading) return
-
-    verifyOTP.mutate({ otp })
   }
 
   const handleMagicLinkRedirect = () => {
