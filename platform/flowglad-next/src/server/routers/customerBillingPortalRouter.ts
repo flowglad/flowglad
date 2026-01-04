@@ -847,68 +847,6 @@ const sendOTPToCustomerProcedure = publicProcedure
     }
   })
 
-// verifyOTPForCustomer procedure - server-side OTP verification
-// This keeps the actual email secure by reading it from the server-side cookie
-const verifyOTPForCustomerProcedure = publicProcedure
-  .input(
-    z.object({
-      otp: z.string().length(6).describe('The 6-digit OTP code'),
-    })
-  )
-  .output(
-    z.object({
-      success: z.boolean(),
-    })
-  )
-  .mutation(async ({ input }) => {
-    const { otp } = input
-
-    // Get email from secure cookie (set during sendOTP)
-    const email = await getCustomerBillingPortalEmail()
-
-    if (!email) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message:
-          'Session expired. Please request a new verification code.',
-      })
-    }
-
-    try {
-      // Verify OTP server-side using Better Auth
-      await auth.api.signInEmailOTP({
-        body: {
-          email,
-          otp,
-        },
-        headers: await headers(),
-      })
-
-      return { success: true }
-    } catch (error) {
-      console.error('verifyOTPForCustomerProcedure error:', error)
-
-      // Check if error is from Better Auth (invalid OTP, expired, etc.)
-      if (error instanceof Error) {
-        if (
-          error.message.includes('Invalid') ||
-          error.message.includes('invalid') ||
-          error.message.includes('expired')
-        ) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Invalid or expired verification code.',
-          })
-        }
-      }
-
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to verify code. Please try again.',
-      })
-    }
-  })
-
 export const customerBillingPortalRouter = router({
   getBilling: getBillingProcedure,
   cancelSubscription: cancelSubscriptionProcedure,
@@ -924,5 +862,4 @@ export const customerBillingPortalRouter = router({
   getCustomersForUserAndOrganization:
     getCustomersForUserAndOrganizationProcedure,
   sendOTPToCustomer: sendOTPToCustomerProcedure,
-  verifyOTPForCustomer: verifyOTPForCustomerProcedure,
 })

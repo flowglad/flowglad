@@ -4,6 +4,7 @@ import core from '@/utils/core'
 const publicRoutes = [
   '/mcp',
   '/billing-portal/(.*)/sign-in',
+  '/api/billing-portal/verify-otp',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/logout',
@@ -29,7 +30,6 @@ const publicRoutes = [
    */
   '/api/trpc/customerBillingPortal.requestMagicLink',
   '/api/trpc/customerBillingPortal.sendOTPToCustomer',
-  '/api/trpc/customerBillingPortal.verifyOTPForCustomer',
   '/api/trpc/checkoutSessions.public.(.*)',
   '/api/trpc/purchases.requestAccess',
   '/api/trpc/utils.logout',
