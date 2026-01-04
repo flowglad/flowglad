@@ -31,7 +31,35 @@ export const middlewareLogic = (
   } = params
   if (!sessionCookie && isProtectedRoute) {
     if (pathName.startsWith('/billing-portal/')) {
-      const organizationId = pathName.split('/')[2]
+      const pathParts = pathName.split('/').filter(Boolean)
+      // pathParts: ['billing-portal', 'org_xxx', 'cust_xxx', ...]
+      const organizationId = pathParts[1]
+      const customerId = pathParts[2]
+
+      // Guard: If no organizationId, redirect to general sign-in
+      // (this shouldn't happen with valid Next.js routes but provides defensive handling)
+      if (!organizationId) {
+        return {
+          proceed: false,
+          redirect: {
+            url: '/sign-in',
+            status: 307,
+          },
+        }
+      }
+
+      // If path includes a customerId and it's not already a sign-in page, redirect to customer-specific sign-in
+      if (customerId && !pathName.includes('/sign-in')) {
+        return {
+          proceed: false,
+          redirect: {
+            url: `/billing-portal/${organizationId}/${customerId}/sign-in`,
+            status: 307,
+          },
+        }
+      }
+
+      // Otherwise redirect to organization-level sign-in
       return {
         proceed: false,
         redirect: {

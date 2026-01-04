@@ -1,5 +1,7 @@
 import InternalBillingPortalPage from './Internal'
 
-export default async function BillingPortalPage() {
+// Session check is handled by middleware (middlewareLogic.ts)
+// which redirects unauthenticated users to the sign-in page
+export default function BillingPortalPage() {
   return <InternalBillingPortalPage />
 }

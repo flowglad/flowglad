@@ -28,3 +28,34 @@ export const getCustomerBillingPortalOrganizationId =
     const cookieStore = await cookies()
     return cookieStore.get(cookieName)?.value
   }
+
+// Customer email cookie for OTP verification
+// Stored server-side to avoid exposing actual email to client
+const customerEmailCookieName = 'customer-billing-email'
+
+export const setCustomerBillingPortalEmail = async (
+  email: string
+) => {
+  const cookieStore = await cookies()
+  await cookieStore.set(customerEmailCookieName, email, {
+    maxAge: 60 * 15, // 15 minutes (matches OTP expiry of 10 min + buffer)
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  })
+}
+
+export const getCustomerBillingPortalEmail = async (params?: {
+  __testEmail?: string
+}) => {
+  if (core.IS_TEST) {
+    return params?.__testEmail
+  }
+  const cookieStore = await cookies()
+  return cookieStore.get(customerEmailCookieName)?.value
+}
+
+export const clearCustomerBillingPortalEmail = async () => {
+  const cookieStore = await cookies()
+  await cookieStore.delete(customerEmailCookieName)
+}
