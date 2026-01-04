@@ -1,4 +1,5 @@
 export type {
+  AdjustSubscriptionOptions,
   BulkCreateUsageEventsParams,
   CancelSubscriptionParams,
   ClientCreateUsageEventParams,
@@ -12,6 +13,8 @@ export type {
 } from './actions'
 
 export {
+  adjustSubscriptionOptionsSchema,
+  adjustSubscriptionSchema,
   bulkCreateUsageEventsSchema,
   cancelSubscriptionSchema,
   createActivateSubscriptionCheckoutSessionSchema,
@@ -20,6 +23,7 @@ export {
   createSubscriptionSchema,
   createUsageEventSchema,
   flowgladActionValidators,
+  subscriptionAdjustmentTiming,
   uncancelSubscriptionSchema,
   updateCustomerSchema,
 } from './actions'

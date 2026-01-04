@@ -9,6 +9,7 @@ export enum FlowgladActionKey {
   CreateActivateSubscriptionCheckoutSession = 'checkout-sessions/create-activate-subscription',
   CancelSubscription = 'subscriptions/cancel',
   UncancelSubscription = 'subscriptions/uncancel',
+  AdjustSubscription = 'subscriptions/adjust',
   CreateSubscription = 'subscriptions/create',
   UpdateCustomer = 'customers/update',
   CreateUsageEvent = 'usage-events/create',

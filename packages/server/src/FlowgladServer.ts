@@ -1,5 +1,6 @@
 import { Flowglad as FlowgladNode } from '@flowglad/node'
 import {
+  type AdjustSubscriptionOptions,
   type BillingWithChecks,
   type BulkCreateUsageEventsParams,
   bulkCreateUsageEventsSchema,
@@ -19,6 +20,7 @@ import {
   createProductCheckoutSessionSchema,
   createUsageEventSchema,
   type SubscriptionExperimentalFields,
+  subscriptionAdjustmentTiming,
   type UncancelSubscriptionParams,
 } from '@flowglad/shared'
 import { getSessionFromParams } from './serverUtils'
@@ -321,6 +323,114 @@ export class FlowgladServer {
     return this.flowgladNode.subscriptions.uncancel(params.id, {
       body: {},
     })
+  }
+
+  /**
+   * Adjust a subscription to a different price.
+   *
+   * @example
+   * // TERSEST form: adjust current subscription (auto-resolves if customer has 1 subscription)
+   * await flowglad.adjustSubscription('pro-monthly')
+   *
+   * // With quantity (for multi-seat plans)
+   * await flowglad.adjustSubscription('pro-monthly', { quantity: 5 })
+   *
+   * // With explicit timing override
+   * await flowglad.adjustSubscription('pro-monthly', { timing: 'at_end_of_period' })
+   *
+   * // Explicit subscription ID (required for multi-subscription customers)
+   * await flowglad.adjustSubscription('pro-monthly', { subscriptionId: 'sub_123' })
+   *
+   * @param priceIdOrSlug - The price ID or price slug to adjust to
+   * @param options - Optional adjustment options
+   * @param options.subscriptionId - Subscription ID (auto-resolves if customer has exactly 1 subscription)
+   * @param options.quantity - Number of units (default: 1)
+   * @param options.timing - 'immediately' | 'at_end_of_period' | 'auto' (default: 'auto')
+   *   - 'auto': Upgrades happen immediately, downgrades at end of period
+   *   - 'immediately': Apply change now with proration
+   *   - 'at_end_of_period': Apply change at next billing period
+   * @param options.prorate - Whether to prorate (default: true for immediate, false for end-of-period)
+   * @returns The adjusted subscription and its items
+   * @throws {Error} If customer has no active subscriptions
+   * @throws {Error} If customer has multiple subscriptions and subscriptionId not provided
+   * @throws {Error} If the subscription is not owned by the authenticated customer
+   */
+  public adjustSubscription = async (
+    priceIdOrSlug: string,
+    options?: AdjustSubscriptionOptions
+  ): Promise<FlowgladNode.Subscriptions.SubscriptionAdjustResponse> => {
+    // Auto-resolve subscriptionId if not provided
+    let subscriptionId = options?.subscriptionId
+
+    if (!subscriptionId) {
+      const billing = await this.getBilling()
+      const currentSubscriptions = billing.currentSubscriptions ?? []
+
+      if (currentSubscriptions.length === 0) {
+        throw new Error(
+          'No active subscription found for this customer'
+        )
+      }
+      if (currentSubscriptions.length > 1) {
+        throw new Error(
+          'Customer has multiple active subscriptions. Please specify subscriptionId in options.'
+        )
+      }
+      subscriptionId = currentSubscriptions[0].id
+    }
+
+    // Validate ownership
+    const { subscription } =
+      await this.flowgladNode.subscriptions.retrieve(subscriptionId)
+
+    const { customer } = await this.getCustomer()
+    if (subscription.customerId !== customer.id) {
+      throw new Error('Subscription is not owned by the current user')
+    }
+
+    const quantity = options?.quantity ?? 1
+
+    // Always pass as priceSlug - the server will resolve it.
+    // The server-side adjustSubscription function accepts priceSlug and does
+    // fallback resolution (try slug first, then try as ID if not found).
+    // This avoids brittle UUID regex detection in the SDK.
+    const priceIdentifier = { priceSlug: priceIdOrSlug }
+
+    // Build the adjustment payload
+    // Note: 'auto' timing is resolved server-side based on upgrade/downgrade detection
+    const timing =
+      options?.timing ?? subscriptionAdjustmentTiming.Auto
+    const prorate = options?.prorate // Let server determine default based on timing
+
+    // Map SDK timing values to server timing values
+    const serverTiming =
+      timing === subscriptionAdjustmentTiming.Immediately
+        ? 'immediately'
+        : timing ===
+            subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+          ? 'at_end_of_current_billing_period'
+          : 'auto' // 'auto' timing
+
+    // Build adjustment payload based on timing
+    const adjustment =
+      serverTiming === 'at_end_of_current_billing_period'
+        ? {
+            timing: serverTiming,
+            newSubscriptionItems: [{ ...priceIdentifier, quantity }],
+          }
+        : {
+            timing: serverTiming,
+            newSubscriptionItems: [{ ...priceIdentifier, quantity }],
+            prorateCurrentBillingPeriod: prorate ?? true,
+          }
+
+    // Use post() directly to avoid @flowglad/node type constraints.
+    // The server API supports 'auto' timing and priceSlug which may not
+    // be reflected in the generated SDK types yet.
+    return this.flowgladNode.post<FlowgladNode.Subscriptions.SubscriptionAdjustResponse>(
+      `/api/v1/subscriptions/${subscriptionId}/adjust`,
+      { body: { adjustment } }
+    )
   }
 
   public createSubscription = async (

@@ -436,10 +436,29 @@ export const adjustSubscription = async (
   for (const item of newSubscriptionItems) {
     // Check if item has priceSlug that needs resolution
     if (hasSlug(item)) {
-      const resolvedPrice = pricesBySlug.get(item.priceSlug)
+      // First try to resolve as slug
+      let resolvedPrice = pricesBySlug.get(item.priceSlug)
+
+      // If not found as slug, try as price ID (allows priceSlug to accept UUIDs)
+      // This enables the SDK to pass price identifiers without needing to detect the format
+      if (!resolvedPrice) {
+        resolvedPrice = pricesById.get(item.priceSlug)
+      }
+
+      // If still not found, also try fetching by ID directly (in case it wasn't pre-fetched)
+      if (!resolvedPrice) {
+        const priceByIdResult = await selectPrices(
+          { id: item.priceSlug },
+          transaction
+        )
+        if (priceByIdResult.length > 0) {
+          resolvedPrice = priceByIdResult[0]
+        }
+      }
+
       if (!resolvedPrice) {
         throw new Error(
-          `Price with slug "${item.priceSlug}" not found in the subscription's pricing model`
+          `Price "${item.priceSlug}" not found. Tried as slug (in pricing model) and as price ID.`
         )
       }
 
