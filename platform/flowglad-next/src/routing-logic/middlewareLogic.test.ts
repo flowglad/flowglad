@@ -868,7 +868,7 @@ describe('middlewareLogic', () => {
       expect(result.proceed).toBe(true)
     })
 
-    it('should redirect to org-level sign-in when path has only organizationId (no customerId)', () => {
+    it('should redirect to customer-specific sign-in when path segment after organizationId is treated as customerId', () => {
       const result = middlewareLogic({
         sessionCookie: null,
         isProtectedRoute: true,

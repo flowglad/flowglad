@@ -21,15 +21,15 @@ describe('maskEmail', () => {
   })
 
   describe('short local parts (edge cases)', () => {
-    it('should handle single character local part', () => {
+    it('should show only the first character followed by mask when local part is single character', () => {
       expect(maskEmail('a@example.com')).toBe('a***@example.com')
     })
 
-    it('should handle two character local part', () => {
+    it('should mask second character when local part has two characters', () => {
       expect(maskEmail('ab@example.com')).toBe('a***@example.com')
     })
 
-    it('should handle three character local part', () => {
+    it('should preserve first and last character when local part has three characters', () => {
       expect(maskEmail('abc@example.com')).toBe('a***c@example.com')
     })
   })
@@ -41,11 +41,11 @@ describe('maskEmail', () => {
       )
     })
 
-    it('should handle short TLD', () => {
+    it('should preserve short TLD while masking local part', () => {
       expect(maskEmail('user@example.io')).toBe('u***r@example.io')
     })
 
-    it('should handle long TLD', () => {
+    it('should preserve long TLD while masking local part', () => {
       expect(maskEmail('user@example.company')).toBe(
         'u***r@example.company'
       )
@@ -53,19 +53,19 @@ describe('maskEmail', () => {
   })
 
   describe('special characters in local part', () => {
-    it('should handle dots in local part', () => {
+    it('should mask middle characters including dots in local part', () => {
       expect(maskEmail('john.doe@example.com')).toBe(
         'jo***e@example.com'
       )
     })
 
-    it('should handle plus sign in local part', () => {
+    it('should mask middle characters including plus signs in local part', () => {
       expect(maskEmail('user+tag@example.com')).toBe(
         'us***g@example.com'
       )
     })
 
-    it('should handle underscores in local part', () => {
+    it('should mask middle characters including underscores in local part', () => {
       expect(maskEmail('john_doe@example.com')).toBe(
         'jo***e@example.com'
       )

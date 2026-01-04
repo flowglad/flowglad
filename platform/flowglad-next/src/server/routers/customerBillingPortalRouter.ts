@@ -692,6 +692,18 @@ const sendOTPToCustomerProcedure = publicProcedure
   )
   .mutation(async ({ input }) => {
     const { customerId, organizationId } = input
+    const startTime = Date.now()
+
+    // Helper to ensure minimum response time to prevent timing attacks
+    const ensureMinResponseTime = async () => {
+      const elapsed = Date.now() - startTime
+      const minDelay = 500 // ms
+      if (elapsed < minDelay) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, minDelay - elapsed)
+        )
+      }
+    }
 
     try {
       // 1. Fetch customer and organization, verify they match in a single transaction
@@ -824,6 +836,7 @@ const sendOTPToCustomerProcedure = publicProcedure
       })
 
       // 6. Return success with masked email only (actual email stored server-side)
+      await ensureMinResponseTime()
       return {
         success: true,
         email: maskEmail(customer.email),
@@ -840,9 +853,12 @@ const sendOTPToCustomerProcedure = publicProcedure
         error.code === 'NOT_FOUND' &&
         error.message === 'Organization not found'
       ) {
+        await ensureMinResponseTime()
         throw error
       }
       // For any other errors, quietly return success for security
+      // Ensure minimum response time to prevent timing attacks
+      await ensureMinResponseTime()
       return { success: true }
     }
   })
