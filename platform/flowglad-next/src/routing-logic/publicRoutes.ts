@@ -28,6 +28,8 @@ const publicRoutes = [
    * otherwise anon users will hit 307 redirects.
    */
   '/api/trpc/customerBillingPortal.requestMagicLink',
+  '/api/trpc/customerBillingPortal.sendOTPToCustomer',
+  '/api/trpc/customerBillingPortal.verifyOTPForCustomer',
   '/api/trpc/checkoutSessions.public.(.*)',
   '/api/trpc/purchases.requestAccess',
   '/api/trpc/utils.logout',
