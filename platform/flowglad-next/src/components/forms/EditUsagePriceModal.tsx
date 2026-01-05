@@ -27,7 +27,10 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { type Price } from '@/db/schema/prices'
+import {
+  editUsagePriceFormSchema as baseEditUsagePriceFormSchema,
+  type Price,
+} from '@/db/schema/prices'
 import { currencyCharacter } from '@/registry/lib/currency'
 import { PriceType } from '@/types'
 import {
@@ -46,25 +49,17 @@ interface EditUsagePriceModalProps {
 
 /**
  * Form schema for editing a usage price.
- * Based on editUsagePriceFormSchema from prices.ts but extended with:
+ * Extends editUsagePriceFormSchema from prices.ts with:
  * - usageEventsPerUnit: needed for the immutable price pattern check
  * - price.usageMeterId: for displaying the read-only usage meter select (not sent to update)
  * When unitPrice or usageEventsPerUnit change, a new price is created and the old one is inactivated.
  */
-const editUsagePriceFormSchema = z.object({
-  price: z.object({
-    type: z.literal(PriceType.Usage),
-    id: z.string(),
-    isDefault: z.boolean(),
-    active: z.boolean().optional(),
-    name: z.string().nullable().optional(),
-    slug: z.string().nullable().optional(),
+const editUsagePriceFormSchema = baseEditUsagePriceFormSchema.extend({
+  usageEventsPerUnit: z.number().int().positive(),
+  price: baseEditUsagePriceFormSchema.shape.price.extend({
     // usageMeterId is for form display only (read-only field), excluded from updates
     usageMeterId: z.string(),
   }),
-  id: z.string(),
-  __rawPriceString: z.string(),
-  usageEventsPerUnit: z.number().int().positive(),
 })
 
 type EditUsagePriceFormSchema = z.infer<
