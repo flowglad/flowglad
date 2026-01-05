@@ -24,7 +24,7 @@ export const ALLOWED_DEFAULT_PRODUCT_FIELDS = [
 
 /**
  * Finds the default product in a pricing model input.
- * A default product is identified by `product.isDefault === true`.
+ * A default product is identified by `product.default === true`.
  *
  * @param input - The pricing model setup input
  * @returns The default product input, or undefined if none exists
@@ -39,7 +39,7 @@ export const findDefaultProduct = (
  * Validates that the proposed input doesn't have multiple default products.
  *
  * @param proposedInput - The proposed pricing model input
- * @throws Error if more than one product has isDefault=true
+ * @throws Error if more than one product has default=true
  */
 export const validateSingleDefaultProduct = (
   proposedInput: SetupPricingModelInput
@@ -63,7 +63,7 @@ export const validateSingleDefaultProduct = (
  * compared to the existing default product.
  *
  * Protected fields include:
- * - Product: slug, active, isDefault
+ * - Product: slug, active, default
  * - Price: slug, type, unitPrice, intervalUnit, intervalCount, trialPeriodDays,
  *          usageEventsPerUnit, usageMeterSlug
  *
