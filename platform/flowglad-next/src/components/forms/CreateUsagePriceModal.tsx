@@ -172,7 +172,7 @@ export const CreateUsagePriceModal = ({
         )
 
         const trimmedSlug = input.product.slug?.trim() ?? ''
-        const trimmedName = input.product.name?.trim() ?? trimmedSlug
+        const trimmedName = input.product.name?.trim() || trimmedSlug
 
         await createProduct.mutateAsync({
           ...input,

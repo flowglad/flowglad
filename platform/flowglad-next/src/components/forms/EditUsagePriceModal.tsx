@@ -336,7 +336,8 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
           input.usageEventsPerUnit !== price.usageEventsPerUnit
 
         if (unitPriceChanged || usageEventsPerUnitChanged) {
-          // Immutable fields changed: create new price (which will inactivate the old one)
+          // Immutable fields changed: create new price
+          // safelyInsertPrice automatically archives all existing prices for the product
           await createPrice.mutateAsync({
             price: {
               type: PriceType.Usage,
@@ -354,8 +355,11 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
           })
         } else {
           // Only mutable fields changed: use update mutation
+          // Extract only mutable fields (exclude usageMeterId which is create-only)
+          const { usageMeterId: _, ...mutablePriceFields } =
+            input.price
           await updatePrice.mutateAsync({
-            price: input.price,
+            price: mutablePriceFields,
             id: input.id,
           })
         }
