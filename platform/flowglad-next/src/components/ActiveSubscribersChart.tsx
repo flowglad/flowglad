@@ -293,7 +293,6 @@ export const ActiveSubscribersChart = ({
       <div className="flex flex-row gap-2 justify-between px-4">
         <div className="text-foreground w-fit flex items-center flex-row gap-0.5">
           <p className="whitespace-nowrap">Active Subscribers</p>
-          <ChartInfoTooltip content="The number of customers with active paid subscriptions at each point in time." />
           <Select
             value={interval}
             onValueChange={(value) =>
@@ -312,6 +311,7 @@ export const ActiveSubscribersChart = ({
               ))}
             </SelectContent>
           </Select>
+          <ChartInfoTooltip content="The number of customers with active paid subscriptions at each point in time." />
         </div>
       </div>
 
