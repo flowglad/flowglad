@@ -37,6 +37,7 @@ import {
 import type { DbTransaction } from '@/db/types'
 import { FeatureType, PriceType } from '@/types'
 import { computeUpdateObject, diffPricingModel } from './diffing'
+import { protectDefaultProduct } from './protectDefaultProduct'
 import { getPricingModelSetupData } from './setupHelpers'
 import {
   type SetupPricingModelInput,
@@ -123,13 +124,20 @@ export const updatePricingModelTransaction = async (
   )
 
   // Step 2: Validate proposed input
-  const proposedInput =
+  const validatedProposedInput =
     validateSetupPricingModelInput(rawProposedInput)
 
-  // Step 3: Compute diff (this also validates the diff)
+  // Step 3: Protect default product from invalid modifications
+  // This ensures the default product cannot be removed or have protected fields changed
+  const proposedInput = protectDefaultProduct(
+    existingInput,
+    validatedProposedInput
+  )
+
+  // Step 4: Compute diff (this also validates the diff)
   const diff = diffPricingModel(existingInput, proposedInput)
 
-  // Step 4: Resolve existing IDs for slug -> id mapping
+  // Step 5: Resolve existing IDs for slug -> id mapping
   const idMaps = await resolveExistingIds(pricingModelId, transaction)
 
   // Initialize result trackers
@@ -142,7 +150,7 @@ export const updatePricingModelTransaction = async (
     productFeatures: { added: [], removed: [] },
   }
 
-  // Step 5: Update pricing model metadata
+  // Step 6: Update pricing model metadata
   const pricingModelUpdate = computeUpdateObject(
     { name: existingInput.name, isDefault: existingInput.isDefault },
     { name: proposedInput.name, isDefault: proposedInput.isDefault }
@@ -154,7 +162,7 @@ export const updatePricingModelTransaction = async (
     )
   }
 
-  // Step 6: Batch create new usage meters
+  // Step 7: Batch create new usage meters
   if (diff.usageMeters.toCreate.length > 0) {
     const usageMeterInserts: UsageMeter.Insert[] =
       diff.usageMeters.toCreate.map((meter) => ({
@@ -181,7 +189,7 @@ export const updatePricingModelTransaction = async (
     }
   }
 
-  // Step 7: Update existing usage meters (parallel)
+  // Step 8: Update existing usage meters (parallel)
   const usageMeterUpdatePromises = diff.usageMeters.toUpdate
     .map(({ existing, proposed }) => {
       const updateObj = computeUpdateObject(existing, proposed)
@@ -206,7 +214,7 @@ export const updatePricingModelTransaction = async (
     )
   }
 
-  // Step 8: Batch create new features
+  // Step 9: Batch create new features
   if (diff.features.toCreate.length > 0) {
     const featureInserts: Feature.Insert[] =
       diff.features.toCreate.map((feature) => {
@@ -269,7 +277,7 @@ export const updatePricingModelTransaction = async (
     }
   }
 
-  // Step 9: Update existing features (parallel)
+  // Step 10: Update existing features (parallel)
   const featureUpdatePromises = diff.features.toUpdate
     .map(({ existing, proposed }) => {
       const updateObj = computeUpdateObject(existing, proposed)
@@ -306,7 +314,7 @@ export const updatePricingModelTransaction = async (
     result.features.updated = await Promise.all(featureUpdatePromises)
   }
 
-  // Step 10: Soft-delete removed features (parallel)
+  // Step 11: Soft-delete removed features (parallel)
   const featureDeactivatePromises = diff.features.toRemove.map(
     (featureInput) => {
       const featureId = idMaps.features.get(featureInput.slug)
@@ -328,7 +336,7 @@ export const updatePricingModelTransaction = async (
     )
   }
 
-  // Step 11: Batch create new products
+  // Step 12: Batch create new products
   if (diff.products.toCreate.length > 0) {
     const productInserts: Product.Insert[] =
       diff.products.toCreate.map((productInput) => ({
@@ -463,7 +471,7 @@ export const updatePricingModelTransaction = async (
     }
   }
 
-  // Step 12: Update existing products (parallel for metadata)
+  // Step 13: Update existing products (parallel for metadata)
   // Collect price changes to handle after product updates
   const priceChanges: Array<{
     productId: string
@@ -507,7 +515,7 @@ export const updatePricingModelTransaction = async (
     result.products.updated = await Promise.all(productUpdatePromises)
   }
 
-  // Step 13: Handle price changes for existing products
+  // Step 14: Handle price changes for existing products
   // First, deactivate old prices (must happen before creating new ones due to slug uniqueness)
   const priceDeactivatePromises = priceChanges
     .filter((change) => change.existingPriceSlug)
@@ -643,7 +651,7 @@ export const updatePricingModelTransaction = async (
     }
   }
 
-  // Step 14: Soft-delete removed products (parallel)
+  // Step 15: Soft-delete removed products (parallel)
   const productDeactivatePromises = diff.products.toRemove.map(
     (productInput) => {
       const productId = idMaps.products.get(productInput.product.slug)
@@ -665,7 +673,7 @@ export const updatePricingModelTransaction = async (
     )
   }
 
-  // Step 15: Deactivate prices for removed products (parallel)
+  // Step 16: Deactivate prices for removed products (parallel)
   const removedProductPriceDeactivatePromises = diff.products.toRemove
     .filter((productInput) => productInput.price?.slug)
     .map((productInput) => {
@@ -693,7 +701,7 @@ export const updatePricingModelTransaction = async (
     result.prices.deactivated.push(...deactivatedPrices)
   }
 
-  // Step 16: Sync productFeatures junction table
+  // Step 17: Sync productFeatures junction table
   const productsWithFeatures = proposedInput.products.map(
     (productInput) => {
       const productId = idMaps.products.get(productInput.product.slug)
