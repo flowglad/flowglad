@@ -11,6 +11,7 @@ import type { Organization } from '@/db/schema/organizations'
 import type { Product } from '@/db/schema/products'
 import { core } from '@/utils/core'
 import {
+  batchUnexpireProductFeatures,
   bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId,
   bulkInsertProductFeatures,
   insertProductFeature,
@@ -252,6 +253,184 @@ describe('unexpireProductFeatures', () => {
         )
     )
     expect(originalFeature?.expiredAt).not.toBeNull()
+  })
+})
+
+describe('batchUnexpireProductFeatures', () => {
+  it('unexpires multiple product features by their IDs across different products', async () => {
+    // Create a second product for testing cross-product batch operations
+    const product2 = await setupProduct({
+      organizationId: organization.id,
+      name: 'Product 2',
+      pricingModelId: product.pricingModelId,
+    })
+
+    // Create expired product features on different products
+    const pf1 = await setupProductFeature({
+      productId: product.id,
+      featureId: featureA.id,
+      organizationId: organization.id,
+      expiredAt: Date.now() - 1000,
+    })
+    const pf2 = await setupProductFeature({
+      productId: product.id,
+      featureId: featureB.id,
+      organizationId: organization.id,
+      expiredAt: Date.now() - 1000,
+    })
+    const pf3 = await setupProductFeature({
+      productId: product2.id,
+      featureId: featureC.id,
+      organizationId: organization.id,
+      expiredAt: Date.now() - 1000,
+    })
+
+    // Batch unexpire all three
+    const result = await adminTransaction(async ({ transaction }) =>
+      batchUnexpireProductFeatures(
+        [pf1.id, pf2.id, pf3.id],
+        transaction
+      )
+    )
+
+    // Should return all three unexpired records
+    expect(result).toHaveLength(3)
+    expect(result.every((pf) => pf.expiredAt === null)).toBe(true)
+
+    // Verify database state
+    const allFeatures = await adminTransaction(
+      async ({ transaction }) =>
+        selectProductFeatures(
+          { productId: [product.id, product2.id] },
+          transaction
+        )
+    )
+    expect(allFeatures.every((pf) => pf.expiredAt === null)).toBe(
+      true
+    )
+  })
+
+  it('returns empty array when given empty productFeatureIds list', async () => {
+    const result = await adminTransaction(async ({ transaction }) =>
+      batchUnexpireProductFeatures([], transaction)
+    )
+
+    expect(result).toEqual([])
+  })
+
+  it('only unexpires features that are currently expired', async () => {
+    // Create one expired and one active product feature
+    const expiredPf = await setupProductFeature({
+      productId: product.id,
+      featureId: featureA.id,
+      organizationId: organization.id,
+      expiredAt: Date.now() - 1000,
+    })
+    const activePf = await setupProductFeature({
+      productId: product.id,
+      featureId: featureB.id,
+      organizationId: organization.id,
+      expiredAt: null, // active
+    })
+
+    // Try to unexpire both
+    const result = await adminTransaction(async ({ transaction }) =>
+      batchUnexpireProductFeatures(
+        [expiredPf.id, activePf.id],
+        transaction
+      )
+    )
+
+    // Should only return the one that was actually expired
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe(expiredPf.id)
+    expect(result[0].expiredAt).toBeNull()
+  })
+
+  it('returns empty array when all provided IDs are already active', async () => {
+    // Create active product features
+    const pf1 = await setupProductFeature({
+      productId: product.id,
+      featureId: featureA.id,
+      organizationId: organization.id,
+      expiredAt: null,
+    })
+    const pf2 = await setupProductFeature({
+      productId: product.id,
+      featureId: featureB.id,
+      organizationId: organization.id,
+      expiredAt: null,
+    })
+
+    // Try to unexpire active features
+    const result = await adminTransaction(async ({ transaction }) =>
+      batchUnexpireProductFeatures([pf1.id, pf2.id], transaction)
+    )
+
+    // Should return empty array since nothing was actually unexpired
+    expect(result).toHaveLength(0)
+  })
+
+  it('ignores non-existent productFeature IDs without error', async () => {
+    // Create one real expired product feature
+    const realPf = await setupProductFeature({
+      productId: product.id,
+      featureId: featureA.id,
+      organizationId: organization.id,
+      expiredAt: Date.now() - 1000,
+    })
+
+    // Include a non-existent ID
+    const fakeId = `product_feature_${core.nanoid()}`
+
+    const result = await adminTransaction(async ({ transaction }) =>
+      batchUnexpireProductFeatures([realPf.id, fakeId], transaction)
+    )
+
+    // Should only return the real one that was unexpired
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe(realPf.id)
+    expect(result[0].expiredAt).toBeNull()
+  })
+
+  it('handles partial unexpiration when some IDs are expired and some are not', async () => {
+    // Create mixed state product features
+    const expired1 = await setupProductFeature({
+      productId: product.id,
+      featureId: featureA.id,
+      organizationId: organization.id,
+      expiredAt: Date.now() - 1000,
+    })
+    const active1 = await setupProductFeature({
+      productId: product.id,
+      featureId: featureB.id,
+      organizationId: organization.id,
+      expiredAt: null,
+    })
+    const expired2 = await setupProductFeature({
+      productId: product.id,
+      featureId: featureC.id,
+      organizationId: organization.id,
+      expiredAt: Date.now() - 2000,
+    })
+
+    // Unexpire all three
+    const result = await adminTransaction(async ({ transaction }) =>
+      batchUnexpireProductFeatures(
+        [expired1.id, active1.id, expired2.id],
+        transaction
+      )
+    )
+
+    // Should only return the two that were expired
+    expect(result).toHaveLength(2)
+    const resultIds = new Set(result.map((pf) => pf.id))
+    expect(resultIds.has(expired1.id)).toBe(true)
+    expect(resultIds.has(expired2.id)).toBe(true)
+    expect(resultIds.has(active1.id)).toBe(false)
+
+    // All returned records should have expiredAt = null
+    expect(result.every((pf) => pf.expiredAt === null)).toBe(true)
   })
 })
 
