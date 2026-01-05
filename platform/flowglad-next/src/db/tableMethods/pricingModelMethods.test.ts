@@ -1421,7 +1421,7 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
     expect(pricingModelRow!.productsCount).toBe(2)
   })
 
-  it('handles pricing models with only usage products', async () => {
+  it('returns productsCount of 0 when pricing model contains only usage products', async () => {
     // Create a new pricing model
     const emptyPricingModel = await setupPricingModel({
       organizationId: organization.id,
