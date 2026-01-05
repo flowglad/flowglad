@@ -1,5 +1,5 @@
 'use client'
-import { differenceInHours, format, isValid } from 'date-fns'
+import { differenceInHours, isValid } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
@@ -12,51 +12,14 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
+import {
+  getDefaultInterval,
+  minimumUnitInHours,
+} from '@/utils/revenueChartUtils'
 import { LineChart } from './charts/LineChart'
 import ErrorBoundary from './ErrorBoundary'
 import { ChartInfoTooltip } from './ui/chart-info-tooltip'
 import { Skeleton } from './ui/skeleton'
-
-/**
- * Two dots make a graph principle: this is the minimum range duration required
- * in hours, required to display a multi-point graph
- */
-const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
-  [RevenueChartIntervalUnit.Year]: 24 * 365 * 2,
-  [RevenueChartIntervalUnit.Month]: 24 * 30 * 2,
-  [RevenueChartIntervalUnit.Week]: 24 * 7 * 2,
-  [RevenueChartIntervalUnit.Day]: 24 * 2,
-  [RevenueChartIntervalUnit.Hour]: 1 * 2,
-} as const
-
-/**
- * Computes the best default interval based on the date range.
- * Based on preset expectations:
- * - Last 3/6/12 months → Monthly (>= 60 days)
- * - Last 7/30 days → Daily (>= 1 day but < 60 days)
- * - Today → Hourly (< 1 day)
- */
-function getDefaultInterval(
-  fromDate: Date,
-  toDate: Date
-): RevenueChartIntervalUnit {
-  const timespanInHours = differenceInHours(toDate, fromDate)
-
-  // 2+ months (60 days = 1440 hours): Monthly
-  // Covers Last 3 months, Last 6 months, Last 12 months
-  if (timespanInHours >= 24 * 60) {
-    return RevenueChartIntervalUnit.Month
-  }
-
-  // 2+ days (48 hours) but less than 2 months: Daily
-  // Covers Last 7 days, Last 30 days
-  if (timespanInHours >= 24 * 2) {
-    return RevenueChartIntervalUnit.Day
-  }
-
-  // Less than 1 day (including "Today"): Hourly
-  return RevenueChartIntervalUnit.Hour
-}
 
 const MONTH_NAMES_SHORT = [
   'Jan',
