@@ -1,6 +1,14 @@
 'use client'
 
-import { format, isSameDay } from 'date-fns'
+import {
+  format,
+  isSameDay,
+  startOfDay,
+  startOfMonth,
+  startOfYear,
+  subDays,
+  subMonths,
+} from 'date-fns'
 import { ChevronDown } from 'lucide-react'
 import * as React from 'react'
 import type { DateRange, Matcher } from 'react-day-picker'
@@ -25,16 +33,12 @@ export interface DateRangePreset {
 }
 
 /**
- * Creates default presets with fresh dates each time they're accessed.
- * This ensures dates are always current when the picker is opened.
+ * Creates default presets with dates calculated relative to the current day.
+ * Called each time the popover opens to ensure "Today" and relative presets
+ * remain accurate across midnight boundaries during long sessions.
  */
 function createDefaultPresets(): DateRangePreset[] {
-  const now = new Date()
-  const today = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  )
+  const today = startOfDay(new Date())
 
   return [
     {
@@ -44,69 +48,49 @@ function createDefaultPresets(): DateRangePreset[] {
     {
       label: 'Last 7 days',
       dateRange: {
-        from: new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate() - 7
-        ),
+        from: subDays(today, 7),
         to: today,
       },
     },
     {
       label: 'Last 30 days',
       dateRange: {
-        from: new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate() - 30
-        ),
+        from: subDays(today, 30),
         to: today,
       },
     },
     {
       label: 'Last 3 months',
       dateRange: {
-        from: new Date(
-          today.getFullYear(),
-          today.getMonth() - 3,
-          today.getDate()
-        ),
+        from: subMonths(today, 3),
         to: today,
       },
     },
     {
       label: 'Last 6 months',
       dateRange: {
-        from: new Date(
-          today.getFullYear(),
-          today.getMonth() - 6,
-          today.getDate()
-        ),
+        from: subMonths(today, 6),
         to: today,
       },
     },
     {
       label: 'Last 12 months',
       dateRange: {
-        from: new Date(
-          today.getFullYear() - 1,
-          today.getMonth(),
-          today.getDate()
-        ),
+        from: subMonths(today, 12),
         to: today,
       },
     },
     {
       label: 'Month to date',
       dateRange: {
-        from: new Date(today.getFullYear(), today.getMonth(), 1),
+        from: startOfMonth(today),
         to: today,
       },
     },
     {
       label: 'Year to date',
       dateRange: {
-        from: new Date(today.getFullYear(), 0, 1),
+        from: startOfYear(today),
         to: today,
       },
     },
@@ -152,11 +136,13 @@ export function DateRangePicker({
     to: toDate,
   })
 
-  // Generate presets when popover opens to ensure fresh dates
+  // Generate fresh presets each time the popover opens to ensure current dates
+  // (e.g., "Today" stays accurate across midnight boundaries)
   const activePresets = React.useMemo(() => {
     if (presets) return presets
     return createDefaultPresets()
-  }, [presets])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presets, open])
 
   // Sync internal state when props change (e.g., external reset)
   React.useEffect(() => {
