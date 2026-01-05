@@ -557,7 +557,7 @@ const SidebarMenuItem = React.forwardRef<
     ref={ref}
     data-sidebar="menu-item"
     className={cn(
-      'group/menu-item relative border-l border-transparent transition-colors has-[[data-active=true]]:border-foreground',
+      'group/menu-item relative before:absolute before:left-0 before:top-0 before:h-full before:w-px before:-translate-x-full before:bg-transparent before:transition-colors has-[[data-active=true]]:before:bg-foreground',
       className
     )}
     {...props}
