@@ -179,8 +179,6 @@ describe('resolveExistingIds', () => {
 
     const featureAId = resolvedIds.features.get('feature-a')
     const apiCreditsId = resolvedIds.features.get('api-credits')
-    expect(featureAId).toBeDefined()
-    expect(apiCreditsId).toBeDefined()
 
     // Verify IDs match the created records
     const createdFeatureA = setupResult.features.find(
@@ -245,7 +243,7 @@ describe('resolveExistingIds', () => {
     )
   })
 
-  it('should handle empty pricing models', async () => {
+  it('returns empty maps for pricing models with no features or usage meters', async () => {
     // Setup: pricing model with no child records
     const input: SetupPricingModelInput = {
       name: 'Empty Model',
@@ -597,7 +595,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
   })
 
-  it('should handle complete replacement of features across products', async () => {
+  it('expires old features and creates new ones when completely replacing product features', async () => {
     // Setup
     const input: SetupPricingModelInput = {
       name: 'Replacement Test Model',
@@ -776,7 +774,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     ).toBe(true)
   })
 
-  it('should handle mix of changes and no-changes across products', async () => {
+  it('only modifies changed product features while leaving unchanged ones intact', async () => {
     // Setup
     const input: SetupPricingModelInput = {
       name: 'Mixed Changes Test Model',
@@ -957,7 +955,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     ).toBe(true)
   })
 
-  it('should handle empty products list gracefully', async () => {
+  it('returns empty added and removed arrays when given empty products list', async () => {
     // Test: call with empty productsWithFeatures array
     const syncResult = await adminTransaction(
       async ({ transaction }) =>
