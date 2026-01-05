@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  adjustSubscriptionOptionsSchema,
+  adjustSubscriptionSchema,
   billingAddressSchema,
   bulkCreateUsageEventsSchema,
   cancelSubscriptionSchema,
@@ -9,6 +11,7 @@ import {
   createSubscriptionSchema,
   createUsageEventSchema,
   flowgladActionValidators,
+  subscriptionAdjustmentTiming,
   updateCustomerInputSchema,
   updateCustomerSchema,
 } from './actions'
@@ -205,6 +208,187 @@ describe('cancelSubscriptionSchema', () => {
       cancellation: { timing: 'immediately' },
     }
     const result = cancelSubscriptionSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('adjustSubscriptionOptionsSchema', () => {
+  it('accepts empty options object', () => {
+    const result = adjustSubscriptionOptionsSchema.safeParse({})
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts valid subscriptionId', () => {
+    const result = adjustSubscriptionOptionsSchema.safeParse({
+      subscriptionId: 'sub_123',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.subscriptionId).toBe('sub_123')
+    }
+  })
+
+  it('accepts valid positive integer quantity', () => {
+    const result = adjustSubscriptionOptionsSchema.safeParse({
+      quantity: 5,
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.quantity).toBe(5)
+    }
+  })
+
+  it('rejects non-positive quantity', () => {
+    const result = adjustSubscriptionOptionsSchema.safeParse({
+      quantity: 0,
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects negative quantity', () => {
+    const result = adjustSubscriptionOptionsSchema.safeParse({
+      quantity: -1,
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects non-integer quantity', () => {
+    const result = adjustSubscriptionOptionsSchema.safeParse({
+      quantity: 1.5,
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('accepts immediately timing', () => {
+    const result = adjustSubscriptionOptionsSchema.safeParse({
+      timing: subscriptionAdjustmentTiming.Immediately,
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.timing).toBe('immediately')
+    }
+  })
+
+  it('accepts at_end_of_period timing', () => {
+    const result = adjustSubscriptionOptionsSchema.safeParse({
+      timing:
+        subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.timing).toBe('at_end_of_period')
+    }
+  })
+
+  it('accepts auto timing', () => {
+    const result = adjustSubscriptionOptionsSchema.safeParse({
+      timing: subscriptionAdjustmentTiming.Auto,
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.timing).toBe('auto')
+    }
+  })
+
+  it('rejects invalid timing value', () => {
+    const result = adjustSubscriptionOptionsSchema.safeParse({
+      timing: 'invalid_timing',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('accepts prorate boolean', () => {
+    const resultTrue = adjustSubscriptionOptionsSchema.safeParse({
+      prorate: true,
+    })
+    expect(resultTrue.success).toBe(true)
+
+    const resultFalse = adjustSubscriptionOptionsSchema.safeParse({
+      prorate: false,
+    })
+    expect(resultFalse.success).toBe(true)
+  })
+
+  it('accepts all options together', () => {
+    const result = adjustSubscriptionOptionsSchema.safeParse({
+      subscriptionId: 'sub_123',
+      quantity: 3,
+      timing: subscriptionAdjustmentTiming.Immediately,
+      prorate: true,
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.subscriptionId).toBe('sub_123')
+      expect(result.data.quantity).toBe(3)
+      expect(result.data.timing).toBe('immediately')
+      expect(result.data.prorate).toBe(true)
+    }
+  })
+})
+
+describe('adjustSubscriptionSchema', () => {
+  it('accepts minimal valid input with priceIdOrSlug only', () => {
+    const result = adjustSubscriptionSchema.safeParse({
+      priceIdOrSlug: 'pro-monthly',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.priceIdOrSlug).toBe('pro-monthly')
+      expect(result.data.options).toBeUndefined()
+    }
+  })
+
+  it('accepts priceIdOrSlug as UUID', () => {
+    const result = adjustSubscriptionSchema.safeParse({
+      priceIdOrSlug: '550e8400-e29b-41d4-a716-446655440000',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.priceIdOrSlug).toBe(
+        '550e8400-e29b-41d4-a716-446655440000'
+      )
+    }
+  })
+
+  it('accepts priceIdOrSlug with options', () => {
+    const result = adjustSubscriptionSchema.safeParse({
+      priceIdOrSlug: 'pro-monthly',
+      options: {
+        subscriptionId: 'sub_123',
+        quantity: 5,
+        timing: 'immediately',
+      },
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.priceIdOrSlug).toBe('pro-monthly')
+      expect(result.data.options?.subscriptionId).toBe('sub_123')
+      expect(result.data.options?.quantity).toBe(5)
+      expect(result.data.options?.timing).toBe('immediately')
+    }
+  })
+
+  it('rejects missing priceIdOrSlug', () => {
+    const result = adjustSubscriptionSchema.safeParse({})
+    expect(result.success).toBe(false)
+  })
+
+  it('accepts empty priceIdOrSlug (defers validation to server)', () => {
+    const result = adjustSubscriptionSchema.safeParse({
+      priceIdOrSlug: '',
+    })
+    // empty string is still a string, schema accepts it
+    // server will reject with a more helpful error message
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects invalid options', () => {
+    const result = adjustSubscriptionSchema.safeParse({
+      priceIdOrSlug: 'pro-monthly',
+      options: {
+        quantity: -1, // invalid
+      },
+    })
     expect(result.success).toBe(false)
   })
 })
@@ -713,8 +897,11 @@ describe('flowgladActionValidators', () => {
       FlowgladActionKey.CreateActivateSubscriptionCheckoutSession,
       FlowgladActionKey.CreateCheckoutSession,
       FlowgladActionKey.CancelSubscription,
+      FlowgladActionKey.UncancelSubscription,
+      FlowgladActionKey.AdjustSubscription,
       FlowgladActionKey.CreateSubscription,
       FlowgladActionKey.UpdateCustomer,
+      FlowgladActionKey.CreateUsageEvent,
     ]
 
     for (const key of expectedKeys) {
@@ -749,6 +936,31 @@ describe('flowgladActionValidators', () => {
       flowgladActionValidators[FlowgladActionKey.FindOrCreateCustomer]
         .inputValidator
     const result = validator.safeParse({ externalId: 'ext_123' })
+    expect(result.success).toBe(true)
+  })
+
+  it('AdjustSubscription validator accepts priceIdOrSlug', () => {
+    const validator =
+      flowgladActionValidators[FlowgladActionKey.AdjustSubscription]
+        .inputValidator
+    const result = validator.safeParse({
+      priceIdOrSlug: 'pro-monthly',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('AdjustSubscription validator accepts priceIdOrSlug with options', () => {
+    const validator =
+      flowgladActionValidators[FlowgladActionKey.AdjustSubscription]
+        .inputValidator
+    const result = validator.safeParse({
+      priceIdOrSlug: 'pro-monthly',
+      options: {
+        subscriptionId: 'sub_123',
+        quantity: 5,
+        timing: 'auto',
+      },
+    })
     expect(result.success).toBe(true)
   })
 })
