@@ -4,6 +4,7 @@ import { useFormContext } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { trpc } from '@/app/_trpc/client'
+import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 import FormModal from '@/components/forms/FormModal'
 import PriceFormFields from '@/components/forms/PriceFormFields'
 import {
@@ -51,32 +52,54 @@ export type CreateUsagePriceFormSchema = z.infer<
 >
 
 /**
- * Slug field component for the usage price form
+ * Name and Slug fields for the usage price form.
+ * Name is entered by user, Slug auto-fills from Name following the standard pattern.
  */
-function SlugField() {
+function NameAndSlugFields() {
   const { control } = useFormContext<CreateUsagePriceFormSchema>()
 
   return (
-    <FormField
-      control={control}
-      name="product.slug"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Slug</FormLabel>
-          <FormControl>
-            <Input
-              {...field}
-              value={field.value ?? ''}
-              placeholder="usage-price-slug"
-            />
-          </FormControl>
-          <FormDescription>
-            A unique identifier for this usage price
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
+    <>
+      <FormField
+        control={control}
+        name="product.name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Name</FormLabel>
+            <FormControl>
+              <Input
+                {...field}
+                value={field.value ?? ''}
+                placeholder="Usage Price"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name="product.slug"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Slug</FormLabel>
+            <FormControl>
+              <AutoSlugInput
+                {...field}
+                name="product.slug"
+                sourceName="product.name"
+                placeholder="usage-price-slug"
+                className="w-full"
+              />
+            </FormControl>
+            <FormDescription>
+              A unique identifier for this usage price
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </>
   )
 }
 
@@ -149,18 +172,20 @@ export const CreateUsagePriceModal = ({
         )
 
         const trimmedSlug = input.product.slug?.trim() ?? ''
+        const trimmedName = input.product.name?.trim() || trimmedSlug
 
         await createProduct.mutateAsync({
           ...input,
           product: {
             ...input.product,
-            name: trimmedSlug,
+            name: trimmedName,
             slug: trimmedSlug,
           },
           price: {
             ...input.price,
             unitPrice,
-            // Use the same slug for both product and price
+            // Use name for price name, slug for price slug
+            name: trimmedName,
             slug: trimmedSlug,
           },
         })
@@ -173,7 +198,7 @@ export const CreateUsagePriceModal = ({
       isOpen={isOpen}
       setIsOpen={setIsOpen}
     >
-      <SlugField />
+      <NameAndSlugFields />
       <PriceFormFields
         priceOnly={true}
         pricingModelId={usageMeter.pricingModelId}
