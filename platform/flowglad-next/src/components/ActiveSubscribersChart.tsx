@@ -48,9 +48,9 @@ function getDefaultInterval(
     return RevenueChartIntervalUnit.Month
   }
 
-  // 1+ day (24 hours) but less than 2 months: Daily
+  // 2+ days (48 hours) but less than 2 months: Daily
   // Covers Last 7 days, Last 30 days
-  if (timespanInHours >= 24) {
+  if (timespanInHours >= 24 * 2) {
     return RevenueChartIntervalUnit.Day
   }
 
