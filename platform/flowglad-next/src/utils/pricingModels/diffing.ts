@@ -580,7 +580,7 @@ export const validatePriceChange = (
   }
 
   // Check if any immutable/create-only fields are being changed.
-  // If so, skip validation because this price will be replaced entirely
+  // If so, skip strict validation because this price will be replaced entirely
   // (create new price + deactivate old price), not updated.
   const immutableFields = new Set(priceImmutableFields)
   const changedFields = Object.keys(transformedUpdate)
