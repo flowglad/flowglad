@@ -1,7 +1,7 @@
 'use client'
 
 import { format, isSameDay } from 'date-fns'
-import { CalendarIcon, ChevronDown } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import * as React from 'react'
 import type { DateRange, Matcher } from 'react-day-picker'
 import { Button } from '@/components/ui/button'
@@ -302,74 +302,76 @@ export function DateRangePicker({
             )}
             disabled={disabled}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
             {formatDateRange()}
             <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-auto overflow-hidden p-0 rounded-md"
+          className="w-auto max-w-[92.5vw] overflow-hidden p-0 rounded-md"
           align="start"
         >
-          <div className="flex">
-            {/* Left sidebar with presets */}
-            <div className="flex flex-col border-r border-border py-2">
+          <div className="flex flex-col sm:flex-row">
+            {/* Presets - horizontal scroll on mobile, vertical sidebar on desktop */}
+            <div className="flex h-14 w-full items-center gap-2 border-b border-border px-3 overflow-x-auto sm:h-auto sm:w-auto sm:flex-col sm:items-stretch sm:gap-0 sm:border-b-0 sm:border-r sm:px-0 sm:py-2 sm:overflow-visible">
               {activePresets.map((preset) => (
-                <button
+                <Button
                   key={preset.label}
-                  type="button"
+                  variant="outline"
+                  size="sm"
                   className={cn(
-                    'px-3 py-1.5 text-left text-sm hover:bg-accent transition-colors',
-                    isPresetActive(preset)
-                      ? 'bg-accent font-medium'
-                      : 'text-muted-foreground'
+                    'shrink-0 font-normal sm:border-0 sm:bg-transparent sm:rounded-none sm:justify-start',
+                    isPresetActive(preset) && 'font-medium'
                   )}
                   onClick={() => handlePresetClick(preset)}
                 >
                   {preset.label}
-                </button>
+                </Button>
               ))}
             </div>
 
             {/* Right side with calendar and footer */}
             <div className="flex flex-col">
-              {/* Two-month calendar view */}
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={internalRange?.from || new Date()}
-                // Only pass selected once user starts selecting
-                // This lets react-day-picker handle fresh selections naturally
-                selected={
-                  hasStartedSelecting ? internalRange : undefined
-                }
-                onSelect={handleSelect}
-                numberOfMonths={2}
-                disabled={disabledMatchers}
-                showOutsideDays={false}
-                // Show existing range as preview (same styling, no click impact)
-                modifiers={previewModifiers}
-                modifiersClassNames={previewModifiersClassNames}
-              />
+              {/* Two-month calendar view - horizontally scrollable on mobile */}
+              <div className="overflow-x-auto">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={internalRange?.from || new Date()}
+                  // Only pass selected once user starts selecting
+                  // This lets react-day-picker handle fresh selections naturally
+                  selected={
+                    hasStartedSelecting ? internalRange : undefined
+                  }
+                  onSelect={handleSelect}
+                  numberOfMonths={2}
+                  disabled={disabledMatchers}
+                  showOutsideDays={false}
+                  // Show existing range as preview (same styling, no click impact)
+                  modifiers={previewModifiers}
+                  modifiersClassNames={previewModifiersClassNames}
+                />
+              </div>
 
               {/* Footer with Range label and buttons */}
-              <div className="flex items-center justify-between border-t border-border px-3 py-2">
+              <div className="border-t border-border px-3 py-2 sm:flex sm:items-center sm:justify-between">
                 <div className="text-sm text-muted-foreground">
                   <span className="font-medium text-foreground">
                     Range:
                   </span>
                   {formatRangeLabel() && <> {formatRangeLabel()}</>}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="mt-2 flex items-center gap-2 sm:mt-0">
                   <Button
-                    variant="ghost"
+                    variant="secondary"
                     size="sm"
+                    className="w-full sm:w-fit"
                     onClick={handleCancel}
                   >
                     Cancel
                   </Button>
                   <Button
                     size="sm"
+                    className="w-full sm:w-fit"
                     onClick={handleApply}
                     disabled={!canApply}
                   >
