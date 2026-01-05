@@ -1,6 +1,6 @@
 'use client'
 
-import { format } from 'date-fns'
+import { format, isSameDay } from 'date-fns'
 import { CalendarIcon, ChevronDown } from 'lucide-react'
 import * as React from 'react'
 import type { DateRange, Matcher } from 'react-day-picker'
@@ -86,6 +86,17 @@ function createDefaultPresets(): DateRangePreset[] {
       },
     },
     {
+      label: 'Last 12 months',
+      dateRange: {
+        from: new Date(
+          today.getFullYear() - 1,
+          today.getMonth(),
+          today.getDate()
+        ),
+        to: today,
+      },
+    },
+    {
       label: 'Month to date',
       dateRange: {
         from: new Date(today.getFullYear(), today.getMonth(), 1),
@@ -129,8 +140,7 @@ export function DateRangePicker({
   const [open, setOpen] = React.useState(false)
 
   // Track if user has started selecting in this session
-  // When false, we don't pass `selected` to Calendar, so react-day-picker
-  // treats the first click as starting a fresh selection
+  // When false, we show the preview and don't pass `selected` to Calendar
   const [hasStartedSelecting, setHasStartedSelecting] =
     React.useState(false)
 
@@ -182,13 +192,12 @@ export function DateRangePicker({
   }
 
   const handlePresetClick = (preset: DateRangePreset) => {
-    // Set the internal range to the preset's date range
-    setInternalRange({
+    // Apply preset immediately and close the popover
+    onSelect({
       from: preset.dateRange.from,
       to: preset.dateRange.to,
     })
-    // Mark as selecting so the range is passed to Calendar
-    setHasStartedSelecting(true)
+    setOpen(false)
   }
 
   const handleApply = () => {
@@ -248,6 +257,38 @@ export function DateRangePicker({
   // Check if Apply should be enabled
   const canApply = internalRange?.from && internalRange?.to
 
+  // Preview modifiers - show existing range when user hasn't started selecting
+  // This gives visual feedback of the current range without affecting selection behavior
+  const showPreview = !hasStartedSelecting && fromDate && toDate
+  const previewModifiers = showPreview
+    ? {
+        previewRangeStart: fromDate,
+        previewRangeEnd: toDate,
+        previewRangeMiddle: (date: Date) => {
+          if (!fromDate || !toDate) return false
+          // Check if date is between start and end (exclusive)
+          return (
+            date > fromDate &&
+            date < toDate &&
+            !isSameDay(date, fromDate) &&
+            !isSameDay(date, toDate)
+          )
+        },
+      }
+    : undefined
+
+  // Apply same styling as selected range for the preview
+  const previewModifiersClassNames = showPreview
+    ? {
+        previewRangeStart:
+          '[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:!rounded-l bg-accent rounded-l',
+        previewRangeMiddle:
+          '[&_button]:bg-accent [&_button]:text-accent-foreground [&_button]:!rounded-none bg-accent',
+        previewRangeEnd:
+          '[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:!rounded-r bg-accent rounded-r',
+      }
+    : undefined
+
   return (
     <div className={cn('grid gap-2', className)}>
       <Popover open={open} onOpenChange={setOpen}>
@@ -267,7 +308,7 @@ export function DateRangePicker({
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-auto overflow-hidden p-0 rounded-[4px]"
+          className="w-auto overflow-hidden p-0 rounded-md"
           align="start"
         >
           <div className="flex">
@@ -306,6 +347,9 @@ export function DateRangePicker({
                 numberOfMonths={2}
                 disabled={disabledMatchers}
                 showOutsideDays={false}
+                // Show existing range as preview (same styling, no click impact)
+                modifiers={previewModifiers}
+                modifiersClassNames={previewModifiersClassNames}
               />
 
               {/* Footer with Range label and buttons */}

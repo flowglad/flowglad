@@ -80,8 +80,10 @@ function formatDateUTC(
 
 /**
  * Computes the best default interval based on the date range.
- * Prefers month > week > day > hour, but only if the timespan supports it.
- * Never returns Year as a default - users must explicitly select it.
+ * Based on preset expectations:
+ * - Last 3/6/12 months → Monthly (>= 60 days)
+ * - Last 7/30 days → Daily (>= 1 day but < 60 days)
+ * - Today → Hourly (< 1 day)
  */
 function getDefaultInterval(
   fromDate: Date,
@@ -89,27 +91,19 @@ function getDefaultInterval(
 ): RevenueChartIntervalUnit {
   const timespanInHours = differenceInHours(toDate, fromDate)
 
-  if (
-    timespanInHours >=
-    minimumUnitInHours[RevenueChartIntervalUnit.Month]
-  ) {
+  // 2+ months (60 days = 1440 hours): Monthly
+  // Covers Last 3 months, Last 6 months, Last 12 months
+  if (timespanInHours >= 24 * 60) {
     return RevenueChartIntervalUnit.Month
   }
 
-  if (
-    timespanInHours >=
-    minimumUnitInHours[RevenueChartIntervalUnit.Week]
-  ) {
-    return RevenueChartIntervalUnit.Week
-  }
-
-  if (
-    timespanInHours >=
-    minimumUnitInHours[RevenueChartIntervalUnit.Day]
-  ) {
+  // 1+ day (24 hours) but less than 2 months: Daily
+  // Covers Last 7 days, Last 30 days
+  if (timespanInHours >= 24) {
     return RevenueChartIntervalUnit.Day
   }
 
+  // Less than 1 day (including "Today"): Hourly
   return RevenueChartIntervalUnit.Hour
 }
 
