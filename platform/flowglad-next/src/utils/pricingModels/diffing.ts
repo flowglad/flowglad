@@ -13,8 +13,11 @@ import {
 } from '@/db/schema/features'
 import {
   priceImmutableFields,
+  singlePaymentPriceClientInsertSchema,
   singlePaymentPriceClientUpdateSchema,
+  subscriptionPriceClientInsertSchema,
   subscriptionPriceClientUpdateSchema,
+  usagePriceClientInsertSchema,
   usagePriceClientUpdateSchema,
 } from '@/db/schema/prices'
 import { productsClientUpdateSchema } from '@/db/schema/products'
@@ -585,9 +588,33 @@ export const validatePriceChange = (
     immutableFields.has(field)
   )
 
-  // If immutable fields are changing, this will be a price replacement,
-  // so we don't need to validate as an update
+  // If immutable fields are changing, this will be a price replacement.
+  // We still need to validate the proposed price is well-formed using the insert schema.
   if (hasImmutableFieldChanges) {
+    let insertResult: { success: boolean; error?: z.ZodError }
+    switch (proposed.type) {
+      case PriceType.Subscription:
+        insertResult = subscriptionPriceClientInsertSchema
+          .omit({ productId: true })
+          .safeParse(proposed)
+        break
+      case PriceType.SinglePayment:
+        insertResult = singlePaymentPriceClientInsertSchema
+          .omit({ productId: true })
+          .safeParse(proposed)
+        break
+      case PriceType.Usage:
+        insertResult = usagePriceClientInsertSchema
+          .omit({ productId: true, usageMeterId: true })
+          .safeParse(proposed)
+        break
+    }
+
+    if (!insertResult.success) {
+      throw new Error(
+        `Invalid price for replacement: ${insertResult.error?.message}`
+      )
+    }
     return
   }
 

@@ -14,7 +14,7 @@ import type { ProductFeature } from '@/db/schema/productFeatures'
 import type { Product } from '@/db/schema/products'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import {
-  bulkInsertFeatures,
+  bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug,
   updateFeature,
 } from '@/db/tableMethods/featureMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -256,10 +256,11 @@ export const updatePricingModelTransaction = async (
         }
       })
 
-    const createdFeatures = await bulkInsertFeatures(
-      featureInserts,
-      transaction
-    )
+    const createdFeatures =
+      await bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug(
+        featureInserts,
+        transaction
+      )
 
     result.features.created = createdFeatures
     // Merge newly created feature IDs into map
