@@ -12,6 +12,7 @@ import {
   usageCreditGrantFeatureClientUpdateSchema,
 } from '@/db/schema/features'
 import {
+  priceImmutableFields,
   singlePaymentPriceClientUpdateSchema,
   subscriptionPriceClientUpdateSchema,
   usagePriceClientUpdateSchema,
@@ -573,6 +574,21 @@ export const validatePriceChange = (
     ).usageMeterSlug
     delete (transformedUpdate as Record<string, unknown>)
       .usageMeterSlug
+  }
+
+  // Check if any immutable/create-only fields are being changed.
+  // If so, skip validation because this price will be replaced entirely
+  // (create new price + deactivate old price), not updated.
+  const immutableFields = new Set(priceImmutableFields)
+  const changedFields = Object.keys(transformedUpdate)
+  const hasImmutableFieldChanges = changedFields.some((field) =>
+    immutableFields.has(field)
+  )
+
+  // If immutable fields are changing, this will be a price replacement,
+  // so we don't need to validate as an update
+  if (hasImmutableFieldChanges) {
+    return
   }
 
   // Select the appropriate schema based on price type and try to parse with strict mode
