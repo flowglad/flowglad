@@ -1,8 +1,6 @@
 'use client'
 
 import { sentenceCase } from 'change-case'
-import { DollarSign } from 'lucide-react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import EditUsageMeterModal from '@/components/components/EditUsageMeterModal'
@@ -11,12 +9,6 @@ import CreateUsagePriceModal from '@/components/forms/CreateUsagePriceModal'
 import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import { UsagePricesGridSection } from '@/components/UsagePricesGridSection'
 import { CopyableField } from '@/components/ui/copyable-field'
-import {
-  ContentSection,
-  HelperText,
-  SectionLabel,
-  SectionValue,
-} from '@/components/ui/detail-section'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { UsageMeter } from '@/db/schema/usageMeters'
@@ -65,25 +57,12 @@ function InnerUsageMeterDetailsPage({
 
   // Build badges array
   const badges = [
-    ...(pricingModel
-      ? [
-          {
-            icon: <DollarSign className="h-3.5 w-3.5" />,
-            label: (
-              <Link
-                href={`/pricing-models/${pricingModel.id}`}
-                className="hover:underline hover:text-foreground transition-colors"
-              >
-                {pricingModel.name}
-              </Link>
-            ),
-            variant: 'muted' as const,
-          },
-        ]
-      : []),
     {
       label: sentenceCase(usageMeter.aggregationType),
       variant: 'muted' as const,
+      tooltip: getAggregationTypeDescription(
+        usageMeter.aggregationType
+      ),
     },
   ]
 
@@ -108,6 +87,21 @@ function InnerUsageMeterDetailsPage({
           breadcrumb={pricingModel?.name || 'Pricing Model'}
           onBreadcrumbClick={handleBreadcrumbClick}
           badges={badges}
+          description={
+            <div className="flex items-center gap-2">
+              <CopyableField
+                value={usageMeter.id}
+                label="ID"
+                displayText="Copy ID"
+              />
+              <div className="h-[22px] w-px bg-muted-foreground opacity-10" />
+              <CopyableField
+                value={usageMeter.slug}
+                label="Slug"
+                displayText="Copy Slug"
+              />
+            </div>
+          }
           actions={[
             {
               label: 'Edit',
@@ -116,38 +110,6 @@ function InnerUsageMeterDetailsPage({
             },
           ]}
         />
-
-        {/* Content sections */}
-        <div className="flex flex-col gap-8 py-8 px-4 w-full">
-          {/* Slug */}
-          <ContentSection>
-            <SectionLabel>Slug</SectionLabel>
-            <CopyableField value={usageMeter.slug} label="slug" />
-            <HelperText>
-              Used to identify this meter when recording usage events
-              via the SDK.
-            </HelperText>
-          </ContentSection>
-
-          {/* ID */}
-          <ContentSection>
-            <SectionLabel>ID</SectionLabel>
-            <CopyableField value={usageMeter.id} label="ID" />
-          </ContentSection>
-
-          {/* Aggregation Type */}
-          <ContentSection>
-            <SectionLabel>Aggregation Type</SectionLabel>
-            <SectionValue>
-              {sentenceCase(usageMeter.aggregationType)}
-            </SectionValue>
-            <HelperText>
-              {getAggregationTypeDescription(
-                usageMeter.aggregationType
-              )}
-            </HelperText>
-          </ContentSection>
-        </div>
 
         {/* Prices Section */}
         <ExpandSection
