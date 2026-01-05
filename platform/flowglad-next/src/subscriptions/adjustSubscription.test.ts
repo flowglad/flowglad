@@ -3011,9 +3011,7 @@ describe('adjustSubscription Integration Tests', async () => {
             organization,
             transaction
           )
-        ).rejects.toThrow(
-          /Price with slug "nonexistent-slug" not found/
-        )
+        ).rejects.toThrow(/Price "nonexistent-slug" not found/)
       })
     })
 
@@ -3026,6 +3024,16 @@ describe('adjustSubscription Integration Tests', async () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
+        // Ensure subscription's pricingModelId matches the price's pricing model
+        await updateSubscription(
+          {
+            id: subscription.id,
+            pricingModelId: price.pricingModelId,
+            renews: true,
+          },
+          transaction
+        )
+
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -3188,6 +3196,16 @@ describe('adjustSubscription Integration Tests', async () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
+        // Ensure subscription's pricingModelId matches the price's pricing model
+        await updateSubscription(
+          {
+            id: subscription.id,
+            pricingModelId: price.pricingModelId,
+            renews: true,
+          },
+          transaction
+        )
+
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
