@@ -20,6 +20,7 @@ import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import { nulledPriceColumns } from '@/db/schema/prices'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
@@ -28,6 +29,7 @@ import {
   updateBillingPeriod,
 } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
+import { insertPrice } from '@/db/tableMethods/priceMethods'
 // Helpers to query the database after adjustments
 import {
   expireSubscriptionItems,
@@ -2899,8 +2901,6 @@ describe('adjustSubscription Integration Tests', async () => {
   ========================================================================== */
   describe('Price Slug Resolution', () => {
     it('should resolve priceSlug to priceId using subscription pricing model', async () => {
-      // Create a price with a slug
-      // Note: pricingModelId is derived from product.pricingModelId automatically
       const slugPrice = await setupPrice({
         productId: product.id,
         name: 'Premium via Slug',
@@ -3016,6 +3016,19 @@ describe('adjustSubscription Integration Tests', async () => {
     })
 
     it('should expand terse subscription item with priceId to full item', async () => {
+      // Create a price with a known ID for this test
+      const testPrice = await setupPrice({
+        productId: product.id,
+        name: 'Test Price for ID Resolution',
+        type: PriceType.Subscription,
+        unitPrice: 2000,
+        currency: CurrencyCode.USD,
+        isDefault: false,
+        livemode: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+
       await setupSubscriptionItem({
         subscriptionId: subscription.id,
         name: 'Basic Plan',
@@ -3024,16 +3037,6 @@ describe('adjustSubscription Integration Tests', async () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        // Ensure subscription's pricingModelId matches the price's pricing model
-        await updateSubscription(
-          {
-            id: subscription.id,
-            pricingModelId: price.pricingModelId,
-            renews: true,
-          },
-          transaction
-        )
-
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -3047,7 +3050,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Use terse format with priceId
         const newItems: TerseSubscriptionItem[] = [
           {
-            priceId: price.id,
+            priceId: testPrice.id,
             quantity: 3,
           },
         ]
@@ -3065,7 +3068,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        // Should trigger billing run for upgrade (3 * price.unitPrice > 100)
+        // Should trigger billing run for upgrade (3 * testPrice.unitPrice > 100)
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
         const triggerCall = mockTrigger.mock.calls[0][0]
@@ -3073,7 +3076,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // The expanded item should have all the correct fields from the price
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0].priceId
-        ).toBe(price.id)
+        ).toBe(testPrice.id)
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0]
             .quantity
@@ -3081,28 +3084,14 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0]
             .unitPrice
-        ).toBe(price.unitPrice)
+        ).toBe(testPrice.unitPrice)
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0].name
-        ).toBe(price.name)
+        ).toBe(testPrice.name)
       })
     })
 
     it('should handle mixed item types (priceSlug + priceId) in the same request', async () => {
-      // Create a price with a slug
-      const slugPrice = await setupPrice({
-        productId: product.id,
-        name: 'Premium via Slug',
-        type: PriceType.Subscription,
-        unitPrice: 2999,
-        currency: CurrencyCode.USD,
-        isDefault: false,
-        livemode: false,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        slug: 'premium-mixed-test',
-      })
-
       await setupSubscriptionItem({
         subscriptionId: subscription.id,
         name: 'Basic Plan',
@@ -3110,13 +3099,42 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
+      const uniqueSlug = `premium-mixed-${Date.now()}`
+
       await adminTransaction(async ({ transaction }) => {
-        // Set pricingModelId on the subscription to match the price's pricing model
-        await updateSubscription(
+        const slugPrice = await insertPrice(
           {
-            id: subscription.id,
-            pricingModelId: slugPrice.pricingModelId,
-            renews: true,
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'Premium via Slug',
+            type: PriceType.Subscription,
+            unitPrice: 2999,
+            currency: CurrencyCode.USD,
+            isDefault: false,
+            livemode: true,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            active: true,
+            trialPeriodDays: 0,
+            slug: uniqueSlug,
+          },
+          transaction
+        )
+
+        const idPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'Standard Price',
+            type: PriceType.Subscription,
+            unitPrice: 1500,
+            currency: CurrencyCode.USD,
+            isDefault: false,
+            livemode: true,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            active: true,
+            trialPeriodDays: 0,
           },
           transaction
         )
@@ -3134,11 +3152,11 @@ describe('adjustSubscription Integration Tests', async () => {
         // Mix priceSlug and priceId items in the same request
         const newItems: TerseSubscriptionItem[] = [
           {
-            priceSlug: 'premium-mixed-test',
+            priceSlug: uniqueSlug,
             quantity: 1,
           },
           {
-            priceId: price.id,
+            priceId: idPrice.id,
             quantity: 2,
           },
         ]
@@ -3179,7 +3197,7 @@ describe('adjustSubscription Integration Tests', async () => {
         const idItem = (
           triggerCall.adjustmentParams
             .newSubscriptionItems as SubscriptionItem.Record[]
-        ).find((i) => i.priceId === price.id)
+        ).find((i) => i.priceId === idPrice.id)
         expect(idItem).toBeDefined()
         expect(idItem!.quantity).toBe(2)
       })
@@ -3188,6 +3206,20 @@ describe('adjustSubscription Integration Tests', async () => {
     it('should resolve UUID passed as priceSlug (SDK convenience)', async () => {
       // This tests the fallback behavior where priceSlug can accept a UUID (price ID)
       // The SDK passes price identifiers via priceSlug to avoid format detection
+
+      // Create a price for this test
+      const uuidPrice = await setupPrice({
+        productId: product.id,
+        name: 'UUID Test Price',
+        type: PriceType.Subscription,
+        unitPrice: 2500,
+        currency: CurrencyCode.USD,
+        isDefault: false,
+        livemode: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+
       await setupSubscriptionItem({
         subscriptionId: subscription.id,
         name: 'Existing Plan',
@@ -3196,16 +3228,6 @@ describe('adjustSubscription Integration Tests', async () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        // Ensure subscription's pricingModelId matches the price's pricing model
-        await updateSubscription(
-          {
-            id: subscription.id,
-            pricingModelId: price.pricingModelId,
-            renews: true,
-          },
-          transaction
-        )
-
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -3216,10 +3238,10 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        // Use a UUID (price.id) in the priceSlug field - this is the SDK's approach
+        // Use a UUID (uuidPrice.id) in the priceSlug field - this is the SDK's approach
         const newItems: TerseSubscriptionItem[] = [
           {
-            priceSlug: price.id, // UUID passed as priceSlug
+            priceSlug: uuidPrice.id, // UUID passed as priceSlug
             quantity: 1,
           },
         ]
@@ -3245,14 +3267,14 @@ describe('adjustSubscription Integration Tests', async () => {
         // The item should be resolved correctly from the UUID
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0].priceId
-        ).toBe(price.id)
+        ).toBe(uuidPrice.id)
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0]
             .unitPrice
-        ).toBe(price.unitPrice)
+        ).toBe(uuidPrice.unitPrice)
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0].name
-        ).toBe(price.name)
+        ).toBe(uuidPrice.name)
       })
     })
   })

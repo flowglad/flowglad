@@ -390,8 +390,7 @@ export const adjustSubscription = async (
   // Get the subscription's pricing model for resolving priceSlug
   const pricingModelId = subscription.pricingModelId
 
-  // Collect all values that need resolution
-  // priceSlug values can be either slugs OR UUIDs (price IDs) - we try both
+  // Collect all slugs and price IDs that need resolution
   const slugsToResolve = newSubscriptionItems
     .filter(hasSlug)
     .map((item) => item.priceSlug)
@@ -419,9 +418,7 @@ export const adjustSubscription = async (
     }
   }
 
-  // Batch fetch prices by id
-  // Also include slugsToResolve values that weren't found as slugs - they might be UUIDs
-  // This handles the SDK convenience of passing price IDs via priceSlug field
+  // Batch fetch prices by ID (includes slugs not found above - they may be UUIDs)
   const slugsNotFoundAsSlug = slugsToResolve.filter(
     (s) => !pricesBySlug.has(s)
   )
@@ -442,20 +439,15 @@ export const adjustSubscription = async (
     }
   }
 
-  // Resolve priceSlug to priceId and expand terse items to full subscription items
+  // Expand terse items to full subscription items
   const resolvedSubscriptionItems: SubscriptionItem.ClientInsert[] =
     []
   for (const item of newSubscriptionItems) {
-    // Check if item has priceSlug that needs resolution
     if (hasSlug(item)) {
-      // First try to resolve as slug
-      let resolvedPrice = pricesBySlug.get(item.priceSlug)
-
-      // If not found as slug, try as price ID
-      // This allows priceSlug to accept UUIDs (SDK convenience)
-      if (!resolvedPrice) {
-        resolvedPrice = pricesById.get(item.priceSlug)
-      }
+      // Try slug first, then fall back to ID lookup
+      let resolvedPrice =
+        pricesBySlug.get(item.priceSlug) ??
+        pricesById.get(item.priceSlug)
 
       if (!resolvedPrice) {
         throw new Error(

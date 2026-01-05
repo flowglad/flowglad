@@ -389,44 +389,34 @@ export class FlowgladServer {
     }
 
     const quantity = options?.quantity ?? 1
-
-    // Always pass as priceSlug - the server will resolve it.
-    // The server-side adjustSubscription function accepts priceSlug and does
-    // fallback resolution (try slug first, then try as ID if not found).
-    // This avoids brittle UUID regex detection in the SDK.
-    const priceIdentifier = { priceSlug: priceIdOrSlug }
-
-    // Build the adjustment payload
-    // Note: 'auto' timing is resolved server-side based on upgrade/downgrade detection
     const timing =
       options?.timing ?? subscriptionAdjustmentTiming.Auto
-    const prorate = options?.prorate // Let server determine default based on timing
+    const prorate = options?.prorate
 
-    // Map SDK timing values to server timing values
     const serverTiming =
       timing === subscriptionAdjustmentTiming.Immediately
         ? 'immediately'
         : timing ===
             subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
           ? 'at_end_of_current_billing_period'
-          : 'auto' // 'auto' timing
+          : 'auto'
 
-    // Build adjustment payload based on timing
     const adjustment =
       serverTiming === 'at_end_of_current_billing_period'
         ? {
             timing: serverTiming,
-            newSubscriptionItems: [{ ...priceIdentifier, quantity }],
+            newSubscriptionItems: [
+              { priceSlug: priceIdOrSlug, quantity },
+            ],
           }
         : {
             timing: serverTiming,
-            newSubscriptionItems: [{ ...priceIdentifier, quantity }],
+            newSubscriptionItems: [
+              { priceSlug: priceIdOrSlug, quantity },
+            ],
             prorateCurrentBillingPeriod: prorate ?? true,
           }
 
-    // Use post() directly to avoid @flowglad/node type constraints.
-    // The server API supports 'auto' timing and priceSlug which may not
-    // be reflected in the generated SDK types yet.
     return this.flowgladNode.post<FlowgladNode.Subscriptions.SubscriptionAdjustResponse>(
       `/api/v1/subscriptions/${subscriptionId}/adjust`,
       { body: { adjustment } }
