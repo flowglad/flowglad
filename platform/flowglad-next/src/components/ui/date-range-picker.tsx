@@ -320,7 +320,7 @@ export function DateRangePicker({
                   size="sm"
                   className={cn(
                     'shrink-0 font-normal sm:border-0 sm:bg-transparent sm:rounded-none sm:justify-start',
-                    isPresetActive(preset) && 'font-medium'
+                    isPresetActive(preset) && 'font-medium bg-accent'
                   )}
                   onClick={() => handlePresetClick(preset)}
                 >
