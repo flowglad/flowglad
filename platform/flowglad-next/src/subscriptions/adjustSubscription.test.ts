@@ -3176,6 +3176,67 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(idItem!.quantity).toBe(2)
       })
     })
+
+    it('should resolve UUID passed as priceSlug (SDK convenience)', async () => {
+      // This tests the fallback behavior where priceSlug can accept a UUID (price ID)
+      // The SDK passes price identifiers via priceSlug to avoid format detection
+      await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Existing Plan',
+        quantity: 1,
+        unitPrice: 100,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        // Use a UUID (price.id) in the priceSlug field - this is the SDK's approach
+        const newItems: TerseSubscriptionItem[] = [
+          {
+            priceSlug: price.id, // UUID passed as priceSlug
+            quantity: 1,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
+          },
+          organization,
+          transaction
+        )
+
+        // Should trigger billing run for upgrade
+        const mockTrigger = getMockTrigger()
+        expect(mockTrigger).toHaveBeenCalledTimes(1)
+        const triggerCall = mockTrigger.mock.calls[0][0]
+
+        // The item should be resolved correctly from the UUID
+        expect(
+          triggerCall.adjustmentParams.newSubscriptionItems[0].priceId
+        ).toBe(price.id)
+        expect(
+          triggerCall.adjustmentParams.newSubscriptionItems[0]
+            .unitPrice
+        ).toBe(price.unitPrice)
+        expect(
+          triggerCall.adjustmentParams.newSubscriptionItems[0].name
+        ).toBe(price.name)
+      })
+    })
   })
 
   /* ==========================================================================

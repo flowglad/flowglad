@@ -136,6 +136,10 @@ export const adjustSubscriptionSchema = z.object({
   options: adjustSubscriptionOptionsSchema.optional(),
 })
 
+export type AdjustSubscriptionParams = z.infer<
+  typeof adjustSubscriptionSchema
+>
+
 const baseUsageEventFields = z.object({
   amount: z.number(),
   subscriptionId: z.string(),

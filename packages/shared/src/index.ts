@@ -1,5 +1,6 @@
 export type {
   AdjustSubscriptionOptions,
+  AdjustSubscriptionParams,
   BulkCreateUsageEventsParams,
   CancelSubscriptionParams,
   ClientCreateUsageEventParams,
