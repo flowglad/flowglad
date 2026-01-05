@@ -1033,7 +1033,6 @@ describe('updatePricingModelTransaction', () => {
       const proDeactivated = updateResult.products.deactivated.find(
         (p) => p.slug === 'pro'
       )
-      expect(proDeactivated).not.toBeUndefined()
       expect(proDeactivated!.active).toBe(false)
 
       // 1 price deactivated: pro-monthly
@@ -1043,7 +1042,6 @@ describe('updatePricingModelTransaction', () => {
         updateResult.prices.deactivated.find(
           (p) => p.slug === 'pro-monthly'
         )
-      expect(proMonthlyDeactivated).not.toBeUndefined()
       expect(proMonthlyDeactivated!.active).toBe(false)
     })
 
@@ -1103,8 +1101,7 @@ describe('updatePricingModelTransaction', () => {
       const starterPriceCreated = updateResult.prices.created.find(
         (p) => p.unitPrice === 2999
       )
-      expect(starterPriceCreated).toBeDefined()
-      expect(starterPriceCreated?.active).toBe(true)
+      expect(starterPriceCreated!.active).toBe(true)
 
       // 2 prices deactivated: starter-monthly (old price) + free (auto-generated product removed)
       expect(
@@ -1114,8 +1111,7 @@ describe('updatePricingModelTransaction', () => {
         updateResult.prices.deactivated.find(
           (p) => p.unitPrice === 1999
         )
-      expect(starterPriceDeactivated).toBeDefined()
-      expect(starterPriceDeactivated?.active).toBe(false)
+      expect(starterPriceDeactivated!.active).toBe(false)
     })
   })
 
@@ -1922,21 +1918,381 @@ describe('updatePricingModelTransaction', () => {
       const starterProduct = activeProducts.find(
         (p) => p.slug === 'starter'
       )
-      expect(starterProduct).toBeDefined()
-
       // Verify prices
       const starterPrices = await adminTransaction(
         async ({ transaction }) =>
           selectPrices({ productId: starterProduct!.id }, transaction)
       )
       const activePrice = starterPrices.find((p) => p.active)
-      expect(activePrice?.unitPrice).toBe(2999)
+      expect(activePrice!.unitPrice).toBe(2999)
 
       // Verify productFeatures
       const starterProductFeatures = productFeatures.filter(
         (pf) => pf.productId === starterProduct!.id && !pf.expiredAt
       )
       expect(starterProductFeatures).toHaveLength(2)
+    })
+  })
+
+  describe('default product protection', () => {
+    it('prevents removal of default product when proposed input removes it, automatically adding it back', async () => {
+      // Setup with explicit default product
+      const setupResult = await createBasicPricingModel({
+        products: [
+          {
+            product: {
+              name: 'Free Plan',
+              slug: 'free',
+              default: true,
+              active: true,
+            },
+            price: {
+              type: PriceType.Subscription,
+              slug: 'free-monthly',
+              unitPrice: 0,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'],
+          },
+          {
+            product: {
+              name: 'Pro Plan',
+              slug: 'pro',
+              default: false,
+              active: true,
+            },
+            price: {
+              type: PriceType.Subscription,
+              slug: 'pro-monthly',
+              unitPrice: 2999,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'],
+          },
+        ],
+      })
+
+      // Try to update without the default product - only include Pro
+      const updateResult = await adminTransaction(
+        async ({ transaction }) =>
+          updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
+                    active: true,
+                  },
+                ],
+                products: [
+                  // Only Pro Plan - Free (default) is missing
+                  {
+                    product: {
+                      name: 'Pro Plan',
+                      slug: 'pro',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'pro-monthly',
+                      unitPrice: 2999,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a'],
+                  },
+                ],
+              },
+            },
+            transaction
+          )
+      )
+
+      // Verify the default product was NOT deactivated (it was auto-added back)
+      const freeDeactivated = updateResult.products.deactivated.find(
+        (p) => p.slug === 'free'
+      )
+      expect(freeDeactivated).toBeUndefined()
+
+      // Verify database state - default product should still be active
+      const allProducts = await adminTransaction(
+        async ({ transaction }) =>
+          selectProducts(
+            { pricingModelId: setupResult.pricingModel.id },
+            transaction
+          )
+      )
+      const activeProducts = allProducts.filter((p) => p.active)
+      const freeProduct = activeProducts.find(
+        (p) => p.slug === 'free'
+      )
+      expect(freeProduct!.default).toBe(true)
+      expect(freeProduct!.active).toBe(true)
+    })
+
+    it('preserves default product protected fields (unitPrice, slug, active) when proposed changes them, while applying allowed changes (name, description)', async () => {
+      // Setup with explicit default product
+      const setupResult = await createBasicPricingModel({
+        products: [
+          {
+            product: {
+              name: 'Free Plan',
+              slug: 'free',
+              default: true,
+              active: true,
+              description: 'Original description',
+            },
+            price: {
+              type: PriceType.Subscription,
+              slug: 'free-monthly',
+              unitPrice: 0,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'],
+          },
+        ],
+      })
+
+      // Try to update with protected field changes on the default product
+      const updateResult = await adminTransaction(
+        async ({ transaction }) =>
+          updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
+                    active: true,
+                  },
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'Updated Free Plan Name', // Allowed change
+                      slug: 'free', // Same slug to identify the product
+                      default: true,
+                      active: false, // Protected - should be ignored
+                      description: 'Updated description', // Allowed change
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'free-monthly',
+                      unitPrice: 999, // Protected - should be ignored
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a'],
+                  },
+                ],
+              },
+            },
+            transaction
+          )
+      )
+
+      // Verify database state
+      const allProducts = await adminTransaction(
+        async ({ transaction }) =>
+          selectProducts(
+            { pricingModelId: setupResult.pricingModel.id },
+            transaction
+          )
+      )
+      const freeProduct = allProducts.find((p) => p.slug === 'free')
+
+      // Protected fields should be preserved
+      expect(freeProduct!.active).toBe(true) // Protected - was not changed to false
+      expect(freeProduct!.slug).toBe('free') // Protected - preserved
+
+      // Allowed fields should be updated
+      expect(freeProduct!.name).toBe('Updated Free Plan Name')
+      expect(freeProduct!.description).toBe('Updated description')
+
+      // Price protected fields should be preserved
+      const prices = await adminTransaction(async ({ transaction }) =>
+        selectPrices({ productId: freeProduct!.id }, transaction)
+      )
+      const activePrice = prices.find((p) => p.active)
+      expect(activePrice!.unitPrice).toBe(0) // Protected - was not changed to 999
+    })
+
+    it('allows changing only name, description, and features on default product without affecting other fields', async () => {
+      // Setup with explicit default product with features
+      const setupResult = await createBasicPricingModel({
+        features: [
+          {
+            type: FeatureType.Toggle,
+            slug: 'feature-a',
+            name: 'Feature A',
+            description: 'A toggle feature',
+            active: true,
+          },
+          {
+            type: FeatureType.Toggle,
+            slug: 'feature-b',
+            name: 'Feature B',
+            description: 'Another toggle feature',
+            active: true,
+          },
+        ],
+        products: [
+          {
+            product: {
+              name: 'Free Plan',
+              slug: 'free',
+              default: true,
+              active: true,
+              description: 'Original description',
+            },
+            price: {
+              type: PriceType.Subscription,
+              slug: 'free-monthly',
+              unitPrice: 0,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'], // Original feature
+          },
+        ],
+      })
+
+      // Update only allowed fields on the default product
+      const updateResult = await adminTransaction(
+        async ({ transaction }) =>
+          updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
+                    active: true,
+                  },
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-b',
+                    name: 'Feature B',
+                    description: 'Another toggle feature',
+                    active: true,
+                  },
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'New Free Plan Name', // Allowed change
+                      slug: 'free',
+                      default: true,
+                      active: true, // Not changing protected field
+                      description: 'New description', // Allowed change
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'free-monthly',
+                      unitPrice: 0, // Not changing protected field
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a', 'feature-b'], // Allowed change - adding feature-b
+                  },
+                ],
+              },
+            },
+            transaction
+          )
+      )
+
+      // Verify database state
+      const allProducts = await adminTransaction(
+        async ({ transaction }) =>
+          selectProducts(
+            { pricingModelId: setupResult.pricingModel.id },
+            transaction
+          )
+      )
+      const freeProduct = allProducts.find((p) => p.slug === 'free')
+
+      // Allowed fields should be updated
+      expect(freeProduct!.name).toBe('New Free Plan Name')
+      expect(freeProduct!.description).toBe('New description')
+
+      // Protected fields should be unchanged
+      expect(freeProduct!.active).toBe(true)
+      expect(freeProduct!.slug).toBe('free')
+      expect(freeProduct!.default).toBe(true)
+
+      // Features should be updated (features are allowed to change)
+      expect(updateResult.productFeatures.added).toHaveLength(1)
+      const productFeatures = await adminTransaction(
+        async ({ transaction }) =>
+          selectProductFeatures(
+            { productId: freeProduct!.id },
+            transaction
+          )
+      )
+      const activeFeatures = productFeatures.filter(
+        (pf) => !pf.expiredAt
+      )
+      expect(activeFeatures).toHaveLength(2) // feature-a and feature-b
+
+      // Price should be unchanged
+      const prices = await adminTransaction(async ({ transaction }) =>
+        selectPrices({ productId: freeProduct!.id }, transaction)
+      )
+      const activePrice = prices.find((p) => p.active)
+      expect(activePrice!.unitPrice).toBe(0)
+      expect(activePrice!.intervalUnit).toBe(IntervalUnit.Month)
     })
   })
 })

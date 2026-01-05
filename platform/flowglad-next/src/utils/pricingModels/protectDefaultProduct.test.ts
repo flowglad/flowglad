@@ -428,7 +428,6 @@ describe('protectDefaultProduct', () => {
     const restoredDefault = result.products.find(
       (p) => p.product.default === true
     )
-    expect(restoredDefault).not.toBeUndefined()
     expect(restoredDefault!.product.slug).toBe('default-plan')
     expect(restoredDefault!.product.name).toBe('Default Plan')
   })
@@ -488,7 +487,6 @@ describe('protectDefaultProduct', () => {
     const protectedDefault = result.products.find(
       (p) => p.product.default === true
     )
-    expect(protectedDefault).not.toBeUndefined()
 
     // Allowed changes should be applied
     expect(protectedDefault!.product.name).toBe('Updated Name')
@@ -545,7 +543,6 @@ describe('protectDefaultProduct', () => {
     const defaultProduct = result.products.find(
       (p) => p.product.default === true
     )
-    expect(defaultProduct).not.toBeUndefined()
     // Protected fields from existing default
     expect(defaultProduct!.product.slug).toBe('default-plan')
     expect(defaultProduct!.product.active).toBe(true)
