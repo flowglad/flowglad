@@ -5,9 +5,11 @@ import { DollarSign } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { trpc } from '@/app/_trpc/client'
 import EditUsageMeterModal from '@/components/components/EditUsageMeterModal'
 import { ExpandSection } from '@/components/ExpandSection'
 import CreateUsagePriceModal from '@/components/forms/CreateUsagePriceModal'
+import EditUsagePriceModal from '@/components/forms/EditUsagePriceModal'
 import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import { UsagePricesGridSection } from '@/components/UsagePricesGridSection'
 import { CopyableField } from '@/components/ui/copyable-field'
@@ -18,6 +20,7 @@ import {
   SectionValue,
 } from '@/components/ui/detail-section'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
+import type { Price } from '@/db/schema/prices'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { UsageMeterAggregationType } from '@/types'
@@ -53,8 +56,33 @@ function InnerUsageMeterDetailsPage({
     isCreateUsagePriceModalOpen,
     setIsCreateUsagePriceModalOpen,
   ] = useState(false)
+  const [isEditUsagePriceModalOpen, setIsEditUsagePriceModalOpen] =
+    useState(false)
+  const [selectedPriceId, setSelectedPriceId] = useState<
+    string | null
+  >(null)
   const [activePriceFilter, setActivePriceFilter] =
     useState<string>('active')
+
+  // Fetch the selected price data when a price is clicked
+  const { data: selectedPriceData } = trpc.prices.get.useQuery(
+    { id: selectedPriceId! },
+    { enabled: !!selectedPriceId && isEditUsagePriceModalOpen }
+  )
+
+  // Handler for when a price card is clicked
+  const handlePriceClick = (priceId: string) => {
+    setSelectedPriceId(priceId)
+    setIsEditUsagePriceModalOpen(true)
+  }
+
+  // Handler for closing the edit modal
+  const handleEditModalClose = (open: boolean) => {
+    setIsEditUsagePriceModalOpen(open)
+    if (!open) {
+      setSelectedPriceId(null)
+    }
+  }
 
   // Filter options for the status toggle
   const priceFilterOptions = [
@@ -163,6 +191,7 @@ function InnerUsageMeterDetailsPage({
             onCreateUsagePrice={() =>
               setIsCreateUsagePriceModalOpen(true)
             }
+            onPriceClick={handlePriceClick}
           />
         </ExpandSection>
       </div>
@@ -180,6 +209,18 @@ function InnerUsageMeterDetailsPage({
         setIsOpen={setIsCreateUsagePriceModalOpen}
         usageMeter={usageMeter}
       />
+
+      {/* Edit Usage Price Modal */}
+      {selectedPriceData?.price &&
+        selectedPriceData.price.type === 'usage' && (
+          <EditUsagePriceModal
+            isOpen={isEditUsagePriceModalOpen}
+            setIsOpen={handleEditModalClose}
+            price={selectedPriceData.price as Price.ClientUsageRecord}
+            usageMeterId={usageMeter.id}
+            pricingModelId={usageMeter.pricingModelId}
+          />
+        )}
     </InnerPageContainerNew>
   )
 }
