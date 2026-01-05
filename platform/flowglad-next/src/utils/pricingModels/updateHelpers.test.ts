@@ -975,7 +975,146 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     expect(syncResult.removed).toEqual([])
   })
 
-  it('should not re-expire already expired features', async () => {
+  it('unexpires previously expired features when re-added and returns them in added array', async () => {
+    // Setup: create product with feature-a and feature-b
+    const input: SetupPricingModelInput = {
+      name: 'Unexpire Test Model',
+      isDefault: false,
+      usageMeters: [],
+      features: [
+        {
+          type: FeatureType.Toggle,
+          slug: 'feature-a',
+          name: 'Feature A',
+          description: 'Toggle A',
+          active: true,
+        },
+        {
+          type: FeatureType.Toggle,
+          slug: 'feature-b',
+          name: 'Feature B',
+          description: 'Toggle B',
+          active: true,
+        },
+      ],
+      products: [
+        {
+          product: {
+            name: 'Product A',
+            slug: 'product-a',
+            default: false,
+            active: true,
+          },
+          price: {
+            type: PriceType.SinglePayment,
+            slug: 'product-a-price',
+            unitPrice: 1000,
+            isDefault: true,
+            active: true,
+          },
+          features: ['feature-a', 'feature-b'],
+        },
+      ],
+    }
+
+    const setupResult = await adminTransaction(
+      async ({ transaction }) =>
+        setupPricingModelTransaction(
+          {
+            input,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
+        )
+    )
+
+    const productA = setupResult.products.find(
+      (p) => p.slug === 'product-a'
+    )!
+
+    // Build feature slug to ID map
+    const featureSlugToIdMap = new Map<string, string>()
+    for (const feature of setupResult.features) {
+      featureSlugToIdMap.set(feature.slug, feature.id)
+    }
+
+    // Step 1: Remove feature-b (this will expire it)
+    const removeResult = await adminTransaction(
+      async ({ transaction }) =>
+        syncProductFeaturesForMultipleProducts(
+          {
+            productsWithFeatures: [
+              {
+                productId: productA.id,
+                desiredFeatureSlugs: ['feature-a'], // Remove feature-b
+              },
+            ],
+            featureSlugToIdMap,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
+        )
+    )
+
+    // Verify feature-b was removed (expired)
+    expect(removeResult.removed.length).toBe(1)
+    expect(removeResult.removed[0].featureId).toBe(
+      featureSlugToIdMap.get('feature-b')
+    )
+    expect(removeResult.removed[0].expiredAt).not.toBeNull()
+
+    // Step 2: Re-add feature-b (this should unexpire it)
+    const reAddResult = await adminTransaction(
+      async ({ transaction }) =>
+        syncProductFeaturesForMultipleProducts(
+          {
+            productsWithFeatures: [
+              {
+                productId: productA.id,
+                desiredFeatureSlugs: ['feature-a', 'feature-b'], // Re-add feature-b
+              },
+            ],
+            featureSlugToIdMap,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
+        )
+    )
+
+    // Verify feature-b was added back (unexpired)
+    expect(reAddResult.added.length).toBe(1)
+    expect(reAddResult.added[0].featureId).toBe(
+      featureSlugToIdMap.get('feature-b')
+    )
+    expect(reAddResult.added[0].expiredAt).toBeNull()
+    expect(reAddResult.removed.length).toBe(0)
+
+    // Verify the database state: both features should now be active
+    const finalProductFeatures = await adminTransaction(
+      async ({ transaction }) =>
+        selectProductFeatures({ productId: productA.id }, transaction)
+    )
+
+    const activeFeatures = finalProductFeatures.filter(
+      (pf) => !pf.expiredAt
+    )
+    expect(activeFeatures.length).toBe(2)
+
+    const featureIds = new Set(
+      activeFeatures.map((pf) => pf.featureId)
+    )
+    expect(featureIds.has(featureSlugToIdMap.get('feature-a')!)).toBe(
+      true
+    )
+    expect(featureIds.has(featureSlugToIdMap.get('feature-b')!)).toBe(
+      true
+    )
+  })
+
+  it('skips re-expiring already expired features', async () => {
     // Setup
     const input: SetupPricingModelInput = {
       name: 'Already Expired Test Model',

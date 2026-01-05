@@ -13,6 +13,7 @@ import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
 import {
+  batchUnexpireProductFeatures,
   bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId,
   expireProductFeaturesByFeatureId,
   selectProductFeatures,
@@ -105,12 +106,13 @@ export const resolveExistingIds = async (
  *
  * This function is optimized for performance by:
  * 1. Fetching all existing product_features in one query
- * 2. Computing which to expire and which to create across all products
+ * 2. Computing which to expire, unexpire, and create across all products
  * 3. Expiring all unwanted features in one batch call
- * 4. Creating all new features in one batch insert
+ * 4. Unexpiring previously expired features that are now desired again
+ * 5. Creating all new features in one batch insert
  *
- * Instead of 3N database calls (fetch/expire/insert per product),
- * this makes just 3 total database calls regardless of product count.
+ * Instead of 4N database calls (fetch/expire/unexpire/insert per product),
+ * this makes just 4 total database calls regardless of product count.
  *
  * @param params - Configuration object
  * @param params.productsWithFeatures - Array of products with their desired feature slugs
@@ -118,7 +120,7 @@ export const resolveExistingIds = async (
  * @param params.organizationId - Organization ID for new product features
  * @param params.livemode - Livemode flag for new product features
  * @param transaction - Database transaction
- * @returns Object containing arrays of added and removed ProductFeature records
+ * @returns Object containing arrays of added (including unexpired) and removed ProductFeature records
  *
  * @example
  * ```typescript
@@ -183,8 +185,9 @@ export const syncProductFeaturesForMultipleProducts = async (
     existingByProductId.set(pf.productId, existing)
   }
 
-  // Step 2: Compute what needs to be expired and what needs to be created
+  // Step 2: Compute what needs to be expired, unexpired, and created
   const productFeatureIdsToExpire: string[] = []
+  const productFeatureIdsToUnexpire: string[] = []
   const productFeatureInserts: ProductFeature.Insert[] = []
 
   for (const {
@@ -203,27 +206,39 @@ export const syncProductFeaturesForMultipleProducts = async (
     // Get existing product features for this product
     const existingForProduct =
       existingByProductId.get(productId) || []
-    const existingFeatureIds = new Set(
-      existingForProduct.map((pf) => pf.featureId)
-    )
 
-    // Find features to expire (exist but not desired, and not already expired)
+    // Build a map of featureId -> productFeature for this product
+    const existingByFeatureId = new Map<
+      string,
+      ProductFeature.Record
+    >()
+    for (const pf of existingForProduct) {
+      existingByFeatureId.set(pf.featureId, pf)
+    }
+
+    // Find features to expire (exist, not desired, and not already expired)
     for (const pf of existingForProduct) {
       if (!desiredFeatureIds.has(pf.featureId) && !pf.expiredAt) {
         productFeatureIdsToExpire.push(pf.id)
       }
     }
 
-    // Find features to create (desired but don't exist)
+    // Find features to create or unexpire
     for (const featureId of desiredFeatureIds) {
-      if (!existingFeatureIds.has(featureId)) {
+      const existingPf = existingByFeatureId.get(featureId)
+      if (!existingPf) {
+        // Feature doesn't exist at all - create new
         productFeatureInserts.push({
           productId,
           featureId,
           organizationId,
           livemode,
         })
+      } else if (existingPf.expiredAt) {
+        // Feature exists but is expired - unexpire it
+        productFeatureIdsToUnexpire.push(existingPf.id)
       }
+      // else: feature exists and is active - no action needed
     }
   }
 
@@ -237,7 +252,16 @@ export const syncProductFeaturesForMultipleProducts = async (
     expiredProductFeatures = expireResult.expiredProductFeature
   }
 
-  // Step 4: Batch insert new product features
+  // Step 4: Batch unexpire previously expired product features
+  let unexpiredProductFeatures: ProductFeature.Record[] = []
+  if (productFeatureIdsToUnexpire.length > 0) {
+    unexpiredProductFeatures = await batchUnexpireProductFeatures(
+      productFeatureIdsToUnexpire,
+      transaction
+    )
+  }
+
+  // Step 5: Batch insert new product features
   let createdProductFeatures: ProductFeature.Record[] = []
   if (productFeatureInserts.length > 0) {
     createdProductFeatures =
@@ -248,7 +272,8 @@ export const syncProductFeaturesForMultipleProducts = async (
   }
 
   return {
-    added: createdProductFeatures,
+    // Include both newly created and unexpired features in 'added'
+    added: [...createdProductFeatures, ...unexpiredProductFeatures],
     removed: expiredProductFeatures,
   }
 }
