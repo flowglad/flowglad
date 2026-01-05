@@ -28,7 +28,7 @@ Please use the following guidelines when implementing new tests:
 - No dynamic imports
 - No stubbed-out tests
 - No usage of type "any"
-- Each it should describe one scenario / set of inputs, and exhaustively test its behavior. we should not have multiple its if we are testing the same inputs each time, instead they should be all grouped under the same it with expectation assertions for each of the different things we except inside of the single it
+- Each it should describe one scenario / set of inputs, and exhaustively test its behavior. we should not have multiple its if we are testing the same inputs each time, instead they should be all grouped under the same it with expectation assertions for each of the different things we expect inside of the single it
 - Do not use toBeDefined - instead opt for tests to have more detailed assertions that make explicit the expectation of specific values
 - Each it should have a specific, well articulated statement of what outcome it will expect (e.g. no "it should handle .... correctly" or "should handle [condition]").
 
