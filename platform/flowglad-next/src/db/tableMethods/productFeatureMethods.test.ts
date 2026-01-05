@@ -393,7 +393,7 @@ describe('batchUnexpireProductFeatures', () => {
     expect(result[0].expiredAt).toBeNull()
   })
 
-  it('handles partial unexpiration when some IDs are expired and some are not', async () => {
+  it('returns only the previously-expired product features when given mixed expired and active IDs', async () => {
     // Create mixed state product features
     const expired1 = await setupProductFeature({
       productId: product.id,
