@@ -295,7 +295,7 @@ const Sidebar = React.forwardRef<
             data-sidebar="sidebar"
             className={cn(
               'flex h-full w-full flex-col bg-sidebar border-sidebar-border border-dashed group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow',
-              side === 'left' ? 'border-l border-r' : 'border-l'
+              side === 'left' ? 'border-r' : 'border-l border-r'
             )}
           >
             {children}
@@ -406,7 +406,10 @@ const SidebarHeader = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="header"
-      className={cn('flex flex-col gap-2 p-2', className)}
+      className={cn(
+        'flex flex-col gap-2 px-2 py-8 border-l border-dashed border-sidebar-border',
+        className
+      )}
       {...props}
     />
   )
@@ -421,7 +424,10 @@ const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn('flex flex-col gap-1 p-2', className)}
+      className={cn(
+        'flex flex-col gap-1 p-2 border-l border-dashed border-sidebar-border',
+        className
+      )}
       {...props}
     />
   )
@@ -452,7 +458,7 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        'flex min-h-0 flex-1 flex-col gap-0 overflow-auto group-data-[collapsible=icon]:overflow-hidden',
+        'relative flex min-h-0 flex-1 flex-col gap-0 overflow-auto group-data-[collapsible=icon]:overflow-hidden before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:w-0 before:border-l before:border-dashed before:border-sidebar-border',
         className
       )}
       {...props}
@@ -557,7 +563,7 @@ const SidebarMenuItem = React.forwardRef<
     ref={ref}
     data-sidebar="menu-item"
     className={cn(
-      'group/menu-item relative before:absolute before:left-0 before:top-0 before:h-full before:w-px before:-translate-x-full before:bg-transparent before:transition-colors has-[[data-active=true]]:before:bg-foreground',
+      'group/menu-item relative z-10 border-l border-transparent transition-colors has-[[data-active=true]]:border-foreground',
       className
     )}
     {...props}

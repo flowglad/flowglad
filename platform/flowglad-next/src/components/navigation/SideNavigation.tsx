@@ -193,7 +193,7 @@ export const SideNavigation = () => {
     <>
       <SidebarHeader
         className={cn(
-          'w-full flex flex-row items-center justify-start bg-sidebar transition-all duration-300 py-2',
+          'w-full flex flex-row items-center justify-start bg-sidebar transition-all duration-300 py-8',
           isCollapsed ? 'px-2.5' : 'px-2'
         )}
       >
@@ -257,7 +257,7 @@ export const SideNavigation = () => {
         </TooltipProvider>
       </SidebarHeader>
 
-      <SidebarContent className="pt-3 bg-sidebar">
+      <SidebarContent className="bg-sidebar">
         <div className="px-0 bg-sidebar">
           {/* Finish Setup and Primary navigation items - dimmed when showMore is true */}
           <div
