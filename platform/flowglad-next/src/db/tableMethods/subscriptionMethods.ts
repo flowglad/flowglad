@@ -25,6 +25,8 @@ import {
 import {
   createCursorPaginatedSelectFunction,
   createDateNotPassedFilter,
+  createDerivePricingModelId,
+  createDerivePricingModelIds,
   createInsertFunction,
   createPaginatedSelectFunction,
   createSelectById,
@@ -559,6 +561,25 @@ export const safelyUpdateSubscriptionsForCustomerToNewPaymentMethod =
       .returning()
     return updatedSubscriptions
   }
+
+/**
+ * Derives pricingModelId from a subscription.
+ * Used for billingPeriods, billingRuns, subscriptionItems, ledgerTransactions.
+ */
+export const derivePricingModelIdFromSubscription =
+  createDerivePricingModelId(
+    subscriptions,
+    config,
+    selectSubscriptionById
+  )
+
+/**
+ * Batch fetch pricingModelIds for multiple subscriptions.
+ * More efficient than calling derivePricingModelIdFromSubscription for each subscription individually.
+ * Used by bulk insert operations in billing periods, billing runs, subscription items, ledger transactions.
+ */
+export const pricingModelIdsForSubscriptions =
+  createDerivePricingModelIds(subscriptions, config)
 
 /**
  * Selects active subscriptions for a customer, excluding those that were upgraded away.

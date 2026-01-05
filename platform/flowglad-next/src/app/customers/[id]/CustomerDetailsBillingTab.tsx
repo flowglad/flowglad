@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
-import { InvoicesDataTable } from '@/app/finance/invoices/data-table'
 import { PaymentsDataTable } from '@/app/finance/payments/data-table'
 import { SubscriptionsDataTable } from '@/app/finance/subscriptions/data-table'
-import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { DetailLabel } from '@/components/DetailLabel'
+import { ExpandSection } from '@/components/ExpandSection'
 import { CreateSubscriptionFormModal } from '@/components/forms/CreateSubscriptionFormModal'
+import { CopyableField } from '@/components/ui/copyable-field'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import type { Customer } from '@/db/schema/customers'
 import type { Payment } from '@/db/schema/payments'
@@ -52,45 +52,48 @@ const CustomerDetailsSection = ({
       : null
 
   return (
-    <div className="w-full min-w-40 flex flex-col gap-4 py-5 pr-5 rounded-md">
-      <div className="text-xl font-semibold text-foreground">
-        Details
-      </div>
-      <div className="grid grid-cols-2 gap-x-16 gap-y-4">
-        <div className="flex flex-col gap-4">
+    <div className="w-full min-w-40 flex flex-col gap-4 py-2 px-3">
+      <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-x-8 gap-y-4">
+        <div className="flex flex-col gap-4 overflow-hidden min-w-0">
           <DetailLabel
             label="Email"
             value={
-              <CopyableTextTableCell copyText={customer.email}>
-                {customer.email}
-              </CopyableTextTableCell>
+              <CopyableField
+                value={customer.email}
+                label="Email"
+                truncate
+              />
             }
           />
           <DetailLabel
             label="ID"
             value={
-              <CopyableTextTableCell copyText={customer.id}>
-                {customer.id}
-              </CopyableTextTableCell>
+              <CopyableField
+                value={customer.id}
+                label="ID"
+                truncate
+              />
             }
           />
           <DetailLabel
             label="External ID"
             value={
-              <CopyableTextTableCell copyText={customer.externalId}>
-                {customer.externalId}
-              </CopyableTextTableCell>
+              <CopyableField
+                value={customer.externalId}
+                label="External ID"
+                truncate
+              />
             }
           />
           <DetailLabel
             label="Pricing Model ID"
             value={
               customer.pricingModelId ? (
-                <CopyableTextTableCell
-                  copyText={customer.pricingModelId}
-                >
-                  {customer.pricingModelId}
-                </CopyableTextTableCell>
+                <CopyableField
+                  value={customer.pricingModelId}
+                  label="Pricing Model ID"
+                  truncate
+                />
               ) : (
                 '-'
               )
@@ -99,12 +102,11 @@ const CustomerDetailsSection = ({
           <DetailLabel
             label="Portal URL"
             value={
-              <CopyableTextTableCell
-                copyText={billingPortalURL}
-                className="max-w-72"
-              >
-                {billingPortalURL}
-              </CopyableTextTableCell>
+              <CopyableField
+                value={billingPortalURL}
+                label="Portal URL"
+                truncate
+              />
             }
           />
         </div>
@@ -236,53 +238,74 @@ export const CustomerBillingSubPage = ({
 
   return (
     <>
-      <div className="w-full flex items-start">
-        <div className="w-full flex flex-col gap-20">
+      <div className="w-full flex flex-col">
+        <ExpandSection title="Details" defaultExpanded={true}>
           <CustomerDetailsSection
             customer={customer}
             payments={payments}
             usageEvents={usageEvents}
             currency={organization.defaultCurrency}
           />
-          <div className="w-full flex flex-col gap-5 pb-20">
-            <SubscriptionsDataTable
-              title="Subscriptions"
-              externalFilters={{
-                customerId: customer.id,
-              }}
-              onCreateSubscription={
-                shouldShow && !isLoading && !hasError
-                  ? () => setCreateSubscriptionModalOpen(true)
-                  : undefined
-              }
-            />
-            <InvoicesDataTable
-              title="Invoices"
-              filters={{
-                customerId: customer.id,
-              }}
-            />
-            <PaymentsDataTable
-              title="Payments"
-              filters={{
-                customerId: customer.id,
-              }}
-            />
-            <PurchasesDataTable
-              title="Purchases"
-              filters={{
-                customerId: customer.id,
-              }}
-            />
-            <UsageEventsDataTable
-              title="Usage Events"
-              filters={{
-                customerId: customer.id,
-              }}
-            />
-          </div>
-        </div>
+        </ExpandSection>
+
+        <ExpandSection
+          title="Subscriptions"
+          defaultExpanded={false}
+          contentPadding={false}
+        >
+          <SubscriptionsDataTable
+            externalFilters={{
+              customerId: customer.id,
+            }}
+            onCreateSubscription={
+              shouldShow && !isLoading && !hasError
+                ? () => setCreateSubscriptionModalOpen(true)
+                : undefined
+            }
+            hiddenColumns={['customerName']}
+            defaultPlanType="all"
+          />
+        </ExpandSection>
+
+        <ExpandSection
+          title="Payments"
+          defaultExpanded={false}
+          contentPadding={false}
+        >
+          <PaymentsDataTable
+            filters={{
+              customerId: customer.id,
+            }}
+            hiddenColumns={['customerName']}
+          />
+        </ExpandSection>
+
+        <ExpandSection
+          title="Purchases"
+          defaultExpanded={false}
+          contentPadding={false}
+        >
+          <PurchasesDataTable
+            filters={{
+              customerId: customer.id,
+            }}
+            hiddenColumns={['customerName', 'id']}
+          />
+        </ExpandSection>
+
+        <ExpandSection
+          title="Usage Events"
+          defaultExpanded={false}
+          contentPadding={false}
+        >
+          <UsageEventsDataTable
+            filters={{
+              customerId: customer.id,
+            }}
+          />
+        </ExpandSection>
       </div>
+
       <CreateSubscriptionFormModal
         isOpen={createSubscriptionModalOpen}
         setIsOpen={setCreateSubscriptionModalOpen}

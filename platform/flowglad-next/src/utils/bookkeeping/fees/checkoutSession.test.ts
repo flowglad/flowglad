@@ -68,6 +68,57 @@ describe('createCheckoutSessionFeeCalculationInsertForPrice', () => {
 
     expect(feeCalculationInsert.taxAmountFixed).toBe(0)
     expect(feeCalculationInsert.stripeTaxCalculationId).toBeNull()
+    expect(feeCalculationInsert.morSurchargePercentage).toBe('0')
+  })
+
+  it('sets morSurchargePercentage when calculating fee for MerchantOfRecord organizations', async () => {
+    const organization = {
+      id: 'org_mor',
+      stripeConnectContractType:
+        StripeConnectContractType.MerchantOfRecord,
+      feePercentage: '1.0',
+    } as Organization.Record
+
+    const product = {
+      id: 'prod_1',
+      livemode: true,
+    } as Product.Record
+
+    const price = {
+      id: 'price_1',
+      // Use 0 to avoid hitting Stripe Tax API (calculateTaxes fast-path).
+      unitPrice: 0,
+      currency: CurrencyCode.USD,
+      livemode: true,
+    } as Price.Record
+
+    const checkoutSession = {
+      id: 'sess_mor',
+      paymentMethodType: PaymentMethodType.Card,
+      billingAddress: {
+        address: { country: CountryCode.US },
+      } as BillingAddress,
+    } as CheckoutSession.FeeReadyRecord
+
+    const organizationCountry = {
+      code: CountryCode.US,
+    } as Country.Record
+
+    const feeCalculationInsert =
+      await createCheckoutSessionFeeCalculationInsertForPrice({
+        organization,
+        product,
+        price,
+        purchase: undefined,
+        discount: undefined,
+        checkoutSessionId: checkoutSession.id,
+        billingAddress: checkoutSession.billingAddress!,
+        paymentMethodType: checkoutSession.paymentMethodType!,
+        organizationCountry,
+        livemode: true,
+      })
+
+    expect(feeCalculationInsert.morSurchargePercentage).toBe('1.1')
   })
 })
 
@@ -117,6 +168,7 @@ describe('createCheckoutSessionFeeCalculationInsertForInvoice', () => {
     expect(insert.taxAmountFixed).toBe(0)
     expect(insert.stripeTaxCalculationId).toBeNull()
     expect(insert.stripeTaxTransactionId).toBeNull()
+    expect(insert.morSurchargePercentage).toBe('0')
   })
 
   it('applies international fee for an invoice session with non-domestic address', async () => {
@@ -160,5 +212,68 @@ describe('createCheckoutSessionFeeCalculationInsertForInvoice', () => {
     // Payment method fee: 2.9%+30 on 2000
     const expectedPaymentFee = Math.round(2000 * 0.029 + 30)
     expect(insert.paymentMethodFeeFixed).toBe(expectedPaymentFee)
+    expect(insert.morSurchargePercentage).toBe('0')
+  })
+
+  it('sets morSurchargePercentage to 1.1 for MerchantOfRecord invoice fee calculations', async () => {
+    const organization = {
+      id: 'org_mor',
+      stripeConnectContractType:
+        StripeConnectContractType.MerchantOfRecord,
+      feePercentage: '2.5',
+    } as Organization.Record
+    const organizationCountry = {
+      code: CountryCode.US,
+    } as Country.Record
+    const invoice = {
+      id: 'inv_mor',
+      currency: CurrencyCode.USD,
+      livemode: false,
+    } as Invoice.Record
+    const invoiceLineItems = [
+      { price: 1000, quantity: 1 },
+    ] as InvoiceLineItem.ClientRecord[]
+    const billingAddress = {
+      address: { country: CountryCode.US },
+    } as BillingAddress
+
+    const insert =
+      await createCheckoutSessionFeeCalculationInsertForInvoice({
+        organization,
+        invoice,
+        invoiceLineItems,
+        billingAddress,
+        paymentMethodType: PaymentMethodType.Card,
+        checkoutSessionId: 'sess_inv_mor',
+        organizationCountry,
+      })
+
+    // Base amount = 1000*1 = 1000
+    expect(insert.baseAmount).toBe(1000)
+    expect(insert.pretaxTotal).toBe(1000)
+    expect(insert.discountAmountFixed).toBe(0)
+    expect(insert.flowgladFeePercentage).toBe('2.5')
+    expect(insert.morSurchargePercentage).toBe('1.1')
+    expect(insert.internationalFeePercentage).toBe('0')
+
+    // Payment method fee: 2.9%+30 on 1000
+    const expectedPaymentFee = Math.round(1000 * 0.029 + 30)
+    expect(insert.paymentMethodFeeFixed).toBe(expectedPaymentFee)
+
+    // MoR invoice fee calc does not calculate taxes (only MoR checkout sessions for Price do, currently)
+    expect(insert.taxAmountFixed).toBe(0)
+    expect(insert.stripeTaxCalculationId).toBeNull()
+    expect(insert.stripeTaxTransactionId).toBeNull()
+
+    expect(insert.currency).toBe(CurrencyCode.USD)
+    expect(insert.livemode).toBe(false)
+    expect(insert.organizationId).toBe(organization.id)
+    expect(insert.checkoutSessionId).toBe('sess_inv_mor')
+    expect(insert.paymentMethodType).toBe(PaymentMethodType.Card)
+    expect(insert.billingAddress).toEqual(billingAddress)
+    expect(insert.billingPeriodId).toBeNull()
+    expect(insert.priceId).toBeNull()
+    expect(insert.discountId).toBeNull()
+    expect(insert.purchaseId).toBeNull()
   })
 })

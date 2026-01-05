@@ -39,13 +39,37 @@ vi.mock('@/app/_trpc/client', () => ({
         }),
       },
     },
-    useUtils: () => ({ invalidate: vi.fn() }),
+    useUtils: () => ({
+      invalidate: vi.fn(),
+      banners: {
+        getDismissedIds: {
+          cancel: vi.fn(),
+          getData: vi.fn(() => []),
+          setData: vi.fn(),
+          invalidate: vi.fn(),
+        },
+      },
+    }),
     organizations: {
       getFocusedMembership: {
         useQuery: () => ({
           data: { membership: { livemode: true } },
           isPending: false,
           refetch: vi.fn(),
+        }),
+      },
+    },
+    banners: {
+      getDismissedIds: {
+        useQuery: () => ({
+          data: [],
+          isLoading: false,
+        }),
+      },
+      dismissAll: {
+        useMutation: () => ({
+          mutate: vi.fn(),
+          isPending: false,
         }),
       },
     },
@@ -141,6 +165,10 @@ vi.mock('./NavUser', () => ({
       </button>
     </div>
   ),
+}))
+
+vi.mock('./SidebarBannerCarousel', () => ({
+  SidebarBannerCarousel: () => null,
 }))
 
 import { SideNavigation } from './SideNavigation'

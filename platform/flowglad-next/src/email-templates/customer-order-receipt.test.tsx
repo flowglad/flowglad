@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import { CurrencyCode } from '@/types'
 import core from '@/utils/core'
 import { OrderReceiptEmail } from './customer-order-receipt'
@@ -459,6 +460,64 @@ describe('OrderReceiptEmail', () => {
         )
         expect(getByTestId('total-amount')).toHaveTextContent('$0.00')
       })
+    })
+  })
+
+  describe('MoR Support', () => {
+    it('should render organization branding when isMoR is false', () => {
+      const { getByAltText, getByTestId, queryByText } = render(
+        <OrderReceiptEmail {...mockProps} isMoR={false} />
+      )
+
+      // Organization branding
+      expect(getByAltText('Logo')).toHaveAttribute(
+        'src',
+        mockProps.organizationLogoUrl
+      )
+      expect(getByTestId('signature-org-name')).toHaveTextContent(
+        mockProps.organizationName
+      )
+
+      // No card statement descriptor notice
+      expect(
+        queryByText(/This purchase was processed by/)
+      ).not.toBeInTheDocument()
+    })
+
+    it('should render Flowglad branding and MoR notice when isMoR is true', () => {
+      const { getByAltText, getByTestId, container } = render(
+        <OrderReceiptEmail {...mockProps} isMoR={true} />
+      )
+
+      // Flowglad branding
+      expect(getByAltText('Logo')).toHaveAttribute(
+        'src',
+        FLOWGLAD_LEGAL_ENTITY.logoURL
+      )
+
+      // Card statement descriptor notice
+      expect(container.textContent).toContain(
+        FLOWGLAD_LEGAL_ENTITY.cardStatementDescriptor
+      )
+      expect(container.textContent).toContain(
+        'This purchase was processed by'
+      )
+
+      // Signature shows "for [merchant]"
+      expect(getByTestId('signature-org-name')).toHaveTextContent(
+        `${FLOWGLAD_LEGAL_ENTITY.name} for ${mockProps.organizationName}`
+      )
+
+      // Customer billing info still displays correctly
+      expect(getByTestId('invoice-number')).toHaveTextContent(
+        `Invoice #: ${mockProps.invoiceNumber}`
+      )
+      expect(getByTestId('order-date')).toHaveTextContent(
+        `Date: ${mockProps.orderDate}`
+      )
+      expect(getByTestId('payment-amount')).toHaveTextContent(
+        'Payment: $60.00'
+      )
     })
   })
 })

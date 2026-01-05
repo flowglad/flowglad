@@ -1,6 +1,7 @@
 export type {
   BulkCreateUsageEventsParams,
   CancelSubscriptionParams,
+  ClientCreateUsageEventParams,
   CreateActivateSubscriptionCheckoutSessionParams,
   CreateAddPaymentMethodCheckoutSessionParams,
   CreateProductCheckoutSessionParams,

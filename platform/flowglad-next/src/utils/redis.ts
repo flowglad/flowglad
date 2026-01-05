@@ -80,12 +80,17 @@ type ApiKeyVerificationResult = z.infer<
   typeof apiKeyVerificationResultSchema
 >
 
-const redis = () => {
+export const redis = () => {
   if (core.IS_TEST) {
     return {
       get: () => null,
+      getdel: () => null,
       set: () => null,
       del: () => null,
+      sadd: () => 0,
+      smembers: () => [] as string[],
+      expire: () => null,
+      exists: () => 0,
     }
   }
   return new Redis({
@@ -94,10 +99,12 @@ const redis = () => {
   })
 }
 
-enum RedisKeyNamespace {
+export enum RedisKeyNamespace {
   ApiKeyVerificationResult = 'apiKeyVerificationResult',
   ReferralSelection = 'referralSelection',
   Telemetry = 'telemetry',
+  BannerDismissals = 'bannerDismissals',
+  StripeOAuthCsrfToken = 'stripeOAuthCsrfToken',
 }
 
 const evictionPolicy: Record<
@@ -114,6 +121,14 @@ const evictionPolicy: Record<
   [RedisKeyNamespace.Telemetry]: {
     max: 500000, // up to 500k telemetry records
     ttl: 60 * 60 * 24 * 14, // 14 days (matches trigger.dev TTL)
+  },
+  [RedisKeyNamespace.BannerDismissals]: {
+    max: 100000, // up to 100k users
+    ttl: 60 * 60 * 24 * 2, // 2 days - banners reappear after this period
+  },
+  [RedisKeyNamespace.StripeOAuthCsrfToken]: {
+    max: 10000, // up to 10k concurrent OAuth flows
+    ttl: 60 * 15, // 15 minutes - OAuth flow timeout
   },
 }
 
@@ -228,5 +243,129 @@ export const storeTelemetry = async (
       entityId,
       runId,
     })
+  }
+}
+
+// Banner dismissal functions for sidebar banner carousel
+
+/**
+ * Store a dismissed banner ID for a user.
+ * Uses Redis Set to allow per-banner dismissal tracking.
+ * Dismissal expires after 2 days, after which banners will reappear.
+ *
+ * Note: TTL is only set when the key is new to avoid extending the
+ * expiration indefinitely with each new dismissal.
+ */
+export const dismissBanner = async (
+  userId: string,
+  bannerId: string
+): Promise<void> => {
+  try {
+    const redisClient = redis()
+    const key = `${RedisKeyNamespace.BannerDismissals}:${userId}`
+
+    // Check if key exists before adding - only set TTL on new keys
+    const keyExists = await redisClient.exists(key)
+    await redisClient.sadd(key, bannerId)
+
+    // Only set TTL if this is a new key (first dismissal)
+    if (!keyExists) {
+      await redisClient.expire(
+        key,
+        evictionPolicy[RedisKeyNamespace.BannerDismissals].ttl
+      )
+    }
+  } catch (error) {
+    logger.error('Error dismissing banner', {
+      error: error instanceof Error ? error.message : String(error),
+      userId,
+      bannerId,
+    })
+    throw error
+  }
+}
+
+/**
+ * Store multiple dismissed banner IDs for a user in a single operation.
+ * More efficient than calling dismissBanner multiple times.
+ * Dismissal expires after 2 days, after which banners will reappear.
+ *
+ * Note: TTL is only set when the key is new to avoid extending the
+ * expiration indefinitely with each new dismissal.
+ */
+export const dismissBanners = async (
+  userId: string,
+  bannerIds: string[]
+): Promise<void> => {
+  if (bannerIds.length === 0) return
+
+  try {
+    const redisClient = redis()
+    const key = `${RedisKeyNamespace.BannerDismissals}:${userId}`
+
+    // Check if key exists before adding - only set TTL on new keys
+    const keyExists = await redisClient.exists(key)
+
+    // Redis SADD accepts multiple members - cast to satisfy Upstash's tuple types
+    await redisClient.sadd(
+      key,
+      ...(bannerIds as [string, ...string[]])
+    )
+
+    // Only set TTL if this is a new key (first dismissal)
+    if (!keyExists) {
+      await redisClient.expire(
+        key,
+        evictionPolicy[RedisKeyNamespace.BannerDismissals].ttl
+      )
+    }
+  } catch (error) {
+    logger.error('Error dismissing banners', {
+      error: error instanceof Error ? error.message : String(error),
+      userId,
+      bannerIds,
+    })
+    throw error
+  }
+}
+
+/**
+ * Get all dismissed banner IDs for a user.
+ * Throws on error to allow proper error handling by callers.
+ */
+export const getDismissedBannerIds = async (
+  userId: string
+): Promise<string[]> => {
+  try {
+    const redisClient = redis()
+    const key = `${RedisKeyNamespace.BannerDismissals}:${userId}`
+    const result = await redisClient.smembers(key)
+    return result ?? []
+  } catch (error) {
+    logger.error('Error getting dismissed banner IDs', {
+      error: error instanceof Error ? error.message : String(error),
+      userId,
+    })
+    throw error
+  }
+}
+
+/**
+ * Reset all dismissed banners for a user.
+ * Useful for testing or if user wants to see banners again.
+ */
+export const resetDismissedBanners = async (
+  userId: string
+): Promise<void> => {
+  try {
+    const redisClient = redis()
+    const key = `${RedisKeyNamespace.BannerDismissals}:${userId}`
+    await redisClient.del(key)
+  } catch (error) {
+    logger.error('Error resetting dismissed banners', {
+      error: error instanceof Error ? error.message : String(error),
+      userId,
+    })
+    throw error
   }
 }

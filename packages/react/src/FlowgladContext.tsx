@@ -3,6 +3,7 @@ import type { Flowglad } from '@flowglad/node'
 import {
   type BillingWithChecks,
   type CancelSubscriptionParams,
+  type ClientCreateUsageEventParams,
   type CreateActivateSubscriptionCheckoutSessionParams,
   type CreateAddPaymentMethodCheckoutSessionParams,
   type CreateProductCheckoutSessionParams,
@@ -17,7 +18,8 @@ import {
   type UncancelSubscriptionParams,
 } from '@flowglad/shared'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import React, { createContext, useContext } from 'react'
+import type React from 'react'
+import { createContext, useContext } from 'react'
 import { devError } from './lib/utils'
 import { validateUrl } from './utils'
 
@@ -68,6 +70,12 @@ export type LoadedFlowgladContextValues = BillingWithChecks & {
   createActivateSubscriptionCheckoutSession: (
     params: FrontendCreateActivateSubscriptionCheckoutSessionParams
   ) => Promise<CreateCheckoutSessionResponse>
+  createUsageEvent: (
+    params: ClientCreateUsageEventParams
+  ) => Promise<
+    | { usageEvent: { id: string } }
+    | { error: { code: string; json: Record<string, unknown> } }
+  >
   errors: null
 }
 
@@ -77,6 +85,7 @@ export interface NonPresentContextValues {
   createCheckoutSession: null
   createAddPaymentMethodCheckoutSession: null
   createActivateSubscriptionCheckoutSession: null
+  createUsageEvent: null
   checkFeatureAccess: null
   checkUsageBalance: null
   hasPurchased: null
@@ -126,6 +135,7 @@ const notPresentContextValues: NonPresentContextValues = {
   createCheckoutSession: null,
   createAddPaymentMethodCheckoutSession: null,
   createActivateSubscriptionCheckoutSession: null,
+  createUsageEvent: null,
   checkFeatureAccess: null,
   checkUsageBalance: null,
   hasPurchased: null,
@@ -305,6 +315,46 @@ const constructUncancelSubscription =
     }
   }
 
+interface ConstructCreateUsageEventParams {
+  baseURL: string | undefined
+  requestConfig?: RequestConfig
+}
+
+const constructCreateUsageEvent =
+  (constructParams: ConstructCreateUsageEventParams) =>
+  async (
+    params: ClientCreateUsageEventParams
+  ): Promise<
+    | { usageEvent: { id: string } }
+    | { error: { code: string; json: Record<string, unknown> } }
+  > => {
+    const { baseURL, requestConfig } = constructParams
+    const headers = requestConfig?.headers
+    const flowgladRoute = getFlowgladRoute(baseURL)
+
+    const response = await fetch(
+      `${flowgladRoute}/${FlowgladActionKey.CreateUsageEvent}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify(params),
+      }
+    )
+
+    const json = await response.json()
+    if (json.error) {
+      console.error(
+        'FlowgladContext: Usage event creation failed',
+        json
+      )
+      return { error: json.error }
+    }
+    return { usageEvent: { id: json.data.usageEvent.id } }
+  }
+
 /**
  * Configuration for all requests made to the Flowglad API
  * route.
@@ -341,11 +391,77 @@ type FlowgladContextProviderProps =
   | CoreFlowgladContextProviderProps
   | DevModeFlowgladContextProviderProps
 
+type CustomerBillingRouteResponse = {
+  data?: CustomerBillingDetails | null
+  error?: { message: string } | null
+}
+
+const isDevModeProps = (
+  props: FlowgladContextProviderProps
+): props is DevModeFlowgladContextProviderProps => {
+  return '__devMode' in props
+}
+
+const fetchCustomerBilling = async ({
+  baseURL,
+  requestConfig,
+}: Pick<
+  CoreFlowgladContextProviderProps,
+  'baseURL' | 'requestConfig'
+>): Promise<CustomerBillingRouteResponse> => {
+  // Use custom fetch if provided (for React Native), otherwise use global fetch
+  const fetchImpl =
+    requestConfig?.fetch ??
+    (typeof fetch !== 'undefined' ? fetch : undefined)
+  if (!fetchImpl) {
+    throw new Error(
+      'fetch is not available. In React Native environments, provide a fetch implementation via requestConfig.fetch'
+    )
+  }
+
+  const flowgladRoute = getFlowgladRoute(baseURL)
+  const response = await fetchImpl(
+    `${flowgladRoute}/${FlowgladActionKey.GetCustomerBilling}`,
+    {
+      method:
+        flowgladActionValidators[FlowgladActionKey.GetCustomerBilling]
+          .method,
+      body: JSON.stringify({}),
+      headers: requestConfig?.headers,
+    }
+  )
+
+  try {
+    const data: unknown = await response.json()
+    if (
+      typeof data === 'object' &&
+      data !== null &&
+      ('data' in data || 'error' in data)
+    ) {
+      return data as CustomerBillingRouteResponse
+    }
+    return {
+      data: null,
+      error: { message: 'Unexpected billing response shape' },
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Flowglad: Error fetching billing:', error)
+    }
+    return {
+      data: null,
+      error: { message: 'Failed to parse billing response JSON' },
+    }
+  }
+}
+
 export const FlowgladContextProvider = (
   props: FlowgladContextProviderProps
 ) => {
   const queryClient = useQueryClient()
-  const isDevMode = '__devMode' in props
+  const devModeProps = isDevModeProps(props) ? props : null
+  const coreProps = isDevModeProps(props) ? null : props
+  const isDevMode = devModeProps !== null
   // In a perfect world, this would be a useMutation hook rather than useQuery.
   // Because technically, billing fetch requests run a "find or create" operation on
   // the customer. But useQuery allows us to execute the call using `enabled`
@@ -354,53 +470,20 @@ export const FlowgladContextProvider = (
     isPending: isPendingBilling,
     error: errorBilling,
     data: billing,
-  } = useQuery({
+  } = useQuery<CustomerBillingRouteResponse | null>({
     queryKey: [FlowgladActionKey.GetCustomerBilling],
-    enabled: isDevMode ? false : props.loadBilling,
-    queryFn: async () => {
-      if (isDevMode) {
-        return props.billingMocks
-      }
-      const requestConfig = (
-        props as CoreFlowgladContextProviderProps
-      ).requestConfig
-      const baseURL = (props as CoreFlowgladContextProviderProps)
-        .baseURL
-      // Use custom fetch if provided (for React Native), otherwise use global fetch
-      const fetchImpl =
-        requestConfig?.fetch ??
-        (typeof fetch !== 'undefined' ? fetch : undefined)
-      if (!fetchImpl) {
-        throw new Error(
-          'fetch is not available. In React Native environments, provide a fetch implementation via requestConfig.fetch'
-        )
-      }
-      const flowgladRoute = getFlowgladRoute(baseURL)
-      const response = await fetchImpl(
-        `${flowgladRoute}/${FlowgladActionKey.GetCustomerBilling}`,
-        {
-          method:
-            flowgladActionValidators[
-              FlowgladActionKey.GetCustomerBilling
-            ].method,
-          body: JSON.stringify({}),
-          headers: requestConfig?.headers,
-        }
-      )
-      try {
-        const data = await response.json()
-        return data
-      } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Flowglad: Error fetching billing:', error)
-        }
-        return null
-      }
-    },
+    enabled: Boolean(coreProps?.loadBilling),
+    queryFn: coreProps
+      ? () =>
+          fetchCustomerBilling({
+            baseURL: coreProps.baseURL,
+            requestConfig: coreProps.requestConfig,
+          })
+      : async () => null,
   })
 
   if (isDevMode) {
-    const billingData = props.billingMocks
+    const billingData = devModeProps.billingMocks
     const getProduct = constructGetProduct(billingData.catalog)
     const getPrice = constructGetPrice(billingData.catalog)
     const checkFeatureAccess = constructCheckFeatureAccess(
@@ -435,21 +518,73 @@ export const FlowgladContextProvider = (
               id: 'checkout-session-id',
               url: '',
             }),
-          cancelSubscription: () =>
-            Promise.resolve({
+          cancelSubscription: (params: CancelSubscriptionParams) => {
+            const subscription =
+              billingData.currentSubscriptions?.find(
+                (sub) => sub.id === params.id
+              ) ??
+              billingData.currentSubscription ??
+              billingData.subscriptions?.find(
+                (sub) => sub.id === params.id
+              )
+            if (!subscription) {
+              return Promise.reject(
+                new Error(
+                  `Dev mode: no subscription found for id "${params.id}"`
+                )
+              )
+            }
+
+            const now = Date.now()
+            return Promise.resolve({
               subscription: {
-                id: 'sub_123',
-                status: 'canceled',
-                canceledAt: new Date().toISOString(),
-              } as any,
-            }),
-          uncancelSubscription: () =>
-            Promise.resolve({
+                subscription: {
+                  ...subscription,
+                  current: false,
+                  status: 'canceled',
+                  canceledAt: now,
+                  cancelScheduledAt: null,
+                  updatedAt: now,
+                },
+              },
+            })
+          },
+          uncancelSubscription: (
+            params: UncancelSubscriptionParams
+          ) => {
+            const subscription =
+              billingData.currentSubscriptions?.find(
+                (sub) => sub.id === params.id
+              ) ??
+              billingData.currentSubscription ??
+              billingData.subscriptions?.find(
+                (sub) => sub.id === params.id
+              )
+            if (!subscription) {
+              return Promise.reject(
+                new Error(
+                  `Dev mode: no subscription found for id "${params.id}"`
+                )
+              )
+            }
+
+            const now = Date.now()
+            return Promise.resolve({
               subscription: {
-                id: 'sub_123',
-                status: 'active',
-                cancelScheduledAt: null,
-              } as any,
+                subscription: {
+                  ...subscription,
+                  current: true,
+                  status: 'active',
+                  canceledAt: null,
+                  cancelScheduledAt: null,
+                  updatedAt: now,
+                },
+              },
+            })
+          },
+          createUsageEvent: () =>
+            Promise.resolve({
+              usageEvent: { id: 'dev-usage-event-id' },
             }),
           checkFeatureAccess,
           checkUsageBalance,
@@ -474,11 +609,15 @@ export const FlowgladContextProvider = (
     )
   }
 
+  if (!coreProps) {
+    throw new Error('FlowgladContextProvider: missing core props')
+  }
+
   const {
     baseURL,
     requestConfig,
     loadBilling: loadBillingProp,
-  } = props as CoreFlowgladContextProviderProps
+  } = coreProps
   const loadBilling = loadBillingProp ?? false
   // Each handler below gets its own Flowglad subroute, but still funnels through
   // the shared creator for validation and redirect behavior.
@@ -517,6 +656,11 @@ export const FlowgladContextProvider = (
     baseURL,
     requestConfig,
     queryClient,
+  })
+
+  const createUsageEvent = constructCreateUsageEvent({
+    baseURL,
+    requestConfig,
   })
 
   let value: FlowgladContextValues
@@ -558,6 +702,7 @@ export const FlowgladContextProvider = (
         cancelSubscription,
         uncancelSubscription,
         createActivateSubscriptionCheckoutSession,
+        createUsageEvent,
         getProduct,
         getPrice,
         hasPurchased,

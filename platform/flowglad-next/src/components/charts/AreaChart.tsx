@@ -434,6 +434,11 @@ interface ChartTooltipProps {
   valueFormatter: (value: number) => string
 }
 
+/**
+ * Default chart tooltip for AreaChart.
+ * Shows a vertical layout: value on top, date below.
+ * Matches the Figma design system tooltip styling.
+ */
 const ChartTooltip = ({
   active,
   payload,
@@ -441,36 +446,45 @@ const ChartTooltip = ({
   valueFormatter,
 }: ChartTooltipProps) => {
   if (active && payload && payload.length) {
-    return (
-      <div
-        className={cn(
-          // base
-          'rounded-md border text-sm shadow-md',
-          // border color
-          'border-gray-200 dark:border-gray-800',
-          // background color
-          'bg-white dark:bg-gray-950'
-        )}
-      >
-        <div className={cn('border-b border-inherit px-4 py-2')}>
-          <p
-            className={cn(
-              // base
-              'font-medium',
-              // text color
-              'text-gray-900 dark:text-gray-50'
-            )}
-          >
+    // For single category charts, show simplified tooltip
+    if (payload.length === 1) {
+      const { value } = payload[0]
+      return (
+        <div
+          className={cn(
+            'bg-popover flex flex-col gap-2 p-2 rounded border border-border',
+            'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
+          )}
+        >
+          <p className="text-base font-medium text-foreground tracking-tight leading-none">
+            {valueFormatter(value)}
+          </p>
+          <p className="text-sm text-muted-foreground tracking-tight leading-5">
             {label}
           </p>
         </div>
-        <div className={cn('space-y-1 px-4 py-2')}>
+      )
+    }
+    // For multi-category charts, show category breakdown
+    return (
+      <div
+        className={cn(
+          'bg-popover rounded border border-border',
+          'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
+        )}
+      >
+        <div className={cn('border-b border-inherit px-3 py-2')}>
+          <p className="text-sm font-medium text-foreground">
+            {label}
+          </p>
+        </div>
+        <div className={cn('space-y-1 px-3 py-2')}>
           {payload.map(({ value, category, color }, index) => (
             <div
               key={`id-${index}`}
-              className="flex items-center justify-between space-x-8"
+              className="flex items-center justify-between gap-4"
             >
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <span
                   aria-hidden="true"
                   className={cn(
@@ -478,25 +492,11 @@ const ChartTooltip = ({
                     getColorClassName(color, 'bg')
                   )}
                 />
-                <p
-                  className={cn(
-                    // base
-                    'whitespace-nowrap text-right',
-                    // text color
-                    'text-gray-700 dark:text-gray-300'
-                  )}
-                >
+                <p className="text-sm whitespace-nowrap text-muted-foreground">
                   {category}
                 </p>
               </div>
-              <p
-                className={cn(
-                  // base
-                  'whitespace-nowrap text-right font-medium tabular-nums',
-                  // text color
-                  'text-gray-900 dark:text-gray-50'
-                )}
-              >
+              <p className="text-sm whitespace-nowrap font-medium tabular-nums text-foreground">
                 {valueFormatter(value)}
               </p>
             </div>
@@ -621,7 +621,8 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
     const yAxisDomain = getYAxisDomain(
       autoMinValue,
       minValue,
-      maxValue
+      maxValue,
+      0.1 // 10% padding above max value for visual breathing room
     )
     const hasOnValueChange = !!onValueChange
     const stacked = type === 'stacked' || type === 'percent'

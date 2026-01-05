@@ -82,7 +82,10 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
     cell: ({ row }) => {
       const usageMeter = row.original.usageMeter
       return (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div
+          className="w-8 flex justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
           <UsageMeterActionsMenu usageMeter={usageMeter} />
         </div>
       )

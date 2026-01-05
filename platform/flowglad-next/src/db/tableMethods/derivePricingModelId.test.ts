@@ -1,27 +1,49 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  setupCheckoutSession,
   setupCustomer,
+  setupInvoice,
   setupOrg,
+  setupPayment,
   setupPrice,
+  setupPurchase,
   setupSubscription,
   setupUsageCredit,
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { CurrencyCode, PriceType, UsageCreditType } from '@/types'
-import { core } from '@/utils/core'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  CurrencyCode,
+  InvoiceStatus,
+  PaymentStatus,
+  PriceType,
+  RefundStatus,
+  UsageCreditType,
+} from '@/types'
+import { core, nanoid } from '@/utils/core'
 import type { Customer } from '../schema/customers'
+import type { Invoice } from '../schema/invoices'
 import type { Organization } from '../schema/organizations'
+import type { Payment } from '../schema/payments'
 import type { Price } from '../schema/prices'
 import type { PricingModel } from '../schema/pricingModels'
 import type { Product } from '../schema/products'
+import type { Purchase } from '../schema/purchases'
 import type { Subscription } from '../schema/subscriptions'
 import type { UsageCredit } from '../schema/usageCredits'
 import type { UsageMeter } from '../schema/usageMeters'
 import {
-  derivePricingModelIdFromPrice,
-  derivePricingModelIdFromProduct,
-} from './priceMethods'
+  derivePricingModelIdForCheckoutSession,
+  insertCheckoutSession,
+} from './checkoutSessionMethods'
+import { derivePricingModelIdFromPrice } from './priceMethods'
+import { derivePricingModelIdFromProduct } from './productMethods'
+import {
+  derivePricingModelIdFromPayment,
+  insertRefund,
+} from './refundMethods'
 import { derivePricingModelIdFromUsageCredit } from './usageCreditMethods'
 import { derivePricingModelIdFromUsageMeter } from './usageMeterMethods'
 
@@ -239,6 +261,418 @@ describe('derivePricingModelIdFromUsageCredit', () => {
           transaction
         )
       ).rejects.toThrow()
+    })
+  })
+})
+
+describe('derivePricingModelIdForCheckoutSession', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let purchase: Purchase.Record
+  let invoice: Invoice.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      type: PriceType.SinglePayment,
+      unitPrice: 1000,
+      livemode: true,
+      isDefault: true,
+      active: true,
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test@test.com',
+      livemode: true,
+      pricingModelId: pricingModel.id,
+    })
+
+    purchase = await setupPurchase({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      livemode: true,
+    })
+
+    invoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: customer.id,
+      status: InvoiceStatus.Draft,
+      livemode: true,
+      priceId: price.id,
+    })
+  })
+
+  it('should derive pricingModelId from priceId when provided (Product session)', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const derivedPricingModelId =
+        await derivePricingModelIdForCheckoutSession(
+          {
+            priceId: price.id,
+            purchaseId: null,
+            invoiceId: null,
+            customerId: null,
+            type: CheckoutSessionType.Product,
+          },
+          transaction
+        )
+
+      expect(derivedPricingModelId).toBe(product.pricingModelId)
+      expect(derivedPricingModelId).toBe(pricingModel.id)
+    })
+  })
+
+  it('should derive pricingModelId from priceId for ActivateSubscription session', async () => {
+    const subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      livemode: true,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const derivedPricingModelId =
+        await derivePricingModelIdForCheckoutSession(
+          {
+            priceId: price.id,
+            purchaseId: null,
+            invoiceId: null,
+            customerId: customer.id,
+            type: CheckoutSessionType.ActivateSubscription,
+          },
+          transaction
+        )
+
+      expect(derivedPricingModelId).toBe(product.pricingModelId)
+      expect(derivedPricingModelId).toBe(subscription.pricingModelId)
+      expect(derivedPricingModelId).toBe(pricingModel.id)
+    })
+  })
+
+  it('should derive pricingModelId from purchaseId when priceId not provided (Purchase session)', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const derivedPricingModelId =
+        await derivePricingModelIdForCheckoutSession(
+          {
+            priceId: null,
+            purchaseId: purchase.id,
+            invoiceId: null,
+            customerId: null,
+            type: CheckoutSessionType.Purchase,
+          },
+          transaction
+        )
+
+      expect(derivedPricingModelId).toBe(purchase.pricingModelId)
+      expect(derivedPricingModelId).toBe(pricingModel.id)
+    })
+  })
+
+  it('should derive pricingModelId from invoiceId when priceId and purchaseId not provided (Invoice session)', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const derivedPricingModelId =
+        await derivePricingModelIdForCheckoutSession(
+          {
+            priceId: null,
+            purchaseId: null,
+            invoiceId: invoice.id,
+            customerId: null,
+            type: CheckoutSessionType.Invoice,
+          },
+          transaction
+        )
+
+      expect(derivedPricingModelId).toBe(invoice.pricingModelId)
+      expect(derivedPricingModelId).toBe(pricingModel.id)
+    })
+  })
+
+  it('should derive pricingModelId from customerId for AddPaymentMethod session when other IDs not provided', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const derivedPricingModelId =
+        await derivePricingModelIdForCheckoutSession(
+          {
+            priceId: null,
+            purchaseId: null,
+            invoiceId: null,
+            customerId: customer.id,
+            type: CheckoutSessionType.AddPaymentMethod,
+          },
+          transaction
+        )
+
+      expect(derivedPricingModelId).toBe(customer.pricingModelId)
+      expect(derivedPricingModelId).toBe(pricingModel.id)
+    })
+  })
+
+  it('should throw an error when no valid parent is provided', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      await expect(
+        derivePricingModelIdForCheckoutSession(
+          {
+            priceId: null,
+            purchaseId: null,
+            invoiceId: null,
+            customerId: null,
+            type: CheckoutSessionType.Product,
+          },
+          transaction
+        )
+      ).rejects.toThrow(
+        'Cannot derive pricingModelId for checkout session: no valid parent found'
+      )
+    })
+  })
+
+  it('should throw an error when parent does not exist', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const nonExistentPriceId = `price_${core.nanoid()}`
+
+      await expect(
+        derivePricingModelIdForCheckoutSession(
+          {
+            priceId: nonExistentPriceId,
+            purchaseId: null,
+            invoiceId: null,
+            customerId: null,
+            type: CheckoutSessionType.Product,
+          },
+          transaction
+        )
+      ).rejects.toThrow()
+    })
+  })
+})
+
+describe('derivePricingModelIdFromPayment', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let invoice: Invoice.Record
+  let payment: Payment.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      type: PriceType.SinglePayment,
+      unitPrice: 1000,
+      livemode: true,
+      isDefault: true,
+      active: true,
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test@test.com',
+      livemode: true,
+      pricingModelId: pricingModel.id,
+    })
+
+    invoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: customer.id,
+      status: InvoiceStatus.Draft,
+      livemode: true,
+      priceId: price.id,
+    })
+
+    payment = await setupPayment({
+      organizationId: organization.id,
+      customerId: customer.id,
+      invoiceId: invoice.id,
+      amount: 1000,
+      status: PaymentStatus.Succeeded,
+      stripeChargeId: `ch_${nanoid()}`,
+      livemode: true,
+    })
+  })
+
+  it('should successfully derive pricingModelId from payment', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const derivedPricingModelId =
+        await derivePricingModelIdFromPayment(payment.id, transaction)
+
+      expect(derivedPricingModelId).toBe(payment.pricingModelId)
+      expect(derivedPricingModelId).toBe(pricingModel.id)
+    })
+  })
+
+  it('should throw an error when payment does not exist', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const nonExistentPaymentId = `payment_${core.nanoid()}`
+
+      await expect(
+        derivePricingModelIdFromPayment(
+          nonExistentPaymentId,
+          transaction
+        )
+      ).rejects.toThrow()
+    })
+  })
+})
+
+describe('insertCheckoutSession with derived pricingModelId', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      type: PriceType.SinglePayment,
+      unitPrice: 1000,
+      livemode: true,
+      isDefault: true,
+      active: true,
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test@test.com',
+      livemode: true,
+      pricingModelId: pricingModel.id,
+    })
+  })
+
+  it('should automatically derive and set pricingModelId when inserting Product checkout session', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const checkoutSession = await insertCheckoutSession(
+        {
+          organizationId: organization.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Open,
+          priceId: price.id,
+          customerId: customer.id,
+          livemode: true,
+          quantity: 1,
+          purchaseId: null,
+          invoiceId: null,
+          targetSubscriptionId: null,
+          preserveBillingCycleAnchor: false,
+          automaticallyUpdateSubscriptions: null,
+          billingAddress: null,
+          customerEmail: customer.email,
+          customerName: null,
+          paymentMethodType: null,
+          stripePaymentIntentId: null,
+          stripeSetupIntentId: null,
+          successUrl: null,
+          cancelUrl: null,
+          discountId: null,
+          outputMetadata: null,
+          outputName: null,
+        },
+        transaction
+      )
+
+      expect(checkoutSession.pricingModelId).toBe(
+        product.pricingModelId
+      )
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+    })
+  })
+})
+
+describe('insertRefund with derived pricingModelId', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let invoice: Invoice.Record
+  let payment: Payment.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      type: PriceType.SinglePayment,
+      unitPrice: 1000,
+      livemode: true,
+      isDefault: true,
+      active: true,
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test@test.com',
+      livemode: true,
+      pricingModelId: pricingModel.id,
+    })
+
+    invoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: customer.id,
+      status: InvoiceStatus.Draft,
+      livemode: true,
+      priceId: price.id,
+    })
+
+    payment = await setupPayment({
+      organizationId: organization.id,
+      customerId: customer.id,
+      invoiceId: invoice.id,
+      amount: 1000,
+      status: PaymentStatus.Succeeded,
+      stripeChargeId: `ch_${nanoid()}`,
+      livemode: true,
+    })
+  })
+
+  it('should automatically derive and set pricingModelId when inserting refund', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const refund = await insertRefund(
+        {
+          organizationId: organization.id,
+          paymentId: payment.id,
+          subscriptionId: null,
+          amount: 500,
+          currency: CurrencyCode.USD,
+          reason: 'Test refund',
+          status: RefundStatus.Succeeded,
+          refundProcessedAt: Date.now(),
+          gatewayRefundId: null,
+          notes: null,
+          initiatedByUserId: null,
+          livemode: true,
+        },
+        transaction
+      )
+
+      expect(refund.pricingModelId).toBe(payment.pricingModelId)
+      expect(refund.pricingModelId).toBe(pricingModel.id)
     })
   })
 })

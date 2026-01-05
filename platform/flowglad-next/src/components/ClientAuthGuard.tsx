@@ -83,21 +83,60 @@ const AuthLoadingFallback = () => {
 }
 
 /**
+ * Skeleton component for a single chart section
+ */
+const ChartSkeleton = () => {
+  return (
+    <div className="w-full relative flex flex-col">
+      {/* Chart title */}
+      <div className="flex flex-row gap-2 justify-between px-4">
+        <Skeleton className="h-5 w-32" />
+      </div>
+      {/* Chart value */}
+      <div className="px-4 mt-1">
+        <Skeleton className="w-36 h-12" />
+      </div>
+      {/* Chart area */}
+      <div className="-mb-2 mt-2 flex items-center">
+        <Skeleton className="h-80 w-full" />
+      </div>
+    </div>
+  )
+}
+
+/**
  * Specialized loading fallback for dashboard-style pages
+ * Mirrors the exact layout of InternalDashboard with InnerPageContainerNew
  */
 export const DashboardLoadingFallback = () => {
   return (
-    <div className="flex flex-col gap-4 p-4 w-full">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-8 w-24" />
+    <div className="h-full flex justify-between items-center gap-2.5">
+      <div className="h-full w-full max-w-[38rem] mx-auto flex gap-8 border-l border-r border-dashed border-sidebar-border">
+        <div className="h-full w-full flex flex-col">
+          {/* PageHeaderNew skeleton */}
+          <div className="flex flex-col items-start justify-center w-full px-4 pt-20 pb-2">
+            {/* Headline wrapper */}
+            <div className="flex flex-col gap-1 items-start w-full">
+              {/* Page title skeleton - "Hello, [Name]" */}
+              <Skeleton className="h-8 w-48" />
+            </div>
+            {/* Description / DateRangePicker skeleton */}
+            <div className="flex flex-wrap items-center gap-2 w-full px-0 py-2">
+              <Skeleton className="h-8 w-64" />
+            </div>
+          </div>
+
+          {/* Charts container */}
+          <div className="w-full flex flex-col gap-12 pb-16">
+            {/* Revenue Chart */}
+            <ChartSkeleton />
+            {/* Monthly Recurring Revenue Chart */}
+            <ChartSkeleton />
+            {/* Active Subscribers Chart */}
+            <ChartSkeleton />
+          </div>
+        </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 w-full" />
-        ))}
-      </div>
-      <Skeleton className="h-64 w-full" />
     </div>
   )
 }

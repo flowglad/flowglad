@@ -21,6 +21,7 @@ import {
 import { SubscriptionItemType } from '@/types'
 import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
+import { pricingModels } from './pricingModels'
 import { usageMeters } from './usageMeters'
 
 const TABLE_NAME = 'billing_period_items'
@@ -57,17 +58,22 @@ export const billingPeriodItems = pgTable(
       enumBase: SubscriptionItemType,
     }).notNull(),
     description: text('description').notNull(),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.billingPeriodId]),
       constructIndex(TABLE_NAME, [table.discountRedemptionId]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       merchantPolicy(
         `Enable read for own organizations (${TABLE_NAME})`,
         {
           as: 'permissive',
           for: 'all',
-          using: sql`"billing_period_id" in (select "id" from "billing_periods" where "subscription_id" in (select "id" from "subscriptions" where "organization_id" in (select "organization_id" from "memberships")))`,
+          using: sql`"billing_period_id" in (select "id" from "billing_periods" where "subscription_id" in (select "id" from "subscriptions" where "organization_id"=current_organization_id()))`,
         }
       ),
       livemodePolicy(TABLE_NAME),
@@ -90,7 +96,9 @@ const createOnlyColumns = {
   discountRedemptionId: true,
 } as const
 
-const readOnlyColumns = {} as const
+const readOnlyColumns = {
+  pricingModelId: true,
+} as const
 
 const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
@@ -121,6 +129,9 @@ export const {
       .describe(
         'Usage events per unit must be null for static billing period items.'
       ),
+  },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
   },
   client: {
     hiddenColumns,

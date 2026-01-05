@@ -16,6 +16,7 @@ import type { Product } from '../schema/products'
 import type { Purchase } from '../schema/purchases'
 import {
   bulkInsertPurchases,
+  derivePricingModelIdFromPurchase,
   insertPurchase,
   upsertPurchaseById,
 } from './purchaseMethods'
@@ -358,5 +359,69 @@ describe('setupPurchase', () => {
     expect(purchase.pricingModelId).toBe(price.pricingModelId)
     expect(purchase.pricingModelId).toBe(product.pricingModelId)
     expect(purchase.pricingModelId).toBe(pricingModel.id)
+  })
+})
+
+describe('derivePricingModelIdFromPurchase', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let purchase: Purchase.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      unitPrice: 1000,
+      type: PriceType.SinglePayment,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test@test.com',
+      livemode: true,
+    })
+
+    purchase = await setupPurchase({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+    })
+  })
+
+  it('should derive pricingModelId from an existing purchase', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const derivedPricingModelId =
+        await derivePricingModelIdFromPurchase(
+          purchase.id,
+          transaction
+        )
+
+      expect(derivedPricingModelId).toBe(pricingModel.id)
+      expect(derivedPricingModelId).toBe(purchase.pricingModelId)
+    })
+  })
+
+  it('should throw error when purchase does not exist', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const nonExistentPurchaseId = `purchase_${core.nanoid()}`
+
+      await expect(
+        derivePricingModelIdFromPurchase(
+          nonExistentPurchaseId,
+          transaction
+        )
+      ).rejects.toThrow()
+    })
   })
 })

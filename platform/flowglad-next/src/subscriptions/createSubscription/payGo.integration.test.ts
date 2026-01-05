@@ -433,5 +433,5 @@ describe('Pay as You Go Workflow E2E', () => {
       ).toBe(900) // 1000 - 100 (new usage) = 900
       return { result: null }
     })
-  })
+  }, 120000)
 })

@@ -613,6 +613,10 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     refunded: false,
     refundedAmount: 0,
     refundedAt: null,
+    subtotal: feeCalculation.pretaxTotal,
+    taxAmount: feeCalculation.taxAmountFixed,
+    stripeTaxCalculationId: feeCalculation.stripeTaxCalculationId,
+    stripeTaxTransactionId: feeCalculation.stripeTaxTransactionId,
     /**
      * Sometimes billing details address is nested.
      * othertimes it is not. Try nested first, then fallback to non-nested.

@@ -17,6 +17,8 @@ import {
   billingPeriodsUpdateSchema,
 } from '@/db/schema/billingPeriods'
 import {
+  createDerivePricingModelId,
+  createDerivePricingModelIds,
   createInsertFunction,
   createSelectById,
   createSelectFunction,
@@ -37,6 +39,7 @@ import {
   subscriptions,
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
+import { derivePricingModelIdFromSubscription } from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof billingPeriods,
@@ -55,10 +58,47 @@ export const selectBillingPeriodById = createSelectById(
   config
 )
 
-export const insertBillingPeriod = createInsertFunction(
+/**
+ * Derives pricingModelId from a billing period.
+ * Used for billing period item inserts.
+ */
+export const derivePricingModelIdFromBillingPeriod =
+  createDerivePricingModelId(
+    billingPeriods,
+    config,
+    selectBillingPeriodById
+  )
+
+/**
+ * Batch derives pricingModelIds from multiple billing periods.
+ * More efficient than calling derivePricingModelIdFromBillingPeriod individually.
+ */
+export const derivePricingModelIdsFromBillingPeriods =
+  createDerivePricingModelIds(billingPeriods, config)
+
+const baseInsertBillingPeriod = createInsertFunction(
   billingPeriods,
   config
 )
+
+export const insertBillingPeriod = async (
+  billingPeriodInsert: BillingPeriod.Insert,
+  transaction: DbTransaction
+): Promise<BillingPeriod.Record> => {
+  const pricingModelId = billingPeriodInsert.pricingModelId
+    ? billingPeriodInsert.pricingModelId
+    : await derivePricingModelIdFromSubscription(
+        billingPeriodInsert.subscriptionId,
+        transaction
+      )
+  return baseInsertBillingPeriod(
+    {
+      ...billingPeriodInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateBillingPeriod = createUpdateFunction(
   billingPeriods,

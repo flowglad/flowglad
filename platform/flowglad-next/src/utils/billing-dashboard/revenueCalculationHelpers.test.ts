@@ -150,6 +150,7 @@ describe('calculateOverlapPercentage', () => {
       createdByCommit: 'test',
       updatedByCommit: 'test',
       position: 0,
+      pricingModelId: 'test-pricing-model-id',
     }
   }
 
@@ -369,6 +370,7 @@ describe('calculateBillingPeriodItemsValue', () => {
       updatedByCommit: 'test',
       type: SubscriptionItemType.Static,
       position: 0,
+      pricingModelId: 'pricing_model_test',
     }
   }
 
@@ -1055,6 +1057,7 @@ describe('Edge Cases and Error Handling', () => {
       createdByCommit: 'test',
       updatedByCommit: 'test',
       position: 0,
+      pricingModelId: 'test-pricing-model-id',
     }
 
     const feb2024 = new Date('2024-02-15T05:00:00.000Z')
@@ -1085,6 +1088,7 @@ describe('Edge Cases and Error Handling', () => {
       createdByCommit: 'test',
       updatedByCommit: 'test',
       position: 0,
+      pricingModelId: 'test-pricing-model-id',
     }
 
     // Calculate overlap with February
@@ -1125,6 +1129,7 @@ describe('Edge Cases and Error Handling', () => {
       createdByCommit: 'test',
       updatedByCommit: 'test',
       position: 0,
+      pricingModelId: 'test-pricing-model-id',
     }
 
     // Calculate overlap with January 2024

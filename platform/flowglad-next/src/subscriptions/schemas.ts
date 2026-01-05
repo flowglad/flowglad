@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { pricesClientSelectSchema } from '@/db/schema/prices'
+import {
+  PRICE_ID_DESCRIPTION,
+  PRICE_SLUG_DESCRIPTION,
+  pricesClientSelectSchema,
+} from '@/db/schema/prices'
 import { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
 import {
   staticSubscriptionItemClientSelectSchema,
@@ -19,20 +23,106 @@ import {
   SubscriptionCancellationArrangement,
 } from '@/types'
 
+/**
+ * Terse subscription item schema with priceSlug support.
+ * Used for quick subscription adjustments where you just want to specify a price and quantity.
+ */
+export const terseSubscriptionItemSchema = z
+  .object({
+    priceId: z.string().optional().describe(PRICE_ID_DESCRIPTION),
+    priceSlug: z.string().optional().describe(PRICE_SLUG_DESCRIPTION),
+    quantity: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .default(1)
+      .describe('The quantity of units. Defaults to 1.'),
+  })
+  .describe(
+    'A terse subscription item with just price reference and quantity. Exactly one of priceId or priceSlug must be provided (validated at parse-time by Zod).'
+  )
+  .refine(
+    (data) => (data.priceId ? !data.priceSlug : !!data.priceSlug),
+    {
+      error:
+        'Price identifier required: exactly one of priceId or priceSlug must be provided, not both or neither',
+    }
+  )
+  .meta({ id: 'TerseSubscriptionItem' })
+
+export type TerseSubscriptionItem = z.infer<
+  typeof terseSubscriptionItemSchema
+>
+
+/**
+ * Extended subscription item insert schema that supports priceSlug in addition to priceId.
+ * When priceSlug is provided, the server will resolve it to a priceId using the subscription's pricing model.
+ */
+export const subscriptionItemWithPriceSlugSchema =
+  subscriptionItemClientInsertSchema
+    .extend({
+      priceSlug: z
+        .string()
+        .optional()
+        .describe(PRICE_SLUG_DESCRIPTION),
+    })
+    .refine(
+      (data) => {
+        // Either priceId or priceSlug must be provided, but not both
+        const hasPriceId = !!data.priceId
+        const hasPriceSlug = !!data.priceSlug
+        return hasPriceId !== hasPriceSlug
+      },
+      {
+        error:
+          'Price identifier required: exactly one of priceId or priceSlug must be provided, not both or neither',
+      }
+    )
+    .meta({ id: 'SubscriptionItemWithPriceSlugInput' })
+
+export type SubscriptionItemWithPriceSlug = z.infer<
+  typeof subscriptionItemWithPriceSlugSchema
+>
+
+/**
+ * Union type for subscription items that can be either:
+ * - Full subscription item insert (with priceId)
+ * - Full subscription item select (existing item)
+ * - Full subscription item insert with priceSlug
+ * - Terse item (just priceId/priceSlug and quantity)
+ */
+export const flexibleSubscriptionItemSchema = z.union([
+  subscriptionItemClientInsertSchema,
+  subscriptionItemClientSelectSchema,
+  subscriptionItemWithPriceSlugSchema,
+  terseSubscriptionItemSchema,
+])
+
+export type FlexibleSubscriptionItem = z.infer<
+  typeof flexibleSubscriptionItemSchema
+>
+
 export const adjustSubscriptionImmediatelySchema = z
   .object({
     timing: z
       .literal(SubscriptionAdjustmentTiming.Immediately)
-      .describe(
-        'Note: Immediate adjustments are in private preview. Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616.'
-      ),
+      .describe('Apply the adjustment immediately.'),
     newSubscriptionItems: z.array(
       z.union([
         subscriptionItemClientInsertSchema,
         subscriptionItemClientSelectSchema,
+        subscriptionItemWithPriceSlugSchema,
+        terseSubscriptionItemSchema,
       ])
     ),
-    prorateCurrentBillingPeriod: z.boolean(),
+    prorateCurrentBillingPeriod: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe(
+        'Whether to prorate the current billing period. Defaults to true for immediate adjustments.'
+      ),
   })
   .meta({ id: 'AdjustSubscriptionImmediatelyInput' })
 
@@ -45,15 +135,51 @@ export const adjustSubscriptionAtEndOfCurrentBillingPeriodSchema = z
       z.union([
         subscriptionItemClientInsertSchema,
         subscriptionItemClientSelectSchema,
+        subscriptionItemWithPriceSlugSchema,
+        terseSubscriptionItemSchema,
       ])
     ),
   })
   .meta({ id: 'AdjustSubscriptionAtEndOfCurrentBillingPeriodInput' })
 
+/**
+ * Auto timing adjustment schema.
+ * When timing is 'auto', the server automatically determines the best timing based on whether
+ * the adjustment is an upgrade or downgrade:
+ * - Upgrades (net charge > 0): Applied immediately with proration
+ * - Downgrades (net charge < 0): Applied at the end of the current billing period
+ * - Same price: Applied immediately (no financial impact)
+ */
+export const adjustSubscriptionAutoTimingSchema = z
+  .object({
+    timing: z
+      .literal(SubscriptionAdjustmentTiming.Auto)
+      .describe(
+        'Automatically determine timing: upgrades happen immediately, downgrades at end of period.'
+      ),
+    newSubscriptionItems: z.array(
+      z.union([
+        subscriptionItemClientInsertSchema,
+        subscriptionItemClientSelectSchema,
+        subscriptionItemWithPriceSlugSchema,
+        terseSubscriptionItemSchema,
+      ])
+    ),
+    prorateCurrentBillingPeriod: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe(
+        'Whether to prorate if the adjustment is applied immediately. Defaults to true.'
+      ),
+  })
+  .meta({ id: 'AdjustSubscriptionAutoTimingInput' })
+
 export const adjustSubscriptionInputSchema = z.object({
   adjustment: z.discriminatedUnion('timing', [
     adjustSubscriptionImmediatelySchema,
     adjustSubscriptionAtEndOfCurrentBillingPeriodSchema,
+    adjustSubscriptionAutoTimingSchema,
   ]),
   id: z.string(),
 })

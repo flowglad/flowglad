@@ -1,15 +1,23 @@
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Country } from '@/db/schema/countries'
 import type { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectProductById } from '@/db/tableMethods/productMethods'
+import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
 import {
   type CountryCode,
   type CurrencyCode,
   FeeCalculationType,
+  StripeConnectContractType,
   SubscriptionItemType,
   type UsageBillingInfo,
 } from '@/types'
@@ -17,13 +25,15 @@ import {
   calculateDiscountAmountFromRedemption,
   calculateFlowgladFeePercentage,
   calculateInternationalFeePercentage,
+  calculateMoRSurchargePercentage,
   calculatePaymentMethodFeeAmount,
+  calculateTaxes,
   finalizeFeeCalculation,
 } from './common'
 
 export interface SubscriptionFeeCalculationParams {
-  organization: any
-  billingPeriod: any
+  organization: Organization.Record
+  billingPeriod: BillingPeriod.Record
   billingPeriodItems: BillingPeriodItem.Record[]
   paymentMethod: PaymentMethod.Record
   discountRedemption?: DiscountRedemption.Record
@@ -63,9 +73,12 @@ export const calculateBillingItemBaseAmount = (
   return staticAmt + usageAmt
 }
 
-export const createSubscriptionFeeCalculationInsert = (
-  params: SubscriptionFeeCalculationParams
-): FeeCalculation.Insert => {
+export const createSubscriptionFeeCalculationInsert = async (
+  params: SubscriptionFeeCalculationParams & {
+    price: Price.Record
+    product: Product.Record
+  }
+): Promise<FeeCalculation.Insert> => {
   const {
     organization,
     billingPeriod,
@@ -76,6 +89,8 @@ export const createSubscriptionFeeCalculationInsert = (
     livemode,
     currency,
     usageOverages,
+    price,
+    product,
   } = params
   const baseAmt = calculateBillingItemBaseAmount(
     billingPeriodItems,
@@ -87,6 +102,9 @@ export const createSubscriptionFeeCalculationInsert = (
   )
   const pretax = Math.max(baseAmt - (discountAmt ?? 0), 0)
   const flowPct = calculateFlowgladFeePercentage({ organization })
+  const morSurchargePct = calculateMoRSurchargePercentage({
+    organization,
+  })
   const intlPct = calculateInternationalFeePercentage({
     paymentMethod: paymentMethod.type,
     paymentMethodCountry: (paymentMethod.billingDetails.address
@@ -99,6 +117,23 @@ export const createSubscriptionFeeCalculationInsert = (
     pretax,
     paymentMethod.type
   )
+  let taxFixed = 0
+  let taxId: string | null = null
+  let taxTxn: string | null = null
+  if (
+    organization.stripeConnectContractType ===
+    StripeConnectContractType.MerchantOfRecord
+  ) {
+    const calc = await calculateTaxes({
+      discountInclusiveAmount: pretax,
+      product,
+      billingAddress: paymentMethod.billingDetails,
+      price,
+    })
+    taxFixed = calc.taxAmountFixed
+    taxId = calc.stripeTaxCalculationId
+    taxTxn = calc.stripeTaxTransactionId
+  }
   return {
     type: FeeCalculationType.SubscriptionPayment,
     organizationId: organization.id,
@@ -112,11 +147,12 @@ export const createSubscriptionFeeCalculationInsert = (
     baseAmount: baseAmt,
     currency,
     flowgladFeePercentage: flowPct.toString(),
+    morSurchargePercentage: morSurchargePct.toString(),
     internationalFeePercentage: intlPct.toString(),
     paymentMethodFeeFixed: payFee,
-    taxAmountFixed: 0,
-    stripeTaxCalculationId: null,
-    stripeTaxTransactionId: null,
+    taxAmountFixed: taxFixed,
+    stripeTaxCalculationId: taxId,
+    stripeTaxTransactionId: taxTxn,
     livemode,
   }
 }
@@ -132,9 +168,23 @@ export const createAndFinalizeSubscriptionFeeCalculation = async (
     },
     transaction
   )
-  const insert = createSubscriptionFeeCalculationInsert({
+  const subscription = await selectSubscriptionById(
+    params.billingPeriod.subscriptionId,
+    transaction
+  )
+  const price = await selectPriceById(
+    subscription.priceId,
+    transaction
+  )
+  const product = await selectProductById(
+    price.productId,
+    transaction
+  )
+  const insert = await createSubscriptionFeeCalculationInsert({
     ...params,
     discountRedemption: redemption,
+    price,
+    product,
   })
   const initial = await insertFeeCalculation(insert, transaction)
   return finalizeFeeCalculation(initial, transaction)

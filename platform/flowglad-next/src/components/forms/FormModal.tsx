@@ -255,8 +255,13 @@ const FormModal = <T extends FieldValues>({
   const form = useForm<T>({
     resolver: async (data, context, options) => {
       try {
-        // @ts-expect-error
-        return await zodResolver(formSchema)(data, context, options)
+        // Type assertion needed because Zod 4's ZodSchema<T> has unknown input type,
+        // but zodResolver expects FieldValues. This is safe because T extends FieldValues.
+        return await zodResolver(formSchema as z.ZodType<T, T>)(
+          data,
+          context,
+          options
+        )
       } catch (error) {
         // Catch any errors thrown by zodResolver
         // This prevents unhandled errors from escaping to React's error boundary

@@ -116,7 +116,7 @@
     "@trigger.dev/sdk": "4.0.2",
     "@trpc/client": "11.5.0",
     "@trpc/react-query": "11.5.0",
-    "@trpc/server": "11.5.0",
+    "@trpc/server": "11.8.0",
     "@turbopuffer/turbopuffer": "^1.7.0",
     "@unkey/api": "2.2.1",
     "@unkey/nextjs": "2.0.0",

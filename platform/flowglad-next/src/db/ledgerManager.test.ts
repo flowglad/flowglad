@@ -539,6 +539,7 @@ describe('Ledger Management System', async () => {
             status: BillingPeriodStatus.Active,
             trialPeriod: false,
             proratedPeriod: false,
+            pricingModelId: pricingModel.id,
           }
           const command: BillingPeriodTransitionLedgerCommand = {
             type: LedgerTransactionType.BillingPeriodTransition,
@@ -670,6 +671,7 @@ describe('Ledger Management System', async () => {
             createdByCommit: null,
             updatedByCommit: null,
             position: 0,
+            pricingModelId: pricingModel.id,
           }
           const invoiceLineItem: InvoiceLineItem.Record = {
             id: 'line_item_123',
@@ -688,6 +690,7 @@ describe('Ledger Management System', async () => {
             createdByCommit: null,
             updatedByCommit: null,
             position: 0,
+            pricingModelId: pricingModel.id,
           }
           const command: SettleInvoiceUsageCostsLedgerCommand = {
             type: LedgerTransactionType.SettleInvoiceUsageCosts,
@@ -804,6 +807,7 @@ describe('Ledger Management System', async () => {
           const refund: Refund.Record = {
             id: refundId,
             organizationId: organization.id,
+            pricingModelId: pricingModel.id,
             paymentId: 'payment_123',
             subscriptionId: subscription.id,
             amount: 2000,

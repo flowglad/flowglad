@@ -43,6 +43,10 @@ import {
   subscriptions,
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
+import {
+  derivePricingModelIdFromBillingPeriod,
+  derivePricingModelIdsFromBillingPeriods,
+} from './billingPeriodMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof billingPeriodItems,
@@ -61,10 +65,29 @@ export const selectBillingPeriodItemById = createSelectById(
   config
 )
 
-export const insertBillingPeriodItem = createInsertFunction(
+const baseInsertBillingPeriodItem = createInsertFunction(
   billingPeriodItems,
   config
 )
+
+export const insertBillingPeriodItem = async (
+  billingPeriodItemInsert: BillingPeriodItem.Insert,
+  transaction: DbTransaction
+): Promise<BillingPeriodItem.Record> => {
+  const pricingModelId =
+    billingPeriodItemInsert.pricingModelId ??
+    (await derivePricingModelIdFromBillingPeriod(
+      billingPeriodItemInsert.billingPeriodId,
+      transaction
+    ))
+  return baseInsertBillingPeriodItem(
+    {
+      ...billingPeriodItemInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateBillingPeriodItem = createUpdateFunction(
   billingPeriodItems,
@@ -76,10 +99,52 @@ export const selectBillingPeriodItems = createSelectFunction(
   config
 )
 
-export const bulkInsertBillingPeriodItems = createBulkInsertFunction(
+const baseBulkInsertBillingPeriodItems = createBulkInsertFunction(
   billingPeriodItems,
   config
 )
+
+export const bulkInsertBillingPeriodItems = async (
+  inserts: BillingPeriodItem.Insert[],
+  transaction: DbTransaction
+): Promise<BillingPeriodItem.Record[]> => {
+  // Collect unique billingPeriodIds that need pricingModelId derivation
+  const billingPeriodIdsNeedingDerivation = Array.from(
+    new Set(
+      inserts
+        .filter((insert) => !insert.pricingModelId)
+        .map((insert) => insert.billingPeriodId)
+    )
+  )
+
+  // Batch fetch pricingModelIds for all billing periods in one query
+  const pricingModelIdMap =
+    await derivePricingModelIdsFromBillingPeriods(
+      billingPeriodIdsNeedingDerivation,
+      transaction
+    )
+
+  // Derive pricingModelId using the batch-fetched map
+  const insertsWithPricingModelId = inserts.map((insert) => {
+    const pricingModelId =
+      insert.pricingModelId ??
+      pricingModelIdMap.get(insert.billingPeriodId)
+    if (!pricingModelId) {
+      throw new Error(
+        `Could not derive pricingModelId for billing period ${insert.billingPeriodId}`
+      )
+    }
+    return {
+      ...insert,
+      pricingModelId,
+    }
+  })
+
+  return baseBulkInsertBillingPeriodItems(
+    insertsWithPricingModelId,
+    transaction
+  )
+}
 
 export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId =
   async (billingPeriodId: string, transaction: DbTransaction) => {

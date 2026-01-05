@@ -21,6 +21,7 @@ const checkoutSession: CheckoutSession.Record = {
   outputMetadata: null,
   priceId: '1',
   organizationId: '1',
+  pricingModelId: 'pm_test',
   customerName: 'Test Customer',
   customerEmail: 'test@test.com',
   stripeSetupIntentId: null,

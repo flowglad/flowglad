@@ -3,10 +3,9 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { sentenceCase } from 'change-case'
 // Icons come next
-import { Link, Mail, Pencil } from 'lucide-react'
+import { Link } from 'lucide-react'
 import * as React from 'react'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import SendInvoiceReminderEmailModal from '@/components/forms/SendInvoiceReminderEmailModal'
 // UI components last
 import { Badge } from '@/components/ui/badge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
@@ -68,46 +67,23 @@ const InvoiceStatusBadge = ({
 
 function InvoiceActionsMenu({
   invoice,
-  invoiceLineItems,
 }: {
   invoice: Invoice.ClientRecord
-  invoiceLineItems: InvoiceLineItem.ClientRecord[]
 }) {
-  const [isSendReminderEmailOpen, setIsSendReminderEmailOpen] =
-    React.useState(false)
-
   const invoiceUrl = `${core.NEXT_PUBLIC_APP_URL}/invoice/view/${invoice.organizationId}/${invoice.id}`
   const copyInvoiceUrlHandler = useCopyTextHandler({
     text: invoiceUrl,
   })
 
-  const actionItems: ActionMenuItem[] = []
+  const actionItems: ActionMenuItem[] = [
+    {
+      label: 'Copy invoice URL',
+      icon: <Link className="h-4 w-4" />,
+      handler: copyInvoiceUrlHandler,
+    },
+  ]
 
-  // Copy invoice URL - always available
-  actionItems.push({
-    label: 'Copy invoice URL',
-    icon: <Link className="h-4 w-4" />,
-    handler: copyInvoiceUrlHandler,
-  })
-
-  // Send reminder email - only for draft or open invoices
-  if (invoice.status === 'draft' || invoice.status === 'open') {
-    actionItems.push({
-      label: 'Send reminder email',
-      icon: <Mail className="h-4 w-4" />,
-      handler: () => setIsSendReminderEmailOpen(true),
-    })
-  }
-
-  return (
-    <EnhancedDataTableActionsMenu items={actionItems}>
-      <SendInvoiceReminderEmailModal
-        isOpen={isSendReminderEmailOpen}
-        setIsOpen={setIsSendReminderEmailOpen}
-        invoiceId={invoice.id}
-      />
-    </EnhancedDataTableActionsMenu>
-  )
+  return <EnhancedDataTableActionsMenu items={actionItems} />
 }
 
 export const columns: ColumnDef<InvoiceTableRowData>[] = [
@@ -235,16 +211,13 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     enableHiding: false,
     enableResizing: false,
     cell: ({ row }) => {
-      const { invoice, invoiceLineItems } = row.original
+      const { invoice } = row.original
       return (
         <div
           className="w-8 flex justify-center"
           onClick={(e) => e.stopPropagation()}
         >
-          <InvoiceActionsMenu
-            invoice={invoice}
-            invoiceLineItems={invoiceLineItems}
-          />
+          <InvoiceActionsMenu invoice={invoice} />
         </div>
       )
     },

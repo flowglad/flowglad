@@ -26,10 +26,13 @@ import {
   invoices,
   invoicesSelectSchema,
 } from '../schema/invoices'
+import { prices } from '../schema/prices'
 import {
+  derivePricingModelIdForInvoice,
   invoiceIsInTerminalState,
   selectInvoiceById,
 } from './invoiceMethods'
+import { derivePricingModelIdFromPrice } from './priceMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof invoiceLineItems,
@@ -48,20 +51,168 @@ export const selectInvoiceLineItemById = createSelectById(
   config
 )
 
-export const insertInvoiceLineItem = createInsertFunction(
+/**
+ * Derives pricingModelId for an invoice line item with COALESCE logic.
+ * Priority: invoice > price -> product
+ * Used for invoice line item inserts.
+ */
+export const derivePricingModelIdForInvoiceLineItem = async (
+  data: {
+    invoiceId?: string | null
+    priceId?: string | null
+  },
+  transaction: DbTransaction
+): Promise<string> => {
+  // Try invoice first (COALESCE logic)
+  if (data.invoiceId) {
+    const invoice = await selectInvoiceById(
+      data.invoiceId,
+      transaction
+    )
+    return invoice.pricingModelId
+  }
+
+  // Fall back to price -> product
+  if (data.priceId) {
+    return await derivePricingModelIdFromPrice(
+      data.priceId,
+      transaction
+    )
+  }
+
+  throw new Error(
+    'Cannot derive pricingModelId for invoice line item: both invoiceId and priceId are null or have no pricingModelId'
+  )
+}
+
+const baseInsertInvoiceLineItem = createInsertFunction(
   invoiceLineItems,
   config
 )
+
+export const insertInvoiceLineItem = async (
+  invoiceLineItemInsert: InvoiceLineItem.Insert,
+  transaction: DbTransaction
+): Promise<InvoiceLineItem.Record> => {
+  const pricingModelId =
+    invoiceLineItemInsert.pricingModelId ??
+    (await derivePricingModelIdForInvoiceLineItem(
+      {
+        invoiceId: invoiceLineItemInsert.invoiceId,
+        priceId: invoiceLineItemInsert.priceId,
+      },
+      transaction
+    ))
+  return baseInsertInvoiceLineItem(
+    {
+      ...invoiceLineItemInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateInvoiceLineItem = createUpdateFunction(
   invoiceLineItems,
   config
 )
 
-export const insertInvoiceLineItems = createInsertManyFunction(
+const baseInsertInvoiceLineItems = createInsertManyFunction(
   invoiceLineItems,
   config
 )
+
+/**
+ * Batch derives and maps pricingModelIds for invoice line item inserts.
+ * This helper efficiently handles multiple inserts by:
+ * 1. Collecting unique (invoiceId, priceId) combinations
+ * 2. Deriving pricingModelIds once per unique combination
+ * 3. Mapping the derived IDs back to all inserts
+ *
+ * @param inserts - Array of invoice line item inserts
+ * @param transaction - Database transaction
+ * @returns Array of inserts with pricingModelId populated
+ */
+const deriveAndMapPricingModelIdsForInserts = async (
+  inserts: InvoiceLineItem.Insert[],
+  transaction: DbTransaction
+): Promise<InvoiceLineItem.Insert[]> => {
+  // Collect unique combinations that need pricingModelId derivation
+  const insertsNeedingDerivation = inserts.filter(
+    (insert) => !insert.pricingModelId
+  )
+
+  // Create a map key for each unique combination
+  const createMapKey = (
+    invoiceId: string,
+    priceId: string | null | undefined
+  ) => `${invoiceId}|${priceId || ''}`
+
+  // Collect unique combinations
+  const uniqueCombinations = Array.from(
+    new Set(
+      insertsNeedingDerivation.map((insert) =>
+        createMapKey(insert.invoiceId, insert.priceId)
+      )
+    )
+  ).map((key) => {
+    const [invoiceId, priceId] = key.split('|')
+    return {
+      invoiceId,
+      priceId: priceId || undefined,
+    }
+  })
+
+  // Batch derive pricingModelIds for unique combinations
+  const pricingModelIdResults = await Promise.all(
+    uniqueCombinations.map(async (combo) => ({
+      key: createMapKey(combo.invoiceId, combo.priceId),
+      pricingModelId: await derivePricingModelIdForInvoiceLineItem(
+        combo,
+        transaction
+      ),
+    }))
+  )
+
+  // Build map for O(1) lookup
+  const pricingModelIdMap = new Map(
+    pricingModelIdResults.map((r) => [r.key, r.pricingModelId])
+  )
+
+  // Derive pricingModelId for each insert using the map
+  return inserts.map((insert) => {
+    if (insert.pricingModelId) {
+      return insert
+    }
+
+    const key = createMapKey(insert.invoiceId, insert.priceId)
+    const pricingModelId = pricingModelIdMap.get(key)
+
+    if (!pricingModelId) {
+      throw new Error(
+        `Could not derive pricingModelId for invoice line item with invoiceId: ${insert.invoiceId}, priceId: ${insert.priceId}`
+      )
+    }
+
+    return {
+      ...insert,
+      pricingModelId,
+    }
+  })
+}
+
+export const insertInvoiceLineItems = async (
+  inserts: InvoiceLineItem.Insert[],
+  transaction: DbTransaction
+): Promise<InvoiceLineItem.Record[]> => {
+  const insertsWithPricingModelId =
+    await deriveAndMapPricingModelIdsForInserts(inserts, transaction)
+
+  return baseInsertInvoiceLineItems(
+    insertsWithPricingModelId,
+    transaction
+  )
+}
 
 export const selectInvoiceLineItems = createSelectFunction(
   invoiceLineItems,
@@ -156,7 +307,22 @@ export const deleteInvoiceLineItems = async (
 export const selectInvoiceLineItemsPaginated =
   createPaginatedSelectFunction(invoiceLineItems, config)
 
-export const bulkUpsertInvoiceLineItems = createBulkUpsertFunction(
+const baseBulkUpsertInvoiceLineItems = createBulkUpsertFunction(
   invoiceLineItems,
   config
 )
+
+export const bulkUpsertInvoiceLineItems = async (
+  inserts: InvoiceLineItem.Insert[],
+  target: Parameters<typeof baseBulkUpsertInvoiceLineItems>[1],
+  transaction: DbTransaction
+): Promise<InvoiceLineItem.Record[]> => {
+  const insertsWithPricingModelId =
+    await deriveAndMapPricingModelIdsForInserts(inserts, transaction)
+
+  return baseBulkUpsertInvoiceLineItems(
+    insertsWithPricingModelId,
+    target,
+    transaction
+  )
+}

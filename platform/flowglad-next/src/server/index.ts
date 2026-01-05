@@ -5,8 +5,10 @@ import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
 import { logout } from './mutations/logout'
 import { setReferralSelection } from './mutations/setReferralSelection'
 import { toggleTestMode } from './mutations/toggleTestMode'
+import { getFundsFlowEligibilityForCountry } from './queries/getFundsFlowEligibilityForCountry'
 import { ping } from './queries/ping'
 import { apiKeysRouter } from './routers/apiKeysRouter'
+import { bannersRouter } from './routers/bannersRouter'
 import { checkoutSessionsRouter } from './routers/checkoutSessionsRouter'
 import { countriesRouter } from './routers/countriesRouter'
 import { customerBillingPortalRouter } from './routers/customerBillingPortalRouter'
@@ -48,6 +50,7 @@ export const appRouter = router({
   // Utility endpoints
   utils: router({
     ping,
+    getFundsFlowEligibilityForCountry,
     pong,
     generateDescription,
     getPresignedURL,
@@ -57,6 +60,7 @@ export const appRouter = router({
     setReferralSelection,
   }),
   apiKeys: apiKeysRouter,
+  banners: bannersRouter,
   subscriptions: subscriptionsRouter,
   paymentMethods: paymentMethodsRouter,
   usageMeters: usageMetersRouter,

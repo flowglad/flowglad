@@ -15,7 +15,128 @@ const decodeStatusFromId = (
   return 'succeeded'
 }
 
+const paymentIntentStatusToChargeStatus = (
+  status: Stripe.PaymentIntent.Status | string
+): Stripe.Charge.Status => {
+  switch (status) {
+    case 'succeeded':
+      return 'succeeded'
+    case 'canceled':
+      return 'failed'
+    default:
+      return 'pending'
+  }
+}
+
 export const stripeHandlers = [
+  http.post(
+    'https://api.stripe.com/v1/accounts',
+    async ({ request }) => {
+      const body = await request.text()
+      const params = new URLSearchParams(body)
+      const country = params.get('country')
+      return HttpResponse.json({
+        id: `acct_${nanoid()}`,
+        object: 'account',
+        country,
+        created: Math.floor(Date.now() / 1000),
+        capabilities: {
+          transfers: 'active',
+          card_payments: params.get(
+            'capabilities[card_payments][requested]'
+          )
+            ? 'active'
+            : 'inactive',
+        },
+      })
+    }
+  ),
+  http.post(
+    'https://api.stripe.com:443/v1/accounts',
+    async ({ request }) => {
+      const body = await request.text()
+      const params = new URLSearchParams(body)
+      const country = params.get('country')
+      return HttpResponse.json({
+        id: `acct_${nanoid()}`,
+        object: 'account',
+        country,
+        created: Math.floor(Date.now() / 1000),
+        capabilities: {
+          transfers: 'active',
+          card_payments: params.get(
+            'capabilities[card_payments][requested]'
+          )
+            ? 'active'
+            : 'inactive',
+        },
+      })
+    }
+  ),
+  http.post(
+    'https://api.stripe.com/v1/account_links',
+    async ({ request }) => {
+      const body = await request.text()
+      const params = new URLSearchParams(body)
+      const account = params.get('account')
+      return HttpResponse.json({
+        id: `al_${nanoid()}`,
+        object: 'account_link',
+        created: Math.floor(Date.now() / 1000),
+        expires_at: Math.floor(Date.now() / 1000) + 60 * 30,
+        url: `https://connect.stripe.com/setup/s/${account ?? nanoid()}`,
+      })
+    }
+  ),
+  http.post(
+    'https://api.stripe.com:443/v1/account_links',
+    async ({ request }) => {
+      const body = await request.text()
+      const params = new URLSearchParams(body)
+      const account = params.get('account')
+      return HttpResponse.json({
+        id: `al_${nanoid()}`,
+        object: 'account_link',
+        created: Math.floor(Date.now() / 1000),
+        expires_at: Math.floor(Date.now() / 1000) + 60 * 30,
+        url: `https://connect.stripe.com/setup/s/${account ?? nanoid()}`,
+      })
+    }
+  ),
+  http.post(
+    'https://api.stripe.com/v1/tax/transactions/create_from_calculation',
+    async ({ request }) => {
+      const body = await request.text()
+      const params = new URLSearchParams(body)
+      const calculation = params.get('calculation')
+      const reference = params.get('reference')
+      return HttpResponse.json({
+        id: `tax_txn_${nanoid()}`,
+        object: 'tax.transaction',
+        livemode: false,
+        created: Math.floor(Date.now() / 1000),
+        calculation,
+        reference,
+      })
+    }
+  ),
+  http.post(
+    'https://api.stripe.com:443/v1/tax/transactions/create_from_calculation',
+    async ({ request }) => {
+      const body = await request.text()
+      const params = new URLSearchParams(body)
+      const calculation = params.get('calculation')
+      const reference = params.get('reference')
+      return HttpResponse.json({
+        id: `tax_txn_${nanoid()}`,
+        object: 'tax.transaction',
+        livemode: false,
+        created: Math.floor(Date.now() / 1000),
+        calculation,
+        reference,
+      })
+    }
+  ),
   http.post('https://api.stripe.com/v1/payment_intents', (req) => {
     return HttpResponse.json({
       id: 'pi_mock123',
@@ -70,11 +191,13 @@ export const stripeHandlers = [
     if (typeof id === 'string' && id.includes('___')) {
       status = id.split('___')[1]
     }
+    const chargeStatus = paymentIntentStatusToChargeStatus(status)
     return HttpResponse.json({
       id,
       amount: 1000,
       currency: 'usd',
       status,
+      latest_charge: `ch_${nanoid()}___${chargeStatus}`,
     })
   }),
   // Port-explicit variant
@@ -86,11 +209,39 @@ export const stripeHandlers = [
       if (typeof id === 'string' && id.includes('___')) {
         status = id.split('___')[1]
       }
+      const chargeStatus = paymentIntentStatusToChargeStatus(status)
       return HttpResponse.json({
         id,
         amount: 1000,
         currency: 'usd',
         status,
+        latest_charge: `ch_${nanoid()}___${chargeStatus}`,
+      })
+    }
+  ),
+  http.post(
+    'https://api.stripe.com/v1/payment_intents/:id/confirm',
+    (req) => {
+      const { id } = req.params
+      return HttpResponse.json({
+        id,
+        amount: 1000,
+        currency: 'usd',
+        status: 'succeeded',
+        latest_charge: `ch_${nanoid()}___succeeded`,
+      })
+    }
+  ),
+  http.post(
+    'https://api.stripe.com:443/v1/payment_intents/:id/confirm',
+    (req) => {
+      const { id } = req.params
+      return HttpResponse.json({
+        id,
+        amount: 1000,
+        currency: 'usd',
+        status: 'succeeded',
+        latest_charge: `ch_${nanoid()}___succeeded`,
       })
     }
   ),
@@ -312,29 +463,6 @@ export const stripeHandlers = [
 ]
 
 export const stripeServer = setupServer(...stripeHandlers)
-
-const paymentIntentStatusToChargeStatus = (
-  status: Stripe.PaymentIntent.Status
-): Stripe.Charge.Status => {
-  switch (status) {
-    case 'succeeded':
-      return 'succeeded'
-    case 'processing':
-      return 'pending'
-    case 'requires_confirmation':
-      return 'pending'
-    case 'requires_payment_method':
-      return 'pending'
-    case 'requires_capture':
-      return 'pending'
-    case 'requires_action':
-      return 'pending'
-    case 'canceled':
-      return 'failed'
-    default:
-      throw new Error(`Unknown payment intent status: ${status}`)
-  }
-}
 
 export const createStripePaymentIntentAndChargeId = (params: {
   paymentIntentStatus: Stripe.PaymentIntent.Status

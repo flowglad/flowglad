@@ -2,11 +2,13 @@
 import { Check, Clock, Copy } from 'lucide-react'
 import { useState } from 'react'
 import Markdown from 'react-markdown'
+import { toast } from 'sonner'
+import { trpc } from '@/app/_trpc/client'
+import ErrorLabel from '@/components/ErrorLabel'
 import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
-import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestStripeConnectOnboardingLinkModal'
 import { CursorLogo } from '@/components/icons/CursorLogo'
 import { Button } from '@/components/ui/button'
-import type { Country } from '@/db/schema/countries'
+import { useAuthContext } from '@/contexts/authContext'
 import { cn } from '@/lib/utils'
 import {
   type OnboardingChecklistItem,
@@ -18,6 +20,16 @@ interface OnboardingStatusRowProps extends OnboardingChecklistItem {
   onClick?: () => void
   children?: React.ReactNode
   actionNode?: React.ReactNode
+}
+
+const userFacingErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message
+  }
+  if (typeof error === 'string') {
+    return error
+  }
+  return 'Something went wrong. Please try again.'
 }
 
 const OnboardingItemDescriptionLabel = ({
@@ -169,19 +181,21 @@ const CodeblockGroup = ({
 
 const OnboardingStatusTable = ({
   onboardingChecklistItems,
-  countries,
   secretApiKey,
   pricingModelsCount,
 }: {
   onboardingChecklistItems: OnboardingChecklistItem[]
-  countries: Country.Record[]
   secretApiKey: string
   pricingModelsCount: number
 }) => {
-  const [
-    isRequestStripeConnectOnboardingLinkModalOpen,
-    setIsRequestStripeConnectOnboardingLinkModalOpen,
-  ] = useState(false)
+  const requestStripeConnect =
+    trpc.organizations.requestStripeConnect.useMutation()
+  const { organization } = useAuthContext()
+  const [enablePaymentsError, setEnablePaymentsError] = useState<
+    string | undefined
+  >()
+  const [isEnablePaymentsLoading, setIsEnablePaymentsLoading] =
+    useState(false)
   const [
     isCreatePricingModelModalOpen,
     setIsCreatePricingModelModalOpen,
@@ -218,6 +232,33 @@ const OnboardingStatusTable = ({
 
   const cursorDeepLink = generateCursorDeepLink()
   const mcpConfigText = JSON.stringify(mcpConfigForCopy, null, 2)
+
+  const handleEnablePayments = async () => {
+    try {
+      setEnablePaymentsError(undefined)
+      setIsEnablePaymentsLoading(true)
+
+      const countryId = organization?.countryId
+      if (!countryId) {
+        const message =
+          'Country is required before you can enable payments.'
+        toast.error(message)
+        setEnablePaymentsError(message)
+        return
+      }
+
+      const { onboardingLink } =
+        await requestStripeConnect.mutateAsync({})
+      window.location.href = onboardingLink
+    } catch (error) {
+      console.error('Failed to request Stripe onboarding link', error)
+      const message = userFacingErrorMessage(error)
+      toast.error(message)
+      setEnablePaymentsError(message)
+    } finally {
+      setIsEnablePaymentsLoading(false)
+    }
+  }
 
   return (
     <div className="flex flex-col w-full gap-4">
@@ -265,23 +306,45 @@ const OnboardingStatusTable = ({
           </Button>
         }
       />
-      {onboardingChecklistItems.map((item, index) => (
-        <OnboardingStatusRow
-          key={item.title}
-          completed={item.completed}
-          inReview={item.inReview}
-          title={`${index + 3}. ${item.title}`}
-          description={item.description}
-          action={item.action}
-          type={item.type}
-          onClick={() => {
-            if (item.type === OnboardingItemType.Stripe) {
-              setIsRequestStripeConnectOnboardingLinkModalOpen(true)
-              return
-            }
-          }}
-        />
-      ))}
+      {onboardingChecklistItems.map((item, index) => {
+        let actionNode: React.ReactNode | undefined
+        if (
+          item.type === OnboardingItemType.Stripe &&
+          !item.completed &&
+          !item.inReview
+        ) {
+          actionNode = (
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => {
+                  void handleEnablePayments()
+                }}
+                disabled={isEnablePaymentsLoading}
+              >
+                {isEnablePaymentsLoading
+                  ? 'Connecting...'
+                  : (item.action ?? 'Connect')}
+              </Button>
+              <ErrorLabel error={enablePaymentsError} />
+            </div>
+          )
+        }
+
+        return (
+          <OnboardingStatusRow
+            key={item.title}
+            completed={item.completed}
+            inReview={item.inReview}
+            title={`${index + 3}. ${item.title}`}
+            description={item.description}
+            action={item.action}
+            type={item.type}
+            actionNode={actionNode}
+          />
+        )
+      })}
       <OnboardingStatusRow
         key={'add-flowglad-mcp-server'}
         completed={false}
@@ -330,11 +393,6 @@ const OnboardingStatusTable = ({
             </div>
           </div>
         }
-      />
-      <RequestStripeConnectOnboardingLinkModal
-        isOpen={isRequestStripeConnectOnboardingLinkModalOpen}
-        setIsOpen={setIsRequestStripeConnectOnboardingLinkModalOpen}
-        countries={countries}
       />
       <CreatePricingModelModal
         isOpen={isCreatePricingModelModalOpen}

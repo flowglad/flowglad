@@ -8,6 +8,24 @@ import {
 import { PriceType, PurchaseStatus } from '@/types'
 import core from './core'
 
+/**
+ * Returns a human-readable status label for a purchase based on its state.
+ * - 'Concluded' if the purchase has ended
+ * - 'Paid' if the purchase has been completed
+ * - 'Pending' if the purchase is still in progress
+ */
+export const getPurchaseStatusLabel = (
+  purchase: Purchase.ClientRecord
+): string => {
+  if (purchase.endDate) {
+    return 'Concluded'
+  }
+  if (purchase.purchaseDate) {
+    return 'Paid'
+  }
+  return 'Pending'
+}
+
 export const projectPriceFieldsOntoPurchaseFields = (
   price: Price.Record
 ): Pick<

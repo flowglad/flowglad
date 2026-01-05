@@ -28,6 +28,7 @@ import { BillingRunStatus } from '@/types'
 import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 import { paymentMethods } from './paymentMethods'
+import { pricingModels } from './pricingModels'
 import { subscriptions } from './subscriptions'
 
 const TABLE_NAME = 'billing_runs'
@@ -67,18 +68,23 @@ export const billingRuns = pgTable(
       'last_stripe_payment_intent_event_timestamp'
     ),
     isAdjustment: boolean('is_adjustment').notNull().default(false),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.billingPeriodId]),
       constructIndex(TABLE_NAME, [table.status]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       merchantPolicy(
         `Enable read for own organizations (${TABLE_NAME})`,
         {
           as: 'permissive',
           to: 'own_organization',
           for: 'all',
-          using: sql`"billing_period_id" in (select "id" from "billing_periods" where "subscription_id" in (select "id" from "subscriptions" where "organization_id" in (select "organization_id" from "memberships")))`,
+          using: sql`"billing_period_id" in (select "id" from "billing_periods" where "subscription_id" in (select "id" from "subscriptions" where "organization_id"=current_organization_id()))`,
         }
       ),
       livemodePolicy(TABLE_NAME),
@@ -95,6 +101,7 @@ const columnRefinements = {
 }
 const readOnlyColumns = {
   billingPeriodId: true,
+  pricingModelId: true,
 } as const
 
 const hiddenColumns = {
@@ -113,6 +120,9 @@ export const {
   },
 } = buildSchemas(billingRuns, {
   refine: columnRefinements,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns,
     readOnlyColumns,

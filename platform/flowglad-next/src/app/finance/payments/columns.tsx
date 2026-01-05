@@ -135,27 +135,6 @@ export const columns: ColumnDef<Payment.TableRowData>[] = [
     maxSize: 150,
   },
   {
-    id: 'amount',
-    accessorFn: (row) => row.payment.amount,
-    header: 'Amount',
-    cell: ({ row }) => {
-      const payment = row.original.payment
-      const formatted =
-        stripeCurrencyAmountToHumanReadableCurrencyAmount(
-          payment.currency,
-          payment.amount
-        )
-      return (
-        <div className="truncate" title={formatted}>
-          {formatted}
-        </div>
-      )
-    },
-    size: 112,
-    minSize: 112,
-    maxSize: 128,
-  },
-  {
     id: 'status',
     accessorFn: (row) => row.payment.status,
     header: 'Status',
@@ -183,9 +162,9 @@ export const columns: ColumnDef<Payment.TableRowData>[] = [
         </div>
       )
     },
-    size: 109,
-    minSize: 109,
-    maxSize: 116,
+    size: 120,
+    minSize: 120,
+    maxSize: 128,
   },
   {
     id: 'paymentId',
@@ -204,6 +183,27 @@ export const columns: ColumnDef<Payment.TableRowData>[] = [
     size: 100,
     minSize: 100,
     maxSize: 150,
+  },
+  {
+    id: 'amount',
+    accessorFn: (row) => row.payment.amount,
+    header: () => <div className="text-right">Amount</div>,
+    cell: ({ row }) => {
+      const payment = row.original.payment
+      const formatted =
+        stripeCurrencyAmountToHumanReadableCurrencyAmount(
+          payment.currency,
+          payment.amount
+        )
+      return (
+        <div className="truncate text-right" title={formatted}>
+          {formatted}
+        </div>
+      )
+    },
+    size: 120,
+    minSize: 112,
+    maxSize: 130,
   },
   {
     id: 'actions',

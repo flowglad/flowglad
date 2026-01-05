@@ -21,6 +21,8 @@ import {
   createBulkInsertFunction,
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
+  createDerivePricingModelId,
+  createDerivePricingModelIds,
   createInsertFunction,
   createPaginatedSelectFunction,
   createSelectById,
@@ -57,6 +59,7 @@ import {
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
 } from './pricingModelMethods'
 import {
+  derivePricingModelIdFromProduct,
   pricingModelIdsForProducts,
   selectProductById,
   selectProducts,
@@ -74,65 +77,25 @@ const config: ORMMethodCreatorConfig<
   tableName: 'prices',
 }
 
-/**
- * Derives pricingModelId from a product.
- * Used for prices and productFeatures.
- */
-export const derivePricingModelIdFromProduct = async (
-  productId: string,
-  transaction: DbTransaction
-): Promise<string> => {
-  const product = await selectProductById(productId, transaction)
-  if (!product.pricingModelId) {
-    throw new Error(
-      `Product ${productId} does not have a pricingModelId`
-    )
-  }
-  return product.pricingModelId
-}
+export const selectPriceById = createSelectById(prices, config)
 
 /**
- * Derives pricingModelId from a price (via product).
+ * Derives pricingModelId from a price by reading directly from the price table.
  * Used for subscriptions and purchases.
+ * Note: Changed from going through product to reading directly from price.
  */
-export const derivePricingModelIdFromPrice = async (
-  priceId: string,
-  transaction: DbTransaction
-): Promise<string> => {
-  const price = await selectPriceById(priceId, transaction)
-  return derivePricingModelIdFromProduct(price.productId, transaction)
-}
+export const derivePricingModelIdFromPrice =
+  createDerivePricingModelId(prices, config, selectPriceById)
 
 /**
  * Batch fetch pricingModelIds for multiple prices.
  * More efficient than calling derivePricingModelIdFromPrice for each price individually.
  * Used by bulk insert operations in purchases and subscriptions.
  */
-export const pricingModelIdsForPrices = async (
-  priceIds: string[],
-  transaction: DbTransaction
-): Promise<Map<string, string>> => {
-  const priceRows = await transaction
-    .select({
-      id: prices.id,
-      pricingModelId: prices.pricingModelId,
-    })
-    .from(prices)
-    .where(inArray(prices.id, priceIds))
-
-  const pricingModelIdMap = new Map<string, string>()
-  for (const priceRow of priceRows) {
-    if (!priceRow.pricingModelId) {
-      throw new Error(
-        `Price ${priceRow.id} does not have a pricingModelId`
-      )
-    }
-    pricingModelIdMap.set(priceRow.id, priceRow.pricingModelId)
-  }
-  return pricingModelIdMap
-}
-
-export const selectPriceById = createSelectById(prices, config)
+export const pricingModelIdsForPrices = createDerivePricingModelIds(
+  prices,
+  config
+)
 
 const baseBulkInsertPrices = createBulkInsertFunction(prices, config)
 
@@ -745,4 +708,32 @@ export const safelyUpdatePrice = async (
     )
   }
   return updatePrice(price, transaction)
+}
+
+/**
+ * Selects a price by slug within a specific pricing model.
+ * Price slugs are scoped to a pricing model, so we need the pricingModelId to resolve.
+ *
+ * @param params - Object containing slug and pricingModelId
+ * @param transaction - Database transaction
+ * @returns The price record if found, null otherwise
+ */
+export const selectPriceBySlugAndPricingModelId = async (
+  params: { slug: string; pricingModelId: string },
+  transaction: DbTransaction
+): Promise<Price.Record | null> => {
+  const result = await selectPrices(
+    {
+      slug: params.slug,
+      pricingModelId: params.pricingModelId,
+      active: true,
+    },
+    transaction
+  )
+
+  if (result.length === 0) {
+    return null
+  }
+
+  return result[0]
 }

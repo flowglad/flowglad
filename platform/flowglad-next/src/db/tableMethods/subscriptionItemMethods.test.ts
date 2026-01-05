@@ -1298,4 +1298,249 @@ describe('subscriptionItemMethods', async () => {
       })
     })
   })
+
+  describe('pricingModelId derivation', () => {
+    it('insertSubscriptionItem should derive pricingModelId from subscription', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const item = await insertSubscriptionItem(
+          {
+            subscriptionId: subscription.id,
+            type: SubscriptionItemType.Static,
+            addedDate: Date.now(),
+            unitPrice: 1000,
+            quantity: 1,
+            livemode: true,
+            priceId: price.id,
+          },
+          transaction
+        )
+
+        expect(item.pricingModelId).toBe(subscription.pricingModelId)
+      })
+    })
+
+    it('insertSubscriptionItem should honor provided pricingModelId', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const orgData = await setupOrg()
+        const item = await insertSubscriptionItem(
+          {
+            subscriptionId: subscription.id,
+            type: SubscriptionItemType.Static,
+            addedDate: Date.now(),
+            unitPrice: 1000,
+            quantity: 1,
+            livemode: true,
+            priceId: price.id,
+            pricingModelId: orgData.pricingModel.id, // explicitly provided
+          },
+          transaction
+        )
+
+        expect(item.pricingModelId).toBe(orgData.pricingModel.id)
+      })
+    })
+
+    it('bulkInsertSubscriptionItems should derive pricingModelId for all items', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const items = await bulkInsertSubscriptionItems(
+          [
+            {
+              subscriptionId: subscription.id,
+              type: SubscriptionItemType.Static,
+              addedDate: Date.now(),
+              unitPrice: 1000,
+              quantity: 1,
+              livemode: true,
+              priceId: price.id,
+            },
+            {
+              subscriptionId: subscription.id,
+              type: SubscriptionItemType.Static,
+              addedDate: Date.now(),
+              unitPrice: 2000,
+              quantity: 2,
+              livemode: true,
+              priceId: price.id,
+            },
+          ],
+          transaction
+        )
+
+        expect(items).toHaveLength(2)
+        expect(items[0].pricingModelId).toBe(
+          subscription.pricingModelId
+        )
+        expect(items[1].pricingModelId).toBe(
+          subscription.pricingModelId
+        )
+      })
+    })
+
+    it('bulkInsertOrDoNothingSubscriptionItemsByExternalId should derive pricingModelId', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const externalId1 = `ext_${core.nanoid()}`
+        const externalId2 = `ext_${core.nanoid()}`
+
+        const items =
+          await bulkInsertOrDoNothingSubscriptionItemsByExternalId(
+            [
+              {
+                subscriptionId: subscription.id,
+                type: SubscriptionItemType.Static,
+                addedDate: Date.now(),
+                unitPrice: 1000,
+                quantity: 1,
+                livemode: true,
+                externalId: externalId1,
+                priceId: price.id,
+              },
+              {
+                subscriptionId: subscription.id,
+                type: SubscriptionItemType.Static,
+                addedDate: Date.now(),
+                unitPrice: 2000,
+                quantity: 2,
+                livemode: true,
+                externalId: externalId2,
+                priceId: price.id,
+              },
+            ],
+            transaction
+          )
+
+        expect(items).toHaveLength(2)
+        expect(items[0].pricingModelId).toBe(
+          subscription.pricingModelId
+        )
+        expect(items[1].pricingModelId).toBe(
+          subscription.pricingModelId
+        )
+      })
+    })
+
+    it('bulkCreateOrUpdateSubscriptionItems should derive pricingModelId for new items', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const newItem = {
+          subscriptionId: subscription.id,
+          type: SubscriptionItemType.Static,
+          addedDate: Date.now(),
+          unitPrice: 1000,
+          quantity: 1,
+          livemode: true,
+          priceId: price.id,
+        } as const
+
+        const items = await bulkCreateOrUpdateSubscriptionItems(
+          [newItem],
+          transaction
+        )
+
+        expect(items).toHaveLength(1)
+        expect(items[0].pricingModelId).toBe(
+          subscription.pricingModelId
+        )
+      })
+    })
+
+    it('insertSubscriptionItem should throw error when subscription does not exist', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentSubscriptionId = `sub_${core.nanoid()}`
+
+        await expect(
+          insertSubscriptionItem(
+            {
+              subscriptionId: nonExistentSubscriptionId,
+              type: SubscriptionItemType.Static,
+              addedDate: Date.now(),
+              unitPrice: 1000,
+              quantity: 1,
+              livemode: true,
+              priceId: price.id,
+            },
+            transaction
+          )
+        ).rejects.toThrow()
+      })
+    })
+
+    it('bulkInsertSubscriptionItems should throw error when any subscription does not exist', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentSubscriptionId = `sub_${core.nanoid()}`
+
+        await expect(
+          bulkInsertSubscriptionItems(
+            [
+              {
+                subscriptionId: subscription.id,
+                type: SubscriptionItemType.Static,
+                addedDate: Date.now(),
+                unitPrice: 1000,
+                quantity: 1,
+                livemode: true,
+                priceId: price.id,
+              },
+              {
+                subscriptionId: nonExistentSubscriptionId, // invalid
+                type: SubscriptionItemType.Static,
+                addedDate: Date.now(),
+                unitPrice: 2000,
+                quantity: 2,
+                livemode: true,
+                priceId: price.id,
+              },
+            ],
+            transaction
+          )
+        ).rejects.toThrow()
+      })
+    })
+
+    it('bulkInsertOrDoNothingSubscriptionItemsByExternalId should throw error when subscription does not exist', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentSubscriptionId = `sub_${core.nanoid()}`
+        const externalId = `ext_${core.nanoid()}`
+
+        await expect(
+          bulkInsertOrDoNothingSubscriptionItemsByExternalId(
+            [
+              {
+                subscriptionId: nonExistentSubscriptionId,
+                type: SubscriptionItemType.Static,
+                addedDate: Date.now(),
+                unitPrice: 1000,
+                quantity: 1,
+                livemode: true,
+                externalId,
+                priceId: price.id,
+              },
+            ],
+            transaction
+          )
+        ).rejects.toThrow()
+      })
+    })
+
+    it('bulkCreateOrUpdateSubscriptionItems should throw error when subscription does not exist for new items', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentSubscriptionId = `sub_${core.nanoid()}`
+
+        await expect(
+          bulkCreateOrUpdateSubscriptionItems(
+            [
+              {
+                subscriptionId: nonExistentSubscriptionId,
+                type: SubscriptionItemType.Static,
+                addedDate: Date.now(),
+                unitPrice: 1000,
+                quantity: 1,
+                livemode: true,
+                priceId: price.id,
+              },
+            ],
+            transaction
+          )
+        ).rejects.toThrow()
+      })
+    })
+  })
 })

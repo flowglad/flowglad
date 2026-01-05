@@ -7,6 +7,7 @@ import {
   livemodePolicy,
   merchantPolicy,
   nullableStringForeignKey,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   type SelectConditions,
   tableBase,
@@ -84,13 +85,13 @@ export const events = pgTable(
         as: 'permissive',
         to: 'merchant',
         for: 'insert',
-        withCheck: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        withCheck: orgIdEqualsCurrentSQL(),
       }),
       merchantPolicy('Enable all actions for own organization', {
         as: 'permissive',
         to: 'merchant',
         for: 'select',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        using: orgIdEqualsCurrentSQL(),
       }),
     ]
   }

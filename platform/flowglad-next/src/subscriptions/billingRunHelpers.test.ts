@@ -108,6 +108,7 @@ import {
   PaymentMethodType,
   PaymentStatus,
   PriceType,
+  StripeConnectContractType,
   SubscriptionItemType,
   SubscriptionStatus,
   UsageCreditStatus,
@@ -1760,6 +1761,42 @@ describe('billingRunHelpers', async () => {
       }
     })
 
+    it('copies Stripe Tax calculation fields from fee calculation onto payment (MoR)', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        organization = await updateOrganization(
+          {
+            id: organization.id,
+            stripeConnectContractType:
+              StripeConnectContractType.MerchantOfRecord,
+          },
+          transaction
+        )
+      })
+
+      const result = await adminTransaction(({ transaction }) =>
+        executeBillingRunCalculationAndBookkeepingSteps(
+          billingRun,
+          transaction
+        )
+      )
+
+      expect(result.feeCalculation.stripeTaxCalculationId).toMatch(
+        /^testtaxcalc_/
+      )
+      expect(result.payment?.stripeTaxCalculationId).toBe(
+        result.feeCalculation.stripeTaxCalculationId
+      )
+      expect(result.payment?.subtotal).toBe(
+        result.feeCalculation.pretaxTotal
+      )
+      expect(result.payment?.taxAmount).toBe(
+        result.feeCalculation.taxAmountFixed
+      )
+      expect(result.payment?.stripeTaxTransactionId).toBe(
+        result.feeCalculation.stripeTaxTransactionId
+      )
+    })
+
     it('should update billing run status to AwaitingPaymentConfirmation', async () => {
       await adminTransaction(({ transaction }) =>
         executeBillingRunCalculationAndBookkeepingSteps(
@@ -3288,7 +3325,8 @@ describe('billingRunHelpers', async () => {
         livemode: billingPeriod.livemode,
         attemptNumber: 1,
         isAdjustment: false,
-      })
+        pricingModelId: pricingModel.id,
+      }) as BillingRun.Insert & { pricingModelId: string }
       billingRun = await adminTransaction(async ({ transaction }) => {
         const [inserted] = await transaction
           .insert(billingRuns)

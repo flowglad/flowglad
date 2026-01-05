@@ -31,6 +31,7 @@ import {
   calculateFlowgladFeePercentage,
   calculateInternationalFeePercentage,
   calculateInvoiceBaseAmount,
+  calculateMoRSurchargePercentage,
   calculatePaymentMethodFeeAmount,
   calculatePriceBaseAmount,
   calculateTaxes,
@@ -58,6 +59,9 @@ const createBaseFeeCalculationInsert = ({
   organizationCountry: Country.Record
 }): FeeCalculation.CheckoutSessionInsert => {
   const flowPct = calculateFlowgladFeePercentage({ organization })
+  const morSurchargePct = calculateMoRSurchargePercentage({
+    organization,
+  })
   const intlPct = calculateInternationalFeePercentage({
     paymentMethod: paymentMethodType,
     paymentMethodCountry: billingAddress.address
@@ -80,6 +84,7 @@ const createBaseFeeCalculationInsert = ({
     paymentMethodType,
     baseAmount,
     flowgladFeePercentage: flowPct.toString(),
+    morSurchargePercentage: morSurchargePct.toString(),
     discountAmountFixed: discountAmount,
     pretaxTotal: pretax,
     internationalFeePercentage: intlPct.toString(),

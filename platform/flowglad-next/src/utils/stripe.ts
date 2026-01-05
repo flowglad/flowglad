@@ -29,130 +29,6 @@ import core from './core'
 
 const DIGITAL_TAX_CODE = 'txcd_10000000'
 
-export const cardPaymentsCountries = [
-  'AU',
-  'AT',
-  'BE',
-  'BG',
-  'CA',
-  'HR',
-  'CY',
-  'CZ',
-  'DK',
-  'EE',
-  'FI',
-  'FR',
-  'DE',
-  'GR',
-  'HK',
-  'HU',
-  'IE',
-  'IT',
-  'JP',
-  'LV',
-  'LI',
-  'LT',
-  'LU',
-  'MT',
-  'MX',
-  'NL',
-  'NZ',
-  'NO',
-  'PL',
-  'PT',
-  'RO',
-  'SG',
-  'SK',
-  'SI',
-  'ES',
-  'SE',
-  'CH',
-  'TH',
-  'AE',
-  'GB',
-]
-
-export const transferCountries = [
-  'AL',
-  'DZ',
-  'AO',
-  'AG',
-  'AR',
-  'AM',
-  'AZ',
-  'BS',
-  'BH',
-  'BD',
-  'BJ',
-  'BT',
-  'BO',
-  'BA',
-  'BW',
-  'BN',
-  'KH',
-  'CL',
-  'CO',
-  'CR',
-  'CI',
-  'DO',
-  'EC',
-  'EG',
-  'SV',
-  'ET',
-  'GA',
-  'GM',
-  'GH',
-  'GT',
-  'GY',
-  'IS',
-  'IN',
-  'ID',
-  'IL',
-  'JM',
-  'JO',
-  'KZ',
-  'KE',
-  'KW',
-  'LA',
-  'MO',
-  'MG',
-  'MY',
-  'MU',
-  'MD',
-  'MC',
-  'MN',
-  'MA',
-  'MZ',
-  'NA',
-  'NE',
-  'NG',
-  'MK',
-  'OM',
-  'PK',
-  'PA',
-  'PY',
-  'PE',
-  'PH',
-  'QA',
-  'RW',
-  'SM',
-  'SA',
-  'SN',
-  'RS',
-  'ZA',
-  'KR',
-  'LK',
-  'LC',
-  'TW',
-  'TZ',
-  'TT',
-  'TN',
-  'TR',
-  'UY',
-  'UZ',
-  'VN',
-]
-
 export const zeroDecimalCurrencies = [
   'BIF',
   'CLP',
@@ -932,7 +808,15 @@ export const createStripeTaxCalculationByPrice = async ({
   discountInclusiveAmount: number
   product: Product.Record
   livemode: boolean
-}) => {
+}): Promise<
+  Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
+> => {
+  if (core.IS_TEST) {
+    return {
+      id: `testtaxcalc_${core.nanoid()}`,
+      tax_amount_exclusive: 0,
+    }
+  }
   const lineItems: Stripe.Tax.CalculationCreateParams.LineItem[] = [
     {
       quantity: 1,
@@ -965,7 +849,15 @@ export const createStripeTaxCalculationByPurchase = async ({
   price: Price.Record
   product: Product.Record
   livemode: boolean
-}) => {
+}): Promise<
+  Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
+> => {
+  if (core.IS_TEST) {
+    return {
+      id: `testtaxcalc_${core.nanoid()}`,
+      tax_amount_exclusive: 0,
+    }
+  }
   const lineItems: Stripe.Tax.CalculationCreateParams.LineItem[] = [
     {
       quantity: 1,
@@ -989,6 +881,32 @@ export const getStripeTaxCalculation = async (
   livemode: boolean
 ) => {
   return stripe(livemode).tax.calculations.retrieve(id)
+}
+
+export const createStripeTaxTransactionFromCalculation = async ({
+  stripeTaxCalculationId,
+  reference,
+  livemode,
+}: {
+  stripeTaxCalculationId: string | null
+  reference: string
+  livemode: boolean
+}): Promise<Stripe.Tax.Transaction | null> => {
+  if (
+    !stripeTaxCalculationId ||
+    stripeTaxCalculationId.startsWith('notaxoverride_')
+  ) {
+    return null
+  }
+  return stripe(livemode).tax.transactions.createFromCalculation(
+    {
+      calculation: stripeTaxCalculationId,
+      reference,
+    },
+    {
+      idempotencyKey: `tax_txn_from_calc_${reference}`,
+    }
+  )
 }
 
 const deriveFullyOnboardedStatusFromStripeAccount = (
@@ -1825,8 +1743,14 @@ export const defaultCurrencyForCountry = (
   }
 }
 
-export const getStripeOAuthUrl = () => {
-  return `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${core.envVariable('STRIPE_CONNECT_CLIENT_ID')}&scope=read_write`
+/**
+ * Generates the Stripe Connect OAuth authorization URL.
+ *
+ * @param state - The encoded OAuth state parameter (contains CSRF token)
+ * @returns The full Stripe OAuth authorization URL
+ */
+export const getStripeOAuthUrl = (state: string) => {
+  return `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${core.envVariable('STRIPE_CONNECT_CLIENT_ID')}&scope=read_write&state=${encodeURIComponent(state)}`
 }
 
 export const completeStripeOAuthFlow = async (params: {

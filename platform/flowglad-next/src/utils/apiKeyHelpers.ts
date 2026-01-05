@@ -3,6 +3,7 @@ import type {
   RotateApiKeyInput,
 } from '@/db/schema/apiKeys'
 import {
+  deleteApiKey as deleteApiKeyMethod,
   insertApiKey,
   selectApiKeyById,
   updateApiKey,
@@ -13,8 +14,10 @@ import type { AuthenticatedTransactionParams } from '@/db/types'
 import { FlowgladApiKeyType } from '@/types'
 import {
   createSecretApiKey,
+  deleteApiKey as deleteApiKeyFromUnkey,
   replaceSecretApiKey,
 } from '@/utils/unkey'
+import { logger } from './logger'
 import { deleteApiKeyVerificationResult } from './redis'
 
 export const createSecretApiKeyTransaction = async (
@@ -106,6 +109,49 @@ export const rotateSecretApiKeyTransaction = async (
     shownOnlyOnceKey,
     oldApiKey: existingApiKey,
   }
+}
+
+export const deleteSecretApiKeyTransaction = async (
+  input: { id: string },
+  { transaction, userId }: AuthenticatedTransactionParams
+): Promise<void> => {
+  // Fetch the API key by ID to verify it exists and user has access
+  const apiKey = await selectApiKeyById(input.id, transaction)
+
+  // Validate it's a secret key
+  if (apiKey.type !== FlowgladApiKeyType.Secret) {
+    throw new Error(
+      'deleteSecretApiKeyTransaction: Only secret keys can be deleted. Received type: ' +
+        apiKey.type
+    )
+  }
+
+  // Delete from Unkey first - if this fails, we abort the entire operation
+  // to prevent orphaned keys that could still authenticate via Unkey
+  if (apiKey.unkeyId) {
+    try {
+      await deleteApiKeyFromUnkey(apiKey.unkeyId)
+    } catch (error) {
+      logger.error('Failed to delete API key from Unkey', {
+        error:
+          error instanceof Error ? error : new Error(String(error)),
+        unkeyId: apiKey.unkeyId,
+        apiKeyId: apiKey.id,
+        userId,
+      })
+      throw new Error(
+        `Failed to delete API key from Unkey. Database deletion aborted to prevent orphaned key. unkeyId: ${apiKey.unkeyId}`
+      )
+    }
+  }
+
+  if (apiKey.hashText) {
+    await deleteApiKeyVerificationResult({
+      hashText: apiKey.hashText,
+    })
+  }
+
+  await deleteApiKeyMethod(apiKey.id, transaction)
 }
 
 export const getApiKeyHeader = (authorizationHeader: string) => {

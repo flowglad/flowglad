@@ -17,14 +17,17 @@ import { upsertUserById } from '@/db/tableMethods/userMethods'
 import type { DbTransaction } from '@/db/types'
 import {
   BusinessOnboardingStatus,
+  CurrencyCode,
   type FeatureFlag,
   FlowgladApiKeyType,
   StripeConnectContractType,
 } from '@/types'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
+import core from '@/utils/core'
+import { getEligibleFundsFlowsForCountry } from '@/utils/countries'
 import { defaultCurrencyForCountry } from '@/utils/stripe'
-import { findOrCreateSvixApplication } from './svix'
+import { findOrCreateSvixApplication } from '@/utils/svix'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -44,6 +47,21 @@ const mininanoid = customAlphabet(
   'abcdefghijklmnopqrstuvwxyz0123456789',
   6
 )
+
+/**
+ * Defaults funds flow selection based on the country's eligibility.
+ *
+ * This ensures org creation is possible for countries that are MoR-only even
+ * before the client UI supports choosing a funds flow explicitly.
+ */
+const defaultStripeConnectContractTypeForCountry = (
+  eligibleFlows: StripeConnectContractType[]
+): StripeConnectContractType => {
+  if (eligibleFlows.includes(StripeConnectContractType.Platform)) {
+    return StripeConnectContractType.Platform
+  }
+  return StripeConnectContractType.MerchantOfRecord
+}
 
 export const createOrganizationTransaction = async (
   input: CreateOrganizationInput,
@@ -82,6 +100,47 @@ export const createOrganizationTransaction = async (
     organization.countryId,
     transaction
   )
+  const eligibleFlows = getEligibleFundsFlowsForCountry(country.code)
+  if (eligibleFlows.length === 0) {
+    throw new Error(
+      `Country ${country.code} is not eligible for payments`
+    )
+  }
+
+  const requestedStripeConnectContractType =
+    organization.stripeConnectContractType
+
+  if (
+    core.IS_PROD &&
+    requestedStripeConnectContractType ===
+      StripeConnectContractType.MerchantOfRecord
+  ) {
+    throw new Error(
+      'Merchant-of-record funds flow is not available in production yet.'
+    )
+  }
+
+  // In production, check if country is MoR-only (not eligible for Platform)
+  if (
+    core.IS_PROD &&
+    !eligibleFlows.includes(StripeConnectContractType.Platform)
+  ) {
+    throw new Error(
+      `Country ${country.code} is not yet supported in production. Only countries eligible for Platform funds flow are currently supported.`
+    )
+  }
+
+  const stripeConnectContractType = core.IS_PROD
+    ? StripeConnectContractType.Platform
+    : (requestedStripeConnectContractType ??
+      defaultStripeConnectContractTypeForCountry(eligibleFlows))
+
+  if (!eligibleFlows.includes(stripeConnectContractType)) {
+    throw new Error(
+      `Stripe Connect contract type ${stripeConnectContractType} is not supported for country ${country.code}`
+    )
+  }
+
   const currentEpochHour = Math.floor(Date.now() / 1000 / 3600)
   const organizationRecord =
     await insertOrDoNothingOrganizationByExternalId(
@@ -94,8 +153,16 @@ export const createOrganizationTransaction = async (
          */
         feePercentage: '0.65',
         onboardingStatus: BusinessOnboardingStatus.Unauthorized,
-        stripeConnectContractType: StripeConnectContractType.Platform,
-        defaultCurrency: defaultCurrencyForCountry(country),
+        stripeConnectContractType,
+        /**
+         * MoR organizations always use USD as their default currency
+         * to simplify tax reporting and payout calculations.
+         */
+        defaultCurrency:
+          stripeConnectContractType ===
+          StripeConnectContractType.MerchantOfRecord
+            ? CurrencyCode.USD
+            : defaultCurrencyForCountry(country),
         /**
          * Use this hash to prevent a race condition where a user may accidentally double-submit createOrganization
          */

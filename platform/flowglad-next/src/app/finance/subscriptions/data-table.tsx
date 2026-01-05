@@ -99,6 +99,8 @@ interface SubscriptionsDataTableProps {
   title?: string
   onCreateSubscription?: () => void
   hiddenColumns?: string[]
+  /** Default plan type filter value. Defaults to 'paid'. */
+  defaultPlanType?: 'all' | 'paid' | 'free'
 }
 
 export function SubscriptionsDataTable({
@@ -106,6 +108,7 @@ export function SubscriptionsDataTable({
   title,
   onCreateSubscription,
   hiddenColumns = [],
+  defaultPlanType = 'paid',
 }: SubscriptionsDataTableProps) {
   const router = useRouter()
 
@@ -117,8 +120,15 @@ export function SubscriptionsDataTable({
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
 
   // Multi-filter state for status, plan type, and product
+  const initialFilterValues = React.useMemo(
+    () => ({
+      ...defaultFilterValues,
+      planType: defaultPlanType,
+    }),
+    [defaultPlanType]
+  )
   const [filterValues, setFilterValues] =
-    React.useState<SubscriptionFilterValues>(defaultFilterValues)
+    React.useState<SubscriptionFilterValues>(initialFilterValues)
 
   // Query for distinct product names that have subscriptions
   const productNamesQuery =
@@ -320,7 +330,7 @@ export function SubscriptionsDataTable({
             sections={filterSections}
             values={filterValues}
             onChange={setFilterValues}
-            defaultValues={defaultFilterValues}
+            defaultValues={initialFilterValues}
             neutralValues={neutralFilterValues}
             disabled={isLoading}
             triggerLabel={

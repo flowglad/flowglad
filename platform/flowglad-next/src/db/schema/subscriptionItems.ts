@@ -30,6 +30,7 @@ import {
 import { zodEpochMs } from '@/db/timestampMs'
 import { SubscriptionItemType } from '@/types'
 import core from '@/utils/core'
+import { pricingModels } from './pricingModels'
 import { usageMeters } from './usageMeters'
 
 const TABLE_NAME = 'subscription_items'
@@ -67,6 +68,10 @@ const columns = {
   manuallyCreated: boolean('manually_created')
     .notNull()
     .default(false),
+  pricingModelId: notNullStringForeignKey(
+    'pricing_model_id',
+    pricingModels
+  ),
 }
 
 export const subscriptionItems = pgTable(
@@ -76,6 +81,7 @@ export const subscriptionItems = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.subscriptionId]),
       constructIndex(TABLE_NAME, [table.priceId]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       constructUniqueIndex(TABLE_NAME, [table.externalId]),
       // constructIndex(TABLE_NAME, [table.usageMeterId]),
       enableCustomerReadPolicy(
@@ -124,6 +130,7 @@ const createOnlyColumns = {
 
 const readOnlyColumns = {
   livemode: true,
+  pricingModelId: true,
 } as const
 
 const hiddenColumns = {
@@ -142,6 +149,9 @@ export const {
 } = buildSchemas(subscriptionItems, {
   discriminator: 'type',
   refine: staticRefineColumns,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns,
     readOnlyColumns,

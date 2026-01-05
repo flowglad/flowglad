@@ -24,6 +24,7 @@ import {
   metadataSchema,
   notNullStringForeignKey,
   nullableStringForeignKey,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   tableBase,
   timestampWithTimezoneColumn,
@@ -98,6 +99,7 @@ export const usageCredits = pgTable(
       constructIndex(TABLE_NAME, [table.status]),
       constructIndex(TABLE_NAME, [table.paymentId]),
       constructIndex(TABLE_NAME, [table.pricingModelId]),
+      constructIndex(TABLE_NAME, [table.sourceReferenceId]),
       constructUniqueIndex(TABLE_NAME, [
         table.paymentId,
         table.subscriptionId,
@@ -115,7 +117,7 @@ export const usageCredits = pgTable(
           as: 'permissive',
           to: 'merchant',
           for: 'all',
-          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+          using: orgIdEqualsCurrentSQL(),
         }
       ),
       livemodePolicy(TABLE_NAME),

@@ -14,7 +14,7 @@ export function DetailLabel({
       value
     )
   return (
-    <div className="w-fit flex flex-col gap-0.5">
+    <div className="max-w-full min-w-0 flex flex-col gap-0.5">
       <div className="text-xs font-medium text-muted-foreground">
         {label}
       </div>

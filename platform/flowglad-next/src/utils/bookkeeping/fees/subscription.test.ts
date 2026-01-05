@@ -111,6 +111,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       createdByCommit: null,
       updatedByCommit: null,
       position: 0,
+      pricingModelId: orgData.pricingModel.id,
     }
 
     const params = {
@@ -119,6 +120,8 @@ describe('createSubscriptionFeeCalculationInsert', () => {
         feePercentage: '2.0',
         stripeConnectContractType: StripeConnectContractType.Platform,
       },
+      price: orgData.price,
+      product: orgData.product,
       billingPeriod: billingPeriodRec,
       billingPeriodItems: [staticItem],
       paymentMethod: paymentMethodRec,
@@ -130,12 +133,13 @@ describe('createSubscriptionFeeCalculationInsert', () => {
     }
 
     const result =
-      createSubscriptionFeeCalculationInsertFunction(params)
+      await createSubscriptionFeeCalculationInsertFunction(params)
 
     expect(result.baseAmount).toBe(5000)
     expect(result.discountAmountFixed).toBe(0)
     expect(result.pretaxTotal).toBe(5000)
     expect(result.flowgladFeePercentage).toBe('2')
+    expect(result.morSurchargePercentage).toBe('0')
     expect(result.internationalFeePercentage).toBe('0')
     expect(result.paymentMethodFeeFixed).toBe(
       Math.round(5000 * 0.029 + 30)
@@ -165,6 +169,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       createdByCommit: null,
       updatedByCommit: null,
       position: 0,
+      pricingModelId: orgData.pricingModel.id,
     }
     const billingPeriodItems = [staticItem]
     const usageOverages = [
@@ -195,6 +200,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       purchaseId: core.nanoid(),
       discountName: testDiscount.name,
       fullyRedeemed: false,
+      pricingModelId: orgData.pricingModel.id,
     }
 
     let internationalPaymentMethod = await setupPaymentMethod({
@@ -228,32 +234,35 @@ describe('createSubscriptionFeeCalculationInsert', () => {
         feePercentage: '1.5',
         stripeConnectContractType:
           StripeConnectContractType.MerchantOfRecord,
-        livemode: false,
       },
-      billingPeriod: { ...billingPeriodRec, livemode: false },
+      price: orgData.price,
+      product: orgData.product,
+      billingPeriod: billingPeriodRec,
       billingPeriodItems,
       paymentMethod: internationalPaymentMethod,
       organizationCountry: organizationCountryRec,
-      livemode: false,
-      currency: CurrencyCode.EUR,
+      livemode: true,
+      currency: CurrencyCode.USD,
       discountRedemption: discountRedemptionRec,
       usageOverages,
     }
 
     const result =
-      createSubscriptionFeeCalculationInsertFunction(params)
+      await createSubscriptionFeeCalculationInsertFunction(params)
 
     expect(result.baseAmount).toBe(3500)
     expect(result.discountAmountFixed).toBe(350)
     expect(result.pretaxTotal).toBe(3150)
     expect(result.flowgladFeePercentage).toBe('1.5')
+    expect(result.morSurchargePercentage).toBe('1.1')
     expect(result.internationalFeePercentage).toBe('1.5')
     expect(result.paymentMethodFeeFixed).toBe(
       Math.round(3150 * 0.029 + 30)
     )
     expect(result.taxAmountFixed).toBe(0)
-    expect(result.stripeTaxCalculationId).toBeNull()
-    expect(result.currency).toBe(CurrencyCode.EUR)
-    expect(result.livemode).toBe(false)
+    expect(result.stripeTaxCalculationId).toMatch(/^testtaxcalc_/)
+    expect(result.stripeTaxTransactionId).toBeNull()
+    expect(result.currency).toBe(CurrencyCode.USD)
+    expect(result.livemode).toBe(true)
   })
 })

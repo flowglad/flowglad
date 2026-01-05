@@ -32,11 +32,13 @@ import core from '@/utils/core'
 import {
   calculateDiscountAmount,
   calculateInternationalFeePercentage,
+  calculateMoRSurchargePercentage,
   calculatePaymentMethodFeeAmount,
   calculatePriceBaseAmount,
   calculateTotalDueAmount,
   calculateTotalFeeAmount,
   finalizeFeeCalculation,
+  type TotalFeeAmountInput,
 } from './common'
 
 // Price and Discount Utilities
@@ -305,31 +307,77 @@ describe('calculatePaymentMethodFeeAmount', () => {
   })
 })
 
+describe('calculateMoRSurchargePercentage', () => {
+  it('returns 1.1 for MerchantOfRecord organizations', () => {
+    const organization = {
+      stripeConnectContractType:
+        StripeConnectContractType.MerchantOfRecord,
+      feePercentage: '0',
+    } as Organization.Record
+
+    expect(calculateMoRSurchargePercentage({ organization })).toBe(
+      1.1
+    )
+  })
+
+  it('returns 0 for non-MerchantOfRecord organizations', () => {
+    const organization = {
+      stripeConnectContractType: StripeConnectContractType.Platform,
+      feePercentage: '0',
+    } as Organization.Record
+
+    expect(calculateMoRSurchargePercentage({ organization })).toBe(0)
+  })
+})
+
 describe('calculateTotalFeeAmount', () => {
-  const coreFeeCalculation = {
+  const coreFeeCalculation: TotalFeeAmountInput = {
     baseAmount: 1000,
     discountAmountFixed: 0,
     taxAmountFixed: 90,
     flowgladFeePercentage: '10',
+    morSurchargePercentage: '0',
     internationalFeePercentage: '0',
     paymentMethodFeeFixed: 59,
-  } as FeeCalculation.Record
+  }
 
   it('calculates total fee with all components', () => {
     const feeCalculation = {
       ...coreFeeCalculation,
       discountAmountFixed: 100,
+      morSurchargePercentage: '0',
       internationalFeePercentage: '2.5',
-    } as FeeCalculation.Record
+    } satisfies TotalFeeAmountInput
     expect(calculateTotalFeeAmount(feeCalculation)).toBe(262)
   })
 
-  it('handles null or undefined fee percentages by throwing error for parseFloat', () => {
+  it('includes MoR surcharge when present', () => {
     const feeCalculation = {
       ...coreFeeCalculation,
-      flowgladFeePercentage: null as any, // Cast to any to allow null for testing runtime behavior
-      internationalFeePercentage: null as any, // Cast to any to allow null for testing runtime behavior
+      discountAmountFixed: 100,
+      internationalFeePercentage: '2.5',
+      morSurchargePercentage: '1.1',
     } as FeeCalculation.Record
+
+    // discountInclusiveAmount = 900
+    // flowFixed = 10% of 900 = 90
+    // morSurchargeFixed = 1.1% of 900 = 9.9 -> 10
+    // intlFixed = 2.5% of 900 = 22.5 -> 23
+    // paymentMethodFeeFixed = 59
+    // taxAmountFixed = 90
+    expect(calculateTotalFeeAmount(feeCalculation)).toBe(272)
+  })
+
+  it('handles null or undefined fee percentages by throwing error for parseFloat', () => {
+    const feeCalculation: FeeCalculation.Record = {
+      ...coreFeeCalculation,
+      // @ts-expect-error Intentionally pass null to verify runtime parseFloat error handling.
+      flowgladFeePercentage: null,
+      // @ts-expect-error Intentionally pass null to verify runtime parseFloat error handling.
+      morSurchargePercentage: null,
+      // @ts-expect-error Intentionally pass null to verify runtime parseFloat error handling.
+      internationalFeePercentage: null,
+    }
 
     expect(() => calculateTotalFeeAmount(feeCalculation)).toThrow()
   })
@@ -338,7 +386,7 @@ describe('calculateTotalFeeAmount', () => {
     const feeCalculation = {
       ...coreFeeCalculation,
       discountAmountFixed: -100,
-    } as FeeCalculation.Record
+    } satisfies TotalFeeAmountInput
     expect(calculateTotalFeeAmount(feeCalculation)).toBe(249)
   })
 
@@ -346,8 +394,38 @@ describe('calculateTotalFeeAmount', () => {
     const feeCalculation = {
       ...coreFeeCalculation,
       baseAmount: 0,
-    } as FeeCalculation.Record
+    } satisfies TotalFeeAmountInput
     expect(calculateTotalFeeAmount(feeCalculation)).toBe(149)
+  })
+
+  it('includes MoR surcharge in total fee calculation', () => {
+    const feeCalculation = {
+      ...coreFeeCalculation,
+      baseAmount: 10000,
+      discountAmountFixed: 0,
+      taxAmountFixed: 0,
+      flowgladFeePercentage: '0',
+      morSurchargePercentage: '1.1',
+      internationalFeePercentage: '0',
+      paymentMethodFeeFixed: 0,
+    } as FeeCalculation.Record
+
+    expect(calculateTotalFeeAmount(feeCalculation)).toBe(110)
+  })
+
+  it('applies MoR surcharge to discount-inclusive amount', () => {
+    const feeCalculation = {
+      ...coreFeeCalculation,
+      baseAmount: 10000,
+      discountAmountFixed: 2000,
+      taxAmountFixed: 0,
+      flowgladFeePercentage: '0',
+      morSurchargePercentage: '1.1',
+      internationalFeePercentage: '0',
+      paymentMethodFeeFixed: 0,
+    } as FeeCalculation.Record
+
+    expect(calculateTotalFeeAmount(feeCalculation)).toBe(88)
   })
 })
 
@@ -388,25 +466,25 @@ describe('calculateTotalDueAmount', () => {
 
 describe('calculatePriceBaseAmount', () => {
   it('returns price unit price when no purchase exists', () => {
-    const price = { unitPrice: 1000 } as any
+    const price = { unitPrice: 1000 } as Price.Record
     expect(calculatePriceBaseAmount({ price, purchase: null })).toBe(
       1000
     )
   })
   it('returns firstInvoiceValue for single payment purchases', () => {
-    const price = { unitPrice: 1000 } as any
+    const price = { unitPrice: 1000 } as Price.Record
     const purchase = {
       priceType: PriceType.SinglePayment,
       firstInvoiceValue: 800,
-    } as any
+    } as Purchase.Record
     expect(calculatePriceBaseAmount({ price, purchase })).toBe(800)
   })
   it('returns pricePerBillingCycle for subscription purchases', () => {
-    const price = { unitPrice: 1000 } as any
+    const price = { unitPrice: 1000 } as Price.Record
     const purchase = {
       priceType: PriceType.Subscription,
       pricePerBillingCycle: 900,
-    } as any
+    } as Purchase.Record
     expect(calculatePriceBaseAmount({ price, purchase })).toBe(900)
   })
 })
@@ -419,14 +497,14 @@ describe('calculateDiscountAmount', () => {
     const discount = {
       amountType: DiscountAmountType.Fixed,
       amount: 500,
-    } as any
+    } as Discount.Record
     expect(calculateDiscountAmount(1000, discount)).toBe(500)
   })
   it('calculates percentage discount correctly', () => {
     const discount = {
       amountType: DiscountAmountType.Percent,
       amount: 20,
-    } as any
+    } as Discount.Record
     expect(calculateDiscountAmount(1000, discount)).toBe(200)
   })
 })
@@ -436,9 +514,9 @@ describe('calculateDiscountAmount', () => {
 describe('calculateInternationalFeePercentage', () => {
   const org = {
     feePercentage: '1.0',
-    stripeConnectContractType: 'Platform',
-  } as any
-  const orgCountry = { code: CountryCode.US } as any
+    stripeConnectContractType: StripeConnectContractType.Platform,
+  } as Organization.Record
+  const orgCountry = { code: CountryCode.US } as Country.Record
   it('returns 0 for same-country transactions', () => {
     expect(
       calculateInternationalFeePercentage({
@@ -455,7 +533,7 @@ describe('calculateInternationalFeePercentage', () => {
         paymentMethod: PaymentMethodType.Card,
         paymentMethodCountry: CountryCode.GB,
         organization: org,
-        organizationCountry: { code: CountryCode.US } as any,
+        organizationCountry: orgCountry,
       })
     ).toBe(1.5)
   })
@@ -487,9 +565,10 @@ describe('calculateTotalFeeAmount & calculateTotalDueAmount', () => {
     discountAmountFixed: 100,
     taxAmountFixed: 90,
     flowgladFeePercentage: '10',
+    morSurchargePercentage: '0',
     internationalFeePercentage: '2.5',
     paymentMethodFeeFixed: 59,
-  } as any
+  } as FeeCalculation.Record
   it('calculates total fee correctly', () => {
     expect(calculateTotalFeeAmount(coreCalc)).toBe(
       Math.round((1000 - 100) * 0.1 + (1000 - 100) * 0.025 + 59 + 90)
@@ -500,8 +579,31 @@ describe('calculateTotalFeeAmount & calculateTotalDueAmount', () => {
       baseAmount: 1000,
       discountAmountFixed: 100,
       taxAmountFixed: 90,
-    } as any
+    } as FeeCalculation.CustomerRecord
     expect(calculateTotalDueAmount(dueCalc)).toBe(990)
+  })
+})
+
+describe('calculateMoRSurchargePercentage', () => {
+  it('returns 1.1 for MerchantOfRecord organizations', () => {
+    const organization = {
+      stripeConnectContractType:
+        StripeConnectContractType.MerchantOfRecord,
+      feePercentage: '2.0',
+    } as Organization.Record
+
+    expect(calculateMoRSurchargePercentage({ organization })).toBe(
+      1.1
+    )
+  })
+
+  it('returns 0 for Platform organizations', () => {
+    const organization = {
+      stripeConnectContractType: StripeConnectContractType.Platform,
+      feePercentage: '2.0',
+    } as Organization.Record
+
+    expect(calculateMoRSurchargePercentage({ organization })).toBe(0)
   })
 })
 
@@ -532,6 +634,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: '10.00',
             baseAmount: 1000,
@@ -605,6 +708,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: '10.00',
             baseAmount: 1000,
@@ -667,6 +771,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: organization.feePercentage,
             baseAmount: 1000,
@@ -737,6 +842,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: '10.00',
             baseAmount: 1000,
@@ -797,6 +903,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: '10.00', // This should be ignored
             baseAmount: 1000,
@@ -859,6 +966,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: '10.00',
             baseAmount: 20000,
@@ -920,6 +1028,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: baseFeePercentage,
             baseAmount: 1000,
@@ -998,6 +1107,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: organization.id,
             priceId: price.id,
+            pricingModelId: price.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: '10.00',
             baseAmount: 1000,
@@ -1081,6 +1191,7 @@ describe('finalizeFeeCalculation', () => {
           {
             organizationId: org1.id,
             priceId: price1.id,
+            pricingModelId: price1.pricingModelId,
             type: FeeCalculationType.CheckoutSessionPayment,
             flowgladFeePercentage: '10.00',
             baseAmount: 1000,

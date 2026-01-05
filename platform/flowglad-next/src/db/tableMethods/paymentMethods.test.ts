@@ -7,11 +7,13 @@ import {
   setupPrice,
   setupProduct,
   setupPurchase,
+  setupSubscription,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   CurrencyCode,
   IntervalUnit,
+  InvoiceStatus,
   PaymentMethodType,
   PaymentStatus,
   PriceType,
@@ -25,12 +27,16 @@ import { type Payment, RevenueDataItem } from '../schema/payments'
 import type { Price } from '../schema/prices'
 import type { PricingModel } from '../schema/pricingModels'
 import type { Product } from '../schema/products'
+import type { Purchase } from '../schema/purchases'
+import type { Subscription } from '../schema/subscriptions'
 import {
+  insertPayment,
   safelyUpdatePaymentForRefund,
   safelyUpdatePaymentStatus,
   selectPaymentById,
   selectPaymentsCursorPaginatedWithTableRowData,
   selectRevenueDataForOrganization,
+  upsertPaymentByStripeChargeId,
 } from './paymentMethods'
 
 describe('paymentMethods.ts', () => {
@@ -97,7 +103,7 @@ describe('paymentMethods.ts', () => {
             transaction
           )
         ).rejects.toThrow(
-          `Failed to update payment ${payment.id}: Refunded amount must be the same as the original amount, Only refund status is supported`
+          `Failed to update payment ${payment.id}: Only refund or succeeded status is supported`
         )
       })
     })
@@ -112,12 +118,64 @@ describe('paymentMethods.ts', () => {
               refunded: true,
               refundedAt: Date.now(),
               refundedAmount: refundAmount,
+              status: PaymentStatus.Refunded,
             },
             transaction
           )
         ).rejects.toThrow(
-          `Failed to update payment ${payment.id}: Refunded amount must be the same as the original amount, Only refund status is supported`
+          `Failed to update payment ${payment.id}: Refunded amount cannot exceed the original payment amount`
         )
+      })
+    })
+
+    it('updates payment for partial refund and keeps payment amount unchanged', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const partialRefundAmount = 500 // 50% refund
+        const refundedAt = Date.now()
+        const updatedPayment = await safelyUpdatePaymentForRefund(
+          {
+            id: payment.id,
+            refunded: false,
+            refundedAt,
+            refundedAmount: partialRefundAmount,
+            status: PaymentStatus.Succeeded,
+          },
+          transaction
+        )
+
+        expect(updatedPayment.refunded).toBe(false)
+        expect(updatedPayment.refundedAmount).toBe(
+          partialRefundAmount
+        )
+        expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
+        expect(updatedPayment.amount).toBe(payment.amount)
+        expect(updatedPayment.refundedAt).toBeGreaterThan(
+          refundedAt - 5_000
+        )
+        expect(updatedPayment.refundedAt).toBeLessThanOrEqual(
+          Date.now()
+        )
+      })
+    })
+
+    it('fails if refunded amount is not positive', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        for (const refundedAmount of [0, -1]) {
+          await expect(
+            safelyUpdatePaymentForRefund(
+              {
+                id: payment.id,
+                refunded: false,
+                refundedAt: Date.now(),
+                refundedAmount,
+                status: PaymentStatus.Succeeded,
+              },
+              transaction
+            )
+          ).rejects.toThrow(
+            `Failed to update payment ${payment.id}: Refunded amount must be greater than 0`
+          )
+        }
       })
     })
 
@@ -2116,6 +2174,185 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
         expect(result.items.length).toBe(1)
         expect(result.items[0].payment.id).toBe(specialPayment.id)
         expect(result.items[0].customer.name).toBe("O'Brien & Co.")
+      })
+    })
+  })
+})
+
+// Tests for pricingModelId derivation functionality added in Wave 4
+describe('pricingModelId derivation', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let invoice: Invoice.Record
+  let subscription: Subscription.Record
+  let purchase: Purchase.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      unitPrice: 1000,
+      type: PriceType.Subscription,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test@test.com',
+      livemode: true,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+    })
+
+    purchase = await setupPurchase({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+    })
+
+    invoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      status: InvoiceStatus.Open,
+    })
+  })
+
+  describe('insertPayment', () => {
+    it('should derive pricingModelId from subscription', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const payment = await insertPayment(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            invoiceId: invoice.id,
+            subscriptionId: subscription.id,
+            amount: 1000,
+            paymentMethod: PaymentMethodType.Card,
+            currency: CurrencyCode.USD,
+            status: PaymentStatus.Succeeded,
+            chargeDate: Date.now(),
+            stripePaymentIntentId: `pi_${nanoid()}`,
+            livemode: true,
+          },
+          transaction
+        )
+
+        expect(payment.pricingModelId).toBe(
+          subscription.pricingModelId
+        )
+        expect(payment.pricingModelId).toBe(pricingModel.id)
+      })
+    })
+
+    it('should derive pricingModelId from purchase', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const payment = await insertPayment(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            invoiceId: invoice.id,
+            purchaseId: purchase.id,
+            amount: 1000,
+            paymentMethod: PaymentMethodType.Card,
+            currency: CurrencyCode.USD,
+            status: PaymentStatus.Succeeded,
+            chargeDate: Date.now(),
+            stripePaymentIntentId: `pi_${nanoid()}`,
+            livemode: true,
+          },
+          transaction
+        )
+
+        expect(payment.pricingModelId).toBe(purchase.pricingModelId)
+        expect(payment.pricingModelId).toBe(pricingModel.id)
+      })
+    })
+
+    it('should derive pricingModelId from invoice', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const payment = await insertPayment(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            invoiceId: invoice.id,
+            amount: 1000,
+            paymentMethod: PaymentMethodType.Card,
+            currency: CurrencyCode.USD,
+            status: PaymentStatus.Succeeded,
+            chargeDate: Date.now(),
+            stripePaymentIntentId: `pi_${nanoid()}`,
+            livemode: true,
+          },
+          transaction
+        )
+
+        expect(payment.pricingModelId).toBe(invoice.pricingModelId)
+        expect(payment.pricingModelId).toBe(pricingModel.id)
+      })
+    })
+
+    it('should use provided pricingModelId without derivation', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const payment = await insertPayment(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            invoiceId: invoice.id,
+            amount: 1000,
+            paymentMethod: PaymentMethodType.Card,
+            currency: CurrencyCode.USD,
+            status: PaymentStatus.Succeeded,
+            chargeDate: Date.now(),
+            stripePaymentIntentId: `pi_${nanoid()}`,
+            livemode: true,
+            pricingModelId: pricingModel.id,
+          },
+          transaction
+        )
+
+        expect(payment.pricingModelId).toBe(pricingModel.id)
+      })
+    })
+  })
+
+  describe('upsertPaymentByStripeChargeId', () => {
+    it('should derive pricingModelId when upserting payment', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const stripeChargeId = `ch_${nanoid()}`
+        const payment = await upsertPaymentByStripeChargeId(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            invoiceId: invoice.id,
+            amount: 1000,
+            paymentMethod: PaymentMethodType.Card,
+            currency: CurrencyCode.USD,
+            status: PaymentStatus.Succeeded,
+            chargeDate: Date.now(),
+            stripePaymentIntentId: `pi_${nanoid()}`,
+            stripeChargeId,
+            livemode: true,
+          },
+          transaction
+        )
+
+        expect(payment.pricingModelId).toBe(invoice.pricingModelId)
+        expect(payment.pricingModelId).toBe(pricingModel.id)
       })
     })
   })

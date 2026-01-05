@@ -8,6 +8,7 @@ import {
 } from '@/db/schema/apiKeys'
 import {
   createCursorPaginatedSelectFunction,
+  createDeleteFunction,
   createInsertFunction,
   createSelectById,
   createSelectFunction,
@@ -35,6 +36,8 @@ export const selectApiKeyById = createSelectById(apiKeys, config)
 export const insertApiKey = createInsertFunction(apiKeys, config)
 
 export const updateApiKey = createUpdateFunction(apiKeys, config)
+
+export const deleteApiKey = createDeleteFunction(apiKeys)
 
 export const selectApiKeys = createSelectFunction(apiKeys, config)
 

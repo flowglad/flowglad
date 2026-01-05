@@ -13,6 +13,8 @@ import {
 } from '@/db/schema/purchases'
 import {
   createCursorPaginatedSelectFunction,
+  createDerivePricingModelId,
+  createDerivePricingModelIds,
   createInsertFunction,
   createSelectById,
   createSelectFunction,
@@ -24,6 +26,7 @@ import {
 import type { DbTransaction } from '@/db/types'
 import {
   CheckoutFlowType,
+  CurrencyCode,
   PaymentStatus,
   PriceType,
   PurchaseStatus,
@@ -125,6 +128,21 @@ export const upsertPurchaseById = async (
 }
 
 export const updatePurchase = createUpdateFunction(purchases, config)
+
+/**
+ * Derives pricingModelId from a purchase (via price).
+ * Used for discountRedemptions.
+ */
+export const derivePricingModelIdFromPurchase =
+  createDerivePricingModelId(purchases, config, selectPurchaseById)
+
+/**
+ * Batch fetch pricingModelIds for multiple purchases.
+ * More efficient than calling derivePricingModelIdFromPurchase for each purchase individually.
+ * Used by bulk insert operations in discount redemptions.
+ */
+export const pricingModelIdsForPurchases =
+  createDerivePricingModelIds(purchases, config)
 
 export const selectPurchasesForCustomer = (
   customerId: string,
@@ -334,6 +352,7 @@ export const selectPurchaseRowDataForOrganization = async (
       purchase: purchases,
       product: products,
       customer: customers,
+      price: prices,
     })
     .from(purchases)
     .innerJoin(prices, eq(purchases.priceId, prices.id))
@@ -345,6 +364,7 @@ export const selectPurchaseRowDataForOrganization = async (
     purchase: purchasesSelectSchema.parse(item.purchase),
     product: productsSelectSchema.parse(item.product),
     customer: customersSelectSchema.parse(item.customer),
+    currency: item.price.currency as CurrencyCode,
   }))
 }
 
@@ -448,6 +468,7 @@ export const selectPurchasesTableRowData =
           product: productsSelectSchema.parse(product),
           customer: customersSelectSchema.parse(customer),
           revenue,
+          currency: price.currency as CurrencyCode,
           customerName,
           customerEmail,
         }

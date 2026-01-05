@@ -35,6 +35,7 @@ export const stubbedCheckoutSession: CheckoutSession.Record = {
   outputMetadata: null,
   status: CheckoutSessionStatus.Pending,
   organizationId: '1',
+  pricingModelId: 'pm_test',
   customerName: 'Test Customer',
   customerEmail: 'test@test.com',
   stripeSetupIntentId: null,

@@ -4,14 +4,13 @@ import {
   type CreateEmailRequestOptions,
   Resend,
 } from 'resend'
+import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-billing-portal-magic-link'
 import { OrderReceiptEmail } from '@/email-templates/customer-order-receipt'
 import { PaymentFailedEmail } from '@/email-templates/customer-payment-failed'
 import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
-import { InvoiceNotificationEmail } from '@/email-templates/invoice-notification'
-import { InvoiceReminderEmail } from '@/email-templates/invoice-reminder'
 import { CustomersCsvExportReadyEmail } from '@/email-templates/organization/customers-csv-export-ready'
 import { OrganizationInvitationEmail } from '@/email-templates/organization/organization-invitation'
 import { OrganizationPaymentConfirmationEmail } from '@/email-templates/organization/organization-payment-awaiting-confirmation'
@@ -105,8 +104,10 @@ export const sendReceiptEmail = async (params: {
     discountAmount: number
     discountAmountType: string
   } | null
+  /** Whether this is a Merchant of Record invoice (Flowglad as seller) */
+  isMoR?: boolean
 }) => {
-  const { invoice } = params
+  const { invoice, isMoR } = params
   const attachments: {
     filename: string
     path: string
@@ -129,12 +130,21 @@ export const sendReceiptEmail = async (params: {
   if (!invoice.livemode) {
     return
   }
+
+  const fromAddress = isMoR
+    ? `Flowglad Billing <billing@flowglad.com>`
+    : `${params.organizationName} Billing <${kebabCase(params.organizationName)}-notifications@flowglad.com>`
+
+  const subject = isMoR
+    ? `Order Receipt #${invoice.invoiceNumber} from ${FLOWGLAD_LEGAL_ENTITY.name} for ${params.organizationName}`
+    : `${params.organizationName} Order Receipt: #${invoice.invoiceNumber}`
+
   return safeSend({
-    from: `${params.organizationName} Billing <${kebabCase(params.organizationName)}-notifications@flowglad.com>`,
+    from: fromAddress,
     bcc: getBccForLivemode(invoice.livemode),
     to: params.to.map(safeTo),
     replyTo: params.replyTo ?? undefined,
-    subject: `${params.organizationName} Order Receipt: #${invoice.invoiceNumber}`,
+    subject,
     attachments,
     react: await OrderReceiptEmail({
       invoiceNumber: invoice.invoiceNumber,
@@ -155,6 +165,7 @@ export const sendReceiptEmail = async (params: {
       customerId: params.customerId,
       discountInfo: params.discountInfo,
       livemode: invoice.livemode,
+      isMoR,
     }),
   })
 }
@@ -303,108 +314,6 @@ export const sendAwaitingPaymentConfirmationEmail = async ({
       currency,
       customerName: customerName,
       livemode,
-    }),
-  })
-}
-
-export const sendInvoiceReminderEmail = async ({
-  to,
-  cc,
-  invoice,
-  invoiceLineItems,
-  organizationName,
-  organizationLogoUrl,
-  replyTo,
-  discountInfo,
-}: {
-  to: string[]
-  cc?: string[]
-  invoice: Invoice.Record
-  invoiceLineItems: InvoiceLineItem.Record[]
-  organizationName: string
-  organizationLogoUrl?: string
-  replyTo?: string | null
-  discountInfo?: {
-    discountName: string
-    discountCode: string
-    discountAmount: number
-    discountAmountType: string
-  } | null
-}) => {
-  return safeSend({
-    from: 'notifs@flowglad.com',
-    to: to.map(safeTo),
-    cc: cc?.map(safeTo),
-    replyTo: replyTo ?? undefined,
-    subject: formatEmailSubject(
-      `${organizationName} Invoice Reminder: #${invoice.invoiceNumber}`,
-      invoice.livemode
-    ),
-    /**
-     * NOTE: await needed to prevent
-     * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
-     * @see
-     * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
-     * https://github.com/resend/react-email/issues/868
-     */
-    react: await InvoiceReminderEmail({
-      invoice,
-      invoiceLineItems,
-      organizationName,
-      organizationLogoUrl,
-      discountInfo,
-      livemode: invoice.livemode,
-    }),
-  })
-}
-
-export const sendInvoiceNotificationEmail = async ({
-  to,
-  cc,
-  invoice,
-  invoiceLineItems,
-  organizationName,
-  organizationLogoUrl,
-  replyTo,
-  discountInfo,
-}: {
-  to: string[]
-  cc?: string[]
-  invoice: Invoice.Record
-  invoiceLineItems: InvoiceLineItem.Record[]
-  organizationName: string
-  organizationLogoUrl?: string
-  replyTo?: string | null
-  discountInfo?: {
-    discountName: string
-    discountCode: string
-    discountAmount: number
-    discountAmountType: string
-  } | null
-}) => {
-  return safeSend({
-    from: 'notifs@flowglad.com',
-    to: to.map(safeTo),
-    cc: cc?.map(safeTo),
-    replyTo: replyTo ?? undefined,
-    subject: formatEmailSubject(
-      `${organizationName} New Invoice: #${invoice.invoiceNumber}`,
-      invoice.livemode
-    ),
-    /**
-     * NOTE: await needed to prevent
-     * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
-     * @see
-     * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
-     * https://github.com/resend/react-email/issues/868
-     */
-    react: await InvoiceNotificationEmail({
-      invoice,
-      invoiceLineItems,
-      organizationName,
-      organizationLogoUrl,
-      discountInfo,
-      livemode: invoice.livemode,
     }),
   })
 }

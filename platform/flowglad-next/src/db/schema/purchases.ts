@@ -7,6 +7,7 @@ import {
   text,
 } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
+import { currencyCodeSchema } from '@/db/commonZodSchema'
 import { buildSchemas } from '@/db/createZodSchemas'
 import {
   Customer,
@@ -36,6 +37,7 @@ import {
   newBaseZodSelectSchemaColumns,
   notNullStringForeignKey,
   ommittedColumnsForInsertSchema,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   type SelectConditions,
   tableBase,
@@ -128,7 +130,7 @@ export const purchases = pgTable(TABLE_NAME, columns, (table) => {
       {
         as: 'permissive',
         for: 'select',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        using: orgIdEqualsCurrentSQL(),
       }
     ),
     // constructIndex(TABLE_NAME, [
@@ -358,6 +360,7 @@ export const purchasesTableRowDataSchema = z.object({
   product: productsClientSelectSchema,
   customer: customerClientSelectSchema,
   revenue: z.number().optional(),
+  currency: currencyCodeSchema,
 })
 
 export namespace Purchase {

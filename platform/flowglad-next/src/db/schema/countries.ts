@@ -78,9 +78,7 @@ export namespace Country {
 }
 
 export const requestStripeConnectOnboardingLinkInputSchema = z.object(
-  {
-    CountryId: z.string(),
-  }
+  {}
 )
 
 export type RequestStripeConnectOnboardingLinkInput = z.infer<

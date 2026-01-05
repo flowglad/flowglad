@@ -12,6 +12,7 @@ import {
   createSelectById,
   createSelectFunction,
   createUpdateFunction,
+  NotFoundError,
   type ORMMethodCreatorConfig,
   whereClauseFromObject,
 } from '@/db/tableUtils'
@@ -36,6 +37,14 @@ import {
 } from '../schema/usageMeters'
 import { createDateNotPassedFilter } from '../tableUtils'
 import type { DbTransaction } from '../types'
+import {
+  derivePricingModelIdFromSubscription,
+  pricingModelIdsForSubscriptions,
+} from './subscriptionMethods'
+import {
+  derivePricingModelIdFromUsageMeter,
+  pricingModelIdsForUsageMeters,
+} from './usageMeterMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof ledgerEntries,
@@ -54,10 +63,65 @@ export const selectLedgerEntryById = createSelectById(
   config
 )
 
-export const insertLedgerEntry = createInsertFunction(
+/**
+ * Derives pricingModelId for a ledger entry with COALESCE logic.
+ * Priority: subscription > usageMeter
+ * Used for ledger entry inserts.
+ */
+export const derivePricingModelIdForLedgerEntry = async (
+  data: {
+    subscriptionId?: string | null
+    usageMeterId?: string | null
+  },
+  transaction: DbTransaction
+): Promise<string> => {
+  // Try subscription first
+  if (data.subscriptionId) {
+    return await derivePricingModelIdFromSubscription(
+      data.subscriptionId,
+      transaction
+    )
+  }
+
+  // Try usage meter second
+  if (data.usageMeterId) {
+    return await derivePricingModelIdFromUsageMeter(
+      data.usageMeterId,
+      transaction
+    )
+  }
+
+  throw new Error(
+    'Cannot derive pricingModelId: subscriptionId and usageMeterId are both null or missing pricingModelId'
+  )
+}
+
+const baseInsertLedgerEntry = createInsertFunction(
   ledgerEntries,
   config
 )
+
+export const insertLedgerEntry = async (
+  ledgerEntryInsert: LedgerEntry.Insert,
+  transaction: DbTransaction
+): Promise<LedgerEntry.Record> => {
+  const pricingModelId = ledgerEntryInsert.pricingModelId
+    ? ledgerEntryInsert.pricingModelId
+    : await derivePricingModelIdForLedgerEntry(
+        {
+          subscriptionId: ledgerEntryInsert.subscriptionId,
+          usageMeterId: ledgerEntryInsert.usageMeterId,
+        },
+        transaction
+      )
+  return baseInsertLedgerEntry(
+    {
+      ...ledgerEntryInsert,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updateLedgerEntry = createUpdateFunction(
   ledgerEntries,
@@ -69,10 +133,97 @@ export const selectLedgerEntries = createSelectFunction(
   config
 )
 
-export const bulkInsertLedgerEntries = createBulkInsertFunction(
+const baseBulkInsertLedgerEntries = createBulkInsertFunction(
   ledgerEntries,
   config
 )
+
+export const bulkInsertLedgerEntries = async (
+  ledgerEntryInserts: LedgerEntry.Insert[],
+  transaction: DbTransaction
+): Promise<LedgerEntry.Record[]> => {
+  // Collect all unique subscription and usage meter IDs
+  const subscriptionIds = Array.from(
+    new Set(
+      ledgerEntryInserts
+        .map((insert) => insert.subscriptionId)
+        .filter((id): id is string => !!id)
+    )
+  )
+  const usageMeterIds = Array.from(
+    new Set(
+      ledgerEntryInserts
+        .map((insert) => insert.usageMeterId)
+        .filter((id): id is string => !!id)
+    )
+  )
+
+  // Batch fetch pricingModelIds
+  const subscriptionPricingModelIdMap =
+    await pricingModelIdsForSubscriptions(
+      subscriptionIds,
+      transaction
+    )
+  const usageMeterPricingModelIdMap =
+    await pricingModelIdsForUsageMeters(usageMeterIds, transaction)
+
+  // Derive pricingModelId for each insert
+  const ledgerEntriesWithPricingModelId = ledgerEntryInserts.map(
+    (ledgerEntryInsert): LedgerEntry.Insert => {
+      if (ledgerEntryInsert.pricingModelId) {
+        return ledgerEntryInsert
+      }
+
+      // If we have a subscriptionId, we expect it to resolve in the batch map.
+      if (ledgerEntryInsert.subscriptionId) {
+        const subscriptionPricingModelId =
+          subscriptionPricingModelIdMap.get(
+            ledgerEntryInsert.subscriptionId
+          )
+
+        if (!subscriptionPricingModelId) {
+          throw new Error(
+            `Cannot derive pricingModelId: subscription ${ledgerEntryInsert.subscriptionId} not found or missing pricingModelId`
+          )
+        }
+
+        return {
+          ...ledgerEntryInsert,
+          pricingModelId: subscriptionPricingModelId,
+        }
+      }
+
+      // Otherwise fall back to usage meter if provided.
+      if (ledgerEntryInsert.usageMeterId) {
+        const usageMeterPricingModelId =
+          usageMeterPricingModelIdMap.get(
+            ledgerEntryInsert.usageMeterId
+          )
+
+        if (!usageMeterPricingModelId) {
+          throw new Error(
+            `Cannot derive pricingModelId: usage meter ${ledgerEntryInsert.usageMeterId} not found or missing pricingModelId`
+          )
+        }
+
+        return {
+          ...ledgerEntryInsert,
+          pricingModelId: usageMeterPricingModelId,
+        }
+      }
+
+      // No subscriptionId and no usageMeterId – nothing to derive from.
+      throw new Error(
+        'Cannot derive pricingModelId: subscriptionId and usageMeterId are both null or missing pricingModelId'
+      )
+    }
+  )
+
+  return baseBulkInsertLedgerEntries(
+    ledgerEntriesWithPricingModelId,
+    transaction
+  )
+}
 
 const balanceTypeWhereStatement = (
   balanceType: 'pending' | 'posted' | 'available'
@@ -338,6 +489,16 @@ export const aggregateAvailableBalanceForUsageCredit = async (
       ledgerEntries.sourceUsageCreditId,
       ledgerEntries.ledgerAccountId,
       usageCredits.expiresAt
+    )
+    /**
+     * Apply usage credits FIFO by expiration date (earliest expiring first) to
+     * minimize waste from credits expiring unused. Non-expiring credits (null
+     * expiresAt) are applied last.
+     */
+    .orderBy(
+      sql`${usageCredits.expiresAt} IS NULL`,
+      asc(usageCredits.expiresAt),
+      asc(ledgerEntries.sourceUsageCreditId)
     )
 
   // Transform results to match the expected return type

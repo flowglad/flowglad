@@ -17,6 +17,7 @@ import {
   membershipOrganizationIdIntegrityCheckPolicy,
   merchantPolicy,
   notNullStringForeignKey,
+  orgIdEqualsCurrentSQL,
   parentForeignKeyIntegrityCheckPolicy,
   type SelectConditions,
   tableBase,
@@ -67,7 +68,7 @@ export const productFeatures = pgTable(
         {
           as: 'permissive',
           for: 'all',
-          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+          using: orgIdEqualsCurrentSQL(),
         }
       ),
       parentForeignKeyIntegrityCheckPolicy({

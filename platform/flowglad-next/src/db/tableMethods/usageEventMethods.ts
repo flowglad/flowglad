@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
 import {
   customerClientSelectSchema,
   customers,
@@ -259,5 +259,64 @@ export const selectUsageEventsTableRowData =
           price: priceClient,
         }
       })
+    },
+    undefined, // searchableColumns - not using direct column search
+    /**
+     * Additional search clause handler for usage events table.
+     * Enables searching usage events by:
+     * - Exact usage event ID match
+     * - Exact subscription ID match
+     * - Usage meter name (case-insensitive partial match via ILIKE)
+     *
+     * The `exists()` function wraps a subquery and returns a boolean condition:
+     * - Returns `true` if the subquery finds at least one matching row
+     * - Returns `false` if the subquery finds zero matching rows
+     * The database optimizes EXISTS subqueries to stop evaluating as soon as it finds
+     * the first matching row, making it efficient for existence checks without needing JOINs.
+     *
+     * @param searchQuery - The search query string from the user
+     * @param transaction - Database transaction for building subqueries
+     * @returns SQL condition for OR-ing with other search filters, or undefined if query is empty
+     */
+    ({ searchQuery, transaction }) => {
+      // Early return if search query is not provided
+      if (!searchQuery) return undefined
+
+      // Normalize the search query by trimming whitespace
+      const trimmedQuery =
+        typeof searchQuery === 'string'
+          ? searchQuery.trim()
+          : searchQuery
+
+      // Only apply search filter if query is non-empty after trimming
+      if (!trimmedQuery) return undefined
+
+      // IMPORTANT: Do NOT await this query. By not awaiting, we keep it as a query builder
+      // object that Drizzle can embed into the SQL as a subquery. If we await it, it would
+      // execute immediately and return data, which we can't use in the EXISTS clause.
+
+      // Subquery to match usage events by usage meter name
+      const usageMeterSubquery = transaction
+        .select({ id: sql`1` })
+        .from(usageMeters)
+        .where(
+          and(
+            eq(usageMeters.id, usageEvents.usageMeterId),
+            ilike(
+              usageMeters.name,
+              sql`'%' || ${trimmedQuery} || '%'`
+            )
+          )
+        )
+        .limit(1)
+
+      return or(
+        // Match usage events by exact ID
+        eq(usageEvents.id, trimmedQuery),
+        // Match usage events by exact subscription ID
+        eq(usageEvents.subscriptionId, trimmedQuery),
+        // Match usage events where usage meter name contains the search query
+        exists(usageMeterSubquery)
+      )
     }
   )
