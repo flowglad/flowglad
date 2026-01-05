@@ -193,12 +193,8 @@ export const SideNavigation = () => {
     <>
       <SidebarHeader
         className={cn(
-          'w-full flex flex-row items-center justify-start bg-sidebar transition-all duration-300 py-2',
-          isCollapsed
-            ? organization?.logoURL
-              ? 'px-[3px]'
-              : 'px-[5px]'
-            : 'px-1'
+          'w-full flex flex-row items-center justify-start bg-sidebar transition-all duration-300 py-8',
+          isCollapsed ? 'px-2.5' : 'px-2'
         )}
       >
         <TooltipProvider delayDuration={0}>
@@ -261,7 +257,7 @@ export const SideNavigation = () => {
         </TooltipProvider>
       </SidebarHeader>
 
-      <SidebarContent className="pt-3 bg-sidebar">
+      <SidebarContent className="bg-sidebar">
         <div className="px-0 bg-sidebar">
           {/* Finish Setup and Primary navigation items - dimmed when showMore is true */}
           <div
@@ -342,9 +338,9 @@ export const SideNavigation = () => {
                             focusedMembership.isPending
                           }
                           className={cn(
-                            'flex w-full items-center justify-center rounded-md transition-colors',
+                            'flex w-full items-center justify-center rounded transition-colors',
                             'hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                            'px-[7px] py-1.5 disabled:opacity-50'
+                            'p-3 disabled:opacity-50'
                           )}
                           aria-label="Toggle test mode"
                           data-testid="test-mode-toggle-collapsed"
