@@ -24,6 +24,7 @@ import {
   notNullStringForeignKey,
   nullableStringForeignKey,
   ommittedColumnsForInsertSchema,
+  orgIdEqualsCurrentSQL,
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
@@ -97,7 +98,7 @@ export const products = pgTable(TABLE_NAME, columns, (table) => {
       {
         as: 'permissive',
         to: 'all',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        using: orgIdEqualsCurrentSQL(),
       }
     ),
     livemodePolicy(TABLE_NAME),

@@ -7,6 +7,7 @@ import {
   livemodePolicy,
   merchantPolicy,
   notNullStringForeignKey,
+  orgIdEqualsCurrentSQL,
   tableBase,
 } from '@/db/tableUtils'
 import { FlowgladEventType } from '@/types'
@@ -43,7 +44,7 @@ export const webhooks = pgTable(
         {
           as: 'permissive',
           for: 'all',
-          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+          using: orgIdEqualsCurrentSQL(),
         }
       ),
       livemodePolicy(TABLE_NAME),

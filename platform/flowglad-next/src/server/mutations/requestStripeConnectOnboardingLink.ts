@@ -13,7 +13,7 @@ import {
 
 export const requestStripeConnectOnboardingLink = protectedProcedure
   .input(requestStripeConnectOnboardingLinkInputSchema)
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async () => {
     const { organization, country } = await authenticatedTransaction(
       async ({ transaction, userId }) => {
         const [membership] = await selectMembershipAndOrganizations(
@@ -33,10 +33,21 @@ export const requestStripeConnectOnboardingLink = protectedProcedure
         if (!organization) {
           throw new Error('Organization not found')
         }
+
+        if (!organization.countryId) {
+          throw new Error(
+            'Country is required before you can enable payments.'
+          )
+        }
+
         const country = await selectCountryById(
-          input.CountryId,
+          organization.countryId,
           transaction
         )
+
+        if (!country) {
+          throw new Error('Country not found')
+        }
 
         return { organization, country }
       }
@@ -67,18 +78,10 @@ export const requestStripeConnectOnboardingLink = protectedProcedure
 
     await adminTransaction(
       async ({ transaction }) => {
-        const updatedOrganization = await updateOrganization(
-          {
-            ...organization,
-            countryId: country.id,
-          },
-          transaction
-        )
         await updateOrganization(
           {
-            ...updatedOrganization,
+            ...organization,
             stripeAccountId,
-            countryId: country.id,
             onboardingStatus:
               BusinessOnboardingStatus.PartiallyOnboarded,
           },

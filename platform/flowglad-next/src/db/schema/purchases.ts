@@ -37,6 +37,7 @@ import {
   newBaseZodSelectSchemaColumns,
   notNullStringForeignKey,
   ommittedColumnsForInsertSchema,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   type SelectConditions,
   tableBase,
@@ -129,7 +130,7 @@ export const purchases = pgTable(TABLE_NAME, columns, (table) => {
       {
         as: 'permissive',
         for: 'select',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        using: orgIdEqualsCurrentSQL(),
       }
     ),
     // constructIndex(TABLE_NAME, [

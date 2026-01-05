@@ -85,9 +85,9 @@ export const columns: ColumnDef<WebhookTableRowData>[] = [
         {row.getValue('name')}
       </div>
     ),
-    size: 150,
-    minSize: 120,
-    maxSize: 200,
+    size: 112,
+    minSize: 90,
+    maxSize: 150,
   },
   {
     id: 'url',
@@ -100,9 +100,9 @@ export const columns: ColumnDef<WebhookTableRowData>[] = [
         </DataTableCopyableCell>
       </div>
     ),
-    size: 300,
-    minSize: 250,
-    maxSize: 400,
+    size: 150,
+    minSize: 125,
+    maxSize: 200,
   },
   {
     id: 'active',

@@ -19,6 +19,7 @@ import {
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
+  orgIdEqualsCurrentSQL,
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
@@ -95,7 +96,7 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
       as: 'permissive',
       to: 'merchant',
       for: 'all',
-      using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+      using: orgIdEqualsCurrentSQL(),
     }),
     enableCustomerReadPolicy(
       `Enable read for customers (${TABLE_NAME})`,

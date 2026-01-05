@@ -330,16 +330,31 @@ const validatePaymentUpdate = (
     }
   }
 
-  // Edge case: Only allow full refunds
-  if (paymentUpdate.refundedAmount !== paymentRecord.amount) {
+  // Edge case: Refund amount must be positive
+  if (
+    paymentUpdate.refundedAmount !== undefined &&
+    paymentUpdate.refundedAmount !== null &&
+    paymentUpdate.refundedAmount <= 0
+  ) {
+    errors.push('Refunded amount must be greater than 0')
+  }
+  // Edge case: Refund amount cannot exceed original payment amount
+  if (
+    paymentUpdate.refundedAmount !== undefined &&
+    paymentUpdate.refundedAmount !== null &&
+    paymentUpdate.refundedAmount > paymentRecord.amount
+  ) {
     errors.push(
-      'Refunded amount must be the same as the original amount'
+      'Refunded amount cannot exceed the original payment amount'
     )
   }
 
-  // Edge case: Only allow refund status
-  if (paymentUpdate.status !== PaymentStatus.Refunded) {
-    errors.push('Only refund status is supported')
+  // Edge case: For partial refunds, status should remain Succeeded; for full refunds, status should be Refunded
+  if (
+    paymentUpdate.status !== PaymentStatus.Refunded &&
+    paymentUpdate.status !== PaymentStatus.Succeeded
+  ) {
+    errors.push('Only refund or succeeded status is supported')
   }
 
   return errors.length > 0

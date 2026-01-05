@@ -9,6 +9,10 @@ description: 'Integrate Flowglad using natural language'
   to your environment.
 </Info>
 
+<Note>
+    Flowglad has an MCP server! It can give your AI coding agents more context with the Flowglad docs. You can add it to your AI coding tool of choice by following the [MCP server documentation](/mcp-server).
+</Note>
+
 ## 1. Install The Flowglad Package
 
 <CodeGroup>
@@ -27,87 +31,18 @@ npm install @flowglad/nextjs
 
 </CodeGroup>
 
-## 2. One Shot Integration
+## 2. Codebase Overview
 
-Copy the the prompt below and execute it. For a conventional Next.js app, it should zero shot the integration.
+Flowglad can create a custom integration prompt for each pricing model in your organization.
 
-<Accordion title="Next.js">
+If you haven't already, you'll need to complete a codebase overview to give Flowglad context about your codebase. You'll be asked to complete this overview when creating a new organization or you can do it later in [settings](https://app.flowglad.com/settings).
 
-```mdx
-Please set up billing for our app according to the following instructions:
-1. Create a `flowglad.ts` file in /lib, that looks like this:
-1. Create a `flowglad.ts` file in /utils, that looks like this:
+Simply copy the overview prompt into your AI coding tool of choice and paste the output into the provided text area in Flowglad. 
 
-`// lib/flowglad.ts
-import { FlowgladServer } from '@flowglad/nextjs/server'
+## 3. One Shot Integration
 
-export const flowglad = (customerExternalId: string) => {
-  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
-  return new FlowgladServer({
-    customerExternalId,
-    getCustomerDetails: async (externalId) => {
-      // Fetch customer details from YOUR database using YOUR app's ID
-      const user = await db.users.findOne({ id: externalId })
-      if (!user) {
-        throw new Error('Customer not found')
-      }
-      return {
-        email: user.email,
-        name: user.name,
-      }
-    },
-  })
-}
-`
+To access a pricing model's custom integration prompt, go to your pricing model, click "More Options", click "Integrate", and you'll see the prompt (it may take some time to generate).
 
-<Note>
-**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
+![integrate button](/images/integration-prompt-button.png)
 
-**B2C apps:** Use `user.id` as `customerExternalId`  
-**B2B apps:** Use `organization.id` or `team.id` as `customerExternalId`
-</Note>
-
-2. Create a route handler at `/api/flowglad/[...path]/route.ts`:
-
-`// /api/flowglad/[...path]/route.ts
-import { nextRouteHandler } from '@flowglad/nextjs/server'
-import { flowglad } from '@/utils/flowglad'
-
-export const { GET, POST } = nextRouteHandler({
-  flowglad,
-  getCustomerExternalId: async (req) => {
-    // Extract customerExternalId from your auth/session
-    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
-    // For B2C: return user.id (from your database)
-    // For B2B: return organization.id (from your database)
-    const userId = await getUserIdFromRequest(req)
-    if (!userId) {
-      throw new Error('User not authenticated')
-    }
-    return userId
-  },
-})
-`
-
-3. Add the following to the `app/layout.tsx` file. Preserve the existing layout JSX code. Just:
-
-- get the user via your auth system
-- mount the `FlowgladProvider` with the user
-- pass the user to the `FlowgladProvider`
-
-`
-// /app/layout.tsx
-// ... existing code ...
-// inside of the layout component:
-const user = await getCurrentUser() // your auth helper
-
-return (
-<FlowgladProvider loadBilling={!!user}>
-  {/* ... existing layout JSX ... */}
-  {children}
-  {/* ... existing layout JSX ... */}
-</FlowgladProvider>
-) `
-```
-
-</Accordion>
+You can then copy this prompt into your AI coding tool and it should be able to one shot the integration.

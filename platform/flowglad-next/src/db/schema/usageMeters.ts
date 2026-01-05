@@ -18,6 +18,7 @@ import {
   merchantPolicy,
   notNullStringForeignKey,
   ommittedColumnsForInsertSchema,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   type SelectConditions,
   tableBase,
@@ -70,7 +71,7 @@ export const usageMeters = pgTable(
           as: 'permissive',
           to: 'permissive',
           for: 'all',
-          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+          using: orgIdEqualsCurrentSQL(),
         }
       ),
       livemodePolicy(TABLE_NAME),

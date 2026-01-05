@@ -84,7 +84,7 @@ export const usageEvents = pgTable(
           as: 'permissive',
           to: 'permissive',
           for: 'all',
-          using: sql`"customer_id" in (select "id" from "customers" where "organization_id" in (select "organization_id" from "memberships"))`,
+          using: sql`"customer_id" in (select "id" from "customers" where "organization_id"=current_organization_id())`,
         }
       ),
       merchantPolicy(

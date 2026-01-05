@@ -31,6 +31,7 @@ export const refundPaymentTransaction = async (
     throw new Error('Payment not found')
   }
 
+  // Additional refunds are only supported until the payment is fully refunded.
   if (payment.status === PaymentStatus.Refunded) {
     throw new Error('Payment has already been refunded')
   }
@@ -40,18 +41,26 @@ export const refundPaymentTransaction = async (
       'Cannot refund a payment that is still processing'
     )
   }
-  if (partialAmount && partialAmount > payment.amount) {
-    throw new Error(
-      'Partial amount cannot be greater than the payment amount'
-    )
+  if (partialAmount !== null) {
+    if (partialAmount <= 0) {
+      throw new Error('Partial amount must be greater than 0')
+    }
+    if (partialAmount > payment.amount) {
+      throw new Error(
+        'Partial amount cannot be greater than the payment amount'
+      )
+    }
   }
-  let refund: Stripe.Refund | null = null
+  let refundCreatedSeconds: number
+  let nextRefundedAmount: number
   try {
-    refund = await refundPayment(
+    const refund = await refundPayment(
       payment.stripePaymentIntentId,
       partialAmount,
       payment.livemode
     )
+    refundCreatedSeconds = refund.created
+    nextRefundedAmount = (payment.refundedAmount ?? 0) + refund.amount
   } catch (error) {
     const alreadyRefundedError =
       error instanceof Stripe.errors.StripeError &&
@@ -81,16 +90,38 @@ export const refundPaymentTransaction = async (
       charge.id,
       payment.livemode
     )
-    refund = refunds.data[0]
+    if (refunds.data.length === 0) {
+      throw new Error(
+        `Payment ${payment.id} has a charge ${charge.id} marked refunded, but no refunds were returned by Stripe`
+      )
+    }
+    refundCreatedSeconds = refunds.data.reduce(
+      (latestCreated, refund) => {
+        return Math.max(latestCreated, refund.created)
+      },
+      0
+    )
+    const amountRefundedFromStripe =
+      typeof charge.amount_refunded === 'number'
+        ? charge.amount_refunded
+        : refunds.data.reduce((sum, refund) => {
+            return sum + refund.amount
+          }, 0)
+    nextRefundedAmount = amountRefundedFromStripe
   }
 
   const updatedPayment = await safelyUpdatePaymentForRefund(
     {
       id: payment.id,
-      status: PaymentStatus.Refunded,
-      refunded: true,
-      refundedAmount: payment.amount,
-      refundedAt: dateFromStripeTimestamp(refund.created).getTime(),
+      status:
+        nextRefundedAmount >= payment.amount
+          ? PaymentStatus.Refunded
+          : PaymentStatus.Succeeded,
+      refunded: nextRefundedAmount >= payment.amount,
+      refundedAmount: nextRefundedAmount,
+      refundedAt: dateFromStripeTimestamp(
+        refundCreatedSeconds
+      ).getTime(),
     },
     transaction
   )
@@ -155,6 +186,10 @@ export const retryPaymentTransaction = async (
       refunded: false,
       refundedAmount: 0,
       refundedAt: null,
+      subtotal: payment.subtotal,
+      taxAmount: payment.taxAmount,
+      stripeTaxCalculationId: payment.stripeTaxCalculationId,
+      stripeTaxTransactionId: payment.stripeTaxTransactionId,
       stripeChargeId: stripeIdFromObjectOrId(
         paymentIntent.latest_charge!
       ),
@@ -180,7 +215,8 @@ export const sumNetTotalSettledPaymentsForPaymentSet = (
 ) => {
   const total = paymentSet.reduce((acc, payment) => {
     if (payment.status === PaymentStatus.Succeeded) {
-      return acc + payment.amount
+      // Subtract any partial refunds from succeeded payments
+      return acc + (payment.amount - (payment.refundedAmount ?? 0))
     }
     if (payment.status === PaymentStatus.Refunded) {
       return acc + (payment.amount - (payment.refundedAmount ?? 0))

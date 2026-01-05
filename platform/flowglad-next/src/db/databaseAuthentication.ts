@@ -313,12 +313,19 @@ export async function databaseAuthenticationInfoForWebappRequest(
 
   if (!customerOrganizationId) {
     // Merchant dashboard authentication flow
+    // Explicitly require focused=true to match trpcContext.ts behavior.
+    // This ensures both code paths return no organization when none is focused,
+    // rather than arbitrarily selecting the first membership.
     const [focusedMembership] = await db
       .select()
       .from(memberships)
       .innerJoin(users, eq(memberships.userId, users.id))
-      .where(and(eq(users.betterAuthId, betterAuthId)))
-      .orderBy(desc(memberships.focused))
+      .where(
+        and(
+          eq(users.betterAuthId, betterAuthId),
+          eq(memberships.focused, true)
+        )
+      )
       .limit(1)
     const userId = focusedMembership?.memberships.userId
     const livemode = focusedMembership?.memberships.livemode ?? false

@@ -103,7 +103,7 @@ describe('paymentMethods.ts', () => {
             transaction
           )
         ).rejects.toThrow(
-          `Failed to update payment ${payment.id}: Refunded amount must be the same as the original amount, Only refund status is supported`
+          `Failed to update payment ${payment.id}: Only refund or succeeded status is supported`
         )
       })
     })
@@ -118,12 +118,64 @@ describe('paymentMethods.ts', () => {
               refunded: true,
               refundedAt: Date.now(),
               refundedAmount: refundAmount,
+              status: PaymentStatus.Refunded,
             },
             transaction
           )
         ).rejects.toThrow(
-          `Failed to update payment ${payment.id}: Refunded amount must be the same as the original amount, Only refund status is supported`
+          `Failed to update payment ${payment.id}: Refunded amount cannot exceed the original payment amount`
         )
+      })
+    })
+
+    it('updates payment for partial refund and keeps payment amount unchanged', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const partialRefundAmount = 500 // 50% refund
+        const refundedAt = Date.now()
+        const updatedPayment = await safelyUpdatePaymentForRefund(
+          {
+            id: payment.id,
+            refunded: false,
+            refundedAt,
+            refundedAmount: partialRefundAmount,
+            status: PaymentStatus.Succeeded,
+          },
+          transaction
+        )
+
+        expect(updatedPayment.refunded).toBe(false)
+        expect(updatedPayment.refundedAmount).toBe(
+          partialRefundAmount
+        )
+        expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
+        expect(updatedPayment.amount).toBe(payment.amount)
+        expect(updatedPayment.refundedAt).toBeGreaterThan(
+          refundedAt - 5_000
+        )
+        expect(updatedPayment.refundedAt).toBeLessThanOrEqual(
+          Date.now()
+        )
+      })
+    })
+
+    it('fails if refunded amount is not positive', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        for (const refundedAmount of [0, -1]) {
+          await expect(
+            safelyUpdatePaymentForRefund(
+              {
+                id: payment.id,
+                refunded: false,
+                refundedAt: Date.now(),
+                refundedAmount,
+                status: PaymentStatus.Succeeded,
+              },
+              transaction
+            )
+          ).rejects.toThrow(
+            `Failed to update payment ${payment.id}: Refunded amount must be greater than 0`
+          )
+        }
       })
     })
 
