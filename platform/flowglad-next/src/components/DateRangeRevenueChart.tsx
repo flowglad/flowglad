@@ -29,7 +29,6 @@ const DateRangeRevenueChart = ({
         <DateRangePicker
           fromDate={range.from}
           toDate={range.to}
-          minDate={new Date(organizationCreatedAt)}
           maxDate={new Date()}
           onSelect={(newRange) => {
             if (newRange?.from && newRange?.to) {

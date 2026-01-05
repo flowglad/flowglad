@@ -28,6 +28,35 @@ const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
 } as const
 
 /**
+ * Computes the best default interval based on the date range.
+ * Based on preset expectations:
+ * - Last 3/6/12 months → Monthly (>= 60 days)
+ * - Last 7/30 days → Daily (>= 1 day but < 60 days)
+ * - Today → Hourly (< 1 day)
+ */
+function getDefaultInterval(
+  fromDate: Date,
+  toDate: Date
+): RevenueChartIntervalUnit {
+  const timespanInHours = differenceInHours(toDate, fromDate)
+
+  // 2+ months (60 days = 1440 hours): Monthly
+  // Covers Last 3 months, Last 6 months, Last 12 months
+  if (timespanInHours >= 24 * 60) {
+    return RevenueChartIntervalUnit.Month
+  }
+
+  // 1+ day (24 hours) but less than 2 months: Daily
+  // Covers Last 7 days, Last 30 days
+  if (timespanInHours >= 24) {
+    return RevenueChartIntervalUnit.Day
+  }
+
+  // Less than 1 day (including "Today"): Hourly
+  return RevenueChartIntervalUnit.Hour
+}
+
+/**
  * Component for displaying Monthly Recurring Revenue (MRR) data in a chart
  */
 export const RecurringRevenueChart = ({
@@ -40,10 +69,28 @@ export const RecurringRevenueChart = ({
   productId?: string
 }) => {
   const { organization } = useAuthenticatedContext()
+
+  // Compute the best default interval based on available options
+  const defaultInterval = React.useMemo(
+    () => getDefaultInterval(fromDate, toDate),
+    [fromDate, toDate]
+  )
+
   const [interval, setInterval] =
-    React.useState<RevenueChartIntervalUnit>(
-      RevenueChartIntervalUnit.Month
-    )
+    React.useState<RevenueChartIntervalUnit>(defaultInterval)
+
+  const timespanInHours = differenceInHours(toDate, fromDate)
+
+  // Update interval if current selection becomes invalid due to date range change
+  React.useEffect(() => {
+    const isCurrentIntervalInvalid =
+      interval !== RevenueChartIntervalUnit.Hour &&
+      timespanInHours < minimumUnitInHours[interval]
+
+    if (isCurrentIntervalInvalid) {
+      setInterval(getDefaultInterval(fromDate, toDate))
+    }
+  }, [timespanInHours, interval, fromDate, toDate])
 
   const { data: mrrData, isLoading } =
     trpc.organizations.getMRR.useQuery({
@@ -120,7 +167,6 @@ export const RecurringRevenueChart = ({
     )
   }, [mrrData, defaultCurrency, firstPayloadValue])
 
-  const timespanInHours = differenceInHours(toDate, fromDate)
   const tooltipLabel = tooltipData?.label
   let isTooltipLabelDate: boolean = false
   if (tooltipLabel) {
