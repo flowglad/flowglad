@@ -373,12 +373,12 @@ describe('adjustSubscriptionSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rejects empty priceIdOrSlug', () => {
+  it('accepts empty priceIdOrSlug (defers validation to server)', () => {
     const result = adjustSubscriptionSchema.safeParse({
       priceIdOrSlug: '',
     })
-    // empty string is still a string, schema may accept it
-    // but conceptually it's valid - server will reject
+    // empty string is still a string, schema accepts it
+    // server will reject with a more helpful error message
     expect(result.success).toBe(true)
   })
 

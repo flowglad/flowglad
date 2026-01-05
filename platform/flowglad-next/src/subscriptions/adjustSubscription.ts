@@ -487,7 +487,9 @@ export const adjustSubscription = async (
       // Terse item with priceId: expand to full subscription item
       const price = pricesById.get(item.priceId)
       if (!price) {
-        throw new Error(`Price with id ${item.priceId} not found`)
+        throw new Error(
+          `Price "${item.priceId}" not found. Ensure the price exists, is active, and belongs to the subscription's pricing model.`
+        )
       }
       resolvedSubscriptionItems.push({
         name: price.name,
