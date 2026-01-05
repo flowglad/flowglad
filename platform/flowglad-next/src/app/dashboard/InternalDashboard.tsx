@@ -54,12 +54,8 @@ function InternalDashboardPage({
             minDate={new Date(organizationCreatedAt)}
             maxDate={new Date()}
             onSelect={(newRange) => {
-              if (newRange) {
-                setRange({
-                  from:
-                    newRange.from ?? new Date(organizationCreatedAt),
-                  to: newRange.to ?? new Date(),
-                })
+              if (newRange?.from && newRange?.to) {
+                setRange({ from: newRange.from, to: newRange.to })
               }
             }}
           />

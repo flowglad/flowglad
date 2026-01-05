@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
 import { LineChart } from './charts/LineChart'
 import ErrorBoundary from './ErrorBoundary'
+import { ChartInfoTooltip } from './ui/chart-info-tooltip'
 import { Skeleton } from './ui/skeleton'
 
 /**
@@ -292,6 +293,7 @@ export const ActiveSubscribersChart = ({
       <div className="flex flex-row gap-2 justify-between px-4">
         <div className="text-foreground w-fit flex items-center flex-row gap-0.5">
           <p className="whitespace-nowrap">Active Subscribers</p>
+          <ChartInfoTooltip content="The number of customers with active paid subscriptions at each point in time." />
           <Select
             value={interval}
             onValueChange={(value) =>

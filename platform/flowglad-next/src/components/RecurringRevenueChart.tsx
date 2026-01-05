@@ -12,6 +12,7 @@ import {
   stripeCurrencyAmountToShortReadableCurrencyAmount,
 } from '@/utils/stripe'
 import { LineChart } from './charts/LineChart'
+import { ChartInfoTooltip } from './ui/chart-info-tooltip'
 import { Skeleton } from './ui/skeleton'
 
 /**
@@ -137,6 +138,7 @@ export const RecurringRevenueChart = ({
           <p className="whitespace-nowrap">
             Monthly Recurring Revenue
           </p>
+          <ChartInfoTooltip content="The normalized monthly value of all active recurring subscriptions. Calculated as the sum of subscription amounts adjusted to a monthly rate." />
         </div>
       </div>
 
