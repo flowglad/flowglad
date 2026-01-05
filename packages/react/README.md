@@ -110,10 +110,14 @@ function MyComponent() {
 
   // Track usage events
   const handleUsage = async () => {
-    await billing.createUsageEvent({
+    const result = await billing.createUsageEvent({
       usageMeterSlug: 'api_calls',
       amount: 1
     });
+    
+    if ('error' in result) {
+      console.error('Failed to record usage:', result.error);
+    }
   };
 }
 ```

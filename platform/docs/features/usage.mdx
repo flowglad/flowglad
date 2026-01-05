@@ -219,22 +219,33 @@ In addition to server-side usage event creation, you can also create usage event
 
 ```tsx
 import { useBilling } from '@flowglad/react'
+import { useState } from 'react'
 
 function TokenCounter() {
   const { createUsageEvent } = useBilling()
+  const [prompt, setPrompt] = useState('')
 
   const handleGenerateText = async () => {
     const response = await generateAIText(prompt)
 
     // Record the tokens consumed
-    await createUsageEvent({
+    const result = await createUsageEvent({
       usageMeterSlug: 'ai_tokens',
       amount: response.tokensUsed,
     })
+    
+    if ('error' in result) {
+      console.error('Failed to record usage:', result.error)
+    }
   }
 
   return (
     <div>
+      <input 
+        value={prompt} 
+        onChange={(e) => setPrompt(e.target.value)} 
+        placeholder="Enter your prompt"
+      />
       <button onClick={handleGenerateText}>Generate</button>
     </div>
   )
