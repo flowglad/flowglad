@@ -1180,6 +1180,117 @@ describe('Checkout Sessions', async () => {
 
       expect(result.invoice.status).not.toEqual(InvoiceStatus.Paid)
     })
+
+    it('should not mark invoice as Paid when a payment has been partially refunded and net amount is below invoice total', async () => {
+      const updatedCheckoutSession = await adminTransaction(
+        async ({ transaction }) => {
+          return updateCheckoutSession(
+            {
+              ...checkoutSession,
+              ...invoiceCheckoutSessionNulledColumns,
+              type: CheckoutSessionType.Invoice,
+              invoiceId: invoice.id,
+            } as CheckoutSession.InvoiceUpdate,
+            transaction
+          )
+        }
+      )
+
+      const partiallyRefundedPaymentCharge = mockSucceededCharge(
+        checkoutSession.id,
+        customer.stripeCustomerId!,
+        2000
+      )
+
+      await setupPayment({
+        invoiceId: invoice.id,
+        amount: 2000,
+        refundedAmount: 1200,
+        status: PaymentStatus.Succeeded,
+        livemode: true,
+        customerId: customer.id,
+        organizationId: organization.id,
+        stripeChargeId: partiallyRefundedPaymentCharge.id,
+        stripePaymentIntentId:
+          partiallyRefundedPaymentCharge.payment_intent as string,
+        paymentMethod: PaymentMethodType.Card,
+      })
+
+      const result = await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return processStripeChargeForInvoiceCheckoutSession(
+            {
+              checkoutSession:
+                updatedCheckoutSession as CheckoutSession.InvoiceRecord,
+              charge: mockSucceededCharge(
+                checkoutSession.id,
+                customer.stripeCustomerId!,
+                0
+              ),
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(result.invoice.status).not.toEqual(InvoiceStatus.Paid)
+    })
+
+    it('should not mark invoice as Paid when a payment has been fully refunded', async () => {
+      const updatedCheckoutSession = await adminTransaction(
+        async ({ transaction }) => {
+          return updateCheckoutSession(
+            {
+              ...checkoutSession,
+              ...invoiceCheckoutSessionNulledColumns,
+              type: CheckoutSessionType.Invoice,
+              invoiceId: invoice.id,
+            } as CheckoutSession.InvoiceUpdate,
+            transaction
+          )
+        }
+      )
+
+      const fullyRefundedPaymentCharge = mockSucceededCharge(
+        checkoutSession.id,
+        customer.stripeCustomerId!,
+        2000
+      )
+
+      await setupPayment({
+        invoiceId: invoice.id,
+        amount: 2000,
+        refundedAmount: 2000,
+        refunded: true,
+        status: PaymentStatus.Refunded,
+        livemode: true,
+        customerId: customer.id,
+        organizationId: organization.id,
+        stripeChargeId: fullyRefundedPaymentCharge.id,
+        stripePaymentIntentId:
+          fullyRefundedPaymentCharge.payment_intent as string,
+        paymentMethod: PaymentMethodType.Card,
+      })
+
+      const result = await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return processStripeChargeForInvoiceCheckoutSession(
+            {
+              checkoutSession:
+                updatedCheckoutSession as CheckoutSession.InvoiceRecord,
+              charge: mockSucceededCharge(
+                checkoutSession.id,
+                customer.stripeCustomerId!,
+                0
+              ),
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(result.invoice.status).not.toEqual(InvoiceStatus.Paid)
+    })
   })
 
   describe('processStripeChargeForCheckoutSession', () => {
