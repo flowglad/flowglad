@@ -43,3 +43,5 @@ playground/react-native/prisma/database.sqlite
 
 # openapi diffing
 temp-openapi**.json
+
+/tags
