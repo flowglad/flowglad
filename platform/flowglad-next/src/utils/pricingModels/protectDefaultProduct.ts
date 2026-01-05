@@ -36,6 +36,20 @@ export const findDefaultProduct = (
 }
 
 /**
+ * Finds a product by slug in a pricing model input.
+ *
+ * @param input - The pricing model setup input
+ * @param slug - The slug to search for
+ * @returns The product input with matching slug, or undefined if not found
+ */
+export const findProductBySlug = (
+  input: SetupPricingModelInput,
+  slug: string
+): SetupPricingModelProductInput | undefined => {
+  return input.products.find((p) => p.product.slug === slug)
+}
+
+/**
  * Validates that the proposed input doesn't have multiple default products.
  *
  * @param proposedInput - The proposed pricing model input
@@ -151,7 +165,10 @@ export const mergeDefaultProduct = (
  * fields modified. It applies the following logic:
  *
  * 1. Validates that proposed input has at most one default product (throws if multiple)
- * 2. If proposed has no default product, adds back the existing default
+ * 2. If proposed has no default product:
+ *    a. If proposed contains a product with the same slug as existing default (demotion attempt),
+ *       route through merge path to preserve default: true
+ *    b. Otherwise, add back the existing default
  * 3. If proposed has a default product but with protected field changes,
  *    merges the existing default with only the allowed changes (name, description, features)
  *
@@ -176,8 +193,36 @@ export const protectDefaultProduct = (
     throw new Error('No default product found in existing input')
   }
 
-  // Step 3: If proposed has no default product, add back the existing default
+  // Step 3: If proposed has no default product
   if (!proposedDefault) {
+    // Check if proposed contains the existing default product with default: false (demotion attempt)
+    const demotedDefault = findProductBySlug(
+      proposedInput,
+      existingDefault.product.slug
+    )
+
+    if (demotedDefault) {
+      // Route through merge path: preserve default: true and other protected fields,
+      // but apply allowed changes (name, description, features)
+      const mergedDefault = mergeDefaultProduct(
+        existingDefault,
+        demotedDefault
+      )
+
+      // Replace the demoted product with the merged version
+      const updatedProducts = proposedInput.products.map((p) =>
+        p.product.slug === existingDefault.product.slug
+          ? mergedDefault
+          : p
+      )
+
+      return {
+        ...proposedInput,
+        products: updatedProducts,
+      }
+    }
+
+    // No demoted default found, simply add back the existing default
     return {
       ...proposedInput,
       products: [...proposedInput.products, existingDefault],

@@ -432,6 +432,62 @@ describe('protectDefaultProduct', () => {
     expect(restoredDefault!.product.name).toBe('Default Plan')
   })
 
+  it('preserves default: true when proposed attempts to demote existing default product by setting default: false on same slug', () => {
+    const existing = createPricingModelInput([
+      existingDefault,
+      existingPro,
+    ])
+    // Attempt to demote the default product by including it with default: false
+    const proposedWithDemotedDefault = createPricingModelInput([
+      createProductInput({
+        slug: 'default-plan', // Same slug as existing default
+        name: 'Demoted Default Name', // Allowed change
+        description: 'Demoted description', // Allowed change
+        default: false, // Attempting to demote
+        active: true,
+        unitPrice: 0,
+        priceSlug: 'default-price',
+        features: ['feature-a', 'feature-c'], // Allowed change
+      }),
+      existingPro,
+    ])
+
+    const result = protectDefaultProduct(
+      existing,
+      proposedWithDemotedDefault
+    )
+
+    // Should have exactly 2 products (no duplicates)
+    expect(result.products).toHaveLength(2)
+
+    // The default product should preserve default: true
+    const defaultProduct = result.products.find(
+      (p) => p.product.slug === 'default-plan'
+    )
+    expect(defaultProduct!.product.default).toBe(true)
+    expect(defaultProduct!.product.active).toBe(true)
+
+    // Allowed changes should be applied
+    expect(defaultProduct!.product.name).toBe('Demoted Default Name')
+    expect(defaultProduct!.product.description).toBe(
+      'Demoted description'
+    )
+    expect(defaultProduct!.features).toEqual([
+      'feature-a',
+      'feature-c',
+    ])
+
+    // Protected fields should be preserved
+    expect(defaultProduct!.price.unitPrice).toBe(0)
+    expect(defaultProduct!.price.slug).toBe('default-price')
+
+    // Pro product should be unchanged
+    const proProduct = result.products.find(
+      (p) => p.product.slug === 'pro-plan'
+    )
+    expect(proProduct).toBe(existingPro)
+  })
+
   it('returns proposed unchanged when default product has only allowed field changes (name, description, features)', () => {
     const existing = createPricingModelInput([
       existingDefault,

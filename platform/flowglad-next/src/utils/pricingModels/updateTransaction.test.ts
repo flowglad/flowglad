@@ -2294,5 +2294,145 @@ describe('updatePricingModelTransaction', () => {
       expect(activePrice!.unitPrice).toBe(0)
       expect(activePrice!.intervalUnit).toBe(IntervalUnit.Month)
     })
+
+    it('preserves default: true when proposed attempts to demote existing default product by setting default: false, avoiding duplicate slugs', async () => {
+      // Setup with explicit default product
+      const setupResult = await createBasicPricingModel({
+        products: [
+          {
+            product: {
+              name: 'Free Plan',
+              slug: 'free',
+              default: true,
+              active: true,
+            },
+            price: {
+              type: PriceType.Subscription,
+              slug: 'free-monthly',
+              unitPrice: 0,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'],
+          },
+          {
+            product: {
+              name: 'Pro Plan',
+              slug: 'pro',
+              default: false,
+              active: true,
+            },
+            price: {
+              type: PriceType.Subscription,
+              slug: 'pro-monthly',
+              unitPrice: 2999,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'],
+          },
+        ],
+      })
+
+      // Attempt to demote the default product by setting default: false
+      const updateResult = await adminTransaction(
+        async ({ transaction }) =>
+          updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
+                    active: true,
+                  },
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'Demoted Free Plan', // Allowed change
+                      slug: 'free', // Same slug as existing default
+                      default: false, // Attempting to demote
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'free-monthly',
+                      unitPrice: 0,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a'],
+                  },
+                  {
+                    product: {
+                      name: 'Pro Plan',
+                      slug: 'pro',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'pro-monthly',
+                      unitPrice: 2999,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a'],
+                  },
+                ],
+              },
+            },
+            transaction
+          )
+      )
+
+      // Verify database state - should have exactly 2 active products (no duplicates)
+      const allProducts = await adminTransaction(
+        async ({ transaction }) =>
+          selectProducts(
+            { pricingModelId: setupResult.pricingModel.id },
+            transaction
+          )
+      )
+      const activeProducts = allProducts.filter((p) => p.active)
+      expect(activeProducts).toHaveLength(2)
+
+      // The free product should preserve default: true
+      const freeProduct = activeProducts.find(
+        (p) => p.slug === 'free'
+      )
+      expect(freeProduct!.default).toBe(true)
+      expect(freeProduct!.active).toBe(true)
+
+      // The allowed name change should be applied
+      expect(freeProduct!.name).toBe('Demoted Free Plan')
+
+      // Pro product should remain non-default
+      const proProduct = activeProducts.find((p) => p.slug === 'pro')
+      expect(proProduct!.default).toBe(false)
+    })
   })
 })
