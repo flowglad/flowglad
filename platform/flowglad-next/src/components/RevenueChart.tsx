@@ -310,7 +310,6 @@ export function RevenueChart({
       <div className="flex flex-row gap-2 justify-between px-4">
         <div className="text-foreground w-fit flex items-center flex-row gap-0.5">
           <p className="whitespace-nowrap">Revenue</p>
-          <ChartInfoTooltip content="Total revenue collected from all payments in the selected period, including one-time purchases and subscription payments." />
           <Select
             value={interval}
             onValueChange={(value) =>
@@ -329,6 +328,7 @@ export function RevenueChart({
               ))}
             </SelectContent>
           </Select>
+          <ChartInfoTooltip content="Total revenue collected from all payments in the selected period, including one-time purchases and subscription payments." />
         </div>
       </div>
 

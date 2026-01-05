@@ -128,6 +128,12 @@ export function DateRangePicker({
 }: DateRangePickerProps) {
   const [open, setOpen] = React.useState(false)
 
+  // Track if user has started selecting in this session
+  // When false, we don't pass `selected` to Calendar, so react-day-picker
+  // treats the first click as starting a fresh selection
+  const [hasStartedSelecting, setHasStartedSelecting] =
+    React.useState(false)
+
   // Internal state for in-progress selection
   const [internalRange, setInternalRange] = React.useState<
     DateRange | undefined
@@ -147,10 +153,11 @@ export function DateRangePicker({
     setInternalRange({ from: fromDate, to: toDate })
   }, [fromDate, toDate])
 
-  // Reset internal state when popover opens
+  // Reset internal state and selection mode when popover opens
   React.useEffect(() => {
     if (open) {
       setInternalRange({ from: fromDate, to: toDate })
+      setHasStartedSelecting(false) // Reset - user hasn't started selecting yet
     }
   }, [open, fromDate, toDate])
 
@@ -163,7 +170,14 @@ export function DateRangePicker({
   }
 
   const handleSelect = (newRange: DateRange | undefined) => {
-    // Only update internal state, don't notify parent yet
+    // By not passing `selected` to Calendar until hasStartedSelecting is true,
+    // react-day-picker handles the selection flow naturally:
+    // - First click: sets from date
+    // - Second click: sets to date
+    // - Third click (complete range): resets and starts new selection
+    if (!hasStartedSelecting) {
+      setHasStartedSelecting(true)
+    }
     setInternalRange(newRange)
   }
 
@@ -173,6 +187,8 @@ export function DateRangePicker({
       from: preset.dateRange.from,
       to: preset.dateRange.to,
     })
+    // Mark as selecting so the range is passed to Calendar
+    setHasStartedSelecting(true)
   }
 
   const handleApply = () => {
@@ -186,6 +202,7 @@ export function DateRangePicker({
   const handleCancel = () => {
     // Reset to original values and close
     setInternalRange({ from: fromDate, to: toDate })
+    setHasStartedSelecting(false)
     setOpen(false)
   }
 
@@ -280,7 +297,11 @@ export function DateRangePicker({
                 initialFocus
                 mode="range"
                 defaultMonth={internalRange?.from || new Date()}
-                selected={internalRange}
+                // Only pass selected once user starts selecting
+                // This lets react-day-picker handle fresh selections naturally
+                selected={
+                  hasStartedSelecting ? internalRange : undefined
+                }
                 onSelect={handleSelect}
                 numberOfMonths={2}
                 disabled={disabledMatchers}
