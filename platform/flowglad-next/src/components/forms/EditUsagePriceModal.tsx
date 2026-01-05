@@ -46,7 +46,9 @@ interface EditUsagePriceModalProps {
 
 /**
  * Form schema for editing a usage price.
- * Includes all editable fields: name, slug, active, unitPrice (via __rawPriceString), and usageEventsPerUnit.
+ * Based on editUsagePriceFormSchema from prices.ts but extended with:
+ * - usageEventsPerUnit: needed for the immutable price pattern check
+ * - price.usageMeterId: for displaying the read-only usage meter select (not sent to update)
  * When unitPrice or usageEventsPerUnit change, a new price is created and the old one is inactivated.
  */
 const editUsagePriceFormSchema = z.object({
@@ -54,9 +56,10 @@ const editUsagePriceFormSchema = z.object({
     type: z.literal(PriceType.Usage),
     id: z.string(),
     isDefault: z.boolean(),
-    active: z.boolean(),
+    active: z.boolean().optional(),
     name: z.string().nullable().optional(),
     slug: z.string().nullable().optional(),
+    // usageMeterId is for form display only (read-only field), excluded from updates
     usageMeterId: z.string(),
   }),
   id: z.string(),
@@ -85,8 +88,14 @@ const UsagePriceFormFields = ({
 }: UsagePriceFormFieldsProps) => {
   const form = useFormContext<EditUsagePriceFormSchema>()
   const { organization } = useAuthenticatedContext()
+
+  // Should not happen since parent checks for organization, but guard for type safety
+  if (!organization) {
+    return null
+  }
+
   const zeroDecimal = isCurrencyZeroDecimal(
-    organization!.defaultCurrency
+    organization.defaultCurrency
   )
 
   return (
@@ -199,7 +208,7 @@ const UsagePriceFormFields = ({
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">
                         {currencyCharacter(
-                          organization!.defaultCurrency
+                          organization.defaultCurrency
                         )}
                       </span>
                       <FormControl>
