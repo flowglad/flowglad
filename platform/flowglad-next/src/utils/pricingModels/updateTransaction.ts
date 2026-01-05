@@ -20,7 +20,6 @@ import {
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   bulkInsertPrices,
-  insertPrice,
   updatePrice,
 } from '@/db/tableMethods/priceMethods'
 import {
@@ -36,23 +35,15 @@ import {
   updateUsageMeter,
 } from '@/db/tableMethods/usageMeterMethods'
 import type { DbTransaction } from '@/db/types'
-import { type CurrencyCode, FeatureType, PriceType } from '@/types'
-import {
-  computeUpdateObject,
-  diffPricingModel,
-  type PricingModelDiffResult,
-  type ProductDiffResult,
-} from './diffing'
+import { FeatureType, PriceType } from '@/types'
+import { computeUpdateObject, diffPricingModel } from './diffing'
 import { getPricingModelSetupData } from './setupHelpers'
 import {
   type SetupPricingModelInput,
-  type SetupPricingModelProductInput,
-  type SetupPricingModelProductPriceInput,
   validateSetupPricingModelInput,
 } from './setupSchemas'
 import { externalIdFromProductData } from './setupTransaction'
 import {
-  type ResolvedPricingModelIds,
   resolveExistingIds,
   syncProductFeaturesForMultipleProducts,
 } from './updateHelpers'
@@ -88,349 +79,21 @@ export type UpdatePricingModelResult = {
 }
 
 /**
- * Creates a new usage meter within a pricing model.
- */
-const createUsageMeter = async (
-  input: SetupPricingModelInput['usageMeters'][number],
-  {
-    pricingModelId,
-    organizationId,
-    livemode,
-  }: {
-    pricingModelId: string
-    organizationId: string
-    livemode: boolean
-  },
-  transaction: DbTransaction
-): Promise<UsageMeter.Record> => {
-  const [created] =
-    await bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId(
-      [
-        {
-          slug: input.slug,
-          name: input.name,
-          pricingModelId,
-          organizationId,
-          livemode,
-          ...(input.aggregationType && {
-            aggregationType: input.aggregationType,
-          }),
-        },
-      ],
-      transaction
-    )
-  return created
-}
-
-/**
- * Creates a new feature within a pricing model.
- */
-const createFeature = async (
-  input: SetupPricingModelInput['features'][number],
-  {
-    pricingModelId,
-    organizationId,
-    livemode,
-    usageMeterSlugToIdMap,
-  }: {
-    pricingModelId: string
-    organizationId: string
-    livemode: boolean
-    usageMeterSlugToIdMap: Map<string, string>
-  },
-  transaction: DbTransaction
-): Promise<Feature.Record> => {
-  const coreParams: Pick<
-    Feature.Insert,
-    | 'slug'
-    | 'pricingModelId'
-    | 'livemode'
-    | 'organizationId'
-    | 'name'
-    | 'description'
-  > = {
-    slug: input.slug,
-    name: input.name,
-    description: input.description,
-    pricingModelId,
-    livemode,
-    organizationId,
-  }
-
-  let featureInsert: Feature.Insert
-  if (input.type === FeatureType.UsageCreditGrant) {
-    const usageMeterId = usageMeterSlugToIdMap.get(
-      input.usageMeterSlug
-    )
-    if (!usageMeterId) {
-      throw new Error(`Usage meter ${input.usageMeterSlug} not found`)
-    }
-    featureInsert = {
-      ...coreParams,
-      type: FeatureType.UsageCreditGrant,
-      usageMeterId,
-      amount: input.amount,
-      renewalFrequency: input.renewalFrequency,
-      active: input.active ?? true,
-    }
-  } else {
-    featureInsert = {
-      ...coreParams,
-      type: FeatureType.Toggle,
-      usageMeterId: null,
-      amount: null,
-      renewalFrequency: null,
-      active: input.active ?? true,
-    }
-  }
-
-  const [created] = await bulkInsertFeatures(
-    [featureInsert],
-    transaction
-  )
-  return created
-}
-
-/**
- * Creates a price insert object from a price input definition.
- */
-const buildPriceInsert = (
-  priceInput: SetupPricingModelProductPriceInput,
-  {
-    productId,
-    currency,
-    livemode,
-    usageMeterSlugToIdMap,
-  }: {
-    productId: string
-    currency: CurrencyCode
-    livemode: boolean
-    usageMeterSlugToIdMap: Map<string, string>
-  }
-): Price.Insert => {
-  switch (priceInput.type) {
-    case PriceType.Usage: {
-      const usageMeterId = usageMeterSlugToIdMap.get(
-        priceInput.usageMeterSlug
-      )
-      if (!usageMeterId) {
-        throw new Error(
-          `Usage meter ${priceInput.usageMeterSlug} not found`
-        )
-      }
-      return {
-        type: PriceType.Usage,
-        name: priceInput.name ?? null,
-        slug: priceInput.slug ?? null,
-        unitPrice: priceInput.unitPrice,
-        isDefault: priceInput.isDefault,
-        active: priceInput.active,
-        intervalCount: priceInput.intervalCount,
-        intervalUnit: priceInput.intervalUnit,
-        trialPeriodDays: priceInput.trialPeriodDays,
-        usageEventsPerUnit: priceInput.usageEventsPerUnit,
-        currency,
-        productId,
-        livemode,
-        externalId: null,
-        usageMeterId,
-      }
-    }
-
-    case PriceType.Subscription:
-      return {
-        type: PriceType.Subscription,
-        name: priceInput.name ?? null,
-        slug: priceInput.slug ?? null,
-        unitPrice: priceInput.unitPrice,
-        isDefault: priceInput.isDefault,
-        active: priceInput.active,
-        intervalCount: priceInput.intervalCount,
-        intervalUnit: priceInput.intervalUnit,
-        trialPeriodDays: priceInput.trialPeriodDays,
-        usageEventsPerUnit: priceInput.usageEventsPerUnit ?? null,
-        currency,
-        productId,
-        livemode,
-        externalId: null,
-        usageMeterId: null,
-      }
-
-    case PriceType.SinglePayment:
-      return {
-        type: PriceType.SinglePayment,
-        name: priceInput.name ?? null,
-        slug: priceInput.slug ?? null,
-        unitPrice: priceInput.unitPrice,
-        isDefault: priceInput.isDefault,
-        active: priceInput.active,
-        intervalCount: null,
-        intervalUnit: null,
-        trialPeriodDays: priceInput.trialPeriodDays ?? null,
-        usageEventsPerUnit: priceInput.usageEventsPerUnit ?? null,
-        currency,
-        productId,
-        livemode,
-        externalId: null,
-        usageMeterId: null,
-      }
-
-    default:
-      throw new Error(
-        `Unknown or unhandled price type: ${(priceInput as SetupPricingModelProductPriceInput).type}`
-      )
-  }
-}
-
-/**
- * Creates a new product with its price within a pricing model.
- */
-const createProduct = async (
-  input: SetupPricingModelProductInput,
-  {
-    pricingModelId,
-    organizationId,
-    livemode,
-    currency,
-    usageMeterSlugToIdMap,
-  }: {
-    pricingModelId: string
-    organizationId: string
-    livemode: boolean
-    currency: CurrencyCode
-    usageMeterSlugToIdMap: Map<string, string>
-  },
-  transaction: DbTransaction
-): Promise<{ product: Product.Record; price: Price.Record }> => {
-  const [product] = await bulkInsertProducts(
-    [
-      {
-        ...input.product,
-        pricingModelId,
-        livemode,
-        organizationId,
-        externalId: externalIdFromProductData(input, pricingModelId),
-      },
-    ],
-    transaction
-  )
-
-  const priceInsert = buildPriceInsert(input.price, {
-    productId: product.id,
-    currency,
-    livemode,
-    usageMeterSlugToIdMap,
-  })
-
-  const price = await insertPrice(priceInsert, transaction)
-
-  return { product, price }
-}
-
-/**
- * Handles price changes for a product update.
- *
- * When a price changes:
- * 1. Creates a new price with the proposed values (active=true, isDefault=true)
- * 2. Deactivates the old price (active=false, isDefault=false)
- *
- * This maintains historical records and ensures existing subscriptions
- * continue using their snapshotted prices.
- */
-const handlePriceChange = async (
-  {
-    existingPrice,
-    proposedPrice,
-    productId,
-    currency,
-    livemode,
-    usageMeterSlugToIdMap,
-    existingPriceId,
-  }: {
-    existingPrice?: SetupPricingModelProductPriceInput
-    proposedPrice?: SetupPricingModelProductPriceInput
-    productId: string
-    currency: CurrencyCode
-    livemode: boolean
-    usageMeterSlugToIdMap: Map<string, string>
-    existingPriceId?: string
-  },
-  transaction: DbTransaction
-): Promise<{
-  createdPrice?: Price.Record
-  deactivatedPrice?: Price.Record
-}> => {
-  // Case 1: Adding a price where there was none
-  if (!existingPrice && proposedPrice) {
-    const priceInsert = buildPriceInsert(proposedPrice, {
-      productId,
-      currency,
-      livemode,
-      usageMeterSlugToIdMap,
-    })
-    const createdPrice = await insertPrice(priceInsert, transaction)
-    return { createdPrice }
-  }
-
-  // Case 2: Removing a price (soft delete)
-  if (existingPrice && !proposedPrice && existingPriceId) {
-    const deactivatedPrice = await updatePrice(
-      {
-        id: existingPriceId,
-        active: false,
-        isDefault: false,
-        type: existingPrice.type,
-      },
-      transaction
-    )
-    return { deactivatedPrice }
-  }
-
-  // Case 3: Updating an existing price
-  if (existingPrice && proposedPrice && existingPriceId) {
-    // IMPORTANT: Deactivate old price FIRST to avoid unique constraint violation
-    // (slug uniqueness is scoped to active prices within a pricing model)
-    const deactivatedPrice = await updatePrice(
-      {
-        id: existingPriceId,
-        active: false,
-        isDefault: false,
-        type: existingPrice.type,
-      },
-      transaction
-    )
-
-    // Create new price with proposed values (now safe since old price is inactive)
-    const priceInsert = buildPriceInsert(proposedPrice, {
-      productId,
-      currency,
-      livemode,
-      usageMeterSlugToIdMap,
-    })
-    const createdPrice = await insertPrice(priceInsert, transaction)
-
-    return { createdPrice, deactivatedPrice }
-  }
-
-  return {}
-}
-
-/**
  * Updates an existing pricing model and all its child records based on the proposed input.
  *
  * This function:
  * 1. Fetches the existing pricing model data
  * 2. Validates the proposed input
  * 3. Computes the diff between existing and proposed states
- * 4. Applies all changes in a specific order to maintain referential integrity
+ * 4. Applies all changes using bulk operations where possible
  * 5. Syncs productFeatures junction table
  *
  * The update order is:
  * - Pricing model metadata (name, isDefault)
- * - Usage meters (create new, update existing)
- * - Features (create new, update existing, soft-delete removed)
- * - Products (create new with prices, update existing, soft-delete removed)
- * - Prices (create new for changed prices, deactivate old)
+ * - Usage meters (batch create new, parallel update existing)
+ * - Features (batch create new, parallel update existing, batch soft-delete removed)
+ * - Products (batch create new, parallel update existing, batch soft-delete removed)
+ * - Prices (batch create for new products, handle changes for existing products)
  * - ProductFeatures (sync junction table)
  *
  * @param params - Configuration object
@@ -449,15 +112,11 @@ export const updatePricingModelTransaction = async (
   },
   transaction: DbTransaction
 ): Promise<UpdatePricingModelResult> => {
-  // Step 1: Fetch existing pricing model data
-  const existingInput = await getPricingModelSetupData(
-    pricingModelId,
-    transaction
-  )
-  const pricingModel = await selectPricingModelById(
-    pricingModelId,
-    transaction
-  )
+  // Step 1: Fetch existing pricing model data and organization
+  const [existingInput, pricingModel] = await Promise.all([
+    getPricingModelSetupData(pricingModelId, transaction),
+    selectPricingModelById(pricingModelId, transaction),
+  ])
   const organization = await selectOrganizationById(
     pricingModel.organizationId,
     transaction
@@ -495,226 +154,545 @@ export const updatePricingModelTransaction = async (
     )
   }
 
-  // Step 6: Create new usage meters
-  for (const meterInput of diff.usageMeters.toCreate) {
-    const created = await createUsageMeter(
-      meterInput,
-      {
+  // Step 6: Batch create new usage meters
+  if (diff.usageMeters.toCreate.length > 0) {
+    const usageMeterInserts: UsageMeter.Insert[] =
+      diff.usageMeters.toCreate.map((meter) => ({
+        slug: meter.slug,
+        name: meter.name,
         pricingModelId,
         organizationId: pricingModel.organizationId,
         livemode: pricingModel.livemode,
-      },
-      transaction
-    )
-    result.usageMeters.created.push(created)
-    // Merge newly created usage meter ID into map
-    idMaps.usageMeters.set(created.slug, created.id)
+        ...(meter.aggregationType && {
+          aggregationType: meter.aggregationType,
+        }),
+      }))
+
+    const createdUsageMeters =
+      await bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId(
+        usageMeterInserts,
+        transaction
+      )
+
+    result.usageMeters.created = createdUsageMeters
+    // Merge newly created usage meter IDs into map
+    for (const meter of createdUsageMeters) {
+      idMaps.usageMeters.set(meter.slug, meter.id)
+    }
   }
 
-  // Step 7: Update existing usage meters
-  for (const { existing, proposed } of diff.usageMeters.toUpdate) {
-    const updateObj = computeUpdateObject(existing, proposed)
-    if (Object.keys(updateObj).length > 0) {
+  // Step 7: Update existing usage meters (parallel)
+  const usageMeterUpdatePromises = diff.usageMeters.toUpdate
+    .map(({ existing, proposed }) => {
+      const updateObj = computeUpdateObject(existing, proposed)
+      if (Object.keys(updateObj).length === 0) return null
+
       const meterId = idMaps.usageMeters.get(existing.slug)
       if (!meterId) {
         throw new Error(
           `Usage meter ${existing.slug} not found in ID map`
         )
       }
-      const updated = await updateUsageMeter(
+      return updateUsageMeter(
         { id: meterId, ...updateObj },
         transaction
       )
-      result.usageMeters.updated.push(updated)
-    }
+    })
+    .filter((p): p is Promise<UsageMeter.Record> => p !== null)
+
+  if (usageMeterUpdatePromises.length > 0) {
+    result.usageMeters.updated = await Promise.all(
+      usageMeterUpdatePromises
+    )
   }
 
-  // Step 8: Create new features
-  for (const featureInput of diff.features.toCreate) {
-    const created = await createFeature(
-      featureInput,
-      {
-        pricingModelId,
-        organizationId: pricingModel.organizationId,
-        livemode: pricingModel.livemode,
-        usageMeterSlugToIdMap: idMaps.usageMeters,
-      },
+  // Step 8: Batch create new features
+  if (diff.features.toCreate.length > 0) {
+    const featureInserts: Feature.Insert[] =
+      diff.features.toCreate.map((feature) => {
+        const coreParams: Pick<
+          Feature.Insert,
+          | 'slug'
+          | 'pricingModelId'
+          | 'livemode'
+          | 'organizationId'
+          | 'name'
+          | 'description'
+        > = {
+          slug: feature.slug,
+          name: feature.name,
+          description: feature.description,
+          pricingModelId,
+          livemode: pricingModel.livemode,
+          organizationId: pricingModel.organizationId,
+        }
+
+        if (feature.type === FeatureType.UsageCreditGrant) {
+          const usageMeterId = idMaps.usageMeters.get(
+            feature.usageMeterSlug
+          )
+          if (!usageMeterId) {
+            throw new Error(
+              `Usage meter ${feature.usageMeterSlug} not found`
+            )
+          }
+          return {
+            ...coreParams,
+            type: FeatureType.UsageCreditGrant,
+            usageMeterId,
+            amount: feature.amount,
+            renewalFrequency: feature.renewalFrequency,
+            active: feature.active ?? true,
+          }
+        }
+
+        return {
+          ...coreParams,
+          type: FeatureType.Toggle,
+          usageMeterId: null,
+          amount: null,
+          renewalFrequency: null,
+          active: feature.active ?? true,
+        }
+      })
+
+    const createdFeatures = await bulkInsertFeatures(
+      featureInserts,
       transaction
     )
-    result.features.created.push(created)
-    // Merge newly created feature ID into map
-    idMaps.features.set(created.slug, created.id)
+
+    result.features.created = createdFeatures
+    // Merge newly created feature IDs into map
+    for (const feature of createdFeatures) {
+      idMaps.features.set(feature.slug, feature.id)
+    }
   }
 
-  // Step 9: Update existing features
-  for (const { existing, proposed } of diff.features.toUpdate) {
-    const updateObj = computeUpdateObject(existing, proposed)
-    // Handle usageMeterSlug -> usageMeterId transformation
-    const transformedUpdate: Record<string, unknown> = {
-      ...updateObj,
-    }
-    if ('usageMeterSlug' in transformedUpdate) {
-      const newSlug = transformedUpdate.usageMeterSlug as string
-      const newUsageMeterId = idMaps.usageMeters.get(newSlug)
-      if (!newUsageMeterId) {
-        throw new Error(`Usage meter ${newSlug} not found`)
+  // Step 9: Update existing features (parallel)
+  const featureUpdatePromises = diff.features.toUpdate
+    .map(({ existing, proposed }) => {
+      const updateObj = computeUpdateObject(existing, proposed)
+      // Handle usageMeterSlug -> usageMeterId transformation
+      const transformedUpdate: Record<string, unknown> = {
+        ...updateObj,
       }
-      transformedUpdate.usageMeterId = newUsageMeterId
-      delete transformedUpdate.usageMeterSlug
-    }
+      if ('usageMeterSlug' in transformedUpdate) {
+        const newSlug = transformedUpdate.usageMeterSlug as string
+        const newUsageMeterId = idMaps.usageMeters.get(newSlug)
+        if (!newUsageMeterId) {
+          throw new Error(`Usage meter ${newSlug} not found`)
+        }
+        transformedUpdate.usageMeterId = newUsageMeterId
+        delete transformedUpdate.usageMeterSlug
+      }
 
-    if (Object.keys(transformedUpdate).length > 0) {
+      if (Object.keys(transformedUpdate).length === 0) return null
+
       const featureId = idMaps.features.get(existing.slug)
       if (!featureId) {
         throw new Error(
           `Feature ${existing.slug} not found in ID map`
         )
       }
-      const updated = await updateFeature(
+      return updateFeature(
         { id: featureId, type: existing.type, ...transformedUpdate },
         transaction
       )
-      result.features.updated.push(updated)
-    }
+    })
+    .filter((p): p is Promise<Feature.Record> => p !== null)
+
+  if (featureUpdatePromises.length > 0) {
+    result.features.updated = await Promise.all(featureUpdatePromises)
   }
 
-  // Step 10: Soft-delete removed features
-  for (const featureInput of diff.features.toRemove) {
-    const featureId = idMaps.features.get(featureInput.slug)
-    if (!featureId) {
-      throw new Error(
-        `Feature ${featureInput.slug} not found in ID map for deactivation`
+  // Step 10: Soft-delete removed features (parallel)
+  const featureDeactivatePromises = diff.features.toRemove.map(
+    (featureInput) => {
+      const featureId = idMaps.features.get(featureInput.slug)
+      if (!featureId) {
+        throw new Error(
+          `Feature ${featureInput.slug} not found in ID map for deactivation`
+        )
+      }
+      return updateFeature(
+        { id: featureId, active: false, type: featureInput.type },
+        transaction
       )
     }
-    const deactivated = await updateFeature(
-      { id: featureId, active: false, type: featureInput.type },
-      transaction
+  )
+
+  if (featureDeactivatePromises.length > 0) {
+    result.features.deactivated = await Promise.all(
+      featureDeactivatePromises
     )
-    result.features.deactivated.push(deactivated)
   }
 
-  // Step 11: Create new products with prices
-  for (const productInput of diff.products.toCreate) {
-    const { product, price } = await createProduct(
-      productInput,
-      {
+  // Step 11: Batch create new products
+  if (diff.products.toCreate.length > 0) {
+    const productInserts: Product.Insert[] =
+      diff.products.toCreate.map((productInput) => ({
+        ...productInput.product,
         pricingModelId,
-        organizationId: pricingModel.organizationId,
         livemode: pricingModel.livemode,
-        currency: organization.defaultCurrency,
-        usageMeterSlugToIdMap: idMaps.usageMeters,
-      },
+        organizationId: pricingModel.organizationId,
+        externalId: externalIdFromProductData(
+          productInput,
+          pricingModelId
+        ),
+      }))
+
+    const createdProducts = await bulkInsertProducts(
+      productInserts,
       transaction
     )
-    result.products.created.push(product)
-    result.prices.created.push(price)
-    // Merge newly created product ID into map
-    idMaps.products.set(product.slug!, product.id)
-    // Merge newly created price ID into map if it has a slug
-    if (price.slug) {
-      idMaps.prices.set(price.slug, price.id)
+
+    result.products.created = createdProducts
+
+    // Create a map from externalId to product for price creation
+    const productsByExternalId = new Map(
+      createdProducts.map((p) => [p.externalId, p])
+    )
+
+    // Merge newly created product IDs into map
+    for (const product of createdProducts) {
+      if (product.slug) {
+        idMaps.products.set(product.slug, product.id)
+      }
+    }
+
+    // Batch create prices for new products
+    const priceInserts: Price.Insert[] = diff.products.toCreate.map(
+      (productInput) => {
+        const product = productsByExternalId.get(
+          externalIdFromProductData(productInput, pricingModelId)
+        )
+        if (!product) {
+          throw new Error(
+            `Product ${productInput.product.name} not found`
+          )
+        }
+
+        const price = productInput.price
+        switch (price.type) {
+          case PriceType.Usage: {
+            const usageMeterId = idMaps.usageMeters.get(
+              price.usageMeterSlug
+            )
+            if (!usageMeterId) {
+              throw new Error(
+                `Usage meter ${price.usageMeterSlug} not found`
+              )
+            }
+            return {
+              type: PriceType.Usage,
+              name: price.name ?? null,
+              slug: price.slug ?? null,
+              unitPrice: price.unitPrice,
+              isDefault: price.isDefault,
+              active: price.active,
+              intervalCount: price.intervalCount,
+              intervalUnit: price.intervalUnit,
+              trialPeriodDays: price.trialPeriodDays,
+              usageEventsPerUnit: price.usageEventsPerUnit,
+              currency: organization.defaultCurrency,
+              productId: product.id,
+              livemode: pricingModel.livemode,
+              externalId: null,
+              usageMeterId,
+            }
+          }
+
+          case PriceType.Subscription:
+            return {
+              type: PriceType.Subscription,
+              name: price.name ?? null,
+              slug: price.slug ?? null,
+              unitPrice: price.unitPrice,
+              isDefault: price.isDefault,
+              active: price.active,
+              intervalCount: price.intervalCount,
+              intervalUnit: price.intervalUnit,
+              trialPeriodDays: price.trialPeriodDays,
+              usageEventsPerUnit: price.usageEventsPerUnit ?? null,
+              currency: organization.defaultCurrency,
+              productId: product.id,
+              livemode: pricingModel.livemode,
+              externalId: null,
+              usageMeterId: null,
+            }
+
+          case PriceType.SinglePayment:
+            return {
+              type: PriceType.SinglePayment,
+              name: price.name ?? null,
+              slug: price.slug ?? null,
+              unitPrice: price.unitPrice,
+              isDefault: price.isDefault,
+              active: price.active,
+              intervalCount: null,
+              intervalUnit: null,
+              trialPeriodDays: price.trialPeriodDays ?? null,
+              usageEventsPerUnit: price.usageEventsPerUnit ?? null,
+              currency: organization.defaultCurrency,
+              productId: product.id,
+              livemode: pricingModel.livemode,
+              externalId: null,
+              usageMeterId: null,
+            }
+
+          default:
+            throw new Error(
+              `Unknown or unhandled price type: ${price}`
+            )
+        }
+      }
+    )
+
+    const createdPrices = await bulkInsertPrices(
+      priceInserts,
+      transaction
+    )
+    result.prices.created = createdPrices
+
+    // Merge newly created price IDs into map
+    for (const price of createdPrices) {
+      if (price.slug) {
+        idMaps.prices.set(price.slug, price.id)
+      }
     }
   }
 
-  // Step 12: Update existing products
-  for (const { existing, proposed, priceDiff } of diff.products
-    .toUpdate) {
-    const productId = idMaps.products.get(existing.product.slug)
-    if (!productId) {
-      throw new Error(
-        `Product ${existing.product.slug} not found in ID map`
-      )
-    }
+  // Step 12: Update existing products (parallel for metadata)
+  // Collect price changes to handle after product updates
+  const priceChanges: Array<{
+    productId: string
+    existingPriceSlug?: string
+    proposedPrice: SetupPricingModelInput['products'][number]['price']
+  }> = []
 
-    // Update product metadata
-    const productUpdateObj = computeUpdateObject(
-      existing.product,
-      proposed.product
-    )
-    if (Object.keys(productUpdateObj).length > 0) {
-      const updated = await updateProduct(
+  const productUpdatePromises = diff.products.toUpdate
+    .map(({ existing, proposed, priceDiff }) => {
+      const productId = idMaps.products.get(existing.product.slug)
+      if (!productId) {
+        throw new Error(
+          `Product ${existing.product.slug} not found in ID map`
+        )
+      }
+
+      // Track price changes for later
+      if (priceDiff) {
+        priceChanges.push({
+          productId,
+          existingPriceSlug: priceDiff.existingPrice?.slug,
+          proposedPrice: proposed.price,
+        })
+      }
+
+      // Update product metadata
+      const productUpdateObj = computeUpdateObject(
+        existing.product,
+        proposed.product
+      )
+      if (Object.keys(productUpdateObj).length === 0) return null
+
+      return updateProduct(
         { id: productId, ...productUpdateObj },
         transaction
       )
-      result.products.updated.push(updated)
-    }
+    })
+    .filter((p): p is Promise<Product.Record> => p !== null)
 
-    // Handle price changes if there's a price diff
-    if (priceDiff) {
-      // Get existing price ID from the price slug map
-      let existingPriceId: string | undefined
-      if (priceDiff.existingPrice?.slug) {
-        existingPriceId = idMaps.prices.get(
-          priceDiff.existingPrice.slug
+  if (productUpdatePromises.length > 0) {
+    result.products.updated = await Promise.all(productUpdatePromises)
+  }
+
+  // Step 13: Handle price changes for existing products
+  // First, deactivate old prices (must happen before creating new ones due to slug uniqueness)
+  const priceDeactivatePromises = priceChanges
+    .filter((change) => change.existingPriceSlug)
+    .map((change) => {
+      const priceId = idMaps.prices.get(change.existingPriceSlug!)
+      if (!priceId) {
+        throw new Error(
+          `Price ${change.existingPriceSlug} not found in ID map`
         )
       }
-
-      const priceChangeResult = await handlePriceChange(
+      // We need the type for the update, get it from the existing price in diff
+      const existingProduct = diff.products.toUpdate.find(
+        (p) =>
+          idMaps.products.get(p.existing.product.slug) ===
+          change.productId
+      )
+      const existingPriceType =
+        existingProduct?.priceDiff?.existingPrice?.type
+      if (!existingPriceType) {
+        throw new Error(
+          `Could not determine price type for deactivation`
+        )
+      }
+      return updatePrice(
         {
-          existingPrice: priceDiff.existingPrice,
-          proposedPrice: priceDiff.proposedPrice,
-          productId,
-          currency: organization.defaultCurrency,
-          livemode: pricingModel.livemode,
-          usageMeterSlugToIdMap: idMaps.usageMeters,
-          existingPriceId,
+          id: priceId,
+          active: false,
+          isDefault: false,
+          type: existingPriceType,
         },
         transaction
       )
+    })
 
-      if (priceChangeResult.createdPrice) {
-        result.prices.created.push(priceChangeResult.createdPrice)
-        // Merge newly created price ID into map if it has a slug
-        if (priceChangeResult.createdPrice.slug) {
-          idMaps.prices.set(
-            priceChangeResult.createdPrice.slug,
-            priceChangeResult.createdPrice.id
-          )
+  if (priceDeactivatePromises.length > 0) {
+    const deactivatedPrices = await Promise.all(
+      priceDeactivatePromises
+    )
+    result.prices.deactivated.push(...deactivatedPrices)
+  }
+
+  // Now create new prices for changed products
+  if (priceChanges.length > 0) {
+    const newPriceInserts: Price.Insert[] = priceChanges.map(
+      (change) => {
+        const price = change.proposedPrice
+        switch (price.type) {
+          case PriceType.Usage: {
+            const usageMeterId = idMaps.usageMeters.get(
+              price.usageMeterSlug
+            )
+            if (!usageMeterId) {
+              throw new Error(
+                `Usage meter ${price.usageMeterSlug} not found`
+              )
+            }
+            return {
+              type: PriceType.Usage,
+              name: price.name ?? null,
+              slug: price.slug ?? null,
+              unitPrice: price.unitPrice,
+              isDefault: price.isDefault,
+              active: price.active,
+              intervalCount: price.intervalCount,
+              intervalUnit: price.intervalUnit,
+              trialPeriodDays: price.trialPeriodDays,
+              usageEventsPerUnit: price.usageEventsPerUnit,
+              currency: organization.defaultCurrency,
+              productId: change.productId,
+              livemode: pricingModel.livemode,
+              externalId: null,
+              usageMeterId,
+            }
+          }
+
+          case PriceType.Subscription:
+            return {
+              type: PriceType.Subscription,
+              name: price.name ?? null,
+              slug: price.slug ?? null,
+              unitPrice: price.unitPrice,
+              isDefault: price.isDefault,
+              active: price.active,
+              intervalCount: price.intervalCount,
+              intervalUnit: price.intervalUnit,
+              trialPeriodDays: price.trialPeriodDays,
+              usageEventsPerUnit: price.usageEventsPerUnit ?? null,
+              currency: organization.defaultCurrency,
+              productId: change.productId,
+              livemode: pricingModel.livemode,
+              externalId: null,
+              usageMeterId: null,
+            }
+
+          case PriceType.SinglePayment:
+            return {
+              type: PriceType.SinglePayment,
+              name: price.name ?? null,
+              slug: price.slug ?? null,
+              unitPrice: price.unitPrice,
+              isDefault: price.isDefault,
+              active: price.active,
+              intervalCount: null,
+              intervalUnit: null,
+              trialPeriodDays: price.trialPeriodDays ?? null,
+              usageEventsPerUnit: price.usageEventsPerUnit ?? null,
+              currency: organization.defaultCurrency,
+              productId: change.productId,
+              livemode: pricingModel.livemode,
+              externalId: null,
+              usageMeterId: null,
+            }
+
+          default:
+            throw new Error(
+              `Unknown or unhandled price type: ${price}`
+            )
         }
       }
-      if (priceChangeResult.deactivatedPrice) {
-        result.prices.deactivated.push(
-          priceChangeResult.deactivatedPrice
-        )
-      }
-    }
-  }
+    )
 
-  // Step 13: Soft-delete removed products (and their prices)
-  for (const productInput of diff.products.toRemove) {
-    const productId = idMaps.products.get(productInput.product.slug)
-    if (!productId) {
-      throw new Error(
-        `Product ${productInput.product.slug} not found in ID map for deactivation`
-      )
-    }
-
-    const deactivatedProduct = await updateProduct(
-      { id: productId, active: false },
+    const createdPrices = await bulkInsertPrices(
+      newPriceInserts,
       transaction
     )
-    result.products.deactivated.push(deactivatedProduct)
+    result.prices.created.push(...createdPrices)
 
-    // Also deactivate the product's price if it has one
-    if (productInput.price?.slug) {
-      const priceId = idMaps.prices.get(productInput.price.slug)
-      if (priceId) {
-        const deactivatedPrice = await updatePrice(
-          {
-            id: priceId,
-            active: false,
-            isDefault: false,
-            type: productInput.price.type,
-          },
-          transaction
-        )
-        result.prices.deactivated.push(deactivatedPrice)
+    // Merge newly created price IDs into map
+    for (const price of createdPrices) {
+      if (price.slug) {
+        idMaps.prices.set(price.slug, price.id)
       }
     }
   }
 
-  // Step 14: Sync productFeatures junction table
-  // Build the list of products with their desired feature slugs from the proposed input
+  // Step 14: Soft-delete removed products (parallel)
+  const productDeactivatePromises = diff.products.toRemove.map(
+    (productInput) => {
+      const productId = idMaps.products.get(productInput.product.slug)
+      if (!productId) {
+        throw new Error(
+          `Product ${productInput.product.slug} not found in ID map for deactivation`
+        )
+      }
+      return updateProduct(
+        { id: productId, active: false },
+        transaction
+      )
+    }
+  )
+
+  if (productDeactivatePromises.length > 0) {
+    result.products.deactivated = await Promise.all(
+      productDeactivatePromises
+    )
+  }
+
+  // Step 15: Deactivate prices for removed products (parallel)
+  const removedProductPriceDeactivatePromises = diff.products.toRemove
+    .filter((productInput) => productInput.price?.slug)
+    .map((productInput) => {
+      const priceId = idMaps.prices.get(productInput.price!.slug!)
+      if (!priceId) {
+        // Price might not exist in map, skip
+        return null
+      }
+      return updatePrice(
+        {
+          id: priceId,
+          active: false,
+          isDefault: false,
+          type: productInput.price!.type,
+        },
+        transaction
+      )
+    })
+    .filter((p): p is Promise<Price.Record> => p !== null)
+
+  if (removedProductPriceDeactivatePromises.length > 0) {
+    const deactivatedPrices = await Promise.all(
+      removedProductPriceDeactivatePromises
+    )
+    result.prices.deactivated.push(...deactivatedPrices)
+  }
+
+  // Step 16: Sync productFeatures junction table
   const productsWithFeatures = proposedInput.products.map(
     (productInput) => {
       const productId = idMaps.products.get(productInput.product.slug)
