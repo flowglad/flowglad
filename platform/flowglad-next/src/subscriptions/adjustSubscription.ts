@@ -390,40 +390,23 @@ export const adjustSubscription = async (
   // Get the subscription's pricing model for resolving priceSlug
   const pricingModelId = subscription.pricingModelId
 
-  // Batch fetch prices for better performance
-  // Collect all slugs and priceIds that need resolution
+  // Collect all values that need resolution
+  // priceSlug values can be either slugs OR UUIDs (price IDs) - we try both
   const slugsToResolve = newSubscriptionItems
     .filter(hasSlug)
     .map((item) => item.priceSlug)
 
-  // UUID regex for detecting if a priceSlug value is actually a UUID (price ID)
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-  // Separate UUID-like values from slugsToResolve for batch fetching by ID
-  const uuidLikeSlugs = slugsToResolve.filter((s) =>
-    uuidRegex.test(s)
-  )
-  const actualSlugs = slugsToResolve.filter((s) => !uuidRegex.test(s))
-
-  const priceIdsToResolve = [
-    // IDs from items with explicit priceId
-    ...newSubscriptionItems
-      .filter(
-        (item) => isTerseSubscriptionItem(item) && !hasSlug(item)
-      )
-      .map((item) => (item as TerseSubscriptionItem).priceId)
-      .filter((id): id is string => !!id),
-    // UUID-like values from priceSlug fields (for SDK convenience)
-    ...uuidLikeSlugs,
-  ]
+  const priceIdsToResolve = newSubscriptionItems
+    .filter((item) => isTerseSubscriptionItem(item) && !hasSlug(item))
+    .map((item) => (item as TerseSubscriptionItem).priceId)
+    .filter((id): id is string => !!id)
 
   // Batch fetch prices by slug (scoped to pricing model)
   const pricesBySlug = new Map<string, Price.Record>()
-  if (actualSlugs.length > 0) {
+  if (slugsToResolve.length > 0) {
     const slugPrices = await selectPrices(
       {
-        slug: actualSlugs,
+        slug: slugsToResolve,
         pricingModelId,
         active: true,
       },
@@ -436,12 +419,19 @@ export const adjustSubscription = async (
     }
   }
 
-  // Batch fetch prices by id (includes UUID-like priceSlug values)
+  // Batch fetch prices by id
+  // Also include slugsToResolve values that weren't found as slugs - they might be UUIDs
+  // This handles the SDK convenience of passing price IDs via priceSlug field
+  const slugsNotFoundAsSlug = slugsToResolve.filter(
+    (s) => !pricesBySlug.has(s)
+  )
+  const allIdsToFetch = [...priceIdsToResolve, ...slugsNotFoundAsSlug]
+
   const pricesById = new Map<string, Price.Record>()
-  if (priceIdsToResolve.length > 0) {
+  if (allIdsToFetch.length > 0) {
     const idPrices = await selectPrices(
       {
-        id: priceIdsToResolve,
+        id: allIdsToFetch,
         pricingModelId,
         active: true,
       },
@@ -461,8 +451,8 @@ export const adjustSubscription = async (
       // First try to resolve as slug
       let resolvedPrice = pricesBySlug.get(item.priceSlug)
 
-      // If not found as slug, try as price ID (allows priceSlug to accept UUIDs)
-      // UUID-like values are batch-fetched upfront, so this lookup is O(1)
+      // If not found as slug, try as price ID
+      // This allows priceSlug to accept UUIDs (SDK convenience)
       if (!resolvedPrice) {
         resolvedPrice = pricesById.get(item.priceSlug)
       }
