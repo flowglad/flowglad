@@ -67,7 +67,7 @@ jobs:
       # Upload test results as artifacts for later merging
       - name: Upload blob report to GitHub Actions Artifacts
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: blob-report-${{ matrix.shardIndex }}
           path: platform/flowglad-next/.vitest-reports/blob-${{ matrix.shardIndex }}.json
