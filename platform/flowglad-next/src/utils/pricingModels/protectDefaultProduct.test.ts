@@ -402,14 +402,15 @@ describe('protectDefaultProduct', () => {
     )
   })
 
-  it('returns proposed input unchanged when existing has no default product', () => {
+  it('throws error when existing input has no default product', () => {
     const existingNoDefault = createPricingModelInput([existingPro])
     const proposed = createPricingModelInput([
       createProductInput({ slug: 'new-plan', default: false }),
     ])
 
-    const result = protectDefaultProduct(existingNoDefault, proposed)
-    expect(result).toBe(proposed)
+    expect(() =>
+      protectDefaultProduct(existingNoDefault, proposed)
+    ).toThrow('No default product found in existing input')
   })
 
   it('adds back the existing default product when proposed removes it', () => {
@@ -427,9 +428,9 @@ describe('protectDefaultProduct', () => {
     const restoredDefault = result.products.find(
       (p) => p.product.default === true
     )
-    expect(restoredDefault).toBeDefined()
-    expect(restoredDefault?.product.slug).toBe('default-plan')
-    expect(restoredDefault?.product.name).toBe('Default Plan')
+    expect(restoredDefault).not.toBeUndefined()
+    expect(restoredDefault!.product.slug).toBe('default-plan')
+    expect(restoredDefault!.product.name).toBe('Default Plan')
   })
 
   it('returns proposed unchanged when default product has only allowed field changes (name, description, features)', () => {
@@ -487,24 +488,24 @@ describe('protectDefaultProduct', () => {
     const protectedDefault = result.products.find(
       (p) => p.product.default === true
     )
-    expect(protectedDefault).toBeDefined()
+    expect(protectedDefault).not.toBeUndefined()
 
     // Allowed changes should be applied
-    expect(protectedDefault?.product.name).toBe('Updated Name')
-    expect(protectedDefault?.product.description).toBe(
+    expect(protectedDefault!.product.name).toBe('Updated Name')
+    expect(protectedDefault!.product.description).toBe(
       'Updated description'
     )
-    expect(protectedDefault?.features).toEqual([
+    expect(protectedDefault!.features).toEqual([
       'feature-a',
       'feature-b',
       'feature-c',
     ])
 
     // Protected fields should be preserved from existing
-    expect(protectedDefault?.product.slug).toBe('default-plan')
-    expect(protectedDefault?.product.active).toBe(true)
-    expect(protectedDefault?.price.slug).toBe('default-price')
-    expect(protectedDefault?.price.unitPrice).toBe(0)
+    expect(protectedDefault!.product.slug).toBe('default-plan')
+    expect(protectedDefault!.product.active).toBe(true)
+    expect(protectedDefault!.price.slug).toBe('default-price')
+    expect(protectedDefault!.price.unitPrice).toBe(0)
 
     // Non-default product should be unchanged
     const proProduct = result.products.find(
@@ -513,9 +514,10 @@ describe('protectDefaultProduct', () => {
     expect(proProduct).toBe(existingPro)
   })
 
-  it('adds back existing default when proposed removes it by slug, even if proposed marks a different product as default', () => {
-    // This scenario: existing has default-plan as default, proposed removes default-plan and tries to make pro-plan the default
-    // We protect by slug, so we add back the original default-plan
+  it('merges protected fields from existing default into proposed default when someone tries to change which product is default', () => {
+    // This scenario: existing has default-plan as default, proposed tries to make pro-plan the default
+    // Since slug is a protected field, the merge will preserve the existing default's protected fields
+    // (including slug) while applying allowed fields (name, description) from the proposed default
     const existing = createPricingModelInput([
       existingDefault,
       existingPro,
@@ -523,12 +525,12 @@ describe('protectDefaultProduct', () => {
     const proposedWithDifferentDefault = createPricingModelInput([
       createProductInput({
         slug: 'pro-plan',
-        name: 'Pro Plan',
+        name: 'Pro Plan Updated', // allowed field - will be applied
+        description: 'Updated description', // allowed field - will be applied
         default: true, // trying to make pro the new default
         unitPrice: 2000,
         priceSlug: 'pro-price',
       }),
-      // default-plan is missing by slug
     ])
 
     const result = protectDefaultProduct(
@@ -536,25 +538,24 @@ describe('protectDefaultProduct', () => {
       proposedWithDifferentDefault
     )
 
-    // The existing default should be added back (found by slug)
-    expect(result.products).toHaveLength(2)
+    // The result should have the default product with existing's protected fields
+    // and proposed's allowed fields
+    expect(result.products).toHaveLength(1)
 
-    const originalDefault = result.products.find(
-      (p) => p.product.slug === 'default-plan'
+    const defaultProduct = result.products.find(
+      (p) => p.product.default === true
     )
-    expect(originalDefault).toBeDefined()
-    expect(originalDefault?.product.default).toBe(true)
-    expect(originalDefault?.product.name).toBe('Default Plan')
-
-    // pro-plan is still in result with default=true
-    // This creates a situation with two default=true products,
-    // but protectDefaultProduct only validates proposed input upfront.
-    // The resulting conflict would be caught by subsequent validation in the update flow.
-    const proPlan = result.products.find(
-      (p) => p.product.slug === 'pro-plan'
+    expect(defaultProduct).not.toBeUndefined()
+    // Protected fields from existing default
+    expect(defaultProduct!.product.slug).toBe('default-plan')
+    expect(defaultProduct!.product.active).toBe(true)
+    expect(defaultProduct!.price.slug).toBe('default-price')
+    expect(defaultProduct!.price.unitPrice).toBe(0)
+    // Allowed fields from proposed default
+    expect(defaultProduct!.product.name).toBe('Pro Plan Updated')
+    expect(defaultProduct!.product.description).toBe(
+      'Updated description'
     )
-    expect(proPlan).toBeDefined()
-    expect(proPlan?.product.default).toBe(true)
   })
 
   it('preserves other products in the proposed input unchanged when merging default product', () => {

@@ -928,9 +928,8 @@ describe('updatePricingModelTransaction', () => {
         'Now with a description!'
       )
       // Note: "free" product was auto-generated in setup but not included in proposed,
-      // so it gets deactivated along with its price
-      expect(updateResult.products.deactivated).toHaveLength(1)
-      expect(updateResult.products.deactivated[0].slug).toBe('free')
+      // however it is protected by protectDefaultProduct and preserved
+      expect(updateResult.products.deactivated).toHaveLength(0)
     })
 
     it('soft-deletes removed products and their prices', async () => {
@@ -1007,12 +1006,15 @@ describe('updatePricingModelTransaction', () => {
                     },
                     price: {
                       type: PriceType.Subscription,
+                      // Match the existing price schema from getPricingModelSetupData
+                      name: undefined,
                       slug: 'starter-monthly',
                       unitPrice: 1999,
                       isDefault: true,
                       active: true,
                       intervalCount: 1,
                       intervalUnit: IntervalUnit.Month,
+                      trialPeriodDays: undefined,
                       usageMeterId: null,
                       usageEventsPerUnit: null,
                     },
@@ -1025,24 +1027,24 @@ describe('updatePricingModelTransaction', () => {
           )
       )
 
-      // 2 products deactivated: 'pro' (explicitly removed) + 'free' (auto-generated, not in proposed)
-      expect(updateResult.products.deactivated).toHaveLength(2)
+      // 1 product deactivated: 'pro' (explicitly removed)
+      // Note: 'free' (auto-generated default) is protected and preserved by protectDefaultProduct
+      expect(updateResult.products.deactivated).toHaveLength(1)
       const proDeactivated = updateResult.products.deactivated.find(
         (p) => p.slug === 'pro'
       )
-      expect(proDeactivated).toBeDefined()
-      expect(proDeactivated?.active).toBe(false)
+      expect(proDeactivated).not.toBeUndefined()
+      expect(proDeactivated!.active).toBe(false)
 
-      // 2 prices deactivated: pro-monthly + free (from auto-generated product)
-      expect(
-        updateResult.prices.deactivated.length
-      ).toBeGreaterThanOrEqual(1)
+      // 1 price deactivated: pro-monthly
+      // Note: free product's price is preserved since the default product is protected
+      expect(updateResult.prices.deactivated).toHaveLength(1)
       const proMonthlyDeactivated =
         updateResult.prices.deactivated.find(
           (p) => p.slug === 'pro-monthly'
         )
-      expect(proMonthlyDeactivated).toBeDefined()
-      expect(proMonthlyDeactivated?.active).toBe(false)
+      expect(proMonthlyDeactivated).not.toBeUndefined()
+      expect(proMonthlyDeactivated!.active).toBe(false)
     })
 
     it('creates new price and deactivates old price when price changes', async () => {
@@ -1720,19 +1722,19 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Starter updated (name + price), Pro removed, Enterprise added
-      // Also 'free' auto-generated product removed since not in proposed input
+      // Note: 'free' auto-generated product is protected and preserved by protectDefaultProduct
       expect(updateResult.products.created).toHaveLength(1)
       expect(updateResult.products.created[0].slug).toBe('enterprise')
       expect(updateResult.products.updated).toHaveLength(1)
       expect(updateResult.products.updated[0].name).toBe(
         'Starter Plan Updated'
       )
-      // 2 products deactivated: 'pro' + 'free'
-      expect(updateResult.products.deactivated).toHaveLength(2)
+      // 1 product deactivated: 'pro' (free is protected)
+      expect(updateResult.products.deactivated).toHaveLength(1)
       const proDeactivated = updateResult.products.deactivated.find(
         (p) => p.slug === 'pro'
       )
-      expect(proDeactivated).toBeDefined()
+      expect(proDeactivated).not.toBeUndefined()
 
       // Starter price changed
       expect(
@@ -1751,9 +1753,11 @@ describe('updatePricingModelTransaction', () => {
           )
       )
       const activeProducts = allProducts.filter((p) => p.active)
-      expect(activeProducts).toHaveLength(2)
+      // 3 active products: enterprise, starter, and the protected free product
+      expect(activeProducts).toHaveLength(3)
       expect(activeProducts.map((p) => p.slug).sort()).toEqual([
         'enterprise',
+        'free',
         'starter',
       ])
     })

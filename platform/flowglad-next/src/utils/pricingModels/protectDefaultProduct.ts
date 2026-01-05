@@ -145,34 +145,15 @@ export const mergeDefaultProduct = (
 }
 
 /**
- * Finds a product by its slug in a pricing model input.
- *
- * @param input - The pricing model setup input
- * @param slug - The product slug to find
- * @returns The product input with matching slug, or undefined if not found
- */
-export const findProductBySlug = (
-  input: SetupPricingModelInput,
-  slug: string
-): SetupPricingModelProductInput | undefined => {
-  return input.products.find((p) => p.product.slug === slug)
-}
-
-/**
  * Protects the default product from invalid modifications during pricing model updates.
  *
  * This function ensures that the default product cannot be removed or have its protected
  * fields modified. It applies the following logic:
  *
  * 1. Validates that proposed input has at most one default product (throws if multiple)
- * 2. If the existing default product is missing from proposed (by slug), adds it back
- * 3. If the existing default product exists in proposed but has protected field changes,
+ * 2. If proposed has no default product, adds back the existing default
+ * 3. If proposed has a default product but with protected field changes,
  *    merges the existing default with only the allowed changes (name, description, features)
- *
- * Note: If someone tries to make a different product the default (by setting isDefault=true
- * on another product while removing the original default), this function will add the
- * original default back. The result may have two products with isDefault=true, which
- * should be caught by subsequent validation.
  *
  * @param existingInput - The existing pricing model setup
  * @param proposedInput - The proposed pricing model setup
@@ -186,44 +167,34 @@ export const protectDefaultProduct = (
   // Step 1: Validate no multiple defaults in proposed
   validateSingleDefaultProduct(proposedInput)
 
-  // Step 2: Find existing default product
+  // Step 2: Find existing and proposed default products
   const existingDefault = findDefaultProduct(existingInput)
+  const proposedDefault = findDefaultProduct(proposedInput)
 
-  // If no existing default, nothing to protect
+  // If no existing default, throw error
   if (!existingDefault) {
-    return proposedInput
+    throw new Error('No default product found in existing input')
   }
 
-  // Step 3: Find the existing default product in proposed by its slug
-  // (not by isDefault flag, because someone might try to change which product is default)
-  const proposedDefaultBySlug = findProductBySlug(
-    proposedInput,
-    existingDefault.product.slug
-  )
-
-  // Step 4: If the existing default product is missing from proposed (by slug), add it back
-  if (!proposedDefaultBySlug) {
+  // Step 3: If proposed has no default product, add back the existing default
+  if (!proposedDefault) {
     return {
       ...proposedInput,
       products: [...proposedInput.products, existingDefault],
     }
   }
 
-  // Step 5: The existing default product exists in proposed - check for protected field changes
-  if (
-    hasProtectedFieldChanges(existingDefault, proposedDefaultBySlug)
-  ) {
+  // Step 4: Proposed has a default product - check for protected field changes
+  if (hasProtectedFieldChanges(existingDefault, proposedDefault)) {
     // Merge: use existing default as base, apply only allowed changes
     const mergedDefault = mergeDefaultProduct(
       existingDefault,
-      proposedDefaultBySlug
+      proposedDefault
     )
 
-    // Replace the proposed product (matched by slug) with the merged version
+    // Replace the proposed default product with the merged version
     const updatedProducts = proposedInput.products.map((p) =>
-      p.product.slug === existingDefault.product.slug
-        ? mergedDefault
-        : p
+      p.product.default === true ? mergedDefault : p
     )
 
     return {
