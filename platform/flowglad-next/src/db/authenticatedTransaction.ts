@@ -4,6 +4,7 @@ import type {
   DbTransaction,
 } from '@/db/types'
 import core from '@/utils/core'
+import { withSpan } from '@/utils/tracing'
 import db from './client'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
 import { processLedgerCommand } from './ledgerManager/ledgerManager'
@@ -45,52 +46,66 @@ export async function authenticatedTransaction<T>(
       __testOnlyOrganizationId,
       customerId,
     })
-  return await db.transaction(async (transaction) => {
-    if (!jwtClaim) {
-      throw new Error('No jwtClaim found')
+  return withSpan(
+    {
+      spanName: 'db.authenticatedTransaction',
+      tracerName: 'db.transaction',
+      attributes: {
+        'db.transaction.type': 'authenticated',
+        'db.user_id': userId,
+        'db.organization_id': jwtClaim?.organization_id,
+        'db.livemode': livemode,
+      },
+    },
+    async () => {
+      return db.transaction(async (transaction) => {
+        if (!jwtClaim) {
+          throw new Error('No jwtClaim found')
+        }
+        if (!userId) {
+          throw new Error('No userId found')
+        }
+
+        /**
+         * Clear whatever state may have been set by previous uses of the connection.
+         * This shouldn't be a concern, but we've seen some issues where connections keep
+         * state between transactions.
+         */
+        await transaction.execute(
+          sql`SELECT set_config('request.jwt.claims', NULL, true);`
+        )
+
+        await transaction.execute(
+          sql`SELECT set_config('request.jwt.claims', '${sql.raw(
+            JSON.stringify(jwtClaim)
+          )}', TRUE)`
+        )
+
+        await transaction.execute(
+          sql`SET LOCAL ROLE ${sql.raw(jwtClaim.role)}`
+        )
+        await transaction.execute(
+          sql`SELECT set_config('app.livemode', '${sql.raw(
+            Boolean(livemode).toString()
+          )}', TRUE);`
+        )
+        const resp = await fn({
+          transaction,
+          userId,
+          livemode,
+          organizationId: jwtClaim.organization_id,
+        })
+        /**
+         * Reseting the role and request.jwt.claims here,
+         * becuase the auth state seems to be returned to the client "dirty",
+         * with the role from the previous session still applied.
+         */
+        await transaction.execute(sql`RESET ROLE;`)
+
+        return resp
+      })
     }
-    if (!userId) {
-      throw new Error('No userId found')
-    }
-
-    /**
-     * Clear whatever state may have been set by previous uses of the connection.
-     * This shouldn't be a concern, but we've seen some issues where connections keep
-     * state between transactions.
-     */
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', NULL, true);`
-    )
-
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', '${sql.raw(
-        JSON.stringify(jwtClaim)
-      )}', TRUE)`
-    )
-
-    await transaction.execute(
-      sql`SET LOCAL ROLE ${sql.raw(jwtClaim.role)}`
-    )
-    await transaction.execute(
-      sql`SELECT set_config('app.livemode', '${sql.raw(
-        Boolean(livemode).toString()
-      )}', TRUE);`
-    )
-    const resp = await fn({
-      transaction,
-      userId,
-      livemode,
-      organizationId: jwtClaim.organization_id,
-    })
-    /**
-     * Reseting the role and request.jwt.claims here,
-     * becuase the auth state seems to be returned to the client "dirty",
-     * with the role from the previous session still applied.
-     */
-    await transaction.execute(sql`RESET ROLE;`)
-
-    return resp
-  })
+  )
 }
 
 /**
@@ -111,82 +126,110 @@ export async function comprehensiveAuthenticatedTransaction<T>(
       customerId,
     })
 
-  return db.transaction(async (transaction) => {
-    if (!jwtClaim) {
-      throw new Error('No jwtClaim found')
+  return withSpan(
+    {
+      spanName: 'db.comprehensiveAuthenticatedTransaction',
+      tracerName: 'db.transaction',
+      attributes: {
+        'db.transaction.type': 'authenticated',
+        'db.user_id': userId,
+        'db.organization_id': jwtClaim?.organization_id,
+        'db.livemode': livemode,
+      },
+    },
+    async (span) => {
+      return db.transaction(async (transaction) => {
+        if (!jwtClaim) {
+          throw new Error('No jwtClaim found')
+        }
+        const organizationId = jwtClaim.organization_id
+        if (!organizationId) {
+          throw new Error('No organization_id found in JWT claims')
+        }
+        if (!userId) {
+          throw new Error('No userId found')
+        }
+
+        // Set RLS context
+        await transaction.execute(
+          sql`SELECT set_config('request.jwt.claims', NULL, true);`
+        )
+        await transaction.execute(
+          sql`SELECT set_config('request.jwt.claims', '${sql.raw(
+            JSON.stringify(jwtClaim)
+          )}', TRUE)`
+        )
+        await transaction.execute(
+          sql`SET LOCAL ROLE ${sql.raw(jwtClaim.role)};`
+        )
+        await transaction.execute(
+          sql`SELECT set_config('app.livemode', '${sql.raw(
+            Boolean(livemode).toString()
+          )}', TRUE);`
+        )
+
+        const paramsForFn = {
+          transaction,
+          userId,
+          livemode,
+          organizationId,
+        }
+
+        const output = await fn(paramsForFn)
+
+        // Set additional attributes after transaction completes
+        span.setAttributes({
+          'db.has_events': (output.eventsToInsert?.length ?? 0) > 0,
+          'db.has_ledger_commands':
+            !!output.ledgerCommand ||
+            (output.ledgerCommands?.length ?? 0) > 0,
+        })
+
+        // Validate that only one of ledgerCommand or ledgerCommands is provided
+        if (
+          output.ledgerCommand &&
+          output.ledgerCommands &&
+          output.ledgerCommands.length > 0
+        ) {
+          throw new Error(
+            'Cannot provide both ledgerCommand and ledgerCommands. Please provide only one.'
+          )
+        }
+
+        // Process events if any
+        if (
+          output.eventsToInsert &&
+          output.eventsToInsert.length > 0
+        ) {
+          await bulkInsertOrDoNothingEventsByHash(
+            output.eventsToInsert,
+            transaction as DbTransaction
+          )
+        }
+
+        // Process ledger commands if any
+        if (output.ledgerCommand) {
+          await processLedgerCommand(
+            output.ledgerCommand,
+            transaction
+          )
+        } else if (
+          output.ledgerCommands &&
+          output.ledgerCommands.length > 0
+        ) {
+          for (const command of output.ledgerCommands) {
+            await processLedgerCommand(command, transaction)
+          }
+        }
+
+        // RESET ROLE is not strictly necessary with SET LOCAL ROLE, as the role is session-local.
+        // However, keeping it doesn't harm and can be an explicit cleanup.
+        await transaction.execute(sql`RESET ROLE;`)
+
+        return output.result
+      })
     }
-    const organizationId = jwtClaim.organization_id
-    if (!organizationId) {
-      throw new Error('No organization_id found in JWT claims')
-    }
-    if (!userId) {
-      throw new Error('No userId found')
-    }
-
-    // Set RLS context
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', NULL, true);`
-    )
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', '${sql.raw(
-        JSON.stringify(jwtClaim)
-      )}', TRUE)`
-    )
-    await transaction.execute(
-      sql`SET LOCAL ROLE ${sql.raw(jwtClaim.role)};`
-    )
-    await transaction.execute(
-      sql`SELECT set_config('app.livemode', '${sql.raw(
-        Boolean(livemode).toString()
-      )}', TRUE);`
-    )
-
-    const paramsForFn = {
-      transaction,
-      userId,
-      livemode,
-      organizationId,
-    }
-
-    const output = await fn(paramsForFn)
-
-    // Validate that only one of ledgerCommand or ledgerCommands is provided
-    if (
-      output.ledgerCommand &&
-      output.ledgerCommands &&
-      output.ledgerCommands.length > 0
-    ) {
-      throw new Error(
-        'Cannot provide both ledgerCommand and ledgerCommands. Please provide only one.'
-      )
-    }
-
-    // Process events if any
-    if (output.eventsToInsert && output.eventsToInsert.length > 0) {
-      await bulkInsertOrDoNothingEventsByHash(
-        output.eventsToInsert,
-        transaction as DbTransaction
-      )
-    }
-
-    // Process ledger commands if any
-    if (output.ledgerCommand) {
-      await processLedgerCommand(output.ledgerCommand, transaction)
-    } else if (
-      output.ledgerCommands &&
-      output.ledgerCommands.length > 0
-    ) {
-      for (const command of output.ledgerCommands) {
-        await processLedgerCommand(command, transaction)
-      }
-    }
-
-    // RESET ROLE is not strictly necessary with SET LOCAL ROLE, as the role is session-local.
-    // However, keeping it doesn't harm and can be an explicit cleanup.
-    await transaction.execute(sql`RESET ROLE;`)
-
-    return output.result
-  })
+  )
 }
 
 /**
