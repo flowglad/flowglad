@@ -15,7 +15,6 @@ const DateRangeRecurringRevenueChart = ({
   fromDate?: Date
   toDate?: Date
 }) => {
-  const defaultFromDate = new Date(organizationCreatedAt)
   const [range, setRange] = useState<{
     from: Date
     to: Date
@@ -40,13 +39,11 @@ const DateRangeRecurringRevenueChart = ({
           <DateRangePicker
             fromDate={range.from}
             toDate={range.to}
-            minDate={new Date(organizationCreatedAt)}
             maxDate={new Date()}
-            onSelect={(range) => {
-              setRange({
-                from: range?.from ?? defaultFromDate,
-                to: range?.to ?? new Date(),
-              })
+            onSelect={(newRange) => {
+              if (newRange?.from && newRange?.to) {
+                setRange({ from: newRange.from, to: newRange.to })
+              }
             }}
           />
         )}
