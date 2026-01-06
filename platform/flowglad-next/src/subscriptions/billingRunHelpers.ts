@@ -73,6 +73,7 @@ import {
   createPaymentIntentForBillingRun,
   stripeIdFromObjectOrId,
 } from '@/utils/stripe'
+import { tracedTrigger } from '@/utils/triggerTracing'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
@@ -887,9 +888,14 @@ export const executeBillingRun = async (
 
     // Trigger PDF generation as a non-failing side effect
     if (!core.IS_TEST) {
-      await generateInvoicePdfTask.trigger({
-        invoiceId: invoice.id,
-      })
+      await tracedTrigger(
+        'generateInvoicePdf',
+        () =>
+          generateInvoicePdfTask.trigger({
+            invoiceId: invoice.id,
+          }),
+        { 'trigger.invoice_id': invoice.id }
+      )
     }
 
     // Only proceed with payment confirmation if there is a payment intent
