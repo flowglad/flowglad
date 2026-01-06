@@ -1,4 +1,4 @@
-import { inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 import {
   type UsageCredit,
   usageCredits,
@@ -18,6 +18,7 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import { UsageCreditStatus } from '@/types'
+import { isNil } from '@/utils/core'
 import type { Payment } from '../schema/payments'
 import type { UsageMeter } from '../schema/usageMeters'
 import type { DbTransaction } from '../types'
@@ -81,6 +82,70 @@ export const insertUsageCredit = async (
   )
 }
 
+export const insertUsageCreditOrDoNothing = async (
+  usageCreditInsert: UsageCredit.Insert,
+  transaction: DbTransaction
+): Promise<UsageCredit.Record | undefined> => {
+  const pricingModelId = usageCreditInsert.pricingModelId
+    ? usageCreditInsert.pricingModelId
+    : await derivePricingModelIdFromUsageMeter(
+        usageCreditInsert.usageMeterId,
+        transaction
+      )
+
+  // Check if a row already exists with the same unique constraint values
+  // PostgreSQL unique constraints allow multiple NULLs, so we need to check explicitly
+  const existing = await transaction
+    .select()
+    .from(usageCredits)
+    .where(
+      and(
+        isNil(usageCreditInsert.sourceReferenceId)
+          ? isNull(usageCredits.sourceReferenceId)
+          : eq(
+              usageCredits.sourceReferenceId,
+              usageCreditInsert.sourceReferenceId
+            ),
+        eq(
+          usageCredits.sourceReferenceType,
+          usageCreditInsert.sourceReferenceType
+        ),
+        isNil(usageCreditInsert.billingPeriodId)
+          ? isNull(usageCredits.billingPeriodId)
+          : eq(
+              usageCredits.billingPeriodId,
+              usageCreditInsert.billingPeriodId
+            )
+      )
+    )
+    .limit(1)
+
+  if (existing.length > 0) {
+    return undefined
+  }
+
+  const [result] = await transaction
+    .insert(usageCredits)
+    .values({
+      ...usageCreditInsert,
+      pricingModelId,
+    })
+    .onConflictDoNothing({
+      target: [
+        usageCredits.sourceReferenceId,
+        usageCredits.sourceReferenceType,
+        usageCredits.billingPeriodId,
+      ],
+    })
+    .returning()
+
+  if (!result) {
+    return undefined
+  }
+
+  return usageCreditsSelectSchema.parse(result)
+}
+
 export const updateUsageCredit = createUpdateFunction(
   usageCredits,
   config
@@ -90,6 +155,39 @@ export const selectUsageCredits = createSelectFunction(
   usageCredits,
   config
 )
+
+export const selectUsageCreditBySourceReferenceAndBillingPeriod =
+  async (
+    params: Pick<
+      UsageCredit.Record,
+      'sourceReferenceId' | 'sourceReferenceType' | 'billingPeriodId'
+    >,
+    transaction: DbTransaction
+  ): Promise<UsageCredit.Record | undefined> => {
+    const [result] = await transaction
+      .select()
+      .from(usageCredits)
+      .where(
+        and(
+          params.sourceReferenceId === null
+            ? isNull(usageCredits.sourceReferenceId)
+            : eq(
+                usageCredits.sourceReferenceId,
+                params.sourceReferenceId
+              ),
+          eq(
+            usageCredits.sourceReferenceType,
+            params.sourceReferenceType
+          ),
+          params.billingPeriodId === null
+            ? isNull(usageCredits.billingPeriodId)
+            : eq(usageCredits.billingPeriodId, params.billingPeriodId)
+        )
+      )
+      .limit(1)
+
+    return result ? usageCreditsSelectSchema.parse(result) : undefined
+  }
 
 const baseBulkInsertUsageCredits = createBulkInsertFunction(
   usageCredits,
@@ -125,6 +223,49 @@ export const bulkInsertUsageCredits = async (
     transaction
   )
 }
+
+/**
+ * Bulk inserts usage credits and ignores duplicates by the dedupe unique index:
+ * (sourceReferenceId, sourceReferenceType, billingPeriodId).
+ *
+ * This is used for idempotency in cases where it's safe/expected to retry the same
+ * logical issuance (e.g. billing period transitions).
+ */
+export const bulkInsertOrDoNothingUsageCreditsBySourceReferenceAndBillingPeriod =
+  async (
+    usageCreditInserts: UsageCredit.Insert[],
+    transaction: DbTransaction
+  ): Promise<UsageCredit.Record[]> => {
+    const pricingModelIdMap = await pricingModelIdsForUsageMeters(
+      usageCreditInserts.map((insert) => insert.usageMeterId),
+      transaction
+    )
+    const usageCreditsWithPricingModelId = usageCreditInserts.map(
+      (usageCreditInsert): UsageCredit.Insert => {
+        const pricingModelId =
+          usageCreditInsert.pricingModelId ??
+          pricingModelIdMap.get(usageCreditInsert.usageMeterId)
+        if (!pricingModelId) {
+          throw new Error(
+            `Pricing model id not found for usage meter ${usageCreditInsert.usageMeterId}`
+          )
+        }
+        return {
+          ...usageCreditInsert,
+          pricingModelId,
+        }
+      }
+    )
+    return baseBulkInsertOrDoNothingUsageCredits(
+      usageCreditsWithPricingModelId,
+      [
+        usageCredits.sourceReferenceId,
+        usageCredits.sourceReferenceType,
+        usageCredits.billingPeriodId,
+      ],
+      transaction
+    )
+  }
 
 const baseBulkInsertOrDoNothingUsageCredits =
   createBulkInsertOrDoNothingFunction(usageCredits, config)
