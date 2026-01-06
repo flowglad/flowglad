@@ -421,7 +421,6 @@ export const SideNavigation = () => {
               organization={{
                 id: organization.id,
                 name: organization.name,
-                onboardingStatus: organization.onboardingStatus,
               }}
               onSignOut={() => signOut()}
             />

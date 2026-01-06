@@ -14,6 +14,71 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
+/**
+ * Day button style constants broken into logical groups for maintainability.
+ * These styles control the appearance of individual day cells in the calendar.
+ */
+
+/** Layout and typography styles for day buttons */
+const dayButtonBaseStyles = [
+  'flex aspect-square h-auto w-full min-w-[--cell-size] flex-col gap-1',
+  'font-normal leading-none',
+  '!transition-none',
+].join(' ')
+
+/** Styles for selected states (single selection and range endpoints) */
+const dayButtonSelectionStyles = [
+  // Single day selection (not part of a range)
+  'data-[selected-single=true]:bg-primary',
+  'data-[selected-single=true]:text-primary-foreground',
+  // Range start
+  'data-[range-start=true]:bg-primary',
+  'data-[range-start=true]:text-primary-foreground',
+  // Range middle
+  'data-[range-middle=true]:bg-accent',
+  'data-[range-middle=true]:text-accent-foreground',
+  // Range end
+  'data-[range-end=true]:bg-primary',
+  'data-[range-end=true]:text-primary-foreground',
+].join(' ')
+
+/**
+ * Border radius styles for range selection.
+ * - Default: square corners, rounded on hover
+ * - Range start: rounded left corners only
+ * - Range end: rounded right corners only (unless also range start)
+ * - Range middle: always square corners
+ */
+const dayButtonBorderRadiusStyles = [
+  // Default behavior
+  '!rounded-none',
+  'hover:!rounded-[6px]',
+  // Range start: round left, keep right square
+  'data-[range-start=true]:!rounded-l-[6px]',
+  'data-[range-start=true]:!rounded-r-none',
+  'data-[range-start=true]:hover:!rounded-l-[6px]',
+  'data-[range-start=true]:hover:!rounded-r-none',
+  // Range end (but not also start): round right, keep left square
+  'data-[range-end=true]:data-[range-start=false]:!rounded-r-[6px]',
+  'data-[range-end=true]:data-[range-start=false]:!rounded-l-none',
+  'data-[range-end=true]:data-[range-start=false]:hover:!rounded-r-[6px]',
+  'data-[range-end=true]:data-[range-start=false]:hover:!rounded-l-none',
+  // Range middle: always square
+  'data-[range-middle=true]:!rounded-none',
+  'data-[range-middle=true]:hover:!rounded-none',
+].join(' ')
+
+/** Styles for child span elements within day buttons */
+const dayButtonChildStyles = '[&>span]:text-xs [&>span]:opacity-70'
+
+/** Combined day button styles */
+const dayButtonStyles = [
+  dayButtonBaseStyles,
+  dayButtonSelectionStyles,
+  dayButtonBorderRadiusStyles,
+  dayButtonChildStyles,
+].join(' ')
+
 function Calendar({
   className,
   classNames,
@@ -221,7 +286,7 @@ function CalendarDayButton({
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
       className={cn(
-        '!transition-none data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground flex aspect-square h-auto w-full min-w-[--cell-size] flex-col gap-1 font-normal leading-none !rounded-none hover:!rounded-[6px] data-[range-start=true]:!rounded-l-[6px] data-[range-start=true]:!rounded-r-none data-[range-start=true]:hover:!rounded-l-[6px] data-[range-start=true]:hover:!rounded-r-none data-[range-end=true]:data-[range-start=false]:!rounded-r-[6px] data-[range-end=true]:data-[range-start=false]:!rounded-l-none data-[range-end=true]:data-[range-start=false]:hover:!rounded-r-[6px] data-[range-end=true]:data-[range-start=false]:hover:!rounded-l-none data-[range-middle=true]:!rounded-none data-[range-middle=true]:hover:!rounded-none [&>span]:text-xs [&>span]:opacity-70',
+        dayButtonStyles,
         defaultClassNames.day,
         className
       )}

@@ -7,7 +7,6 @@ import { useState } from 'react'
 import {
   BookOpen,
   ExternalLink,
-  FinishSetupIcon,
   LogOut,
   RiDiscordFill,
   SettingsIcon,
@@ -33,7 +32,6 @@ import {
 import { useSidebar } from '@/components/ui/sidebar'
 import { useOrganizationList } from '@/hooks/useOrganizationList'
 import { cn } from '@/lib/utils'
-import { BusinessOnboardingStatus } from '@/types'
 import CreateOrganizationModal from '../forms/CreateOrganizationModal'
 
 export type NavUserProps = {
@@ -45,7 +43,6 @@ export type NavUserProps = {
   organization: {
     id: string
     name: string
-    onboardingStatus: BusinessOnboardingStatus
   }
   onSignOut: () => void
 }
@@ -70,9 +67,6 @@ export const NavUser: React.FC<NavUserProps> = ({
   const { state } = useSidebar()
   const isCollapsed = state === 'collapsed'
   const initials = getUserInitials(user.name)
-  const showFinishSetup =
-    organization.onboardingStatus !==
-    BusinessOnboardingStatus.FullyOnboarded
 
   const [isCreateOrgModalOpen, setIsCreateOrgModalOpen] =
     useState(false)
@@ -142,18 +136,6 @@ export const NavUser: React.FC<NavUserProps> = ({
           sideOffset={8}
         >
           <DropdownMenuGroup>
-            {showFinishSetup && (
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/onboarding"
-                  className="flex items-center gap-2"
-                  data-testid="nav-user-finish-setup"
-                >
-                  <FinishSetupIcon className="h-4 w-4 text-yellow-500" />
-                  <span>Finish Setup</span>
-                </Link>
-              </DropdownMenuItem>
-            )}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger
                 className="flex items-center gap-2"
