@@ -233,7 +233,10 @@ function buildCalendarClassNames(
       'relative flex flex-row gap-4',
       defaultClassNames.months
     ),
-    month: cn('flex w-full flex-col gap-4', defaultClassNames.month),
+    month: cn(
+      'flex w-full flex-col gap-4 last:border-r-0 last:pr-0 border-r border-dashed border-border pr-4',
+      defaultClassNames.month
+    ),
     table: 'w-full border-collapse',
   }
 
@@ -448,7 +451,7 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        `group/calendar p-3 [${CELL_SIZE_VAR}:${DEFAULT_CELL_SIZE}]`,
+        `group/calendar p-4 [${CELL_SIZE_VAR}:${DEFAULT_CELL_SIZE}]`,
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
         String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className

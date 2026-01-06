@@ -300,24 +300,58 @@ export function DateRangePicker({
     if (!internalRange?.from) {
       return null
     }
-    if (internalRange.from && !internalRange.to) {
-      return format(internalRange.from, 'dd MMM, yyyy')
+    // Show single date if no end date selected yet
+    if (!internalRange.to) {
+      return format(internalRange.from, 'MMM d, yyyy')
     }
-    if (internalRange.from && internalRange.to) {
-      return `${format(internalRange.from, 'dd MMM, yyyy')} - ${format(internalRange.to, 'dd MMM, yyyy')}`
+    // Show single date if start and end are the same day
+    // (selection in progress or intentional single-day range)
+    if (isSameDay(internalRange.from, internalRange.to)) {
+      return format(internalRange.from, 'MMM d, yyyy')
     }
-    return null
+    return `${format(internalRange.from, 'MMM d, yyyy')} - ${format(internalRange.to, 'MMM d, yyyy')}`
   }
 
   // Check if a preset matches the current internal selection
+  // When multiple presets match (e.g., "Month to date" and "Year to date" in January),
+  // only highlight the explicitly selected one, or default to "Year to date"
   const isPresetActive = (preset: DateRangePreset) => {
     if (!internalRange?.from || !internalRange?.to) return false
-    return (
+
+    const datesMatch =
       internalRange.from.toDateString() ===
         preset.dateRange.from.toDateString() &&
       internalRange.to.toDateString() ===
         preset.dateRange.to.toDateString()
+
+    if (!datesMatch) return false
+
+    // Find all presets that match these dates
+    const matchingPresets = activePresets.filter((p) =>
+      dateRangesMatch(
+        { from: internalRange.from!, to: internalRange.to! },
+        p.dateRange
+      )
     )
+
+    // If only one preset matches, it's active
+    if (matchingPresets.length === 1) return true
+
+    // Multiple presets match - check if user explicitly selected this one
+    if (selectedPresetLabel) {
+      return preset.label === selectedPresetLabel
+    }
+
+    // No explicit selection - default to "Year to date" if it matches
+    const yearToDateMatches = matchingPresets.some(
+      (p) => p.label === 'Year to date'
+    )
+    if (yearToDateMatches) {
+      return preset.label === 'Year to date'
+    }
+
+    // Otherwise, first matching preset wins
+    return preset.label === matchingPresets[0].label
   }
 
   // Check if Apply should be enabled
@@ -382,7 +416,7 @@ export function DateRangePicker({
                   variant="outline"
                   size="sm"
                   className={cn(
-                    'shrink-0 font-normal sm:border-0 sm:bg-transparent sm:rounded-none sm:justify-start',
+                    'shrink-0 font-normal sm:border-0 sm:bg-transparent sm:rounded-none sm:justify-start sm:px-5',
                     isPresetActive(preset) &&
                       'font-medium bg-accent sm:bg-accent'
                   )}
@@ -416,13 +450,10 @@ export function DateRangePicker({
                 />
               </div>
 
-              {/* Footer with Range label and buttons */}
-              <div className="border-t border-dashed border-border px-3 py-2 sm:flex sm:items-center sm:justify-between">
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    Range:
-                  </span>
-                  {formatRangeLabel() && <> {formatRangeLabel()}</>}
+              {/* Footer with date range and buttons */}
+              <div className="border-t border-dashed border-border px-2 py-2 sm:flex sm:items-center sm:justify-between">
+                <div className="text-sm text-foreground">
+                  {formatRangeLabel()}
                 </div>
                 <div className="mt-2 flex items-center gap-2 sm:mt-0">
                   <Button
