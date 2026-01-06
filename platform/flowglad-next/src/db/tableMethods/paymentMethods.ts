@@ -330,6 +330,14 @@ const validatePaymentUpdate = (
     }
   }
 
+  // Edge case: Refund amount must be positive
+  if (
+    paymentUpdate.refundedAmount !== undefined &&
+    paymentUpdate.refundedAmount !== null &&
+    paymentUpdate.refundedAmount <= 0
+  ) {
+    errors.push('Refunded amount must be greater than 0')
+  }
   // Edge case: Refund amount cannot exceed original payment amount
   if (
     paymentUpdate.refundedAmount !== undefined &&

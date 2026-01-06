@@ -1,7 +1,10 @@
 import { eq } from 'drizzle-orm'
+import { eq, inArray, notExists, sql } from 'drizzle-orm'
 import * as R from 'ramda'
 import {
   type Price,
+  prices,
+  pricesClientSelectSchema,
   productsTableRowDataSchema,
 } from '@/db/schema/prices'
 import { type PricingModel } from '@/db/schema/pricingModels'
@@ -25,6 +28,7 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
+import { PriceType } from '@/types'
 import { groupBy } from '@/utils/core'
 import type { DbTransaction } from '../types'
 import { selectMembershipAndOrganizations } from './membershipMethods'
@@ -252,6 +256,22 @@ export const selectProductsCursorPaginated =
       if (!trimmedQuery) return undefined
 
       return eq(products.id, trimmedQuery)
+    },
+    /**
+     * Additional filter clause for excludeUsageProducts.
+     * Excludes products that have any usage price.
+     */
+    ({ filters }) => {
+      const typedFilters = filters as
+        | { excludeUsageProducts?: boolean }
+        | undefined
+      if (!typedFilters?.excludeUsageProducts) return undefined
+
+      // Exclude products that have any usage price
+      // NOT EXISTS (SELECT 1 FROM prices WHERE prices.product_id = products.id AND prices.type = 'usage')
+      return notExists(
+        sql`(SELECT 1 FROM ${prices} WHERE ${prices.productId} = ${products.id} AND ${prices.type} = ${PriceType.Usage})`
+      )
     }
   )
 

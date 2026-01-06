@@ -1,44 +1,46 @@
 'use client'
 
-import { Plus } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
-import InternalPageContainer from '@/components/InternalPageContainer'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
-import { Button } from '@/components/ui/button'
-import { PageHeader } from '@/components/ui/page-header'
+import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { FlowgladApiKeyType } from '@/types'
 import { ApiKeysDataTable } from './data-table'
 
 function ApiKeysPage() {
+  const router = useRouter()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   return (
-    <InternalPageContainer>
-      <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
-        <Breadcrumb />
-        <PageHeader
+    <InnerPageContainerNew>
+      <div className="w-full relative flex flex-col justify-center pb-6">
+        <PageHeaderNew
           title="API Keys"
-          className="mb-6"
-          action={
-            <Button onClick={() => setIsCreateModalOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create API Key
-            </Button>
-          }
+          breadcrumb="Settings"
+          onBreadcrumbClick={() => router.push('/settings')}
+          className="pb-4"
+          hideBorder
+          actions={[
+            {
+              label: 'Create API Key',
+              onClick: () => setIsCreateModalOpen(true),
+            },
+          ]}
         />
-        <ApiKeysDataTable
-          filters={{
-            type: FlowgladApiKeyType.Secret,
-          }}
-          onCreateApiKey={() => setIsCreateModalOpen(true)}
-        />
-        <CreateApiKeyModal
-          isOpen={isCreateModalOpen}
-          setIsOpen={setIsCreateModalOpen}
-        />
+        <div className="w-full flex flex-col">
+          <ApiKeysDataTable
+            filters={{
+              type: FlowgladApiKeyType.Secret,
+            }}
+          />
+        </div>
       </div>
-    </InternalPageContainer>
+      <CreateApiKeyModal
+        isOpen={isCreateModalOpen}
+        setIsOpen={setIsCreateModalOpen}
+      />
+    </InnerPageContainerNew>
   )
 }
 

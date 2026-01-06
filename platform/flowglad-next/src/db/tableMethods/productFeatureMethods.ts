@@ -262,6 +262,34 @@ export const unexpireProductFeatures = async (
   return unExpired.map((pf) => productFeaturesSelectSchema.parse(pf))
 }
 
+/**
+ * Batch unexpire product features by their IDs.
+ * This is more efficient for bulk operations across multiple products.
+ *
+ * @param productFeatureIds - Array of product feature IDs to unexpire
+ * @param transaction - Database transaction
+ * @returns Array of unexpired ProductFeature records
+ */
+export const batchUnexpireProductFeatures = async (
+  productFeatureIds: string[],
+  transaction: DbTransaction
+): Promise<ProductFeature.Record[]> => {
+  if (productFeatureIds.length === 0) {
+    return []
+  }
+  const unexpired = await transaction
+    .update(productFeatures)
+    .set({ expiredAt: null })
+    .where(
+      and(
+        inArray(productFeatures.id, productFeatureIds),
+        isNotNull(productFeatures.expiredAt)
+      )
+    )
+    .returning()
+  return unexpired.map((pf) => productFeaturesSelectSchema.parse(pf))
+}
+
 export const syncProductFeatures = async (
   params: {
     product: Pick<

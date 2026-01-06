@@ -93,3 +93,42 @@ export const uncancelSubscription: SubRouteHandler<
     }
   }
 }
+
+export const adjustSubscription: SubRouteHandler<
+  FlowgladActionKey.AdjustSubscription
+> = async (params, flowgladServer: FlowgladServer) => {
+  const data: SubRouteHandlerResultData<FlowgladActionKey.AdjustSubscription> =
+    {}
+  if (params.method !== HTTPMethod.POST) {
+    return {
+      data,
+      status: 405,
+      error: {
+        code: 'Method not allowed',
+        json: {},
+      },
+    }
+  }
+  try {
+    const { priceIdOrSlug, options } = params.data
+    const result = await flowgladServer.adjustSubscription(
+      priceIdOrSlug,
+      options
+    )
+    return {
+      data: result,
+      status: 200,
+    }
+  } catch (error) {
+    return {
+      data: {},
+      status: 500,
+      error: {
+        code: 'subscription_adjust_failed',
+        json: {
+          message: (error as Error).message,
+        },
+      },
+    }
+  }
+}

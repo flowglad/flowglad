@@ -676,3 +676,24 @@ export const singlePaymentPriceDefaultColumns: Pick<
   ...nulledPriceColumns,
   type: PriceType.SinglePayment,
 }
+
+/**
+ * Schema for editing a usage price.
+ * Used by the EditUsagePriceModal to update name, slug, and active status.
+ * Price type, amount, usage events per unit, and usage meter are displayed but not editable
+ * (changing them requires creating a new price).
+ */
+export const editUsagePriceSchema = z.object({
+  price: usagePriceClientUpdateSchema,
+  id: z.string(),
+})
+
+export const editUsagePriceFormSchema = editUsagePriceSchema.extend({
+  __rawPriceString: z.string(),
+})
+
+export type EditUsagePriceFormSchema = z.infer<
+  typeof editUsagePriceFormSchema
+>
+
+export type EditUsagePriceInput = z.infer<typeof editUsagePriceSchema>

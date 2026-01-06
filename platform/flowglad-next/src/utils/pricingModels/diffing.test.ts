@@ -1278,25 +1278,32 @@ describe('validatePriceChange', () => {
     slug: 'one-time-price',
   })
 
-  it('should not throw when both prices are undefined', () => {
+  it('returns without error when both prices are undefined, when creating a new price (existing undefined), when removing a price (proposed undefined), and when prices are identical', () => {
+    // Both undefined
     expect(() =>
       validatePriceChange(undefined, undefined)
     ).not.toThrow()
-  })
 
-  it('should not throw when creating a new price (existing undefined)', () => {
+    // Creating a new price (existing undefined)
     expect(() =>
       validatePriceChange(undefined, baseSubscriptionPrice)
     ).not.toThrow()
-  })
 
-  it('should not throw when removing a price (proposed undefined)', () => {
+    // Removing a price (proposed undefined)
     expect(() =>
       validatePriceChange(baseSubscriptionPrice, undefined)
     ).not.toThrow()
+
+    // Prices are identical
+    expect(() =>
+      validatePriceChange(
+        baseSubscriptionPrice,
+        baseSubscriptionPrice
+      )
+    ).not.toThrow()
   })
 
-  it('should throw error when price type changes', () => {
+  it('throws error when price type changes from subscription to single_payment', () => {
     expect(() =>
       validatePriceChange(
         baseSubscriptionPrice,
@@ -1307,8 +1314,9 @@ describe('validatePriceChange', () => {
     )
   })
 
-  it('should throw error when trying to update unitPrice', () => {
-    const proposedPrice = createTestPrice({
+  it('allows create-only field changes (unitPrice, intervalCount, intervalUnit) for subscription price when proposed price is well-formed, treating them as price replacements', () => {
+    // Changing unitPrice
+    const priceWithNewUnitPrice = createTestPrice({
       type: PriceType.Subscription,
       unitPrice: 2000,
       currency: CurrencyCode.USD,
@@ -1316,14 +1324,15 @@ describe('validatePriceChange', () => {
       intervalCount: 1,
       slug: 'monthly-price',
     })
-
     expect(() =>
-      validatePriceChange(baseSubscriptionPrice, proposedPrice)
-    ).toThrow()
-  })
+      validatePriceChange(
+        baseSubscriptionPrice,
+        priceWithNewUnitPrice
+      )
+    ).not.toThrow()
 
-  it('should throw error when trying to update intervalCount', () => {
-    const proposedPrice = createTestPrice({
+    // Changing intervalCount
+    const priceWithNewIntervalCount = createTestPrice({
       type: PriceType.Subscription,
       unitPrice: 1000,
       currency: CurrencyCode.USD,
@@ -1331,14 +1340,15 @@ describe('validatePriceChange', () => {
       intervalCount: 2,
       slug: 'monthly-price',
     })
-
     expect(() =>
-      validatePriceChange(baseSubscriptionPrice, proposedPrice)
-    ).toThrow()
-  })
+      validatePriceChange(
+        baseSubscriptionPrice,
+        priceWithNewIntervalCount
+      )
+    ).not.toThrow()
 
-  it('should throw error when trying to update intervalUnit', () => {
-    const proposedPrice = createTestPrice({
+    // Changing intervalUnit
+    const priceWithNewIntervalUnit = createTestPrice({
       type: PriceType.Subscription,
       unitPrice: 1000,
       currency: CurrencyCode.USD,
@@ -1346,14 +1356,33 @@ describe('validatePriceChange', () => {
       intervalCount: 1,
       slug: 'monthly-price',
     })
-
     expect(() =>
-      validatePriceChange(baseSubscriptionPrice, proposedPrice)
-    ).toThrow()
+      validatePriceChange(
+        baseSubscriptionPrice,
+        priceWithNewIntervalUnit
+      )
+    ).not.toThrow()
+
+    // Changing multiple create-only fields at once
+    const priceWithMultipleChanges = createTestPrice({
+      type: PriceType.Subscription,
+      unitPrice: 5000,
+      currency: CurrencyCode.USD,
+      intervalUnit: IntervalUnit.Year,
+      intervalCount: 1,
+      slug: 'monthly-price',
+    })
+    expect(() =>
+      validatePriceChange(
+        baseSubscriptionPrice,
+        priceWithMultipleChanges
+      )
+    ).not.toThrow()
   })
 
-  it('should allow updates to mutable fields like name', () => {
-    const proposedPrice = createTestPrice({
+  it('allows updates to mutable fields (name, active, isDefault) without triggering price replacement validation', () => {
+    // Changing name
+    const priceWithNewName = createTestPrice({
       type: PriceType.Subscription,
       unitPrice: 1000,
       currency: CurrencyCode.USD,
@@ -1362,14 +1391,12 @@ describe('validatePriceChange', () => {
       slug: 'monthly-price',
       name: 'New Price Name',
     })
-
     expect(() =>
-      validatePriceChange(baseSubscriptionPrice, proposedPrice)
+      validatePriceChange(baseSubscriptionPrice, priceWithNewName)
     ).not.toThrow()
-  })
 
-  it('should allow updates to active status', () => {
-    const proposedPrice = createTestPrice({
+    // Changing active status
+    const priceWithNewActiveStatus = createTestPrice({
       type: PriceType.Subscription,
       unitPrice: 1000,
       currency: CurrencyCode.USD,
@@ -1378,22 +1405,15 @@ describe('validatePriceChange', () => {
       slug: 'monthly-price',
       active: false,
     })
-
-    expect(() =>
-      validatePriceChange(baseSubscriptionPrice, proposedPrice)
-    ).not.toThrow()
-  })
-
-  it('should not throw when prices are identical', () => {
     expect(() =>
       validatePriceChange(
         baseSubscriptionPrice,
-        baseSubscriptionPrice
+        priceWithNewActiveStatus
       )
     ).not.toThrow()
   })
 
-  it('should throw error when trying to update usageMeterSlug for usage price', () => {
+  it('allows usageMeterSlug change for usage price when proposed price is well-formed, treating it as a price replacement', () => {
     const existingUsagePrice = createTestPrice({
       type: PriceType.Usage,
       unitPrice: 100,
@@ -1418,13 +1438,85 @@ describe('validatePriceChange', () => {
 
     expect(() =>
       validatePriceChange(existingUsagePrice, proposedUsagePrice)
-    ).toThrow()
+    ).not.toThrow()
+  })
+
+  it('throws error when create-only fields change but proposed price is malformed (missing required fields)', () => {
+    // Create a malformed subscription price missing intervalUnit
+    const malformedPrice = {
+      type: PriceType.Subscription,
+      unitPrice: 2000,
+      currency: CurrencyCode.USD,
+      // missing intervalUnit and intervalCount
+      isDefault: true,
+      active: true,
+      slug: 'monthly-price',
+    } as SetupPricingModelProductPriceInput
+
+    expect(() =>
+      validatePriceChange(baseSubscriptionPrice, malformedPrice)
+    ).toThrow('Invalid price for replacement')
+  })
+
+  it('throws error when create-only fields change but proposed usage price is malformed (missing usageMeterSlug)', () => {
+    const existingUsagePrice = createTestPrice({
+      type: PriceType.Usage,
+      unitPrice: 100,
+      currency: CurrencyCode.USD,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      slug: 'usage-price',
+      usageMeterSlug: 'old-meter',
+      usageEventsPerUnit: 1,
+    })
+
+    // Create malformed usage price - changing unitPrice (create-only) but missing usageEventsPerUnit
+    const malformedUsagePrice = {
+      type: PriceType.Usage,
+      unitPrice: 200, // changed (create-only field)
+      currency: CurrencyCode.USD,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      slug: 'usage-price',
+      usageMeterSlug: 'old-meter',
+      // missing usageEventsPerUnit
+      isDefault: true,
+      active: true,
+    } as SetupPricingModelProductPriceInput
+
+    expect(() =>
+      validatePriceChange(existingUsagePrice, malformedUsagePrice)
+    ).toThrow('Invalid price for replacement')
+  })
+
+  it('allows single payment price create-only field changes when proposed price is well-formed', () => {
+    const existingSinglePayment = createTestPrice({
+      type: PriceType.SinglePayment,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      slug: 'one-time-price',
+    })
+
+    const proposedSinglePayment = createTestPrice({
+      type: PriceType.SinglePayment,
+      unitPrice: 2000, // changed (create-only field)
+      currency: CurrencyCode.USD,
+      slug: 'one-time-price',
+    })
+
+    expect(() =>
+      validatePriceChange(
+        existingSinglePayment,
+        proposedSinglePayment
+      )
+    ).not.toThrow()
   })
 })
 
 describe('validateProductDiff', () => {
-  it('should allow updates to mutable product fields', () => {
-    const diff: ProductDiffResult = {
+  it('allows updates to mutable product fields (name, active, description) and passes when no changes in product update', () => {
+    // Single mutable field change
+    const singleFieldDiff: ProductDiffResult = {
       toRemove: [],
       toCreate: [],
       toUpdate: [
@@ -1440,37 +1532,50 @@ describe('validateProductDiff', () => {
         },
       ],
     }
+    expect(() => validateProductDiff(singleFieldDiff)).not.toThrow()
 
-    expect(() => validateProductDiff(diff)).not.toThrow()
-  })
-
-  it('should allow updates to multiple mutable product fields', () => {
-    const existing = createProductInput({
+    // Multiple mutable field changes
+    const existingMultiple = createProductInput({
       productSlug: 'pro',
       productName: 'Old Name',
       active: true,
     })
-    const proposed = createProductInput({
+    const proposedMultiple = createProductInput({
       productSlug: 'pro',
       productName: 'New Name',
       active: false,
     })
-    // Add description to products
-    ;(existing.product as Record<string, unknown>).description =
-      'Old desc'
-    ;(proposed.product as Record<string, unknown>).description =
-      'New desc'
-
-    const diff: ProductDiffResult = {
+    ;(
+      existingMultiple.product as Record<string, unknown>
+    ).description = 'Old desc'
+    ;(
+      proposedMultiple.product as Record<string, unknown>
+    ).description = 'New desc'
+    const multipleFieldsDiff: ProductDiffResult = {
       toRemove: [],
       toCreate: [],
-      toUpdate: [{ existing, proposed }],
+      toUpdate: [
+        { existing: existingMultiple, proposed: proposedMultiple },
+      ],
     }
+    expect(() =>
+      validateProductDiff(multipleFieldsDiff)
+    ).not.toThrow()
 
-    expect(() => validateProductDiff(diff)).not.toThrow()
+    // No changes
+    const product = createProductInput({
+      productSlug: 'pro',
+      productName: 'Pro',
+    })
+    const noChangesDiff: ProductDiffResult = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [{ existing: product, proposed: product }],
+    }
+    expect(() => validateProductDiff(noChangesDiff)).not.toThrow()
   })
 
-  it('should call validatePriceChange for each priceDiff', () => {
+  it('allows price create-only field changes (unitPrice) when proposed price is well-formed, treating them as price replacements', () => {
     const diff: ProductDiffResult = {
       toRemove: [],
       toCreate: [],
@@ -1502,11 +1607,12 @@ describe('validateProductDiff', () => {
       ],
     }
 
-    // Should throw because unitPrice is immutable
-    expect(() => validateProductDiff(diff)).toThrow()
+    // Should not throw because unitPrice change triggers price replacement validation,
+    // and the proposed price is well-formed
+    expect(() => validateProductDiff(diff)).not.toThrow()
   })
 
-  it('should throw when price type changes in priceDiff', () => {
+  it('throws error when price type changes in priceDiff', () => {
     const diff: ProductDiffResult = {
       toRemove: [],
       toCreate: [],
@@ -1543,28 +1649,9 @@ describe('validateProductDiff', () => {
     )
   })
 
-  it('should pass when no changes in product update', () => {
-    const product = createProductInput({
-      productSlug: 'pro',
-      productName: 'Pro',
-    })
-
-    const diff: ProductDiffResult = {
-      toRemove: [],
-      toCreate: [],
-      toUpdate: [
-        {
-          existing: product,
-          proposed: product,
-        },
-      ],
-    }
-
-    expect(() => validateProductDiff(diff)).not.toThrow()
-  })
-
-  it('should allow product removal', () => {
-    const diff: ProductDiffResult = {
+  it('allows product removal and product creation', () => {
+    // Product removal
+    const removalDiff: ProductDiffResult = {
       toRemove: [
         createProductInput({
           productSlug: 'remove-me',
@@ -1574,12 +1661,10 @@ describe('validateProductDiff', () => {
       toCreate: [],
       toUpdate: [],
     }
+    expect(() => validateProductDiff(removalDiff)).not.toThrow()
 
-    expect(() => validateProductDiff(diff)).not.toThrow()
-  })
-
-  it('should allow product creation', () => {
-    const diff: ProductDiffResult = {
+    // Product creation
+    const creationDiff: ProductDiffResult = {
       toRemove: [],
       toCreate: [
         createProductInput({
@@ -1589,11 +1674,10 @@ describe('validateProductDiff', () => {
       ],
       toUpdate: [],
     }
-
-    expect(() => validateProductDiff(diff)).not.toThrow()
+    expect(() => validateProductDiff(creationDiff)).not.toThrow()
   })
 
-  it('should pass when priceDiff has allowed changes (e.g., name)', () => {
+  it('allows price mutable field changes (name) without triggering price replacement', () => {
     const diff: ProductDiffResult = {
       toRemove: [],
       toCreate: [],
@@ -1628,13 +1712,55 @@ describe('validateProductDiff', () => {
     expect(() => validateProductDiff(diff)).not.toThrow()
   })
 
-  it('should handle mixed valid and invalid updates', () => {
+  it('throws error when price replacement is attempted with malformed proposed price', () => {
     const diff: ProductDiffResult = {
       toRemove: [],
       toCreate: [],
       toUpdate: [
         {
-          // Valid update - just name change
+          existing: createProductInput({
+            productSlug: 'pro',
+            productName: 'Pro',
+            unitPrice: 1000,
+          }),
+          proposed: createProductInput({
+            productSlug: 'pro',
+            productName: 'Pro',
+            unitPrice: 2000,
+          }),
+          priceDiff: {
+            existingPrice: createTestPrice({
+              type: PriceType.Subscription,
+              unitPrice: 1000,
+              slug: 'pro-price',
+            }),
+            // Malformed price - missing required fields for subscription
+            proposedPrice: {
+              type: PriceType.Subscription,
+              unitPrice: 2000,
+              currency: CurrencyCode.USD,
+              // missing intervalUnit and intervalCount
+              isDefault: true,
+              active: true,
+              slug: 'pro-price',
+            } as SetupPricingModelProductPriceInput,
+          },
+        },
+      ],
+    }
+
+    expect(() => validateProductDiff(diff)).toThrow(
+      'Invalid price for replacement'
+    )
+  })
+
+  it('allows multiple valid updates including price replacements and mutable field changes', () => {
+    const diff: ProductDiffResult = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          // Valid update - just product name change
           existing: createProductInput({
             productSlug: 'pro-1',
             productName: 'Old Name',
@@ -1645,7 +1771,7 @@ describe('validateProductDiff', () => {
           }),
         },
         {
-          // Invalid update - price unitPrice change
+          // Valid update - price replacement with well-formed proposed price
           existing: createProductInput({
             productSlug: 'pro-2',
             productName: 'Pro 2',
@@ -1672,8 +1798,8 @@ describe('validateProductDiff', () => {
       ],
     }
 
-    // Should throw on the second update (immutable field change)
-    expect(() => validateProductDiff(diff)).toThrow()
+    // Should not throw - both updates are valid (one is product name change, one is price replacement)
+    expect(() => validateProductDiff(diff)).not.toThrow()
   })
 })
 

@@ -101,11 +101,11 @@ export const NavUser: React.FC<NavUserProps> = ({
           <button
             type="button"
             className={cn(
-              'flex w-full items-center gap-2 rounded-[6px] p-2 text-left transition-colors',
+              'flex w-full items-center gap-2 rounded p-2 text-left transition-colors',
               'hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               isCollapsed
                 ? 'justify-center px-[7px] py-1.5'
-                : 'border border-border hover:border-muted-foreground'
+                : 'border border-border px-3 py-2 hover:border-muted-foreground'
             )}
             data-testid="nav-user-trigger"
           >
@@ -128,19 +128,19 @@ export const NavUser: React.FC<NavUserProps> = ({
               <>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span
-                    className="truncate text-sm font-medium text-foreground"
+                    className="truncate text-sm font-semibold text-sidebar-accent-foreground"
                     data-testid="nav-user-name"
                   >
                     {user.name}
                   </span>
                   <span
-                    className="truncate text-xs text-muted-foreground"
+                    className="truncate text-xs font-medium text-muted-foreground"
                     data-testid="nav-user-org"
                   >
                     {organization.name}
                   </span>
                 </div>
-                <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <ChevronsUpDown className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
               </>
             )}
           </button>

@@ -71,6 +71,7 @@ import {
   calculateTotalDueAmount,
   calculateTotalFeeAmount,
 } from '@/utils/bookkeeping/fees/common'
+import { sumNetTotalSettledPaymentsForPaymentSet } from '@/utils/paymentHelpers'
 import {
   createStripeCustomer,
   stripeIdFromObjectOrId,
@@ -501,18 +502,14 @@ export const processStripeChargeForInvoiceCheckoutSession = async (
     (acc, lineItem) => acc + lineItem.price * lineItem.quantity,
     0
   )
-  const successfulPaymentsForInvoice = await selectPayments(
+  const paymentsForInvoice = await selectPayments(
     {
       invoiceId: checkoutSession.invoiceId,
-      status: PaymentStatus.Succeeded,
     },
     transaction
   )
   const totalPriorPaymentsForInvoice =
-    successfulPaymentsForInvoice.reduce(
-      (acc, payment) => acc + payment.amount,
-      0
-    )
+    sumNetTotalSettledPaymentsForPaymentSet(paymentsForInvoice)
   if (totalPriorPaymentsForInvoice >= invoiceTotal) {
     const updatedInvoice = await safelyUpdateInvoiceStatus(
       invoice,
