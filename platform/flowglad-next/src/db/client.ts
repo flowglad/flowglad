@@ -1,6 +1,4 @@
-// Must be imported FIRST to patch Drizzle before any queries
-import './patchDrizzleSession'
-
+import { patchDrizzle } from '@query-doctor/sqlcommenter-drizzle'
 import { DefaultLogger } from 'drizzle-orm/logger'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
@@ -59,8 +57,12 @@ if (core.IS_PROD) {
   logger = new FormattedSQLLogger()
 }
 
-export const db = drizzle(client, {
-  logger,
-})
+// Wrap drizzle with sqlcommenter to add SQL comments for query tracing
+// Comments include route, method, file location, and OTEL trace context
+export const db = patchDrizzle(
+  drizzle(client, {
+    logger,
+  })
+)
 
 export default db
