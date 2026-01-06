@@ -2,7 +2,7 @@
 import type { LucideIcon } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import {
   ChevronDown,
@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/sidebar'
 import { SIDEBAR_BANNER_SLIDES } from '@/config/sidebarBannerConfig'
 import { useAuthContext } from '@/contexts/authContext'
+import { useClickOutside } from '@/hooks/use-click-outside'
 import { cn } from '@/lib/utils'
 import { BusinessOnboardingStatus } from '@/types'
 import { signOut, useSession } from '@/utils/authClient'
@@ -91,6 +92,11 @@ export const SideNavigation = () => {
 
   const [isLogoHovered, setIsLogoHovered] = useState(false)
   const [showMore, setShowMore] = useState(false)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close the "More" menu when clicking outside
+  const handleCloseMore = useCallback(() => setShowMore(false), [])
+  useClickOutside(moreMenuRef, handleCloseMore, showMore)
 
   const logoSize = 24
   const orgLogoSize = 32
@@ -275,26 +281,28 @@ export const SideNavigation = () => {
             <NavStandalone items={primaryItems} />
           </div>
 
-          {/* More/Less toggle button */}
-          <SidebarGroup>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setShowMore(!showMore)}
-                  tooltip={showMore ? 'Less' : 'More'}
-                  data-testid="more-less-toggle"
-                >
-                  {showMore ? <ChevronUp /> : <ChevronDown />}
-                  <span>{showMore ? 'Less' : 'More'}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
+          {/* More/Less toggle button and secondary items - wrapped for click-outside detection */}
+          <div ref={moreMenuRef}>
+            <SidebarGroup>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setShowMore(!showMore)}
+                    tooltip={showMore ? 'Less' : 'More'}
+                    data-testid="more-less-toggle"
+                  >
+                    {showMore ? <ChevronUp /> : <ChevronDown />}
+                    <span>{showMore ? 'Less' : 'More'}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroup>
 
-          {/* Secondary navigation items - visible when showMore is true */}
-          {showMore && (
-            <NavStandalone items={secondaryItems} indented />
-          )}
+            {/* Secondary navigation items - visible when showMore is true */}
+            {showMore && (
+              <NavStandalone items={secondaryItems} indented />
+            )}
+          </div>
         </div>
         <div className="flex-1" />
       </SidebarContent>
@@ -421,7 +429,6 @@ export const SideNavigation = () => {
               organization={{
                 id: organization.id,
                 name: organization.name,
-                onboardingStatus: organization.onboardingStatus,
               }}
               onSignOut={() => signOut()}
             />
