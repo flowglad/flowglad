@@ -18,18 +18,22 @@ fi
 
 # Check for FLOWGLAD_LOCAL_USER env var first, fall back to .env_user file
 if [ -n "$FLOWGLAD_LOCAL_USER" ]; then
-    echo "Using FLOWGLAD_LOCAL_USER from environment: $FLOWGLAD_LOCAL_USER"
+    echo "Using FLOWGLAD_LOCAL_USER from environment."
     local_user="$FLOWGLAD_LOCAL_USER"
-    # Append LOCAL_USER to target env file
-    echo "LOCAL_USER=$local_user" >> "$target_env_file"
+    # Append LOCAL_USER if not already present
+    if ! grep -q '^LOCAL_USER=' "$target_env_file"; then
+        echo "LOCAL_USER=$local_user" >> "$target_env_file"
+    fi
 else
     # Check if source file exists
     if [ ! -f "$src_env_file" ]; then
         echo "Source file $src_env_file does not exist and FLOWGLAD_LOCAL_USER is not set."
         exit 2
     fi
-    # Concatenate the source env file to the end of the target env file
-    cat "$src_env_file" >> "$target_env_file"
+    # Append source file contents if LOCAL_USER not already present
+    if ! grep -q '^LOCAL_USER=' "$target_env_file"; then
+        cat "$src_env_file" >> "$target_env_file"
+    fi
     # Get the LOCAL_USER variable from the .env_user file
     local_user=$(grep '^LOCAL_USER=' "$src_env_file" | cut -d '=' -f2)
 fi
