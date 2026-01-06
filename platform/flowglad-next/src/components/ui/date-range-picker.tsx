@@ -408,8 +408,8 @@ export function DateRangePicker({
           align="start"
         >
           <div className="flex flex-col sm:flex-row">
-            {/* Presets - horizontal scroll on mobile, vertical sidebar on desktop */}
-            <div className="flex h-14 w-full items-center gap-2 border-b border-dashed border-border px-3 overflow-x-auto sm:h-auto sm:w-auto sm:flex-col sm:items-stretch sm:gap-0 sm:border-b-0 sm:border-r sm:px-0 sm:py-2 sm:overflow-visible">
+            {/* Presets - horizontal scroll on mobile (reversed order), vertical sidebar on desktop */}
+            <div className="flex flex-row-reverse h-14 w-full items-center gap-2 border-b border-dashed border-border px-3 overflow-x-auto sm:flex-col sm:h-auto sm:w-auto sm:items-stretch sm:gap-0 sm:border-b-0 sm:border-r sm:px-0 sm:py-2 sm:overflow-visible">
               {activePresets.map((preset) => (
                 <Button
                   key={preset.label}

@@ -234,7 +234,9 @@ function buildCalendarClassNames(
       defaultClassNames.months
     ),
     month: cn(
-      'flex w-full flex-col gap-4 last:border-r-0 last:pr-0 border-r border-dashed border-border pr-4',
+      'flex w-full flex-col gap-4',
+      'last:border-r-0 last:pr-0 border-r border-dashed border-border pr-4',
+      '-my-4 py-4', // Negative margin + padding to extend border to edges
       defaultClassNames.month
     ),
     table: 'w-full border-collapse',
