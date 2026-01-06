@@ -1,3 +1,6 @@
+// Must be imported FIRST to patch Drizzle before any queries
+import './patchDrizzleSession'
+
 import { DefaultLogger } from 'drizzle-orm/logger'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'

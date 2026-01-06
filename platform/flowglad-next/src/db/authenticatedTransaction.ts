@@ -5,7 +5,6 @@ import type {
   DbTransaction,
 } from '@/db/types'
 import core from '@/utils/core'
-import { setTransactionOperationLabel } from '@/utils/operationContext'
 import { withSpan } from '@/utils/tracing'
 import db from './client'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
@@ -92,8 +91,6 @@ export async function authenticatedTransaction<T>(
             Boolean(livemode).toString()
           )}', TRUE);`
         )
-        // Set operation label for query debugging (automatically derived from TRPC path)
-        await setTransactionOperationLabel(transaction)
         const resp = await fn({
           transaction,
           userId,
@@ -173,8 +170,6 @@ export async function comprehensiveAuthenticatedTransaction<T>(
             Boolean(livemode).toString()
           )}', TRUE);`
         )
-        // Set operation label for query debugging (automatically derived from TRPC path)
-        await setTransactionOperationLabel(transaction)
 
         const paramsForFn = {
           transaction,
