@@ -25,7 +25,8 @@ export const refundPayment = protectedProcedure
     const payment = await authenticatedTransaction(
       async ({ transaction, livemode }) => {
         return selectPaymentById(input.id, transaction)
-      }
+      },
+      { operationName: 'selectPaymentForRefund' }
     )
     if (!payment) {
       throw new Error('Payment not found')
@@ -39,7 +40,8 @@ export const refundPayment = protectedProcedure
           },
           transaction
         )
-      }
+      },
+      { operationName: 'refundPayment' }
     )
     return { payment: updatedPayment }
   })

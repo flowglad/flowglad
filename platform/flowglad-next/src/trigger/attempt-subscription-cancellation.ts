@@ -39,7 +39,8 @@ export const attemptSubscriptionCancellationTask = task({
           },
           transaction
         )
-      }
+      },
+      { operationName: 'cancelSubscriptionImmediately' }
     )
 
     await storeTelemetry('subscription', subscription.id, ctx.run.id)

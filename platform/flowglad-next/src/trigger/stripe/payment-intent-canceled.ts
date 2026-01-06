@@ -17,7 +17,8 @@ export const stripePaymentIntentCanceledTask = task({
             { input: payload },
             transaction
           )
-        }
+        },
+        { operationName: 'processBillingRunPaymentCanceled' }
       )
     } else {
       logger.log(

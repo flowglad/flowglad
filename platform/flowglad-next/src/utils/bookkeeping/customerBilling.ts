@@ -218,7 +218,8 @@ export const customerBillingCreatePricedCheckoutSession = async ({
             },
             transaction
           )
-        }
+        },
+        { operationName: 'selectPriceBySlugForCustomerCheckout' }
       )
       if (!priceFromSlug) {
         throw new TRPCError({
@@ -237,7 +238,8 @@ export const customerBillingCreatePricedCheckoutSession = async ({
     const price = await authenticatedTransaction(
       async ({ transaction }) => {
         return await selectPriceById(resolvedPriceId, transaction)
-      }
+      },
+      { operationName: 'selectPriceByIdForCustomerCheckout' }
     )
     if (!price) {
       throw new TRPCError({
@@ -255,20 +257,23 @@ export const customerBillingCreatePricedCheckoutSession = async ({
     customerId: customer.id,
   })
 
-  return await adminTransaction(async ({ transaction }) => {
-    return await createCheckoutSessionTransaction(
-      {
-        checkoutSessionInput: {
-          ...checkoutSessionInput,
-          successUrl: redirectUrl,
-          cancelUrl: redirectUrl,
+  return await adminTransaction(
+    async ({ transaction }) => {
+      return await createCheckoutSessionTransaction(
+        {
+          checkoutSessionInput: {
+            ...checkoutSessionInput,
+            successUrl: redirectUrl,
+            cancelUrl: redirectUrl,
+          },
+          organizationId: customer.organizationId,
+          livemode: customer.livemode,
         },
-        organizationId: customer.organizationId,
-        livemode: customer.livemode,
-      },
-      transaction
-    )
-  })
+        transaction
+      )
+    },
+    { operationName: 'createPricedCheckoutSessionForBillingPortal' }
+  )
 }
 
 export const customerBillingCreateAddPaymentMethodSession = async (
@@ -295,19 +300,22 @@ export const customerBillingCreateAddPaymentMethodSession = async (
     customerId: customer.id,
   })
 
-  return await adminTransaction(async ({ transaction }) => {
-    return await createCheckoutSessionTransaction(
-      {
-        checkoutSessionInput: {
-          customerExternalId: customer.externalId,
-          successUrl: redirectUrl,
-          cancelUrl: redirectUrl,
-          type: CheckoutSessionType.AddPaymentMethod,
+  return await adminTransaction(
+    async ({ transaction }) => {
+      return await createCheckoutSessionTransaction(
+        {
+          checkoutSessionInput: {
+            customerExternalId: customer.externalId,
+            successUrl: redirectUrl,
+            cancelUrl: redirectUrl,
+            type: CheckoutSessionType.AddPaymentMethod,
+          },
+          organizationId: customer.organizationId,
+          livemode: customer.livemode,
         },
-        organizationId: customer.organizationId,
-        livemode: customer.livemode,
-      },
-      transaction
-    )
-  })
+        transaction
+      )
+    },
+    { operationName: 'createAddPaymentMethodCheckoutSession' }
+  )
 }

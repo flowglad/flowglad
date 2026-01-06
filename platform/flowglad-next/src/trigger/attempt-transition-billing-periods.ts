@@ -25,7 +25,8 @@ export const attemptTransitionBillingPeriodsTask = task({
             rangeEnd: payload.currentTimestamp,
           },
           transaction
-        )
+        ),
+      { operationName: 'selectBillingPeriodsDueForTransition' }
     )
 
     if (billingPeriodsToTransition.length > 0) {

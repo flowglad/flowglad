@@ -10,32 +10,35 @@ import {
 export const clearDiscountCode = publicProcedure
   .input(productIdOrPurchaseIdSchema)
   .mutation(async ({ input }) => {
-    return adminTransaction(async ({ transaction }) => {
-      // FIXME: find a more elegant way to model this.
-      const checkoutSession =
-        'productId' in input
-          ? await findProductCheckoutSession(
-              input.productId,
-              transaction
-            )
-          : await findPurchaseCheckoutSession(
-              input.purchaseId,
-              transaction
-            )
-      if (!checkoutSession) {
-        return false
-      }
-      const maybePurchaseId = (input as { purchaseId: string })
-        .purchaseId
-      return editCheckoutSession(
-        {
-          checkoutSession: {
-            ...checkoutSession,
-            discountId: null,
+    return adminTransaction(
+      async ({ transaction }) => {
+        // FIXME: find a more elegant way to model this.
+        const checkoutSession =
+          'productId' in input
+            ? await findProductCheckoutSession(
+                input.productId,
+                transaction
+              )
+            : await findPurchaseCheckoutSession(
+                input.purchaseId,
+                transaction
+              )
+        if (!checkoutSession) {
+          return false
+        }
+        const maybePurchaseId = (input as { purchaseId: string })
+          .purchaseId
+        return editCheckoutSession(
+          {
+            checkoutSession: {
+              ...checkoutSession,
+              discountId: null,
+            },
+            purchaseId: maybePurchaseId,
           },
-          purchaseId: maybePurchaseId,
-        },
-        transaction
-      )
-    })
+          transaction
+        )
+      },
+      { operationName: 'clearDiscountCode' }
+    )
   })

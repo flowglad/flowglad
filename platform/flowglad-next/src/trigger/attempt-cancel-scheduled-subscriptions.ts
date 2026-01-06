@@ -16,28 +16,31 @@ export const attemptCancelScheduledSubscriptionsTask = task({
     const {
       testmodeSubscriptionsToCancel,
       livemodeSubscriptionsToCancel,
-    } = await adminTransaction(async ({ transaction }) => {
-      return {
-        testmodeSubscriptionsToCancel:
-          await selectSubscriptionsToBeCancelled(
-            {
-              rangeStart: new Date(payload.startDateISO),
-              rangeEnd: new Date(payload.endDateISO),
-              livemode: false,
-            },
-            transaction
-          ),
-        livemodeSubscriptionsToCancel:
-          await selectSubscriptionsToBeCancelled(
-            {
-              rangeStart: new Date(payload.startDateISO),
-              rangeEnd: new Date(payload.endDateISO),
-              livemode: true,
-            },
-            transaction
-          ),
-      }
-    })
+    } = await adminTransaction(
+      async ({ transaction }) => {
+        return {
+          testmodeSubscriptionsToCancel:
+            await selectSubscriptionsToBeCancelled(
+              {
+                rangeStart: new Date(payload.startDateISO),
+                rangeEnd: new Date(payload.endDateISO),
+                livemode: false,
+              },
+              transaction
+            ),
+          livemodeSubscriptionsToCancel:
+            await selectSubscriptionsToBeCancelled(
+              {
+                rangeStart: new Date(payload.startDateISO),
+                rangeEnd: new Date(payload.endDateISO),
+                livemode: true,
+              },
+              transaction
+            ),
+        }
+      },
+      { operationName: 'selectSubscriptionsToCancel' }
+    )
     if (testmodeSubscriptionsToCancel.length > 0) {
       const testmodeSubscriptionCancellationIdempotencyKey =
         await createTriggerIdempotencyKey(

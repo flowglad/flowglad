@@ -47,6 +47,7 @@ export const getCustomer = protectedProcedure
       },
       {
         apiKey: ctx.apiKey,
+        operationName: 'getCustomerByExternalId',
       }
     )
 

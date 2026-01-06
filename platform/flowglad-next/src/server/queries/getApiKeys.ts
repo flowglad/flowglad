@@ -16,7 +16,8 @@ export const getApiKeys = protectedProcedure
           { organizationId: ctx.organizationId, ...input },
           transaction
         )
-      }
+      },
+      { operationName: 'getApiKeys' }
     )
 
     return {

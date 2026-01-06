@@ -25,6 +25,7 @@ interface AuthenticatedTransactionOptions {
    * Customer context for customer billing portal requests.
    */
   customerId?: string
+  operationName?: string
 }
 
 /**
@@ -34,8 +35,12 @@ export async function authenticatedTransaction<T>(
   fn: (params: AuthenticatedTransactionParams) => Promise<T>,
   options?: AuthenticatedTransactionOptions
 ) {
-  const { apiKey, __testOnlyOrganizationId, customerId } =
-    options ?? {}
+  const {
+    apiKey,
+    __testOnlyOrganizationId,
+    customerId,
+    operationName,
+  } = options ?? {}
   if (!core.IS_TEST && __testOnlyOrganizationId) {
     throw new Error(
       'Attempted to use test organization id in a non-test environment'
@@ -57,6 +62,7 @@ export async function authenticatedTransaction<T>(
         'db.user_id': userId,
         'db.organization_id': jwtClaim?.organization_id,
         'db.livemode': livemode,
+        'db.operation_name': operationName,
       },
     },
     async () => {
@@ -119,8 +125,12 @@ export async function comprehensiveAuthenticatedTransaction<T>(
   ) => Promise<TransactionOutput<T>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
-  const { apiKey, __testOnlyOrganizationId, customerId } =
-    options ?? {}
+  const {
+    apiKey,
+    __testOnlyOrganizationId,
+    customerId,
+    operationName,
+  } = options ?? {}
   const { userId, livemode, jwtClaim } =
     await getDatabaseAuthenticationInfo({
       apiKey,
@@ -138,6 +148,7 @@ export async function comprehensiveAuthenticatedTransaction<T>(
         'db.user_id': userId,
         'db.organization_id': jwtClaim?.organization_id,
         'db.livemode': livemode,
+        'db.operation_name': operationName,
       },
     },
     async (span) => {

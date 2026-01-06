@@ -40,7 +40,8 @@ export const stripePaymentIntentSucceededTask = task({
                 { input: payload },
                 transaction
               )
-            }
+            },
+            { operationName: 'processBillingRunPaymentSucceeded' }
           )
           return result
         }
@@ -122,7 +123,7 @@ export const stripePaymentIntentSucceededTask = task({
               ledgerCommand,
             }
           },
-          {}
+          { operationName: 'processPaymentIntentSucceeded' }
         )
 
         await comprehensiveAdminTransaction(
@@ -132,7 +133,8 @@ export const stripePaymentIntentSucceededTask = task({
               transaction
             )
             return { result: null }
-          }
+          },
+          { operationName: 'createStripeTaxTransaction' }
         )
 
         /**

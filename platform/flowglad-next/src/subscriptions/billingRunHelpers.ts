@@ -711,9 +711,12 @@ export const executeBillingRun = async (
     adjustmentDate: Date | number
   }
 ) => {
-  const billingRun = await adminTransaction(({ transaction }) => {
-    return selectBillingRunById(billingRunId, transaction)
-  })
+  const billingRun = await adminTransaction(
+    ({ transaction }) => {
+      return selectBillingRunById(billingRunId, transaction)
+    },
+    { operationName: 'selectBillingRunForExecution' }
+  )
   if (billingRun.status !== BillingRunStatus.Scheduled) {
     return
   }
@@ -883,6 +886,7 @@ export const executeBillingRun = async (
         },
         {
           livemode: billingRun.livemode,
+          operationName: 'executeBillingRunSteps',
         }
       )
 
@@ -928,6 +932,7 @@ export const executeBillingRun = async (
         },
         {
           livemode: billingRun.livemode,
+          operationName: 'updatePaymentStripeChargeId',
         }
       )
     }
@@ -937,15 +942,18 @@ export const executeBillingRun = async (
       confirmationResult.status === 'succeeded' ||
       confirmationResult.status === 'requires_payment_method'
     ) {
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processOutcomeForBillingRun(
-          {
-            input: confirmationResult,
-            adjustmentParams: adjustmentParams,
-          },
-          transaction
-        )
-      })
+      await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return await processOutcomeForBillingRun(
+            {
+              input: confirmationResult,
+              adjustmentParams: adjustmentParams,
+            },
+            transaction
+          )
+        },
+        { operationName: 'processBillingRunOutcome' }
+      )
     }
 
     return {
@@ -965,21 +973,24 @@ export const executeBillingRun = async (
       billingRunId,
       error,
     })
-    return adminTransaction(async ({ transaction }) => {
-      const isError = error instanceof Error
-      return updateBillingRun(
-        {
-          id: billingRun.id,
-          status: BillingRunStatus.Failed,
-          errorDetails: {
-            message: isError ? error.message : String(error),
-            name: isError ? error.name : 'Error',
-            stack: isError ? error.stack : undefined,
+    return adminTransaction(
+      async ({ transaction }) => {
+        const isError = error instanceof Error
+        return updateBillingRun(
+          {
+            id: billingRun.id,
+            status: BillingRunStatus.Failed,
+            errorDetails: {
+              message: isError ? error.message : String(error),
+              name: isError ? error.name : 'Error',
+              stack: isError ? error.stack : undefined,
+            },
           },
-        },
-        transaction
-      )
-    })
+          transaction
+        )
+      },
+      { operationName: 'markBillingRunFailed' }
+    )
   }
 }
 

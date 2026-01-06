@@ -28,7 +28,8 @@ export const saveOrganizationCodebaseMarkdown = async ({
   const organization = await adminTransaction(
     async ({ transaction }) => {
       return selectOrganizationById(organizationId, transaction)
-    }
+    },
+    { operationName: 'selectOrgForCodebaseMarkdownSave' }
   )
 
   if (!organization) {
@@ -51,15 +52,18 @@ export const saveOrganizationCodebaseMarkdown = async ({
   })
 
   // Store hash in database after successful R2 upload
-  await adminTransaction(async ({ transaction }) => {
-    await updateOrganization(
-      {
-        id: organizationId,
-        codebaseMarkdownHash: contentHash,
-      },
-      transaction
-    )
-  })
+  await adminTransaction(
+    async ({ transaction }) => {
+      await updateOrganization(
+        {
+          id: organizationId,
+          codebaseMarkdownHash: contentHash,
+        },
+        transaction
+      )
+    },
+    { operationName: 'updateOrgCodebaseMarkdownHash' }
+  )
 }
 
 /**
@@ -73,7 +77,8 @@ export const getOrganizationCodebaseMarkdown = async (
   const organization = await adminTransaction(
     async ({ transaction }) => {
       return selectOrganizationById(organizationId, transaction)
-    }
+    },
+    { operationName: 'selectOrgForCodebaseMarkdownFetch' }
   )
 
   const contentHash = organization?.codebaseMarkdownHash ?? null
@@ -107,7 +112,8 @@ export const savePricingModelIntegrationMarkdown = async ({
   const organization = await adminTransaction(
     async ({ transaction }) => {
       return selectOrganizationById(organizationId, transaction)
-    }
+    },
+    { operationName: 'selectOrgForPricingModelMarkdownSave' }
   )
 
   if (!organization) {
@@ -130,15 +136,18 @@ export const savePricingModelIntegrationMarkdown = async ({
   })
 
   // Store hash in database after successful R2 upload
-  await adminTransaction(async ({ transaction }) => {
-    await updatePricingModel(
-      {
-        id: pricingModelId,
-        integrationGuideHash: contentHash,
-      },
-      transaction
-    )
-  })
+  await adminTransaction(
+    async ({ transaction }) => {
+      await updatePricingModel(
+        {
+          id: pricingModelId,
+          integrationGuideHash: contentHash,
+        },
+        transaction
+      )
+    },
+    { operationName: 'updatePricingModelIntegrationGuideHash' }
+  )
 }
 
 /**
@@ -156,7 +165,8 @@ export const getPricingModelIntegrationMarkdown = async ({
   const pricingModel = await adminTransaction(
     async ({ transaction }) => {
       return selectPricingModelById(pricingModelId, transaction)
-    }
+    },
+    { operationName: 'selectPricingModelForIntegrationGuideFetch' }
   )
 
   const contentHash = pricingModel?.integrationGuideHash ?? null

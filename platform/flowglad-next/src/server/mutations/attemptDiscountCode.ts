@@ -100,7 +100,8 @@ export const attemptDiscountCode = publicProcedure
         }
         await updateCheckoutSessionDiscount(matchingDiscounts[0].id)
         return applyDiscount
-      }
+      },
+      { operationName: 'attemptDiscountCode' }
     )
 
     return { isValid }

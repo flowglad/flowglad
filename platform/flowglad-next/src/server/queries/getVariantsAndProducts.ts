@@ -22,7 +22,8 @@ export const getPricesAndProducts = protectedProcedure.query(
           organization.id,
           transaction
         )
-      }
+      },
+      { operationName: 'getPricesAndProducts' }
     )
   }
 )

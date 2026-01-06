@@ -30,7 +30,8 @@ export const generateDescription = protectedProcedure
           ],
         })
         return generatedDescription
-      }
+      },
+      { operationName: 'generateProductDescription' }
     )
 
     return {

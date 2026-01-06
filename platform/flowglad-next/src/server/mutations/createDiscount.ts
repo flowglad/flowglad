@@ -25,7 +25,8 @@ export const createDiscount = protectedProcedure
           },
           transaction
         )
-      }
+      },
+      { operationName: 'createDiscount' }
     )
     return { data: { discount } }
   })

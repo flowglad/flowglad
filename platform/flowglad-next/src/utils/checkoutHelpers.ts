@@ -175,77 +175,80 @@ type CheckoutInfoResult = CheckoutInfoSuccess | CheckoutInfoError
 export async function checkoutInfoForPriceWhere(
   priceWhere: Price.Where
 ): Promise<CheckoutInfoResult> {
-  const result = await adminTransaction(async ({ transaction }) => {
-    const [{ product, price, organization }] =
-      await selectPriceProductAndOrganizationByPriceWhere(
-        priceWhere,
+  const result = await adminTransaction(
+    async ({ transaction }) => {
+      const [{ product, price, organization }] =
+        await selectPriceProductAndOrganizationByPriceWhere(
+          priceWhere,
+          transaction
+        )
+      if (!product.active || !price.active) {
+        // FIXME: ERROR PAGE UI
+        return {
+          product,
+          price,
+          organization,
+          features: [],
+        }
+      }
+      /**
+       * Attempt to get the saved purchase session (from cookies).
+       * If not found, or the price id does not match, create a new purchase session
+       * and save it to cookies.
+       */
+      const checkoutSession = await findOrCreateCheckoutSession(
+        {
+          productId: product.id,
+          organizationId: organization.id,
+          price,
+          type: CheckoutSessionType.Product,
+        },
         transaction
       )
-    if (!product.active || !price.active) {
-      // FIXME: ERROR PAGE UI
+      const discount = checkoutSession.discountId
+        ? await selectDiscountById(
+            checkoutSession.discountId,
+            transaction
+          )
+        : null
+      const feeCalculation = await selectLatestFeeCalculation(
+        {
+          checkoutSessionId: checkoutSession.id,
+        },
+        transaction
+      )
+      const features = await selectFeaturesByProductFeatureWhere(
+        { productId: product.id, expiredAt: null },
+        transaction
+      )
+      const maybeCustomer = checkoutSession.customerId
+        ? await selectCustomerById(
+            checkoutSession.customerId,
+            transaction
+          )
+        : null
+
+      // Calculate trial eligibility
+      const isEligibleForTrial = await calculateTrialEligibility(
+        price,
+        maybeCustomer,
+        transaction
+      )
+
       return {
         product,
         price,
+        features: features.map((f) => f.feature),
         organization,
-        features: [],
+        checkoutSession,
+        discount,
+        feeCalculation: feeCalculation ?? null,
+        maybeCustomer,
+        isEligibleForTrial,
       }
-    }
-    /**
-     * Attempt to get the saved purchase session (from cookies).
-     * If not found, or the price id does not match, create a new purchase session
-     * and save it to cookies.
-     */
-    const checkoutSession = await findOrCreateCheckoutSession(
-      {
-        productId: product.id,
-        organizationId: organization.id,
-        price,
-        type: CheckoutSessionType.Product,
-      },
-      transaction
-    )
-    const discount = checkoutSession.discountId
-      ? await selectDiscountById(
-          checkoutSession.discountId,
-          transaction
-        )
-      : null
-    const feeCalculation = await selectLatestFeeCalculation(
-      {
-        checkoutSessionId: checkoutSession.id,
-      },
-      transaction
-    )
-    const features = await selectFeaturesByProductFeatureWhere(
-      { productId: product.id, expiredAt: null },
-      transaction
-    )
-    const maybeCustomer = checkoutSession.customerId
-      ? await selectCustomerById(
-          checkoutSession.customerId,
-          transaction
-        )
-      : null
-
-    // Calculate trial eligibility
-    const isEligibleForTrial = await calculateTrialEligibility(
-      price,
-      maybeCustomer,
-      transaction
-    )
-
-    return {
-      product,
-      price,
-      features: features.map((f) => f.feature),
-      organization,
-      checkoutSession,
-      discount,
-      feeCalculation: feeCalculation ?? null,
-      maybeCustomer,
-      isEligibleForTrial,
-    }
-  })
+    },
+    { operationName: 'checkoutInfoForPrice' }
+  )
   const { checkoutSession, organization, features } = result
   if (!checkoutSession) {
     // FIXME: ERROR PAGE UI

@@ -18,7 +18,8 @@ export const generateInvoicePdfTask = task({
         const invoice = await adminTransaction(
           async ({ transaction }) => {
             return await selectInvoiceById(invoiceId, transaction)
-          }
+          },
+          { operationName: 'selectInvoiceForPdfGeneration' }
         )
         /**
          * In dev mode, trigger will not load localhost:3000 correctly,
@@ -57,7 +58,8 @@ export const generateInvoicePdfTask = task({
               transaction
             )
             return oldInvoicePdfUrl
-          }
+          },
+          { operationName: 'updateInvoicePdfUrl' }
         )
         /**
          * Delete the old invoice PDF from Cloudflare if it exists

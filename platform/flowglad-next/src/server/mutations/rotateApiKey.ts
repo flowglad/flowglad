@@ -19,6 +19,7 @@ export const rotateApiKeyProcedure = protectedProcedure
       },
       {
         apiKey: ctx.apiKey,
+        operationName: 'rotateSecretApiKey',
       }
     )
     /**

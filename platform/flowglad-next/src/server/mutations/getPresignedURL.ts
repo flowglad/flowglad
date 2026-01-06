@@ -46,6 +46,7 @@ export const getPresignedURL = protectedProcedure
             publicURL,
           },
         }
-      }
+      },
+      { operationName: 'getPresignedURL' }
     )
   })

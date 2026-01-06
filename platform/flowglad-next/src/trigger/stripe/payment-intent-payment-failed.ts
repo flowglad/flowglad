@@ -21,7 +21,8 @@ export const stripePaymentIntentPaymentFailedTask = task({
                 { input: payload },
                 transaction
               )
-            }
+            },
+            { operationName: 'processBillingRunPaymentFailed' }
           )
         } else {
           logger.log(

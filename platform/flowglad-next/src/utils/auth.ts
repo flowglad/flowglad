@@ -48,7 +48,8 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
         organization: org,
         customer: customers[0] || null,
       }
-    }
+    },
+    { operationName: 'selectOrgAndCustomerForMagicLink' }
   )
 
   // Build the magic link URL with OTP
@@ -98,7 +99,8 @@ const handleSendVerificationOTP = async (params: {
         organization: org,
         customer: customers[0] || null,
       }
-    }
+    },
+    { operationName: 'selectOrgAndCustomerForOTP' }
   )
 
   if (!organization) {

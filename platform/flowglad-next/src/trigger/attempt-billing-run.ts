@@ -42,7 +42,8 @@ export const attemptBillingRunTask = task({
               payload.billingRun.id,
               transaction
             )
-          }
+          },
+          { operationName: 'selectBillingRunAfterExecution' }
         )
 
         await storeTelemetry(

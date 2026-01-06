@@ -41,6 +41,7 @@ export const editCustomer = protectedProcedure
         return {
           customer: updatedCustomer,
         }
-      }
+      },
+      { operationName: 'editCustomer' }
     )
   })

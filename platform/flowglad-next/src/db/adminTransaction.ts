@@ -11,6 +11,7 @@ import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
 import type { TransactionOutput } from './transactionEnhacementTypes'
 
 interface AdminTransactionOptions {
+  operationName?: string
   livemode?: boolean
 }
 // This method needs to be in its own module, because
@@ -25,7 +26,7 @@ export async function adminTransaction<T>(
   fn: (params: AdminTransactionParams) => Promise<T>,
   options: AdminTransactionOptions = {}
 ) {
-  const { livemode = true } = options
+  const { livemode = true, operationName } = options
   const effectiveLivemode = isNil(livemode) ? true : livemode
   return withSpan(
     {
@@ -36,6 +37,7 @@ export async function adminTransaction<T>(
         'db.transaction.type': 'admin',
         'db.user_id': 'ADMIN',
         'db.livemode': effectiveLivemode,
+        'db.operation_name': operationName,
       },
     },
     async () => {
@@ -88,7 +90,7 @@ export async function comprehensiveAdminTransaction<T>(
   ) => Promise<TransactionOutput<T>>,
   options: AdminTransactionOptions = {}
 ): Promise<T> {
-  const { livemode = true } = options
+  const { livemode = true, operationName } = options
   const effectiveLivemode = isNil(livemode) ? true : livemode
 
   return withSpan(
@@ -100,6 +102,7 @@ export async function comprehensiveAdminTransaction<T>(
         'db.transaction.type': 'admin',
         'db.user_id': 'ADMIN',
         'db.livemode': effectiveLivemode,
+        'db.operation_name': operationName,
       },
     },
     async (span) => {

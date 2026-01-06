@@ -39,7 +39,8 @@ export const stripeChargeFailedTask = task({
           transaction
         )
         return updatedPaymentRecord
-      }
+      },
+      { operationName: 'processChargeFailed' }
     )
     if (paymentRecord) {
       await sendCustomerPaymentFailedNotificationIdempotently(

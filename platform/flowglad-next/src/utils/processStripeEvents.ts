@@ -140,7 +140,8 @@ export const updateOrganizationOnboardingStatus = async (
       }
 
       return organization
-    }
+    },
+    { operationName: 'updateOrganizationOnboardingStatus' }
   )
   return { onboardingStatus, organization }
 }

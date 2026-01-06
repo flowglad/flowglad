@@ -25,7 +25,8 @@ export const getBusinessOnboardingStatus = protectedProcedure
         )
 
         return organization
-      }
+      },
+      { operationName: 'selectOrganizationForOnboardingStatus' }
     )
     if (!organization) {
       throw new TRPCError({
@@ -44,17 +45,20 @@ export const getBusinessOnboardingStatus = protectedProcedure
           organization.stripeAccountId,
           ctx.livemode
         )
-      await adminTransaction(async ({ transaction }) => {
-        await updateOrganization(
-          {
-            id: organization.id,
-            onboardingStatus:
-              stripeOnboardingDetails.onboardingStatus,
-            payoutsEnabled: stripeOnboardingDetails.payoutsEnabled,
-          },
-          transaction
-        )
-      })
+      await adminTransaction(
+        async ({ transaction }) => {
+          await updateOrganization(
+            {
+              id: organization.id,
+              onboardingStatus:
+                stripeOnboardingDetails.onboardingStatus,
+              payoutsEnabled: stripeOnboardingDetails.payoutsEnabled,
+            },
+            transaction
+          )
+        },
+        { operationName: 'updateOrganizationOnboardingStatus' }
+      )
       return
     }
 

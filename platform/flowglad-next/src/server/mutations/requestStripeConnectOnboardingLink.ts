@@ -50,7 +50,8 @@ export const requestStripeConnectOnboardingLink = protectedProcedure
         }
 
         return { organization, country }
-      }
+      },
+      { operationName: 'selectOrganizationForStripeOnboarding' }
     )
 
     let stripeAccountId = organization.stripeAccountId
@@ -88,7 +89,10 @@ export const requestStripeConnectOnboardingLink = protectedProcedure
           transaction
         )
       },
-      { livemode: true }
+      {
+        livemode: true,
+        operationName: 'updateOrganizationStripeAccount',
+      }
     )
 
     return {

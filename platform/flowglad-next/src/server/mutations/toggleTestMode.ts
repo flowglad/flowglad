@@ -22,7 +22,8 @@ export const toggleTestMode = protectedProcedure
             transaction
           )
         return { membership }
-      }
+      },
+      { operationName: 'selectFocusedMembershipForTestModeToggle' }
     )
     /**
      * Need to bypass RLS to update the membership here,
@@ -38,7 +39,8 @@ export const toggleTestMode = protectedProcedure
           },
           transaction
         )
-      }
+      },
+      { operationName: 'updateMembershipLivemode' }
     )
     return {
       data: { membership: updatedMembership },

@@ -20,7 +20,8 @@ export const stripePaymentIntentRequiresActionTask = task({
             { input: payload },
             transaction
           )
-        }
+        },
+        { operationName: 'processBillingRunPaymentRequiresAction' }
       )
     } else {
       logger.log(

@@ -38,29 +38,33 @@ export const innerInviteUserToOrganizationHandler = async (
   const [userForEmail] = await adminTransaction(
     async ({ transaction }) => {
       return selectUsers({ email: input.email }, transaction)
-    }
+    },
+    { operationName: 'selectUserByEmailForInvitation' }
   )
 
   if (!userForEmail) {
-    await adminTransaction(async ({ transaction }) => {
-      const databaseUser = await insertUser(
-        {
-          id: `user_${core.nanoid()}`,
-          email: input.email,
-          name: input.name ?? '',
-        },
-        transaction
-      )
-      await insertMembership(
-        {
-          userId: databaseUser.id,
-          organizationId: focusedMembership.organization.id,
-          focused: false,
-          livemode: focusedMembership.membership.livemode,
-        },
-        transaction
-      )
-    })
+    await adminTransaction(
+      async ({ transaction }) => {
+        const databaseUser = await insertUser(
+          {
+            id: `user_${core.nanoid()}`,
+            email: input.email,
+            name: input.name ?? '',
+          },
+          transaction
+        )
+        await insertMembership(
+          {
+            userId: databaseUser.id,
+            organizationId: focusedMembership.organization.id,
+            focused: false,
+            livemode: focusedMembership.membership.livemode,
+          },
+          transaction
+        )
+      },
+      { operationName: 'createUserAndMembershipForInvitation' }
+    )
     await sendOrganizationInvitationEmail({
       to: [input.email],
       organizationName: focusedMembership.organization.name,
@@ -73,27 +77,30 @@ export const innerInviteUserToOrganizationHandler = async (
   }
 
   // Insert membership for the user
-  await adminTransaction(async ({ transaction, livemode }) => {
-    const membershipForUser = await selectMemberships(
-      {
-        userId: userForEmail.id,
-        organizationId: focusedMembership.organization.id,
-      },
-      transaction
-    )
-    if (membershipForUser.length > 0) {
-      return
-    }
-    return insertMembership(
-      {
-        userId: userForEmail.id,
-        organizationId: focusedMembership.organization.id,
-        focused: false,
-        livemode,
-      },
-      transaction
-    )
-  })
+  await adminTransaction(
+    async ({ transaction, livemode }) => {
+      const membershipForUser = await selectMemberships(
+        {
+          userId: userForEmail.id,
+          organizationId: focusedMembership.organization.id,
+        },
+        transaction
+      )
+      if (membershipForUser.length > 0) {
+        return
+      }
+      return insertMembership(
+        {
+          userId: userForEmail.id,
+          organizationId: focusedMembership.organization.id,
+          focused: false,
+          livemode,
+        },
+        transaction
+      )
+    },
+    { operationName: 'createMembershipForExistingUser' }
+  )
 }
 
 /**
@@ -123,6 +130,7 @@ export const inviteUserToOrganization = protectedProcedure
         },
         {
           apiKey: ctx.apiKey,
+          operationName: 'selectFocusedMembershipForInvitation',
         }
       )
     await innerInviteUserToOrganizationHandler(

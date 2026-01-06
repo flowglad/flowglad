@@ -6,7 +6,10 @@ import { editCheckoutSession as editCheckoutSessionFn } from '@/utils/bookkeepin
 export const editCheckoutSession = publicProcedure
   .input(editCheckoutSessionInputSchema)
   .mutation(async ({ input }) => {
-    return adminTransaction(async ({ transaction }) => {
-      return editCheckoutSessionFn(input, transaction)
-    })
+    return adminTransaction(
+      async ({ transaction }) => {
+        return editCheckoutSessionFn(input, transaction)
+      },
+      { operationName: 'editCheckoutSession' }
+    )
   })

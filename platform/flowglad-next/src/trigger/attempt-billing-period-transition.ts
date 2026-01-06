@@ -30,7 +30,8 @@ export const attemptBillingPeriodTransitionTask = task({
               billingPeriod,
               transaction
             )
-          }
+          },
+          { operationName: 'transitionBillingPeriod' }
         )
 
         if (billingRun) {

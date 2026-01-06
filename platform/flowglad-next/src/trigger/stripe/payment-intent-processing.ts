@@ -17,27 +17,30 @@ export const stripePaymentIntentProcessingTask = task({
     /**
      *
      */
-    await adminTransaction(async ({ transaction }) => {
-      const [payment] = await selectPayments(
-        {
-          stripePaymentIntentId: payload.data.object.id,
-        },
-        transaction
-      )
-      if (!payment) {
-        logger.error('Payment not found', {
-          paymentIntentId: payload.data.object.id,
-        })
-        return
-      }
-      await updatePayment(
-        {
-          id: payment.id,
-          status: PaymentStatus.Processing,
-        },
-        transaction
-      )
-    })
+    await adminTransaction(
+      async ({ transaction }) => {
+        const [payment] = await selectPayments(
+          {
+            stripePaymentIntentId: payload.data.object.id,
+          },
+          transaction
+        )
+        if (!payment) {
+          logger.error('Payment not found', {
+            paymentIntentId: payload.data.object.id,
+          })
+          return
+        }
+        await updatePayment(
+          {
+            id: payment.id,
+            status: PaymentStatus.Processing,
+          },
+          transaction
+        )
+      },
+      { operationName: 'updatePaymentStatusProcessing' }
+    )
     return {
       message: 'Hello, world!',
     }

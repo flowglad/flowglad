@@ -32,7 +32,8 @@ export const generatePaymentReceiptPdfTask = task({
                 )
               : null
             return { payment, invoice }
-          }
+          },
+          { operationName: 'selectPaymentForReceiptGeneration' }
         )
         if (!invoice) {
           return {
@@ -58,24 +59,27 @@ export const generatePaymentReceiptPdfTask = task({
           key,
           cloudflareMethods.BUCKET_PUBLIC_URL
         )
-        await adminTransaction(async ({ transaction }) => {
-          if (invoice) {
-            await updateInvoice(
+        await adminTransaction(
+          async ({ transaction }) => {
+            if (invoice) {
+              await updateInvoice(
+                {
+                  ...invoice,
+                  receiptPdfURL: receiptURL,
+                },
+                transaction
+              )
+            }
+            return updatePayment(
               {
-                ...invoice,
-                receiptPdfURL: receiptURL,
+                id: payment.id,
+                receiptURL,
               },
               transaction
             )
-          }
-          return updatePayment(
-            {
-              id: payment.id,
-              receiptURL,
-            },
-            transaction
-          )
-        })
+          },
+          { operationName: 'updateReceiptUrls' }
+        )
 
         return {
           message: `Receipt PDF generated successfully: ${payment.id}`,
