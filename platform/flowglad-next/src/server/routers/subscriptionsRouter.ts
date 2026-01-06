@@ -145,6 +145,9 @@ const adjustSubscriptionProcedure = protectedProcedure
           ctx.organization!,
           transaction
         )
+      },
+      {
+        apiKey: ctx.apiKey,
       }
     )
 
