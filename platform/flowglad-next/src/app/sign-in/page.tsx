@@ -90,11 +90,8 @@ const handleClick = async (e: any) => {
     const response = await axios.post('/api/reset-password', { email: emailValue });
     
     
-    if (response.data.msg === "user with this email do not exist!") {
-      toast.error("User not found");
-    } else {
-      toast.success('Password reset email sent!'); 
-    }
+    // Always show success message to prevent user enumeration
+    toast.success('If that email has an account, a password reset email has been sent.');
   } catch (err: any) {
     console.log('error in forgot password', err);
     toast.error(err.response?.data?.msg || 'Failed to send reset email');
