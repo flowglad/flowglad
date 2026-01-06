@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
 import { LineChart } from './charts/LineChart'
 import ErrorBoundary from './ErrorBoundary'
+import { ChartInfoTooltip } from './ui/chart-info-tooltip'
 import { Skeleton } from './ui/skeleton'
 
 /**
@@ -27,6 +28,35 @@ const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
   [RevenueChartIntervalUnit.Day]: 24 * 2,
   [RevenueChartIntervalUnit.Hour]: 1 * 2,
 } as const
+
+/**
+ * Computes the best default interval based on the date range.
+ * Based on preset expectations:
+ * - Last 3/6/12 months → Monthly (>= 60 days)
+ * - Last 7/30 days → Daily (>= 1 day but < 60 days)
+ * - Today → Hourly (< 1 day)
+ */
+function getDefaultInterval(
+  fromDate: Date,
+  toDate: Date
+): RevenueChartIntervalUnit {
+  const timespanInHours = differenceInHours(toDate, fromDate)
+
+  // 2+ months (60 days = 1440 hours): Monthly
+  // Covers Last 3 months, Last 6 months, Last 12 months
+  if (timespanInHours >= 24 * 60) {
+    return RevenueChartIntervalUnit.Month
+  }
+
+  // 2+ days (48 hours) but less than 2 months: Daily
+  // Covers Last 7 days, Last 30 days
+  if (timespanInHours >= 24 * 2) {
+    return RevenueChartIntervalUnit.Day
+  }
+
+  // Less than 1 day (including "Today"): Hourly
+  return RevenueChartIntervalUnit.Hour
+}
 
 const MONTH_NAMES_SHORT = [
   'Jan',
@@ -164,10 +194,27 @@ export const ActiveSubscribersChart = ({
   toDate: Date
   productId?: string
 }) => {
+  // Compute the best default interval based on available options
+  const defaultInterval = React.useMemo(
+    () => getDefaultInterval(fromDate, toDate),
+    [fromDate, toDate]
+  )
+
   const [interval, setInterval] =
-    React.useState<RevenueChartIntervalUnit>(
-      RevenueChartIntervalUnit.Day
-    )
+    React.useState<RevenueChartIntervalUnit>(defaultInterval)
+
+  const timespanInHours = differenceInHours(toDate, fromDate)
+
+  // Update interval if current selection becomes invalid due to date range change
+  React.useEffect(() => {
+    const isCurrentIntervalInvalid =
+      interval !== RevenueChartIntervalUnit.Hour &&
+      timespanInHours < minimumUnitInHours[interval]
+
+    if (isCurrentIntervalInvalid) {
+      setInterval(getDefaultInterval(fromDate, toDate))
+    }
+  }, [timespanInHours, interval, fromDate, toDate])
 
   const { data: subscriberData, isLoading } =
     trpc.organizations.getActiveSubscribers.useQuery({
@@ -193,7 +240,6 @@ export const ActiveSubscribersChart = ({
     }
   })
 
-  const timespanInHours = differenceInHours(toDate, fromDate)
   const intervalOptions = React.useMemo(() => {
     const options = []
 
@@ -310,6 +356,7 @@ export const ActiveSubscribersChart = ({
               ))}
             </SelectContent>
           </Select>
+          <ChartInfoTooltip content="The number of customers with active paid subscriptions at each point in time." />
         </div>
       </div>
 

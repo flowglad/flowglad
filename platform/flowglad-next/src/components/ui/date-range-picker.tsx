@@ -1,9 +1,17 @@
 'use client'
 
-import { format } from 'date-fns'
-import { CalendarIcon, ChevronDown } from 'lucide-react'
+import {
+  format,
+  isSameDay,
+  startOfDay,
+  startOfMonth,
+  startOfYear,
+  subDays,
+  subMonths,
+} from 'date-fns'
+import { ChevronDown } from 'lucide-react'
 import * as React from 'react'
-import type { DateRange } from 'react-day-picker'
+import type { DateRange, Matcher } from 'react-day-picker'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -12,6 +20,82 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+
+/**
+ * Preset type for quick date range selection
+ */
+export interface DateRangePreset {
+  label: string
+  dateRange: {
+    from: Date
+    to: Date
+  }
+}
+
+/**
+ * Creates default presets with dates calculated relative to the current day.
+ * Called each time the popover opens to ensure "Today" and relative presets
+ * remain accurate across midnight boundaries during long sessions.
+ */
+function createDefaultPresets(): DateRangePreset[] {
+  const today = startOfDay(new Date())
+
+  return [
+    {
+      label: 'Today',
+      dateRange: { from: today, to: today },
+    },
+    {
+      label: 'Last 7 days',
+      dateRange: {
+        from: subDays(today, 7),
+        to: today,
+      },
+    },
+    {
+      label: 'Last 30 days',
+      dateRange: {
+        from: subDays(today, 30),
+        to: today,
+      },
+    },
+    {
+      label: 'Last 3 months',
+      dateRange: {
+        from: subMonths(today, 3),
+        to: today,
+      },
+    },
+    {
+      label: 'Last 6 months',
+      dateRange: {
+        from: subMonths(today, 6),
+        to: today,
+      },
+    },
+    {
+      label: 'Last 12 months',
+      dateRange: {
+        from: subMonths(today, 12),
+        to: today,
+      },
+    },
+    {
+      label: 'Month to date',
+      dateRange: {
+        from: startOfMonth(today),
+        to: today,
+      },
+    },
+    {
+      label: 'Year to date',
+      dateRange: {
+        from: startOfYear(today),
+        to: today,
+      },
+    },
+  ]
+}
 
 interface DateRangePickerProps {
   fromDate?: Date
@@ -22,6 +106,8 @@ interface DateRangePickerProps {
   className?: string
   placeholder?: string
   disabled?: boolean
+  /** Optional custom presets for left sidebar. Uses default presets if not provided. */
+  presets?: DateRangePreset[]
 }
 
 export function DateRangePicker({
@@ -33,19 +119,45 @@ export function DateRangePicker({
   className,
   placeholder = 'Pick a date range',
   disabled = false,
+  presets,
 }: DateRangePickerProps) {
   const [open, setOpen] = React.useState(false)
 
-  // Current selected range from props
-  const selectedRange: DateRange | undefined = React.useMemo(
-    () => ({
-      from: fromDate,
-      to: toDate,
-    }),
-    [fromDate, toDate]
-  )
+  // Track if user has started selecting in this session
+  // When false, we show the preview and don't pass `selected` to Calendar
+  const [hasStartedSelecting, setHasStartedSelecting] =
+    React.useState(false)
 
-  const disabledMatchers = []
+  // Internal state for in-progress selection
+  const [internalRange, setInternalRange] = React.useState<
+    DateRange | undefined
+  >({
+    from: fromDate,
+    to: toDate,
+  })
+
+  // Generate fresh presets each time the popover opens to ensure current dates
+  // (e.g., "Today" stays accurate across midnight boundaries)
+  const activePresets = React.useMemo(() => {
+    if (presets) return presets
+    return createDefaultPresets()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presets, open])
+
+  // Sync internal state when props change (e.g., external reset)
+  React.useEffect(() => {
+    setInternalRange({ from: fromDate, to: toDate })
+  }, [fromDate, toDate])
+
+  // Reset internal state and selection mode when popover opens
+  React.useEffect(() => {
+    if (open) {
+      setInternalRange({ from: fromDate, to: toDate })
+      setHasStartedSelecting(false) // Reset - user hasn't started selecting yet
+    }
+  }, [open, fromDate, toDate])
+
+  const disabledMatchers: Matcher[] = []
   if (minDate) {
     disabledMatchers.push({ before: minDate })
   }
@@ -54,28 +166,114 @@ export function DateRangePicker({
   }
 
   const handleSelect = (newRange: DateRange | undefined) => {
-    onSelect(newRange)
-    // Close the popover when both dates are selected
-    if (newRange?.from && newRange?.to) {
+    // By not passing `selected` to Calendar until hasStartedSelecting is true,
+    // react-day-picker handles the selection flow naturally:
+    // - First click: sets from date
+    // - Second click: sets to date
+    // - Third click (complete range): resets and starts new selection
+    if (!hasStartedSelecting) {
+      setHasStartedSelecting(true)
+    }
+    setInternalRange(newRange)
+  }
+
+  const handlePresetClick = (preset: DateRangePreset) => {
+    // Apply preset immediately and close the popover
+    onSelect({
+      from: preset.dateRange.from,
+      to: preset.dateRange.to,
+    })
+    setOpen(false)
+  }
+
+  const handleApply = () => {
+    // Only apply if we have a complete range
+    if (internalRange?.from && internalRange?.to) {
+      onSelect(internalRange)
       setOpen(false)
     }
   }
 
+  const handleCancel = () => {
+    // Reset to original values and close
+    setInternalRange({ from: fromDate, to: toDate })
+    setHasStartedSelecting(false)
+    setOpen(false)
+  }
+
+  // Format for trigger button (committed range from props)
   const formatDateRange = () => {
-    if (!selectedRange?.from) {
+    if (!fromDate) {
       return placeholder
     }
-
-    if (selectedRange.from && !selectedRange.to) {
-      return format(selectedRange.from, 'LLL dd, y')
+    if (fromDate && !toDate) {
+      return format(fromDate, 'LLL dd, y')
     }
-
-    if (selectedRange.from && selectedRange.to) {
-      return `${format(selectedRange.from, 'LLL dd, y')} - ${format(selectedRange.to, 'LLL dd, y')}`
+    if (fromDate && toDate) {
+      return `${format(fromDate, 'LLL dd, y')} - ${format(toDate, 'LLL dd, y')}`
     }
-
     return placeholder
   }
+
+  // Format for footer label (in-progress selection)
+  const formatRangeLabel = () => {
+    if (!internalRange?.from) {
+      return null
+    }
+    if (internalRange.from && !internalRange.to) {
+      return format(internalRange.from, 'dd MMM, yyyy')
+    }
+    if (internalRange.from && internalRange.to) {
+      return `${format(internalRange.from, 'dd MMM, yyyy')} - ${format(internalRange.to, 'dd MMM, yyyy')}`
+    }
+    return null
+  }
+
+  // Check if a preset matches the current internal selection
+  const isPresetActive = (preset: DateRangePreset) => {
+    if (!internalRange?.from || !internalRange?.to) return false
+    return (
+      internalRange.from.toDateString() ===
+        preset.dateRange.from.toDateString() &&
+      internalRange.to.toDateString() ===
+        preset.dateRange.to.toDateString()
+    )
+  }
+
+  // Check if Apply should be enabled
+  const canApply = internalRange?.from && internalRange?.to
+
+  // Preview modifiers - show existing range when user hasn't started selecting
+  // This gives visual feedback of the current range without affecting selection behavior
+  const showPreview = !hasStartedSelecting && fromDate && toDate
+  const previewModifiers = showPreview
+    ? {
+        previewRangeStart: fromDate,
+        previewRangeEnd: toDate,
+        previewRangeMiddle: (date: Date) => {
+          if (!fromDate || !toDate) return false
+          // Check if date is between start and end (exclusive)
+          return (
+            date > fromDate &&
+            date < toDate &&
+            !isSameDay(date, fromDate) &&
+            !isSameDay(date, toDate)
+          )
+        },
+      }
+    : undefined
+
+  // Apply same styling as selected range for the preview
+  const previewModifiersClassNames = showPreview
+    ? {
+        previewRangeStart:
+          '[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:!rounded-l bg-accent rounded-l',
+        previewRangeMiddle:
+          '[&_button]:bg-accent [&_button]:text-accent-foreground [&_button]:!rounded-none bg-accent',
+        previewRangeEnd:
+          '[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:!rounded-r bg-accent rounded-r',
+      }
+    : undefined
 
   return (
     <div className={cn('grid gap-2', className)}>
@@ -86,28 +284,89 @@ export function DateRangePicker({
             variant="secondary"
             className={cn(
               'h-8 justify-start text-left font-normal',
-              !selectedRange?.from && 'text-muted-foreground'
+              !fromDate && 'text-muted-foreground'
             )}
             disabled={disabled}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
             {formatDateRange()}
-            <ChevronDown className="h-4 w-4 opacity-50" />
+            <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-auto overflow-hidden p-0 rounded-[4px] bg-card"
+          className="w-auto max-w-[92.5vw] overflow-hidden p-0 rounded-md"
           align="start"
         >
-          <Calendar
-            initialFocus
-            mode="range"
-            defaultMonth={selectedRange?.from || new Date()}
-            selected={selectedRange}
-            onSelect={handleSelect}
-            numberOfMonths={1}
-            disabled={disabledMatchers}
-          />
+          <div className="flex flex-col sm:flex-row">
+            {/* Presets - horizontal scroll on mobile, vertical sidebar on desktop */}
+            <div className="flex h-14 w-full items-center gap-2 border-b border-border px-3 overflow-x-auto sm:h-auto sm:w-auto sm:flex-col sm:items-stretch sm:gap-0 sm:border-b-0 sm:border-r sm:px-0 sm:py-2 sm:overflow-visible">
+              {activePresets.map((preset) => (
+                <Button
+                  key={preset.label}
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'shrink-0 font-normal sm:border-0 sm:bg-transparent sm:rounded-none sm:justify-start',
+                    isPresetActive(preset) && 'font-medium bg-accent'
+                  )}
+                  onClick={() => handlePresetClick(preset)}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
+
+            {/* Right side with calendar and footer */}
+            <div className="flex flex-col">
+              {/* Two-month calendar view - horizontally scrollable on mobile */}
+              <div className="overflow-x-auto">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={internalRange?.from || new Date()}
+                  // Only pass selected once user starts selecting
+                  // This lets react-day-picker handle fresh selections naturally
+                  selected={
+                    hasStartedSelecting ? internalRange : undefined
+                  }
+                  onSelect={handleSelect}
+                  numberOfMonths={2}
+                  disabled={disabledMatchers}
+                  showOutsideDays={false}
+                  // Show existing range as preview (same styling, no click impact)
+                  modifiers={previewModifiers}
+                  modifiersClassNames={previewModifiersClassNames}
+                />
+              </div>
+
+              {/* Footer with Range label and buttons */}
+              <div className="border-t border-border px-3 py-2 sm:flex sm:items-center sm:justify-between">
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    Range:
+                  </span>
+                  {formatRangeLabel() && <> {formatRangeLabel()}</>}
+                </div>
+                <div className="mt-2 flex items-center gap-2 sm:mt-0">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="w-full sm:w-fit"
+                    onClick={handleCancel}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="w-full sm:w-fit"
+                    onClick={handleApply}
+                    disabled={!canApply}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         </PopoverContent>
       </Popover>
     </div>

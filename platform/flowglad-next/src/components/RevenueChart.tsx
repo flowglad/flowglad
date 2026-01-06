@@ -17,22 +17,15 @@ import {
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { RevenueChartIntervalUnit } from '@/types'
 import {
+  getDefaultInterval,
+  minimumUnitInHours,
+} from '@/utils/revenueChartUtils'
+import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
 } from '@/utils/stripe'
+import { ChartInfoTooltip } from './ui/chart-info-tooltip'
 import { Skeleton } from './ui/skeleton'
-
-/**
- * Two dots make a graph principle: this is the minimum range duration required
- * in hours, required to display a multi-point graph
- */
-const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
-  [RevenueChartIntervalUnit.Year]: 24 * 365 * 2,
-  [RevenueChartIntervalUnit.Month]: 24 * 30 * 2,
-  [RevenueChartIntervalUnit.Week]: 24 * 7 * 2,
-  [RevenueChartIntervalUnit.Day]: 24 * 2,
-  [RevenueChartIntervalUnit.Hour]: 1 * 2,
-} as const
 
 const MONTH_NAMES_SHORT = [
   'Jan',
@@ -75,41 +68,6 @@ function formatDateUTC(
     default:
       return `${day} ${month}`
   }
-}
-
-/**
- * Computes the best default interval based on the date range.
- * Prefers month > week > day > hour, but only if the timespan supports it.
- * Never returns Year as a default - users must explicitly select it.
- */
-function getDefaultInterval(
-  fromDate: Date,
-  toDate: Date
-): RevenueChartIntervalUnit {
-  const timespanInHours = differenceInHours(toDate, fromDate)
-
-  if (
-    timespanInHours >=
-    minimumUnitInHours[RevenueChartIntervalUnit.Month]
-  ) {
-    return RevenueChartIntervalUnit.Month
-  }
-
-  if (
-    timespanInHours >=
-    minimumUnitInHours[RevenueChartIntervalUnit.Week]
-  ) {
-    return RevenueChartIntervalUnit.Week
-  }
-
-  if (
-    timespanInHours >=
-    minimumUnitInHours[RevenueChartIntervalUnit.Day]
-  ) {
-    return RevenueChartIntervalUnit.Day
-  }
-
-  return RevenueChartIntervalUnit.Hour
 }
 
 /**
@@ -327,6 +285,7 @@ export function RevenueChart({
               ))}
             </SelectContent>
           </Select>
+          <ChartInfoTooltip content="Total revenue collected from all payments in the selected period, including one-time purchases and subscription payments." />
         </div>
       </div>
 

@@ -6,25 +6,17 @@ import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
 import { RevenueTooltip } from '@/components/RevenueTooltip'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { RevenueChartIntervalUnit } from '@/types'
-import core from '@/utils/core'
+import {
+  getDefaultInterval,
+  minimumUnitInHours,
+} from '@/utils/revenueChartUtils'
 import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
 } from '@/utils/stripe'
 import { LineChart } from './charts/LineChart'
+import { ChartInfoTooltip } from './ui/chart-info-tooltip'
 import { Skeleton } from './ui/skeleton'
-
-/**
- * Two dots make a graph principle: this is the minimum range duration required
- * in hours, required to display a multi-point graph
- */
-const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
-  [RevenueChartIntervalUnit.Year]: 24 * 365 * 2,
-  [RevenueChartIntervalUnit.Month]: 24 * 30 * 2,
-  [RevenueChartIntervalUnit.Week]: 24 * 7 * 2,
-  [RevenueChartIntervalUnit.Day]: 24 * 2,
-  [RevenueChartIntervalUnit.Hour]: 1 * 2,
-} as const
 
 /**
  * Component for displaying Monthly Recurring Revenue (MRR) data in a chart
@@ -39,10 +31,28 @@ export const RecurringRevenueChart = ({
   productId?: string
 }) => {
   const { organization } = useAuthenticatedContext()
+
+  // Compute the best default interval based on available options
+  const defaultInterval = React.useMemo(
+    () => getDefaultInterval(fromDate, toDate),
+    [fromDate, toDate]
+  )
+
   const [interval, setInterval] =
-    React.useState<RevenueChartIntervalUnit>(
-      RevenueChartIntervalUnit.Month
-    )
+    React.useState<RevenueChartIntervalUnit>(defaultInterval)
+
+  const timespanInHours = differenceInHours(toDate, fromDate)
+
+  // Update interval if current selection becomes invalid due to date range change
+  React.useEffect(() => {
+    const isCurrentIntervalInvalid =
+      interval !== RevenueChartIntervalUnit.Hour &&
+      timespanInHours < minimumUnitInHours[interval]
+
+    if (isCurrentIntervalInvalid) {
+      setInterval(getDefaultInterval(fromDate, toDate))
+    }
+  }, [timespanInHours, interval, fromDate, toDate])
 
   const { data: mrrData, isLoading } =
     trpc.organizations.getMRR.useQuery({
@@ -119,7 +129,6 @@ export const RecurringRevenueChart = ({
     )
   }, [mrrData, defaultCurrency, firstPayloadValue])
 
-  const timespanInHours = differenceInHours(toDate, fromDate)
   const tooltipLabel = tooltipData?.label
   let isTooltipLabelDate: boolean = false
   if (tooltipLabel) {
@@ -137,6 +146,7 @@ export const RecurringRevenueChart = ({
           <p className="whitespace-nowrap">
             Monthly Recurring Revenue
           </p>
+          <ChartInfoTooltip content="The normalized monthly value of all active recurring subscriptions. Calculated as the sum of subscription amounts adjusted to a monthly rate." />
         </div>
       </div>
 
