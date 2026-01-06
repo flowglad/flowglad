@@ -25,12 +25,12 @@ describe('minimumUnitInHours', () => {
 describe('getDefaultInterval', () => {
   /**
    * The function determines chart intervals based on date range thresholds:
-   * - < 1 day (< 24 hours) → Hourly
-   * - 1+ days but < 60 days (24 to 1439 hours) → Daily
+   * - < 48 hours → Hourly (aligns with minimumUnitInHours[RevenueChartIntervalUnit.Day])
+   * - 48+ hours but < 60 days (48 to 1439 hours) → Daily
    * - 60+ days (>= 1440 hours) → Monthly
    */
 
-  describe('when range is less than 1 day (< 24 hours)', () => {
+  describe('when range is less than 48 hours', () => {
     it('should return Hourly for "Today" scenario (0 hours)', () => {
       const now = new Date()
       const result = getDefaultInterval(now, now)
@@ -44,18 +44,32 @@ describe('getDefaultInterval', () => {
       expect(result).toBe(RevenueChartIntervalUnit.Hour)
     })
 
-    it('should return Hourly for 23 hour range (just under threshold)', () => {
+    it('should return Hourly for 23 hour range', () => {
       const fromDate = new Date('2024-01-01T00:00:00Z')
       const toDate = new Date('2024-01-01T23:00:00Z')
       const result = getDefaultInterval(fromDate, toDate)
       expect(result).toBe(RevenueChartIntervalUnit.Hour)
     })
-  })
 
-  describe('when range is 1+ days but less than 60 days', () => {
-    it('should return Daily at exactly 24 hours (boundary)', () => {
+    it('should return Hourly at exactly 24 hours (below minimumUnitInHours[Day])', () => {
       const fromDate = new Date('2024-01-01T00:00:00Z')
       const toDate = new Date('2024-01-02T00:00:00Z')
+      const result = getDefaultInterval(fromDate, toDate)
+      expect(result).toBe(RevenueChartIntervalUnit.Hour)
+    })
+
+    it('should return Hourly for 47 hour range (just under 48 hour threshold)', () => {
+      const fromDate = new Date('2024-01-01T00:00:00Z')
+      const toDate = new Date('2024-01-02T23:00:00Z')
+      const result = getDefaultInterval(fromDate, toDate)
+      expect(result).toBe(RevenueChartIntervalUnit.Hour)
+    })
+  })
+
+  describe('when range is 48+ hours but less than 60 days', () => {
+    it('should return Daily at exactly 48 hours (boundary, matches minimumUnitInHours[Day])', () => {
+      const fromDate = new Date('2024-01-01T00:00:00Z')
+      const toDate = new Date('2024-01-03T00:00:00Z')
       const result = getDefaultInterval(fromDate, toDate)
       expect(result).toBe(RevenueChartIntervalUnit.Day)
     })
