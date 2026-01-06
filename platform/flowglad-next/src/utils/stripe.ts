@@ -618,6 +618,41 @@ export enum IntentMetadataType {
   BillingRun = 'billing_run',
 }
 
+/**
+ * Fee breakdown metadata schema for Stripe Payment Intents.
+ * Included for MoR transactions to provide visibility in Stripe dashboard.
+ */
+export const feeMetadataSchema = z.object({
+  flowglad_fee_percentage: z.string().optional(),
+  mor_surcharge_percentage: z.string().optional(),
+  international_fee_percentage: z.string().optional(),
+  tax_amount: z.string().optional(),
+  stripe_tax_calculation_id: z.string().optional(),
+})
+
+export type FeeMetadata = z.infer<typeof feeMetadataSchema>
+
+/**
+ * Builds fee breakdown metadata from a FeeCalculation record for
+ * inclusion in Stripe Payment Intent metadata.
+ */
+export const buildFeeMetadata = (
+  feeCalculation: FeeCalculation.Record | undefined
+): FeeMetadata => {
+  if (!feeCalculation) {
+    return {}
+  }
+  return {
+    flowglad_fee_percentage: feeCalculation.flowgladFeePercentage,
+    mor_surcharge_percentage: feeCalculation.morSurchargePercentage,
+    international_fee_percentage:
+      feeCalculation.internationalFeePercentage,
+    tax_amount: feeCalculation.taxAmountFixed.toString(),
+    stripe_tax_calculation_id:
+      feeCalculation.stripeTaxCalculationId ?? undefined,
+  }
+}
+
 export const checkoutSessionIntentMetadataSchema = z.object({
   checkoutSessionId: z.string(),
   type: z.literal(IntentMetadataType.CheckoutSession),
@@ -998,9 +1033,12 @@ export const createPaymentIntentForInvoiceCheckoutSession =
       organization,
       livemode,
     })
-    const metadata: CheckoutSessionStripeIntentMetadata = {
+    const feeMetadata = buildFeeMetadata(feeCalculation)
+    const metadata: CheckoutSessionStripeIntentMetadata &
+      FeeMetadata = {
       checkoutSessionId: checkoutSession.id,
       type: IntentMetadataType.CheckoutSession,
+      ...feeMetadata,
     }
     const totalDue = feeCalculation
       ? await calculateTotalDueAmount(feeCalculation)
@@ -1048,10 +1086,13 @@ export const createPaymentIntentForCheckoutSession = async (params: {
     organization,
     livemode,
   })
-  const metadata: CheckoutSessionStripeIntentMetadata = {
-    checkoutSessionId: checkoutSession.id,
-    type: IntentMetadataType.CheckoutSession,
-  }
+  const feeMetadata = buildFeeMetadata(feeCalculation)
+  const metadata: CheckoutSessionStripeIntentMetadata & FeeMetadata =
+    {
+      checkoutSessionId: checkoutSession.id,
+      type: IntentMetadataType.CheckoutSession,
+      ...feeMetadata,
+    }
   const totalDue = feeCalculation
     ? await calculateTotalDueAmount(feeCalculation)
     : price.unitPrice * checkoutSession.quantity
@@ -1283,10 +1324,12 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
     )
   }
   const totalFeeAmount = calculateTotalFeeAmount(feeCalculation)
-  const metadata: BillingRunStripeIntentMetadata = {
+  const feeMetadata = buildFeeMetadata(feeCalculation)
+  const metadata: BillingRunStripeIntentMetadata & FeeMetadata = {
     billingRunId,
     type: IntentMetadataType.BillingRun,
     billingPeriodId,
+    ...feeMetadata,
   }
   const transferData = stripeConnectTransferDataForOrganization({
     organization,
@@ -1339,10 +1382,12 @@ export const createPaymentIntentForBillingRun = async ({
     )
   }
   const totalFeeAmount = calculateTotalFeeAmount(feeCalculation)
-  const metadata: BillingRunStripeIntentMetadata = {
+  const feeMetadata = buildFeeMetadata(feeCalculation)
+  const metadata: BillingRunStripeIntentMetadata & FeeMetadata = {
     billingRunId,
     type: IntentMetadataType.BillingRun,
     billingPeriodId,
+    ...feeMetadata,
   }
   const transferData = stripeConnectTransferDataForOrganization({
     organization,
