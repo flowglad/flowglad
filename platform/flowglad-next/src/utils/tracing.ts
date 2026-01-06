@@ -67,7 +67,6 @@ export const withSpan = async <T>(
       const startTime = Date.now()
       try {
         const result = await fn(span)
-        span.setAttributes({ duration_ms: Date.now() - startTime })
         span.setStatus({ code: SpanStatusCode.OK })
         return result
       } catch (error) {
@@ -78,6 +77,7 @@ export const withSpan = async <T>(
         })
         throw error
       } finally {
+        span.setAttributes({ duration_ms: Date.now() - startTime })
         span.end()
       }
     }
