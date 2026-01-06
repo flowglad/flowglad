@@ -68,7 +68,7 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
     // Extract environment from key prefix (sk_live_ or sk_test_)
     const environment =
       (result.meta?.environment as string | undefined) ||
-      (key.includes('_live_') ? 'live' : 'test')
+      (key.includes('_live') ? 'live' : 'test')
     return {
       keyType: meta.type,
       userId: userIdFromUnkeyMeta(meta),

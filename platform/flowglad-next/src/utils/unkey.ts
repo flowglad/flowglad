@@ -111,7 +111,7 @@ export const verifyApiKey = async (
             (verificationResponse.data.meta?.environment as
               | string
               | undefined) ||
-            (apiKey.includes('_live_') ? 'live' : 'test'),
+            (apiKey.includes('_live') ? 'live' : 'test'),
           requestId: verificationResponse.meta.requestId,
         }
         const verificationResult: VerifyApiKeyResult = {
@@ -208,6 +208,7 @@ export const secretApiKeyInputToUnkeyInput = (
   const unparsedMeta: ApiKey.SecretMetadata = {
     userId: params.userId,
     type: FlowgladApiKeyType.Secret,
+    environment: apiEnvironment,
   }
   const secretMeta = secretApiKeyMetadataSchema.parse(unparsedMeta)
 
