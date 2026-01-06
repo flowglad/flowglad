@@ -4,18 +4,12 @@
  * This module provides OpenTelemetry tracing utilities with a combinator-based API
  * for separating tracing concerns from business logic.
  *
- * ## Core API
- * - `withSpan` - Low-level span wrapper (use combinators when possible)
+ * ## Public API
  * - `traced` - Primary combinator for adding tracing to functions
  * - `tracedWithCheckpoints` - For functions needing multiple span attribute updates
- * - `tracedMethod` - Factory for creating domain-specific tracer factories
- *
- * ## Pre-configured Domain Factories
- * - `r2Traced` - Cloudflare R2 storage operations
- * - `resendTraced` - Resend email operations
- * - `dbTraced` - Database transactions
- * - `triggerDispatchTraced` - Trigger.dev task dispatch
- * - `triggerRunTraced` - Trigger.dev task execution
+ * - `Checkpoint` - Type for the checkpoint callback function
+ * - `r2Traced` - Pre-configured factory for Cloudflare R2 operations
+ * - `resendTraced` - Pre-configured factory for Resend email operations
  *
  * @example Simple static tracing
  * ```ts
@@ -61,7 +55,7 @@ import {
 // Core Types
 // ============================================================================
 
-export type TracerName =
+type TracerName =
   | 'db.transaction'
   | 'stripe'
   | 'cloudflare.r2'
@@ -70,9 +64,9 @@ export type TracerName =
   | 'resend'
   | 'api-key-verification'
 
-export const getTracer = (name: TracerName) => trace.getTracer(name)
+const getTracer = (name: TracerName) => trace.getTracer(name)
 
-export interface TraceOptions {
+interface TraceOptions {
   spanName: string
   tracerName: TracerName
   kind?: SpanKind
@@ -82,7 +76,7 @@ export interface TraceOptions {
 /**
  * Attributes that can be set on a span.
  */
-export type SpanAttributes = Record<
+type SpanAttributes = Record<
   string,
   string | number | boolean | undefined
 >
@@ -90,14 +84,14 @@ export type SpanAttributes = Record<
 /**
  * Extracts span attributes from function arguments.
  */
-export type AttributeExtractor<TArgs extends unknown[]> = (
+type AttributeExtractor<TArgs extends unknown[]> = (
   ...args: TArgs
 ) => SpanAttributes
 
 /**
  * Extracts span attributes from the function result.
  */
-export type ResultAttributeExtractor<TResult> = (
+type ResultAttributeExtractor<TResult> = (
   result: TResult
 ) => SpanAttributes
 
@@ -110,7 +104,7 @@ export type Checkpoint = (attributes: SpanAttributes) => void
 /**
  * A function that receives a checkpoint callback as its first parameter.
  */
-export type CheckpointFn<TArgs extends unknown[], TResult> = (
+type CheckpointFn<TArgs extends unknown[], TResult> = (
   checkpoint: Checkpoint,
   ...args: TArgs
 ) => Promise<TResult>
@@ -118,7 +112,7 @@ export type CheckpointFn<TArgs extends unknown[], TResult> = (
 /**
  * Configuration for the traced combinator.
  */
-export interface TraceConfig<TArgs extends unknown[], TResult> {
+interface TraceConfig<TArgs extends unknown[], TResult> {
   /** Static trace options or a function to compute them from args */
   options: TraceOptions | ((...args: TArgs) => TraceOptions)
 
@@ -132,7 +126,7 @@ export interface TraceConfig<TArgs extends unknown[], TResult> {
 /**
  * Configuration for the tracedWithCheckpoints combinator.
  */
-export interface CheckpointTraceConfig<TArgs extends unknown[]> {
+interface CheckpointTraceConfig<TArgs extends unknown[]> {
   /** Static trace options or a function to compute them from args */
   options: TraceOptions | ((...args: TArgs) => TraceOptions)
 
@@ -143,7 +137,7 @@ export interface CheckpointTraceConfig<TArgs extends unknown[]> {
 /**
  * Configuration for creating a domain-specific tracer factory.
  */
-export interface DomainTracerConfig {
+interface DomainTracerConfig {
   tracerName: TracerName
   kind?: SpanKind
   spanPrefix?: string
@@ -196,7 +190,7 @@ function filterUndefinedAttributes(
  * )
  * ```
  */
-export const withSpan = async <T>(
+const withSpan = async <T>(
   options: TraceOptions,
   fn: (span: Span) => Promise<T>
 ): Promise<T> => {
@@ -345,7 +339,7 @@ export function tracedWithCheckpoints<
  * @param domainConfig - Domain-level tracing configuration
  * @returns A function that creates traced versions of operations
  */
-export function tracedMethod(domainConfig: DomainTracerConfig) {
+function tracedMethod(domainConfig: DomainTracerConfig) {
   return function <TArgs extends unknown[], TResult>(
     operation: string,
     extractAttributes: AttributeExtractor<TArgs> | null,
@@ -416,91 +410,3 @@ export const resendTraced = tracedMethod({
   kind: SpanKind.CLIENT,
   spanPrefix: 'resend',
 })
-
-/**
- * Database transaction tracer factory.
- *
- * @example
- * ```ts
- * const queryUsers = dbTraced(
- *   'queryUsers',
- *   ({ orgId }) => ({ 'db.organization_id': orgId }),
- *   async ({ orgId }) => { ... }
- * )
- * ```
- */
-export const dbTraced = tracedMethod({
-  tracerName: 'db.transaction',
-  kind: SpanKind.CLIENT,
-  spanPrefix: 'db',
-})
-
-/**
- * Trigger.dev dispatch tracer factory.
- *
- * @example
- * ```ts
- * const dispatchTask = triggerDispatchTraced(
- *   'myTask',
- *   (payload) => ({ 'trigger.payload_size': JSON.stringify(payload).length }),
- *   async (payload) => { ... }
- * )
- * ```
- */
-export const triggerDispatchTraced = tracedMethod({
-  tracerName: 'trigger',
-  kind: SpanKind.PRODUCER,
-  spanPrefix: 'trigger.dispatch',
-})
-
-/**
- * Trigger.dev task run tracer factory.
- *
- * @example
- * ```ts
- * const runTask = triggerRunTraced(
- *   'myTask',
- *   null,
- *   async () => { ... }
- * )
- * ```
- */
-export const triggerRunTraced = tracedMethod({
-  tracerName: 'trigger',
-  kind: SpanKind.INTERNAL,
-  spanPrefix: 'trigger.run',
-})
-
-// ============================================================================
-// Utility Combinators
-// ============================================================================
-
-/**
- * Identity combinator - returns the function unchanged.
- * Useful for conditional tracing or as a placeholder.
- */
-export function identity<TArgs extends unknown[], TResult>(
-  fn: (...args: TArgs) => Promise<TResult>
-): (...args: TArgs) => Promise<TResult> {
-  return fn
-}
-
-/**
- * Conditional tracing - applies tracing only if condition is true.
- *
- * @example
- * ```ts
- * const maybeTraced = tracedIf(
- *   process.env.ENABLE_TRACING === 'true',
- *   { options: { spanName: 'op', tracerName: 'myTracer' } },
- *   myFunction
- * )
- * ```
- */
-export function tracedIf<TArgs extends unknown[], TResult>(
-  condition: boolean,
-  config: TraceConfig<TArgs, TResult>,
-  fn: (...args: TArgs) => Promise<TResult>
-): (...args: TArgs) => Promise<TResult> {
-  return condition ? traced(config, fn) : fn
-}
