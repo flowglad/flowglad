@@ -330,15 +330,13 @@ export function RevenueChart({
         </div>
       </div>
 
-      <div className="mt-1">
+      <div className="px-4 mt-1">
         {isLoading ? (
-          <Skeleton className="w-36 h-12" />
+          <Skeleton className="w-36 h-7" />
         ) : (
-          <div className="flex flex-col px-4">
-            <p className="text-xl font-semibold text-foreground">
-              {formattedRevenueValue}
-            </p>
-          </div>
+          <p className="text-xl font-semibold text-foreground">
+            {formattedRevenueValue}
+          </p>
         )}
       </div>
       {isLoading ? (
