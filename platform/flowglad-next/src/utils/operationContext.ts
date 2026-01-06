@@ -34,8 +34,15 @@ export function withOperationContext<T>(
 }
 
 /**
- * Sets the app.operation config variable for the current transaction.
- * This labels all queries within the transaction for easier debugging in pg_stat_statements.
+ * Sets the operation label for the current transaction for debugging slow queries.
+ *
+ * Sets two PostgreSQL variables:
+ * 1. `application_name` - Visible in pg_stat_activity and pg_stat_statements
+ * 2. `app.operation` - Custom config variable for additional context
+ *
+ * The application_name appears in pg_stat_statements, making it easy to correlate
+ * slow queries with the business operation that generated them.
+ *
  * Automatically reads the operation name from the current async context.
  */
 export async function setTransactionOperationLabel(
@@ -43,6 +50,21 @@ export async function setTransactionOperationLabel(
 ): Promise<void> {
   const operationName = getCurrentOperationName()
   if (operationName) {
+    // Sanitize operation name to prevent SQL injection (only allow alphanumeric, dots, underscores)
+    const sanitizedName = operationName.replace(
+      /[^a-zA-Z0-9._-]/g,
+      '_'
+    )
+    const appName = `flowglad:${sanitizedName}`
+
+    // Set application_name - this shows up in pg_stat_activity and helps with debugging
+    // Using SET LOCAL so it only affects this transaction
+    // Note: SET doesn't support parameterized values, so we use sql.raw with sanitized input
+    await transaction.execute(
+      sql`SET LOCAL application_name = '${sql.raw(appName)}'`
+    )
+
+    // Also set custom config for additional context if needed
     await transaction.execute(
       sql`SELECT set_config('app.operation', ${operationName}, TRUE)`
     )
