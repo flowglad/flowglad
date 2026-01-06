@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import * as R from 'ramda'
 import type { CreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import { Customer } from '@/db/schema/customers'
@@ -408,8 +408,8 @@ const grantImmediateUsageCredits = async (
     )
 
   /*
-   * We rely on the database unique index on (sourceReferenceId, sourceReferenceType, billingPeriodId)
-   * to prevent duplicate grants. The helper `insertUsageCreditOrDoNothing` handles the conflict gracefully.
+   * We rely on the database unique index on (subscriptionId, billingPeriodId, featureId, usageMeterId)
+   * to prevent duplicate grants for ManualAdjustment type. The helper `insertUsageCreditOrDoNothing` handles the conflict gracefully.
    */
   const insertedUsageCredit = await insertUsageCreditOrDoNothing(
     {
@@ -422,6 +422,7 @@ const grantImmediateUsageCredits = async (
         UsageCreditSourceReferenceType.ManualAdjustment,
       billingPeriodId: currentBillingPeriod?.id ?? null,
       usageMeterId,
+      featureId: subscriptionItemFeature.featureId,
       paymentId: null,
       issuedAmount: grantAmount,
       issuedAt: Date.now(),
@@ -441,10 +442,9 @@ const grantImmediateUsageCredits = async (
       .from(usageCredits)
       .where(
         and(
-          eq(
-            usageCredits.sourceReferenceId,
-            subscriptionItemFeature.id
-          ),
+          eq(usageCredits.subscriptionId, subscription.id),
+          eq(usageCredits.usageMeterId, usageMeterId),
+          eq(usageCredits.featureId, subscriptionItemFeature.featureId),
           eq(
             usageCredits.sourceReferenceType,
             UsageCreditSourceReferenceType.ManualAdjustment
@@ -457,6 +457,7 @@ const grantImmediateUsageCredits = async (
             : isNull(usageCredits.billingPeriodId)
         )
       )
+      .orderBy(asc(usageCredits.createdAt))
       .limit(1)
 
     if (!existing) {

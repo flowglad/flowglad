@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX IF NOT EXISTS "usage_credits_dedup_uidx" ON "usage_credits" USING btree ("source_reference_id","source_reference_type","billing_period_id");

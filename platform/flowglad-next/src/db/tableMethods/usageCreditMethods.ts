@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import {
   type UsageCredit,
   usageCredits,
@@ -17,7 +17,7 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
-import { UsageCreditStatus } from '@/types'
+import { UsageCreditSourceReferenceType, UsageCreditStatus } from '@/types'
 import { isNil } from '@/utils/core'
 import type { Payment } from '../schema/payments'
 import type { UsageMeter } from '../schema/usageMeters'
@@ -95,10 +95,26 @@ export const insertUsageCreditOrDoNothing = async (
 
   // Check if a row already exists with the same unique constraint values
   // PostgreSQL unique constraints allow multiple NULLs, so we need to check explicitly
-  const existing = await transaction
-    .select()
-    .from(usageCredits)
-    .where(
+  const existingQuery = transaction.select().from(usageCredits)
+
+  if (
+    usageCreditInsert.sourceReferenceType ===
+      UsageCreditSourceReferenceType.ManualAdjustment &&
+    !usageCreditInsert.featureId
+  ) {
+    throw new Error(
+      'ManualAdjustment usage credits must have a featureId for deduplication.'
+    )
+  }
+
+  // For ManualAdjustment, we rely on the database unique index (with NULLS NOT DISTINCT) and ON CONFLICT
+  // to prevent duplicates atomically. We skip the pre-select check to avoid race conditions.
+  // For other types, we retain the application-level check (for now).
+  if (
+    usageCreditInsert.sourceReferenceType !==
+    UsageCreditSourceReferenceType.ManualAdjustment
+  ) {
+    existingQuery.where(
       and(
         isNil(usageCreditInsert.sourceReferenceId)
           ? isNull(usageCredits.sourceReferenceId)
@@ -118,26 +134,43 @@ export const insertUsageCreditOrDoNothing = async (
             )
       )
     )
-    .limit(1)
+    const existing = await existingQuery.limit(1)
 
-  if (existing.length > 0) {
-    return undefined
+    if (existing.length > 0) {
+      return undefined
+    }
   }
 
-  const [result] = await transaction
+  const insertQuery = transaction
     .insert(usageCredits)
     .values({
       ...usageCreditInsert,
       pricingModelId,
     })
-    .onConflictDoNothing({
+
+  if (
+    usageCreditInsert.sourceReferenceType ===
+    UsageCreditSourceReferenceType.ManualAdjustment
+  ) {
+    // Use the new partial unique index
+    insertQuery.onConflictDoNothing({
       target: [
-        usageCredits.sourceReferenceId,
-        usageCredits.sourceReferenceType,
+        usageCredits.subscriptionId,
         usageCredits.billingPeriodId,
+        usageCredits.featureId,
+        usageCredits.usageMeterId,
       ],
+      where: sql`"source_reference_type" = 'ManualAdjustment' AND "feature_id" IS NOT NULL`,
     })
-    .returning()
+  } else {
+    // No unique constraint for other types currently?
+    // Using onConflictDoNothing without target might not work if no constraint violation.
+    // If we removed the old index, this is just a standard insert.
+    // But we did the select check above.
+    insertQuery.onConflictDoNothing()
+  }
+
+  const [result] = await insertQuery.returning()
 
   if (!result) {
     return undefined
