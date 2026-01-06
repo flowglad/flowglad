@@ -13,10 +13,7 @@ import { ChevronDown } from 'lucide-react'
 import * as React from 'react'
 import type { DateRange, Matcher } from 'react-day-picker'
 import { Button } from '@/components/ui/button'
-import {
-  Calendar,
-  RANGE_BORDER_RADIUS,
-} from '@/components/ui/calendar'
+import { Calendar } from '@/components/ui/calendar'
 import {
   Popover,
   PopoverContent,
@@ -377,15 +374,20 @@ export function DateRangePicker({
       }
     : undefined
 
-  // Apply same styling as selected range for the preview
-  // Uses RANGE_BORDER_RADIUS from calendar.tsx to ensure consistent rounding
-  // Includes hover overrides to prevent ghost button's hover styles from changing colors and border-radius
+  // Apply same styling as selected range for the preview.
+  // Includes hover overrides to prevent ghost button's hover styles from changing colors and border-radius.
+  //
+  // Border radius uses literal '6px' to match RANGE_BORDER_RADIUS from calendar.tsx.
+  // Literal strings are required because Tailwind's JIT cannot detect classes
+  // constructed via template literals with variables.
   const previewModifiersClassNames = showPreview
     ? {
-        previewRangeStart: `[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:hover:bg-primary [&_button]:hover:text-primary-foreground [&_button]:!rounded-l-[${RANGE_BORDER_RADIUS}] [&_button]:!rounded-r-none [&_button]:hover:!rounded-l-[${RANGE_BORDER_RADIUS}] [&_button]:hover:!rounded-r-none bg-accent rounded-l-[${RANGE_BORDER_RADIUS}]`,
+        previewRangeStart:
+          '[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:hover:bg-primary [&_button]:hover:text-primary-foreground [&_button]:!rounded-l-[6px] [&_button]:!rounded-r-none [&_button]:hover:!rounded-l-[6px] [&_button]:hover:!rounded-r-none bg-accent rounded-l-[6px]',
         previewRangeMiddle:
           '[&_button]:bg-accent [&_button]:text-accent-foreground [&_button]:hover:bg-accent [&_button]:hover:text-accent-foreground [&_button]:!rounded-none [&_button]:hover:!rounded-none bg-accent',
-        previewRangeEnd: `[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:hover:bg-primary [&_button]:hover:text-primary-foreground [&_button]:!rounded-r-[${RANGE_BORDER_RADIUS}] [&_button]:!rounded-l-none [&_button]:hover:!rounded-r-[${RANGE_BORDER_RADIUS}] [&_button]:hover:!rounded-l-none bg-accent rounded-r-[${RANGE_BORDER_RADIUS}]`,
+        previewRangeEnd:
+          '[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:hover:bg-primary [&_button]:hover:text-primary-foreground [&_button]:!rounded-r-[6px] [&_button]:!rounded-l-none [&_button]:hover:!rounded-r-[6px] [&_button]:hover:!rounded-l-none bg-accent rounded-r-[6px]',
       }
     : undefined
 
