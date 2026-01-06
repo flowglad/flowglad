@@ -107,13 +107,32 @@ export const insertUsageCreditOrDoNothing = async (
     )
   }
 
-  // For ManualAdjustment, we rely on the database unique index (with NULLS NOT DISTINCT) and ON CONFLICT
-  // to prevent duplicates atomically. We skip the pre-select check to avoid race conditions.
-  // For other types, we retain the application-level check (for now).
+  // For ManualAdjustment, we retain the application-level check for this first PR (Schema)
+  // because the unique index has not been applied yet.
   if (
-    usageCreditInsert.sourceReferenceType !==
+    usageCreditInsert.sourceReferenceType ===
     UsageCreditSourceReferenceType.ManualAdjustment
   ) {
+    if (!usageCreditInsert.featureId) {
+       throw new Error(
+        'ManualAdjustment usage credits must have a featureId for deduplication.'
+      )
+    }
+    existingQuery.where(
+      and(
+        eq(usageCredits.subscriptionId, usageCreditInsert.subscriptionId),
+        eq(usageCredits.usageMeterId, usageCreditInsert.usageMeterId),
+        eq(usageCredits.featureId, usageCreditInsert.featureId),
+        isNil(usageCreditInsert.billingPeriodId)
+          ? isNull(usageCredits.billingPeriodId)
+          : eq(
+              usageCredits.billingPeriodId,
+              usageCreditInsert.billingPeriodId
+            ),
+        sql`"source_reference_type" = 'ManualAdjustment'`
+      )
+    )
+  } else {
     existingQuery.where(
       and(
         isNil(usageCreditInsert.sourceReferenceId)
@@ -134,11 +153,12 @@ export const insertUsageCreditOrDoNothing = async (
             )
       )
     )
-    const existing = await existingQuery.limit(1)
+  }
 
-    if (existing.length > 0) {
-      return undefined
-    }
+  const existing = await existingQuery.limit(1)
+
+  if (existing.length > 0) {
+    return undefined
   }
 
   const insertQuery = transaction
@@ -153,15 +173,7 @@ export const insertUsageCreditOrDoNothing = async (
     UsageCreditSourceReferenceType.ManualAdjustment
   ) {
     // Use the new partial unique index
-    insertQuery.onConflictDoNothing({
-      target: [
-        usageCredits.subscriptionId,
-        usageCredits.billingPeriodId,
-        usageCredits.featureId,
-        usageCredits.usageMeterId,
-      ],
-      where: sql`"source_reference_type" = 'ManualAdjustment' AND "feature_id" IS NOT NULL`,
-    })
+    insertQuery.onConflictDoNothing()
   } else {
     // No unique constraint for other types currently?
     // Using onConflictDoNothing without target might not work if no constraint violation.

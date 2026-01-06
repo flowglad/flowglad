@@ -102,18 +102,7 @@ export const usageCredits = pgTable(
       constructIndex(TABLE_NAME, [table.paymentId]),
       constructIndex(TABLE_NAME, [table.pricingModelId]),
       constructIndex(TABLE_NAME, [table.sourceReferenceId]),
-      constructUniqueIndex(
-        TABLE_NAME,
-        [
-          table.subscriptionId,
-          table.billingPeriodId,
-          table.featureId,
-          table.usageMeterId,
-        ],
-        'usage_credits_unique_feature_dedup_idx'
-      ).where(
-        sql`"source_reference_type" = 'ManualAdjustment' AND "feature_id" IS NOT NULL`
-      ),
+
       
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
