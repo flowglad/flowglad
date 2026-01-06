@@ -317,14 +317,12 @@ export const GET = async (request: NextRequest) => {
 
       /**
        * As the purchase session cookie is no longer needed, delete it.
-       * Skip if the price/product lookup fails (data inconsistency).
+       * Always delete the purchase cookie; only include productId if lookup succeeded.
        */
-      if (priceResult) {
-        await deleteCheckoutSessionCookie({
-          purchaseId: purchase.id,
-          productId: priceResult.product.id,
-        })
-      }
+      await deleteCheckoutSessionCookie({
+        purchaseId: purchase.id,
+        productId: priceResult?.product.id,
+      })
     }
 
     return Response.redirect(url, 303)
