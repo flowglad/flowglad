@@ -145,7 +145,8 @@ const adjustSubscriptionProcedure = protectedProcedure
           ctx.organization!,
           transaction
         )
-      }
+      },
+      { apiKey: ctx.apiKey }
     )
 
     const {
@@ -179,7 +180,14 @@ const adjustSubscriptionProcedure = protectedProcedure
         }
 
         // Handle terminal failure states
-        if (run.status === 'EXPIRED' || run.status === 'TIMED_OUT') {
+        if (
+          run.status === 'FAILED' ||
+          run.status === 'CANCELED' ||
+          run.status === 'CRASHED' ||
+          run.status === 'SYSTEM_FAILURE' ||
+          run.status === 'EXPIRED' ||
+          run.status === 'TIMED_OUT'
+        ) {
           throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
             message: `Billing run failed with status: ${run.status}`,
