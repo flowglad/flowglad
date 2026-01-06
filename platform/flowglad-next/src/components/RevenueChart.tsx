@@ -332,7 +332,7 @@ export function RevenueChart({
 
       <div className="px-4 mt-1">
         {isLoading ? (
-          <Skeleton className="w-36 h-12" />
+          <Skeleton className="w-36 h-7" />
         ) : (
           <p className="text-xl font-semibold text-foreground">
             {formattedRevenueValue}
