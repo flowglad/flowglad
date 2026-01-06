@@ -150,6 +150,11 @@
           "anchor": "Community",
           "href": "https://app.flowglad.com/invite-discord",
           "icon": "discord"
+        },
+        {
+          "anchor": "Examples",
+          "href": "https://github.com/flowglad/examples",
+          "icon": "github"
         }
       ]
     }
