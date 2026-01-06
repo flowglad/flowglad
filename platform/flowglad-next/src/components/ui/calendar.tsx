@@ -99,7 +99,7 @@ const CELL_SIZE_VAR = '--cell-size'
 const DEFAULT_CELL_SIZE = '2.25rem'
 
 /** Border radius for range selection corners */
-const RANGE_BORDER_RADIUS = '6px'
+export const RANGE_BORDER_RADIUS = '6px'
 
 /** Size of navigation chevron icons */
 const CHEVRON_ICON_SIZE = 'size-4'

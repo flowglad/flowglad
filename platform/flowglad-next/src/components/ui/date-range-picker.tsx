@@ -13,7 +13,10 @@ import { ChevronDown } from 'lucide-react'
 import * as React from 'react'
 import type { DateRange, Matcher } from 'react-day-picker'
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
+import {
+  Calendar,
+  RANGE_BORDER_RADIUS,
+} from '@/components/ui/calendar'
 import {
   Popover,
   PopoverContent,
@@ -264,14 +267,13 @@ export function DateRangePicker({
     : undefined
 
   // Apply same styling as selected range for the preview
+  // Uses RANGE_BORDER_RADIUS from calendar.tsx to ensure consistent rounding
   const previewModifiersClassNames = showPreview
     ? {
-        previewRangeStart:
-          '[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:!rounded-l bg-accent rounded-l',
+        previewRangeStart: `[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:!rounded-l-[${RANGE_BORDER_RADIUS}] bg-accent rounded-l-[${RANGE_BORDER_RADIUS}]`,
         previewRangeMiddle:
           '[&_button]:bg-accent [&_button]:text-accent-foreground [&_button]:!rounded-none bg-accent',
-        previewRangeEnd:
-          '[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:!rounded-r bg-accent rounded-r',
+        previewRangeEnd: `[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:!rounded-r-[${RANGE_BORDER_RADIUS}] bg-accent rounded-r-[${RANGE_BORDER_RADIUS}]`,
       }
     : undefined
 
