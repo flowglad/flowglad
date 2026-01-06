@@ -287,17 +287,6 @@ export const GET = async (request: NextRequest) => {
 
     const { purchase } = result
 
-    if (!purchase) {
-      return Response.json(
-        {
-          success: false,
-        },
-        {
-          status: 400,
-        }
-      )
-    }
-
     let url = result.url
     if (isNil(url) && result.checkoutSession) {
       url = new URL(
@@ -306,28 +295,34 @@ export const GET = async (request: NextRequest) => {
       )
     }
 
-    const purchaseId = purchase.id
-    const priceId = purchase.priceId
-    const { product } = await adminTransaction(
-      async ({ transaction }) => {
-        const [{ product }] =
-          await selectPriceProductAndOrganizationByPriceWhere(
-            {
-              id: priceId,
-            },
-            transaction
-          )
-        return { product }
-      }
-    )
-
     /**
-     * As the purchase session cookie is no longer needed, delete it.
+     * Some setup intent flows don't create purchases (e.g., AddPaymentMethod,
+     * ActivateSubscription, terminal checkout sessions). Only run purchase-specific
+     * logic when a purchase exists.
      */
-    await deleteCheckoutSessionCookie({
-      purchaseId: purchase.id,
-      productId: product.id,
-    })
+    if (purchase) {
+      const priceId = purchase.priceId
+      const { product } = await adminTransaction(
+        async ({ transaction }) => {
+          const [{ product }] =
+            await selectPriceProductAndOrganizationByPriceWhere(
+              {
+                id: priceId,
+              },
+              transaction
+            )
+          return { product }
+        }
+      )
+
+      /**
+       * As the purchase session cookie is no longer needed, delete it.
+       */
+      await deleteCheckoutSessionCookie({
+        purchaseId: purchase.id,
+        productId: product.id,
+      })
+    }
 
     return Response.redirect(url, 303)
   } catch (error) {
