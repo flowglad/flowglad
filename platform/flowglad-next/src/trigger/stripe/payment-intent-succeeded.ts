@@ -64,8 +64,14 @@ export const stripePaymentIntentSucceededTask = task({
               ledgerCommand,
             } = paymentResult
 
+            if (!payment.purchaseId) {
+              throw new Error(
+                `Payment ${payment.id} has no purchaseId, cannot process payment intent succeeded event`
+              )
+            }
+
             const purchase = await selectPurchaseById(
-              payment.purchaseId!,
+              payment.purchaseId,
               transaction
             )
 
