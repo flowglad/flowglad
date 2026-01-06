@@ -204,11 +204,53 @@ export function AdjustSubscriptionGrid({
       console.log('Adjustment result:', result)
 
       // For upgrades, the subscription items are updated async after payment processes.
-      // Wait a moment then reload billing to show updated state.
-      if (result.subscription.resolvedTiming === 'immediately') {
-        // Give the async billing run time to process
-        await new Promise((resolve) => setTimeout(resolve, 2000))
-        // Reload billing data to get updated subscription
+      // Poll the billing data until the subscription reflects the new plan.
+      // Note: resolvedTiming is in the API response but may not be in the SDK types
+      const response = result.subscription as {
+        resolvedTiming?:
+          | 'immediately'
+          | 'at_end_of_current_billing_period'
+      }
+      if (response.resolvedTiming === 'immediately') {
+        const newPlanPrice = billing.getPrice(selectedPlan.slug)
+        const targetPriceId = newPlanPrice?.id
+
+        // Poll up to 10 times with 1 second intervals (10 seconds total)
+        // to wait for the async billing run to complete
+        let attempts = 0
+        const maxAttempts = 10
+        const pollInterval = 1000
+
+        while (attempts < maxAttempts) {
+          attempts++
+          await new Promise((resolve) =>
+            setTimeout(resolve, pollInterval)
+          )
+
+          // Reload billing data
+          if (billing.reload) {
+            await billing.reload()
+          }
+
+          // Check if subscription has been updated to new plan
+          const updatedSubscription =
+            billing.currentSubscriptions?.[0]
+          if (
+            updatedSubscription?.priceId === targetPriceId ||
+            updatedSubscription?.name === selectedPlan.name
+          ) {
+            console.log(
+              `Subscription updated after ${attempts} polling attempts`
+            )
+            break
+          }
+
+          console.log(
+            `Polling attempt ${attempts}/${maxAttempts} - subscription not yet updated`
+          )
+        }
+
+        // Final reload to ensure we have the latest state
         if (billing.reload) {
           await billing.reload()
         }
@@ -233,9 +275,9 @@ export function AdjustSubscriptionGrid({
     setError(null)
   }
 
-  // Format date for display
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr)
+  // Format date for display (accepts string or number timestamp)
+  const formatDate = (dateInput: string | number) => {
+    const date = new Date(dateInput)
     return date.toLocaleDateString('en-US', {
       month: 'long',
       day: 'numeric',

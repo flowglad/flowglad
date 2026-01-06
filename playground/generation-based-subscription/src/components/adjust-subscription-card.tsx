@@ -20,7 +20,7 @@ interface AdjustSubscriptionCardProps {
   plan: PricingPlan
   isCurrentPlan?: boolean
   currentPlanPrice?: number
-  billingPeriodEnd?: string | null
+  billingPeriodEnd?: string | number | null
   hideFeatures?: boolean
   onAdjustClick?: (plan: PricingPlan, isUpgrade: boolean) => void
 }
@@ -69,9 +69,9 @@ export function AdjustSubscriptionCard({
   const isDowngrade = planPrice < currentPlanPrice
   const isSamePrice = planPrice === currentPlanPrice
 
-  // Format the billing period end date
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr)
+  // Format the billing period end date (accepts string or number timestamp)
+  const formatDate = (dateInput: string | number) => {
+    const date = new Date(dateInput)
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
