@@ -1,3 +1,4 @@
+import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
 import type {
   AuthenticatedTransactionParams,
@@ -50,6 +51,7 @@ export async function authenticatedTransaction<T>(
     {
       spanName: 'db.authenticatedTransaction',
       tracerName: 'db.transaction',
+      kind: SpanKind.CLIENT,
       attributes: {
         'db.transaction.type': 'authenticated',
         'db.user_id': userId,
@@ -130,6 +132,7 @@ export async function comprehensiveAuthenticatedTransaction<T>(
     {
       spanName: 'db.comprehensiveAuthenticatedTransaction',
       tracerName: 'db.transaction',
+      kind: SpanKind.CLIENT,
       attributes: {
         'db.transaction.type': 'authenticated',
         'db.user_id': userId,

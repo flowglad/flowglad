@@ -1,3 +1,4 @@
+import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
 import type { AdminTransactionParams } from '@/db/types'
 import { isNil } from '@/utils/core'
@@ -30,6 +31,7 @@ export async function adminTransaction<T>(
     {
       spanName: 'db.adminTransaction',
       tracerName: 'db.transaction',
+      kind: SpanKind.CLIENT,
       attributes: {
         'db.transaction.type': 'admin',
         'db.user_id': 'ADMIN',
@@ -93,6 +95,7 @@ export async function comprehensiveAdminTransaction<T>(
     {
       spanName: 'db.comprehensiveAdminTransaction',
       tracerName: 'db.transaction',
+      kind: SpanKind.CLIENT,
       attributes: {
         'db.transaction.type': 'admin',
         'db.user_id': 'ADMIN',
