@@ -424,12 +424,6 @@ export const SideNavigation = () => {
                 onboardingStatus: organization.onboardingStatus,
               }}
               onSignOut={() => signOut()}
-              onTestModeToggle={async (enabled) => {
-                await toggleTestMode.mutateAsync({
-                  livemode: !enabled,
-                })
-              }}
-              testModeEnabled={!livemode}
             />
           )}
         </div>
