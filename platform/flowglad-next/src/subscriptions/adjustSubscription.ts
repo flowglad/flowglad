@@ -359,7 +359,6 @@ export const adjustSubscription = async (
     'prorateCurrentBillingPeriod' in adjustment
       ? adjustment.prorateCurrentBillingPeriod
       : true
-
   const subscription = await selectSubscriptionById(id, transaction)
   if (isSubscriptionInTerminalState(subscription.status)) {
     throw new Error('Subscription is in terminal state')
@@ -658,11 +657,18 @@ export const adjustSubscription = async (
     // Execute billing run immediately after creation
     // executeBillingRun uses its own transactions internally
     // handleSubscriptionItemAdjustment will handle creating/updating subscription items in processOutcomeForBillingRun
+    // Prepare items with required fields (livemode) before passing to handleSubscriptionItemAdjustment
+    const preparedItemsForBillingRun = nonManualSubscriptionItems.map(
+      (item) => ({
+        ...item,
+        livemode: subscription.livemode,
+      })
+    )
     await attemptBillingRunTask.trigger({
       billingRun,
       adjustmentParams: {
         newSubscriptionItems:
-          nonManualSubscriptionItems as SubscriptionItem.Record[],
+          preparedItemsForBillingRun as SubscriptionItem.Record[],
         adjustmentDate,
       },
     })
