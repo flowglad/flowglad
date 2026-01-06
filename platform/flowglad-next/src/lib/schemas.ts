@@ -20,3 +20,17 @@ export const signInSchema = z.object({
     .string()
     .min(1, { message: 'Please enter your password' }),
 })
+
+
+export const newPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters'),
+    passwordConfirmation: z.string(),
+  })
+  .refine((data) => data.password === data.passwordConfirmation, {
+    path: ['passwordConfirmation'],
+    message: 'Passwords do not match',
+  })
+ 

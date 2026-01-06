@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 import ErrorLabel from '@/components/ErrorLabel'
 import { Button } from '@/components/ui/button'
+import axios from 'axios';
 import {
   Card,
   CardContent,
@@ -21,7 +22,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { signInSchema } from '@/lib/schemas'
 import { cn } from '@/lib/utils'
-import { authClient, signIn } from '@/utils/authClient'
+import {signIn } from '@/utils/authClient'
 
 export default function SignIn() {
   type SigninValues = z.infer<typeof signInSchema>
@@ -41,8 +42,10 @@ export default function SignIn() {
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-
+   
   const emailValue = watch('email')
+
+ 
   const forgotPasswordDisabled = !z
     .string()
     .email()
@@ -78,7 +81,27 @@ export default function SignIn() {
     toast.error(String(message))
   }
 
-  return (
+const handleClick = async (e: any) => {
+  if (forgotPasswordDisabled) {
+    toast.error('Please enter a valid email');
+    return;
+  }
+  try {
+    const response = await axios.post('/api/reset-password', { email: emailValue });
+    
+    
+    if (response.data.msg === "user with this email do not exist!") {
+      toast.error("User not found");
+    } else {
+      toast.success('Password reset email sent!'); 
+    }
+  } catch (err: any) {
+    console.log('error in forgot password', err);
+    toast.error(err.response?.data?.msg || 'Failed to send reset email');
+  }
+};
+
+return (
     <Card className="max-w-lg lg:w-80 w-full">
       <CardHeader>
         <CardTitle className="text-lg md:text-xl">Sign In</CardTitle>
@@ -111,18 +134,7 @@ export default function SignIn() {
                     forgotPasswordDisabled &&
                       'opacity-25 cursor-not-allowed'
                   )}
-                  onClick={async (e) => {
-                    if (forgotPasswordDisabled) {
-                      return
-                    }
-                    await authClient.requestPasswordReset({
-                      email: emailValue ?? '',
-                      redirectTo: '/sign-in/reset-password',
-                    })
-                    toast.success(
-                      'If that email has an account, a password reset email has been sent.'
-                    )
-                  }}
+                  onClick={handleClick}
                 >
                   Forgot your password?
                 </div>

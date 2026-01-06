@@ -1,10 +1,14 @@
 'use client'
 
-import { CheckCircle, Loader2, Lock, XCircle } from 'lucide-react'
+import { CheckCircle, Loader2, Lock, XCircle, Eye, EyeOff } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ErrorLabel from '@/components/ErrorLabel'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { newPasswordSchema } from '@/lib/schemas'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -22,8 +26,6 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams?.get('token')
@@ -34,19 +36,21 @@ export default function ResetPasswordPage() {
     }
   }, [token])
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault()
+  type ResetPasswordValues = z.infer<typeof newPasswordSchema>
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ResetPasswordValues>({
+    resolver: zodResolver(newPasswordSchema),
+    mode: 'onSubmit',
+  })
+
+  const [showPassword, setShowPassword] = useState(false)
+
+  const onSubmit = async (data: ResetPasswordValues) => {
     setError(null)
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      return
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters')
-      return
-    }
 
     if (!token) {
       setError('Invalid or missing reset token')
@@ -57,7 +61,7 @@ export default function ResetPasswordPage() {
 
     try {
       await authClient.resetPassword({
-        newPassword: password,
+        newPassword: data.password,
         token,
       })
 
@@ -74,6 +78,12 @@ export default function ResetPasswordPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const onError = (errs: any) => {
+    const first = Object.values(errs)[0] as any
+    const message = first?.message ?? 'Validation failed'
+    toast.error(String(message))
   }
 
   if (isSuccess) {
@@ -138,35 +148,45 @@ export default function ResetPasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleResetPassword} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-4" noValidate>
             <div className="space-y-2">
               <Label htmlFor="password">New Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter new password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-                required
-                minLength={6}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter new password"
+                  disabled={isLoading}
+                  required
+                  minLength={8}
+                  {...register('password')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground"
+                  aria-label={
+                    showPassword ? 'Hide password' : 'Show password'
+                  }
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <ErrorLabel error={errors.password} />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">
-                Confirm Password
-              </Label>
+              <Label htmlFor="passwordConfirmation">Confirm Password</Label>
               <Input
-                id="confirmPassword"
+                id="passwordConfirmation"
                 type="password"
                 placeholder="Confirm new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={isLoading}
                 required
-                minLength={6}
+                minLength={8}
+                {...register('passwordConfirmation')}
               />
+              <ErrorLabel error={errors.passwordConfirmation} />
             </div>
 
             {error && <ErrorLabel error={error} />}
@@ -174,9 +194,9 @@ export default function ResetPasswordPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading}
+              disabled={isLoading || isSubmitting}
             >
-              {isLoading ? (
+              {isLoading || isSubmitting ? (
                 <>
                   <Loader2
                     className={cn('animate-spin', 'h-4 w-4 mr-2')}
@@ -193,7 +213,7 @@ export default function ResetPasswordPage() {
                 type="button"
                 onClick={() => router.push('/sign-in')}
                 className="text-primary hover:underline"
-                disabled={isLoading}
+                disabled={isLoading || isSubmitting}
               >
                 Back to Sign In
               </button>
