@@ -117,15 +117,18 @@ export async function authenticatedTransaction<T>(
 ): Promise<T> {
   // We need to execute and get the auth info to set span attributes
   // The traced combinator wraps the entire operation including auth lookup
+  // Static attributes are set at span creation for debugging failed transactions
   const { result } = await traced(
     {
       options: {
         spanName: 'db.authenticatedTransaction',
         tracerName: 'db.transaction',
         kind: SpanKind.CLIENT,
+        attributes: {
+          'db.transaction.type': 'authenticated',
+        },
       },
       extractResultAttributes: (data) => ({
-        'db.transaction.type': 'authenticated',
         'db.user_id': data.userId,
         'db.organization_id': data.organizationId,
         'db.livemode': data.livemode,
@@ -255,15 +258,18 @@ export async function comprehensiveAuthenticatedTransaction<T>(
   ) => Promise<TransactionOutput<T>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
+  // Static attributes are set at span creation for debugging failed transactions
   const { output } = await traced(
     {
       options: {
         spanName: 'db.comprehensiveAuthenticatedTransaction',
         tracerName: 'db.transaction',
         kind: SpanKind.CLIENT,
+        attributes: {
+          'db.transaction.type': 'authenticated',
+        },
       },
       extractResultAttributes: (data) => ({
-        'db.transaction.type': 'authenticated',
         'db.user_id': data.userId,
         'db.organization_id': data.organizationId,
         'db.livemode': data.livemode,
