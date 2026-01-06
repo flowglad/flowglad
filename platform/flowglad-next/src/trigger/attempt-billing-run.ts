@@ -13,7 +13,10 @@ export const attemptBillingRunTask = task({
     payload: {
       billingRun: BillingRun.Record
       adjustmentParams?: {
-        newSubscriptionItems: SubscriptionItem.Record[]
+        newSubscriptionItems: (
+          | SubscriptionItem.Insert
+          | SubscriptionItem.Record
+        )[]
         adjustmentDate: Date | number
       }
     },

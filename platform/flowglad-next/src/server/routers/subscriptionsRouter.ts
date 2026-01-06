@@ -107,6 +107,23 @@ const adjustSubscriptionOutputSchema = z
       .describe(
         'Whether this adjustment is an upgrade (true) or downgrade/lateral move (false). An upgrade means the new plan total is greater than the old plan total.'
       ),
+    billingRunRealtime: z
+      .object({
+        runId: z
+          .string()
+          .describe(
+            'The trigger.dev run ID for the billing run task. Use this with useRealtimeRun to subscribe to updates.'
+          ),
+        publicAccessToken: z
+          .string()
+          .describe(
+            'Public access token for authenticating the realtime subscription. This token is scoped to only read this specific run.'
+          ),
+      })
+      .optional()
+      .describe(
+        'Trigger.dev realtime information for subscribing to the billing run status. Only present when an immediate adjustment with proration triggers a billing run.'
+      ),
   })
   .meta({ id: 'AdjustSubscriptionOutput' })
 
@@ -138,6 +155,7 @@ const adjustSubscriptionProcedure = protectedProcedure
           subscriptionItems,
           resolvedTiming,
           isUpgrade,
+          billingRunRealtime,
         } = await adjustSubscription(
           input,
           ctx.organization,
@@ -155,6 +173,7 @@ const adjustSubscriptionProcedure = protectedProcedure
             subscriptionItems,
             resolvedTiming,
             isUpgrade,
+            billingRunRealtime,
           },
         }
       }

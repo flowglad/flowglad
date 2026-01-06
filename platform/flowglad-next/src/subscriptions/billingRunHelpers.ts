@@ -418,16 +418,6 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   billingRun: BillingRun.Record,
   transaction: DbTransaction
 ): Promise<ExecuteBillingRunStepsResult> => {
-  console.log(
-    '[executeBillingRun] Step 1: Starting calculation and bookkeeping',
-    {
-      billingRunId: billingRun.id,
-      isAdjustment: billingRun.isAdjustment,
-      billingPeriodId: billingRun.billingPeriodId,
-      status: billingRun.status,
-    }
-  )
-
   const {
     billingPeriodItems,
     organization,
@@ -440,29 +430,10 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       transaction
     )
 
-  console.log(
-    '[executeBillingRun] Step 2: Fetched billing period data',
-    {
-      billingPeriodItemsCount: billingPeriodItems.length,
-      billingPeriodItems: billingPeriodItems.map((item) => ({
-        name: item.name,
-        unitPrice: item.unitPrice,
-        quantity: item.quantity,
-      })),
-      subscriptionId: subscription.id,
-      customerId: customer.id,
-    }
-  )
-
   const paymentMethod = await selectPaymentMethodById(
     billingRun.paymentMethodId,
     transaction
   )
-
-  console.log('[executeBillingRun] Step 3: Fetched payment method', {
-    paymentMethodId: paymentMethod.id,
-    stripePaymentMethodId: paymentMethod.stripePaymentMethodId,
-  })
 
   // For doNotCharge subscriptions, skip usage overages - they're recorded but not charged
   const { rawOutstandingUsageCosts } =
@@ -474,14 +445,6 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   const usageOverages = subscription.doNotCharge
     ? []
     : rawOutstandingUsageCosts
-
-  console.log(
-    '[executeBillingRun] Step 4: Calculated usage overages',
-    {
-      usageOveragesCount: usageOverages.length,
-      doNotCharge: subscription.doNotCharge,
-    }
-  )
 
   const { feeCalculation, totalDueAmount } =
     await calculateFeeAndTotalAmountDueForBillingPeriod(
@@ -496,43 +459,17 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       transaction
     )
 
-  console.log(
-    '[executeBillingRun] Step 5: Fee calculation complete',
-    {
-      totalDueAmount,
-      pretaxTotal: feeCalculation.pretaxTotal,
-      taxAmountFixed: feeCalculation.taxAmountFixed,
-      feeCalculationId: feeCalculation.id,
-    }
-  )
-
   const { total: totalAmountPaid, payments } =
     await sumNetTotalSettledPaymentsForBillingPeriod(
       billingPeriod.id,
       transaction
     )
 
-  console.log(
-    '[executeBillingRun] Step 6: Fetched existing payments',
-    {
-      totalAmountPaid,
-      paymentsCount: payments.length,
-      payments: payments.map((p) => ({
-        id: p.id,
-        amount: p.amount,
-        status: p.status,
-      })),
-    }
-  )
-
   let invoice: Invoice.Record | undefined
 
   // For adjustment billing runs, always create a new invoice for the proration charge
   // The existing invoice (if any) is for the original subscription payment
   if (billingRun.isAdjustment) {
-    console.log(
-      '[executeBillingRun] Step 7: Adjustment billing run - creating new invoice for proration'
-    )
     const invoiceInsert = await createInvoiceInsertForBillingRun(
       {
         billingPeriod,
@@ -543,12 +480,6 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       transaction
     )
     invoice = await insertInvoice(invoiceInsert, transaction)
-    console.log(
-      '[executeBillingRun] Step 7a: Created adjustment invoice',
-      {
-        invoiceId: invoice.id,
-      }
-    )
   } else {
     // For regular billing runs, check for existing invoice on the billing period
     const [invoiceForBillingPeriod] = await selectInvoices(
@@ -560,17 +491,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
 
     invoice = invoiceForBillingPeriod
 
-    console.log(
-      '[executeBillingRun] Step 7: Checked for existing invoice',
-      {
-        foundExistingInvoice: !!invoice,
-        invoiceId: invoice?.id,
-        invoiceStatus: invoice?.status,
-      }
-    )
-
     if (!invoice) {
-      console.log('[executeBillingRun] Step 7a: Creating new invoice')
       const invoiceInsert = await createInvoiceInsertForBillingRun(
         {
           billingPeriod,
@@ -581,31 +502,13 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
         transaction
       )
       invoice = await insertInvoice(invoiceInsert, transaction)
-      console.log(
-        '[executeBillingRun] Step 7b: Created new invoice',
-        {
-          invoiceId: invoice.id,
-        }
-      )
     }
 
     /**
      * If the invoice is in a terminal state, we can skip the rest of the steps
      * Note: This only applies to regular billing runs, not adjustment runs
      */
-    console.log(
-      '[executeBillingRun] Step 8: Checking invoice terminal state',
-      {
-        invoiceId: invoice.id,
-        invoiceStatus: invoice.status,
-        isTerminalState: invoiceIsInTerminalState(invoice),
-      }
-    )
-
     if (invoiceIsInTerminalState(invoice)) {
-      console.log(
-        '[executeBillingRun] Step 8a: Invoice in terminal state - early exit'
-      )
       await updateBillingRun(
         {
           id: billingRun.id,
@@ -652,10 +555,6 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     }
   }
 
-  console.log(
-    '[executeBillingRun] Step 9: Processing invoice line items'
-  )
-
   /**
    * "Evict" the invoice line items for the invoice
    * That way we can ensure the line items inserted are "fresh".
@@ -671,13 +570,6 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     })
   await insertInvoiceLineItems(invoiceLineItemInserts, transaction)
 
-  console.log(
-    '[executeBillingRun] Step 10: Inserted invoice line items',
-    {
-      lineItemsCount: invoiceLineItemInserts.length,
-    }
-  )
-
   // Update invoice with accurate subtotal and tax amounts from fee calculation
   // This ensures email templates display correct totals including discounts
   await updateInvoice(
@@ -692,14 +584,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     transaction
   )
 
-  console.log(
-    '[executeBillingRun] Step 11: Updated invoice with fee totals'
-  )
-
   if (totalDueAmount <= 0) {
-    console.log(
-      '[executeBillingRun] Step 11a: Zero totalDueAmount - processing as no more due'
-    )
     const processBillingPeriodResult =
       await processNoMoreDueForBillingPeriod(
         {
@@ -723,8 +608,6 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     }
   }
 
-  console.log('[executeBillingRun] Step 12: Validating Stripe IDs')
-
   const stripeCustomerId = customer.stripeCustomerId
   const stripePaymentMethodId = paymentMethod.stripePaymentMethodId
   if (!stripeCustomerId) {
@@ -739,15 +622,6 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
         `Payment Method: ${paymentMethod.id}; Billing Period: ${billingPeriod.id}`
     )
   }
-
-  console.log(
-    '[executeBillingRun] Step 13: Creating payment record',
-    {
-      amount: totalDueAmount,
-      stripeCustomerId,
-      stripePaymentMethodId,
-    }
-  )
 
   const paymentInsert: Payment.Insert = {
     amount: totalDueAmount,
@@ -782,10 +656,6 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
 
   const payment = await insertPayment(paymentInsert, transaction)
 
-  console.log('[executeBillingRun] Step 14: Created payment record', {
-    paymentId: payment.id,
-  })
-
   /**
    * Eagerly update the billing run status to AwaitingPaymentConfirmation
    * to ensure that the billing run is in the correct state.
@@ -796,13 +666,6 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       status: BillingRunStatus.AwaitingPaymentConfirmation,
     },
     transaction
-  )
-
-  console.log(
-    '[executeBillingRun] Step 15: Updated billing run to AwaitingPaymentConfirmation'
-  )
-  console.log(
-    '[executeBillingRun] Calculation and bookkeeping steps complete'
   )
 
   return {
@@ -866,34 +729,18 @@ export const isFirstPayment = async (
 export const executeBillingRun = async (
   billingRunId: string,
   adjustmentParams?: {
-    newSubscriptionItems: SubscriptionItem.Record[]
+    newSubscriptionItems: (
+      | SubscriptionItem.Insert
+      | SubscriptionItem.Record
+    )[]
     adjustmentDate: Date | number
   }
 ) => {
-  console.log('[executeBillingRun] Starting', {
-    billingRunId,
-    hasAdjustmentParams: !!adjustmentParams,
-    adjustmentItemsCount:
-      adjustmentParams?.newSubscriptionItems?.length,
-  })
-
   const billingRun = await adminTransaction(({ transaction }) => {
     return selectBillingRunById(billingRunId, transaction)
   })
 
-  console.log('[executeBillingRun] Fetched billing run', {
-    billingRunId: billingRun.id,
-    status: billingRun.status,
-    isAdjustment: billingRun.isAdjustment,
-  })
-
   if (billingRun.status !== BillingRunStatus.Scheduled) {
-    console.log(
-      '[executeBillingRun] Billing run not scheduled, skipping',
-      {
-        status: billingRun.status,
-      }
-    )
     return
   }
   try {
@@ -902,10 +749,6 @@ export const executeBillingRun = async (
         `executeBillingRun: Adjustment billing run ${billingRunId} requires adjustmentParams`
       )
     }
-
-    console.log(
-      '[executeBillingRun] Starting comprehensive transaction'
-    )
 
     const {
       invoice,
@@ -922,24 +765,11 @@ export const executeBillingRun = async (
     } =
       await comprehensiveAdminTransaction<ExecuteBillingRunStepsResult>(
         async ({ transaction }) => {
-          console.log(
-            '[executeBillingRun] Inside transaction - calling calculation and bookkeeping'
-          )
-
           const resultFromSteps =
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
               transaction
             )
-
-          console.log(
-            '[executeBillingRun] Calculation and bookkeeping complete',
-            {
-              totalDueAmount: resultFromSteps.totalDueAmount,
-              totalAmountPaid: resultFromSteps.totalAmountPaid,
-              hasPayment: !!resultFromSteps.payment,
-            }
-          )
 
           const subscriptionItems =
             await selectCurrentlyActiveSubscriptionItems(
@@ -949,13 +779,6 @@ export const executeBillingRun = async (
               new Date(),
               transaction
             )
-
-          console.log(
-            '[executeBillingRun] Fetched subscription items',
-            {
-              count: subscriptionItems.length,
-            }
-          )
 
           const subscriptionItemFeatures: SubscriptionItemFeature.Record[] =
             await selectSubscriptionItemFeatures(
@@ -986,19 +809,7 @@ export const executeBillingRun = async (
               resultFromSteps.totalAmountPaid
           )
 
-          console.log(
-            '[executeBillingRun] Calculated amount to charge',
-            {
-              totalDueAmount: resultFromSteps.totalDueAmount,
-              totalAmountPaid: resultFromSteps.totalAmountPaid,
-              amountToCharge,
-            }
-          )
-
           if (amountToCharge <= 0) {
-            console.log(
-              '[executeBillingRun] Zero amount to charge - marking as succeeded'
-            )
             await updateInvoice(
               {
                 ...resultFromSteps.invoice,
@@ -1024,14 +835,6 @@ export const executeBillingRun = async (
           // Create payment intent within the transaction
           let paymentIntent = null
           if (resultFromSteps.payment) {
-            console.log(
-              '[executeBillingRun] Creating payment intent',
-              {
-                paymentId: resultFromSteps.payment.id,
-                amount: amountToCharge,
-              }
-            )
-
             if (!resultFromSteps.customer.stripeCustomerId) {
               throw new Error(
                 `Cannot run billing for a billing period with a customer that does not have a stripe customer id.` +
@@ -1060,14 +863,6 @@ export const executeBillingRun = async (
               organization: resultFromSteps.organization,
               livemode: billingRun.livemode,
             })
-
-            console.log(
-              '[executeBillingRun] Payment intent created',
-              {
-                paymentIntentId: paymentIntent.id,
-                status: paymentIntent.status,
-              }
-            )
 
             // Update payment record with payment intent ID
             await updatePayment(
@@ -1104,17 +899,7 @@ export const executeBillingRun = async (
               },
               transaction
             )
-
-            console.log(
-              '[executeBillingRun] Updated records with payment intent'
-            )
-          } else {
-            console.log(
-              '[executeBillingRun] No payment record - skipping payment intent creation'
-            )
           }
-
-          console.log('[executeBillingRun] Transaction complete')
 
           return {
             result: {
@@ -1130,14 +915,6 @@ export const executeBillingRun = async (
         }
       )
 
-    console.log(
-      '[executeBillingRun] Comprehensive transaction finished',
-      {
-        invoiceId: invoice.id,
-        hasPaymentIntent: !!paymentIntent,
-      }
-    )
-
     // Trigger PDF generation as a non-failing side effect
     if (!core.IS_TEST) {
       await generateInvoicePdfTask.trigger({
@@ -1147,15 +924,8 @@ export const executeBillingRun = async (
 
     // Only proceed with payment confirmation if there is a payment intent
     if (!paymentIntent) {
-      console.log(
-        '[executeBillingRun] No payment intent - returning early'
-      )
       return
     }
-
-    console.log('[executeBillingRun] Confirming payment intent', {
-      paymentIntentId: paymentIntent.id,
-    })
 
     // Confirm payment intent (outside transaction)
     const confirmationResult =
@@ -1163,11 +933,6 @@ export const executeBillingRun = async (
         paymentIntent.id,
         billingRun.livemode
       )
-
-    console.log('[executeBillingRun] Payment intent confirmed', {
-      paymentIntentId: paymentIntent.id,
-      status: confirmationResult.status,
-    })
 
     // Update payment record with charge ID
     if (payment) {
@@ -1188,9 +953,6 @@ export const executeBillingRun = async (
         {
           livemode: billingRun.livemode,
         }
-      )
-      console.log(
-        '[executeBillingRun] Updated payment with charge ID'
       )
     }
 

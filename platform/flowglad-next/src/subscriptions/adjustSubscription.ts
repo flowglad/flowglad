@@ -315,6 +315,22 @@ export interface AdjustSubscriptionResult {
    * An upgrade means the new plan total is greater than the old plan total.
    */
   isUpgrade: boolean
+  /**
+   * Trigger.dev realtime information for subscribing to the billing run status.
+   * Only present when an immediate adjustment with proration triggers a billing run.
+   */
+  billingRunRealtime?: {
+    /**
+     * The trigger.dev run ID for the billing run task.
+     * Use this with useRealtimeRun to subscribe to updates.
+     */
+    runId: string
+    /**
+     * Public access token for authenticating the realtime subscription.
+     * This token is scoped to only read this specific run.
+     */
+    publicAccessToken: string
+  }
 }
 
 /**
@@ -598,6 +614,9 @@ export const adjustSubscription = async (
   // Create proration adjustments when there's a net charge AND proration is enabled
   const prorationAdjustments: BillingPeriodItem.Insert[] = []
 
+  // Track billing run realtime info for immediate adjustments with proration
+  let billingRunRealtime: AdjustSubscriptionResult['billingRunRealtime']
+
   if (netChargeAmount > 0 && shouldProrate) {
     // Format description similar to createSubscription pattern: single-line with key info
     const prorationPercentage = (split.afterPercentage * 100).toFixed(
@@ -664,14 +683,20 @@ export const adjustSubscription = async (
         livemode: subscription.livemode,
       })
     )
-    await attemptBillingRunTask.trigger({
+    const billingRunHandle = await attemptBillingRunTask.trigger({
       billingRun,
       adjustmentParams: {
-        newSubscriptionItems:
-          preparedItemsForBillingRun as SubscriptionItem.Record[],
+        newSubscriptionItems: preparedItemsForBillingRun,
         adjustmentDate,
       },
     })
+    // Store realtime info for the response so clients can subscribe to billing run completion
+    billingRunRealtime = billingRunHandle.publicAccessToken
+      ? {
+          runId: billingRunHandle.id,
+          publicAccessToken: billingRunHandle.publicAccessToken,
+        }
+      : undefined
   } else {
     // Either:
     // - Zero-amount adjustment (downgrade with no refund)
@@ -779,5 +804,6 @@ export const adjustSubscription = async (
     subscriptionItems: currentSubscriptionItems,
     resolvedTiming,
     isUpgrade,
+    billingRunRealtime,
   }
 }
