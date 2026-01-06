@@ -1,3 +1,4 @@
+import { SpanKind } from '@opentelemetry/api'
 import { kebabCase } from 'change-case'
 import {
   type CreateEmailOptions,
@@ -27,23 +28,52 @@ import { OrganizationPayoutsEnabledNotificationEmail } from '@/email-templates/o
 import { OrganizationOnboardingCompletedNotificationEmail } from '@/email-templates/organization/payout-notification'
 import SendPurchaseAccessSessionTokenEmail from '@/email-templates/send-purchase-access-session-token'
 import type { CurrencyCode } from '@/types'
+import { withSpan } from '@/utils/tracing'
 import core from './core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from './stripe'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))
 
+const withResendSpan = async <T>(
+  operation: string,
+  attributes: Record<string, string | number | boolean | undefined>,
+  fn: () => Promise<T>
+): Promise<T> => {
+  return withSpan(
+    {
+      spanName: `resend.${operation}`,
+      tracerName: 'resend',
+      kind: SpanKind.CLIENT,
+      attributes: {
+        'resend.operation': operation,
+        ...attributes,
+      },
+    },
+    fn
+  )
+}
+
 export const safeSend = (
   email: CreateEmailOptions,
-  options?: CreateEmailRequestOptions
+  options?: CreateEmailRequestOptions & { templateName?: string }
 ) => {
   if (core.IS_TEST) {
     return
   }
-  return resend().emails.send(
+  const recipientCount = Array.isArray(email.to) ? email.to.length : 1
+  return withResendSpan(
+    'emails.send',
     {
-      ...email,
+      'resend.template': options?.templateName,
+      'resend.recipient_count': recipientCount,
     },
-    options
+    () =>
+      resend().emails.send(
+        {
+          ...email,
+        },
+        options
+      )
   )
 }
 
@@ -140,60 +170,66 @@ export const sendReceiptEmail = async (params: {
     ? `Order Receipt #${invoice.invoiceNumber} from ${FLOWGLAD_LEGAL_ENTITY.name} for ${params.organizationName}`
     : `${params.organizationName} Order Receipt: #${invoice.invoiceNumber}`
 
-  return safeSend({
-    from: fromAddress,
-    bcc: getBccForLivemode(invoice.livemode),
-    to: params.to.map(safeTo),
-    replyTo: params.replyTo ?? undefined,
-    subject,
-    attachments,
-    react: await OrderReceiptEmail({
-      invoiceNumber: invoice.invoiceNumber,
-      orderDate: core.formatDate(invoice.createdAt!),
-      invoice: {
-        subtotal: invoice.subtotal,
-        taxAmount: invoice.taxAmount,
-        currency: invoice.currency,
-      },
-      lineItems: params.invoiceLineItems.map((item) => ({
-        name: item.description ?? '',
-        price: item.price,
-        quantity: item.quantity,
-      })),
-      organizationName: params.organizationName,
-      organizationLogoUrl: params.organizationLogoUrl,
-      organizationId: invoice.organizationId,
-      customerId: params.customerId,
-      discountInfo: params.discountInfo,
-      livemode: invoice.livemode,
-      isMoR,
-    }),
-  })
+  return safeSend(
+    {
+      from: fromAddress,
+      bcc: getBccForLivemode(invoice.livemode),
+      to: params.to.map(safeTo),
+      replyTo: params.replyTo ?? undefined,
+      subject,
+      attachments,
+      react: await OrderReceiptEmail({
+        invoiceNumber: invoice.invoiceNumber,
+        orderDate: core.formatDate(invoice.createdAt!),
+        invoice: {
+          subtotal: invoice.subtotal,
+          taxAmount: invoice.taxAmount,
+          currency: invoice.currency,
+        },
+        lineItems: params.invoiceLineItems.map((item) => ({
+          name: item.description ?? '',
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        organizationName: params.organizationName,
+        organizationLogoUrl: params.organizationLogoUrl,
+        organizationId: invoice.organizationId,
+        customerId: params.customerId,
+        discountInfo: params.discountInfo,
+        livemode: invoice.livemode,
+        isMoR,
+      }),
+    },
+    { templateName: 'order-receipt' }
+  )
 }
 
 export const sendOrganizationPaymentNotificationEmail = async (
   params: OrganizationPaymentNotificationEmailProps & { to: string[] }
 ) => {
-  return safeSend({
-    from: `Flowglad <notifications@flowglad.com>`,
-    to: params.to.map(safeTo),
-    bcc: getBccForLivemode(params.livemode),
-    subject: formatEmailSubject(
-      `You just made ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
-        params.currency,
-        params.amount
-      )} from ${params.organizationName}!`,
-      params.livemode
-    ),
-    /**
-     * NOTE: await needed to prevent
-     * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
-     * @see
-     * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
-     * https://github.com/resend/react-email/issues/868
-     */
-    react: await OrganizationPaymentNotificationEmail(params),
-  })
+  return safeSend(
+    {
+      from: `Flowglad <notifications@flowglad.com>`,
+      to: params.to.map(safeTo),
+      bcc: getBccForLivemode(params.livemode),
+      subject: formatEmailSubject(
+        `You just made ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
+          params.currency,
+          params.amount
+        )} from ${params.organizationName}!`,
+        params.livemode
+      ),
+      /**
+       * NOTE: await needed to prevent
+       * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
+       * @see
+       * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
+       * https://github.com/resend/react-email/issues/868
+       */
+      react: await OrganizationPaymentNotificationEmail(params),
+    },
+    { templateName: 'organization-payment-notification' }
+  )
 }
 
 export const sendPurchaseAccessSessionTokenEmail = async (params: {
@@ -202,21 +238,24 @@ export const sendPurchaseAccessSessionTokenEmail = async (params: {
   replyTo?: string | null
   livemode: boolean
 }) => {
-  return safeSend({
-    from: 'notifications@flowglad.com',
-    to: params.to.map(safeTo),
-    bcc: getBccForLivemode(params.livemode),
-    replyTo: params.replyTo ?? undefined,
-    subject: formatEmailSubject('Your Order Link', params.livemode),
-    /**
-     * NOTE: await needed to prevent
-     * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
-     * @see
-     * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
-     * https://github.com/resend/react-email/issues/868
-     */
-    react: await SendPurchaseAccessSessionTokenEmail(params),
-  })
+  return safeSend(
+    {
+      from: 'notifications@flowglad.com',
+      to: params.to.map(safeTo),
+      bcc: getBccForLivemode(params.livemode),
+      replyTo: params.replyTo ?? undefined,
+      subject: formatEmailSubject('Your Order Link', params.livemode),
+      /**
+       * NOTE: await needed to prevent
+       * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
+       * @see
+       * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
+       * https://github.com/resend/react-email/issues/868
+       */
+      react: await SendPurchaseAccessSessionTokenEmail(params),
+    },
+    { templateName: 'purchase-access-session-token' }
+  )
 }
 
 export const sendPaymentFailedEmail = async (params: {
@@ -247,31 +286,34 @@ export const sendPaymentFailedEmail = async (params: {
   customerPortalUrl?: string
   livemode: boolean
 }) => {
-  return safeSend({
-    from: 'notifications@flowglad.com',
-    to: params.to.map(safeTo),
-    bcc: getBccForLivemode(params.livemode),
-    replyTo: params.replyTo ?? undefined,
-    subject: formatEmailSubject(
-      'Payment Unsuccessful',
-      params.livemode
-    ),
-    react: await PaymentFailedEmail({
-      invoiceNumber: params.invoiceNumber,
-      orderDate: new Date(params.orderDate),
-      invoice: params.invoice,
-      organizationName: params.organizationName,
-      organizationLogoUrl: params.organizationLogoUrl,
-      lineItems: params.lineItems,
-      retryDate: params.retryDate
-        ? new Date(params.retryDate)
-        : undefined,
-      discountInfo: params.discountInfo,
-      failureReason: params.failureReason,
-      customerPortalUrl: params.customerPortalUrl,
-      livemode: params.livemode,
-    }),
-  })
+  return safeSend(
+    {
+      from: 'notifications@flowglad.com',
+      to: params.to.map(safeTo),
+      bcc: getBccForLivemode(params.livemode),
+      replyTo: params.replyTo ?? undefined,
+      subject: formatEmailSubject(
+        'Payment Unsuccessful',
+        params.livemode
+      ),
+      react: await PaymentFailedEmail({
+        invoiceNumber: params.invoiceNumber,
+        orderDate: new Date(params.orderDate),
+        invoice: params.invoice,
+        organizationName: params.organizationName,
+        organizationLogoUrl: params.organizationLogoUrl,
+        lineItems: params.lineItems,
+        retryDate: params.retryDate
+          ? new Date(params.retryDate)
+          : undefined,
+        discountInfo: params.discountInfo,
+        failureReason: params.failureReason,
+        customerPortalUrl: params.customerPortalUrl,
+        livemode: params.livemode,
+      }),
+    },
+    { templateName: 'payment-failed' }
+  )
 }
 
 export const sendAwaitingPaymentConfirmationEmail = async ({
@@ -293,30 +335,33 @@ export const sendAwaitingPaymentConfirmationEmail = async ({
   currency: CurrencyCode
   livemode: boolean
 }) => {
-  return safeSend({
-    from: 'notifications@flowglad.com',
-    to: to.map(safeTo),
-    subject: formatEmailSubject(
-      'Awaiting Payment Confirmation',
-      livemode
-    ),
-    /**
-     * NOTE: await needed to prevent
-     * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
-     * @see
-     * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
-     * https://github.com/resend/react-email/issues/868
-     */
-    react: await OrganizationPaymentConfirmationEmail({
-      organizationName,
-      amount,
-      invoiceNumber,
-      customerId,
-      currency,
-      customerName: customerName,
-      livemode,
-    }),
-  })
+  return safeSend(
+    {
+      from: 'notifications@flowglad.com',
+      to: to.map(safeTo),
+      subject: formatEmailSubject(
+        'Awaiting Payment Confirmation',
+        livemode
+      ),
+      /**
+       * NOTE: await needed to prevent
+       * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
+       * @see
+       * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
+       * https://github.com/resend/react-email/issues/868
+       */
+      react: await OrganizationPaymentConfirmationEmail({
+        organizationName,
+        amount,
+        invoiceNumber,
+        customerId,
+        currency,
+        customerName: customerName,
+        livemode,
+      }),
+    },
+    { templateName: 'awaiting-payment-confirmation' }
+  )
 }
 
 export const sendOrganizationInvitationEmail = async ({
@@ -328,15 +373,18 @@ export const sendOrganizationInvitationEmail = async ({
   organizationName: string
   inviterName?: string
 }) => {
-  return safeSend({
-    from: 'notifications@flowglad.com',
-    to: to.map(safeTo),
-    subject: `You've been invited to join ${organizationName}`,
-    react: await OrganizationInvitationEmail({
-      organizationName,
-      inviterName,
-    }),
-  })
+  return safeSend(
+    {
+      from: 'notifications@flowglad.com',
+      to: to.map(safeTo),
+      subject: `You've been invited to join ${organizationName}`,
+      react: await OrganizationInvitationEmail({
+        organizationName,
+        inviterName,
+      }),
+    },
+    { templateName: 'organization-invitation' }
+  )
 }
 
 export const sendOrganizationPaymentFailedNotificationEmail = async (
@@ -344,19 +392,22 @@ export const sendOrganizationPaymentFailedNotificationEmail = async (
     to: string[]
   }
 ) => {
-  return safeSend({
-    from: `Flowglad <notifications@flowglad.com>`,
-    to: params.to.map(safeTo),
-    bcc: getBccForLivemode(params.livemode),
-    subject: formatEmailSubject(
-      `${params.organizationName} payment failed from ${params.customerName}`,
-      params.livemode
-    ),
-    /**
-     * NOTE: await needed to prevent React 18 renderToPipeableStream error when used with Resend
-     */
-    react: await OrganizationPaymentFailedNotificationEmail(params),
-  })
+  return safeSend(
+    {
+      from: `Flowglad <notifications@flowglad.com>`,
+      to: params.to.map(safeTo),
+      bcc: getBccForLivemode(params.livemode),
+      subject: formatEmailSubject(
+        `${params.organizationName} payment failed from ${params.customerName}`,
+        params.livemode
+      ),
+      /**
+       * NOTE: await needed to prevent React 18 renderToPipeableStream error when used with Resend
+       */
+      react: await OrganizationPaymentFailedNotificationEmail(params),
+    },
+    { templateName: 'organization-payment-failed-notification' }
+  )
 }
 
 export const sendForgotPasswordEmail = async ({
@@ -366,15 +417,18 @@ export const sendForgotPasswordEmail = async ({
   to: string[]
   url: string
 }) => {
-  return safeSend({
-    from: 'notifications@flowglad.com',
-    to: to.map(safeTo),
-    subject: 'Reset your password',
-    react: await ForgotPasswordEmail({
-      user: to[0],
-      url,
-    }),
-  })
+  return safeSend(
+    {
+      from: 'notifications@flowglad.com',
+      to: to.map(safeTo),
+      subject: 'Reset your password',
+      react: await ForgotPasswordEmail({
+        user: to[0],
+        url,
+      }),
+    },
+    { templateName: 'forgot-password' }
+  )
 }
 
 export const sendCustomerBillingPortalMagicLink = async ({
@@ -390,21 +444,24 @@ export const sendCustomerBillingPortalMagicLink = async ({
   organizationName: string
   livemode: boolean
 }) => {
-  return safeSend({
-    from: 'notifications@flowglad.com',
-    to: to.map(safeTo),
-    subject: formatEmailSubject(
-      `Sign in to your ${organizationName} billing portal`,
-      livemode
-    ),
-    react: await CustomerBillingPortalMagicLinkEmail({
-      email: to[0],
-      url,
-      customerName,
-      organizationName,
-      livemode,
-    }),
-  })
+  return safeSend(
+    {
+      from: 'notifications@flowglad.com',
+      to: to.map(safeTo),
+      subject: formatEmailSubject(
+        `Sign in to your ${organizationName} billing portal`,
+        livemode
+      ),
+      react: await CustomerBillingPortalMagicLinkEmail({
+        email: to[0],
+        url,
+        customerName,
+        organizationName,
+        livemode,
+      }),
+    },
+    { templateName: 'customer-billing-portal-magic-link' }
+  )
 }
 
 export const sendCustomerBillingPortalOTP = async ({
@@ -420,21 +477,24 @@ export const sendCustomerBillingPortalOTP = async ({
   organizationName: string
   livemode: boolean
 }) => {
-  return safeSend({
-    from: 'notifications@flowglad.com',
-    to: to.map(safeTo),
-    subject: formatEmailSubject(
-      `${otp} is your ${organizationName} billing portal code`,
-      livemode
-    ),
-    react: await CustomerBillingPortalOTPEmail({
-      email: to[0],
-      otp,
-      customerName,
-      organizationName,
-      livemode,
-    }),
-  })
+  return safeSend(
+    {
+      from: 'notifications@flowglad.com',
+      to: to.map(safeTo),
+      subject: formatEmailSubject(
+        `${otp} is your ${organizationName} billing portal code`,
+        livemode
+      ),
+      react: await CustomerBillingPortalOTPEmail({
+        email: to[0],
+        otp,
+        customerName,
+        organizationName,
+        livemode,
+      }),
+    },
+    { templateName: 'customer-billing-portal-otp' }
+  )
 }
 
 export const sendOrganizationOnboardingCompletedNotificationEmail =
@@ -445,15 +505,20 @@ export const sendOrganizationOnboardingCompletedNotificationEmail =
     to: string[]
     organizationName: string
   }) => {
-    return safeSend({
-      from: 'Flowglad <notifications@flowglad.com>',
-      to: to.map(safeTo),
-      bcc: getBccForLivemode(true),
-      subject: `Live payments pending review for ${organizationName}`,
-      react: await OrganizationOnboardingCompletedNotificationEmail({
-        organizationName,
-      }),
-    })
+    return safeSend(
+      {
+        from: 'Flowglad <notifications@flowglad.com>',
+        to: to.map(safeTo),
+        bcc: getBccForLivemode(true),
+        subject: `Live payments pending review for ${organizationName}`,
+        react: await OrganizationOnboardingCompletedNotificationEmail(
+          {
+            organizationName,
+          }
+        ),
+      },
+      { templateName: 'organization-onboarding-completed' }
+    )
   }
 
 export const sendOrganizationPayoutsEnabledNotificationEmail =
@@ -464,22 +529,25 @@ export const sendOrganizationPayoutsEnabledNotificationEmail =
     to: string[]
     organizationName: string
   }) => {
-    return safeSend({
-      from: 'Flowglad <notifications@flowglad.com>',
-      to: to.map(safeTo),
-      bcc: getBccForLivemode(true),
-      subject: `Payouts Enabled for ${organizationName}`,
-      /**
-       * NOTE: await needed to prevent
-       * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
-       * @see
-       * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
-       * https://github.com/resend/react-email/issues/868
-       */
-      react: await OrganizationPayoutsEnabledNotificationEmail({
-        organizationName,
-      }),
-    })
+    return safeSend(
+      {
+        from: 'Flowglad <notifications@flowglad.com>',
+        to: to.map(safeTo),
+        bcc: getBccForLivemode(true),
+        subject: `Payouts Enabled for ${organizationName}`,
+        /**
+         * NOTE: await needed to prevent
+         * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
+         * @see
+         * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
+         * https://github.com/resend/react-email/issues/868
+         */
+        react: await OrganizationPayoutsEnabledNotificationEmail({
+          organizationName,
+        }),
+      },
+      { templateName: 'organization-payouts-enabled' }
+    )
   }
 
 export const sendCustomersCsvExportReadyEmail = async ({
@@ -495,25 +563,28 @@ export const sendCustomersCsvExportReadyEmail = async ({
   filename: string
   livemode: boolean
 }) => {
-  return safeSend({
-    from: 'Flowglad <notifications@flowglad.com>',
-    to: to.map(safeTo),
-    subject: formatEmailSubject(
-      'Your customers CSV export is ready',
-      livemode
-    ),
-    react: await CustomersCsvExportReadyEmail({
-      organizationName,
-      livemode,
-    }),
-    attachments: [
-      {
-        filename,
-        content: Buffer.from(csvContent, 'utf-8'),
-        contentType: 'text/csv',
-      },
-    ],
-  })
+  return safeSend(
+    {
+      from: 'Flowglad <notifications@flowglad.com>',
+      to: to.map(safeTo),
+      subject: formatEmailSubject(
+        'Your customers CSV export is ready',
+        livemode
+      ),
+      react: await CustomersCsvExportReadyEmail({
+        organizationName,
+        livemode,
+      }),
+      attachments: [
+        {
+          filename,
+          content: Buffer.from(csvContent, 'utf-8'),
+          contentType: 'text/csv',
+        },
+      ],
+    },
+    { templateName: 'customers-csv-export-ready' }
+  )
 }
 
 /**
