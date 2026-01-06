@@ -1,4 +1,8 @@
 import { log } from '@logtail/next'
+import {
+  ParentBasedSampler,
+  TraceIdRatioBasedSampler,
+} from '@opentelemetry/sdk-trace-base'
 import { registerOTel } from '@vercel/otel'
 
 export async function register() {
@@ -20,10 +24,29 @@ export async function register() {
         process.env.FLOWGLAD_OTEL_HEADERS
     }
 
+    // Parse sample rate (default to 1.0 = 100% sampling)
+    const sampleRate = parseFloat(
+      process.env.FLOWGLAD_TRACE_SAMPLE_RATE || '1.0'
+    )
+    const validSampleRate = Math.max(
+      0,
+      Math.min(1, isNaN(sampleRate) ? 1 : sampleRate)
+    )
+
+    // Use parent-based sampling so child spans inherit parent's sampling decision
+    // Only create custom sampler if rate < 1, otherwise use default (always sample)
+    const sampler =
+      validSampleRate < 1
+        ? new ParentBasedSampler({
+            root: new TraceIdRatioBasedSampler(validSampleRate),
+          })
+        : undefined
+
     // Register OpenTelemetry with our custom service name
     registerOTel({
       serviceName:
         process.env.FLOWGLAD_OTEL_SERVICE_NAME || 'flowglad-api',
+      traceSampler: sampler,
     })
   } finally {
     // Restore original variables for trigger.dev to use
