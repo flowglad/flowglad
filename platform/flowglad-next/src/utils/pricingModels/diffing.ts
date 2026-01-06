@@ -12,8 +12,12 @@ import {
   usageCreditGrantFeatureClientUpdateSchema,
 } from '@/db/schema/features'
 import {
+  priceImmutableFields,
+  singlePaymentPriceClientInsertSchema,
   singlePaymentPriceClientUpdateSchema,
+  subscriptionPriceClientInsertSchema,
   subscriptionPriceClientUpdateSchema,
+  usagePriceClientInsertSchema,
   usagePriceClientUpdateSchema,
 } from '@/db/schema/prices'
 import { productsClientUpdateSchema } from '@/db/schema/products'
@@ -573,6 +577,45 @@ export const validatePriceChange = (
     ).usageMeterSlug
     delete (transformedUpdate as Record<string, unknown>)
       .usageMeterSlug
+  }
+
+  // Check if any immutable/create-only fields are being changed.
+  // If so, skip strict validation because this price will be replaced entirely
+  // (create new price + deactivate old price), not updated.
+  const immutableFields = new Set(priceImmutableFields)
+  const changedFields = Object.keys(transformedUpdate)
+  const hasImmutableFieldChanges = changedFields.some((field) =>
+    immutableFields.has(field)
+  )
+
+  // If immutable fields are changing, this will be a price replacement.
+  // We still need to validate the proposed price is well-formed using the insert schema.
+  if (hasImmutableFieldChanges) {
+    let insertResult: { success: boolean; error?: z.ZodError }
+    switch (proposed.type) {
+      case PriceType.Subscription:
+        insertResult = subscriptionPriceClientInsertSchema
+          .omit({ productId: true })
+          .safeParse(proposed)
+        break
+      case PriceType.SinglePayment:
+        insertResult = singlePaymentPriceClientInsertSchema
+          .omit({ productId: true })
+          .safeParse(proposed)
+        break
+      case PriceType.Usage:
+        insertResult = usagePriceClientInsertSchema
+          .omit({ productId: true, usageMeterId: true })
+          .safeParse(proposed)
+        break
+    }
+
+    if (!insertResult.success) {
+      throw new Error(
+        `Invalid price for replacement: ${insertResult.error?.message}`
+      )
+    }
+    return
   }
 
   // Select the appropriate schema based on price type and try to parse with strict mode

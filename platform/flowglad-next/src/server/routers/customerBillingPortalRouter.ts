@@ -18,6 +18,7 @@ import { purchaseClientSelectSchema } from '@/db/schema/purchases'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
 import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
 import {
+  selectCustomerById,
   selectCustomers,
   setUserIdForCustomerRecords,
 } from '@/db/tableMethods/customerMethods'
@@ -48,9 +49,12 @@ import {
 } from '@/utils/bookkeeping/customerBilling'
 import core from '@/utils/core'
 import {
+  getCustomerBillingPortalEmail,
   getCustomerBillingPortalOrganizationId,
+  setCustomerBillingPortalEmail,
   setCustomerBillingPortalOrganizationId,
 } from '@/utils/customerBillingPortalState'
+import { maskEmail } from '@/utils/email'
 import {
   customerProtectedProcedure,
   protectedProcedure,
@@ -669,6 +673,196 @@ const createAddPaymentMethodCheckoutSessionProcedure =
       )
     })
 
+// sendOTPToCustomer procedure
+const sendOTPToCustomerProcedure = publicProcedure
+  .input(
+    z.object({
+      customerId: z.string().describe('The customer ID'),
+      organizationId: z.string().describe('The organization ID'),
+    })
+  )
+  .output(
+    z.object({
+      success: z.boolean(),
+      email: z
+        .string()
+        .optional()
+        .describe('Masked email for display'),
+    })
+  )
+  .mutation(async ({ input }) => {
+    const { customerId, organizationId } = input
+    const startTime = Date.now()
+
+    // Helper to ensure minimum response time to prevent timing attacks
+    const ensureMinResponseTime = async () => {
+      const elapsed = Date.now() - startTime
+      const minDelay = 500 // ms
+      if (elapsed < minDelay) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, minDelay - elapsed)
+        )
+      }
+    }
+
+    try {
+      // 1. Fetch customer and organization, verify they match in a single transaction
+      const { customer, organization } = await adminTransaction(
+        async ({ transaction }) => {
+          const customer = await selectCustomerById(
+            customerId,
+            transaction
+          )
+
+          if (!customer) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: 'Customer not found',
+            })
+          }
+
+          // Verify customer belongs to organization
+          if (customer.organizationId !== organizationId) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: 'Customer does not belong to organization',
+            })
+          }
+
+          if (!customer.email) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Customer email is required',
+            })
+          }
+
+          // Fetch and verify organization exists
+          const organization = await selectOrganizationById(
+            organizationId,
+            transaction
+          )
+
+          if (!organization) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: 'Organization not found',
+            })
+          }
+
+          return { customer, organization }
+        }
+      )
+
+      // 2. Set organization ID for billing portal session
+      await setCustomerBillingPortalOrganizationId(organizationId)
+
+      // 3. Create/link user account if needed
+      await adminTransaction(async ({ transaction }) => {
+        const email = customer.email!
+
+        // Find livemode customers by email and organizationId
+        const customers = await selectCustomers(
+          {
+            email,
+            organizationId,
+            livemode: true,
+          },
+          transaction
+        )
+
+        if (customers.length > 0) {
+          // Customer found - proceed with user account handling
+          const [user] = await selectUsers({ email }, transaction)
+
+          let userId: string
+
+          if (!user || !user.betterAuthId) {
+            // Create new user account for the customer
+            const result = await auth.api.createUser({
+              body: {
+                email,
+                password: core.nanoid(),
+                name: customers
+                  .map((customer) => customer.name)
+                  .join(' '),
+              },
+            })
+            const safelyCreatedUser =
+              await betterAuthUserToApplicationUser(result.user)
+            userId = safelyCreatedUser.id
+
+            // Link customers to the new user
+            await setUserIdForCustomerRecords(
+              { customerEmail: email, userId },
+              transaction
+            )
+          } else {
+            userId = user.id
+
+            // If some customers have no user id, set the user id for the customers
+            if (
+              customers.some((customer) => customer.userId === null)
+            ) {
+              await setUserIdForCustomerRecords(
+                { customerEmail: email, userId },
+                transaction
+              )
+            }
+          }
+
+          // Get better auth user for email verification status
+          if (user?.betterAuthId) {
+            await selectBetterAuthUserById(
+              user.betterAuthId,
+              transaction
+            )
+          }
+        }
+        // Always return success (even if no customer found) for security
+        return { success: true }
+      })
+
+      // 4. Store email in secure cookie for server-side OTP verification
+      // This prevents exposing actual email to client
+      await setCustomerBillingPortalEmail(customer.email)
+
+      // 5. Send OTP using Better Auth
+      await auth.api.sendVerificationOTP({
+        body: {
+          email: customer.email,
+          type: 'sign-in',
+        },
+        headers: await headers(),
+      })
+
+      // 6. Return success with masked email only (actual email stored server-side)
+      await ensureMinResponseTime()
+      return {
+        success: true,
+        email: maskEmail(customer.email),
+      }
+    } catch (error) {
+      console.error('sendOTPToCustomerProcedure error:', error)
+      if (!core.IS_PROD) {
+        throw error
+      }
+      // Only throw NOT_FOUND for organization to prevent enumeration
+      // (aligns with requestMagicLinkProcedure error handling pattern)
+      if (
+        error instanceof TRPCError &&
+        error.code === 'NOT_FOUND' &&
+        error.message === 'Organization not found'
+      ) {
+        await ensureMinResponseTime()
+        throw error
+      }
+      // For any other errors, quietly return success for security
+      // Ensure minimum response time to prevent timing attacks
+      await ensureMinResponseTime()
+      return { success: true }
+    }
+  })
+
 export const customerBillingPortalRouter = router({
   getBilling: getBillingProcedure,
   cancelSubscription: cancelSubscriptionProcedure,
@@ -683,4 +877,5 @@ export const customerBillingPortalRouter = router({
     createAddPaymentMethodCheckoutSessionProcedure,
   getCustomersForUserAndOrganization:
     getCustomersForUserAndOrganizationProcedure,
+  sendOTPToCustomer: sendOTPToCustomerProcedure,
 })

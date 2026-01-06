@@ -1,3 +1,4 @@
+import type Stripe from 'stripe'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupCustomer,
@@ -18,6 +19,37 @@ import {
 } from './paymentHelpers'
 import * as stripeUtils from './stripe'
 
+const makeStripeRefundResponse = ({
+  amount,
+  created,
+  currency = 'usd',
+}: {
+  amount: number
+  created: number
+  currency?: string
+}): Stripe.Response<Stripe.Refund> => {
+  return {
+    id: `re_${nanoid()}`,
+    object: 'refund',
+    amount,
+    balance_transaction: null,
+    charge: null,
+    created,
+    currency,
+    metadata: null,
+    payment_intent: null,
+    reason: null,
+    receipt_number: null,
+    source_transfer_reversal: null,
+    status: 'succeeded',
+    transfer_reversal: null,
+    lastResponse: {
+      headers: {},
+      requestId: `req_${nanoid()}`,
+      statusCode: 200,
+    },
+  }
+}
 // Mock the stripe utils
 vi.mock('./stripe', async () => {
   const actual = await vi.importActual('./stripe')
@@ -211,14 +243,12 @@ describe('refundPaymentTransaction', () => {
       const partialRefundAmount = 3000 // $30.00
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue({
-        id: `re_${nanoid()}`,
-        object: 'refund',
-        amount: partialRefundAmount,
-        created: refundCreatedTimestamp,
-        currency: 'usd',
-        status: 'succeeded',
-      } as any)
+      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+        makeStripeRefundResponse({
+          amount: partialRefundAmount,
+          created: refundCreatedTimestamp,
+        })
+      )
 
       await adminTransaction(async ({ transaction }) => {
         const updatedPayment = await refundPaymentTransaction(
@@ -246,14 +276,12 @@ describe('refundPaymentTransaction', () => {
       const fullRefundAmount = 10000 // $100.00 (full amount)
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue({
-        id: `re_${nanoid()}`,
-        object: 'refund',
-        amount: fullRefundAmount,
-        created: refundCreatedTimestamp,
-        currency: 'usd',
-        status: 'succeeded',
-      } as any)
+      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+        makeStripeRefundResponse({
+          amount: fullRefundAmount,
+          created: refundCreatedTimestamp,
+        })
+      )
 
       await adminTransaction(async ({ transaction }) => {
         const updatedPayment = await refundPaymentTransaction(
@@ -275,14 +303,13 @@ describe('refundPaymentTransaction', () => {
       const stripeRefundAmount = 3000 // Stripe confirms $30.00
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue({
-        id: `re_${nanoid()}`,
-        object: 'refund',
-        amount: stripeRefundAmount, // This is what Stripe actually refunded
-        created: refundCreatedTimestamp,
-        currency: 'usd',
-        status: 'succeeded',
-      } as any)
+      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+        makeStripeRefundResponse({
+          // This is what Stripe actually refunded
+          amount: stripeRefundAmount,
+          created: refundCreatedTimestamp,
+        })
+      )
 
       await adminTransaction(async ({ transaction }) => {
         const updatedPayment = await refundPaymentTransaction(
@@ -299,14 +326,13 @@ describe('refundPaymentTransaction', () => {
     it('should correctly handle edge case where refund equals payment amount', async () => {
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue({
-        id: `re_${nanoid()}`,
-        object: 'refund',
-        amount: payment.amount, // Exact match
-        created: refundCreatedTimestamp,
-        currency: 'usd',
-        status: 'succeeded',
-      } as any)
+      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+        makeStripeRefundResponse({
+          // Exact match
+          amount: payment.amount,
+          created: refundCreatedTimestamp,
+        })
+      )
 
       await adminTransaction(async ({ transaction }) => {
         const updatedPayment = await refundPaymentTransaction(
@@ -315,6 +341,49 @@ describe('refundPaymentTransaction', () => {
         )
 
         // When refund equals payment, it's a full refund
+        expect(updatedPayment.status).toBe(PaymentStatus.Refunded)
+        expect(updatedPayment.refunded).toBe(true)
+        expect(updatedPayment.refundedAmount).toBe(payment.amount)
+      })
+    })
+    it('should accumulate refundedAmount across multiple partial refunds', async () => {
+      const firstRefundCreatedTimestamp = Math.floor(
+        Date.now() / 1000
+      )
+      const secondRefundCreatedTimestamp =
+        firstRefundCreatedTimestamp + 10
+
+      vi.mocked(stripeUtils.refundPayment)
+        .mockResolvedValueOnce(
+          makeStripeRefundResponse({
+            amount: 3000,
+            created: firstRefundCreatedTimestamp,
+          })
+        )
+        .mockResolvedValueOnce(
+          makeStripeRefundResponse({
+            amount: 7000,
+            created: secondRefundCreatedTimestamp,
+          })
+        )
+
+      await adminTransaction(async ({ transaction }) => {
+        const updatedPayment = await refundPaymentTransaction(
+          { id: payment.id, partialAmount: 3000 },
+          transaction
+        )
+
+        expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
+        expect(updatedPayment.refunded).toBe(false)
+        expect(updatedPayment.refundedAmount).toBe(3000)
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const updatedPayment = await refundPaymentTransaction(
+          { id: payment.id, partialAmount: 7000 },
+          transaction
+        )
+
         expect(updatedPayment.status).toBe(PaymentStatus.Refunded)
         expect(updatedPayment.refunded).toBe(true)
         expect(updatedPayment.refundedAmount).toBe(payment.amount)
@@ -397,6 +466,16 @@ describe('refundPaymentTransaction', () => {
         ).rejects.toThrow(
           'Partial amount cannot be greater than the payment amount'
         )
+      })
+    })
+    it('should throw error when partial amount is not positive', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        await expect(
+          refundPaymentTransaction(
+            { id: payment.id, partialAmount: 0 },
+            transaction
+          )
+        ).rejects.toThrow('Partial amount must be greater than 0')
       })
     })
   })

@@ -90,6 +90,56 @@ export const uncancelSubscriptionSchema = z.object({
   id: z.string(),
 })
 
+/**
+ * Subscription adjustment timing options for the terse SDK API.
+ * - 'immediately': Apply change now with proration
+ * - 'at_end_of_period': Apply change at next billing period
+ * - 'auto': Upgrades happen immediately, downgrades at end of period
+ */
+export const subscriptionAdjustmentTiming = {
+  Immediately: 'immediately',
+  AtEndOfCurrentBillingPeriod: 'at_end_of_period',
+  Auto: 'auto',
+} as const
+
+export type SubscriptionAdjustmentTiming =
+  (typeof subscriptionAdjustmentTiming)[keyof typeof subscriptionAdjustmentTiming]
+
+/**
+ * Options for the terse adjustSubscription SDK method.
+ * The subscriptionId is optional - it auto-resolves if the customer has exactly 1 subscription.
+ */
+export const adjustSubscriptionOptionsSchema = z.object({
+  subscriptionId: z.string().optional(),
+  quantity: z.number().int().positive().optional(),
+  timing: z
+    .enum([
+      subscriptionAdjustmentTiming.Immediately,
+      subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+      subscriptionAdjustmentTiming.Auto,
+    ])
+    .optional(),
+  prorate: z.boolean().optional(),
+})
+
+export type AdjustSubscriptionOptions = z.infer<
+  typeof adjustSubscriptionOptionsSchema
+>
+
+/**
+ * Schema for the terse adjustSubscription SDK method input.
+ * The SDK method accepts (priceIdOrSlug, options?) where options.subscriptionId
+ * is optional and auto-resolves if the customer has exactly 1 subscription.
+ */
+export const adjustSubscriptionSchema = z.object({
+  priceIdOrSlug: z.string(),
+  options: adjustSubscriptionOptionsSchema.optional(),
+})
+
+export type AdjustSubscriptionParams = z.infer<
+  typeof adjustSubscriptionSchema
+>
+
 const baseUsageEventFields = z.object({
   amount: z.number(),
   subscriptionId: z.string(),
@@ -341,6 +391,10 @@ export const flowgladActionValidators = {
   [FlowgladActionKey.UncancelSubscription]: {
     method: HTTPMethod.POST,
     inputValidator: uncancelSubscriptionSchema,
+  },
+  [FlowgladActionKey.AdjustSubscription]: {
+    method: HTTPMethod.POST,
+    inputValidator: adjustSubscriptionSchema,
   },
   [FlowgladActionKey.CreateSubscription]: {
     method: HTTPMethod.POST,

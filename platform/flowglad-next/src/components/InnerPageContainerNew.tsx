@@ -13,13 +13,11 @@ const InnerPageContainerNew = ({
   return (
     <div
       className={cn(
-        'h-full flex justify-between items-center gap-2.5',
+        'h-full w-full flex-1 flex flex-col md:border-r md:border-dashed border-sidebar-border',
         className
       )}
     >
-      <div className="h-full w-full max-w-[38rem] mx-auto flex gap-8 border-l border-r border-dashed border-sidebar-border">
-        <div className="h-full w-full flex flex-col">{children}</div>
-      </div>
+      {children}
     </div>
   )
 }

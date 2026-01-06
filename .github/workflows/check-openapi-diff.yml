@@ -23,7 +23,7 @@ jobs:
         with:
           ref: ${{ inputs.branch }}
       - name: Setup Node.js
-        uses: actions/setup-node@9ced9a43a244f3ac94f13bfd896db8c8f30da67a # v3
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v3
         with:
           node-version: '18'
       - name: Setup Bun
