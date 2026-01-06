@@ -57,7 +57,9 @@ const putFile = async ({ body, key, contentType }: PutFileParams) => {
       'r2.key': key,
       'r2.content_type': contentType,
       'r2.size_bytes':
-        typeof body === 'string' ? body.length : body.byteLength,
+        typeof body === 'string'
+          ? Buffer.byteLength(body, 'utf8')
+          : body.byteLength,
     },
     async () => {
       const s3Params = {
