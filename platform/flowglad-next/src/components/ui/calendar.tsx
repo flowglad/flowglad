@@ -15,13 +15,87 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 /**
- * Calendar design tokens - centralized magic values for easy customization.
+ * @fileoverview A customizable calendar component built on react-day-picker.
+ *
+ * ## Architecture Overview
+ *
+ * This calendar uses a **dual-layer styling system** to achieve smooth, connected
+ * visual effects for date range selections:
+ *
+ * ### Layer 1: Cell Container (the `<td>` element)
+ * - Controlled by `rangeClassNames` in `buildCalendarClassNames()`
+ * - Creates the continuous background strip that visually connects range days
+ * - Applies `bg-accent` to create the "highlight bar" effect
+ * - Handles border-radius at row boundaries (first/last cells)
+ *
+ * ### Layer 2: Day Button (the `<button>` inside each cell)
+ * - Controlled by `dayButtonSelectionStyles` and `dayButtonBorderRadiusStyles`
+ * - Applies via data attributes set in `CalendarDayButton`
+ * - Range endpoints (start/end) get `bg-primary` to stand out from the strip
+ * - Range middle days get `bg-accent` to blend with the cell background
+ * - Handles border-radius for individual day buttons
+ *
+ * ### Why Two Layers?
+ *
+ * ```
+ * Visual result of a 5-day range selection:
+ *
+ * Cell layer:    [accent][accent][accent][accent][accent]  ← continuous strip
+ * Button layer:  [PRIMARY][ - ][ - ][ - ][PRIMARY]         ← endpoints highlighted
+ *
+ * Combined:      [■■■■■][░░░░░][░░░░░][░░░░░][■■■■■]
+ *                 start  middle middle middle  end
+ * ```
+ *
+ * The cell layer provides the connected background, while the button layer
+ * adds emphasis to the endpoints. This separation allows for:
+ * - Smooth visual connection between days (no gaps in the highlight)
+ * - Clear indication of range boundaries
+ * - Proper hover effects on individual days without breaking the strip
+ *
+ * ## Pre-Selected / Initial Ranges
+ *
+ * When a date range is passed via the `selected` prop at mount time, the same
+ * styling system applies automatically. react-day-picker provides `modifiers`
+ * (range_start, range_middle, range_end) for each day based on the selection,
+ * and our styling responds to these modifiers identically whether the range
+ * was just clicked or was pre-selected.
+ *
+ * @example
+ * ```tsx
+ * // Pre-selected range - styling is applied immediately on render
+ * <Calendar
+ *   mode="range"
+ *   selected={{ from: new Date('2024-01-15'), to: new Date('2024-01-20') }}
+ *   onSelect={setDateRange}
+ * />
+ * ```
+ *
+ * ## Data Attribute System
+ *
+ * Rather than computing class names conditionally in JavaScript, we set data
+ * attributes on buttons and use CSS attribute selectors. This approach:
+ * - Keeps styling logic in CSS (easier to customize via classNames prop)
+ * - Reduces JavaScript computation on selection changes
+ * - Makes the styling rules inspectable in browser dev tools
+ *
+ * @see CalendarDayButton for the data attribute implementation
+ * @see dayButtonSelectionStyles for the CSS attribute selectors
+ */
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DESIGN TOKENS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Centralized design tokens for easy customization.
+ * These values control sizing, spacing, and visual properties throughout the calendar.
  */
 
 /** CSS variable name for cell size (used throughout the calendar) */
 const CELL_SIZE_VAR = '--cell-size'
 
-/** Default cell size value */
+/** Default cell size value (36px) */
 const DEFAULT_CELL_SIZE = '2.25rem'
 
 /** Border radius for range selection corners */
@@ -30,9 +104,18 @@ const RANGE_BORDER_RADIUS = '6px'
 /** Size of navigation chevron icons */
 const CHEVRON_ICON_SIZE = 'size-4'
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// DAY BUTTON STYLES (Layer 2 of dual-layer system)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 /**
- * Day button style constants broken into logical groups for maintainability.
- * These styles control the appearance of individual day cells in the calendar.
+ * Day button style constants - Layer 2 of the dual-layer styling system.
+ *
+ * These styles are applied to the `<button>` element inside each day cell.
+ * They work in conjunction with `rangeClassNames` (Layer 1) to create the
+ * complete range selection visual effect.
+ *
+ * @see rangeClassNames in buildCalendarClassNames() for Layer 1 (cell container)
  */
 
 /** Layout and typography styles for day buttons */
@@ -42,18 +125,32 @@ const dayButtonBaseStyles = [
   '!transition-none',
 ].join(' ')
 
-/** Styles for selected states (single selection and range endpoints) */
+/**
+ * Selection state styles for day buttons - the key part of Layer 2.
+ *
+ * These use CSS attribute selectors to style buttons based on data attributes
+ * set by CalendarDayButton. The data attributes are derived from react-day-picker's
+ * modifiers, which are computed from the `selected` prop (whether user-clicked
+ * or pre-selected at mount).
+ *
+ * Color scheme:
+ * - `bg-primary`: Used for single selections and range endpoints (start/end)
+ * - `bg-accent`: Used for range middle days (blends with cell background)
+ *
+ * @see CalendarDayButton for how data attributes are set
+ * @see rangeClassNames for the cell-level styling (Layer 1)
+ */
 const dayButtonSelectionStyles = [
-  // Single day selection (not part of a range)
+  // Single day selection (not part of a range) - stands out with primary color
   'data-[selected-single=true]:bg-primary',
   'data-[selected-single=true]:text-primary-foreground',
-  // Range start
+  // Range start - primary color to mark the boundary
   'data-[range-start=true]:bg-primary',
   'data-[range-start=true]:text-primary-foreground',
-  // Range middle
+  // Range middle - accent color to blend with cell background strip
   'data-[range-middle=true]:bg-accent',
   'data-[range-middle=true]:text-accent-foreground',
-  // Range end
+  // Range end - primary color to mark the boundary
   'data-[range-end=true]:bg-primary',
   'data-[range-end=true]:text-primary-foreground',
 ].join(' ')
@@ -95,9 +192,30 @@ const dayButtonStyles = [
   dayButtonChildStyles,
 ].join(' ')
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLASS NAME BUILDER
+// ═══════════════════════════════════════════════════════════════════════════════
+
 /**
  * Builds the classNames object for DayPicker, organized by functional area.
- * This separation makes it easier to understand, modify, and extend specific parts.
+ *
+ * This function generates Layer 1 of the dual-layer styling system (cell containers).
+ * Layer 2 (button styling) is handled separately via `dayButtonStyles` applied
+ * in `CalendarDayButton`.
+ *
+ * The classNames are organized into logical groups:
+ * - **Layout**: Root container and month grid structure
+ * - **Navigation**: Previous/next month buttons
+ * - **Caption**: Month/year header and dropdowns
+ * - **Week Grid**: Weekday headers and week rows
+ * - **Day Cell**: Individual day container (affects all days)
+ * - **Range Selection**: Range-specific cell styling (Layer 1) ← dual-layer system
+ * - **Day States**: Today, outside month, disabled, hidden
+ *
+ * @param defaultClassNames - Default class names from react-day-picker
+ * @param buttonVariant - Variant for navigation buttons
+ * @param captionLayout - Layout mode for the caption ('label' | 'dropdown' | etc.)
+ * @returns ClassNames object compatible with DayPicker's classNames prop
  */
 function buildCalendarClassNames(
   defaultClassNames: ReturnType<typeof getDefaultClassNames>,
@@ -199,14 +317,34 @@ function buildCalendarClassNames(
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Range Selection: Styling for date range start/middle/end
+  // Range Selection: Cell container styling (Layer 1 of dual-layer system)
+  // ─────────────────────────────────────────────────────────────────────────────
+  //
+  // These classes are applied to the DAY CELL CONTAINERS (not the buttons).
+  // They create the continuous background strip that visually connects range days.
+  //
+  // Why both cell AND button need range styling:
+  // - Cell (here): Creates the unbroken `bg-accent` strip across the row
+  // - Button (dayButtonSelectionStyles): Highlights endpoints with `bg-primary`
+  //
+  // This separation allows the highlight bar to flow seamlessly while still
+  // making range boundaries visually distinct.
+  //
+  // These styles apply identically to:
+  // - User-clicked ranges (during interaction)
+  // - Pre-selected ranges (passed via `selected` prop at mount)
+  //
+  // @see dayButtonSelectionStyles for the button layer (Layer 2)
   // ─────────────────────────────────────────────────────────────────────────────
   const rangeClassNames = {
+    /** Range start cell: accent background, rounded left edge */
     range_start: cn(
       `bg-accent rounded-l-[${RANGE_BORDER_RADIUS}]`,
       defaultClassNames.range_start
     ),
+    /** Range middle cells: accent background, square corners for seamless connection */
     range_middle: cn('rounded-none', defaultClassNames.range_middle),
+    /** Range end cell: accent background, rounded right edge */
     range_end: cn(
       `bg-accent rounded-r-[${RANGE_BORDER_RADIUS}]`,
       defaultClassNames.range_end
@@ -243,11 +381,29 @@ function buildCalendarClassNames(
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// CALENDAR COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
 /**
  * A customizable calendar component built on react-day-picker.
  *
  * Supports single date selection, date ranges, and multiple date selection modes.
  * Styling is handled via CSS custom properties and data attributes for flexibility.
+ *
+ * ## Styling Architecture
+ *
+ * This component uses a dual-layer styling system for range selections:
+ * - **Layer 1** (Cell): `buildCalendarClassNames()` → `rangeClassNames`
+ * - **Layer 2** (Button): `CalendarDayButton` → data attributes → `dayButtonStyles`
+ *
+ * See the file-level JSDoc for a detailed explanation.
+ *
+ * ## Pre-Selected Ranges
+ *
+ * Ranges passed via the `selected` prop are styled identically to user-selected
+ * ranges. The styling system responds to react-day-picker's modifiers, which are
+ * computed from the selection state regardless of how it was set.
  *
  * @example
  * ```tsx
@@ -256,6 +412,13 @@ function buildCalendarClassNames(
  *
  * // Date range selection
  * <Calendar mode="range" selected={dateRange} onSelect={setDateRange} />
+ *
+ * // Pre-selected range (e.g., editing an existing booking)
+ * <Calendar
+ *   mode="range"
+ *   selected={{ from: new Date('2024-01-15'), to: new Date('2024-01-20') }}
+ *   onSelect={setDateRange}
+ * />
  * ```
  *
  * @param showOutsideDays - Whether to show days from adjacent months (default: true)
@@ -359,32 +522,50 @@ function Calendar({
 }
 
 /**
- * Custom day button component that handles selection styling via data attributes.
+ * Custom day button component - Layer 2 of the dual-layer styling system.
  *
- * This component uses data attributes instead of conditional class application
- * to enable CSS-only styling based on selection state. This approach:
- * - Keeps styling logic in CSS (see dayButtonStyles constants)
- * - Allows for easier theming and customization
- * - Reduces JavaScript re-renders on selection changes
+ * This component handles selection styling via data attributes, enabling CSS-only
+ * styling based on selection state. The modifiers come from react-day-picker and
+ * reflect the current selection state, whether from user interaction or from a
+ * pre-selected range passed via the `selected` prop.
+ *
+ * ## Why Data Attributes?
+ *
+ * Using data attributes instead of conditional class application:
+ * - Keeps styling logic in CSS (see `dayButtonStyles` constants)
+ * - Allows for easier theming via the `classNames` prop
+ * - Makes selection state inspectable in browser dev tools
+ * - Reduces JavaScript computation on selection changes
  *
  * ## Data Attributes
  *
  * The following data attributes are set based on react-day-picker modifiers:
  *
- * - `data-day` - The localized date string for accessibility/testing
- * - `data-selected-single` - `true` when day is selected but NOT part of a range
- *   (i.e., single date selection mode or a one-day range)
- * - `data-range-start` - `true` for the first day of a selected range
- * - `data-range-end` - `true` for the last day of a selected range
- * - `data-range-middle` - `true` for days between range start and end
+ * | Attribute              | When Set                                           |
+ * |------------------------|----------------------------------------------------|
+ * | `data-day`             | Always (localized date string for a11y/testing)    |
+ * | `data-selected-single` | Selected but NOT part of a range                   |
+ * | `data-range-start`     | First day of a selected range                      |
+ * | `data-range-middle`    | Days between range start and end                   |
+ * | `data-range-end`       | Last day of a selected range                       |
  *
- * ## Selection State Logic
+ * ## Selection State Examples
  *
  * ```
  * Single selection:  [selected-single=true]
  * Range (1 day):     [range-start=true][range-end=true]
  * Range (multi):     [range-start] ... [range-middle] ... [range-end]
  * ```
+ *
+ * ## Pre-Selected Ranges
+ *
+ * When a range is passed via the `selected` prop (e.g., for editing an existing
+ * date range), react-day-picker automatically sets the appropriate modifiers on
+ * mount. This component's data attributes will reflect that state immediately,
+ * causing the correct styling to be applied without any user interaction.
+ *
+ * @see dayButtonSelectionStyles for the CSS that targets these data attributes
+ * @see rangeClassNames in buildCalendarClassNames() for the cell-level styling
  */
 function CalendarDayButton({
   className,
