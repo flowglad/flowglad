@@ -5,6 +5,17 @@ import {
 } from '@opentelemetry/sdk-trace-base'
 import { registerOTel } from '@vercel/otel'
 
+/**
+ * Configure and register OpenTelemetry, then initialize runtime-specific Sentry and logging.
+ *
+ * Temporarily overrides OTLP endpoint and headers from `FLOWGLAD_OTEL_ENDPOINT` and
+ * `FLOWGLAD_OTEL_HEADERS` while registering OpenTelemetry, parses `FLOWGLAD_TRACE_SAMPLE_RATE`
+ * (clamped to the range 0–1) and, when less than 1, installs a sampling strategy that respects
+ * parent sampling decisions. Calls `registerOTel` with the configured service name
+ * (from `FLOWGLAD_OTEL_SERVICE_NAME` or `flowglad-api`). Restores the original OTLP-related
+ * environment variables afterwards. Afterwards, imports the appropriate Sentry configuration
+ * for the current `NEXT_RUNTIME` (`nodejs` or `edge`) and emits an informational log entry.
+ */
 export async function register() {
   // Save original env variables
   const originalOtelEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT
