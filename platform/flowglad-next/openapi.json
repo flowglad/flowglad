@@ -17666,6 +17666,22 @@
           "isUpgrade": {
             "description": "Whether this adjustment is an upgrade (true) or downgrade/lateral move (false). An upgrade means the new plan total is greater than the old plan total.",
             "type": "boolean"
+          },
+          "billingRunRealtime": {
+            "description": "Trigger.dev realtime information for subscribing to the billing run status. Only present when an immediate adjustment with proration triggers a billing run.",
+            "type": "object",
+            "properties": {
+              "runId": {
+                "description": "The trigger.dev run ID for the billing run task. Use this with useRealtimeRun to subscribe to updates.",
+                "type": "string"
+              },
+              "publicAccessToken": {
+                "description": "Public access token for authenticating the realtime subscription. This token is scoped to only read this specific run.",
+                "type": "string"
+              }
+            },
+            "required": ["runId", "publicAccessToken"],
+            "additionalProperties": false
           }
         },
         "required": [
