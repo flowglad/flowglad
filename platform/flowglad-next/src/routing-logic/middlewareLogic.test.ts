@@ -629,24 +629,6 @@ describe('middlewareLogic', () => {
         expect(result.proceed).toBe(true)
       })
 
-      it('should allow access to purchase session procedures without session', () => {
-        const paths = [
-          '/api/trpc/purchases.createSession',
-          '/api/trpc/purchases.getSession',
-          '/api/trpc/purchases.updateSession',
-        ]
-        paths.forEach((path) => {
-          const result = middlewareLogic({
-            sessionCookie: null,
-            isProtectedRoute: false,
-            pathName: path,
-            customerBillingPortalOrganizationId: null,
-            req: { nextUrl: `https://example.com${path}` },
-          })
-          expect(result.proceed).toBe(true)
-        })
-      })
-
       it('should allow access to checkoutSessions.public procedures without session', () => {
         const paths = [
           '/api/trpc/checkoutSessions.public.create',
