@@ -254,7 +254,7 @@ export function DateRangePicker({
   const triggerPresets = React.useMemo(() => {
     if (presets) return presets
     return createDefaultPresets()
-  }, [presets, fromDate, toDate])
+  }, [presets])
 
   // Format for trigger button (committed range from props)
   const formatDateRange = () => {
@@ -379,12 +379,13 @@ export function DateRangePicker({
 
   // Apply same styling as selected range for the preview
   // Uses RANGE_BORDER_RADIUS from calendar.tsx to ensure consistent rounding
+  // Includes hover overrides to prevent ghost button's hover styles from changing colors and border-radius
   const previewModifiersClassNames = showPreview
     ? {
-        previewRangeStart: `[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:!rounded-l-[${RANGE_BORDER_RADIUS}] bg-accent rounded-l-[${RANGE_BORDER_RADIUS}]`,
+        previewRangeStart: `[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:hover:bg-primary [&_button]:hover:text-primary-foreground [&_button]:!rounded-l-[${RANGE_BORDER_RADIUS}] [&_button]:!rounded-r-none [&_button]:hover:!rounded-l-[${RANGE_BORDER_RADIUS}] [&_button]:hover:!rounded-r-none bg-accent rounded-l-[${RANGE_BORDER_RADIUS}]`,
         previewRangeMiddle:
-          '[&_button]:bg-accent [&_button]:text-accent-foreground [&_button]:!rounded-none bg-accent',
-        previewRangeEnd: `[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:!rounded-r-[${RANGE_BORDER_RADIUS}] bg-accent rounded-r-[${RANGE_BORDER_RADIUS}]`,
+          '[&_button]:bg-accent [&_button]:text-accent-foreground [&_button]:hover:bg-accent [&_button]:hover:text-accent-foreground [&_button]:!rounded-none [&_button]:hover:!rounded-none bg-accent',
+        previewRangeEnd: `[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:hover:bg-primary [&_button]:hover:text-primary-foreground [&_button]:!rounded-r-[${RANGE_BORDER_RADIUS}] [&_button]:!rounded-l-none [&_button]:hover:!rounded-r-[${RANGE_BORDER_RADIUS}] [&_button]:hover:!rounded-l-none bg-accent rounded-r-[${RANGE_BORDER_RADIUS}]`,
       }
     : undefined
 

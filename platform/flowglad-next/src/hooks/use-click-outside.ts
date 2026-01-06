@@ -42,13 +42,13 @@ export function useClickOutside<T extends HTMLElement>(
   useEffect(() => {
     if (!enabled) return
 
-    // Use mousedown for immediate feedback (before click completes)
+    // Use mousedown/touchstart for immediate feedback (before click/touch completes)
     document.addEventListener('mousedown', handleClick)
-    document.addEventListener('touchend', handleClick)
+    document.addEventListener('touchstart', handleClick)
 
     return () => {
       document.removeEventListener('mousedown', handleClick)
-      document.removeEventListener('touchend', handleClick)
+      document.removeEventListener('touchstart', handleClick)
     }
   }, [handleClick, enabled])
 }

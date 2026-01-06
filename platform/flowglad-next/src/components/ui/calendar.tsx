@@ -92,11 +92,18 @@ import { cn } from '@/lib/utils'
  * These values control sizing, spacing, and visual properties throughout the calendar.
  */
 
-/** CSS variable name for cell size (used throughout the calendar) */
-const CELL_SIZE_VAR = '--cell-size'
-
-/** Default cell size value (36px) */
-const DEFAULT_CELL_SIZE = '2.25rem'
+/**
+ * Cell size configuration:
+ * - CSS variable: `--cell-size`
+ * - Default value: `2.25rem` (36px)
+ *
+ * IMPORTANT: Tailwind's JIT compiler cannot detect classes constructed via
+ * template literals with variables. All cell-size and border-radius classes
+ * in this file use literal strings to ensure proper CSS generation.
+ *
+ * If you need to change the cell size, search for `--cell-size` and `2.25rem`
+ * in this file and update all occurrences.
+ */
 
 /** Border radius for range selection corners */
 export const RANGE_BORDER_RADIUS = '6px'
@@ -120,7 +127,7 @@ const CHEVRON_ICON_SIZE = 'size-4'
 
 /** Layout and typography styles for day buttons */
 const dayButtonBaseStyles = [
-  `flex aspect-square h-auto w-full min-w-[${CELL_SIZE_VAR}] flex-col gap-1`,
+  'flex aspect-square h-auto w-full min-w-[--cell-size] flex-col gap-1',
   'font-normal leading-none',
   '!transition-none',
 ].join(' ')
@@ -165,16 +172,16 @@ const dayButtonSelectionStyles = [
 const dayButtonBorderRadiusStyles = [
   // Default behavior
   '!rounded-none',
-  `hover:!rounded-[${RANGE_BORDER_RADIUS}]`,
+  'hover:!rounded-[6px]',
   // Range start: round left, keep right square
-  `data-[range-start=true]:!rounded-l-[${RANGE_BORDER_RADIUS}]`,
+  'data-[range-start=true]:!rounded-l-[6px]',
   'data-[range-start=true]:!rounded-r-none',
-  `data-[range-start=true]:hover:!rounded-l-[${RANGE_BORDER_RADIUS}]`,
+  'data-[range-start=true]:hover:!rounded-l-[6px]',
   'data-[range-start=true]:hover:!rounded-r-none',
   // Range end (but not also start): round right, keep left square
-  `data-[range-end=true]:data-[range-start=false]:!rounded-r-[${RANGE_BORDER_RADIUS}]`,
+  'data-[range-end=true]:data-[range-start=false]:!rounded-r-[6px]',
   'data-[range-end=true]:data-[range-start=false]:!rounded-l-none',
-  `data-[range-end=true]:data-[range-start=false]:hover:!rounded-r-[${RANGE_BORDER_RADIUS}]`,
+  'data-[range-end=true]:data-[range-start=false]:hover:!rounded-r-[6px]',
   'data-[range-end=true]:data-[range-start=false]:hover:!rounded-l-none',
   // Range middle: always square
   'data-[range-middle=true]:!rounded-none',
@@ -252,12 +259,12 @@ function buildCalendarClassNames(
     ),
     button_previous: cn(
       buttonVariants({ variant: buttonVariant }),
-      `h-[${CELL_SIZE_VAR}] w-[${CELL_SIZE_VAR}] select-none p-0 aria-disabled:opacity-50`,
+      'h-[--cell-size] w-[--cell-size] select-none p-0 aria-disabled:opacity-50',
       defaultClassNames.button_previous
     ),
     button_next: cn(
       buttonVariants({ variant: buttonVariant }),
-      `h-[${CELL_SIZE_VAR}] w-[${CELL_SIZE_VAR}] select-none p-0 aria-disabled:opacity-50`,
+      'h-[--cell-size] w-[--cell-size] select-none p-0 aria-disabled:opacity-50',
       defaultClassNames.button_next
     ),
   }
@@ -267,11 +274,11 @@ function buildCalendarClassNames(
   // ─────────────────────────────────────────────────────────────────────────────
   const captionClassNames = {
     month_caption: cn(
-      `flex h-[${CELL_SIZE_VAR}] w-full items-center justify-center px-[${CELL_SIZE_VAR}]`,
+      'flex h-[--cell-size] w-full items-center justify-center px-[--cell-size]',
       defaultClassNames.month_caption
     ),
     dropdowns: cn(
-      `flex h-[${CELL_SIZE_VAR}] w-full items-center justify-center gap-1.5 text-sm font-medium`,
+      'flex h-[--cell-size] w-full items-center justify-center gap-1.5 text-sm font-medium',
       defaultClassNames.dropdowns
     ),
     dropdown_root: cn(
@@ -302,7 +309,7 @@ function buildCalendarClassNames(
     ),
     week: cn('flex w-full', defaultClassNames.week),
     week_number_header: cn(
-      `w-[${CELL_SIZE_VAR}] select-none`,
+      'w-[--cell-size] select-none',
       defaultClassNames.week_number_header
     ),
     week_number: cn(
@@ -316,7 +323,7 @@ function buildCalendarClassNames(
   // ─────────────────────────────────────────────────────────────────────────────
   const dayCellClassNames = {
     day: cn(
-      `group/day relative aspect-square h-full w-full select-none p-0 text-center [&:first-child[data-selected=true]_button]:rounded-l-[${RANGE_BORDER_RADIUS}] [&:last-child[data-selected=true]_button]:rounded-r-[${RANGE_BORDER_RADIUS}]`,
+      'group/day relative aspect-square h-full w-full select-none p-0 text-center [&:first-child[data-selected=true]_button]:rounded-l-[6px] [&:last-child[data-selected=true]_button]:rounded-r-[6px]',
       defaultClassNames.day
     ),
   }
@@ -344,14 +351,14 @@ function buildCalendarClassNames(
   const rangeClassNames = {
     /** Range start cell: accent background, rounded left edge */
     range_start: cn(
-      `bg-accent rounded-l-[${RANGE_BORDER_RADIUS}]`,
+      'bg-accent rounded-l-[6px]',
       defaultClassNames.range_start
     ),
     /** Range middle cells: accent background, square corners for seamless connection */
     range_middle: cn('rounded-none', defaultClassNames.range_middle),
     /** Range end cell: accent background, rounded right edge */
     range_end: cn(
-      `bg-accent rounded-r-[${RANGE_BORDER_RADIUS}]`,
+      'bg-accent rounded-r-[6px]',
       defaultClassNames.range_end
     ),
   }
@@ -453,7 +460,7 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        `group/calendar p-4 [${CELL_SIZE_VAR}:${DEFAULT_CELL_SIZE}]`,
+        'group/calendar p-4 [--cell-size:2.25rem]',
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
         String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className
@@ -511,9 +518,7 @@ function Calendar({
         WeekNumber: ({ children, ...props }) => {
           return (
             <td {...props}>
-              <div
-                className={`flex size-[${CELL_SIZE_VAR}] items-center justify-center text-center`}
-              >
+              <div className="flex size-[--cell-size] items-center justify-center text-center">
                 {children}
               </div>
             </td>
