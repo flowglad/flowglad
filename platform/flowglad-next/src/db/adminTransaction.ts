@@ -2,10 +2,7 @@ import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
 import type { AdminTransactionParams } from '@/db/types'
 import { isNil } from '@/utils/core'
-import {
-  getCurrentOperationName,
-  setOperationLabel,
-} from '@/utils/operationContext'
+import { setTransactionOperationLabel } from '@/utils/operationContext'
 import { withSpan } from '@/utils/tracing'
 import db from './client'
 import { processLedgerCommand } from './ledgerManager/ledgerManager'
@@ -53,10 +50,7 @@ export async function adminTransaction<T>(
           sql`SELECT set_config('request.jwt.claims', NULL, true);`
         )
         // Set operation label for query debugging (automatically derived from TRPC path or Trigger task)
-        await setOperationLabel(
-          transaction,
-          getCurrentOperationName()
-        )
+        await setTransactionOperationLabel(transaction)
 
         const resp = await fn({
           transaction, // Cast to DrizzleTransaction
@@ -118,10 +112,7 @@ export async function comprehensiveAdminTransaction<T>(
           sql`SELECT set_config('request.jwt.claims', NULL, true);`
         )
         // Set operation label for query debugging (automatically derived from TRPC path or Trigger task)
-        await setOperationLabel(
-          transaction,
-          getCurrentOperationName()
-        )
+        await setTransactionOperationLabel(transaction)
         // Admin transactions typically run with higher privileges, no specific role needs to be set via JWT claims normally.
 
         const paramsForFn: AdminTransactionParams = {

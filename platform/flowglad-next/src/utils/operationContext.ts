@@ -36,11 +36,12 @@ export function withOperationContext<T>(
 /**
  * Sets the app.operation config variable for the current transaction.
  * This labels all queries within the transaction for easier debugging in pg_stat_statements.
+ * Automatically reads the operation name from the current async context.
  */
-export async function setOperationLabel(
-  transaction: DbTransaction,
-  operationName: string | undefined
+export async function setTransactionOperationLabel(
+  transaction: DbTransaction
 ): Promise<void> {
+  const operationName = getCurrentOperationName()
   if (operationName) {
     await transaction.execute(
       sql`SELECT set_config('app.operation', ${operationName}, TRUE)`
