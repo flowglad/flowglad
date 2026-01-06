@@ -315,11 +315,10 @@ export function DateRangePicker({
   const isPresetActive = (preset: DateRangePreset) => {
     if (!internalRange?.from || !internalRange?.to) return false
 
-    const datesMatch =
-      internalRange.from.toDateString() ===
-        preset.dateRange.from.toDateString() &&
-      internalRange.to.toDateString() ===
-        preset.dateRange.to.toDateString()
+    const datesMatch = dateRangesMatch(
+      { from: internalRange.from, to: internalRange.to },
+      preset.dateRange
+    )
 
     if (!datesMatch) return false
 
