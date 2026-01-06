@@ -316,21 +316,11 @@ export interface AdjustSubscriptionResult {
    */
   isUpgrade: boolean
   /**
-   * Trigger.dev realtime information for subscribing to the billing run status.
+   * The trigger.dev run ID for the billing run task, if one was triggered.
    * Only present when an immediate adjustment with proration triggers a billing run.
+   * The caller should wait for this run to complete before considering the adjustment done.
    */
-  billingRunRealtime?: {
-    /**
-     * The trigger.dev run ID for the billing run task.
-     * Use this with useRealtimeRun to subscribe to updates.
-     */
-    runId: string
-    /**
-     * Public access token for authenticating the realtime subscription.
-     * This token is scoped to only read this specific run.
-     */
-    publicAccessToken: string
-  }
+  pendingBillingRunId?: string
 }
 
 /**
@@ -614,8 +604,8 @@ export const adjustSubscription = async (
   // Create proration adjustments when there's a net charge AND proration is enabled
   const prorationAdjustments: BillingPeriodItem.Insert[] = []
 
-  // Track billing run realtime info for immediate adjustments with proration
-  let billingRunRealtime: AdjustSubscriptionResult['billingRunRealtime']
+  // Track pending billing run ID for immediate adjustments with proration
+  let pendingBillingRunId: string | undefined
 
   if (netChargeAmount > 0 && shouldProrate) {
     // Format description similar to createSubscription pattern: single-line with key info
@@ -690,13 +680,8 @@ export const adjustSubscription = async (
         adjustmentDate,
       },
     })
-    // Store realtime info for the response so clients can subscribe to billing run completion
-    billingRunRealtime = billingRunHandle.publicAccessToken
-      ? {
-          runId: billingRunHandle.id,
-          publicAccessToken: billingRunHandle.publicAccessToken,
-        }
-      : undefined
+    // Store the run ID so the caller can wait for the billing run to complete
+    pendingBillingRunId = billingRunHandle.id
   } else {
     // Either:
     // - Zero-amount adjustment (downgrade with no refund)
@@ -804,6 +789,6 @@ export const adjustSubscription = async (
     subscriptionItems: currentSubscriptionItems,
     resolvedTiming,
     isUpgrade,
-    billingRunRealtime,
+    pendingBillingRunId,
   }
 }

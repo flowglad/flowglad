@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useBilling } from '@flowglad/nextjs'
 import { AdjustSubscriptionCard } from '@/components/adjust-subscription-card'
 import type { PricingPlan } from '@/components/pricing-card'
@@ -15,19 +15,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { useBillingRunRealtime } from '@/hooks/use-billing-run-realtime'
-
-interface BillingRunRealtimeInfo {
-  runId: string
-  publicAccessToken: string
-}
 
 interface AdjustSubscriptionGridProps {
   onSuccess?: () => void
 }
 
 /**
- * AdjustSubscriptionGrid component displays all available plans for switching
+ * AdjustSubscriptionGrid component displays all available plans for switching.
+ * The adjustSubscription API is atomic - it waits for any billing run to complete
+ * before returning, so no client-side polling or realtime subscription is needed.
  */
 export function AdjustSubscriptionGrid({
   onSuccess,
@@ -38,33 +34,6 @@ export function AdjustSubscriptionGrid({
   const [isUpgrade, setIsUpgrade] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Track billing run realtime info for subscribing to completion
-  const [billingRunRealtime, setBillingRunRealtime] =
-    useState<BillingRunRealtimeInfo | null>(null)
-
-  // Handle billing run completion via trigger.dev realtime
-  const handleBillingRunComplete = useCallback(async () => {
-    if (billing.reload) {
-      await billing.reload()
-    }
-    setBillingRunRealtime(null)
-    setIsLoading(false)
-    setSelectedPlan(null)
-    onSuccess?.()
-  }, [billing, onSuccess])
-
-  const handleBillingRunError = useCallback((err: Error) => {
-    setError(err.message)
-    setBillingRunRealtime(null)
-    setIsLoading(false)
-  }, [])
-
-  // Subscribe to billing run completion using trigger.dev realtime
-  useBillingRunRealtime({
-    billingRunRealtime,
-    onComplete: handleBillingRunComplete,
-    onError: handleBillingRunError,
-  })
 
   // Get current subscription and billing period end date
   const currentSubscription = billing.currentSubscriptions?.[0]
@@ -230,43 +199,23 @@ export function AdjustSubscriptionGrid({
     setError(null)
 
     try {
-      const result = await billing.adjustSubscription(
-        selectedPlan.slug
-      )
+      // The API is atomic - it waits for any billing run to complete before returning
+      await billing.adjustSubscription(selectedPlan.slug)
 
-      // Check if there's realtime info for subscribing to billing run completion
-      // The billingRunRealtime field is present when an immediate upgrade triggers a billing run
-      const response = result as {
-        resolvedTiming?:
-          | 'immediately'
-          | 'at_end_of_current_billing_period'
-        billingRunRealtime?: BillingRunRealtimeInfo
+      // Reload billing data to get the updated subscription
+      if (billing.reload) {
+        await billing.reload()
       }
 
-      if (
-        response.resolvedTiming === 'immediately' &&
-        response.billingRunRealtime
-      ) {
-        // Subscribe to billing run completion via trigger.dev realtime
-        // The useBillingRunRealtime hook will handle reloading when complete
-        setBillingRunRealtime(response.billingRunRealtime)
-        // Keep isLoading true - it will be set to false when the run completes
-      } else {
-        // No billing run to wait for (downgrade or end-of-period adjustment)
-        // Just reload and complete
-        if (billing.reload) {
-          await billing.reload()
-        }
-        setSelectedPlan(null)
-        setIsLoading(false)
-        onSuccess?.()
-      }
+      setSelectedPlan(null)
+      onSuccess?.()
     } catch (err) {
       const errorMsg =
         err instanceof Error
           ? err.message
           : 'Failed to adjust subscription. Please try again.'
       setError(errorMsg)
+    } finally {
       setIsLoading(false)
     }
   }

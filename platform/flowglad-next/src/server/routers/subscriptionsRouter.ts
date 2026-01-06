@@ -1,3 +1,4 @@
+import { runs } from '@trigger.dev/sdk/v3'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import {
@@ -31,6 +32,7 @@ import {
   selectPriceBySlugAndCustomerId,
   selectPriceProductAndOrganizationByPriceWhere,
 } from '@/db/tableMethods/priceMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   isSubscriptionCurrent,
   selectDistinctSubscriptionProductNames,
@@ -107,25 +109,10 @@ const adjustSubscriptionOutputSchema = z
       .describe(
         'Whether this adjustment is an upgrade (true) or downgrade/lateral move (false). An upgrade means the new plan total is greater than the old plan total.'
       ),
-    billingRunRealtime: z
-      .object({
-        runId: z
-          .string()
-          .describe(
-            'The trigger.dev run ID for the billing run task. Use this with useRealtimeRun to subscribe to updates.'
-          ),
-        publicAccessToken: z
-          .string()
-          .describe(
-            'Public access token for authenticating the realtime subscription. This token is scoped to only read this specific run.'
-          ),
-      })
-      .optional()
-      .describe(
-        'Trigger.dev realtime information for subscribing to the billing run status. Only present when an immediate adjustment with proration triggers a billing run.'
-      ),
   })
   .meta({ id: 'AdjustSubscriptionOutput' })
+
+const BILLING_RUN_TIMEOUT_MS = 60_000 // 60 seconds max wait for billing run
 
 const adjustSubscriptionProcedure = protectedProcedure
   .meta({
@@ -134,51 +121,118 @@ const adjustSubscriptionProcedure = protectedProcedure
       path: '/api/v1/subscriptions/{id}/adjust',
       summary: 'Adjust Subscription',
       description:
-        "Adjust an active subscription by changing its plan or quantity. Supports immediate adjustments with proration, end-of-billing-period adjustments for downgrades, and auto timing that automatically chooses based on whether it's an upgrade or downgrade. Also supports priceSlug for referencing prices by slug instead of id.",
+        "Adjust an active subscription by changing its plan or quantity. Supports immediate adjustments with proration, end-of-billing-period adjustments for downgrades, and auto timing that automatically chooses based on whether it's an upgrade or downgrade. Also supports priceSlug for referencing prices by slug instead of id. For immediate adjustments with proration, this endpoint waits for the billing run to complete before returning, ensuring the subscription is fully updated.",
       tags: ['Subscriptions'],
       protect: true,
     },
   })
   .input(adjustSubscriptionInputSchema)
   .output(adjustSubscriptionOutputSchema)
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transaction, ctx }) => {
-        if (!ctx.organization) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Organization not found',
-          })
-        }
-        const {
-          subscription,
-          subscriptionItems,
-          resolvedTiming,
-          isUpgrade,
-          billingRunRealtime,
-        } = await adjustSubscription(
+  .mutation(async ({ input, ctx }) => {
+    if (!ctx.organization) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization not found',
+      })
+    }
+
+    // Step 1: Perform the adjustment in a transaction
+    // This triggers the billing run but doesn't wait for it
+    const adjustmentResult = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return adjustSubscription(
           input,
-          ctx.organization,
+          ctx.organization!,
           transaction
         )
-        return {
-          result: {
-            subscription: {
-              ...subscription,
-              current: isSubscriptionCurrent(
-                subscription.status,
-                subscription.cancellationReason
-              ),
-            },
-            subscriptionItems,
-            resolvedTiming,
-            isUpgrade,
-            billingRunRealtime,
-          },
-        }
       }
     )
-  )
+
+    const {
+      subscription,
+      subscriptionItems: initialSubscriptionItems,
+      resolvedTiming,
+      isUpgrade,
+      pendingBillingRunId,
+    } = adjustmentResult
+
+    // Step 2: If there's a pending billing run, wait for it to complete
+    // This happens outside the transaction since it can take several seconds
+    if (pendingBillingRunId) {
+      const startTime = Date.now()
+
+      for await (const run of runs.subscribeToRun(
+        pendingBillingRunId
+      )) {
+        // Check for timeout
+        if (Date.now() - startTime > BILLING_RUN_TIMEOUT_MS) {
+          throw new TRPCError({
+            code: 'TIMEOUT',
+            message:
+              'Billing run timed out. The subscription adjustment may still complete in the background.',
+          })
+        }
+
+        // Check if run completed (successfully or with error)
+        if (run.status === 'COMPLETED') {
+          break
+        }
+
+        // Handle terminal failure states
+        if (run.status === 'EXPIRED' || run.status === 'TIMED_OUT') {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `Billing run failed with status: ${run.status}`,
+          })
+        }
+      }
+
+      // Step 3: After billing run completes, fetch fresh subscription data
+      // The subscription items are now updated by processOutcomeForBillingRun
+      const freshData = await authenticatedTransaction(
+        async ({ transaction }) => {
+          const freshSubscription = await selectSubscriptionById(
+            subscription.id,
+            transaction
+          )
+          const freshSubscriptionItems =
+            await selectCurrentlyActiveSubscriptionItems(
+              { subscriptionId: subscription.id },
+              new Date(),
+              transaction
+            )
+          return { freshSubscription, freshSubscriptionItems }
+        }
+      )
+
+      return {
+        subscription: {
+          ...freshData.freshSubscription,
+          current: isSubscriptionCurrent(
+            freshData.freshSubscription.status,
+            freshData.freshSubscription.cancellationReason
+          ),
+        },
+        subscriptionItems: freshData.freshSubscriptionItems,
+        resolvedTiming,
+        isUpgrade,
+      }
+    }
+
+    // No billing run to wait for - return immediately
+    return {
+      subscription: {
+        ...subscription,
+        current: isSubscriptionCurrent(
+          subscription.status,
+          subscription.cancellationReason
+        ),
+      },
+      subscriptionItems: initialSubscriptionItems,
+      resolvedTiming,
+      isUpgrade,
+    }
+  })
 
 const cancelSubscriptionProcedure = protectedProcedure
   .meta({
