@@ -189,6 +189,7 @@ const adjustSubscriptionProcedure = protectedProcedure
 
       // Step 3: After billing run completes, fetch fresh subscription data
       // The subscription items are now updated by processOutcomeForBillingRun
+      // Pass apiKey to maintain authentication context after async wait
       const freshData = await authenticatedTransaction(
         async ({ transaction }) => {
           const freshSubscription = await selectSubscriptionById(
@@ -202,7 +203,8 @@ const adjustSubscriptionProcedure = protectedProcedure
               transaction
             )
           return { freshSubscription, freshSubscriptionItems }
-        }
+        },
+        { apiKey: ctx.apiKey }
       )
 
       return {
