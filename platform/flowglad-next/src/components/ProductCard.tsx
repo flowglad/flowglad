@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
  * and different card types (default, see all, subscription)
  */
 const productCardVariants = cva(
-  'relative box-border rounded-[6px] border transition-all duration-200 w-full',
+  'relative box-border rounded-[6px] border transition-all duration-200 w-full overflow-hidden',
   {
     variants: {
       variant: {
@@ -128,7 +128,7 @@ const ProductCard = React.forwardRef<HTMLElement, ProductCardProps>(
         {/* Card Header */}
         <ProductCardHeader>
           {showQuantityBadge && quantity ? (
-            <div className="flex gap-1.5 items-center w-full">
+            <div className="flex gap-1.5 items-center w-full min-w-0">
               <ProductCardTitle>{productName}</ProductCardTitle>
               <ProductCardQuantityBadge quantity={quantity} />
             </div>
@@ -240,7 +240,10 @@ const ProductCardHeader = React.forwardRef<
     <div
       ref={ref}
       data-slot="product-card-header"
-      className={cn('flex flex-col gap-0.5 w-full', className)}
+      className={cn(
+        'flex flex-col gap-0.5 w-full min-w-0',
+        className
+      )}
       {...props}
     />
   )
@@ -262,7 +265,7 @@ const ProductCardTitle = React.forwardRef<
       ref={ref}
       data-slot="product-card-title"
       className={cn(
-        'font-sans font-medium text-base leading-6 text-card-foreground whitespace-nowrap',
+        'font-sans font-medium text-base leading-6 text-card-foreground truncate min-w-0',
         className
       )}
       {...props}

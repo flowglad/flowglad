@@ -1,4 +1,5 @@
 'use client'
+import { startOfDay, subMonths } from 'date-fns'
 import { useState } from 'react'
 import DateRangeActiveSubscribersChart from '@/components/DateRangeActiveSubscribersChart'
 import DateRangeRecurringRevenueChart from '@/components/DateRangeRecurringRevenueChart'
@@ -35,12 +36,13 @@ function InternalDashboardPage({
   const greeting = firstName
     ? `Hello, ${firstName}`
     : 'Hello there :)'
+  const today = startOfDay(new Date())
   const [range, setRange] = useState<{
     from: Date
     to: Date
   }>({
-    from: new Date(organizationCreatedAt),
-    to: new Date(),
+    from: subMonths(today, 12),
+    to: today,
   })
   return (
     <InnerPageContainerNew>
