@@ -1,4 +1,6 @@
 import { AsyncLocalStorage } from 'async_hooks'
+import { sql } from 'drizzle-orm'
+import type { DbTransaction } from '@/db/types'
 
 interface OperationContext {
   /** The operation name for database query labeling (e.g., "customers.create") */
@@ -29,4 +31,19 @@ export function withOperationContext<T>(
   fn: () => T
 ): T {
   return operationContextStorage.run({ operationName }, fn)
+}
+
+/**
+ * Sets the app.operation config variable for the current transaction.
+ * This labels all queries within the transaction for easier debugging in pg_stat_statements.
+ */
+export async function setOperationLabel(
+  transaction: DbTransaction,
+  operationName: string | undefined
+): Promise<void> {
+  if (operationName) {
+    await transaction.execute(
+      sql`SELECT set_config('app.operation', ${operationName}, TRUE)`
+    )
+  }
 }
