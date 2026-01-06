@@ -1,4 +1,5 @@
 import { SpanKind } from '@opentelemetry/api'
+import { withOperationContext } from '@/utils/operationContext'
 import { withSpan } from '@/utils/tracing'
 
 /**
@@ -58,16 +59,20 @@ export const tracedTaskRun = async <T>(
   runFn: () => Promise<T>,
   attributes?: Record<string, string | number | boolean | undefined>
 ): Promise<T> => {
-  return withSpan(
-    {
-      spanName: `trigger.run.${taskName}`,
-      tracerName: 'trigger',
-      kind: SpanKind.INTERNAL,
-      attributes: {
-        'trigger.task_name': taskName,
-        ...attributes,
+  // Set operation context so database queries within this task are labeled
+  const operationName = `trigger.${taskName}`
+  return withOperationContext(operationName, () =>
+    withSpan(
+      {
+        spanName: `trigger.run.${taskName}`,
+        tracerName: 'trigger',
+        kind: SpanKind.INTERNAL,
+        attributes: {
+          'trigger.task_name': taskName,
+          ...attributes,
+        },
       },
-    },
-    runFn
+      runFn
+    )
   )
 }

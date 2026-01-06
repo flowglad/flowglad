@@ -1,7 +1,11 @@
 import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
-import type { AdminTransactionParams } from '@/db/types'
+import type {
+  AdminTransactionParams,
+  DbTransaction,
+} from '@/db/types'
 import { isNil } from '@/utils/core'
+import { getCurrentOperationName } from '@/utils/operationContext'
 import { withSpan } from '@/utils/tracing'
 import db from './client'
 import { processLedgerCommand } from './ledgerManager/ledgerManager'
@@ -9,6 +13,21 @@ import type { Event } from './schema/events'
 import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
 // New imports for ledger and transaction output types
 import type { TransactionOutput } from './transactionEnhacementTypes'
+
+/**
+ * Sets the app.operation config variable for the current transaction.
+ * This labels all queries within the transaction for easier debugging in pg_stat_statements.
+ */
+async function setOperationLabel(
+  transaction: DbTransaction,
+  operationName: string | undefined
+): Promise<void> {
+  if (operationName) {
+    await transaction.execute(
+      sql`SELECT set_config('app.operation', ${operationName}, TRUE)`
+    )
+  }
+}
 
 interface AdminTransactionOptions {
   livemode?: boolean
@@ -47,6 +66,11 @@ export async function adminTransaction<T>(
          */
         await transaction.execute(
           sql`SELECT set_config('request.jwt.claims', NULL, true);`
+        )
+        // Set operation label for query debugging (automatically derived from TRPC path or Trigger task)
+        await setOperationLabel(
+          transaction,
+          getCurrentOperationName()
         )
 
         const resp = await fn({
@@ -107,6 +131,11 @@ export async function comprehensiveAdminTransaction<T>(
         // Set up transaction context (e.g., clearing previous JWT claims)
         await transaction.execute(
           sql`SELECT set_config('request.jwt.claims', NULL, true);`
+        )
+        // Set operation label for query debugging (automatically derived from TRPC path or Trigger task)
+        await setOperationLabel(
+          transaction,
+          getCurrentOperationName()
         )
         // Admin transactions typically run with higher privileges, no specific role needs to be set via JWT claims normally.
 

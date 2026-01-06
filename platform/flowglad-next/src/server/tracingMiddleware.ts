@@ -3,6 +3,7 @@
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api'
 import { TRPCError } from '@trpc/server'
 import { logger } from '@/utils/logger'
+import { withOperationContext } from '@/utils/operationContext'
 import type { FlowgladTRPC } from './coreTrpcObject'
 import type { TRPCContext } from './trpcContext'
 
@@ -86,8 +87,10 @@ export function createTracingMiddleware() {
             )
 
             try {
-              // Execute the operation
-              const result = await next()
+              // Execute the operation with operation context for database query labeling
+              const result = await withOperationContext(path, () =>
+                next()
+              )
 
               // Operation succeeded
               span.setStatus({ code: SpanStatusCode.OK })

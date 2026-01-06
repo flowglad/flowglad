@@ -5,6 +5,7 @@ import type {
   DbTransaction,
 } from '@/db/types'
 import core from '@/utils/core'
+import { getCurrentOperationName } from '@/utils/operationContext'
 import { withSpan } from '@/utils/tracing'
 import db from './client'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
@@ -13,6 +14,21 @@ import type { Event } from './schema/events'
 import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
 // New imports for ledger and transaction output types
 import type { TransactionOutput } from './transactionEnhacementTypes'
+
+/**
+ * Sets the app.operation config variable for the current transaction.
+ * This labels all queries within the transaction for easier debugging in pg_stat_statements.
+ */
+async function setOperationLabel(
+  transaction: DbTransaction,
+  operationName: string | undefined
+): Promise<void> {
+  if (operationName) {
+    await transaction.execute(
+      sql`SELECT set_config('app.operation', ${operationName}, TRUE)`
+    )
+  }
+}
 
 interface AuthenticatedTransactionOptions {
   apiKey?: string
@@ -90,6 +106,11 @@ export async function authenticatedTransaction<T>(
           sql`SELECT set_config('app.livemode', '${sql.raw(
             Boolean(livemode).toString()
           )}', TRUE);`
+        )
+        // Set operation label for query debugging (automatically derived from TRPC path)
+        await setOperationLabel(
+          transaction,
+          getCurrentOperationName()
         )
         const resp = await fn({
           transaction,
@@ -169,6 +190,11 @@ export async function comprehensiveAuthenticatedTransaction<T>(
           sql`SELECT set_config('app.livemode', '${sql.raw(
             Boolean(livemode).toString()
           )}', TRUE);`
+        )
+        // Set operation label for query debugging (automatically derived from TRPC path)
+        await setOperationLabel(
+          transaction,
+          getCurrentOperationName()
         )
 
         const paramsForFn = {
