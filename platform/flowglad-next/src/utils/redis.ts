@@ -124,7 +124,7 @@ const evictionPolicy: Record<
   },
   [RedisKeyNamespace.BannerDismissals]: {
     max: 100000, // up to 100k users
-    ttl: 60 * 60 * 24 * 2, // 2 days - banners reappear after this period
+    // No TTL - dismissals are permanent until manually reset
   },
   [RedisKeyNamespace.StripeOAuthCsrfToken]: {
     max: 10000, // up to 10k concurrent OAuth flows
@@ -251,10 +251,7 @@ export const storeTelemetry = async (
 /**
  * Store a dismissed banner ID for a user.
  * Uses Redis Set to allow per-banner dismissal tracking.
- * Dismissal expires after 2 days, after which banners will reappear.
- *
- * Note: TTL is only set when the key is new to avoid extending the
- * expiration indefinitely with each new dismissal.
+ * Dismissals are permanent until manually reset via resetDismissedBanners.
  */
 export const dismissBanner = async (
   userId: string,
@@ -263,18 +260,7 @@ export const dismissBanner = async (
   try {
     const redisClient = redis()
     const key = `${RedisKeyNamespace.BannerDismissals}:${userId}`
-
-    // Check if key exists before adding - only set TTL on new keys
-    const keyExists = await redisClient.exists(key)
     await redisClient.sadd(key, bannerId)
-
-    // Only set TTL if this is a new key (first dismissal)
-    if (!keyExists) {
-      await redisClient.expire(
-        key,
-        evictionPolicy[RedisKeyNamespace.BannerDismissals].ttl
-      )
-    }
   } catch (error) {
     logger.error('Error dismissing banner', {
       error: error instanceof Error ? error.message : String(error),
@@ -288,10 +274,7 @@ export const dismissBanner = async (
 /**
  * Store multiple dismissed banner IDs for a user in a single operation.
  * More efficient than calling dismissBanner multiple times.
- * Dismissal expires after 2 days, after which banners will reappear.
- *
- * Note: TTL is only set when the key is new to avoid extending the
- * expiration indefinitely with each new dismissal.
+ * Dismissals are permanent until manually reset via resetDismissedBanners.
  */
 export const dismissBanners = async (
   userId: string,
@@ -303,22 +286,11 @@ export const dismissBanners = async (
     const redisClient = redis()
     const key = `${RedisKeyNamespace.BannerDismissals}:${userId}`
 
-    // Check if key exists before adding - only set TTL on new keys
-    const keyExists = await redisClient.exists(key)
-
     // Redis SADD accepts multiple members - cast to satisfy Upstash's tuple types
     await redisClient.sadd(
       key,
       ...(bannerIds as [string, ...string[]])
     )
-
-    // Only set TTL if this is a new key (first dismissal)
-    if (!keyExists) {
-      await redisClient.expire(
-        key,
-        evictionPolicy[RedisKeyNamespace.BannerDismissals].ttl
-      )
-    }
   } catch (error) {
     logger.error('Error dismissing banners', {
       error: error instanceof Error ? error.message : String(error),
