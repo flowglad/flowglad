@@ -3,8 +3,8 @@ We are planning to undertake a relatively complex change to this codebase. We ne
 - what work needs to be done
 - what are the acceptance criteria
 - what cases must we have test coverage for before we land the changes into main?
-- how to break this work into PRs?
-- how can the PRs be parallelized?
+- how to break this work into patches?
+- how can the patches be parallelized?
 - what open questions do we have?
 - what formal decisions have we made so far?
 
@@ -35,10 +35,10 @@ Roughly, the shape should be:
     "Re-use existing `cancelSubscription` logic rather than create new one. That way we can keep one authoritative implementation of all of the side effects rather than have to maintain them in multiple places"
     "Explicitly assume we are not going to make any changes to billing state when updating pricing models. That's the least change to existing behavior (this gameplan only attempts to make the web app behavior available via CLI). And that's the least change to existing data / sidesteps the question of how to handle breaking schema changes on existing subscriptions."
 
-- PRs
-    Make this an ordered list of PRs like: "PR 1: .....".
-    Each PR should include a specific list of files to modify / create / delete, and what specific changes to make.
-    Each PR should also include test cases that we need to have. The list of test cases should be organized in a way that suggests quickly how we might do a vitest describe / it nested pattern to describe groups of cases. Each of the cases should ideally be grouped around a specific scenario, with assertions about what we expect from that scenario. So specific kinds of assertions should be grouped into the same "it" case if they are derived from the same antecedent state / scenario.
+- Patches
+    Make this an ordered list of patches like: "Patch 1: .....".
+    Each patch should include a specific list of files to modify / create / delete, and what specific changes to make.
+    Each patch should also include test cases that we need to have. The list of test cases should be organized in a way that suggests quickly how we might do a vitest describe / it nested pattern to describe groups of cases. Each of the cases should ideally be grouped around a specific scenario, with assertions about what we expect from that scenario. So specific kinds of assertions should be grouped into the same "it" case if they are derived from the same antecedent state / scenario.
     Ideally provide stubbed out test code like so, that will make it really easy for the agent doing the work to implement the details of. Don't actually implement the tests yourself! Just help us think clearly to plan them:
     ```ts
     describe('adjustSubscription' async () => {
@@ -65,10 +65,10 @@ Roughly, the shape should be:
     ```
 
 - Parallelization
-    Specify which PRs block which others and propose how to run the gameplan's PRs in parallel to the extent possible.
+    Specify which patches block which others and propose how to run the gameplan's patches in parallel to the extent possible.
 
 
 # Notes
-- Be explicit rather than wishy washy. It should be easy to pick up the markdown and execute its instructions PR for PR using a coding agent that has none of your context window, but just has access to the codebase
+- Be explicit rather than wishy washy. It should be easy to pick up the markdown and execute its instructions patch-by-patch using a coding agent that has none of your context window, but just has access to the codebase
 - If there are new functions or functions whose signatures will be modified, always include the proposed function signatures. This helps the team build explicit understanding of what we're going to do
 - Don't make it overly verbose. The gameplan should be 10x easier for a human to review and provide pointed feedback about than the code that gets produced as a result
