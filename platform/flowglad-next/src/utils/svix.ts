@@ -1,10 +1,31 @@
+import { type Span, SpanKind } from '@opentelemetry/api'
 import { type ApplicationOut, Svix } from 'svix'
 import { Application } from 'svix/dist/api/application'
 import type { Event } from '@/db/schema/events'
 import type { Organization } from '@/db/schema/organizations'
 import type { Webhook } from '@/db/schema/webhooks'
+import { withSpan } from '@/utils/tracing'
 import { generateHmac } from './backendCore'
 import core from './core'
+
+const withSvixSpan = async <T>(
+  operation: string,
+  attributes: Record<string, string | number | boolean | undefined>,
+  fn: (span: Span) => Promise<T>
+): Promise<T> => {
+  return withSpan(
+    {
+      spanName: `svix.${operation}`,
+      tracerName: 'svix',
+      kind: SpanKind.CLIENT,
+      attributes: {
+        'svix.operation': operation,
+        ...attributes,
+      },
+    },
+    fn
+  )
+}
 
 export function svix() {
   return new Svix(core.envVariable('SVIX_API_KEY'))
@@ -73,20 +94,30 @@ export async function findOrCreateSvixApplication(params: {
     organization,
     livemode,
   })
-  let app: ApplicationOut | undefined
-  try {
-    app = await svix().application.get(applicationId)
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.log('error', error)
-  }
-  if (app) {
-    return app
-  }
-  return await svix().application.create({
-    name: `${organization.name} - (${organization.id} - ${modeSlug})`,
-    uid: applicationId,
-  })
+  return withSvixSpan(
+    'application.findOrCreate',
+    {
+      'svix.org_id': organization.id,
+    },
+    async (span) => {
+      let app: ApplicationOut | undefined
+      try {
+        app = await svix().application.get(applicationId)
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.log('error', error)
+      }
+      if (app) {
+        span.setAttributes({ 'svix.created': false })
+        return app
+      }
+      span.setAttributes({ 'svix.created': true })
+      return await svix().application.create({
+        name: `${organization.name} - (${organization.id} - ${modeSlug})`,
+        uid: applicationId,
+      })
+    }
+  )
 }
 
 export async function createSvixEndpoint(params: {
@@ -101,21 +132,29 @@ export async function createSvixEndpoint(params: {
   if (!applicationId) {
     throw new Error('No application ID found')
   }
-  await findOrCreateSvixApplication({
-    organization,
-    livemode: webhook.livemode,
-  })
-  const endpointId = getSvixEndpointId({
-    organization,
-    webhook,
-    livemode: webhook.livemode,
-  })
-  const endpoint = await svix().endpoint.create(applicationId, {
-    uid: endpointId,
-    url: webhook.url,
-    filterTypes: webhook.filterTypes,
-  })
-  return endpoint
+  return withSvixSpan(
+    'endpoint.create',
+    {
+      'svix.app_id': applicationId,
+    },
+    async () => {
+      await findOrCreateSvixApplication({
+        organization,
+        livemode: webhook.livemode,
+      })
+      const endpointId = getSvixEndpointId({
+        organization,
+        webhook,
+        livemode: webhook.livemode,
+      })
+      const endpoint = await svix().endpoint.create(applicationId, {
+        uid: endpointId,
+        url: webhook.url,
+        filterTypes: webhook.filterTypes,
+      })
+      return endpoint
+    }
+  )
 }
 
 export async function updateSvixEndpoint(params: {
@@ -123,29 +162,41 @@ export async function updateSvixEndpoint(params: {
   organization: Organization.Record
 }) {
   const { webhook, organization } = params
-  const application = await findOrCreateSvixApplication({
+  const applicationId = getSvixApplicationId({
     organization,
     livemode: webhook.livemode,
   })
-  if (!application) {
-    throw new Error('No application found')
-  }
   const endpointId = getSvixEndpointId({
     organization,
     webhook,
     livemode: webhook.livemode,
   })
-
-  const endpoint = await svix().endpoint.patch(
-    application.id,
-    endpointId,
+  return withSvixSpan(
+    'endpoint.update',
     {
-      url: webhook.url,
-      filterTypes: webhook.filterTypes,
-      disabled: !webhook.active,
+      'svix.app_id': applicationId,
+      'svix.endpoint_id': endpointId,
+    },
+    async () => {
+      const application = await findOrCreateSvixApplication({
+        organization,
+        livemode: webhook.livemode,
+      })
+      if (!application) {
+        throw new Error('No application found')
+      }
+      const endpoint = await svix().endpoint.patch(
+        application.id,
+        endpointId,
+        {
+          url: webhook.url,
+          filterTypes: webhook.filterTypes,
+          disabled: !webhook.active,
+        }
+      )
+      return endpoint
     }
   )
-  return endpoint
 }
 
 export async function sendSvixEvent(params: {
@@ -160,15 +211,24 @@ export async function sendSvixEvent(params: {
   if (!applicationId) {
     throw new Error('No application ID found')
   }
-  await svix().message.create(
-    applicationId,
+  return withSvixSpan(
+    'message.create',
     {
-      eventType: event.type,
-      eventId: event.hash,
-      payload: event.payload,
+      'svix.app_id': applicationId,
+      'svix.event_type': event.type,
     },
-    {
-      idempotencyKey: event.hash,
+    async () => {
+      await svix().message.create(
+        applicationId,
+        {
+          eventType: event.type,
+          eventId: event.hash,
+          payload: event.payload,
+        },
+        {
+          idempotencyKey: event.hash,
+        }
+      )
     }
   )
 }
@@ -187,9 +247,18 @@ export async function getSvixSigningSecret(params: {
     organization,
     livemode: webhook.livemode,
   })
-  const secret = await svix().endpoint.getSecret(
-    applicationId,
-    endpointId
+  return withSvixSpan(
+    'endpoint.getSecret',
+    {
+      'svix.app_id': applicationId,
+      'svix.endpoint_id': endpointId,
+    },
+    async () => {
+      const secret = await svix().endpoint.getSecret(
+        applicationId,
+        endpointId
+      )
+      return secret
+    }
   )
-  return secret
 }
