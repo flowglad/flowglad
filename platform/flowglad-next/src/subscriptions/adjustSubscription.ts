@@ -315,6 +315,12 @@ export interface AdjustSubscriptionResult {
    * An upgrade means the new plan total is greater than the old plan total.
    */
   isUpgrade: boolean
+  /**
+   * The trigger.dev run ID for the billing run task, if one was triggered.
+   * Only present when an immediate adjustment with proration triggers a billing run.
+   * The caller should wait for this run to complete before considering the adjustment done.
+   */
+  pendingBillingRunId?: string
 }
 
 /**
@@ -598,6 +604,9 @@ export const adjustSubscription = async (
   // Create proration adjustments when there's a net charge AND proration is enabled
   const prorationAdjustments: BillingPeriodItem.Insert[] = []
 
+  // Track pending billing run ID for immediate adjustments with proration
+  let pendingBillingRunId: string | undefined
+
   if (netChargeAmount > 0 && shouldProrate) {
     // Format description similar to createSubscription pattern: single-line with key info
     const prorationPercentage = (split.afterPercentage * 100).toFixed(
@@ -664,14 +673,15 @@ export const adjustSubscription = async (
         livemode: subscription.livemode,
       })
     )
-    await attemptBillingRunTask.trigger({
+    const billingRunHandle = await attemptBillingRunTask.trigger({
       billingRun,
       adjustmentParams: {
-        newSubscriptionItems:
-          preparedItemsForBillingRun as SubscriptionItem.Record[],
+        newSubscriptionItems: preparedItemsForBillingRun,
         adjustmentDate,
       },
     })
+    // Store the run ID so the caller can wait for the billing run to complete
+    pendingBillingRunId = billingRunHandle.id
   } else {
     // Either:
     // - Zero-amount adjustment (downgrade with no refund)
@@ -779,5 +789,6 @@ export const adjustSubscription = async (
     subscriptionItems: currentSubscriptionItems,
     resolvedTiming,
     isUpgrade,
+    pendingBillingRunId,
   }
 }

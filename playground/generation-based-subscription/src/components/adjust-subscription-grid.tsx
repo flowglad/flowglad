@@ -21,7 +21,9 @@ interface AdjustSubscriptionGridProps {
 }
 
 /**
- * AdjustSubscriptionGrid component displays all available plans for switching
+ * AdjustSubscriptionGrid component displays all available plans for switching.
+ * The adjustSubscription API is atomic - it waits for any billing run to complete
+ * before returning, so no client-side polling or realtime subscription is needed.
  */
 export function AdjustSubscriptionGrid({
   onSuccess,
@@ -197,69 +199,17 @@ export function AdjustSubscriptionGrid({
     setError(null)
 
     try {
-      console.log('Adjusting subscription to:', selectedPlan.slug)
-      const result = await billing.adjustSubscription(
-        selectedPlan.slug
-      )
-      console.log('Adjustment result:', result)
+      // The API is atomic - it waits for any billing run to complete before returning
+      await billing.adjustSubscription(selectedPlan.slug)
 
-      // For upgrades, the subscription items are updated async after payment processes.
-      // Poll the billing data until the subscription reflects the new plan.
-      // Note: resolvedTiming is in the API response but may not be in the SDK types
-      const response = result.subscription as {
-        resolvedTiming?:
-          | 'immediately'
-          | 'at_end_of_current_billing_period'
-      }
-      if (response.resolvedTiming === 'immediately') {
-        const newPlanPrice = billing.getPrice(selectedPlan.slug)
-        const targetPriceId = newPlanPrice?.id
-
-        // Poll up to 10 times with 1 second intervals (10 seconds total)
-        // to wait for the async billing run to complete
-        let attempts = 0
-        const maxAttempts = 10
-        const pollInterval = 1000
-
-        while (attempts < maxAttempts) {
-          attempts++
-          await new Promise((resolve) =>
-            setTimeout(resolve, pollInterval)
-          )
-
-          // Reload billing data
-          if (billing.reload) {
-            await billing.reload()
-          }
-
-          // Check if subscription has been updated to new plan
-          const updatedSubscription =
-            billing.currentSubscriptions?.[0]
-          if (
-            updatedSubscription?.priceId === targetPriceId ||
-            updatedSubscription?.name === selectedPlan.name
-          ) {
-            console.log(
-              `Subscription updated after ${attempts} polling attempts`
-            )
-            break
-          }
-
-          console.log(
-            `Polling attempt ${attempts}/${maxAttempts} - subscription not yet updated`
-          )
-        }
-
-        // Final reload to ensure we have the latest state
-        if (billing.reload) {
-          await billing.reload()
-        }
+      // Reload billing data to get the updated subscription
+      if (billing.reload) {
+        await billing.reload()
       }
 
       setSelectedPlan(null)
       onSuccess?.()
     } catch (err) {
-      console.error('Adjustment error:', err)
       const errorMsg =
         err instanceof Error
           ? err.message
@@ -317,6 +267,12 @@ export function AdjustSubscriptionGrid({
   }
 
   const proratedAmount = calculateProratedAmount()
+
+  // Helper function to get the confirm button text
+  const getConfirmButtonText = () => {
+    if (isLoading) return 'Processing...'
+    return isUpgrade ? 'Confirm Upgrade' : 'Confirm Change'
+  }
 
   return (
     <div className="w-full space-y-4">
@@ -448,11 +404,7 @@ export function AdjustSubscriptionGrid({
               Cancel
             </Button>
             <Button onClick={handleConfirm} disabled={isLoading}>
-              {isLoading
-                ? 'Processing...'
-                : isUpgrade
-                  ? 'Confirm Upgrade'
-                  : 'Confirm Change'}
+              {getConfirmButtonText()}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -51,6 +51,10 @@ export function AdjustSubscriptionCard({
     return <div>Billing not available</div>
   }
 
+  if (!billing.getPrice) {
+    return <div>Billing not available</div>
+  }
+
   const priceSlug = plan.slug
   const displayPrice = plan.displayPrice
 
