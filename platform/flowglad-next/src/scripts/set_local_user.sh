@@ -36,6 +36,10 @@ else
     fi
     # Get the LOCAL_USER variable from the .env_user file
     local_user=$(grep '^LOCAL_USER=' "$src_env_file" | cut -d '=' -f2)
+    if [ -z "$local_user" ]; then
+        echo "LOCAL_USER not found in $src_env_file."
+        exit 4
+    fi
 fi
 
 # Strip the ${local_user} part from the existing variables in the target env file
