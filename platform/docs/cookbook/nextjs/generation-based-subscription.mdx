@@ -101,17 +101,7 @@ const balance = billing.checkUsageBalance('fast_generations');
 // balance.availableBalance - credits remaining
 ```
 
-The balance includes both subscription credits and any purchased top-ups. Flowglad automatically draws from credits when you register a usage event (see [below](/cookbook/nextjs/generation-based-subscription#recording-usage)).
-
-### Checking Feature Access
-
-Toggle features let you differentiate plans beyond just credit amounts. Use `checkFeatureAccess` to check if a user has access to gated premium features.
-
-```tsx src/app/example.tsx
-const hasRelaxMode = billing.checkFeatureAccess('unlimited_relaxed_images');
-```
-
-This returns `true` if the customer's current subscription includes the feature, `false` otherwise.
+The balance includes both subscription credits and any purchased top-ups. Flowglad automatically draws from credits when you register a usage event.
 
 ### Recording Usage
 
@@ -131,6 +121,16 @@ await flowgladServer.createUsageEvent({
 ```
 
 The `transactionId` parameter ensures idempotency (generated and sent from the client). If the same event is sent twice (e.g., due to a retry), it won't double-count usage.
+
+### Checking Feature Access
+
+Toggle features let you differentiate plans beyond just credit amounts. Use `checkFeatureAccess` to check if a user has access to gated premium features.
+
+```tsx src/app/example.tsx
+const hasRelaxMode = billing.checkFeatureAccess('unlimited_relaxed_images');
+```
+
+This returns `true` if the customer's current subscription includes the feature, `false` otherwise.
 
 ### Purchasing Top-Up Credits
 
