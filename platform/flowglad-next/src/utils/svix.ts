@@ -27,6 +27,11 @@ const withSvixSpan = async <T>(
   )
 }
 
+/**
+ * Create a Svix client configured from the `SVIX_API_KEY` environment variable.
+ *
+ * @returns A Svix client instance initialized with the value of `SVIX_API_KEY`.
+ */
 export function svix() {
   return new Svix(core.envVariable('SVIX_API_KEY'))
 }
@@ -84,6 +89,15 @@ export function getSvixEndpointId(params: {
   })
 }
 
+/**
+ * Ensures a Svix application exists for the given organization and livemode.
+ *
+ * Attempts to fetch a Svix application by its deterministic ID and creates a new application with a name derived from the organization if no existing application is found. The OpenTelemetry span used for the operation is annotated with the attribute `svix.created` set to `true` when a new application is created and `false` when an existing application is returned.
+ *
+ * @param organization - Organization record used to compute the Svix application ID and display name
+ * @param livemode - When `true`, use the live-mode application ID; when `false`, use the test-mode application ID
+ * @returns The existing or newly created Svix application
+ */
 export async function findOrCreateSvixApplication(params: {
   organization: Organization.Record
   livemode: boolean
@@ -120,6 +134,16 @@ export async function findOrCreateSvixApplication(params: {
   )
 }
 
+/**
+ * Create a Svix endpoint for the given webhook and organization.
+ *
+ * Ensures the corresponding Svix application exists for the webhook's livemode, then creates and returns an endpoint configured with the webhook's URL and filter types.
+ *
+ * @param params.organization - The organization record used to derive the Svix application ID
+ * @param params.webhook - The webhook record whose URL, livemode, and filterTypes are used to create the endpoint
+ * @returns The created Svix endpoint object
+ * @throws If no application ID can be derived for the organization and webhook livemode
+ */
 export async function createSvixEndpoint(params: {
   organization: Organization.Record
   webhook: Webhook.Record
@@ -157,6 +181,14 @@ export async function createSvixEndpoint(params: {
   )
 }
 
+/**
+ * Update the Svix endpoint for a webhook using the organization's Svix application.
+ *
+ * @param params.webhook - Webhook record whose `url`, `filterTypes`, `active`, and `livemode` are applied to the endpoint
+ * @param params.organization - Organization record used to derive or create the Svix application
+ * @returns The updated Svix endpoint object
+ * @throws Error if the corresponding Svix application cannot be found or created
+ */
 export async function updateSvixEndpoint(params: {
   webhook: Webhook.Record
   organization: Organization.Record
@@ -199,6 +231,14 @@ export async function updateSvixEndpoint(params: {
   )
 }
 
+/**
+ * Send the provided event to Svix for the given organization.
+ *
+ * @param event - The event record to deliver; its `livemode` and `type` determine routing and metadata.
+ * @param organization - The organization record used to derive the Svix application identifier.
+ *
+ * @throws If no Svix application ID can be derived for the organization and event livemode.
+ */
 export async function sendSvixEvent(params: {
   event: Event.Record
   organization: Organization.Record
@@ -233,6 +273,13 @@ export async function sendSvixEvent(params: {
   )
 }
 
+/**
+ * Retrieve the Svix signing secret for a webhook endpoint associated with an organization.
+ *
+ * @param webhook - The webhook record identifying the endpoint and its livemode
+ * @param organization - The organization that owns the endpoint
+ * @returns The endpoint's signing secret
+ */
 export async function getSvixSigningSecret(params: {
   webhook: Webhook.Record
   organization: Organization.Record
