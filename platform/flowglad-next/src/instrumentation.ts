@@ -47,6 +47,24 @@ export async function register() {
       serviceName:
         process.env.FLOWGLAD_OTEL_SERVICE_NAME || 'flowglad-api',
       traceSampler: sampler,
+      instrumentationConfig: {
+        fetch: {
+          ignoreUrls: [
+            // Don't trace OTEL exporter calls to BetterStack.
+            // This prevents recursive tracing where the exporter's HTTP calls
+            // appear as slow spans in traces.
+            //
+            // TODO: When we move off Vercel, switch to an OpenTelemetry Collector
+            // sidecar pattern instead. The app would export to localhost:4318
+            // (fast, no network latency) and the collector handles batching,
+            // retries, and forwarding to BetterStack. This eliminates the need
+            // for ignoreUrls and reduces export overhead in the application.
+            /betterstackdata\.com/,
+            /logs\.betterstack\.com/,
+            /in-otel\.logs\.betterstack\.com/,
+          ],
+        },
+      },
     })
   } finally {
     // Restore original variables for trigger.dev to use
