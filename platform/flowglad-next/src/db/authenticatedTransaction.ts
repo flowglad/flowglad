@@ -1,9 +1,6 @@
 import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
-import type {
-  AuthenticatedTransactionParams,
-  DbTransaction,
-} from '@/db/types'
+import type { AuthenticatedTransactionParams } from '@/db/types'
 import core from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
@@ -218,7 +215,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
     if (output.eventsToInsert && output.eventsToInsert.length > 0) {
       await bulkInsertOrDoNothingEventsByHash(
         output.eventsToInsert,
-        transaction as DbTransaction
+        transaction
       )
     }
 
