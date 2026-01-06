@@ -6,10 +6,8 @@ import Link from 'next/link'
 import { useState } from 'react'
 import {
   BookOpen,
-  ChevronsUpDown,
   ExternalLink,
   FinishSetupIcon,
-  Flag,
   LogOut,
   RiDiscordFill,
   SettingsIcon,
@@ -33,7 +31,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useSidebar } from '@/components/ui/sidebar'
-import { Switch } from '@/components/ui/switch'
 import { useOrganizationList } from '@/hooks/useOrganizationList'
 import { cn } from '@/lib/utils'
 import { BusinessOnboardingStatus } from '@/types'
@@ -51,8 +48,6 @@ export type NavUserProps = {
     onboardingStatus: BusinessOnboardingStatus
   }
   onSignOut: () => void
-  onTestModeToggle: (enabled: boolean) => void
-  testModeEnabled: boolean
 }
 
 /**
@@ -71,8 +66,6 @@ export const NavUser: React.FC<NavUserProps> = ({
   user,
   organization,
   onSignOut,
-  onTestModeToggle,
-  testModeEnabled,
 }) => {
   const { state } = useSidebar()
   const isCollapsed = state === 'collapsed'
@@ -125,23 +118,20 @@ export const NavUser: React.FC<NavUserProps> = ({
               </AvatarFallback>
             </Avatar>
             {!isCollapsed && (
-              <>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span
-                    className="truncate text-sm font-semibold text-sidebar-accent-foreground"
-                    data-testid="nav-user-name"
-                  >
-                    {user.name}
-                  </span>
-                  <span
-                    className="truncate text-xs font-medium text-muted-foreground"
-                    data-testid="nav-user-org"
-                  >
-                    {organization.name}
-                  </span>
-                </div>
-                <ChevronsUpDown className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
-              </>
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span
+                  className="truncate text-sm font-semibold text-sidebar-accent-foreground"
+                  data-testid="nav-user-name"
+                >
+                  {user.name}
+                </span>
+                <span
+                  className="truncate text-xs font-medium text-muted-foreground"
+                  data-testid="nav-user-org"
+                >
+                  {organization.name}
+                </span>
+              </div>
             )}
           </button>
         </DropdownMenuTrigger>
@@ -227,25 +217,6 @@ export const NavUser: React.FC<NavUserProps> = ({
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault()
-              }}
-              className="flex items-center justify-between"
-              data-testid="nav-user-test-mode"
-            >
-              <div className="flex items-center gap-2">
-                <Flag className="h-4 w-4" />
-                <span>Test Mode</span>
-              </div>
-              <Switch
-                checked={testModeEnabled}
-                onCheckedChange={onTestModeToggle}
-                aria-label="Toggle test mode"
-                data-testid="nav-user-test-mode-switch"
-                className="scale-75"
-              />
-            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link
                 href="/settings"
