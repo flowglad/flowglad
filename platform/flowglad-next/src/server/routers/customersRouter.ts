@@ -59,6 +59,7 @@ import {
   type RouteConfig,
   trpcToRest,
 } from '@/utils/openapi'
+import { tracedTrigger } from '@/utils/triggerTracing'
 import { router } from '../trpc'
 import { errorHandlers } from '../trpcErrorHandler'
 
@@ -474,18 +475,26 @@ const exportCsvProcedure = protectedProcedure
 
         // Early return if over limit - no additional DB operations
         if (totalCustomers > CUSTOMER_LIMIT) {
-          await generateCsvExportTask.trigger(
-            {
-              userId,
-              organizationId,
-              filters,
-              searchQuery,
-              livemode,
-            },
-            {
-              idempotencyKey: await createTriggerIdempotencyKey(
-                `generate-csv-export-${organizationId}-${userId}-${Date.now()}`
+          await tracedTrigger(
+            'generateCsvExport',
+            async () =>
+              generateCsvExportTask.trigger(
+                {
+                  userId,
+                  organizationId,
+                  filters,
+                  searchQuery,
+                  livemode,
+                },
+                {
+                  idempotencyKey: await createTriggerIdempotencyKey(
+                    `generate-csv-export-${organizationId}-${userId}-${Date.now()}`
+                  ),
+                }
               ),
+            {
+              'trigger.organization_id': organizationId,
+              'trigger.livemode': livemode,
             }
           )
 
