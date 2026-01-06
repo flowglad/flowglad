@@ -100,6 +100,43 @@ function createDefaultPresets(): DateRangePreset[] {
   ]
 }
 
+/**
+ * Checks if two date ranges match (comparing by date string to ignore time).
+ */
+function dateRangesMatch(
+  range1: { from: Date; to: Date },
+  range2: { from: Date; to: Date }
+): boolean {
+  return (
+    range1.from.toDateString() === range2.from.toDateString() &&
+    range1.to.toDateString() === range2.to.toDateString()
+  )
+}
+
+/**
+ * Finds the matching preset label for a given date range.
+ * When multiple presets match (e.g., "Month to date" and "Year to date" in January),
+ * prioritizes "Year to date" over "Month to date".
+ */
+function findMatchingPresetLabel(
+  fromDate: Date,
+  toDate: Date,
+  presets: DateRangePreset[]
+): string | null {
+  const matches = presets.filter((preset) =>
+    dateRangesMatch({ from: fromDate, to: toDate }, preset.dateRange)
+  )
+
+  if (matches.length === 0) return null
+
+  // Prioritize "Year to date" over other matches (relevant in January)
+  const yearToDate = matches.find((m) => m.label === 'Year to date')
+  if (yearToDate) return yearToDate.label
+
+  // Otherwise return the first match
+  return matches[0].label
+}
+
 interface DateRangePickerProps {
   fromDate?: Date
   toDate?: Date
@@ -130,6 +167,11 @@ export function DateRangePicker({
   // When false, we show the preview and don't pass `selected` to Calendar
   const [hasStartedSelecting, setHasStartedSelecting] =
     React.useState(false)
+
+  // Track explicitly selected preset label (for when user clicks a preset button)
+  // This ensures "Month to date" shows when clicked, even if "Year to date" also matches
+  const [selectedPresetLabel, setSelectedPresetLabel] =
+    React.useState<string | null>(null)
 
   // Internal state for in-progress selection
   const [internalRange, setInternalRange] = React.useState<
@@ -181,6 +223,8 @@ export function DateRangePicker({
   }
 
   const handlePresetClick = (preset: DateRangePreset) => {
+    // Store the preset label so it shows in the trigger button
+    setSelectedPresetLabel(preset.label)
     // Apply preset immediately and close the popover
     onSelect({
       from: preset.dateRange.from,
@@ -192,6 +236,8 @@ export function DateRangePicker({
   const handleApply = () => {
     // Only apply if we have a complete range
     if (internalRange?.from && internalRange?.to) {
+      // Clear preset label since user selected custom dates via calendar
+      setSelectedPresetLabel(null)
       onSelect(internalRange)
       setOpen(false)
     }
@@ -204,6 +250,12 @@ export function DateRangePicker({
     setOpen(false)
   }
 
+  // Generate fresh presets for trigger button display (needs to work when popover is closed)
+  const triggerPresets = React.useMemo(() => {
+    if (presets) return presets
+    return createDefaultPresets()
+  }, [presets, fromDate, toDate])
+
   // Format for trigger button (committed range from props)
   const formatDateRange = () => {
     if (!fromDate) {
@@ -213,6 +265,31 @@ export function DateRangePicker({
       return format(fromDate, 'LLL dd, y')
     }
     if (fromDate && toDate) {
+      // First, check if user explicitly selected a preset that still matches
+      if (selectedPresetLabel) {
+        const selectedPreset = triggerPresets.find(
+          (p) => p.label === selectedPresetLabel
+        )
+        if (
+          selectedPreset &&
+          dateRangesMatch(
+            { from: fromDate, to: toDate },
+            selectedPreset.dateRange
+          )
+        ) {
+          return selectedPresetLabel
+        }
+      }
+
+      // Otherwise, infer the preset label (with Year to date priority)
+      const presetLabel = findMatchingPresetLabel(
+        fromDate,
+        toDate,
+        triggerPresets
+      )
+      if (presetLabel) {
+        return presetLabel
+      }
       return `${format(fromDate, 'LLL dd, y')} - ${format(toDate, 'LLL dd, y')}`
     }
     return placeholder
@@ -284,10 +361,8 @@ export function DateRangePicker({
           <Button
             id="date"
             variant="secondary"
-            className={cn(
-              'h-8 justify-start text-left font-normal',
-              !fromDate && 'text-muted-foreground'
-            )}
+            size="sm"
+            className={cn(!fromDate && 'text-muted-foreground')}
             disabled={disabled}
           >
             {formatDateRange()}
@@ -300,7 +375,7 @@ export function DateRangePicker({
         >
           <div className="flex flex-col sm:flex-row">
             {/* Presets - horizontal scroll on mobile, vertical sidebar on desktop */}
-            <div className="flex h-14 w-full items-center gap-2 border-b border-border px-3 overflow-x-auto sm:h-auto sm:w-auto sm:flex-col sm:items-stretch sm:gap-0 sm:border-b-0 sm:border-r sm:px-0 sm:py-2 sm:overflow-visible">
+            <div className="flex h-14 w-full items-center gap-2 border-b border-dashed border-border px-3 overflow-x-auto sm:h-auto sm:w-auto sm:flex-col sm:items-stretch sm:gap-0 sm:border-b-0 sm:border-r sm:px-0 sm:py-2 sm:overflow-visible">
               {activePresets.map((preset) => (
                 <Button
                   key={preset.label}
@@ -308,7 +383,8 @@ export function DateRangePicker({
                   size="sm"
                   className={cn(
                     'shrink-0 font-normal sm:border-0 sm:bg-transparent sm:rounded-none sm:justify-start',
-                    isPresetActive(preset) && 'font-medium bg-accent'
+                    isPresetActive(preset) &&
+                      'font-medium bg-accent sm:bg-accent'
                   )}
                   onClick={() => handlePresetClick(preset)}
                 >
@@ -341,7 +417,7 @@ export function DateRangePicker({
               </div>
 
               {/* Footer with Range label and buttons */}
-              <div className="border-t border-border px-3 py-2 sm:flex sm:items-center sm:justify-between">
+              <div className="border-t border-dashed border-border px-3 py-2 sm:flex sm:items-center sm:justify-between">
                 <div className="text-sm text-muted-foreground">
                   <span className="font-medium text-foreground">
                     Range:
