@@ -12,17 +12,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ msg: "provide the email" }, { status: 400 });
     }
     const userExists = await db.select().from(user).where(eq(user.email, email));
-    if (userExists.length === 0) {  
-      return NextResponse.json({ msg: "user with this email do not exist!" }, { status: 404 });
-    }
-
-     await authClient.requestPasswordReset({
+    if (userExists.length > 0) {  
+       await authClient.requestPasswordReset({
      email: email ?? '',
      redirectTo: '/sign-in/reset-password',
         })
-    return NextResponse.json({ msg: "Password reset email sent" , success:true}, {status:200});
+    }
+
+    
+   return NextResponse.json({ message: "If an account exists with this email, a password reset link has been sent" , success: true}, {status: 200});
+
   } catch (e) {
     console.error(e); 
-    return NextResponse.json({ msg: `error found: ${e}` }, { status: 500 });
+     return NextResponse.json({ message: "An error occurred while processing your request" }, { status: 500 });
+   
   }
 }
