@@ -302,26 +302,29 @@ export const GET = async (request: NextRequest) => {
      */
     if (purchase) {
       const priceId = purchase.priceId
-      const { product } = await adminTransaction(
+      const priceResult = await adminTransaction(
         async ({ transaction }) => {
-          const [{ product }] =
+          const rows =
             await selectPriceProductAndOrganizationByPriceWhere(
               {
                 id: priceId,
               },
               transaction
             )
-          return { product }
+          return rows[0] ?? null
         }
       )
 
       /**
        * As the purchase session cookie is no longer needed, delete it.
+       * Skip if the price/product lookup fails (data inconsistency).
        */
-      await deleteCheckoutSessionCookie({
-        purchaseId: purchase.id,
-        productId: product.id,
-      })
+      if (priceResult) {
+        await deleteCheckoutSessionCookie({
+          purchaseId: purchase.id,
+          productId: priceResult.product.id,
+        })
+      }
     }
 
     return Response.redirect(url, 303)
