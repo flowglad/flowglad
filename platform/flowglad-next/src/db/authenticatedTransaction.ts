@@ -182,10 +182,10 @@ export async function comprehensiveAuthenticatedTransaction<T>(
 
         // Set additional attributes after transaction completes
         span.setAttributes({
-          'db.has_events': (output.eventsToInsert?.length ?? 0) > 0,
-          'db.has_ledger_commands':
-            !!output.ledgerCommand ||
-            (output.ledgerCommands?.length ?? 0) > 0,
+          'db.events_count': output.eventsToInsert?.length ?? 0,
+          'db.ledger_commands_count': output.ledgerCommand
+            ? 1
+            : (output.ledgerCommands?.length ?? 0),
         })
 
         // Validate that only one of ledgerCommand or ledgerCommands is provided
