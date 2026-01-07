@@ -14,6 +14,10 @@ Note that this should be easy to review, and not super voluminuous - the whole i
 
 Roughly, the shape should be:
 
+- Project Name
+  A short, kebab-case identifier for this gameplan (e.g., `subscription-adjustments`, `usage-billing-v2`).
+  This name is used in branch names and PR titles to identify which gameplan a patch belongs to.
+
 - Problem Statement
   A concise (2-4 sentences) description of what problem we're solving and why.
 
