@@ -7,6 +7,7 @@ import {
 import {
   createPriceSchema,
   editPriceSchema,
+  Price,
   pricesClientSelectSchema,
   pricesPaginatedListSchema,
   pricesPaginatedSelectSchema,
@@ -111,39 +112,44 @@ export const updatePrice = protectedProcedure
           })
         }
 
-        const product = await selectProductById(
-          existingPrice.productId,
-          transaction
-        )
-        if (!product) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'Product not found',
-          })
-        }
+        // FIXME: PR 3 - Product validation only applies to non-usage prices.
+        // Usage prices don't have productId, so skip product-related validation.
+        let product = null
+        if (Price.hasProductId(existingPrice)) {
+          product = await selectProductById(
+            existingPrice.productId,
+            transaction
+          )
+          if (!product) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: 'Product not found',
+            })
+          }
 
-        // Validate that default prices on default products maintain their constraints
-        validateDefaultPriceUpdate(price, existingPrice, product)
+          // Validate that default prices on default products maintain their constraints
+          validateDefaultPriceUpdate(price, existingPrice, product)
+
+          // Disallow slug changes for the default price of a default product
+          if (
+            product.default &&
+            existingPrice.isDefault &&
+            price.slug !== undefined &&
+            price.slug !== existingPrice.slug
+          ) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message:
+                'Cannot change the slug of the default price for a default product',
+            })
+          }
+        }
 
         // Validate immutable fields for ALL prices
         validatePriceImmutableFields({
           update: price,
           existing: existingPrice,
         })
-
-        // Disallow slug changes for the default price of a default product
-        if (
-          product.default &&
-          existingPrice.isDefault &&
-          price.slug !== undefined &&
-          price.slug !== existingPrice.slug
-        ) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message:
-              'Cannot change the slug of the default price for a default product',
-          })
-        }
 
         const updatedPrice = await safelyUpdatePrice(
           {

@@ -392,6 +392,8 @@ export const updatePricingModelTransaction = async (
                 `Usage meter ${price.usageMeterSlug} not found`
               )
             }
+            // Usage prices don't have productId (they belong to usage meters).
+            // We need to provide pricingModelId explicitly since it can't be derived from productId.
             return {
               type: PriceType.Usage,
               name: price.name ?? null,
@@ -401,10 +403,11 @@ export const updatePricingModelTransaction = async (
               active: price.active,
               intervalCount: price.intervalCount,
               intervalUnit: price.intervalUnit,
-              trialPeriodDays: price.trialPeriodDays,
+              trialPeriodDays: null,
               usageEventsPerUnit: price.usageEventsPerUnit,
               currency: organization.defaultCurrency,
-              productId: product.id,
+              productId: null, // Usage prices don't have productId
+              pricingModelId: pricingModel.id, // Explicit for usage prices
               livemode: pricingModel.livemode,
               externalId: null,
               usageMeterId,
@@ -572,6 +575,8 @@ export const updatePricingModelTransaction = async (
                 `Usage meter ${price.usageMeterSlug} not found`
               )
             }
+            // Usage prices don't have productId (they belong to usage meters).
+            // We need to provide pricingModelId explicitly since it can't be derived from productId.
             return {
               type: PriceType.Usage,
               name: price.name ?? null,
@@ -581,10 +586,11 @@ export const updatePricingModelTransaction = async (
               active: price.active,
               intervalCount: price.intervalCount,
               intervalUnit: price.intervalUnit,
-              trialPeriodDays: price.trialPeriodDays,
+              trialPeriodDays: null,
               usageEventsPerUnit: price.usageEventsPerUnit,
               currency: organization.defaultCurrency,
-              productId: change.productId,
+              productId: null, // Usage prices don't have productId
+              pricingModelId: pricingModel.id, // Explicit for usage prices
               livemode: pricingModel.livemode,
               externalId: null,
               usageMeterId,

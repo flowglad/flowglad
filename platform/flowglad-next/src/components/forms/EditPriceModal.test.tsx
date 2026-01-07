@@ -208,8 +208,10 @@ describe('parseEditPriceDefaultValues', () => {
 
     describe('Usage Price Type', () => {
       it('should accept valid usage-based price', () => {
+        // FIXME: PR 2 - Usage prices should have productId: null
         const validUsage: Price.ClientRecord = {
           ...basePrice,
+          productId: null, // Usage prices don't have productId
           type: PriceType.Usage,
           unitPrice: 50,
           intervalCount: 1,
@@ -217,7 +219,7 @@ describe('parseEditPriceDefaultValues', () => {
           trialPeriodDays: null,
           usageEventsPerUnit: 100,
           usageMeterId: 'meter_test123',
-        } as Price.ClientRecord
+        } as unknown as Price.ClientRecord
 
         expect(() =>
           parseEditPriceDefaultValues(validUsage)
@@ -236,8 +238,10 @@ describe('parseEditPriceDefaultValues', () => {
       })
 
       it('should accept usage price with different usage events per unit', () => {
+        // FIXME: PR 2 - Usage prices should have productId: null
         const usagePrice: Price.ClientRecord = {
           ...basePrice,
+          productId: null, // Usage prices don't have productId
           type: PriceType.Usage,
           unitPrice: 1000,
           intervalCount: 1,
@@ -245,7 +249,7 @@ describe('parseEditPriceDefaultValues', () => {
           trialPeriodDays: null,
           usageEventsPerUnit: 1000,
           usageMeterId: 'meter_api_calls',
-        } as Price.ClientRecord
+        } as unknown as Price.ClientRecord
 
         expect(() =>
           parseEditPriceDefaultValues(usagePrice)
@@ -333,8 +337,10 @@ describe('parseEditPriceDefaultValues', () => {
     })
 
     it('should throw for Usage type without usageMeterId', () => {
+      // FIXME: PR 2 - Usage prices should have productId: null
       const usageWithoutMeter = {
         ...basePrice,
+        productId: null,
         type: PriceType.Usage,
         unitPrice: 100,
         intervalCount: 1,
@@ -342,7 +348,7 @@ describe('parseEditPriceDefaultValues', () => {
         trialPeriodDays: null,
         usageEventsPerUnit: 100,
         usageMeterId: null as any,
-      } as Price.ClientRecord
+      } as unknown as Price.ClientRecord
 
       expect(() =>
         parseEditPriceDefaultValues(usageWithoutMeter)
@@ -350,8 +356,10 @@ describe('parseEditPriceDefaultValues', () => {
     })
 
     it('should throw for Usage type without usageEventsPerUnit', () => {
+      // FIXME: PR 2 - Usage prices should have productId: null
       const usageWithoutEvents = {
         ...basePrice,
+        productId: null,
         type: PriceType.Usage,
         unitPrice: 100,
         intervalCount: 1,
@@ -359,7 +367,7 @@ describe('parseEditPriceDefaultValues', () => {
         trialPeriodDays: null,
         usageEventsPerUnit: null as any,
         usageMeterId: 'meter_test123',
-      } as Price.ClientRecord
+      } as unknown as Price.ClientRecord
 
       expect(() =>
         parseEditPriceDefaultValues(usageWithoutEvents)

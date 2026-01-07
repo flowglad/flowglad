@@ -5,7 +5,7 @@ import type { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Price } from '@/db/schema/prices'
+import { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
@@ -176,6 +176,14 @@ export const createAndFinalizeSubscriptionFeeCalculation = async (
     subscription.priceId,
     transaction
   )
+  // FIXME: PR 3 - Product lookup only applies to non-usage prices.
+  // Usage prices don't have productId. For now, throw an error if this is called
+  // for a usage price since we don't have a product to associate with fee calculation.
+  if (!Price.hasProductId(price)) {
+    throw new Error(
+      `Cannot create fee calculation for usage price ${price.id} - usage prices don't have a product`
+    )
+  }
   const product = await selectProductById(
     price.productId,
     transaction

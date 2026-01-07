@@ -107,7 +107,6 @@ describe('usage_events RLS policies', () => {
 
     // Setup prices
     price1 = await setupPrice({
-      productId: org1Data.product.id,
       name: 'Test Price 1',
       type: PriceType.Usage,
       unitPrice: 100,
@@ -118,7 +117,6 @@ describe('usage_events RLS policies', () => {
       usageMeterId: usageMeter1.id,
     })
     price2 = await setupPrice({
-      productId: org2Data.product.id,
       name: 'Test Price 2',
       type: PriceType.Usage,
       unitPrice: 200,
@@ -377,7 +375,6 @@ describe('usageEvents schema - nullable priceId', () => {
     })
 
     price = await setupPrice({
-      productId: orgData.product.id,
       name: 'Test Usage Price',
       type: PriceType.Usage,
       unitPrice: 10,

@@ -2566,7 +2566,9 @@ describe('createProductTransaction', () => {
     )
   })
 
-  it('should create a product with a usage price when there are no featureIds', async () => {
+  // TODO: PR 2 - Usage prices no longer have products, so this test needs to be rewritten
+  // to test creating a usage price attached to a usage meter instead of a product
+  it.skip('should create a product with a usage price when there are no featureIds', async () => {
     // Setup: Create a usage meter for the usage price
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,

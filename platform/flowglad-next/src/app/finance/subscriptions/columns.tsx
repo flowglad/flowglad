@@ -109,10 +109,14 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
   },
   {
     id: 'productName',
-    accessorFn: (row) => row.product.name,
+    // FIXME: PR 3 - Product may be null for usage-based subscriptions
+    accessorFn: (row) => row.product?.name ?? '-',
     header: 'Product',
     cell: ({ row }) => {
       const product = row.original.product
+      if (!product) {
+        return <div className="text-muted-foreground">-</div>
+      }
       return (
         <div>
           <DataTableLinkableCell href={`/products/${product.id}`}>

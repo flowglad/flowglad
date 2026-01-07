@@ -187,7 +187,6 @@ describe('billingRunHelpers', async () => {
     })
 
     usageBasedPrice = await setupPrice({
-      productId: product.id,
       name: 'Global Usage Based Price',
       type: PriceType.Usage,
       unitPrice: 15,
@@ -2310,7 +2309,6 @@ describe('billingRunHelpers', async () => {
       })
 
       usageBasedPrice = await setupPrice({
-        productId: product.id,
         name: 'Metered Price For Tabulation',
         type: PriceType.Usage,
         unitPrice: 10,
@@ -3259,7 +3257,6 @@ describe('billingRunHelpers', async () => {
       })
 
       usageBasedPrice = await setupPrice({
-        productId: product.id,
         name: 'Usage Based Price For DoNotCharge',
         type: PriceType.Usage,
         unitPrice: 15,

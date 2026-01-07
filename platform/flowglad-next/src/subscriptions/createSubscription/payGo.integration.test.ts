@@ -115,7 +115,6 @@ describe('Pay as You Go Workflow E2E', () => {
       isDefault: true,
     })
     const usagePrice = await setupPrice({
-      productId: paidProduct.id,
       name: 'Usage Price',
       type: PriceType.Usage,
       unitPrice: 100,

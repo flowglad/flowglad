@@ -61,7 +61,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
     })
 
     price = await setupPrice({
-      productId,
       name: 'Test Usage Price',
       type: PriceType.Usage,
       unitPrice: 10,
@@ -290,7 +289,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const countDistinctPrice = await adminTransaction(
         async ({ transaction }) =>
           setupPrice({
-            productId,
             name: 'Count Distinct Price',
             type: PriceType.Usage,
             unitPrice: 10,

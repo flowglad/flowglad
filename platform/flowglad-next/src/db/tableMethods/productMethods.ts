@@ -2,7 +2,7 @@ import { eq, inArray, notExists, sql } from 'drizzle-orm'
 import * as R from 'ramda'
 import { z } from 'zod'
 import {
-  type Price,
+  Price,
   prices,
   pricesClientSelectSchema,
   productsTableRowDataSchema,
@@ -231,8 +231,19 @@ export const selectProductsCursorPaginated =
         },
         transaction
       )
+      // Filter to only include prices with productId (non-usage prices)
+      // and group by productId
       const pricesByProductId: Record<string, Price.ClientRecord[]> =
-        groupBy((p) => p.productId, pricesForProducts)
+        {}
+      for (const p of pricesForProducts) {
+        if (Price.clientHasProductId(p)) {
+          const productId = p.productId
+          if (!pricesByProductId[productId]) {
+            pricesByProductId[productId] = []
+          }
+          pricesByProductId[productId].push(p)
+        }
+      }
       const pricingModelsById: Record<
         string,
         PricingModel.ClientRecord[]

@@ -195,6 +195,8 @@ export const setupPricingModelTransaction = async (
               `Usage meter ${price.usageMeterSlug} not found`
             )
           }
+          // Usage prices don't have productId (they belong to usage meters).
+          // We need to provide pricingModelId explicitly since it can't be derived from productId.
           return {
             type: PriceType.Usage,
             name: price.name ?? null,
@@ -204,10 +206,11 @@ export const setupPricingModelTransaction = async (
             active: price.active,
             intervalCount: price.intervalCount,
             intervalUnit: price.intervalUnit,
-            trialPeriodDays: price.trialPeriodDays,
+            trialPeriodDays: null,
             usageEventsPerUnit: price.usageEventsPerUnit,
             currency: organization.defaultCurrency,
-            productId,
+            productId: null, // Usage prices don't have productId
+            pricingModelId: pricingModel.id, // Explicit for usage prices
             livemode,
             externalId: null,
             usageMeterId,
@@ -297,8 +300,10 @@ export const setupPricingModelTransaction = async (
     )
 
     // Create the default price
-    const defaultPriceInsert: Price.Insert = {
-      type: defaultPlanConfig.price.type,
+    // FIXME: PR 2 - Type assertion needed because defaultPlanConfig.price.type is not
+    // narrowed to a specific PriceType, but default products always use subscription prices.
+    const defaultPriceInsert: Price.SubscriptionInsert = {
+      type: PriceType.Subscription,
       name: defaultPlanConfig.price.name,
       slug: defaultPlanConfig.price.slug,
       unitPrice: defaultPlanConfig.price.unitPrice,

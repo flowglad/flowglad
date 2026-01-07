@@ -351,11 +351,12 @@ describe('ledgerCommandForPaymentSucceeded', () => {
       )
 
       // Ensure the feature is linked to the product that singlePaymentPrice uses
+      // FIXME: PR 2 - Single payment prices always have productId
       await insertProductFeature(
         {
           organizationId: organization.id,
           livemode: true,
-          productId: singlePaymentPrice.productId,
+          productId: singlePaymentPrice.productId!,
           featureId,
         },
         transaction

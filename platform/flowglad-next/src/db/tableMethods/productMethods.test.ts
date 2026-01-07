@@ -825,22 +825,14 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
       trialPeriodDays: 0,
     })
 
-    // Create a usage meter for usage products
+    // Create a usage meter (usage prices now belong to meters, not products)
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
       name: 'API Calls Meter',
     })
 
-    // Create a usage product
-    const usageProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Usage Product',
-    })
-
     await setupPrice({
-      productId: usageProduct.id,
       name: 'Usage Price',
       type: PriceType.Usage,
       intervalUnit: IntervalUnit.Month,
@@ -853,6 +845,8 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
     })
 
     // Query with excludeUsageProducts=true
+    // Since usage prices no longer have products, this filter has no effect
+    // All products are now "non-usage" products
     const resultWithExclusion = await adminTransaction(
       async ({ transaction }) => {
         return selectProductsCursorPaginated({
@@ -869,12 +863,14 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
       }
     )
 
-    // Should only include subscription product and the default product created with the pricing model
+    // Should include subscription product and the default product
+    // (no products are excluded since usage prices don't have products)
     const productNames = resultWithExclusion.items.map(
       (item) => item.product.name
     )
     expect(productNames).toContain('Subscription Product')
-    expect(productNames).not.toContain('Usage Product')
+    // Default product from setupOrg should also be included
+    expect(productNames.length).toBeGreaterThanOrEqual(2)
 
     // Query without excludeUsageProducts filter (should include all)
     const resultWithoutExclusion = await adminTransaction(
@@ -894,7 +890,8 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
       (item) => item.product.name
     )
     expect(allProductNames).toContain('Subscription Product')
-    expect(allProductNames).toContain('Usage Product')
+    // Both queries should return the same products since there are no usage products
+    expect(allProductNames.length).toBe(productNames.length)
   })
 
   it('includes all products when excludeUsageProducts=false', async () => {
@@ -933,7 +930,6 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
     })
 
     await setupPrice({
-      productId: usageProduct.id,
       name: 'Usage Price 2',
       type: PriceType.Usage,
       intervalUnit: IntervalUnit.Month,

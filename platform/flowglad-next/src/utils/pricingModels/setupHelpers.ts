@@ -1,5 +1,8 @@
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
-import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
+import {
+  selectPrices,
+  selectPricesAndProductsByProductWhere,
+} from '@/db/tableMethods/priceMethods'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
@@ -63,7 +66,7 @@ export async function getPricingModelSetupData(
       transaction
     )
 
-  // Check each prpduct has a non-null and non-empty slug
+  // Check each product has a non-null and non-empty slug
   for (const product of productsWithPrices) {
     if (!product.slug) {
       throw new Error(
@@ -71,6 +74,17 @@ export async function getPricingModelSetupData(
       )
     }
   }
+
+  // Fetch usage prices that don't have products (productId: null)
+  // These are associated with usage meters directly
+  const allPrices = await selectPrices(
+    { pricingModelId: pricingModel.id, active: true },
+    transaction
+  )
+  const usagePricesWithoutProducts = allPrices.filter(
+    (price) =>
+      price.type === PriceType.Usage && price.productId === null
+  )
 
   // Fetch all product-feature relationships
   const productIds = productsWithPrices.map((p) => p.id)
@@ -234,11 +248,53 @@ export async function getPricingModelSetupData(
     }
   )
 
+  // Create virtual products for usage prices that don't have real products
+  // This maintains the schema structure where every usage meter needs a usage price
+  const virtualProductsForUsagePrices =
+    usagePricesWithoutProducts.map((price) => {
+      if (!price.usageMeterId) {
+        throw new Error(`Usage price ${price.id} has no usageMeterId`)
+      }
+      const usageMeterSlug = usageMeterIdToSlug.get(
+        price.usageMeterId
+      )
+      if (!usageMeterSlug) {
+        throw new Error(
+          `Usage meter with ID ${price.usageMeterId} not found`
+        )
+      }
+      return {
+        product: {
+          name: price.name ?? usageMeterSlug,
+          slug: price.slug ?? usageMeterSlug,
+          default: false,
+          active: price.active,
+        },
+        price: {
+          type: PriceType.Usage as const,
+          name: price.name ?? undefined,
+          slug: price.slug ?? undefined,
+          unitPrice: price.unitPrice,
+          isDefault: price.isDefault,
+          active: price.active,
+          intervalCount: price.intervalCount!,
+          intervalUnit: price.intervalUnit!,
+          usageMeterSlug,
+          usageEventsPerUnit: price.usageEventsPerUnit!,
+          trialPeriodDays: null,
+        },
+        features: [] as string[],
+      }
+    })
+
   return validateSetupPricingModelInput({
     name: pricingModel.name,
     isDefault: pricingModel.isDefault,
     features: transformedFeatures,
-    products: transformedProducts,
+    products: [
+      ...transformedProducts,
+      ...virtualProductsForUsagePrices,
+    ],
     usageMeters: transformedUsageMeters,
   })
 }

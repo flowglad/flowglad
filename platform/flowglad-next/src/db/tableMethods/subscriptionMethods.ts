@@ -42,7 +42,11 @@ import {
   customers,
 } from '../schema/customers'
 import type { PaymentMethod } from '../schema/paymentMethods'
-import { prices, pricesClientSelectSchema } from '../schema/prices'
+import {
+  Price,
+  prices,
+  pricesClientSelectSchema,
+} from '../schema/prices'
 import {
   products,
   productsClientSelectSchema,
@@ -256,19 +260,28 @@ export const selectSubscriptionsTableRowData =
           )
         }
 
-        const price = pricesById.get(subscription.priceId)
+        const rawPrice = pricesById.get(subscription.priceId)
         const customer = customersById.get(subscription.customerId)
 
-        if (!price || !customer) {
+        if (!rawPrice || !customer) {
           throw new Error(
             `Could not find price or customer for subscription ${subscription.id}`
           )
         }
 
-        const product = productsById.get(price.productId)
-        if (!product) {
+        // FIXME: PR 2 - Parse price early so Price.hasProductId type guard works.
+        // This is needed because raw DB rows have type: string, but the type guard
+        // expects the parsed Price.Record with narrowed type.
+        const parsedPrice = pricesClientSelectSchema.parse(rawPrice)
+
+        // Get product only for non-usage prices
+        const product = Price.clientHasProductId(parsedPrice)
+          ? productsById.get(parsedPrice.productId)
+          : null
+        // For non-usage prices, product is required
+        if (Price.clientHasProductId(parsedPrice) && !product) {
           throw new Error(
-            `Could not find product for price ${price.id}`
+            `Could not find product for price ${parsedPrice.id}`
           )
         }
 
@@ -280,8 +293,11 @@ export const selectSubscriptionsTableRowData =
               subscription.cancellationReason
             ),
           },
-          price: pricesClientSelectSchema.parse(price),
-          product: productsClientSelectSchema.parse(product),
+          price: parsedPrice,
+          // Product may be null for usage prices
+          product: product
+            ? productsClientSelectSchema.parse(product)
+            : null,
           customer: customerClientSelectSchema.parse(customer),
         }
       })

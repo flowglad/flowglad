@@ -395,7 +395,6 @@ describe('adjustSubscription Integration Tests', async () => {
       })
 
       const usagePrice = await setupPrice({
-        productId: product.id,
         name: 'Usage Price',
         type: PriceType.Usage,
         unitPrice: 50,
