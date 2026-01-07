@@ -894,6 +894,8 @@ const setupSubscriptionPriceSchema = baseSetupPriceSchema.extend({
 })
 
 // Usage prices do NOT have productId - they belong to usage meters
+// Note: Using z.undefined().optional() instead of z.never().optional() for better TypeScript
+// discriminated union inference while still allowing the fields to be omitted
 const setupUsagePriceSchema = z.object({
   type: z.literal(PriceType.Usage),
   name: z.string(),
@@ -907,8 +909,8 @@ const setupUsagePriceSchema = z.object({
   intervalUnit: z.nativeEnum(IntervalUnit).optional(),
   intervalCount: z.number().optional(),
   usageMeterId: z.string(), // Required for Usage prices - replaces productId
-  trialPeriodDays: z.never().optional(), // Usage prices don't have trial periods
-  productId: z.never().optional(), // Usage prices do NOT have productId
+  trialPeriodDays: z.undefined().optional(), // Usage prices don't have trial periods
+  productId: z.undefined().optional(), // Usage prices do NOT have productId
 })
 
 const setupPriceInputSchema = z.discriminatedUnion('type', [
