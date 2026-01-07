@@ -73,7 +73,10 @@ const functionStubs = {
   editCheckoutSessionCustomerEmail: async () =>
     Promise.resolve({ checkoutSession: stubbedCheckoutSession }),
   editCheckoutSessionBillingAddress: async () =>
-    Promise.resolve({ checkoutSession: stubbedCheckoutSession }),
+    Promise.resolve({
+      checkoutSession: stubbedCheckoutSession,
+      feeCalculation: null,
+    }),
   editCheckoutSessionAutomaticallyUpdateSubscriptions: async () =>
     Promise.resolve({ checkoutSession: stubbedCheckoutSession }),
 }
