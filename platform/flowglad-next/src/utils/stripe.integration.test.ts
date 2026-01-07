@@ -1,7 +1,13 @@
+import Stripe from 'stripe'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Customer } from '@/db/schema/customers'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type { Organization } from '@/db/schema/organizations'
+import {
+  type BillingAddress,
+  type Organization,
+} from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import {
   cleanupStripeTestData,
   createTestPaymentMethod,
@@ -11,11 +17,10 @@ import {
 } from '@/test/stripeIntegrationHelpers'
 import {
   BusinessOnboardingStatus,
-  CheckoutSessionStatus,
-  CheckoutSessionType,
   CurrencyCode,
   FeeCalculationType,
   PaymentMethodType,
+  PriceType,
   StripeConnectContractType,
 } from '@/types'
 import core from '@/utils/core'
@@ -24,9 +29,16 @@ import {
   createAndConfirmPaymentIntentForBillingRun,
   createCustomerSessionForCheckout,
   createPaymentIntentForBillingRun,
+  createStripeCustomer,
+  createStripeTaxCalculationByPrice,
+  createStripeTaxTransactionFromCalculation,
+  dateFromStripeTimestamp,
   getLatestChargeForPaymentIntent,
+  getStripeCharge,
+  getStripePaymentMethod,
   IntentMetadataType,
   listRefundsForCharge,
+  paymentMethodFromStripeCharge,
   refundPayment,
 } from '@/utils/stripe'
 
@@ -128,6 +140,56 @@ const createTestFeeCalculation = (
 }
 
 describeIfStripeKey('Stripe Integration Tests', () => {
+  describe('createStripeCustomer', () => {
+    let createdCustomerId: string | undefined
+
+    afterEach(async () => {
+      if (createdCustomerId) {
+        await cleanupStripeTestData({
+          stripeCustomerId: createdCustomerId,
+        })
+        createdCustomerId = undefined
+      }
+    })
+
+    it('creates a customer with email, name, and metadata, returns valid Stripe customer object that can be retrieved', async () => {
+      const testEmail = `test+${core.nanoid()}@flowglad-integration.com`
+      const testName = `Integration Test Customer ${core.nanoid()}`
+      const testOrgId = `org_${core.nanoid()}`
+
+      // Action: call the application function
+      const stripeCustomer = await createStripeCustomer({
+        email: testEmail,
+        name: testName,
+        organizationId: testOrgId,
+        livemode: false,
+        createdBy: 'createCustomerBookkeeping',
+      })
+
+      createdCustomerId = stripeCustomer.id
+
+      // Verify customer ID format and basic properties
+      expect(stripeCustomer.id).toMatch(/^cus_/)
+      expect(stripeCustomer.email).toBe(testEmail)
+      expect(stripeCustomer.name).toBe(testName)
+      expect(stripeCustomer.livemode).toBe(false)
+
+      // Verify metadata is stored correctly
+      expect(stripeCustomer.metadata?.organizationId).toBe(testOrgId)
+      expect(stripeCustomer.metadata?.createdBy).toBe(
+        'createCustomerBookkeeping'
+      )
+
+      // Verify customer can be retrieved from Stripe (use direct API for verification)
+      const stripe = getStripeTestClient()
+      const retrievedCustomer = await stripe.customers.retrieve(
+        stripeCustomer.id
+      )
+      expect(retrievedCustomer.id).toBe(stripeCustomer.id)
+      expect(retrievedCustomer.deleted).not.toBe(true)
+    })
+  })
+
   describe('createCustomerSessionForCheckout', () => {
     let createdCustomerId: string | undefined
 
@@ -876,6 +938,379 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         expect(refunds.data.some((r) => r.id === refund.id)).toBe(
           true
         )
+      })
+    })
+  })
+})
+
+/**
+ * Creates a minimal Price record for test purposes.
+ * Uses SinglePaymentRecord since that's the simplest type.
+ */
+const createTestPrice = (
+  overrides?: Partial<Price.SinglePaymentRecord>
+): Price.SinglePaymentRecord => {
+  return {
+    id: `price_${core.nanoid()}`,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    createdByCommit: null,
+    updatedByCommit: null,
+    position: 0,
+    productId: `prod_${core.nanoid()}`,
+    pricingModelId: `pm_${core.nanoid()}`,
+    name: 'Test Price',
+    type: PriceType.SinglePayment,
+    unitPrice: 10000,
+    currency: CurrencyCode.USD,
+    isDefault: true,
+    active: true,
+    externalId: `ext_${core.nanoid()}`,
+    livemode: false,
+    slug: null,
+    ...overrides,
+  }
+}
+
+/**
+ * Creates a minimal Product record for test purposes.
+ */
+const createTestProduct = (
+  overrides?: Partial<Product.Record>
+): Product.Record => {
+  return {
+    id: `prod_${core.nanoid()}`,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    createdByCommit: null,
+    updatedByCommit: null,
+    position: 0,
+    organizationId: `org_${core.nanoid()}`,
+    name: 'Test Product',
+    description: 'A test product',
+    singularQuantityLabel: null,
+    pluralQuantityLabel: null,
+    active: true,
+    imageURL: null,
+    externalId: `ext_${core.nanoid()}`,
+    livemode: false,
+    default: false,
+    slug: null,
+    pricingModelId: `pm_${core.nanoid()}`,
+    ...overrides,
+  }
+}
+
+/**
+ * Creates a test BillingAddress for US-based tax calculations.
+ */
+const createTestBillingAddress = (): BillingAddress => {
+  return {
+    name: 'Test Customer',
+    firstName: 'Test',
+    lastName: 'Customer',
+    email: 'test@example.com',
+    address: {
+      name: 'Test Customer',
+      line1: '354 Oyster Point Blvd',
+      line2: null,
+      city: 'South San Francisco',
+      state: 'CA',
+      postal_code: '94080',
+      country: 'US',
+    },
+    phone: null,
+  }
+}
+
+describeIfStripeKey('Tax Calculations', () => {
+  describe('createStripeTaxCalculationByPrice', () => {
+    it('creates a tax calculation for a US address and returns calculation id and tax amount', async () => {
+      const price = createTestPrice({
+        unitPrice: 10000, // $100.00
+        currency: CurrencyCode.USD,
+      })
+      const product = createTestProduct()
+      const billingAddress = createTestBillingAddress()
+
+      // Action: call the application function
+      const result = await createStripeTaxCalculationByPrice({
+        price,
+        billingAddress,
+        discountInclusiveAmount: 10000,
+        product,
+        livemode: false,
+      })
+
+      // Verify we got a real Stripe tax calculation ID (not the test prefix)
+      expect(result.id).toMatch(/^taxcalc_/)
+
+      // Verify tax_amount_exclusive is a number (could be 0 or positive depending on Stripe Tax settings)
+      expect(typeof result.tax_amount_exclusive).toBe('number')
+      expect(result.tax_amount_exclusive).toBeGreaterThanOrEqual(0)
+    })
+  })
+
+  describe('createStripeTaxTransactionFromCalculation', () => {
+    it('returns null when stripeTaxCalculationId is null', async () => {
+      // Action: call the application function with null
+      const result = await createStripeTaxTransactionFromCalculation({
+        stripeTaxCalculationId: null,
+        reference: `test_reference_${core.nanoid()}`,
+        livemode: false,
+      })
+
+      // Verify null is returned (business logic guard)
+      expect(result).toBeNull()
+    })
+
+    it('returns null when stripeTaxCalculationId starts with notaxoverride_', async () => {
+      // Action: call the application function with notaxoverride prefix
+      const result = await createStripeTaxTransactionFromCalculation({
+        stripeTaxCalculationId: 'notaxoverride_xyz',
+        reference: `test_reference_${core.nanoid()}`,
+        livemode: false,
+      })
+
+      // Verify null is returned (business logic guard for tax-exempt scenarios)
+      expect(result).toBeNull()
+    })
+
+    it('creates a tax transaction from a valid calculation', async () => {
+      // Setup: first create a tax calculation
+      const price = createTestPrice({
+        unitPrice: 5000, // $50.00
+        currency: CurrencyCode.USD,
+      })
+      const product = createTestProduct()
+      const billingAddress = createTestBillingAddress()
+
+      const calculation = await createStripeTaxCalculationByPrice({
+        price,
+        billingAddress,
+        discountInclusiveAmount: 5000,
+        product,
+        livemode: false,
+      })
+
+      // Action: create a tax transaction from the calculation
+      const reference = `test_txn_${core.nanoid()}`
+      const result = await createStripeTaxTransactionFromCalculation({
+        stripeTaxCalculationId: calculation.id,
+        reference,
+        livemode: false,
+      })
+
+      // Verify we got a real tax transaction
+      expect(result).not.toBeNull()
+      expect(result!.id).toMatch(/^tax_/)
+      expect(result!.reference).toBe(reference)
+    })
+  })
+})
+
+const getChargeIdFromPaymentIntent = (
+  paymentIntent: Stripe.PaymentIntent
+): string | undefined =>
+  typeof paymentIntent.latest_charge === 'string'
+    ? paymentIntent.latest_charge
+    : paymentIntent.latest_charge?.id
+
+/**
+ * Integration tests for Stripe utility functions.
+ *
+ * These tests make real API calls to Stripe's test mode.
+ * They require STRIPE_TEST_MODE_SECRET_KEY to be set.
+ */
+describeIfStripeKey('Stripe Utility Functions', () => {
+  describe('Utility Functions', () => {
+    let testCustomerId: string | undefined
+    let testPaymentIntentId: string | undefined
+
+    afterEach(async () => {
+      await cleanupStripeTestData({
+        stripeCustomerId: testCustomerId,
+        stripePaymentIntentId: testPaymentIntentId,
+      })
+      testCustomerId = undefined
+      testPaymentIntentId = undefined
+    })
+
+    describe('getStripePaymentMethod', () => {
+      it('retrieves payment method with id, type, billing_details, and card properties', async () => {
+        // Setup: create customer, attach payment method
+        const stripe = getStripeTestClient()
+        const customer = await createTestStripeCustomer({
+          email: 'payment-method-test@flowglad-test.com',
+          name: 'Payment Method Test Customer',
+        })
+        testCustomerId = customer.id
+
+        const paymentMethod = await createTestPaymentMethod({
+          stripeCustomerId: customer.id,
+          livemode: false,
+        })
+
+        // Action: retrieve payment method using the actual utility function
+        const retrieved = await getStripePaymentMethod(
+          paymentMethod.id,
+          false // livemode
+        )
+
+        // Expectations
+        expect(retrieved.id).toBe(paymentMethod.id)
+        expect(retrieved.type).toBe('card')
+        // Use toMatchObject since Stripe may add new fields to billing_details over time
+        expect(retrieved.billing_details).toMatchObject({
+          address: {
+            city: null,
+            country: null,
+            line1: null,
+            line2: null,
+            postal_code: null,
+            state: null,
+          },
+          email: null,
+          name: null,
+          phone: null,
+        })
+        expect(retrieved.card).toMatchObject({
+          brand: 'visa',
+          last4: '4242',
+        })
+
+        // Cleanup: detach payment method (customer deletion will also clean this up)
+        await stripe.paymentMethods.detach(paymentMethod.id)
+      })
+    })
+
+    describe('getStripeCharge', () => {
+      it('retrieves charge with id, amount, currency, payment_method_details, and status', async () => {
+        // Setup: create customer, attach payment method, create and confirm payment
+        const stripe = getStripeTestClient()
+        const customer = await createTestStripeCustomer({
+          email: 'charge-test@flowglad-test.com',
+          name: 'Charge Test Customer',
+        })
+        testCustomerId = customer.id
+
+        const paymentMethod = await createTestPaymentMethod({
+          stripeCustomerId: customer.id,
+          livemode: false,
+        })
+
+        // Create and confirm a payment intent to generate a charge
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: 2500, // $25.00
+          currency: 'usd',
+          customer: customer.id,
+          payment_method: paymentMethod.id,
+          confirm: true,
+          off_session: true,
+        })
+        testPaymentIntentId = paymentIntent.id
+
+        // Get the charge ID from the payment intent
+        const chargeId = getChargeIdFromPaymentIntent(paymentIntent)
+
+        expect(chargeId).toMatch(/^ch_/)
+
+        // Action: retrieve charge using the actual utility function
+        const charge = await getStripeCharge(chargeId!)
+
+        // Expectations
+        expect(charge.id).toBe(chargeId)
+        expect(charge.amount).toBe(2500)
+        expect(charge.currency).toBe('usd')
+        expect(charge.payment_method_details?.type).toBe('card')
+        expect(charge.status).toBe('succeeded')
+      })
+    })
+
+    describe('dateFromStripeTimestamp', () => {
+      it('converts Stripe timestamp 1704067200 (2024-01-01 00:00:00 UTC) to corresponding JavaScript Date', () => {
+        // Setup: use timestamp 1704067200 (2024-01-01 00:00:00 UTC)
+        const timestamp = 1704067200
+
+        // Action: convert timestamp to Date
+        const result = dateFromStripeTimestamp(timestamp)
+
+        // Expectations
+        expect(result).toBeInstanceOf(Date)
+        expect(result.getUTCFullYear()).toBe(2024)
+        expect(result.getUTCMonth()).toBe(0) // January is month 0
+        expect(result.getUTCDate()).toBe(1)
+        expect(result.getUTCHours()).toBe(0)
+        expect(result.getUTCMinutes()).toBe(0)
+        expect(result.getUTCSeconds()).toBe(0)
+        expect(result.getTime()).toBe(1704067200000) // Milliseconds
+      })
+    })
+
+    describe('paymentMethodFromStripeCharge', () => {
+      it('returns PaymentMethodType.Card for card payment method type', async () => {
+        // Setup: create charge with card payment
+        const stripe = getStripeTestClient()
+        const customer = await createTestStripeCustomer({
+          email: 'payment-method-type-test@flowglad-test.com',
+          name: 'Payment Method Type Test Customer',
+        })
+        testCustomerId = customer.id
+
+        const paymentMethod = await createTestPaymentMethod({
+          stripeCustomerId: customer.id,
+          livemode: false,
+        })
+
+        // Create and confirm a payment intent to generate a charge
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: 1000, // $10.00
+          currency: 'usd',
+          customer: customer.id,
+          payment_method: paymentMethod.id,
+          confirm: true,
+          off_session: true,
+        })
+        testPaymentIntentId = paymentIntent.id
+
+        // Retrieve the charge
+        const chargeId = getChargeIdFromPaymentIntent(paymentIntent)
+
+        const charge = await stripe.charges.retrieve(chargeId!)
+
+        // Action: get payment method type from charge
+        const result = paymentMethodFromStripeCharge(charge)
+
+        // Expectation
+        expect(result).toBe(PaymentMethodType.Card)
+      })
+
+      it('throws error "Unknown payment method type: unknown_type" for unrecognized payment method type', () => {
+        // Setup: create a mock charge with an unknown payment method type
+        const mockCharge = {
+          id: 'ch_mock',
+          payment_method_details: {
+            type: 'unknown_type',
+          },
+        } as unknown as Stripe.Charge
+
+        // Action & Expectation: should throw
+        expect(() =>
+          paymentMethodFromStripeCharge(mockCharge)
+        ).toThrow('Unknown payment method type: unknown_type')
+      })
+
+      it('throws error when charge has no payment_method_details', () => {
+        // Setup: create a mock charge without payment method details
+        const mockCharge = {
+          id: 'ch_mock',
+          payment_method_details: null,
+        } as unknown as Stripe.Charge
+
+        // Action & Expectation: should throw
+        expect(() =>
+          paymentMethodFromStripeCharge(mockCharge)
+        ).toThrow('No payment method details found for charge')
       })
     })
   })
