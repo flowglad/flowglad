@@ -753,12 +753,18 @@ export type PricingModelWithProductsAndUsageMeters = z.infer<
   typeof pricingModelWithProductsAndUsageMetersSchema
 >
 
+/**
+ * Schema for price table row data.
+ * Product is nullable because usage prices don't have a productId.
+ */
 export const pricesTableRowDataSchema = z.object({
   price: pricesClientSelectSchema,
-  product: z.object({
-    id: z.string(),
-    name: z.string(),
-  }),
+  product: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+    })
+    .nullable(),
 })
 
 export const productsTableRowDataSchema = z.object({

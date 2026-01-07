@@ -548,6 +548,13 @@ const createSubscriptionProcedure = protectedProcedure
           })
         }
         const { price, product, organization } = priceResult[0]
+        // Product is required for creating subscriptions - usage prices (with null product) are not supported
+        if (!product) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Price ${resolvedPriceId} is a usage price and cannot be used to create a subscription directly. Use a subscription price instead.`,
+          })
+        }
         const defaultPaymentMethod = input.defaultPaymentMethodId
           ? await selectPaymentMethodById(
               input.defaultPaymentMethodId,

@@ -28,7 +28,7 @@ export async function generateMetadata({
     )
 
     return {
-      title: `${organization.name} | ${product.name}`,
+      title: `${organization.name} | ${product?.name ?? 'Checkout'}`,
     }
   } catch (error) {
     return {

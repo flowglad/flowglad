@@ -347,6 +347,12 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       { id: checkoutSession.priceId! },
       transaction
     )
+  // Product checkout requires a product - usage prices (with null product) are not supported here
+  if (!product) {
+    throw new Error(
+      'Purchase bookkeeping is only supported for product prices (subscription/single payment), not usage prices'
+    )
+  }
   let customer: Customer.Record | null = null
   let purchase: Purchase.Record | null = null
   let customerEvents: Event.Insert[] = []

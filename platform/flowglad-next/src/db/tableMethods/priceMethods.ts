@@ -4,6 +4,8 @@ import {
   desc,
   eq,
   inArray,
+  isNull,
+  or,
   type SQLWrapper,
 } from 'drizzle-orm'
 import { z } from 'zod'
@@ -166,22 +168,35 @@ export const insertPrice = async (
 
 export const updatePrice = createUpdateFunction(prices, config)
 
+/**
+ * Selects prices and products for an organization.
+ * Uses leftJoin to include usage prices that have productId: null.
+ * Filters by pricingModel's organizationId instead of product's organizationId
+ * to properly include usage prices.
+ */
 export const selectPricesAndProductsForOrganization = async (
   whereConditions: Partial<Price.Record>,
   organizationId: string,
   transaction: DbTransaction
-) => {
+): Promise<
+  { price: Price.Record; product: Product.Record | null }[]
+> => {
   let query = transaction
     .select({
       price: prices,
       product: products,
     })
     .from(prices)
-    .innerJoin(products, eq(products.id, prices.productId))
+    .leftJoin(products, eq(products.id, prices.productId))
+    .innerJoin(
+      pricingModels,
+      eq(prices.pricingModelId, pricingModels.id)
+    )
     .$dynamic()
 
+  // Filter by pricingModel's organizationId to include both product prices and usage prices
   const whereClauses: SQLWrapper[] = [
-    eq(products.organizationId, organizationId),
+    eq(pricingModels.organizationId, organizationId),
   ]
   if (Object.keys(whereConditions).length > 0) {
     const whereClause = whereClauseFromObject(prices, whereConditions)
@@ -193,17 +208,31 @@ export const selectPricesAndProductsForOrganization = async (
 
   const results = await query
   return results.map((result) => ({
-    product: productsSelectSchema.parse(result.product),
+    product: result.product
+      ? productsSelectSchema.parse(result.product)
+      : null,
     price: pricesSelectSchema.parse(result.price),
   }))
 }
 
+/**
+ * Selects prices, products, and pricing models for an organization.
+ * Uses leftJoin for products to include usage prices that have productId: null.
+ * Uses innerJoin for pricingModels via the price's pricingModelId to ensure
+ * organization filtering works for both product prices and usage prices.
+ */
 export const selectPricesProductsAndPricingModelsForOrganization =
   async (
     whereConditions: Partial<Price.Record>,
     organizationId: string,
     transaction: DbTransaction
-  ) => {
+  ): Promise<
+    {
+      price: Price.Record
+      product: Product.Record | null
+      pricingModel: z.infer<typeof pricingModelsSelectSchema>
+    }[]
+  > => {
     let query = transaction
       .select({
         price: prices,
@@ -211,15 +240,16 @@ export const selectPricesProductsAndPricingModelsForOrganization =
         pricingModel: pricingModels,
       })
       .from(prices)
-      .innerJoin(products, eq(products.id, prices.productId))
-      .leftJoin(
+      .leftJoin(products, eq(products.id, prices.productId))
+      .innerJoin(
         pricingModels,
-        eq(products.pricingModelId, pricingModels.id)
+        eq(prices.pricingModelId, pricingModels.id)
       )
       .$dynamic()
 
+    // Filter by pricingModel's organizationId to include both product prices and usage prices
     const whereClauses: SQLWrapper[] = [
-      eq(products.organizationId, organizationId),
+      eq(pricingModels.organizationId, organizationId),
     ]
     if (Object.keys(whereConditions).length > 0) {
       const whereClause = whereClauseFromObject(
@@ -234,7 +264,9 @@ export const selectPricesProductsAndPricingModelsForOrganization =
 
     const results = await query
     return results.map((result) => ({
-      product: productsSelectSchema.parse(result.product),
+      product: result.product
+        ? productsSelectSchema.parse(result.product)
+        : null,
       price: pricesSelectSchema.parse(result.price),
       pricingModel: pricingModelsSelectSchema.parse(
         result.pricingModel
@@ -377,10 +409,21 @@ export const selectDefaultPriceAndProductByProductId = async (
   }
 }
 
+/**
+ * Selects price, product, and organization by price where conditions.
+ * Uses leftJoin for products to include usage prices that have productId: null.
+ * Gets organization via pricingModel to ensure it works for both product and usage prices.
+ */
 export const selectPriceProductAndOrganizationByPriceWhere = async (
   whereConditions: Price.Where,
   transaction: DbTransaction
-) => {
+): Promise<
+  {
+    price: Price.Record
+    product: Product.Record | null
+    organization: z.infer<typeof organizationsSelectSchema>
+  }[]
+> => {
   let query = transaction
     .select({
       price: prices,
@@ -388,10 +431,14 @@ export const selectPriceProductAndOrganizationByPriceWhere = async (
       organization: organizations,
     })
     .from(prices)
-    .innerJoin(products, eq(products.id, prices.productId))
+    .leftJoin(products, eq(products.id, prices.productId))
+    .innerJoin(
+      pricingModels,
+      eq(prices.pricingModelId, pricingModels.id)
+    )
     .innerJoin(
       organizations,
-      eq(products.organizationId, organizations.id)
+      eq(pricingModels.organizationId, organizations.id)
     )
     .$dynamic()
 
@@ -403,7 +450,9 @@ export const selectPriceProductAndOrganizationByPriceWhere = async (
   const results = await query
   return results.map((result) => ({
     price: pricesSelectSchema.parse(result.price),
-    product: productsSelectSchema.parse(result.product),
+    product: result.product
+      ? productsSelectSchema.parse(result.product)
+      : null,
     organization: organizationsSelectSchema.parse(
       result.organization
     ),
@@ -556,12 +605,18 @@ export const selectPricesPaginated = createPaginatedSelectFunction(
   config
 )
 
+/**
+ * Schema for price table row output.
+ * Product is nullable because usage prices don't have a productId.
+ */
 export const pricesTableRowOutputSchema = z.object({
   price: pricesClientSelectSchema,
-  product: z.object({
-    id: z.string(),
-    name: z.string(),
-  }),
+  product: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+    })
+    .nullable(),
 })
 
 export const selectPricesTableRowData =
@@ -590,15 +645,13 @@ export const selectPricesTableRowData =
 
       return priceRecords.map((price) => ({
         price,
+        // Return null for usage prices that don't have a productId
         product: Price.hasProductId(price)
           ? {
               id: productsById.get(price.productId)!.id,
               name: productsById.get(price.productId)!.name,
             }
-          : {
-              id: '',
-              name: 'Usage-Based',
-            },
+          : null,
       }))
     },
     // Searchable columns for ILIKE search on name and slug

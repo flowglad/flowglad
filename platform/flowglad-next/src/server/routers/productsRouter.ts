@@ -256,10 +256,15 @@ export const getCountsByStatus = protectedProcedure
             transaction
           )
 
+        // Filter out usage prices (which have product: null) - this is for product counts only
+        const productPrices = productsResult.filter(
+          (p) => p.product !== null
+        )
+
         // Get unique products
         const uniqueProducts = R.uniqBy(
           (p) => p.id,
-          productsResult.map((p) => p.product)
+          productPrices.map((p) => p.product!)
         )
 
         // Count active and inactive products

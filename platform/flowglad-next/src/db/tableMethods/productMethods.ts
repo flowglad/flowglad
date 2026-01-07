@@ -157,8 +157,14 @@ export const getProductTableRows = async (
       transaction
     )
 
+  // Filter out usage prices (which have product: null) - this function is for product rows only
+  const productPrices = productsResult.filter(
+    (p): p is typeof p & { product: NonNullable<typeof p.product> } =>
+      p.product !== null
+  )
+
   // Apply filters
-  let filteredProducts = productsResult
+  let filteredProducts = productPrices
 
   if (filters.active !== undefined) {
     filteredProducts = filteredProducts.filter(

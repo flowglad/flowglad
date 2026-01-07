@@ -70,7 +70,7 @@ const CustomerPage = async ({
     <InternalCustomerDetailsScreen
       customer={customer}
       prices={prices
-        .filter(({ product }) => product.active)
+        .filter(({ product }) => product?.active)
         .map(({ price }) => price)}
       payments={paymentsForCustomer}
       usageEvents={usageEvents}
