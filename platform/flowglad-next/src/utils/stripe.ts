@@ -4,8 +4,6 @@ import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Country } from '@/db/schema/countries'
 import type { Customer } from '@/db/schema/customers'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import type { Invoice } from '@/db/schema/invoices'
 import type {
   BillingAddress,
   Organization,
@@ -402,6 +400,18 @@ export const rawStringAmountToCountableCurrencyAmount = (
 }
 
 const stripeApiKey = (livemode: boolean) => {
+  // Allow integration tests to use real Stripe API key
+  // This env var is only set when running integration tests
+  if (process.env.STRIPE_INTEGRATION_TEST_MODE === 'true') {
+    const key = process.env.STRIPE_TEST_MODE_SECRET_KEY
+    if (!key) {
+      throw new Error(
+        'STRIPE_INTEGRATION_TEST_MODE is enabled but STRIPE_TEST_MODE_SECRET_KEY is not set. ' +
+          'Integration tests require a valid Stripe test mode secret key.'
+      )
+    }
+    return key
+  }
   if (core.IS_TEST) {
     return 'sk_test_fake_key_1234567890abcdef'
   }
@@ -846,7 +856,11 @@ export const createStripeTaxCalculationByPrice = async ({
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
-  if (core.IS_TEST) {
+  // Allow integration tests to use real Stripe Tax API
+  if (
+    core.IS_TEST &&
+    process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true'
+  ) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
       tax_amount_exclusive: 0,
@@ -861,9 +875,11 @@ export const createStripeTaxCalculationByPrice = async ({
     },
   ]
 
+  // Strip the 'name' field from address as Stripe Tax API doesn't accept it
+  const { name: _name, ...stripeAddress } = billingAddress.address
   return stripe(livemode).tax.calculations.create({
     customer_details: {
-      address: billingAddress.address,
+      address: stripeAddress,
       address_source: 'billing',
     },
     currency: price.currency,
@@ -887,7 +903,11 @@ export const createStripeTaxCalculationByPurchase = async ({
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
-  if (core.IS_TEST) {
+  // Allow integration tests to use real Stripe Tax API
+  if (
+    core.IS_TEST &&
+    process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true'
+  ) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
       tax_amount_exclusive: 0,
@@ -901,9 +921,11 @@ export const createStripeTaxCalculationByPurchase = async ({
       tax_code: DIGITAL_TAX_CODE,
     },
   ]
+  // Strip the 'name' field from address as Stripe Tax API doesn't accept it
+  const { name: _name, ...stripeAddress } = billingAddress.address
   return stripe(livemode).tax.calculations.create({
     customer_details: {
-      address: billingAddress.address,
+      address: stripeAddress,
       address_source: 'billing',
     },
     currency: price.currency,
@@ -1049,63 +1071,6 @@ export const getConnectedAccountOnboardingStatus = async (
 export type StripeAccountOnboardingStatus = Awaited<
   ReturnType<typeof getConnectedAccountOnboardingStatus>
 > | null
-
-export const createPaymentIntentForInvoiceCheckoutSession =
-  async (params: {
-    invoice: Invoice.Record
-    invoiceLineItems: InvoiceLineItem.Record[]
-    organization: Organization.Record
-    stripeCustomerId: string
-    checkoutSession: CheckoutSession.Record
-    feeCalculation?: FeeCalculation.Record
-  }) => {
-    const {
-      invoice,
-      organization,
-      stripeCustomerId,
-      checkoutSession,
-      invoiceLineItems,
-      feeCalculation,
-    } = params
-    const livemode = invoice.livemode
-    const achOnlyParams = unitedStatesBankAccountPaymentMethodOptions(
-      invoice.bankPaymentOnly
-    ) as Partial<Stripe.PaymentIntentCreateParams>
-    const transferData = stripeConnectTransferDataForOrganization({
-      organization,
-      livemode,
-    })
-    const feeMetadata = buildFeeMetadata(feeCalculation)
-    const metadata: CheckoutSessionStripeIntentMetadata &
-      FeeMetadata = {
-      checkoutSessionId: checkoutSession.id,
-      type: IntentMetadataType.CheckoutSession,
-      ...feeMetadata,
-    }
-    const totalDue = feeCalculation
-      ? await calculateTotalDueAmount(feeCalculation)
-      : invoiceLineItems.reduce(
-          (acc, item) => acc + item.price * item.quantity,
-          0
-        )
-    const totalFeeAmount = feeCalculation
-      ? calculateTotalFeeAmount(feeCalculation)
-      : calculatePlatformApplicationFee({
-          organization,
-          subtotal: totalDue,
-          currency: invoice.currency,
-        })
-
-    return stripe(livemode).paymentIntents.create({
-      amount: totalDue,
-      currency: invoice.currency,
-      application_fee_amount: livemode ? totalFeeAmount : undefined,
-      ...transferData,
-      metadata,
-      customer: stripeCustomerId,
-      ...achOnlyParams,
-    })
-  }
 
 export const createPaymentIntentForCheckoutSession = async (params: {
   price: Price.Record
@@ -1289,13 +1254,18 @@ export const refundPayment = async (
       ? paymentIntent.latest_charge
       : paymentIntent.latest_charge.id
 
+  // Retrieve the charge to check if it has an associated transfer
+  const charge = await stripe(livemode).charges.retrieve(chargeId)
+  const hasTransfer = Boolean(charge.transfer)
+
   return stripe(livemode).refunds.create({
     charge: chargeId,
     amount: partialAmount ?? undefined,
     /**
-     * Always attempt to reverse the transfer associated with the payment to be refunded
+     * Only reverse the transfer if one exists.
+     * In MoR test mode, payments may not have transfers.
      */
-    reverse_transfer: true,
+    reverse_transfer: hasTransfer ? true : undefined,
   })
 }
 
