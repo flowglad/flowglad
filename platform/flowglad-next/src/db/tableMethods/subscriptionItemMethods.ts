@@ -42,6 +42,7 @@ import {
   derivePricingModelIdFromSubscription,
   isSubscriptionCurrent,
   pricingModelIdsForSubscriptions,
+  selectSubscriptions,
 } from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -269,26 +270,6 @@ export const expireSubscriptionItems = async (
 }
 
 /**
- * Selects subscriptions by the given where conditions.
- * This is a decomposed query that can be cached independently.
- *
- * @param whereConditions - Conditions to filter the subscriptions
- * @param transaction - Database transaction
- * @returns Array of subscription records
- */
-export const selectSubscriptionsByWhere = async (
-  whereConditions: SelectConditions<typeof subscriptions>,
-  transaction: DbTransaction
-) => {
-  const rows = await transaction
-    .select()
-    .from(subscriptions)
-    .where(whereClauseFromObject(subscriptions, whereConditions))
-
-  return rows.map((row) => subscriptionsSelectSchema.parse(row))
-}
-
-/**
  * Selects subscription items with their associated prices for the given subscription IDs.
  * This is a decomposed query that can be cached independently.
  *
@@ -406,7 +387,7 @@ export const selectRichSubscriptionsAndActiveItems = async (
   transaction: DbTransaction
 ): Promise<RichSubscription[]> => {
   // Step 1: Fetch subscriptions (cacheable by whereConditions)
-  const subscriptionRecords = await selectSubscriptionsByWhere(
+  const subscriptionRecords = await selectSubscriptions(
     whereConditions,
     transaction
   )
