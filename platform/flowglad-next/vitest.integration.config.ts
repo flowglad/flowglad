@@ -11,12 +11,9 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./vitest.integration.setup.ts'],
       testTimeout: 30000, // Longer timeout for API calls
       hookTimeout: 30000,
-      pool: 'forks', // Isolate tests
-      poolOptions: {
-        forks: {
-          singleFork: true, // Run serially to avoid rate limits
-        },
-      },
+      // Run tests serially to avoid Stripe rate limits
+      // Using fileParallelism instead of forks pool to avoid Zod v4 registry collisions
+      fileParallelism: false,
       env: loadEnv(mode, process.cwd(), ''),
     },
     resolve: {
