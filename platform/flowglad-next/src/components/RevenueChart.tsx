@@ -18,6 +18,7 @@ import { RevenueChartIntervalUnit } from '@/types'
 import {
   getDefaultInterval,
   getIntervalConfig,
+  intervalNounLabels,
 } from '@/utils/chartIntervalUtils'
 import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
@@ -217,16 +218,7 @@ export function RevenueChart({
   const intervalOptions = React.useMemo(() => {
     const config = getIntervalConfig(fromDate, toDate)
     return config.options.map((opt) => ({
-      label:
-        opt === RevenueChartIntervalUnit.Hour
-          ? 'hour'
-          : opt === RevenueChartIntervalUnit.Day
-            ? 'day'
-            : opt === RevenueChartIntervalUnit.Week
-              ? 'week'
-              : opt === RevenueChartIntervalUnit.Month
-                ? 'month'
-                : 'year',
+      label: intervalNounLabels[opt],
       value: opt,
     }))
   }, [fromDate, toDate])

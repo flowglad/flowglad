@@ -42,6 +42,21 @@ export const intervalLabels: Record<
 }
 
 /**
+ * Label mapping for interval units (noun form, lowercase)
+ * Used for inline selectors like "Revenue by day"
+ */
+export const intervalNounLabels: Record<
+  RevenueChartIntervalUnit,
+  string
+> = {
+  [RevenueChartIntervalUnit.Hour]: 'hour',
+  [RevenueChartIntervalUnit.Day]: 'day',
+  [RevenueChartIntervalUnit.Week]: 'week',
+  [RevenueChartIntervalUnit.Month]: 'month',
+  [RevenueChartIntervalUnit.Year]: 'year',
+}
+
+/**
  * Returns the interval configuration based on the selected date range.
  * Only valid options are returned - no disabled options.
  *
