@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { Organization } from '@/db/schema/organizations'
 import {
   cleanupStripeTestData,
   createTestPaymentMethod,
@@ -8,9 +9,123 @@ import {
   describeIfStripeKey,
   getStripeTestClient,
 } from '@/test/stripeIntegrationHelpers'
-import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
+import {
+  BusinessOnboardingStatus,
+  CurrencyCode,
+  FeeCalculationType,
+  PaymentMethodType,
+  StripeConnectContractType,
+} from '@/types'
 import core from '@/utils/core'
-import { createCustomerSessionForCheckout } from '@/utils/stripe'
+import {
+  confirmPaymentIntent,
+  confirmPaymentIntentForBillingRun,
+  createAndConfirmPaymentIntentForBillingRun,
+  createCustomerSessionForCheckout,
+  createPaymentIntentForBillingRun,
+  createStripeCustomer,
+  getLatestChargeForPaymentIntent,
+  getPaymentIntent,
+  IntentMetadataType,
+  updatePaymentIntent,
+} from '@/utils/stripe'
+
+/**
+ * Creates a minimal Organization record for test purposes.
+ * For MoR test mode, stripeAccountId is null (no Connect needed).
+ */
+const createTestOrganization = (
+  overrides?: Partial<Organization.Record>
+): Organization.Record => {
+  const orgId = `org_${core.nanoid()}`
+  return {
+    id: orgId,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    name: `Test Organization ${orgId}`,
+    stripeAccountId: null, // No Connect account for test mode
+    subdomainSlug: `test-org-${core.nanoid()}`,
+    domain: null,
+    countryId: 'country_us',
+    logoURL: null,
+    tagline: null,
+    payoutsEnabled: false,
+    onboardingStatus: BusinessOnboardingStatus.PartiallyOnboarded,
+    feePercentage: '0.65',
+    stripeConnectContractType:
+      StripeConnectContractType.MerchantOfRecord,
+    defaultCurrency: CurrencyCode.USD,
+    billingAddress: null,
+    contactEmail: null,
+    featureFlags: {},
+    allowMultipleSubscriptionsPerCustomer: false,
+    externalId: `ext_${core.nanoid()}`,
+    createdByCommit: null,
+    updatedByCommit: null,
+    position: 0,
+    securitySalt: core.nanoid(),
+    monthlyBillingVolumeFreeTier: 100000,
+    upfrontProcessingCredits: 0,
+    codebaseMarkdownHash: null,
+    ...overrides,
+  }
+}
+
+/**
+ * Creates a minimal FeeCalculation record for test purposes.
+ * Uses SubscriptionPayment type for billing run tests.
+ */
+const createTestFeeCalculation = (
+  overrides?: Partial<FeeCalculation.SubscriptionRecord>
+): FeeCalculation.SubscriptionRecord => {
+  return {
+    id: `fee_${core.nanoid()}`,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    createdByCommit: null,
+    updatedByCommit: null,
+    position: 0,
+    organizationId: `org_${core.nanoid()}`,
+    pricingModelId: `pm_${core.nanoid()}`,
+    checkoutSessionId: null,
+    purchaseId: null,
+    discountId: null,
+    priceId: null,
+    paymentMethodType: PaymentMethodType.Card,
+    discountAmountFixed: 0,
+    paymentMethodFeeFixed: 0,
+    baseAmount: 10000,
+    internationalFeePercentage: '0',
+    flowgladFeePercentage: '0.65',
+    morSurchargePercentage: '0',
+    billingAddress: {
+      name: null,
+      firstName: null,
+      lastName: null,
+      email: null,
+      address: {
+        name: null,
+        line1: '123 Test St',
+        line2: null,
+        city: 'San Francisco',
+        state: 'CA',
+        postal_code: '94105',
+        country: 'US',
+      },
+      phone: null,
+    },
+    taxAmountFixed: 0,
+    pretaxTotal: 10000,
+    stripeTaxCalculationId: null,
+    stripeTaxTransactionId: null,
+    billingPeriodId: `bp_${core.nanoid()}`,
+    currency: CurrencyCode.USD,
+    type: FeeCalculationType.SubscriptionPayment,
+    internalNotes: null,
+    livemode: false,
+    ...overrides,
+  }
+}
 
 describeIfStripeKey('Stripe Integration Tests', () => {
   describe('createStripeCustomer', () => {
@@ -30,14 +145,13 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       const testName = `Integration Test Customer ${core.nanoid()}`
       const testOrgId = `org_${core.nanoid()}`
 
-      const stripe = getStripeTestClient()
-      const stripeCustomer = await stripe.customers.create({
+      // Action: call the application function
+      const stripeCustomer = await createStripeCustomer({
         email: testEmail,
         name: testName,
-        metadata: {
-          organizationId: testOrgId,
-          createdBy: 'createCustomerBookkeeping',
-        },
+        organizationId: testOrgId,
+        livemode: false,
+        createdBy: 'createCustomerBookkeeping',
       })
 
       createdCustomerId = stripeCustomer.id
@@ -54,7 +168,8 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         'createCustomerBookkeeping'
       )
 
-      // Verify customer can be retrieved from Stripe
+      // Verify customer can be retrieved from Stripe (use direct API for verification)
+      const stripe = getStripeTestClient()
       const retrievedCustomer = await stripe.customers.retrieve(
         stripeCustomer.id
       )
@@ -79,27 +194,46 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       const testEmail = `test+${core.nanoid()}@flowglad-integration.com`
       const testName = `Integration Test Customer ${core.nanoid()}`
 
+      // Setup: create a Stripe customer first (using direct API for setup)
       const stripeCustomer = await createTestStripeCustomer({
         email: testEmail,
         name: testName,
       })
       createdCustomerId = stripeCustomer.id
 
-      const stripe = getStripeTestClient()
-      const customerSession = await stripe.customerSessions.create({
-        customer: stripeCustomer.id,
-        components: {
-          payment_element: {
-            enabled: true,
-            features: {
-              payment_method_redisplay: 'enabled',
-            },
-          },
-        },
-      })
+      // Create a Customer record with the stripeCustomerId
+      const customerRecord: Customer.Record = {
+        id: `cust_${core.nanoid()}`,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdByCommit: null,
+        updatedByCommit: null,
+        position: 1,
+        organizationId: `org_${core.nanoid()}`,
+        email: testEmail,
+        name: testName,
+        invoiceNumberBase: 'INV-TEST',
+        archived: false,
+        stripeCustomerId: stripeCustomer.id,
+        taxId: null,
+        logoURL: null,
+        iconURL: null,
+        domain: null,
+        billingAddress: null,
+        externalId: `ext_${core.nanoid()}`,
+        userId: null,
+        pricingModelId: null,
+        stackAuthHostedBillingUserId: null,
+        livemode: false,
+      }
 
-      expect(typeof customerSession.client_secret).toBe('string')
-      expect(customerSession.client_secret).toContain('_secret_')
+      // Action: call the application function
+      const clientSecret =
+        await createCustomerSessionForCheckout(customerRecord)
+
+      // Verify the client_secret is returned correctly
+      expect(typeof clientSecret).toBe('string')
+      expect(clientSecret).toContain('_secret_')
     })
 
     it('throws error when customer has no stripeCustomerId', async () => {
@@ -138,110 +272,9 @@ describeIfStripeKey('Stripe Integration Tests', () => {
 
   describe('Payment Intents', () => {
     /**
-     * Creates a minimal CheckoutSession record for test purposes.
+     * These tests verify the payment intent business logic by calling
+     * application functions. Stripe API is only used for setup/teardown.
      */
-    const createTestCheckoutSession = (
-      overrides?: Partial<CheckoutSession.ProductRecord>
-    ): CheckoutSession.ProductRecord => {
-      const sessionId = `chckt_session_${core.nanoid()}`
-      return {
-        id: sessionId,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        createdByCommit: null,
-        updatedByCommit: null,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        organizationId: `org_${core.nanoid()}`,
-        priceId: `price_${core.nanoid()}`,
-        quantity: 1,
-        purchaseId: null,
-        invoiceId: null,
-        customerId: null,
-        customerName: null,
-        customerEmail: null,
-        stripeSetupIntentId: null,
-        stripePaymentIntentId: null,
-        billingAddress: null,
-        paymentMethodType: null,
-        discountId: null,
-        successUrl: 'https://example.com/success',
-        cancelUrl: 'https://example.com/cancel',
-        expires: Date.now() + 1000 * 60 * 60 * 24,
-        livemode: false,
-        pricingModelId: `pm_${core.nanoid()}`,
-        preserveBillingCycleAnchor: false,
-        outputMetadata: null,
-        outputName: null,
-        targetSubscriptionId: null,
-        automaticallyUpdateSubscriptions: null,
-        position: 0,
-        ...overrides,
-      }
-    }
-
-    describe('createPaymentIntent', () => {
-      let createdPaymentIntentId: string | undefined
-
-      afterEach(async () => {
-        if (createdPaymentIntentId) {
-          await cleanupStripeTestData({
-            stripePaymentIntentId: createdPaymentIntentId,
-          })
-          createdPaymentIntentId = undefined
-        }
-      })
-
-      it('creates a payment intent with correct amount, currency, and metadata', async () => {
-        const stripe = getStripeTestClient()
-        const checkoutSession = createTestCheckoutSession({
-          quantity: 2,
-        })
-        const unitPrice = 5000
-        const quantity = checkoutSession.quantity
-
-        // Create payment intent directly with Stripe API
-        // This mirrors what createPaymentIntentForCheckoutSession does internally
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount: unitPrice * quantity,
-          currency: 'usd',
-          metadata: {
-            checkoutSessionId: checkoutSession.id,
-            type: 'checkout_session',
-          },
-        })
-
-        createdPaymentIntentId = paymentIntent.id
-
-        // Verify payment intent ID format
-        expect(paymentIntent.id).toMatch(/^pi_/)
-
-        // Verify amount equals price * quantity (5000 * 2 = 10000 cents)
-        expect(paymentIntent.amount).toBe(10000)
-
-        // Verify currency matches expected currency
-        expect(paymentIntent.currency).toBe('usd')
-
-        // Verify status is appropriate for a new payment intent
-        expect([
-          'requires_payment_method',
-          'requires_confirmation',
-        ]).toContain(paymentIntent.status)
-
-        // Verify metadata contains checkoutSessionId and type
-        expect(paymentIntent.metadata?.checkoutSessionId).toBe(
-          checkoutSession.id
-        )
-        expect(paymentIntent.metadata?.type).toBe('checkout_session')
-
-        // Verify livemode is false
-        expect(paymentIntent.livemode).toBe(false)
-
-        // Verify no transfer_data or application_fee (not set)
-        expect(paymentIntent.transfer_data).toBeNull()
-        expect(paymentIntent.application_fee_amount).toBeNull()
-      })
-    })
 
     describe('updatePaymentIntent', () => {
       let createdPaymentIntentId: string | undefined
@@ -265,22 +298,23 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       it('updates payment intent customer association', async () => {
         const stripe = getStripeTestClient()
 
-        // Create a payment intent without a customer
+        // Setup: Create a payment intent without a customer (using direct API)
         const paymentIntent = await stripe.paymentIntents.create({
           amount: 1000,
           currency: 'usd',
         })
         createdPaymentIntentId = paymentIntent.id
 
-        // Create a customer to associate
+        // Setup: Create a customer to associate
         const customer = await createTestStripeCustomer()
         createdCustomerId = customer.id
 
-        // Update the payment intent with the customer using Stripe API directly
-        const updatedPaymentIntent =
-          await stripe.paymentIntents.update(paymentIntent.id, {
-            customer: customer.id,
-          })
+        // Action: Update using the application function
+        const updatedPaymentIntent = await updatePaymentIntent(
+          paymentIntent.id,
+          { customer: customer.id },
+          false // livemode
+        )
 
         // Verify customer is now associated
         expect(updatedPaymentIntent.customer).toBe(customer.id)
@@ -289,18 +323,19 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       it('updates payment intent amount', async () => {
         const stripe = getStripeTestClient()
 
-        // Create a payment intent with initial amount
+        // Setup: Create a payment intent with initial amount (using direct API)
         const paymentIntent = await stripe.paymentIntents.create({
           amount: 1000,
           currency: 'usd',
         })
         createdPaymentIntentId = paymentIntent.id
 
-        // Update the payment intent with new amount using Stripe API directly
-        const updatedPaymentIntent =
-          await stripe.paymentIntents.update(paymentIntent.id, {
-            amount: 2000,
-          })
+        // Action: Update using the application function
+        const updatedPaymentIntent = await updatePaymentIntent(
+          paymentIntent.id,
+          { amount: 2000 },
+          false // livemode
+        )
 
         // Verify amount is updated
         expect(updatedPaymentIntent.amount).toBe(2000)
@@ -322,7 +357,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       it('retrieves payment intent by id', async () => {
         const stripe = getStripeTestClient()
 
-        // Create a payment intent in test mode
+        // Setup: Create a payment intent in test mode (using direct API)
         const paymentIntent = await stripe.paymentIntents.create({
           amount: 1500,
           currency: 'usd',
@@ -332,9 +367,10 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         })
         createdPaymentIntentId = paymentIntent.id
 
-        // Retrieve using Stripe API directly
-        const retrievedPaymentIntent =
-          await stripe.paymentIntents.retrieve(paymentIntent.id)
+        // Action: Retrieve using the application function
+        const retrievedPaymentIntent = await getPaymentIntent(
+          paymentIntent.id
+        )
 
         // Verify the retrieved payment intent matches
         expect(retrievedPaymentIntent.id).toBe(paymentIntent.id)
@@ -366,17 +402,17 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       it('confirms a payment intent that has a payment method attached', async () => {
         const stripe = getStripeTestClient()
 
-        // Create a customer
+        // Setup: Create a customer
         const customer = await createTestStripeCustomer()
         createdCustomerId = customer.id
 
-        // Create a payment method and attach it to the customer
+        // Setup: Create a payment method and attach it to the customer
         const paymentMethod = await createTestPaymentMethod({
           stripeCustomerId: customer.id,
           livemode: false,
         })
 
-        // Create a payment intent with the customer and payment method
+        // Setup: Create a payment intent with the customer and payment method
         // Use automatic_payment_methods with allow_redirects: 'never' to avoid
         // redirect-based payment methods that require return_url
         const paymentIntent = await stripe.paymentIntents.create({
@@ -394,9 +430,11 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         // Verify initial status
         expect(paymentIntent.status).toBe('requires_confirmation')
 
-        // Confirm the payment intent using Stripe API directly
-        const confirmedPaymentIntent =
-          await stripe.paymentIntents.confirm(paymentIntent.id)
+        // Action: Confirm the payment intent using the application function
+        const confirmedPaymentIntent = await confirmPaymentIntent(
+          paymentIntent.id,
+          false // livemode
+        )
 
         // Verify status changed - should be 'succeeded' or 'processing' or 'requires_action'
         expect([
@@ -404,6 +442,462 @@ describeIfStripeKey('Stripe Integration Tests', () => {
           'processing',
           'requires_action',
         ]).toContain(confirmedPaymentIntent.status)
+      })
+    })
+  })
+
+  describe('Billing Run Payment Intents', () => {
+    /**
+     * These tests verify the billing run payment flow business logic
+     * by calling the actual application functions which use the stripe() client.
+     * The stripe() client uses real Stripe test API keys via the
+     * STRIPE_INTEGRATION_TEST_MODE environment variable.
+     */
+
+    describe('createPaymentIntentForBillingRun', () => {
+      let createdPaymentIntentId: string | undefined
+      let createdCustomerId: string | undefined
+
+      afterEach(async () => {
+        if (createdPaymentIntentId) {
+          await cleanupStripeTestData({
+            stripePaymentIntentId: createdPaymentIntentId,
+          })
+          createdPaymentIntentId = undefined
+        }
+        if (createdCustomerId) {
+          await cleanupStripeTestData({
+            stripeCustomerId: createdCustomerId,
+          })
+          createdCustomerId = undefined
+        }
+      })
+
+      it('creates payment intent with billing run metadata without confirming', async () => {
+        // Setup: create customer with payment method
+        const stripeCustomer = await createTestStripeCustomer()
+        createdCustomerId = stripeCustomer.id
+
+        const paymentMethod = await createTestPaymentMethod({
+          stripeCustomerId: stripeCustomer.id,
+          livemode: false,
+        })
+
+        const billingRunId = `br_${core.nanoid()}`
+        const billingPeriodId = `bp_${core.nanoid()}`
+        const amount = 10000
+        const organization = createTestOrganization()
+        const feeCalculation = createTestFeeCalculation({
+          baseAmount: amount,
+        })
+
+        // Action: call the actual application function
+        const paymentIntent = await createPaymentIntentForBillingRun({
+          amount,
+          currency: CurrencyCode.USD,
+          stripeCustomerId: stripeCustomer.id,
+          stripePaymentMethodId: paymentMethod.id,
+          billingPeriodId,
+          billingRunId,
+          feeCalculation,
+          organization,
+          livemode: false,
+        })
+
+        createdPaymentIntentId = paymentIntent.id
+
+        // Verify payment intent ID format
+        expect(paymentIntent.id).toMatch(/^pi_/)
+
+        // Verify status - should NOT be confirmed yet
+        expect([
+          'requires_confirmation',
+          'requires_payment_method',
+        ]).toContain(paymentIntent.status)
+
+        // Verify billing run metadata
+        expect(paymentIntent.metadata?.billingRunId).toBe(
+          billingRunId
+        )
+        expect(paymentIntent.metadata?.billingPeriodId).toBe(
+          billingPeriodId
+        )
+        expect(paymentIntent.metadata?.type).toBe(
+          IntentMetadataType.BillingRun
+        )
+
+        // Verify customer association
+        expect(paymentIntent.customer).toBe(stripeCustomer.id)
+
+        // Verify payment method association
+        expect(paymentIntent.payment_method).toBe(paymentMethod.id)
+
+        // Verify amount
+        expect(paymentIntent.amount).toBe(amount)
+
+        // Verify fee metadata fields are present (buildFeeMetadata adds these)
+        expect(paymentIntent.metadata?.flowglad_fee_percentage).toBe(
+          '0.65'
+        )
+        expect(paymentIntent.metadata?.mor_surcharge_percentage).toBe(
+          '0'
+        )
+        expect(
+          paymentIntent.metadata?.international_fee_percentage
+        ).toBe('0')
+      })
+    })
+
+    describe('createAndConfirmPaymentIntentForBillingRun', () => {
+      let createdCustomerId: string | undefined
+
+      afterEach(async () => {
+        // Note: Successfully confirmed payments don't need cancellation
+        if (createdCustomerId) {
+          await cleanupStripeTestData({
+            stripeCustomerId: createdCustomerId,
+          })
+          createdCustomerId = undefined
+        }
+      })
+
+      it('creates and confirms payment intent in single call for off-session payment', async () => {
+        // Setup: create customer with payment method (use tok_visa for auto-success)
+        const stripeCustomer = await createTestStripeCustomer()
+        createdCustomerId = stripeCustomer.id
+
+        const paymentMethod = await createTestPaymentMethod({
+          stripeCustomerId: stripeCustomer.id,
+          livemode: false,
+        })
+
+        const billingRunId = `br_${core.nanoid()}`
+        const billingPeriodId = `bp_${core.nanoid()}`
+        const amount = 5000
+        const organization = createTestOrganization()
+        const feeCalculation = createTestFeeCalculation({
+          baseAmount: amount,
+        })
+
+        // Action: call the actual application function
+        const paymentIntent =
+          await createAndConfirmPaymentIntentForBillingRun({
+            amount,
+            currency: CurrencyCode.USD,
+            stripeCustomerId: stripeCustomer.id,
+            stripePaymentMethodId: paymentMethod.id,
+            billingPeriodId,
+            billingRunId,
+            feeCalculation,
+            organization,
+            livemode: false,
+          })
+
+        // Verify payment intent ID format
+        expect(paymentIntent.id).toMatch(/^pi_/)
+
+        // Verify status is succeeded or processing (payment was confirmed)
+        expect(['succeeded', 'processing']).toContain(
+          paymentIntent.status
+        )
+
+        // Verify latest_charge is present (charge was created)
+        expect(paymentIntent.latest_charge).not.toBeNull()
+
+        // Verify billing run metadata
+        expect(paymentIntent.metadata?.billingRunId).toBe(
+          billingRunId
+        )
+        expect(paymentIntent.metadata?.billingPeriodId).toBe(
+          billingPeriodId
+        )
+        expect(paymentIntent.metadata?.type).toBe(
+          IntentMetadataType.BillingRun
+        )
+      })
+    })
+
+    describe('confirmPaymentIntentForBillingRun', () => {
+      let createdPaymentIntentId: string | undefined
+      let createdCustomerId: string | undefined
+
+      afterEach(async () => {
+        if (createdPaymentIntentId) {
+          await cleanupStripeTestData({
+            stripePaymentIntentId: createdPaymentIntentId,
+          })
+          createdPaymentIntentId = undefined
+        }
+        if (createdCustomerId) {
+          await cleanupStripeTestData({
+            stripeCustomerId: createdCustomerId,
+          })
+          createdCustomerId = undefined
+        }
+      })
+
+      it('confirms an existing payment intent with off_session flag', async () => {
+        // Setup: create customer with payment method
+        const stripeCustomer = await createTestStripeCustomer()
+        createdCustomerId = stripeCustomer.id
+
+        const paymentMethod = await createTestPaymentMethod({
+          stripeCustomerId: stripeCustomer.id,
+          livemode: false,
+        })
+
+        const billingRunId = `br_${core.nanoid()}`
+        const billingPeriodId = `bp_${core.nanoid()}`
+        const amount = 7500
+        const organization = createTestOrganization()
+        const feeCalculation = createTestFeeCalculation({
+          baseAmount: amount,
+        })
+
+        // Create unconfirmed payment intent using the app function
+        const paymentIntent = await createPaymentIntentForBillingRun({
+          amount,
+          currency: CurrencyCode.USD,
+          stripeCustomerId: stripeCustomer.id,
+          stripePaymentMethodId: paymentMethod.id,
+          billingPeriodId,
+          billingRunId,
+          feeCalculation,
+          organization,
+          livemode: false,
+        })
+
+        createdPaymentIntentId = paymentIntent.id
+
+        // Verify initial status is unconfirmed
+        expect([
+          'requires_confirmation',
+          'requires_payment_method',
+        ]).toContain(paymentIntent.status)
+
+        // Action: confirm the payment intent using the app function
+        const confirmedPaymentIntent =
+          await confirmPaymentIntentForBillingRun(
+            paymentIntent.id,
+            false // livemode
+          )
+
+        // Verify status changed to succeeded or processing
+        expect(['succeeded', 'processing']).toContain(
+          confirmedPaymentIntent.status
+        )
+
+        // Verify latest_charge is present
+        expect(confirmedPaymentIntent.latest_charge).not.toBeNull()
+      })
+
+      it('fails when payment intent is already confirmed', async () => {
+        // Setup: create customer with payment method
+        const stripeCustomer = await createTestStripeCustomer()
+        createdCustomerId = stripeCustomer.id
+
+        const paymentMethod = await createTestPaymentMethod({
+          stripeCustomerId: stripeCustomer.id,
+          livemode: false,
+        })
+
+        const billingRunId = `br_${core.nanoid()}`
+        const billingPeriodId = `bp_${core.nanoid()}`
+        const amount = 3000
+        const organization = createTestOrganization()
+        const feeCalculation = createTestFeeCalculation({
+          baseAmount: amount,
+        })
+
+        // Create and immediately confirm using the app function
+        const paymentIntent =
+          await createAndConfirmPaymentIntentForBillingRun({
+            amount,
+            currency: CurrencyCode.USD,
+            stripeCustomerId: stripeCustomer.id,
+            stripePaymentMethodId: paymentMethod.id,
+            billingPeriodId,
+            billingRunId,
+            feeCalculation,
+            organization,
+            livemode: false,
+          })
+
+        // Action & Expectation: attempting to confirm again should fail
+        await expect(
+          confirmPaymentIntentForBillingRun(paymentIntent.id, false)
+        ).rejects.toThrow()
+      })
+    })
+
+    describe('getLatestChargeForPaymentIntent', () => {
+      let createdCustomerId: string | undefined
+
+      afterEach(async () => {
+        if (createdCustomerId) {
+          await cleanupStripeTestData({
+            stripeCustomerId: createdCustomerId,
+          })
+          createdCustomerId = undefined
+        }
+      })
+
+      it('returns charge object when payment intent has been charged', async () => {
+        // Setup: create and confirm payment intent
+        const stripeCustomer = await createTestStripeCustomer()
+        createdCustomerId = stripeCustomer.id
+
+        const paymentMethod = await createTestPaymentMethod({
+          stripeCustomerId: stripeCustomer.id,
+          livemode: false,
+        })
+
+        const billingRunId = `br_${core.nanoid()}`
+        const billingPeriodId = `bp_${core.nanoid()}`
+        const amount = 8500
+        const organization = createTestOrganization()
+        const feeCalculation = createTestFeeCalculation({
+          baseAmount: amount,
+        })
+
+        // Create and confirm payment intent using the app function
+        const paymentIntent =
+          await createAndConfirmPaymentIntentForBillingRun({
+            amount,
+            currency: CurrencyCode.USD,
+            stripeCustomerId: stripeCustomer.id,
+            stripePaymentMethodId: paymentMethod.id,
+            billingPeriodId,
+            billingRunId,
+            feeCalculation,
+            organization,
+            livemode: false,
+          })
+
+        // Get the latest charge using the app function
+        const charge = await getLatestChargeForPaymentIntent(
+          paymentIntent,
+          false // livemode
+        )
+
+        // Verify charge is present
+        expect(charge).not.toBeNull()
+
+        // Verify charge ID format
+        expect(charge!.id).toMatch(/^ch_/)
+
+        // Verify charge amount matches payment intent amount
+        expect(charge!.amount).toBe(amount)
+
+        // Verify charge status
+        expect(charge!.status).toBe('succeeded')
+
+        // Verify payment_method_details is present
+        expect(charge!.payment_method_details).not.toBeNull()
+      })
+
+      it('returns null when payment intent has no charge', async () => {
+        // Setup: create payment intent without confirming
+        const stripeCustomer = await createTestStripeCustomer()
+        createdCustomerId = stripeCustomer.id
+
+        const paymentMethod = await createTestPaymentMethod({
+          stripeCustomerId: stripeCustomer.id,
+          livemode: false,
+        })
+
+        const billingRunId = `br_${core.nanoid()}`
+        const billingPeriodId = `bp_${core.nanoid()}`
+        const amount = 4000
+        const organization = createTestOrganization()
+        const feeCalculation = createTestFeeCalculation({
+          baseAmount: amount,
+        })
+
+        // Create unconfirmed payment intent using the app function
+        const paymentIntent = await createPaymentIntentForBillingRun({
+          amount,
+          currency: CurrencyCode.USD,
+          stripeCustomerId: stripeCustomer.id,
+          stripePaymentMethodId: paymentMethod.id,
+          billingPeriodId,
+          billingRunId,
+          feeCalculation,
+          organization,
+          livemode: false,
+        })
+
+        // Cleanup the unconfirmed payment intent
+        await cleanupStripeTestData({
+          stripePaymentIntentId: paymentIntent.id,
+        })
+
+        // Get the latest charge - should be null for unconfirmed payment intent
+        const charge = await getLatestChargeForPaymentIntent(
+          paymentIntent,
+          false // livemode
+        )
+
+        // Verify charge is null
+        expect(charge).toBeNull()
+      })
+
+      it('retrieves expanded charge when latest_charge is a string id', async () => {
+        const stripe = getStripeTestClient()
+
+        // Setup: create and confirm payment intent
+        const stripeCustomer = await createTestStripeCustomer()
+        createdCustomerId = stripeCustomer.id
+
+        const paymentMethod = await createTestPaymentMethod({
+          stripeCustomerId: stripeCustomer.id,
+          livemode: false,
+        })
+
+        const billingRunId = `br_${core.nanoid()}`
+        const billingPeriodId = `bp_${core.nanoid()}`
+        const amount = 6000
+        const organization = createTestOrganization()
+        const feeCalculation = createTestFeeCalculation({
+          baseAmount: amount,
+        })
+
+        // Create and confirm payment intent using the app function
+        const paymentIntent =
+          await createAndConfirmPaymentIntentForBillingRun({
+            amount,
+            currency: CurrencyCode.USD,
+            stripeCustomerId: stripeCustomer.id,
+            stripePaymentMethodId: paymentMethod.id,
+            billingPeriodId,
+            billingRunId,
+            feeCalculation,
+            organization,
+            livemode: false,
+          })
+
+        // Retrieve payment intent without expansion to get string charge id
+        const retrievedPaymentIntent =
+          await stripe.paymentIntents.retrieve(paymentIntent.id)
+
+        // Verify latest_charge is a string (not expanded by default)
+        expect(typeof retrievedPaymentIntent.latest_charge).toBe(
+          'string'
+        )
+
+        // Use the app function to get the charge - it should handle the string id
+        const charge = await getLatestChargeForPaymentIntent(
+          retrievedPaymentIntent,
+          false // livemode
+        )
+
+        // Verify we got a full Charge object
+        expect(charge).not.toBeNull()
+        expect(typeof charge).toBe('object')
+        expect(charge!.id).toMatch(/^ch_/)
+
+        // Verify payment_method_details is present (proves it's a full object)
+        expect(charge!.payment_method_details).not.toBeNull()
       })
     })
   })

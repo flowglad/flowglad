@@ -402,6 +402,11 @@ export const rawStringAmountToCountableCurrencyAmount = (
 }
 
 const stripeApiKey = (livemode: boolean) => {
+  // Allow integration tests to use real Stripe API key
+  // This env var is only set when running integration tests
+  if (process.env.STRIPE_INTEGRATION_TEST_MODE === 'true') {
+    return process.env.STRIPE_TEST_MODE_SECRET_KEY || ''
+  }
   if (core.IS_TEST) {
     return 'sk_test_fake_key_1234567890abcdef'
   }
