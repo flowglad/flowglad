@@ -64,6 +64,10 @@ import {
   selectProductById,
   selectProducts,
 } from './productMethods'
+import {
+  derivePricingModelIdFromUsageMeter,
+  pricingModelIdsForUsageMeters,
+} from './usageMeterMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof prices,
@@ -103,24 +107,52 @@ export const bulkInsertPrices = async (
   priceInserts: Price.Insert[],
   transaction: DbTransaction
 ): Promise<Price.Record[]> => {
-  // Get productIds from non-usage prices only
+  // Get productIds from non-usage prices
   const productIds = priceInserts
-    .filter((insert) => insert.productId !== null)
+    .filter(
+      (insert) =>
+        insert.productId !== null && insert.productId !== undefined
+    )
     .map((insert) => insert.productId as string)
-  const pricingModelIdMap =
+  // Get usageMeterIds from usage prices
+  const usageMeterIds = priceInserts
+    .filter(
+      (insert) =>
+        insert.usageMeterId !== null &&
+        insert.usageMeterId !== undefined
+    )
+    .map((insert) => insert.usageMeterId as string)
+
+  const productPricingModelIdMap =
     productIds.length > 0
       ? await pricingModelIdsForProducts(productIds, transaction)
       : new Map<string, string>()
+  const usageMeterPricingModelIdMap =
+    usageMeterIds.length > 0
+      ? await pricingModelIdsForUsageMeters(
+          usageMeterIds,
+          transaction
+        )
+      : new Map<string, string>()
+
   const pricesWithPricingModelId = priceInserts.map(
     (priceInsert): Price.Insert => {
-      const pricingModelId =
-        priceInsert.pricingModelId ??
-        (priceInsert.productId
-          ? pricingModelIdMap.get(priceInsert.productId)
-          : undefined)
+      // Use provided pricingModelId, or derive from product or usage meter
+      let pricingModelId = priceInsert.pricingModelId
+      if (!pricingModelId) {
+        if (priceInsert.productId) {
+          pricingModelId = productPricingModelIdMap.get(
+            priceInsert.productId
+          )
+        } else if (priceInsert.usageMeterId) {
+          pricingModelId = usageMeterPricingModelIdMap.get(
+            priceInsert.usageMeterId
+          )
+        }
+      }
       if (!pricingModelId) {
         throw new Error(
-          `Pricing model id not found for product ${priceInsert.productId}`
+          `Pricing model id not found for price insert (productId: ${priceInsert.productId}, usageMeterId: ${priceInsert.usageMeterId})`
         )
       }
       return {
@@ -140,19 +172,26 @@ export const insertPrice = async (
   priceInsert: Price.Insert,
   transaction: DbTransaction
 ): Promise<Price.Record> => {
-  // For usage prices (no productId), pricingModelId must be provided
-  // For product prices, derive from product if not provided
-  const pricingModelId = priceInsert.pricingModelId
-    ? priceInsert.pricingModelId
-    : priceInsert.productId
-      ? await derivePricingModelIdFromProduct(
-          priceInsert.productId,
-          transaction
-        )
-      : undefined
+  // Derive pricingModelId if not provided:
+  // - For product prices: derive from product
+  // - For usage prices: derive from usage meter
+  let pricingModelId = priceInsert.pricingModelId
+  if (!pricingModelId) {
+    if (priceInsert.productId) {
+      pricingModelId = await derivePricingModelIdFromProduct(
+        priceInsert.productId,
+        transaction
+      )
+    } else if (priceInsert.usageMeterId) {
+      pricingModelId = await derivePricingModelIdFromUsageMeter(
+        priceInsert.usageMeterId,
+        transaction
+      )
+    }
+  }
   if (!pricingModelId) {
     throw new Error(
-      `Pricing model id must be provided for usage prices or derivable from productId`
+      `Pricing model id must be provided or derivable from productId or usageMeterId`
     )
   }
   return baseInsertPrice(
@@ -743,19 +782,26 @@ export const dangerouslyInsertPrice = async (
   priceInsert: Price.Insert,
   transaction: DbTransaction
 ): Promise<Price.Record> => {
-  // For usage prices (no productId), pricingModelId must be provided
-  // For product prices, derive from product if not provided
-  const pricingModelId = priceInsert.pricingModelId
-    ? priceInsert.pricingModelId
-    : priceInsert.productId
-      ? await derivePricingModelIdFromProduct(
-          priceInsert.productId,
-          transaction
-        )
-      : undefined
+  // Derive pricingModelId if not provided:
+  // - For product prices: derive from product
+  // - For usage prices: derive from usage meter
+  let pricingModelId = priceInsert.pricingModelId
+  if (!pricingModelId) {
+    if (priceInsert.productId) {
+      pricingModelId = await derivePricingModelIdFromProduct(
+        priceInsert.productId,
+        transaction
+      )
+    } else if (priceInsert.usageMeterId) {
+      pricingModelId = await derivePricingModelIdFromUsageMeter(
+        priceInsert.usageMeterId,
+        transaction
+      )
+    }
+  }
   if (!pricingModelId) {
     throw new Error(
-      `Pricing model id must be provided for usage prices or derivable from productId`
+      `Pricing model id must be provided or derivable from productId or usageMeterId`
     )
   }
   return baseDangerouslyInsertPrice(
