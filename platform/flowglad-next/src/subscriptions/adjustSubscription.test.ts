@@ -60,7 +60,9 @@ import {
 // The actual billing run execution is tested in billingRunHelpers.test.ts
 // Create the mock function inside the factory to avoid hoisting issues
 vi.mock('@/trigger/attempt-billing-run', () => {
-  const mockTriggerFn = vi.fn().mockResolvedValue(undefined)
+  const mockTriggerFn = vi
+    .fn()
+    .mockResolvedValue({ id: 'mock-billing-run-handle-id' })
   // Store reference so we can access it in tests
   ;(globalThis as any).__mockAttemptBillingRunTrigger = mockTriggerFn
   return {
