@@ -12,9 +12,8 @@ async function CheckoutSuccessPage({
 }) {
   // Cases based on CheckoutSession.type
   // 1. Purchase
-  // 2. Invoice
-  // 3. AddPaymentMethod
-  // 4. Product
+  // 2. AddPaymentMethod
+  // 3. Product
   const { id } = await params
   const checkoutSession = await adminTransaction(
     async ({ transaction }) => {
