@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
 import {
   type BillingAddress,
   type Organization,
@@ -21,9 +23,12 @@ import {
   CheckoutSessionType,
   CurrencyCode,
   FeeCalculationType,
+  InvoiceStatus,
+  InvoiceType,
   PaymentMethodType,
   PriceType,
   StripeConnectContractType,
+  SubscriptionItemType,
 } from '@/types'
 import core from '@/utils/core'
 import {
@@ -32,6 +37,7 @@ import {
   createAndConfirmPaymentIntentForBillingRun,
   createCustomerSessionForCheckout,
   createPaymentIntentForBillingRun,
+  createPaymentIntentForInvoiceCheckoutSession,
   createStripeCustomer,
   createStripeTaxCalculationByPrice,
   createStripeTaxTransactionFromCalculation,
@@ -527,7 +533,9 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         ]).toContain(paymentIntent.status)
 
         // Verify billing run metadata
-        expect(paymentIntent.metadata?.billingRunId).toBe(billingRunId)
+        expect(paymentIntent.metadata?.billingRunId).toBe(
+          billingRunId
+        )
         expect(paymentIntent.metadata?.billingPeriodId).toBe(
           billingPeriodId
         )
@@ -614,7 +622,9 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         expect(paymentIntent.latest_charge).not.toBeNull()
 
         // Verify billing run metadata
-        expect(paymentIntent.metadata?.billingRunId).toBe(billingRunId)
+        expect(paymentIntent.metadata?.billingRunId).toBe(
+          billingRunId
+        )
         expect(paymentIntent.metadata?.billingPeriodId).toBe(
           billingPeriodId
         )
@@ -911,9 +921,89 @@ describeIfStripeKey('Stripe Integration Tests', () => {
 
   describe('Invoice Payment Intents', () => {
     /**
+     * Creates a minimal Invoice.StandaloneInvoiceRecord for test purposes.
+     */
+    const createTestInvoice = (
+      overrides?: Partial<Invoice.StandaloneInvoiceRecord>
+    ): Invoice.StandaloneInvoiceRecord => {
+      const invoiceId = `inv_${core.nanoid()}`
+      return {
+        id: invoiceId,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdByCommit: null,
+        updatedByCommit: null,
+        position: 0,
+        organizationId: `org_${core.nanoid()}`,
+        customerId: `cust_${core.nanoid()}`,
+        invoiceNumber: `INV-${core.nanoid()}`,
+        invoiceDate: Date.now(),
+        dueDate: null,
+        status: InvoiceStatus.Draft,
+        type: InvoiceType.Standalone,
+        purchaseId: null,
+        billingPeriodId: null,
+        subscriptionId: null,
+        billingRunId: null,
+        billingPeriodStartDate: null,
+        billingPeriodEndDate: null,
+        ownerMembershipId: null,
+        pdfURL: null,
+        receiptPdfURL: null,
+        memo: null,
+        bankPaymentOnly: false,
+        currency: CurrencyCode.USD,
+        stripePaymentIntentId: null,
+        stripeTaxCalculationId: null,
+        stripeTaxTransactionId: null,
+        taxType: null,
+        taxCountry: null,
+        subtotal: null,
+        taxAmount: null,
+        taxState: null,
+        taxRatePercentage: null,
+        applicationFee: null,
+        livemode: false,
+        pricingModelId: `pm_${core.nanoid()}`,
+        ...overrides,
+      }
+    }
+
+    /**
+     * Creates a minimal InvoiceLineItem.StaticRecord for test purposes.
+     */
+    const createTestInvoiceLineItem = (
+      invoiceId: string,
+      overrides?: Partial<InvoiceLineItem.StaticRecord>
+    ): InvoiceLineItem.StaticRecord => {
+      return {
+        id: `inv_li_${core.nanoid()}`,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdByCommit: null,
+        updatedByCommit: null,
+        position: 0,
+        invoiceId,
+        quantity: 1,
+        priceId: null,
+        description: 'Test line item',
+        price: 5000,
+        billingRunId: null,
+        ledgerAccountId: null,
+        ledgerAccountCredit: null,
+        type: SubscriptionItemType.Static,
+        pricingModelId: `pm_${core.nanoid()}`,
+        livemode: false,
+        ...overrides,
+      }
+    }
+
+    /**
      * Creates a minimal CheckoutSession.InvoiceRecord for test purposes.
      */
     const createTestInvoiceCheckoutSession = (
+      invoiceId: string,
+      organizationId: string,
       overrides?: Partial<CheckoutSession.InvoiceRecord>
     ): CheckoutSession.InvoiceRecord => {
       const sessionId = `chckt_session_${core.nanoid()}`
@@ -925,11 +1015,11 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         updatedByCommit: null,
         status: CheckoutSessionStatus.Open,
         type: CheckoutSessionType.Invoice,
-        organizationId: `org_${core.nanoid()}`,
+        organizationId,
         priceId: null,
         quantity: 1,
         purchaseId: null,
-        invoiceId: `inv_${core.nanoid()}`,
+        invoiceId,
         customerId: null,
         customerName: null,
         customerEmail: null,
@@ -953,6 +1043,61 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       }
     }
 
+    /**
+     * Creates a FeeCalculation.CheckoutSessionRecord for test purposes.
+     */
+    const createTestCheckoutSessionFeeCalculation = (
+      overrides?: Partial<FeeCalculation.CheckoutSessionRecord>
+    ): FeeCalculation.CheckoutSessionRecord => {
+      return {
+        id: `fee_${core.nanoid()}`,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdByCommit: null,
+        updatedByCommit: null,
+        position: 0,
+        organizationId: `org_${core.nanoid()}`,
+        pricingModelId: `pm_${core.nanoid()}`,
+        checkoutSessionId: `chckt_session_${core.nanoid()}`,
+        purchaseId: null,
+        discountId: null,
+        priceId: null,
+        paymentMethodType: PaymentMethodType.Card,
+        discountAmountFixed: 0,
+        paymentMethodFeeFixed: 0,
+        baseAmount: 10000,
+        internationalFeePercentage: '0',
+        flowgladFeePercentage: '0.65',
+        morSurchargePercentage: '0',
+        billingAddress: {
+          name: null,
+          firstName: null,
+          lastName: null,
+          email: null,
+          address: {
+            name: null,
+            line1: '123 Test St',
+            line2: null,
+            city: 'San Francisco',
+            state: 'CA',
+            postal_code: '94105',
+            country: 'US',
+          },
+          phone: null,
+        },
+        taxAmountFixed: 0,
+        pretaxTotal: 10000,
+        stripeTaxCalculationId: null,
+        stripeTaxTransactionId: null,
+        billingPeriodId: null,
+        currency: CurrencyCode.USD,
+        type: FeeCalculationType.CheckoutSessionPayment,
+        internalNotes: null,
+        livemode: false,
+        ...overrides,
+      }
+    }
+
     describe('createPaymentIntentForInvoiceCheckoutSession', () => {
       let createdPaymentIntentId: string | undefined
       let createdCustomerId: string | undefined
@@ -972,37 +1117,47 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         }
       })
 
-      it('creates payment intent for invoice with correct total from line items, metadata includes checkoutSessionId and type', async () => {
-        const stripe = getStripeTestClient()
-        const checkoutSession = createTestInvoiceCheckoutSession()
-
-        // Create a Stripe customer for the test
+      it('creates payment intent with correct total from line items, metadata includes checkoutSessionId and type', async () => {
+        // Setup: create Stripe customer
         const stripeCustomer = await createTestStripeCustomer({
           email: `test+${core.nanoid()}@flowglad-integration.com`,
           name: `Invoice Test Customer ${core.nanoid()}`,
         })
         createdCustomerId = stripeCustomer.id
 
-        // Define invoice line items
-        const lineItem1Price = 5000 // $50.00
-        const lineItem1Quantity = 2
-        const lineItem2Price = 3000 // $30.00
-        const lineItem2Quantity = 1
-        const expectedTotal =
-          lineItem1Price * lineItem1Quantity +
-          lineItem2Price * lineItem2Quantity // $130.00 = 13000 cents
-
-        // Create payment intent directly with Stripe API
-        // This mirrors what createPaymentIntentForInvoiceCheckoutSession does internally
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount: expectedTotal,
-          currency: 'usd',
-          customer: stripeCustomer.id,
-          metadata: {
-            checkoutSessionId: checkoutSession.id,
-            type: 'checkout_session',
-          },
+        // Setup: create test data
+        const organization = createTestOrganization()
+        const invoice = createTestInvoice({
+          organizationId: organization.id,
         })
+        const checkoutSession = createTestInvoiceCheckoutSession(
+          invoice.id,
+          organization.id
+        )
+
+        // Define invoice line items with different prices and quantities
+        const lineItem1 = createTestInvoiceLineItem(invoice.id, {
+          price: 5000, // $50.00
+          quantity: 2,
+        })
+        const lineItem2 = createTestInvoiceLineItem(invoice.id, {
+          price: 3000, // $30.00
+          quantity: 1,
+        })
+        const invoiceLineItems = [lineItem1, lineItem2]
+        const expectedTotal =
+          lineItem1.price * lineItem1.quantity +
+          lineItem2.price * lineItem2.quantity // $130.00 = 13000 cents
+
+        // Action: call the application function
+        const paymentIntent =
+          await createPaymentIntentForInvoiceCheckoutSession({
+            invoice,
+            invoiceLineItems,
+            organization,
+            stripeCustomerId: stripeCustomer.id,
+            checkoutSession,
+          })
 
         createdPaymentIntentId = paymentIntent.id
 
@@ -1024,22 +1179,31 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         )
 
         // Verify metadata.type is 'checkout_session'
-        expect(paymentIntent.metadata?.type).toBe('checkout_session')
+        expect(paymentIntent.metadata?.type).toBe(
+          IntentMetadataType.CheckoutSession
+        )
 
         // Verify livemode is false
         expect(paymentIntent.livemode).toBe(false)
       })
 
       it('creates payment intent with feeCalculation metadata fields when feeCalculation is provided', async () => {
-        const stripe = getStripeTestClient()
-        const checkoutSession = createTestInvoiceCheckoutSession()
-
-        // Create a Stripe customer for the test
+        // Setup: create Stripe customer
         const stripeCustomer = await createTestStripeCustomer({
           email: `test+${core.nanoid()}@flowglad-integration.com`,
           name: `Invoice Fee Test Customer ${core.nanoid()}`,
         })
         createdCustomerId = stripeCustomer.id
+
+        // Setup: create test data with fee calculation
+        const organization = createTestOrganization()
+        const invoice = createTestInvoice({
+          organizationId: organization.id,
+        })
+        const checkoutSession = createTestInvoiceCheckoutSession(
+          invoice.id,
+          organization.id
+        )
 
         // Fee calculation values
         const baseAmount = 10000 // $100.00
@@ -1047,39 +1211,39 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         const paymentMethodFeeFixed = 300 // $3.00 payment method fee
         const taxAmountFixed = 800 // $8.00 tax
 
-        // Total due = baseAmount - discount + paymentMethodFee + tax
-        // = 10000 - 1000 + 300 + 800 = 10100 cents
+        // Total due = baseAmount - discount + tax
+        // (paymentMethodFeeFixed is NOT included in total due)
+        // = 10000 - 1000 + 800 = 9800 cents
         const expectedTotalDue =
-          baseAmount -
-          discountAmountFixed +
-          paymentMethodFeeFixed +
-          taxAmountFixed
+          baseAmount - discountAmountFixed + taxAmountFixed
 
-        // Build fee metadata as the function would
-        const feeMetadata = {
-          baseAmount: String(baseAmount),
-          discountAmountFixed: String(discountAmountFixed),
-          paymentMethodFeeFixed: String(paymentMethodFeeFixed),
-          taxAmountFixed: String(taxAmountFixed),
-          flowgladFeePercentage: '0.65',
-          internationalFeePercentage: '0',
-          morSurchargePercentage: '0',
-          pretaxTotal: String(
-            baseAmount - discountAmountFixed + paymentMethodFeeFixed
-          ),
-        }
-
-        // Create payment intent directly with Stripe API
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount: expectedTotalDue,
-          currency: 'usd',
-          customer: stripeCustomer.id,
-          metadata: {
+        const feeCalculation =
+          createTestCheckoutSessionFeeCalculation({
+            organizationId: organization.id,
             checkoutSessionId: checkoutSession.id,
-            type: 'checkout_session',
-            ...feeMetadata,
-          },
-        })
+            baseAmount,
+            discountAmountFixed,
+            paymentMethodFeeFixed,
+            taxAmountFixed,
+            pretaxTotal:
+              baseAmount -
+              discountAmountFixed +
+              paymentMethodFeeFixed,
+          })
+
+        // Line items are ignored when feeCalculation is provided
+        const invoiceLineItems: InvoiceLineItem.Record[] = []
+
+        // Action: call the application function with feeCalculation
+        const paymentIntent =
+          await createPaymentIntentForInvoiceCheckoutSession({
+            invoice,
+            invoiceLineItems,
+            organization,
+            stripeCustomerId: stripeCustomer.id,
+            checkoutSession,
+            feeCalculation,
+          })
 
         createdPaymentIntentId = paymentIntent.id
 
@@ -1089,35 +1253,22 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         // Verify amount equals calculateTotalDueAmount(feeCalculation)
         expect(paymentIntent.amount).toBe(expectedTotalDue)
 
-        // Verify fee metadata fields are present
-        expect(paymentIntent.metadata?.baseAmount).toBe(
-          String(baseAmount)
-        )
-        expect(paymentIntent.metadata?.discountAmountFixed).toBe(
-          String(discountAmountFixed)
-        )
-        expect(paymentIntent.metadata?.paymentMethodFeeFixed).toBe(
-          String(paymentMethodFeeFixed)
-        )
-        expect(paymentIntent.metadata?.taxAmountFixed).toBe(
-          String(taxAmountFixed)
-        )
-        expect(paymentIntent.metadata?.flowgladFeePercentage).toBe(
+        // Verify fee metadata fields are present (buildFeeMetadata adds these)
+        // Note: buildFeeMetadata only includes fee percentages and tax amount, not base amounts
+        expect(paymentIntent.metadata?.flowglad_fee_percentage).toBe(
           '0.65'
         )
         expect(
-          paymentIntent.metadata?.internationalFeePercentage
+          paymentIntent.metadata?.international_fee_percentage
         ).toBe('0')
-        expect(paymentIntent.metadata?.morSurchargePercentage).toBe(
+        expect(paymentIntent.metadata?.mor_surcharge_percentage).toBe(
           '0'
         )
-        expect(paymentIntent.metadata?.pretaxTotal).toBe(
-          String(
-            baseAmount - discountAmountFixed + paymentMethodFeeFixed
-          )
+        expect(paymentIntent.metadata?.tax_amount).toBe(
+          String(taxAmountFixed)
         )
 
-        // application_fee_amount is only set in livemode, so it should be undefined in test mode
+        // application_fee_amount is only set in livemode, so it should be null in test mode
         expect(paymentIntent.application_fee_amount).toBeNull()
 
         // Verify livemode is false
@@ -1125,35 +1276,40 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       })
 
       it('applies bank-only payment methods when invoice.bankPaymentOnly is true, resulting in us_bank_account in payment_method_types', async () => {
-        const stripe = getStripeTestClient()
-        const checkoutSession = createTestInvoiceCheckoutSession()
-
-        // Create a Stripe customer for the test
+        // Setup: create Stripe customer
         const stripeCustomer = await createTestStripeCustomer({
           email: `test+${core.nanoid()}@flowglad-integration.com`,
           name: `Bank Only Test Customer ${core.nanoid()}`,
         })
         createdCustomerId = stripeCustomer.id
 
-        const invoiceTotal = 10000 // $100.00
-
-        // Create payment intent with bank-only payment method types
-        // This mirrors what happens when invoice.bankPaymentOnly = true
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount: invoiceTotal,
-          currency: 'usd',
-          customer: stripeCustomer.id,
-          payment_method_types: ['us_bank_account'],
-          payment_method_options: {
-            us_bank_account: {
-              verification_method: 'instant',
-            },
-          },
-          metadata: {
-            checkoutSessionId: checkoutSession.id,
-            type: 'checkout_session',
-          },
+        // Setup: create test data with bankPaymentOnly = true
+        const organization = createTestOrganization()
+        const invoice = createTestInvoice({
+          organizationId: organization.id,
+          bankPaymentOnly: true,
         })
+        const checkoutSession = createTestInvoiceCheckoutSession(
+          invoice.id,
+          organization.id
+        )
+
+        const invoiceTotal = 10000 // $100.00
+        const lineItem = createTestInvoiceLineItem(invoice.id, {
+          price: invoiceTotal,
+          quantity: 1,
+        })
+        const invoiceLineItems = [lineItem]
+
+        // Action: call the application function
+        const paymentIntent =
+          await createPaymentIntentForInvoiceCheckoutSession({
+            invoice,
+            invoiceLineItems,
+            organization,
+            stripeCustomerId: stripeCustomer.id,
+            checkoutSession,
+          })
 
         createdPaymentIntentId = paymentIntent.id
 
@@ -1175,7 +1331,9 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         expect(paymentIntent.metadata?.checkoutSessionId).toBe(
           checkoutSession.id
         )
-        expect(paymentIntent.metadata?.type).toBe('checkout_session')
+        expect(paymentIntent.metadata?.type).toBe(
+          IntentMetadataType.CheckoutSession
+        )
 
         // Verify livemode is false
         expect(paymentIntent.livemode).toBe(false)
