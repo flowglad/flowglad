@@ -24,10 +24,13 @@ describe('minimumUnitInHours', () => {
 
 describe('getDefaultInterval', () => {
   /**
-   * The function determines chart intervals based on date range thresholds:
-   * - < 48 hours → Hourly (aligns with minimumUnitInHours[RevenueChartIntervalUnit.Day])
-   * - 48+ hours but < 60 days (48 to 1439 hours) → Daily
-   * - 60+ days (>= 1440 hours) → Monthly
+   * The function determines chart intervals based on date range thresholds
+   * (via getIntervalConfig):
+   * - 0-1 days → Hourly
+   * - 2-14 days → Daily
+   * - 15-30 days → Daily
+   * - 31-92 days → Weekly
+   * - 93+ days → Monthly
    */
 
   describe('when range is less than 48 hours', () => {
@@ -66,8 +69,8 @@ describe('getDefaultInterval', () => {
     })
   })
 
-  describe('when range is 48+ hours but less than 60 days', () => {
-    it('should return Daily at exactly 48 hours (boundary, matches minimumUnitInHours[Day])', () => {
+  describe('when range is 2-30 days (Daily default)', () => {
+    it('should return Daily at 2 days', () => {
       const fromDate = new Date('2024-01-01T00:00:00Z')
       const toDate = new Date('2024-01-03T00:00:00Z')
       const result = getDefaultInterval(fromDate, toDate)
@@ -87,26 +90,35 @@ describe('getDefaultInterval', () => {
       const result = getDefaultInterval(fromDate, toDate)
       expect(result).toBe(RevenueChartIntervalUnit.Day)
     })
-
-    it('should return Daily for 59 days (just under 60 day threshold)', () => {
-      const fromDate = new Date('2024-01-01T00:00:00Z')
-      const toDate = new Date('2024-02-29T00:00:00Z') // 59 days
-      const result = getDefaultInterval(fromDate, toDate)
-      expect(result).toBe(RevenueChartIntervalUnit.Day)
-    })
   })
 
-  describe('when range is 60+ days (2+ months)', () => {
-    it('should return Monthly at exactly 60 days (boundary)', () => {
+  describe('when range is 31-92 days (Weekly default)', () => {
+    it('should return Weekly for 31 days (boundary)', () => {
+      const fromDate = new Date('2024-01-01T00:00:00Z')
+      const toDate = new Date('2024-02-01T00:00:00Z') // 31 days
+      const result = getDefaultInterval(fromDate, toDate)
+      expect(result).toBe(RevenueChartIntervalUnit.Week)
+    })
+
+    it('should return Weekly for ~60 days', () => {
       const fromDate = new Date('2024-01-01T00:00:00Z')
       const toDate = new Date('2024-03-01T00:00:00Z') // 60 days
       const result = getDefaultInterval(fromDate, toDate)
-      expect(result).toBe(RevenueChartIntervalUnit.Month)
+      expect(result).toBe(RevenueChartIntervalUnit.Week)
     })
 
-    it('should return Monthly for "Last 3 months" scenario', () => {
+    it('should return Weekly for 92 days (boundary)', () => {
       const fromDate = new Date('2024-01-01T00:00:00Z')
-      const toDate = new Date('2024-04-01T00:00:00Z') // ~90 days
+      const toDate = new Date('2024-04-02T00:00:00Z') // 92 days
+      const result = getDefaultInterval(fromDate, toDate)
+      expect(result).toBe(RevenueChartIntervalUnit.Week)
+    })
+  })
+
+  describe('when range is 93+ days (Monthly default)', () => {
+    it('should return Monthly at exactly 93 days (boundary)', () => {
+      const fromDate = new Date('2024-01-01T00:00:00Z')
+      const toDate = new Date('2024-04-03T00:00:00Z') // 93 days
       const result = getDefaultInterval(fromDate, toDate)
       expect(result).toBe(RevenueChartIntervalUnit.Month)
     })
