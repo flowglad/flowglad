@@ -371,13 +371,6 @@ const isSubscriptionItemActive = (item: {
  * Fetches subscriptions with their active items, features, and usage meter balances.
  * This function performs decomposed queries that can be cached independently.
  *
- * The function follows these steps:
- * 1. Fetches subscriptions matching the where conditions
- * 2. Fetches subscription items with their prices for those subscriptions
- * 3. Builds a map of rich subscriptions with their active items
- * 4. Fetches related data (features and meter balances) in parallel
- * 5. Combines all data into the final rich subscription objects
- *
  * @param whereConditions - Conditions to filter the subscriptions
  * @param transaction - Database transaction to use for all queries
  * @returns Array of rich subscriptions with their active items, features, and meter balances
@@ -418,8 +411,7 @@ export const selectRichSubscriptionsAndActiveItems = async (
     )
     .map(({ subscriptionItem }) => subscriptionItem)
 
-  // Step 4: Fetch related data in parallel for better performance
-  // Gets features and meter balances in a single Promise.all call
+  // Step 5: Fetch related data in parallel for better performance
   const [allSubscriptionItemFeatures, usageMeterBalances] =
     await Promise.all([
       selectSubscriptionItemFeaturesWithFeatureSlug(
@@ -435,13 +427,13 @@ export const selectRichSubscriptionsAndActiveItems = async (
         transaction
       ),
     ])
-  // Filter out expired subscription item features
+
+  // Step 6: Filter out expired subscription item features
   const subscriptionItemFeatures = allSubscriptionItemFeatures.filter(
     (f) => !f.expiredAt || f.expiredAt > Date.now()
   )
 
-  // Step 5: Group features by subscription ID
-  // Creates lookup maps for efficient data access
+  // Step 7: Group features and meter balances by subscription ID
   const subscriptionItemsById = core.groupBy(
     (item) => item.id,
     activeSubscriptionItems
@@ -453,15 +445,12 @@ export const selectRichSubscriptionsAndActiveItems = async (
       throw new Error('Subscription item not found')
     return subscriptionItem.subscriptionId
   }, subscriptionItemFeatures)
-
-  // Step 6: Group meter balances by subscription ID
   const meterBalancesBySubscriptionId = core.groupBy(
     (item) => item.subscriptionId,
     usageMeterBalances
   )
 
-  // Step 7: Combine all data into rich subscriptions
-  // Maps the data into the final rich subscription format
+  // Step 8: Combine all data into rich subscriptions
   const richSubscriptions = Array.from(
     richSubscriptionsMap.values()
   ).map((subscription) => ({
@@ -475,7 +464,7 @@ export const selectRichSubscriptionsAndActiveItems = async (
     },
   }))
 
-  // Step 8: Validate and return the final result
+  // Step 9: Validate and return the final result
   return richSubscriptions.map((item) =>
     richSubscriptionClientSelectSchema.parse(item)
   )
