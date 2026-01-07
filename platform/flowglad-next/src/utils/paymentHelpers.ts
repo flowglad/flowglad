@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 import type { Payment } from '@/db/schema/payments'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   insertPayment,
   safelyUpdatePaymentForRefund,
@@ -7,12 +8,13 @@ import {
   selectPayments,
 } from '@/db/tableMethods/paymentMethods'
 import type { DbTransaction } from '@/db/types'
-import { PaymentStatus } from '@/types'
+import { PaymentStatus, StripeConnectContractType } from '@/types'
 import {
   getPaymentIntent,
   getStripeCharge,
   listRefundsForCharge,
   refundPayment,
+  reverseStripeTaxTransaction,
   stripeIdFromObjectOrId,
 } from '@/utils/stripe'
 import { chargeStatusToPaymentStatus } from './bookkeeping/processPaymentIntentStatusUpdated'
@@ -108,6 +110,36 @@ export const refundPaymentTransaction = async (
             return sum + refund.amount
           }, 0)
     nextRefundedAmount = amountRefundedFromStripe
+  }
+
+  // Reverse tax transaction for MOR organizations
+  if (payment.stripeTaxTransactionId) {
+    const organization = await selectOrganizationById(
+      payment.organizationId,
+      transaction
+    )
+
+    if (
+      organization.stripeConnectContractType ===
+      StripeConnectContractType.MerchantOfRecord
+    ) {
+      const isFullRefund = nextRefundedAmount >= payment.amount
+      try {
+        await reverseStripeTaxTransaction({
+          stripeTaxTransactionId: payment.stripeTaxTransactionId,
+          reference: `refund_${payment.id}_${Date.now()}`,
+          livemode: payment.livemode,
+          mode: isFullRefund ? 'full' : 'partial',
+          flatAmount: isFullRefund
+            ? undefined
+            : (partialAmount ?? undefined),
+        })
+      } catch (error) {
+        // Log but don't fail the refund - tax reversal is best-effort
+        // similar to how tax transaction creation is handled
+        console.error('Failed to reverse tax transaction:', error)
+      }
+    }
   }
 
   const updatedPayment = await safelyUpdatePaymentForRefund(

@@ -944,6 +944,48 @@ export const createStripeTaxTransactionFromCalculation = async ({
   )
 }
 
+/**
+ * Reverses a Stripe Tax Transaction when a refund occurs.
+ * This is required for MOR to properly report tax reversals.
+ *
+ * @see https://docs.stripe.com/tax/custom#record-tax-reversals
+ */
+export const reverseStripeTaxTransaction = async ({
+  stripeTaxTransactionId,
+  reference,
+  livemode,
+  mode,
+  flatAmount,
+}: {
+  stripeTaxTransactionId: string
+  reference: string
+  livemode: boolean
+  mode: 'full' | 'partial'
+  flatAmount?: number
+}): Promise<Stripe.Tax.Transaction | null> => {
+  // Skip reversal for test tax transactions or missing IDs
+  if (
+    !stripeTaxTransactionId ||
+    stripeTaxTransactionId.startsWith('notaxoverride_') ||
+    stripeTaxTransactionId.startsWith('testtaxcalc_')
+  ) {
+    return null
+  }
+
+  const params: Stripe.Tax.TransactionCreateReversalParams = {
+    original_transaction: stripeTaxTransactionId,
+    reference,
+    mode,
+    ...(mode === 'partial' && flatAmount
+      ? { flat_amount: flatAmount }
+      : {}),
+  }
+
+  return stripe(livemode).tax.transactions.createReversal(params, {
+    idempotencyKey: `tax_reversal_${reference}`,
+  })
+}
+
 const deriveFullyOnboardedStatusFromStripeAccount = (
   account: Stripe.Account
 ): boolean => {
