@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 import ErrorLabel from '@/components/ErrorLabel'
 import { Button } from '@/components/ui/button'
-import axios from 'axios';
+import { trpc } from '@/app/_trpc/client'
 import {
   Card,
   CardContent,
@@ -42,6 +42,15 @@ export default function SignIn() {
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+
+  const resetPasswordMutation = trpc.utils.resetPassword.useMutation({
+    onSuccess: () => {
+      toast.success('If that email has an account, a password reset email has been sent.')
+    },
+    onError: () => {
+      toast.error('Failed to send reset email')
+    },
+  })
    
   const emailValue = watch('email')
 
@@ -81,21 +90,12 @@ export default function SignIn() {
     toast.error(String(message))
   }
 
-const handleClick = async (e: any) => {
+const handleForgotPassword = () => {
   if (forgotPasswordDisabled) {
     toast.error('Please enter a valid email');
     return;
   }
-  try {
-    const response = await axios.post('/api/reset-password', { email: emailValue });
-    
-    
-    // Always show success message to prevent user enumeration
-    toast.success('If that email has an account, a password reset email has been sent.');
-  } catch (err: any) {
-    console.log('error in forgot password', err);
-    toast.error(err.response?.data?.msg || 'Failed to send reset email');
-  }
+  resetPasswordMutation.mutate({ email: emailValue ?? '' });
 };
 
 return (
@@ -131,7 +131,7 @@ return (
                     forgotPasswordDisabled &&
                       'opacity-25 cursor-not-allowed'
                   )}
-                  onClick={handleClick}
+                  onClick={handleForgotPassword}
                 >
                   Forgot your password?
                 </div>

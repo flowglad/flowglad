@@ -1,6 +1,7 @@
 import { generateDescription } from '@/server/mutations/generateDescription'
 import { getPresignedURL } from '@/server/mutations/getPresignedURL'
 import { pong } from '@/server/mutations/pong'
+import { resetPassword } from '@/server/mutations/resetPassword'
 import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
 import { logout } from './mutations/logout'
 import { setReferralSelection } from './mutations/setReferralSelection'
@@ -58,6 +59,7 @@ export const appRouter = router({
     inviteUserToOrganization,
     logout,
     setReferralSelection,
+    resetPassword,
   }),
   apiKeys: apiKeysRouter,
   banners: bannersRouter,

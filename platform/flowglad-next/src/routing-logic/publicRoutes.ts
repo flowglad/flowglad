@@ -31,6 +31,7 @@ const publicRoutes = [
   '/api/trpc/checkoutSessions.public.(.*)',
   '/api/trpc/purchases.requestAccess',
   '/api/trpc/utils.logout',
+  '/api/trpc/utils.resetPassword',
   '/apple-touch-icon(.*).png',
   '/api/v1/(.*)',
   '/api/mcp/(.*)',

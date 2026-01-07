@@ -72,16 +72,17 @@ export default function ResetPasswordPage() {
       setTimeout(() => {
         router.push('/sign-in')
       }, 2000)
-    } catch (err: any) {
-      setError(err.message || 'Failed to reset password')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to reset password'
+      setError(errorMessage)
       toast.error('Failed to reset password')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const onError = (errs: any) => {
-    const first = Object.values(errs)[0] as any
+  const onError = (errs: Record<string, { message?: string }>) => {
+    const first = Object.values(errs)[0]
     const message = first?.message ?? 'Validation failed'
     toast.error(String(message))
   }
@@ -178,7 +179,7 @@ export default function ResetPasswordPage() {
             <div className="space-y-2">
               <Label htmlFor="passwordConfirmation">Confirm Password</Label>
               <Input
-                id="passwordConfirmation"
+                id="confirmPassword"
                 type="password"
                 placeholder="Confirm new password"
                 disabled={isLoading}
