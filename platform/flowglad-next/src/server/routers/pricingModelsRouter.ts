@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server'
 import yaml from 'json-to-pretty-yaml'
 import { z } from 'zod'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
@@ -28,7 +29,6 @@ import {
   idInputSchema,
 } from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
-import { DestinationEnvironment } from '@/types'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
 import {
   generateOpenApiMetas,
@@ -226,39 +226,36 @@ const clonePricingModelProcedure = protectedProcedure
     })
   )
   .mutation(async ({ input, ctx }) => {
-    const clonedPricingModel = await authenticatedTransaction(
-      async ({ transaction, livemode }) => {
-        const pricingModel = await selectPricingModelById(
-          input.id,
-          transaction
-        )
-        if (!pricingModel) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message:
-              'The pricing model you are trying to clone either does not exist or you do not have permission to clone it.',
-          })
-        }
-
-        const destinationLivemode = input.destinationEnvironment
-          ? input.destinationEnvironment ===
-            DestinationEnvironment.Livemode
-          : pricingModel.livemode
-
-        if (destinationLivemode !== livemode) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message:
-              'Cannot clone to a different environment than your API key. Use a live-mode API key to clone to live mode, or a test-mode API key to clone to test mode.',
-          })
-        }
-
-        return clonePricingModelTransaction(input, transaction)
+    const pricingModel = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectPricingModelById(input.id, transaction)
       },
       {
         apiKey: ctx.apiKey,
       }
     )
+
+    if (!pricingModel) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message:
+          'The pricing model you are trying to clone either does not exist or you do not have permission to clone it.',
+      })
+    }
+
+    /**
+     * We intentionally use adminTransaction here to allow cloning pricing models
+     * across environments (test mode to live mode and vice versa). This is a
+     * supported UI feature that lets users promote their pricing model configuration
+     * from test to production. The authenticatedTransaction above ensures the user
+     * has permission to read the source pricing model.
+     */
+    const clonedPricingModel = await adminTransaction(
+      async ({ transaction }) => {
+        return await clonePricingModelTransaction(input, transaction)
+      }
+    )
+
     return { pricingModel: clonedPricingModel }
   })
 
