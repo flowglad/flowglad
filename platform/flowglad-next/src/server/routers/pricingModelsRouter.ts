@@ -27,6 +27,7 @@ import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   idInputSchema,
+  NotFoundError,
 } from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
@@ -233,15 +234,16 @@ const clonePricingModelProcedure = protectedProcedure
       {
         apiKey: ctx.apiKey,
       }
-    )
-
-    if (!pricingModel) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message:
-          'The pricing model you are trying to clone either does not exist or you do not have permission to clone it.',
-      })
-    }
+    ).catch((error) => {
+      if (error instanceof NotFoundError) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message:
+            'The pricing model you are trying to clone either does not exist or you do not have permission to clone it.',
+        })
+      }
+      throw error
+    })
 
     /**
      * We intentionally use adminTransaction here to allow cloning pricing models
