@@ -8375,6 +8375,7 @@
             "type": "null"
           },
           "productId": {
+            "description": "The product this price belongs to. Required for subscription prices.",
             "type": "string"
           },
           "active": {
@@ -8457,6 +8458,7 @@
             "type": "null"
           },
           "productId": {
+            "description": "The product this price belongs to. Required for single payment prices.",
             "type": "string"
           },
           "active": {
@@ -8536,7 +8538,8 @@
             "maximum": 9007199254740991
           },
           "productId": {
-            "type": "string"
+            "description": "Omitted.",
+            "type": "null"
           },
           "active": {
             "type": "boolean"
@@ -8563,7 +8566,6 @@
           "isDefault",
           "unitPrice",
           "usageEventsPerUnit",
-          "productId",
           "usageMeterId"
         ]
       },
@@ -12754,6 +12756,7 @@
             "type": "null"
           },
           "productId": {
+            "description": "The product this price belongs to. Required for subscription prices.",
             "type": "string"
           },
           "active": {
@@ -12872,6 +12875,7 @@
             "type": "null"
           },
           "productId": {
+            "description": "The product this price belongs to. Required for single payment prices.",
             "type": "string"
           },
           "active": {
@@ -12990,7 +12994,7 @@
             "maximum": 9007199254740991
           },
           "productId": {
-            "type": "string"
+            "type": "null"
           },
           "active": {
             "type": "boolean"

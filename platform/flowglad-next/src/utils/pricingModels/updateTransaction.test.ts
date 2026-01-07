@@ -338,6 +338,8 @@ describe('updatePricingModelTransaction', () => {
       expect(updateResult.usageMeters.created[0].name).toBe('Storage')
     })
 
+    // TODO: PR 2 - This test expects usage meters to create associated products
+    // but in the new data model, usage prices have productId: null and don't create products
     it.skip('updates existing usage meter name', async () => {
       const setupResult = await createBasicPricingModel({
         usageMeters: [{ slug: 'api-calls', name: 'API Calls' }],
