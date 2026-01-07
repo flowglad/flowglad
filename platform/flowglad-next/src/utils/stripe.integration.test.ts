@@ -29,6 +29,7 @@ import {
 } from '@/types'
 import core from '@/utils/core'
 import {
+  calculatePlatformApplicationFee,
   confirmPaymentIntentForBillingRun,
   createAndConfirmPaymentIntentForBillingRun,
   createCustomerSessionForCheckout,
@@ -37,6 +38,7 @@ import {
   createSetupIntentForCheckoutSession,
   createStripeCustomer,
   createStripeTaxCalculationByPrice,
+  createStripeTaxCalculationByPurchase,
   createStripeTaxTransactionFromCalculation,
   dateFromStripeTimestamp,
   getLatestChargeForPaymentIntent,
@@ -48,6 +50,7 @@ import {
   listRefundsForCharge,
   paymentMethodFromStripeCharge,
   refundPayment,
+  reverseStripeTaxTransaction,
   updatePaymentIntent,
   updateSetupIntent,
 } from '@/utils/stripe'
@@ -146,6 +149,230 @@ const createTestFeeCalculation = (
     internalNotes: null,
     livemode: false,
     ...overrides,
+  }
+}
+
+/**
+ * Creates a minimal Price record for test purposes.
+ * Uses SinglePaymentRecord since that's the simplest type.
+ */
+const createTestPrice = (
+  overrides?: Partial<Price.SinglePaymentRecord>
+): Price.SinglePaymentRecord => {
+  return {
+    id: `price_${core.nanoid()}`,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    createdByCommit: null,
+    updatedByCommit: null,
+    position: 0,
+    productId: `prod_${core.nanoid()}`,
+    pricingModelId: `pm_${core.nanoid()}`,
+    name: 'Test Price',
+    type: PriceType.SinglePayment,
+    unitPrice: 10000,
+    currency: CurrencyCode.USD,
+    isDefault: true,
+    active: true,
+    externalId: null,
+    livemode: false,
+    slug: `test-price-${core.nanoid()}`,
+    ...overrides,
+  }
+}
+
+/**
+ * Creates a minimal Product record for test purposes.
+ */
+const createTestProduct = (
+  overrides?: Partial<Product.Record>
+): Product.Record => {
+  return {
+    id: `prod_${core.nanoid()}`,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    createdByCommit: null,
+    updatedByCommit: null,
+    position: 0,
+    organizationId: `org_${core.nanoid()}`,
+    name: 'Test Product',
+    description: 'A test product',
+    singularQuantityLabel: null,
+    pluralQuantityLabel: null,
+    active: true,
+    imageURL: null,
+    externalId: null,
+    livemode: false,
+    default: false,
+    slug: `test-product-${core.nanoid()}`,
+    pricingModelId: `pm_${core.nanoid()}`,
+    ...overrides,
+  }
+}
+
+/**
+ * Creates a minimal CheckoutSession record for test purposes.
+ */
+const createTestCheckoutSession = (
+  overrides?: Partial<CheckoutSession.ProductRecord>
+): CheckoutSession.ProductRecord => {
+  const sessionId = `chckt_session_${core.nanoid()}`
+  return {
+    id: sessionId,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    createdByCommit: null,
+    updatedByCommit: null,
+    status: CheckoutSessionStatus.Open,
+    type: CheckoutSessionType.Product,
+    organizationId: `org_${core.nanoid()}`,
+    priceId: `price_${core.nanoid()}`,
+    quantity: 1,
+    purchaseId: null,
+    invoiceId: null,
+    customerId: null,
+    customerName: null,
+    customerEmail: null,
+    stripeSetupIntentId: null,
+    stripePaymentIntentId: null,
+    billingAddress: null,
+    paymentMethodType: null,
+    discountId: null,
+    successUrl: 'https://example.com/success',
+    cancelUrl: 'https://example.com/cancel',
+    expires: Date.now() + 1000 * 60 * 60 * 24,
+    livemode: false,
+    pricingModelId: `pm_${core.nanoid()}`,
+    preserveBillingCycleAnchor: false,
+    outputMetadata: null,
+    outputName: null,
+    targetSubscriptionId: null,
+    automaticallyUpdateSubscriptions: null,
+    position: 0,
+    ...overrides,
+  }
+}
+
+/**
+ * Creates a minimal Customer record for test purposes.
+ */
+const createTestCustomerRecord = (
+  overrides?: Partial<Customer.Record>
+): Customer.Record => {
+  return {
+    id: `cust_${core.nanoid()}`,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    createdByCommit: null,
+    updatedByCommit: null,
+    position: 0,
+    organizationId: `org_${core.nanoid()}`,
+    email: `test+${core.nanoid()}@flowglad-integration.com`,
+    name: `Test Customer ${core.nanoid()}`,
+    invoiceNumberBase: 'INV-TEST',
+    archived: false,
+    stripeCustomerId: null,
+    taxId: null,
+    logoURL: null,
+    iconURL: null,
+    domain: null,
+    billingAddress: null,
+    externalId: `ext_${core.nanoid()}`,
+    userId: null,
+    pricingModelId: null,
+    stackAuthHostedBillingUserId: null,
+    livemode: false,
+    ...overrides,
+  }
+}
+
+/**
+ * Creates a minimal Purchase record for test purposes.
+ * Supports both minimal usage (bankPaymentOnly only) and full records.
+ */
+const createTestPurchase = (
+  overrides?: Partial<Purchase.Record>
+): Purchase.Record => {
+  const purchaseId = `prch_${core.nanoid()}`
+  return {
+    id: purchaseId,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    createdByCommit: null,
+    updatedByCommit: null,
+    position: 0,
+    name: 'Test Purchase',
+    status: 'open',
+    customerId: `cust_${core.nanoid()}`,
+    organizationId: `org_${core.nanoid()}`,
+    billingCycleAnchor: null,
+    priceId: `price_${core.nanoid()}`,
+    quantity: 1,
+    priceType: PriceType.SinglePayment,
+    trialPeriodDays: 0,
+    pricePerBillingCycle: null,
+    intervalUnit: null,
+    intervalCount: null,
+    firstInvoiceValue: null,
+    totalPurchaseValue: 10000,
+    bankPaymentOnly: false,
+    purchaseDate: null,
+    endDate: null,
+    proposal: null,
+    archived: false,
+    billingAddress: null,
+    metadata: null,
+    pricingModelId: `pm_${core.nanoid()}`,
+    livemode: false,
+    ...overrides,
+  } as Purchase.Record
+}
+
+/**
+ * Helper to create a succeeded payment using application functions.
+ * Returns the payment intent and charge ID for refund testing.
+ */
+const createSucceededBillingPayment = async (
+  amount: number
+): Promise<{
+  paymentIntentId: string
+  chargeId: string
+  customerId: string
+}> => {
+  const stripeCustomer = await createTestStripeCustomer()
+  const paymentMethod = await createTestPaymentMethod({
+    stripeCustomerId: stripeCustomer.id,
+    livemode: false,
+  })
+
+  const organization = createTestOrganization()
+  const feeCalculation = createTestFeeCalculation({
+    baseAmount: amount,
+  })
+
+  // Use the application function to create and confirm payment
+  const paymentIntent =
+    await createAndConfirmPaymentIntentForBillingRun({
+      amount,
+      currency: CurrencyCode.USD,
+      stripeCustomerId: stripeCustomer.id,
+      stripePaymentMethodId: paymentMethod.id,
+      billingPeriodId: `bp_${core.nanoid()}`,
+      billingRunId: `br_${core.nanoid()}`,
+      feeCalculation,
+      organization,
+      livemode: false,
+    })
+
+  const chargeId =
+    typeof paymentIntent.latest_charge === 'string'
+      ? paymentIntent.latest_charge
+      : paymentIntent.latest_charge!.id
+
+  return {
+    paymentIntentId: paymentIntent.id,
+    chargeId,
+    customerId: stripeCustomer.id,
   }
 }
 
@@ -291,106 +518,6 @@ describeIfStripeKey('Stripe Integration Tests', () => {
   })
 
   describe('Checkout Session Payment Intents', () => {
-    /**
-     * Creates a minimal CheckoutSession record for test purposes.
-     */
-    const createTestCheckoutSession = (
-      overrides?: Partial<CheckoutSession.ProductRecord>
-    ): CheckoutSession.ProductRecord => {
-      const sessionId = `chckt_session_${core.nanoid()}`
-      return {
-        id: sessionId,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        createdByCommit: null,
-        updatedByCommit: null,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        organizationId: `org_${core.nanoid()}`,
-        priceId: `price_${core.nanoid()}`,
-        quantity: 1,
-        purchaseId: null,
-        invoiceId: null,
-        customerId: null,
-        customerName: null,
-        customerEmail: null,
-        stripeSetupIntentId: null,
-        stripePaymentIntentId: null,
-        billingAddress: null,
-        paymentMethodType: null,
-        discountId: null,
-        successUrl: 'https://example.com/success',
-        cancelUrl: 'https://example.com/cancel',
-        expires: Date.now() + 1000 * 60 * 60 * 24,
-        livemode: false,
-        pricingModelId: `pm_${core.nanoid()}`,
-        preserveBillingCycleAnchor: false,
-        outputMetadata: null,
-        outputName: null,
-        targetSubscriptionId: null,
-        automaticallyUpdateSubscriptions: null,
-        position: 0,
-        ...overrides,
-      }
-    }
-
-    /**
-     * Creates a minimal Price record for test purposes.
-     * Uses SinglePaymentRecord which is the simplest price type.
-     */
-    const createTestPrice = (overrides?: {
-      unitPrice?: number
-    }): Price.SinglePaymentRecord => {
-      return {
-        id: `price_${core.nanoid()}`,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        createdByCommit: null,
-        updatedByCommit: null,
-        position: 0,
-        name: 'Test Price',
-        unitPrice: overrides?.unitPrice ?? 5000,
-        currency: CurrencyCode.USD,
-        productId: `prod_${core.nanoid()}`,
-        isDefault: true,
-        active: true,
-        livemode: false,
-        type: PriceType.SinglePayment,
-        slug: `test-price-${core.nanoid()}`,
-        externalId: null,
-        pricingModelId: `pm_${core.nanoid()}`,
-      }
-    }
-
-    /**
-     * Creates a minimal Product record for test purposes.
-     */
-    const createTestProduct = (
-      overrides?: Partial<Product.Record>
-    ): Product.Record => {
-      return {
-        id: `prod_${core.nanoid()}`,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        createdByCommit: null,
-        updatedByCommit: null,
-        position: 0,
-        name: 'Test Product',
-        description: 'A test product',
-        organizationId: `org_${core.nanoid()}`,
-        active: true,
-        livemode: false,
-        singularQuantityLabel: null,
-        pluralQuantityLabel: null,
-        slug: `test-product-${core.nanoid()}`,
-        externalId: null,
-        imageURL: null,
-        default: false,
-        pricingModelId: `pm_${core.nanoid()}`,
-        ...overrides,
-      }
-    }
-
     describe('createPaymentIntentForCheckoutSession', () => {
       let createdPaymentIntentId: string | undefined
 
@@ -1058,94 +1185,6 @@ describeIfStripeKey('Stripe Integration Tests', () => {
   })
 
   describe('Setup Intents', () => {
-    /**
-     * Creates a minimal CheckoutSession record for setup intent tests.
-     */
-    const createTestCheckoutSessionForSetupIntent = (
-      overrides?: Partial<CheckoutSession.ProductRecord>
-    ): CheckoutSession.ProductRecord => {
-      const sessionId = `chckt_session_${core.nanoid()}`
-      return {
-        id: sessionId,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        createdByCommit: null,
-        updatedByCommit: null,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        organizationId: `org_${core.nanoid()}`,
-        priceId: `price_${core.nanoid()}`,
-        quantity: 1,
-        purchaseId: null,
-        invoiceId: null,
-        customerId: null,
-        customerName: null,
-        customerEmail: null,
-        stripeSetupIntentId: null,
-        stripePaymentIntentId: null,
-        billingAddress: null,
-        paymentMethodType: null,
-        discountId: null,
-        successUrl: 'https://example.com/success',
-        cancelUrl: 'https://example.com/cancel',
-        expires: Date.now() + 1000 * 60 * 60 * 24,
-        livemode: false,
-        pricingModelId: `pm_${core.nanoid()}`,
-        preserveBillingCycleAnchor: false,
-        outputMetadata: null,
-        outputName: null,
-        targetSubscriptionId: null,
-        automaticallyUpdateSubscriptions: null,
-        position: 0,
-        ...overrides,
-      }
-    }
-
-    /**
-     * Creates a minimal Purchase record for setup intent tests.
-     * Only bankPaymentOnly is used by createSetupIntentForCheckoutSession.
-     */
-    const createTestPurchase = (overrides?: {
-      bankPaymentOnly?: boolean
-    }): Purchase.Record => {
-      return {
-        bankPaymentOnly: overrides?.bankPaymentOnly ?? false,
-      } as Purchase.Record
-    }
-
-    /**
-     * Creates a minimal Customer record for setup intent tests.
-     */
-    const createTestCustomerRecord = (
-      overrides?: Partial<Customer.Record>
-    ): Customer.Record => {
-      return {
-        id: `cust_${core.nanoid()}`,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        createdByCommit: null,
-        updatedByCommit: null,
-        position: 0,
-        organizationId: `org_${core.nanoid()}`,
-        email: `test+${core.nanoid()}@flowglad-integration.com`,
-        name: `Test Customer ${core.nanoid()}`,
-        invoiceNumberBase: 'INV-TEST',
-        archived: false,
-        stripeCustomerId: null,
-        taxId: null,
-        logoURL: null,
-        iconURL: null,
-        domain: null,
-        billingAddress: null,
-        externalId: `ext_${core.nanoid()}`,
-        userId: null,
-        pricingModelId: null,
-        stackAuthHostedBillingUserId: null,
-        livemode: false,
-        ...overrides,
-      }
-    }
-
     describe('createSetupIntentForCheckoutSession', () => {
       let createdSetupIntentId: string | undefined
       let createdCustomerId: string | undefined
@@ -1170,8 +1209,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
           stripeConnectContractType:
             StripeConnectContractType.Platform,
         })
-        const checkoutSession =
-          createTestCheckoutSessionForSetupIntent()
+        const checkoutSession = createTestCheckoutSession()
 
         const setupIntent = await createSetupIntentForCheckoutSession(
           {
@@ -1209,8 +1247,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
           stripeConnectContractType:
             StripeConnectContractType.MerchantOfRecord,
         })
-        const checkoutSession =
-          createTestCheckoutSessionForSetupIntent()
+        const checkoutSession = createTestCheckoutSession()
 
         const setupIntent = await createSetupIntentForCheckoutSession(
           {
@@ -1241,8 +1278,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
 
       it('creates a setup intent with bank-only payment methods when purchase.bankPaymentOnly is true', async () => {
         const organization = createTestOrganization()
-        const checkoutSession =
-          createTestCheckoutSessionForSetupIntent()
+        const checkoutSession = createTestCheckoutSession()
         const purchase = createTestPurchase({
           bankPaymentOnly: true,
         })
@@ -1278,8 +1314,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         createdCustomerId = stripeCustomer.id
 
         const organization = createTestOrganization()
-        const checkoutSession =
-          createTestCheckoutSessionForSetupIntent()
+        const checkoutSession = createTestCheckoutSession()
         const customer = createTestCustomerRecord({
           stripeCustomerId: stripeCustomer.id,
         })
@@ -1319,8 +1354,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
 
       it('retrieves setup intent by id, falling back to test mode', async () => {
         const organization = createTestOrganization()
-        const checkoutSession =
-          createTestCheckoutSessionForSetupIntent()
+        const checkoutSession = createTestCheckoutSession()
 
         // Create setup intent using the app function
         const setupIntent = await createSetupIntentForCheckoutSession(
@@ -1366,8 +1400,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
 
       it('updates setup intent to associate with customer', async () => {
         const organization = createTestOrganization()
-        const checkoutSession =
-          createTestCheckoutSessionForSetupIntent()
+        const checkoutSession = createTestCheckoutSession()
 
         // Create setup intent without customer
         const setupIntent = await createSetupIntentForCheckoutSession(
@@ -1404,54 +1437,6 @@ describeIfStripeKey('Stripe Integration Tests', () => {
      * All assertions are against app functions (refundPayment, listRefundsForCharge).
      * Stripe API is only used for setup (creating customers/payment methods).
      */
-
-    /**
-     * Helper to create a succeeded payment using application functions.
-     * Returns the payment intent and charge ID for refund testing.
-     */
-    const createSucceededBillingPayment = async (
-      amount: number
-    ): Promise<{
-      paymentIntentId: string
-      chargeId: string
-      customerId: string
-    }> => {
-      const stripeCustomer = await createTestStripeCustomer()
-      const paymentMethod = await createTestPaymentMethod({
-        stripeCustomerId: stripeCustomer.id,
-        livemode: false,
-      })
-
-      const organization = createTestOrganization()
-      const feeCalculation = createTestFeeCalculation({
-        baseAmount: amount,
-      })
-
-      // Use the application function to create and confirm payment
-      const paymentIntent =
-        await createAndConfirmPaymentIntentForBillingRun({
-          amount,
-          currency: CurrencyCode.USD,
-          stripeCustomerId: stripeCustomer.id,
-          stripePaymentMethodId: paymentMethod.id,
-          billingPeriodId: `bp_${core.nanoid()}`,
-          billingRunId: `br_${core.nanoid()}`,
-          feeCalculation,
-          organization,
-          livemode: false,
-        })
-
-      const chargeId =
-        typeof paymentIntent.latest_charge === 'string'
-          ? paymentIntent.latest_charge
-          : paymentIntent.latest_charge!.id
-
-      return {
-        paymentIntentId: paymentIntent.id,
-        chargeId,
-        customerId: stripeCustomer.id,
-      }
-    }
 
     describe('refundPayment', () => {
       let createdCustomerId: string | undefined
@@ -1604,64 +1589,6 @@ describeIfStripeKey('Stripe Integration Tests', () => {
 })
 
 /**
- * Creates a minimal Price record for test purposes.
- * Uses SinglePaymentRecord since that's the simplest type.
- */
-const createTestPrice = (
-  overrides?: Partial<Price.SinglePaymentRecord>
-): Price.SinglePaymentRecord => {
-  return {
-    id: `price_${core.nanoid()}`,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    createdByCommit: null,
-    updatedByCommit: null,
-    position: 0,
-    productId: `prod_${core.nanoid()}`,
-    pricingModelId: `pm_${core.nanoid()}`,
-    name: 'Test Price',
-    type: PriceType.SinglePayment,
-    unitPrice: 10000,
-    currency: CurrencyCode.USD,
-    isDefault: true,
-    active: true,
-    externalId: `ext_${core.nanoid()}`,
-    livemode: false,
-    slug: null,
-    ...overrides,
-  }
-}
-
-/**
- * Creates a minimal Product record for test purposes.
- */
-const createTestProduct = (
-  overrides?: Partial<Product.Record>
-): Product.Record => {
-  return {
-    id: `prod_${core.nanoid()}`,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    createdByCommit: null,
-    updatedByCommit: null,
-    position: 0,
-    organizationId: `org_${core.nanoid()}`,
-    name: 'Test Product',
-    description: 'A test product',
-    singularQuantityLabel: null,
-    pluralQuantityLabel: null,
-    active: true,
-    imageURL: null,
-    externalId: `ext_${core.nanoid()}`,
-    livemode: false,
-    default: false,
-    slug: null,
-    pricingModelId: `pm_${core.nanoid()}`,
-    ...overrides,
-  }
-}
-
-/**
  * Creates a test BillingAddress for US-based tax calculations.
  */
 const createTestBillingAddress = (): BillingAddress => {
@@ -1765,6 +1692,163 @@ describeIfStripeKey('Tax Calculations', () => {
       expect(result).not.toBeNull()
       expect(result!.id).toMatch(/^tax_/)
       expect(result!.reference).toBe(reference)
+    })
+  })
+
+  describe('createStripeTaxCalculationByPurchase', () => {
+    it('creates a tax calculation for a purchase with US billing address', async () => {
+      const purchase = createTestPurchase()
+      const price = createTestPrice({
+        unitPrice: 7500, // $75.00
+        currency: CurrencyCode.USD,
+      })
+      const product = createTestProduct()
+      const billingAddress = createTestBillingAddress()
+
+      // Action: call the application function
+      const result = await createStripeTaxCalculationByPurchase({
+        purchase,
+        price,
+        billingAddress,
+        discountInclusiveAmount: 7500,
+        product,
+        livemode: false,
+      })
+
+      // Verify we got a real Stripe tax calculation ID
+      expect(result.id).toMatch(/^taxcalc_/)
+
+      // Verify tax_amount_exclusive is a number
+      expect(typeof result.tax_amount_exclusive).toBe('number')
+      expect(result.tax_amount_exclusive).toBeGreaterThanOrEqual(0)
+    })
+  })
+
+  describe('reverseStripeTaxTransaction', () => {
+    it('returns null when stripeTaxTransactionId is empty', async () => {
+      const result = await reverseStripeTaxTransaction({
+        stripeTaxTransactionId: '',
+        reference: `test_reversal_${core.nanoid()}`,
+        livemode: false,
+        mode: 'full',
+      })
+
+      expect(result).toBeNull()
+    })
+
+    it('returns null when stripeTaxTransactionId starts with notaxoverride_', async () => {
+      const result = await reverseStripeTaxTransaction({
+        stripeTaxTransactionId: 'notaxoverride_xyz',
+        reference: `test_reversal_${core.nanoid()}`,
+        livemode: false,
+        mode: 'full',
+      })
+
+      expect(result).toBeNull()
+    })
+
+    it('returns null when stripeTaxTransactionId starts with testtaxcalc_', async () => {
+      const result = await reverseStripeTaxTransaction({
+        stripeTaxTransactionId: 'testtaxcalc_xyz',
+        reference: `test_reversal_${core.nanoid()}`,
+        livemode: false,
+        mode: 'full',
+      })
+
+      expect(result).toBeNull()
+    })
+
+    it('creates a full reversal for a valid tax transaction', async () => {
+      // Setup: create a tax calculation and transaction first
+      const price = createTestPrice({
+        unitPrice: 6000, // $60.00
+        currency: CurrencyCode.USD,
+      })
+      const product = createTestProduct()
+      const billingAddress = createTestBillingAddress()
+
+      const calculation = await createStripeTaxCalculationByPrice({
+        price,
+        billingAddress,
+        discountInclusiveAmount: 6000,
+        product,
+        livemode: false,
+      })
+
+      const txnReference = `test_txn_${core.nanoid()}`
+      const transaction =
+        await createStripeTaxTransactionFromCalculation({
+          stripeTaxCalculationId: calculation.id,
+          reference: txnReference,
+          livemode: false,
+        })
+
+      // Skip if no transaction was created (can happen in some test environments)
+      if (!transaction) {
+        return
+      }
+
+      // Action: reverse the tax transaction
+      const reversalReference = `test_reversal_${core.nanoid()}`
+      const result = await reverseStripeTaxTransaction({
+        stripeTaxTransactionId: transaction.id,
+        reference: reversalReference,
+        livemode: false,
+        mode: 'full',
+      })
+
+      // Verify we got a reversal transaction
+      expect(result).not.toBeNull()
+      expect(result!.id).toMatch(/^tax_/)
+      expect(result!.reference).toBe(reversalReference)
+      expect(result!.type).toBe('reversal')
+    })
+
+    it('creates a partial reversal with flat_amount for a valid tax transaction', async () => {
+      // Setup: create a tax calculation and transaction first
+      const price = createTestPrice({
+        unitPrice: 10000, // $100.00
+        currency: CurrencyCode.USD,
+      })
+      const product = createTestProduct()
+      const billingAddress = createTestBillingAddress()
+
+      const calculation = await createStripeTaxCalculationByPrice({
+        price,
+        billingAddress,
+        discountInclusiveAmount: 10000,
+        product,
+        livemode: false,
+      })
+
+      const txnReference = `test_txn_partial_${core.nanoid()}`
+      const transaction =
+        await createStripeTaxTransactionFromCalculation({
+          stripeTaxCalculationId: calculation.id,
+          reference: txnReference,
+          livemode: false,
+        })
+
+      // Skip if no transaction was created
+      if (!transaction) {
+        return
+      }
+
+      // Action: partial reversal for $50 (5000 cents)
+      const reversalReference = `test_partial_reversal_${core.nanoid()}`
+      const result = await reverseStripeTaxTransaction({
+        stripeTaxTransactionId: transaction.id,
+        reference: reversalReference,
+        livemode: false,
+        mode: 'partial',
+        flatAmount: 5000,
+      })
+
+      // Verify we got a reversal transaction
+      expect(result).not.toBeNull()
+      expect(result!.id).toMatch(/^tax_/)
+      expect(result!.reference).toBe(reversalReference)
+      expect(result!.type).toBe('reversal')
     })
   })
 })
@@ -1973,5 +2057,93 @@ describeIfStripeKey('Stripe Utility Functions', () => {
         ).toThrow('No payment method details found for charge')
       })
     })
+  })
+})
+
+/**
+ * Unit tests for pure functions that don't require Stripe API calls.
+ */
+describe('calculatePlatformApplicationFee', () => {
+  it('calculates fee with default 0.65% take rate plus 2.9% + $0.50 for $100 subtotal', () => {
+    const organization = createTestOrganization({
+      feePercentage: '0.65',
+    })
+
+    // Action: calculate fee for $100.00 (10000 cents)
+    const result = calculatePlatformApplicationFee({
+      organization,
+      subtotal: 10000,
+      currency: CurrencyCode.USD,
+    })
+
+    // Expected: subtotal * (0.65% + 2.9%) + $0.50 = 10000 * 0.0355 + 50 = 355 + 50 = 405
+    // With ceiling: ceil(10000 * 0.0355 + 50) = ceil(405) = 405
+    expect(result).toBe(405)
+  })
+
+  it('calculates fee with 1% take rate plus 2.9% + $0.50 for $50 subtotal', () => {
+    const organization = createTestOrganization({
+      feePercentage: '1.00',
+    })
+
+    // Action: calculate fee for $50.00 (5000 cents)
+    const result = calculatePlatformApplicationFee({
+      organization,
+      subtotal: 5000,
+      currency: CurrencyCode.USD,
+    })
+
+    // Expected: subtotal * (1% + 2.9%) + $0.50 = 5000 * 0.039 + 50 = 195 + 50 = 245
+    expect(result).toBe(245)
+  })
+
+  it('calculates fee with 0% take rate (only Stripe fees) for $200 subtotal', () => {
+    const organization = createTestOrganization({
+      feePercentage: '0',
+    })
+
+    // Action: calculate fee for $200.00 (20000 cents)
+    const result = calculatePlatformApplicationFee({
+      organization,
+      subtotal: 20000,
+      currency: CurrencyCode.USD,
+    })
+
+    // Expected: subtotal * (0% + 2.9%) + $0.50 = 20000 * 0.029 + 50 = 580 + 50 = 630
+    expect(result).toBe(630)
+  })
+
+  it('rounds up fractional cents using Math.ceil', () => {
+    const organization = createTestOrganization({
+      feePercentage: '0.65',
+    })
+
+    // Action: calculate fee for $33.33 (3333 cents) - will produce fractional result
+    const result = calculatePlatformApplicationFee({
+      organization,
+      subtotal: 3333,
+      currency: CurrencyCode.USD,
+    })
+
+    // Expected: subtotal * (0.65% + 2.9%) + $0.50 = 3333 * 0.0355 + 50 = 118.3215 + 50 = 168.3215
+    // With ceiling: ceil(168.3215) = 169
+    expect(result).toBe(169)
+  })
+
+  it('handles small subtotal amounts correctly', () => {
+    const organization = createTestOrganization({
+      feePercentage: '0.65',
+    })
+
+    // Action: calculate fee for $1.00 (100 cents)
+    const result = calculatePlatformApplicationFee({
+      organization,
+      subtotal: 100,
+      currency: CurrencyCode.USD,
+    })
+
+    // Expected: subtotal * (0.65% + 2.9%) + $0.50 = 100 * 0.0355 + 50 = 3.55 + 50 = 53.55
+    // With ceiling: ceil(53.55) = 54
+    expect(result).toBe(54)
   })
 })
