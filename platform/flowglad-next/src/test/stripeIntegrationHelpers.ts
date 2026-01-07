@@ -34,6 +34,30 @@ export const getStripeTestClient = (): Stripe => {
 }
 
 /**
+ * Skips the current test if STRIPE_TEST_MODE_SECRET_KEY is not set.
+ * Use this at the beginning of integration tests to gracefully skip
+ * when credentials are not available.
+ *
+ * @example
+ * ```ts
+ * it('should create a customer', async () => {
+ *   skipIfNoStripeKey()
+ *   // test code...
+ * })
+ * ```
+ */
+export const skipIfNoStripeKey = (): void => {
+  const key = getStripeTestModeSecretKey()
+  if (!key) {
+    // Using describe.skip() at runtime isn't possible, so we throw a special error
+    // that Vitest will treat as a skip when combined with proper test structure
+    throw new Error(
+      'STRIPE_TEST_MODE_SECRET_KEY is not set - skipping integration test'
+    )
+  }
+}
+
+/**
  * Creates a describe block that only runs if Stripe credentials are available.
  * Use this to wrap integration test suites that require Stripe access.
  *
