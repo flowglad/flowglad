@@ -82,7 +82,7 @@ jobs:
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v2
       - name: Set up Docker Compose
-        uses: ndeloof/install-compose-action@v0.0.1
+        uses: ndeloof/install-compose-action@4a33bc31f327b8231c4f343f6fba704fedc0fa23 # v0.0.1
       - name: Setup Docker for tests
         run: |
           set -euo pipefail
