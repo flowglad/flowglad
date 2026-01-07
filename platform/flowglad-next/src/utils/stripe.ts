@@ -851,7 +851,11 @@ export const createStripeTaxCalculationByPrice = async ({
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
-  if (core.IS_TEST) {
+  // Allow integration tests to use real Stripe Tax API
+  if (
+    core.IS_TEST &&
+    process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true'
+  ) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
       tax_amount_exclusive: 0,
@@ -866,9 +870,11 @@ export const createStripeTaxCalculationByPrice = async ({
     },
   ]
 
+  // Strip the 'name' field from address as Stripe Tax API doesn't accept it
+  const { name: _name, ...stripeAddress } = billingAddress.address
   return stripe(livemode).tax.calculations.create({
     customer_details: {
-      address: billingAddress.address,
+      address: stripeAddress,
       address_source: 'billing',
     },
     currency: price.currency,
@@ -892,7 +898,11 @@ export const createStripeTaxCalculationByPurchase = async ({
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
-  if (core.IS_TEST) {
+  // Allow integration tests to use real Stripe Tax API
+  if (
+    core.IS_TEST &&
+    process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true'
+  ) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
       tax_amount_exclusive: 0,
@@ -906,9 +916,11 @@ export const createStripeTaxCalculationByPurchase = async ({
       tax_code: DIGITAL_TAX_CODE,
     },
   ]
+  // Strip the 'name' field from address as Stripe Tax API doesn't accept it
+  const { name: _name, ...stripeAddress } = billingAddress.address
   return stripe(livemode).tax.calculations.create({
     customer_details: {
-      address: billingAddress.address,
+      address: stripeAddress,
       address_source: 'billing',
     },
     currency: price.currency,

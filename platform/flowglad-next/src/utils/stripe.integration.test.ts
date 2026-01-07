@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Customer } from '@/db/schema/customers'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type { Organization } from '@/db/schema/organizations'
+import {
+  type BillingAddress,
+  type Organization,
+} from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import {
   cleanupStripeTestData,
   createTestPaymentMethod,
@@ -14,6 +19,7 @@ import {
   CurrencyCode,
   FeeCalculationType,
   PaymentMethodType,
+  PriceType,
   StripeConnectContractType,
 } from '@/types'
 import core from '@/utils/core'
@@ -905,70 +911,168 @@ describeIfStripeKey('Stripe Integration Tests', () => {
   })
 })
 
-describe('Tax Calculations', () => {
+/**
+ * Creates a minimal Price record for test purposes.
+ * Uses SinglePaymentRecord since that's the simplest type.
+ */
+const createTestPrice = (
+  overrides?: Partial<Price.SinglePaymentRecord>
+): Price.SinglePaymentRecord => {
+  return {
+    id: `price_${core.nanoid()}`,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    createdByCommit: null,
+    updatedByCommit: null,
+    position: 0,
+    productId: `prod_${core.nanoid()}`,
+    pricingModelId: `pm_${core.nanoid()}`,
+    name: 'Test Price',
+    type: PriceType.SinglePayment,
+    unitPrice: 10000,
+    currency: CurrencyCode.USD,
+    isDefault: true,
+    active: true,
+    externalId: `ext_${core.nanoid()}`,
+    livemode: false,
+    slug: null,
+    ...overrides,
+  }
+}
+
+/**
+ * Creates a minimal Product record for test purposes.
+ */
+const createTestProduct = (
+  overrides?: Partial<Product.Record>
+): Product.Record => {
+  return {
+    id: `prod_${core.nanoid()}`,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    createdByCommit: null,
+    updatedByCommit: null,
+    position: 0,
+    organizationId: `org_${core.nanoid()}`,
+    name: 'Test Product',
+    description: 'A test product',
+    singularQuantityLabel: null,
+    pluralQuantityLabel: null,
+    active: true,
+    imageURL: null,
+    externalId: `ext_${core.nanoid()}`,
+    livemode: false,
+    default: false,
+    slug: null,
+    pricingModelId: `pm_${core.nanoid()}`,
+    ...overrides,
+  }
+}
+
+/**
+ * Creates a test BillingAddress for US-based tax calculations.
+ */
+const createTestBillingAddress = (): BillingAddress => {
+  return {
+    name: 'Test Customer',
+    firstName: 'Test',
+    lastName: 'Customer',
+    email: 'test@example.com',
+    address: {
+      name: 'Test Customer',
+      line1: '354 Oyster Point Blvd',
+      line2: null,
+      city: 'South San Francisco',
+      state: 'CA',
+      postal_code: '94080',
+      country: 'US',
+    },
+    phone: null,
+  }
+}
+
+describeIfStripeKey('Tax Calculations', () => {
   describe('createStripeTaxCalculationByPrice', () => {
-    it('returns test calculation in test environment with synthetic response format', async () => {
-      // When IS_TEST is true (which it is in the test environment),
-      // the function returns a synthetic response without making real API calls.
-      // We use minimal mock objects cast via unknown since the function
-      // short-circuits before using most fields.
-      const mockPrice = {
-        id: 'price_test123',
-        currency: 'usd',
-      } as unknown as Parameters<
-        typeof createStripeTaxCalculationByPrice
-      >[0]['price']
+    it('creates a tax calculation for a US address and returns calculation id and tax amount', async () => {
+      const price = createTestPrice({
+        unitPrice: 10000, // $100.00
+        currency: CurrencyCode.USD,
+      })
+      const product = createTestProduct()
+      const billingAddress = createTestBillingAddress()
 
-      const mockProduct = {
-        id: 'prod_test123',
-      } as unknown as Parameters<
-        typeof createStripeTaxCalculationByPrice
-      >[0]['product']
-
-      const mockBillingAddress = {
-        address: {
-          line1: '354 Oyster Point Blvd',
-          city: 'South San Francisco',
-          state: 'CA',
-          postal_code: '94080',
-          country: 'US',
-        },
-      } as unknown as Parameters<
-        typeof createStripeTaxCalculationByPrice
-      >[0]['billingAddress']
-
+      // Action: call the application function
       const result = await createStripeTaxCalculationByPrice({
-        price: mockPrice,
-        billingAddress: mockBillingAddress,
-        discountInclusiveAmount: 1000,
-        product: mockProduct,
+        price,
+        billingAddress,
+        discountInclusiveAmount: 10000,
+        product,
         livemode: false,
       })
 
-      expect(result.id).toMatch(/^testtaxcalc_/)
-      expect(result.tax_amount_exclusive).toBe(0)
+      // Verify we got a real Stripe tax calculation ID (not the test prefix)
+      expect(result.id).toMatch(/^taxcalc_/)
+
+      // Verify tax_amount_exclusive is a number (could be 0 or positive depending on Stripe Tax settings)
+      expect(typeof result.tax_amount_exclusive).toBe('number')
+      expect(result.tax_amount_exclusive).toBeGreaterThanOrEqual(0)
     })
   })
 
   describe('createStripeTaxTransactionFromCalculation', () => {
     it('returns null when stripeTaxCalculationId is null', async () => {
+      // Action: call the application function with null
       const result = await createStripeTaxTransactionFromCalculation({
         stripeTaxCalculationId: null,
-        reference: 'test_reference_123',
+        reference: `test_reference_${core.nanoid()}`,
         livemode: false,
       })
 
+      // Verify null is returned (business logic guard)
       expect(result).toBeNull()
     })
 
     it('returns null when stripeTaxCalculationId starts with notaxoverride_', async () => {
+      // Action: call the application function with notaxoverride prefix
       const result = await createStripeTaxTransactionFromCalculation({
         stripeTaxCalculationId: 'notaxoverride_xyz',
-        reference: 'test_reference_456',
+        reference: `test_reference_${core.nanoid()}`,
         livemode: false,
       })
 
+      // Verify null is returned (business logic guard for tax-exempt scenarios)
       expect(result).toBeNull()
+    })
+
+    it('creates a tax transaction from a valid calculation', async () => {
+      // Setup: first create a tax calculation
+      const price = createTestPrice({
+        unitPrice: 5000, // $50.00
+        currency: CurrencyCode.USD,
+      })
+      const product = createTestProduct()
+      const billingAddress = createTestBillingAddress()
+
+      const calculation = await createStripeTaxCalculationByPrice({
+        price,
+        billingAddress,
+        discountInclusiveAmount: 5000,
+        product,
+        livemode: false,
+      })
+
+      // Action: create a tax transaction from the calculation
+      const reference = `test_txn_${core.nanoid()}`
+      const result = await createStripeTaxTransactionFromCalculation({
+        stripeTaxCalculationId: calculation.id,
+        reference,
+        livemode: false,
+      })
+
+      // Verify we got a real tax transaction
+      expect(result).not.toBeNull()
+      expect(result!.id).toMatch(/^tax_/)
+      expect(result!.reference).toBe(reference)
     })
   })
 })
