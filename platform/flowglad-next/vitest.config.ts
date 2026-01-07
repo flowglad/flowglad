@@ -42,7 +42,7 @@ export default defineConfig(({ mode }) => {
       exclude: [
         '**/node_modules/**',
         '**/dist/**',
-        '**/*.integration.test.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+        '**/*.integration.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       ],
       environment: 'jsdom',
       setupFiles: ['./vitest.setup.ts'],

@@ -24,9 +24,6 @@ describeIfStripeKey('Stripe Integration Test Helpers', () => {
   it('creates a Stripe test client, customer, and payment method', async () => {
     const stripe = getStripeTestClient()
 
-    // Verify the client is configured correctly
-    expect(stripe).toBeDefined()
-
     // Create a test customer
     const customer = await createTestStripeCustomer({
       email: 'integration-test@flowglad-test.com',
