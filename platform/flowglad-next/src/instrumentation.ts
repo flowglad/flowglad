@@ -54,17 +54,17 @@ export async function register() {
       // instrumentations: ['fetch'] to restore HTTP span creation.
       instrumentations: [],
       attributes: {
-        'deployment.environment':
+        'deployment.environment.name':
           process.env.FLOWGLAD_OTEL_ENV ||
           process.env.VERCEL_ENV ||
           process.env.NODE_ENV ||
           'unknown',
         'host.id': process.env.VERCEL_DEPLOYMENT_ID || 'localhost',
         ...(process.env.VERCEL_GIT_COMMIT_SHA && {
-          'vcs.commit.id': process.env.VERCEL_GIT_COMMIT_SHA,
+          'vcs.ref.head.revision': process.env.VERCEL_GIT_COMMIT_SHA,
         }),
         ...(process.env.VERCEL_GIT_COMMIT_REF && {
-          'vcs.branch': process.env.VERCEL_GIT_COMMIT_REF,
+          'vcs.ref.head.name': process.env.VERCEL_GIT_COMMIT_REF,
         }),
       },
     })
