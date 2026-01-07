@@ -2,3 +2,171 @@
 title: Usage Limit Subscription
 description: Learn how to implement usage limit subscription in Next.js with Flowglad.
 ---
+
+A subscription model with included usage credits that renew each billing period, plus overage billing for additional usage. Similar to how Cursor, Anthropic, and OpenAI price their APIs.
+
+<Note>
+View the complete source code on [GitHub](https://github.com/flowglad/examples/tree/main/nextjs/usage-limit-subscription).
+</Note>
+
+## Prerequisites
+
+- Flowglad account with API key
+- Next.js 15+ with App Router
+- PostgreSQL database
+
+## Project Structure
+
+```
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── flowglad/[...path]/route.ts
+│   │   │   └── usage-events/route.ts
+│   │   ├── home-client.tsx
+│   │   └── page.tsx
+│   └── components/
+│       ├── pricing-card.tsx
+│       └── pricing-cards-grid.tsx
+├── pricing.yaml
+└── package.json
+```
+
+## Key Concepts
+
+This pricing model provides a base subscription with included credits that reset each billing cycle. When customers exceed their included credits, additional usage is billed at a per-unit rate (overage).
+
+The model works well for:
+- API platforms where most users stay within limits but power users need flexibility
+- Products that want to offer a free tier with limited usage
+
+Unlike pure usage-based billing, customers get cost predictability from their subscription. Unlike fixed subscriptions, heavy users pay proportionally more.
+
+## Implementation
+
+### Pricing Configuration
+
+The `pricing.yaml` defines subscription tiers with included credits and an overage product for additional usage. See the [full configuration](https://github.com/flowglad/examples/blob/main/nextjs/usage-limit-subscription/pricing.yaml) in the repository.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           USAGE METER                                       │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │   fast_premium_requests (sum aggregation)                           │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                    ┌─────────────────┴─────────────────┐
+                    ▼                                   ▼
+┌───────────────────────────────────┐   ┌───────────────────────────────────┐
+│      SUBSCRIPTION TIERS           │   │         OVERAGE                   │
+│  (renews every billing period)    │   │    (billed per request)           │
+├───────────────────────────────────┤   ├───────────────────────────────────┤
+│                                   │   │                                   │
+│  Hobby     $0/mo (14-day trial)   │   │  Fast Request Overage   $0.10    │
+│            250 fast requests      │   │  per request after limit          │
+│                                   │   │                                   │
+│  Pro       $20/mo                 │   └───────────────────────────────────┘
+│            500 fast requests      │
+│            + Unlimited Slow       │
+│            + Unlimited Completions│
+│            + Background Agents    │
+│                                   │
+│  Pro+      $60/mo                 │
+│            1,500 fast requests    │
+│            + All Pro features     │
+│                                   │
+│  Ultra     $200/mo                │
+│            10,000 fast requests   │
+│            + All Pro+ features    │
+│            + Priority Access      │
+│                                   │
+└───────────────────────────────────┘
+```
+
+The key distinction in `pricing.yaml` is `renewalFrequency: "every_billing_period"` for subscription credits that reset monthly. The overage product uses `type: "usage"` to bill per-request when credits are exhausted.
+
+### Checking Usage Balance
+
+Use `checkUsageBalance` to display remaining credits and determine if the customer can perform metered actions.
+
+```tsx src/app/home-client.tsx
+const billing = useBilling();
+const balance = billing.checkUsageBalance('fast_premium_requests');
+
+const remaining = balance?.availableBalance ?? 0;
+const canMakeRequest = remaining > 0;
+```
+
+The balance reflects both included subscription credits and any overage allowance. When credits hit zero, you can either block the action or allow it (triggering overage billing).
+
+### Recording Usage Events
+
+When a customer uses a metered resource, record the event server-side. This decrements their balance and, if credits are exhausted, triggers overage billing.
+
+```ts src/app/api/usage-events/route.ts
+const flowgladServer = flowglad(userId);
+const billing = await flowgladServer.getBilling();
+const subscription = billing.currentSubscriptions?.[0];
+
+// Find the usage price for this meter (see billing-helpers.ts)
+const usagePrice = findUsagePriceByMeterSlug(
+  'fast_premium_requests', 
+  billing.pricingModel
+)
+
+await flowgladServer.createUsageEvent({
+  subscriptionId: subscription.id,
+  priceId: usagePrice.id,
+  amount: 1,
+  transactionId: 'unique-id-for-idempotency',
+});
+```
+
+The `transactionId` parameter ensures idempotency (generated and sent from the client). If the same event is sent twice (e.g., due to a retry), it won't double-count usage.
+
+### Checking Feature Access
+
+Toggle features gate non-metered capabilities by subscription tier. Use `checkFeatureAccess` to verify access.
+
+```tsx src/app/home-client.tsx
+const hasBackgroundAgents = billing.checkFeatureAccess('background_agents');
+const hasPriorityAccess = billing.checkFeatureAccess('priority_access');
+```
+
+Returns `true` if the customer's subscription includes the feature.
+
+### Creating Checkout Sessions
+
+When customers want to subscribe or upgrade, create a checkout session that redirects to Flowglad's hosted checkout.
+
+```tsx src/components/pricing-card.tsx
+const price = billing.getPrice('pro_monthly');
+
+await billing.createCheckoutSession({
+  priceId: price.id,
+  successUrl: `${window.location.origin}/`,
+  cancelUrl: window.location.href,
+  quantity: 1,
+  autoRedirect: true,
+});
+```
+
+On successful payment, the customer's subscription activates immediately and credits become available.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="View Source Code" icon="github" href="https://github.com/flowglad/examples/tree/main/nextjs/usage-limit-subscription">
+    Browse the complete example implementation
+  </Card>
+  <Card title="Next.js SDK" icon="book" href="/sdks/nextjs">
+    Full Next.js SDK documentation
+  </Card>
+  <Card title="Feature Access & Usage" icon="gauge" href="/sdks/feature-access-usage">
+    Learn more about usage-based billing
+  </Card>
+  <Card title="Pricing Models" icon="tags" href="/examples/pricing-models">
+    Compare different pricing strategies
+  </Card>
+</CardGroup>
