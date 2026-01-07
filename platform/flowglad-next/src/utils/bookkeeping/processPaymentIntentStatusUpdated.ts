@@ -12,7 +12,6 @@ import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
-import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
 import {
   safelyUpdatePaymentStatus,
@@ -32,7 +31,6 @@ import type { DbTransaction } from '@/db/types'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-failed-notification'
 import { idempotentSendOrganizationPaymentFailedNotification } from '@/trigger/notifications/send-organization-payment-failed-notification'
 import {
-  CheckoutSessionType,
   type CountryCode,
   CurrencyCode,
   EventNoun,
@@ -194,36 +192,17 @@ export const upsertPaymentForStripeCharge = async (
       transaction
     )
     checkoutSessionEvents = eventsFromCheckoutSession
-    if (checkoutSession.type === CheckoutSessionType.Invoice) {
-      const [maybeInvoiceAndLineItems] =
-        await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-          {
-            id: checkoutSession.invoiceId,
-          },
-          transaction
-        )
-      const { invoice } = maybeInvoiceAndLineItems
-      currency = invoice.currency
-      invoiceId = invoice.id
-      organizationId = invoice.organizationId!
-      purchaseId = invoice.purchaseId
-      taxCountry = invoice.taxCountry
-      customerId = invoice.customerId
-      livemode = invoice.livemode
-      subscriptionId = invoice.subscriptionId
-    } else {
-      invoiceId = invoice?.id ?? null
-      currency = invoice?.currency ?? null
-      organizationId = invoice?.organizationId!
-      taxCountry = invoice?.taxCountry ?? null
-      purchase = updatedPurchase
-      purchaseId = purchase?.id ?? null
-      livemode = checkoutSession.livemode
-      customerId = purchase?.customerId || invoice?.customerId || null
-      // hard assumption
-      // checkoutSessionId payment intents are only for anonymous single payment purchases
-      subscriptionId = null
-    }
+    invoiceId = invoice?.id ?? null
+    currency = invoice?.currency ?? null
+    organizationId = invoice?.organizationId!
+    taxCountry = invoice?.taxCountry ?? null
+    purchase = updatedPurchase
+    purchaseId = purchase?.id ?? null
+    livemode = checkoutSession.livemode
+    customerId = purchase?.customerId || invoice?.customerId || null
+    // hard assumption
+    // checkoutSessionId payment intents are only for anonymous single payment purchases
+    subscriptionId = null
     invoiceId = invoice?.id ?? null
     currency = invoice?.currency ?? null
     if (!checkoutSession.organizationId) {
