@@ -53,7 +53,7 @@ Update `{PACKAGE_FILE}` to add the Flowglad SDK packages. Prefer using published
 
 {PACKAGE_DEPENDENCIES_CODE}
 
-Note: the Flowglad SDKs are currently for Typescript only. The current latest version is 0.16.2.
+Note: the Flowglad SDKs are currently for Typescript only. The current latest versions are provided below.
 
 Here's what they should install depending on their project:
 - Next.js: @flowglad/nextjs

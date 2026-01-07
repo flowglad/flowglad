@@ -109,6 +109,26 @@ ${yaml.stringify(pricingModelData)}
 `
 }
 
+export const getLatestSdkVersionsFragment = async () => {
+  const [nextjs, react, server] = await Promise.all([
+    getNpmPackageVersion('@flowglad/nextjs'),
+    getNpmPackageVersion('@flowglad/react'),
+    getNpmPackageVersion('@flowglad/server'),
+  ])
+
+  return `The following are the latest version for Flowglad's NPM packages (sdks)\n"@flowglad/nextjs": ${nextjs}\n"@flowglad/react":${react}\n"@flowglad/server": ${server}`
+}
+
+const getNpmPackageVersion = async (name: string) => {
+  const res = await fetch(`https://registry.npmjs.org/${name}`)
+
+  if (!res.ok) return null
+
+  const data = await res.json()
+
+  return data['dist-tags'].latest
+}
+
 /**
  * Strips markdown code block tags from the beginning and end of text.
  * Handles both ```markdown and ``` variants.
@@ -482,6 +502,7 @@ export const constructIntegrationGuideStream = async function* ({
   )
 
   const otherFragments = [
+    await getLatestSdkVersionsFragment(),
     await constructBackendIntegrationFragment({
       isBackendJavascript,
     }),
