@@ -73,7 +73,9 @@ describe('Proration Logic - Payment Status Scenarios', () => {
     // Reset the trigger mock before each test
     const mockTrigger = getMockTrigger()
     mockTrigger.mockClear()
-    mockTrigger.mockResolvedValue(undefined)
+    mockTrigger.mockResolvedValue({
+      id: 'mock-billing-run-handle-id',
+    })
 
     // Set up organization and price
     const orgData = await setupOrg()

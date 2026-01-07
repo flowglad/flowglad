@@ -184,7 +184,9 @@ describe('adjustSubscription Integration Tests', async () => {
     // Reset the trigger mock before each test
     const mockTrigger = getMockTrigger()
     mockTrigger.mockClear()
-    mockTrigger.mockResolvedValue(undefined)
+    mockTrigger.mockResolvedValue({
+      id: 'mock-billing-run-handle-id',
+    })
 
     // Reset notification mocks
     const mockCustomerNotification = getMockCustomerNotification()
