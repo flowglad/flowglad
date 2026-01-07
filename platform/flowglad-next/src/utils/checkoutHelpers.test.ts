@@ -230,47 +230,6 @@ describe('checkoutHelpers', () => {
       return { organization, product, price, customer, session }
     }
 
-    it('missing priceId → throws', async () => {
-      const { organization, pricingModel } = await setupOrg()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Prod',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-        active: true,
-      })
-      const price = await setupPrice({
-        productId: product.id,
-        name: 'P',
-        type: PriceType.SinglePayment,
-        unitPrice: 1000,
-        livemode: true,
-        isDefault: true,
-        currency: CurrencyCode.USD,
-        active: true,
-      })
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const invoiceSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Invoice,
-        quantity: 1,
-        livemode: true,
-      })
-      await adminTransaction(async ({ transaction }) => {
-        await expect(
-          checkoutInfoForCheckoutSession(
-            invoiceSession.id,
-            transaction
-          )
-        ).rejects.toThrow(/No price id found/i)
-      })
-    })
-
     it('valid session with customer → includes product/price/org and customer', async () => {
       const { organization, product, price, customer, session } =
         await makeSession()

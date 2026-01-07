@@ -2,7 +2,6 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { CheckoutSessionType } from '@/types'
 import AddPaymentCheckoutSuccessPage from './AddPaymentCheckoutSuccessPage'
-import InvoiceCheckoutSuccessPage from './InvoiceCheckoutSuccessPage'
 import ProductCheckoutSuccessPage from './ProductCheckoutSuccessPage'
 import PurchaseCheckoutSuccessPage from './PurchaseCheckoutSuccessPage'
 
@@ -33,8 +32,6 @@ async function CheckoutSuccessPage({
           checkoutSession={checkoutSession}
         />
       )
-    case CheckoutSessionType.Invoice:
-      return <InvoiceCheckoutSuccessPage invoice={checkoutSession} />
     case CheckoutSessionType.AddPaymentMethod:
       return (
         <AddPaymentCheckoutSuccessPage

@@ -6,8 +6,6 @@ import {
   setupCustomer,
   setupDiscount,
   setupFeeCalculation,
-  setupInvoice,
-  setupInvoiceLineItem,
   setupOrg,
   setupPayment,
   setupPaymentMethod,
@@ -17,17 +15,13 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import {
-  type CheckoutSession,
-  invoiceCheckoutSessionNulledColumns,
-} from '@/db/schema/checkoutSessions'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
 import type { Discount } from '@/db/schema/discounts'
 import {
   type FeeCalculation,
   feeCalculations,
 } from '@/db/schema/feeCalculations'
-import type { Invoice } from '@/db/schema/invoices'
 import {
   type BillingAddress,
   type Organization,
@@ -49,7 +43,6 @@ import {
   CheckoutSessionType,
   DiscountAmountType,
   FlowgladEventType,
-  InvoiceStatus,
   PaymentMethodType,
   PaymentStatus,
   PurchaseStatus,
@@ -59,7 +52,6 @@ import {
   editCheckoutSession,
   processPurchaseBookkeepingForCheckoutSession,
   processStripeChargeForCheckoutSession,
-  processStripeChargeForInvoiceCheckoutSession,
 } from '@/utils/bookkeeping/checkoutSessions'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
 import core from '../core'
@@ -172,7 +164,6 @@ describe('Checkout Sessions', async () => {
   let checkoutSession: CheckoutSession.Record
   let paymentMethod: PaymentMethod.Record
   let purchase: Purchase.Record
-  let invoice: Invoice.Record
   let feeCalculation: FeeCalculation.Record
   let discount: Discount.Record
   let succeededCharge: TestCharge
@@ -206,22 +197,6 @@ describe('Checkout Sessions', async () => {
       organizationId: organization.id,
       priceId: price.id,
       status: PurchaseStatus.Pending,
-      livemode: true,
-    })
-
-    invoice = await setupInvoice({
-      customerId: customer.id,
-      organizationId: organization.id,
-      status: InvoiceStatus.Draft,
-      livemode: true,
-      priceId: price.id,
-    })
-
-    await setupInvoiceLineItem({
-      invoiceId: invoice.id,
-      priceId: price.id,
-      quantity: 1,
-      price: 1000,
       livemode: true,
     })
 
@@ -1011,322 +986,7 @@ describe('Checkout Sessions', async () => {
     })
   })
 
-  describe('processStripeChargeForInvoiceCheckoutSession', () => {
-    it('should update checkout session status based on charge status', async () => {
-      // Update checkout session to be an invoice type
-      const updatedCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
-          return updateCheckoutSession(
-            {
-              ...checkoutSession,
-              ...invoiceCheckoutSessionNulledColumns,
-              type: CheckoutSessionType.Invoice,
-              invoiceId: invoice.id,
-            } as CheckoutSession.InvoiceUpdate,
-            transaction
-          )
-        }
-      )
-
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return processStripeChargeForInvoiceCheckoutSession(
-            {
-              checkoutSession:
-                updatedCheckoutSession as CheckoutSession.InvoiceRecord,
-              charge: succeededCharge,
-            },
-            transaction
-          )
-        }
-      )
-
-      expect(result.checkoutSession.status).toEqual(
-        CheckoutSessionStatus.Succeeded
-      )
-    })
-
-    it('should mark invoice as Paid when total payments meet or exceed invoice total', async () => {
-      // Update checkout session to be an invoice type
-      const updatedCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
-          return updateCheckoutSession(
-            {
-              ...checkoutSession,
-              ...invoiceCheckoutSessionNulledColumns,
-              type: CheckoutSessionType.Invoice,
-              invoiceId: invoice.id,
-            } as CheckoutSession.InvoiceUpdate,
-            transaction
-          )
-        }
-      )
-
-      // Create a payment that covers the invoice total
-      await adminTransaction(async ({ transaction }) => {
-        await setupPayment({
-          invoiceId: invoice.id,
-          amount: 1000,
-          status: PaymentStatus.Succeeded,
-          livemode: true,
-          customerId: customer.id,
-          organizationId: organization.id,
-          stripeChargeId: succeededCharge.id,
-          stripePaymentIntentId:
-            succeededCharge.payment_intent! as string,
-          paymentMethod: PaymentMethodType.Card,
-        })
-      })
-
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return processStripeChargeForInvoiceCheckoutSession(
-            {
-              checkoutSession:
-                updatedCheckoutSession as CheckoutSession.InvoiceRecord,
-              charge: succeededCharge,
-            },
-            transaction
-          )
-        }
-      )
-
-      expect(result.invoice).toBeDefined()
-    })
-
-    it('should mark invoice as AwaitingPaymentConfirmation when charge is pending', async () => {
-      // Update checkout session to be an invoice type
-      const updatedCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
-          return updateCheckoutSession(
-            {
-              ...checkoutSession,
-              ...invoiceCheckoutSessionNulledColumns,
-              type: CheckoutSessionType.Invoice,
-              invoiceId: invoice.id,
-            } as CheckoutSession.InvoiceUpdate,
-            transaction
-          )
-        }
-      )
-
-      const pendingCharge = mockPendingCharge(
-        checkoutSession.id,
-        customer.stripeCustomerId!
-      )
-
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return processStripeChargeForInvoiceCheckoutSession(
-            {
-              checkoutSession:
-                updatedCheckoutSession as CheckoutSession.InvoiceRecord,
-              charge: pendingCharge,
-            },
-            transaction
-          )
-        }
-      )
-
-      expect(result.invoice.status).toEqual(
-        InvoiceStatus.AwaitingPaymentConfirmation
-      )
-    })
-
-    it('should not change invoice status when payment succeeds but total is still less than invoice amount', async () => {
-      // Update checkout session to be an invoice type
-      const updatedCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
-          return updateCheckoutSession(
-            {
-              ...checkoutSession,
-              ...invoiceCheckoutSessionNulledColumns,
-              type: CheckoutSessionType.Invoice,
-              invoiceId: invoice.id,
-            } as CheckoutSession.InvoiceUpdate,
-            transaction
-          )
-        }
-      )
-
-      // Create a payment that doesn't cover the invoice total
-      await adminTransaction(async ({ transaction }) => {
-        await setupPayment({
-          invoiceId: invoice.id,
-          amount: 500,
-          status: PaymentStatus.Succeeded,
-          livemode: true,
-          paymentMethod: PaymentMethodType.Card,
-          stripeChargeId: succeededCharge.id,
-          stripePaymentIntentId:
-            succeededCharge.payment_intent! as string,
-          customerId: customer.id,
-          organizationId: organization.id,
-        })
-      })
-
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return processStripeChargeForInvoiceCheckoutSession(
-            {
-              checkoutSession:
-                updatedCheckoutSession as CheckoutSession.InvoiceRecord,
-              charge: succeededCharge,
-            },
-            transaction
-          )
-        }
-      )
-
-      expect(result.invoice.status).not.toEqual(InvoiceStatus.Paid)
-    })
-
-    it('should not mark invoice as Paid when a payment has been partially refunded and net amount is below invoice total', async () => {
-      const updatedCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
-          return updateCheckoutSession(
-            {
-              ...checkoutSession,
-              ...invoiceCheckoutSessionNulledColumns,
-              type: CheckoutSessionType.Invoice,
-              invoiceId: invoice.id,
-            } as CheckoutSession.InvoiceUpdate,
-            transaction
-          )
-        }
-      )
-
-      const partiallyRefundedPaymentCharge = mockSucceededCharge(
-        checkoutSession.id,
-        customer.stripeCustomerId!,
-        2000
-      )
-
-      await setupPayment({
-        invoiceId: invoice.id,
-        amount: 2000,
-        refundedAmount: 1200,
-        status: PaymentStatus.Succeeded,
-        livemode: true,
-        customerId: customer.id,
-        organizationId: organization.id,
-        stripeChargeId: partiallyRefundedPaymentCharge.id,
-        stripePaymentIntentId:
-          partiallyRefundedPaymentCharge.payment_intent as string,
-        paymentMethod: PaymentMethodType.Card,
-      })
-
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return processStripeChargeForInvoiceCheckoutSession(
-            {
-              checkoutSession:
-                updatedCheckoutSession as CheckoutSession.InvoiceRecord,
-              charge: mockSucceededCharge(
-                checkoutSession.id,
-                customer.stripeCustomerId!,
-                0
-              ),
-            },
-            transaction
-          )
-        }
-      )
-
-      expect(result.invoice.status).not.toEqual(InvoiceStatus.Paid)
-    })
-
-    it('should not mark invoice as Paid when a payment has been fully refunded', async () => {
-      const updatedCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
-          return updateCheckoutSession(
-            {
-              ...checkoutSession,
-              ...invoiceCheckoutSessionNulledColumns,
-              type: CheckoutSessionType.Invoice,
-              invoiceId: invoice.id,
-            } as CheckoutSession.InvoiceUpdate,
-            transaction
-          )
-        }
-      )
-
-      const fullyRefundedPaymentCharge = mockSucceededCharge(
-        checkoutSession.id,
-        customer.stripeCustomerId!,
-        2000
-      )
-
-      await setupPayment({
-        invoiceId: invoice.id,
-        amount: 2000,
-        refundedAmount: 2000,
-        refunded: true,
-        status: PaymentStatus.Refunded,
-        livemode: true,
-        customerId: customer.id,
-        organizationId: organization.id,
-        stripeChargeId: fullyRefundedPaymentCharge.id,
-        stripePaymentIntentId:
-          fullyRefundedPaymentCharge.payment_intent as string,
-        paymentMethod: PaymentMethodType.Card,
-      })
-
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return processStripeChargeForInvoiceCheckoutSession(
-            {
-              checkoutSession:
-                updatedCheckoutSession as CheckoutSession.InvoiceRecord,
-              charge: mockSucceededCharge(
-                checkoutSession.id,
-                customer.stripeCustomerId!,
-                0
-              ),
-            },
-            transaction
-          )
-        }
-      )
-
-      expect(result.invoice.status).not.toEqual(InvoiceStatus.Paid)
-    })
-  })
-
   describe('processStripeChargeForCheckoutSession', () => {
-    it('should delegate to processStripeChargeForInvoiceCheckoutSession when session type is Invoice', async () => {
-      // Update checkout session to be an invoice type
-      await adminTransaction(async ({ transaction }) => {
-        await updateCheckoutSession(
-          {
-            ...checkoutSession,
-            ...invoiceCheckoutSessionNulledColumns,
-            type: CheckoutSessionType.Invoice,
-            invoiceId: invoice.id,
-          } as CheckoutSession.InvoiceUpdate,
-          transaction
-        )
-      })
-
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return processStripeChargeForCheckoutSession(
-            {
-              checkoutSessionId: checkoutSession.id,
-              charge: succeededCharge,
-            },
-            transaction
-          )
-        }
-      )
-
-      expect(result.result.purchase).toBeNull()
-      expect(result.result.invoice).toBeDefined()
-      expect(result.result.checkoutSession.status).toEqual(
-        CheckoutSessionStatus.Succeeded
-      )
-    })
-
     it('should process purchase bookkeeping and create invoice for non-invoice sessions with status Pending or Succeeded', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
