@@ -405,7 +405,14 @@ const stripeApiKey = (livemode: boolean) => {
   // Allow integration tests to use real Stripe API key
   // This env var is only set when running integration tests
   if (process.env.STRIPE_INTEGRATION_TEST_MODE === 'true') {
-    return process.env.STRIPE_TEST_MODE_SECRET_KEY || ''
+    const key = process.env.STRIPE_TEST_MODE_SECRET_KEY
+    if (!key) {
+      throw new Error(
+        'STRIPE_INTEGRATION_TEST_MODE is enabled but STRIPE_TEST_MODE_SECRET_KEY is not set. ' +
+          'Integration tests require a valid Stripe test mode secret key.'
+      )
+    }
+    return key
   }
   if (core.IS_TEST) {
     return 'sk_test_fake_key_1234567890abcdef'
