@@ -1,5 +1,4 @@
 import { and, eq, inArray, lte } from 'drizzle-orm'
-import { z } from 'zod'
 import {
   type SubscriptionItem,
   subscriptionItems,
@@ -27,8 +26,13 @@ import {
 } from '@/subscriptions/schemas'
 import type { SubscriptionStatus } from '@/types'
 import core from '@/utils/core'
-import { prices, pricesClientSelectSchema } from '../schema/prices'
 import {
+  type Price,
+  prices,
+  pricesClientSelectSchema,
+} from '../schema/prices'
+import {
+  type Subscription,
   subscriptions,
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
@@ -315,10 +319,10 @@ export const selectSubscriptionItemsWithPricesBySubscriptionIds =
  * @returns Map of subscription IDs to their rich subscription objects
  */
 const buildRichSubscriptionsMap = (
-  subscriptionRecords: z.infer<typeof subscriptionsSelectSchema>[],
+  subscriptionRecords: Subscription.Record[],
   itemsWithPrices: {
-    subscriptionItem: z.infer<typeof subscriptionItemsSelectSchema>
-    price: z.infer<typeof pricesClientSelectSchema> | null
+    subscriptionItem: SubscriptionItem.Record
+    price: Price.ClientRecord | null
   }[]
 ): Map<string, RichSubscription> => {
   const richSubscriptionsMap = new Map<string, RichSubscription>()
