@@ -9,6 +9,7 @@ import {
 } from '@/db/tableMethods/paymentMethods'
 import type { DbTransaction } from '@/db/types'
 import { PaymentStatus, StripeConnectContractType } from '@/types'
+import { logger } from '@/utils/logger'
 import {
   getPaymentIntent,
   getStripeCharge,
@@ -137,7 +138,15 @@ export const refundPaymentTransaction = async (
       } catch (error) {
         // Log but don't fail the refund - tax reversal is best-effort
         // similar to how tax transaction creation is handled
-        console.error('Failed to reverse tax transaction:', error)
+        logger.error(
+          error instanceof Error ? error : new Error(String(error)),
+          {
+            message: 'Failed to reverse tax transaction',
+            paymentId: payment.id,
+            organizationId: payment.organizationId,
+            stripeTaxTransactionId: payment.stripeTaxTransactionId,
+          }
+        )
       }
     }
   }
