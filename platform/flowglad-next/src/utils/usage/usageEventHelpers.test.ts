@@ -46,6 +46,16 @@ import {
   resolveUsageEventInput,
 } from '@/utils/usage/usageEventHelpers'
 
+// FIXME: TypeScript is failing to narrow the zod discriminated union correctly for usage prices.
+// The discriminated union in setupPriceInputSchema should allow PriceType.Usage, but TypeScript
+// incorrectly narrows it to PriceType.Subscription. This type assertion is a workaround.
+// We should investigate why the discriminated union isn't working properly - possibly related
+// to zod 4.x or how the schemas are structured (setupUsagePriceSchema extends a different base).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const asUsagePriceInput = (
+  input: any
+): Parameters<typeof setupPrice>[0] => input
+
 describe('usageEventHelpers', () => {
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
@@ -76,17 +86,19 @@ describe('usageEventHelpers', () => {
         livemode: true,
         pricingModelId: defaultPricingModelForOrg.id,
       })
-      usagePrice = await setupPrice({
-        name: 'Test Usage Price',
-        type: PriceType.Usage,
-        unitPrice: 10,
-        intervalUnit: IntervalUnit.Day,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: false,
-        currency: CurrencyCode.USD,
-        usageMeterId: usageMeter.id,
-      })
+      usagePrice = await setupPrice(
+        asUsagePriceInput({
+          name: 'Test Usage Price',
+          type: PriceType.Usage,
+          unitPrice: 10,
+          intervalUnit: IntervalUnit.Day,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: false,
+          currency: CurrencyCode.USD,
+          usageMeterId: usageMeter.id,
+        })
+      )
 
       mainSubscription = await setupSubscription({
         organizationId: organization.id,
@@ -547,17 +559,19 @@ describe('usageEventHelpers', () => {
       })
 
       // Setup price with this usage meter
-      const distinctPrice = await setupPrice({
-        name: 'Distinct Properties Price',
-        type: PriceType.Usage,
-        unitPrice: 10,
-        intervalUnit: IntervalUnit.Day,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: false,
-        currency: CurrencyCode.USD,
-        usageMeterId: usageMeter.id,
-      })
+      const distinctPrice = await setupPrice(
+        asUsagePriceInput({
+          name: 'Distinct Properties Price',
+          type: PriceType.Usage,
+          unitPrice: 10,
+          intervalUnit: IntervalUnit.Day,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: false,
+          currency: CurrencyCode.USD,
+          usageMeterId: usageMeter.id,
+        })
+      )
 
       // Setup subscription
       const distinctSubscription = await setupSubscription({
@@ -1030,18 +1044,20 @@ describe('usageEventHelpers', () => {
             livemode: true,
             pricingModelId: orgSetup.pricingModel.id,
           })
-          const testPrice = await setupPrice({
-            name: 'Test Usage Price with Slug',
-            type: PriceType.Usage,
-            unitPrice: 10,
-            intervalUnit: IntervalUnit.Day,
-            intervalCount: 1,
-            livemode: true,
-            isDefault: false,
-            currency: CurrencyCode.USD,
-            usageMeterId: testUsageMeter.id,
-            slug: 'test-usage-price-slug',
-          })
+          const testPrice = await setupPrice(
+            asUsagePriceInput({
+              name: 'Test Usage Price with Slug',
+              type: PriceType.Usage,
+              unitPrice: 10,
+              intervalUnit: IntervalUnit.Day,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              currency: CurrencyCode.USD,
+              usageMeterId: testUsageMeter.id,
+              slug: 'test-usage-price-slug',
+            })
+          )
           const testSubscription = await setupSubscription({
             organizationId: orgSetup.organization.id,
             customerId: testCustomer.id,
@@ -1118,18 +1134,20 @@ describe('usageEventHelpers', () => {
         })
 
         // Create a price with a slug in the second pricing model
-        await setupPrice({
-          name: 'Second Usage Price',
-          type: PriceType.Usage,
-          unitPrice: 20,
-          intervalUnit: IntervalUnit.Day,
-          intervalCount: 1,
-          livemode: true,
-          isDefault: false,
-          currency: CurrencyCode.USD,
-          usageMeterId: secondUsageMeter.id,
-          slug: 'other-pricing-model-price-slug',
-        })
+        await setupPrice(
+          asUsagePriceInput({
+            name: 'Second Usage Price',
+            type: PriceType.Usage,
+            unitPrice: 20,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            currency: CurrencyCode.USD,
+            usageMeterId: secondUsageMeter.id,
+            slug: 'other-pricing-model-price-slug',
+          })
+        )
       })
 
       // Try to use the slug from second pricing model's price with first customer's subscription
@@ -1218,17 +1236,19 @@ describe('usageEventHelpers', () => {
             pricingModelId: orgSetup.pricingModel.id,
             slug: 'test-usage-meter-slug',
           })
-          const testPrice = await setupPrice({
-            name: 'Test Usage Price',
-            type: PriceType.Usage,
-            unitPrice: 10,
-            intervalUnit: IntervalUnit.Day,
-            intervalCount: 1,
-            livemode: true,
-            isDefault: false,
-            currency: CurrencyCode.USD,
-            usageMeterId: testUsageMeter.id,
-          })
+          const testPrice = await setupPrice(
+            asUsagePriceInput({
+              name: 'Test Usage Price',
+              type: PriceType.Usage,
+              unitPrice: 10,
+              intervalUnit: IntervalUnit.Day,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              currency: CurrencyCode.USD,
+              usageMeterId: testUsageMeter.id,
+            })
+          )
           const testSubscription = await setupSubscription({
             organizationId: orgSetup.organization.id,
             customerId: testCustomer.id,
@@ -1336,17 +1356,19 @@ describe('usageEventHelpers', () => {
         UsageMeterAggregationType.CountDistinctProperties,
     })
 
-    const distinctPrice = await setupPrice({
-      name: 'Distinct Price',
-      type: PriceType.Usage,
-      unitPrice: 10,
-      intervalUnit: IntervalUnit.Day,
-      intervalCount: 1,
-      livemode: true,
-      isDefault: false,
-      currency: CurrencyCode.USD,
-      usageMeterId: distinctMeter.id,
-    })
+    const distinctPrice = await setupPrice(
+      asUsagePriceInput({
+        name: 'Distinct Price',
+        type: PriceType.Usage,
+        unitPrice: 10,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        usageMeterId: distinctMeter.id,
+      })
+    )
 
     const distinctSubscription = await setupSubscription({
       organizationId,

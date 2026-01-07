@@ -9,7 +9,7 @@
     "build:preview-css": "bun run src/scripts/build-preview-css.ts",
     "user": "bun run src/scripts/setup-env-user.ts",
     "start": "next start",
-    "check": "bunx --bun @biomejs/biome check . && tsc --noEmit && bun run validate:registry",
+    "check": "bunx --bun @biomejs/biome check . && bunx tsc --noEmit && bun run validate:registry",
     "format": "bunx --bun @biomejs/biome check --write .",
     "install-packages": "bun install",
     "test": "vitest run --reporter=verbose",

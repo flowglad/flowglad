@@ -901,7 +901,7 @@ const setupSubscriptionPriceSchema = baseSetupPriceSchema.extend({
 const setupUsagePriceSchema =
   baseSetupPriceSchemaWithoutProductId.extend({
     type: z.literal(PriceType.Usage),
-    intervalUnit: z.enum(IntervalUnit).optional(),
+    intervalUnit: z.nativeEnum(IntervalUnit).optional(),
     intervalCount: z.number().optional(),
     usageMeterId: z.string(), // Required for Usage prices - replaces productId
     trialPeriodDays: z.never().optional(), // Usage prices don't have trial periods
