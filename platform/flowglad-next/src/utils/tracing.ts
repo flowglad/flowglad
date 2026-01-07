@@ -410,3 +410,21 @@ export const resendTraced = tracedMethod({
   kind: SpanKind.CLIENT,
   spanPrefix: 'resend',
 })
+
+/**
+ * Svix webhook tracer factory.
+ *
+ * @example
+ * ```ts
+ * const sendMessage = svixTraced(
+ *   'message.create',
+ *   (params) => ({ 'svix.app_id': params.applicationId }),
+ *   async (params) => { ... }
+ * )
+ * ```
+ */
+export const svixTraced = tracedMethod({
+  tracerName: 'svix',
+  kind: SpanKind.CLIENT,
+  spanPrefix: 'svix',
+})
