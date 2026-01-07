@@ -107,38 +107,38 @@
       },
 
       {
-        "tab": "Cookbook",
+        "tab": "Examples",
         "groups": [
           {
             "group": "Overview",
             "pages": [
-              "cookbook/introduction",
-              "cookbook/pricing-models"
+              "examples/introduction",
+              "examples/pricing-models"
             ]
           },
           {
             "group": "Next.js",
             "pages": [
-              "cookbook/nextjs/generation-based-subscription",
-              "cookbook/nextjs/pay-as-you-go",
-              "cookbook/nextjs/tiered-usage-gated-subscription",
-              "cookbook/nextjs/usage-limit-subscription"
+              "examples/nextjs/generation-based-subscription",
+              "examples/nextjs/pay-as-you-go",
+              "examples/nextjs/tiered-usage-gated-subscription",
+              "examples/nextjs/usage-limit-subscription"
             ]
           },
           {
             "group": "Tanstack Start",
             "pages": [
-              "cookbook/tanstack-start/generation-based-subscription"
+              "examples/tanstack-start/generation-based-subscription"
             ]
           },
           {
             "group": "Vite",
-            "pages": ["cookbook/vite/generation-based-subscription"]
+            "pages": ["examples/vite/generation-based-subscription"]
           },
           {
             "group": "React Native",
             "pages": [
-              "cookbook/react-native/generation-based-subscription"
+              "examples/react-native/generation-based-subscription"
             ]
           }
         ]
