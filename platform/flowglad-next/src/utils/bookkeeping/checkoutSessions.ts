@@ -39,13 +39,7 @@ import {
   selectLatestFeeCalculation,
   updateFeeCalculation,
 } from '@/db/tableMethods/feeCalculationMethods'
-import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
-import {
-  safelyUpdateInvoiceStatus,
-  selectInvoiceById,
-} from '@/db/tableMethods/invoiceMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import {
   selectPurchaseById,
@@ -56,10 +50,7 @@ import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { DbTransaction } from '@/db/types'
 import {
   CheckoutSessionStatus,
-  CheckoutSessionType,
   FeeCalculationType,
-  InvoiceStatus,
-  PaymentStatus,
   PriceType,
   PurchaseStatus,
   StripeConnectContractType,
@@ -68,13 +59,11 @@ import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import {
   createCheckoutSessionFeeCalculation,
   createFeeCalculationForCheckoutSession,
-  createInvoiceFeeCalculationForCheckoutSession,
 } from '@/utils/bookkeeping/fees/checkoutSession'
 import {
   calculateTotalDueAmount,
   calculateTotalFeeAmount,
 } from '@/utils/bookkeeping/fees/common'
-import { sumNetTotalSettledPaymentsForPaymentSet } from '@/utils/paymentHelpers'
 import {
   createStripeCustomer,
   stripeIdFromObjectOrId,
@@ -562,129 +551,9 @@ export const checkoutSessionStatusFromStripeCharge = (
 }
 
 /**
- * Processes a Stripe charge for an invoice-based checkout session.
- *
- * This function handles the bookkeeping when a charge is processed for an invoice:
- * 1. Validates the purchase session is for an invoice
- * 2. Updates the purchase session status based on the charge status
- * 3. Calculates total payments made against the invoice
- * 4. Updates invoice status based on payment status and amounts:
- *    - Marks as Paid if total payments >= invoice total
- *    - Marks as AwaitingPaymentConfirmation if charge is pending
- *    - Leaves status unchanged if payment succeeded but total < invoice amount
- *
- * @param checkoutSession - The purchase session record associated with the invoice
- * @param charge - The Stripe charge object containing payment details
- * @param transaction - Database transaction to use for all DB operations
- * @returns Updated purchase session and invoice records
- */
-export const processStripeChargeForInvoiceCheckoutSession = async (
-  {
-    checkoutSession,
-    charge,
-  }: {
-    checkoutSession: CheckoutSession.InvoiceRecord
-    charge: Pick<Stripe.Charge, 'status' | 'amount'>
-  },
-  transaction: DbTransaction
-): Promise<
-  TransactionOutput<{
-    checkoutSession: CheckoutSession.Record
-    invoice: Invoice.Record
-  }>
-> => {
-  const invoice = await selectInvoiceById(
-    checkoutSession.invoiceId,
-    transaction
-  )
-  const checkoutSessionStatus =
-    checkoutSessionStatusFromStripeCharge(charge)
-  const updatedCheckoutSession = await updateCheckoutSession(
-    {
-      ...checkoutSession,
-      status: checkoutSessionStatus,
-    },
-    transaction
-  )
-  const [invoiceAndLineItems] =
-    await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-      {
-        id: checkoutSession.invoiceId,
-      },
-      transaction
-    )
-  const invoiceTotal = invoiceAndLineItems.invoiceLineItems.reduce(
-    (acc, lineItem) => acc + lineItem.price * lineItem.quantity,
-    0
-  )
-  const paymentsForInvoice = await selectPayments(
-    {
-      invoiceId: checkoutSession.invoiceId,
-    },
-    transaction
-  )
-  const totalPriorPaymentsForInvoice =
-    sumNetTotalSettledPaymentsForPaymentSet(paymentsForInvoice)
-  if (totalPriorPaymentsForInvoice >= invoiceTotal) {
-    const updatedInvoice = await safelyUpdateInvoiceStatus(
-      invoice,
-      InvoiceStatus.Paid,
-      transaction
-    )
-    return {
-      result: {
-        checkoutSession: updatedCheckoutSession,
-        invoice: updatedInvoice,
-      },
-      eventsToInsert: [],
-    }
-  }
-  if (checkoutSessionStatus === CheckoutSessionStatus.Pending) {
-    const updatedInvoice = await safelyUpdateInvoiceStatus(
-      invoice,
-      InvoiceStatus.AwaitingPaymentConfirmation,
-      transaction
-    )
-    return {
-      result: {
-        checkoutSession: updatedCheckoutSession,
-        invoice: updatedInvoice,
-      },
-      eventsToInsert: [],
-    }
-  } else if (
-    checkoutSessionStatus === CheckoutSessionStatus.Succeeded
-  ) {
-    const totalPaymentsForInvoice =
-      totalPriorPaymentsForInvoice + charge.amount
-    if (totalPaymentsForInvoice >= invoiceTotal) {
-      const updatedInvoice = await safelyUpdateInvoiceStatus(
-        invoice,
-        InvoiceStatus.Paid,
-        transaction
-      )
-      return {
-        result: {
-          checkoutSession: updatedCheckoutSession,
-          invoice: updatedInvoice,
-        },
-        eventsToInsert: [],
-      }
-    }
-  }
-  return {
-    result: {
-      checkoutSession: updatedCheckoutSession,
-      invoice,
-    },
-    eventsToInsert: [],
-  }
-}
-
-/**
  *
  * This method is used to process a Stripe charge for a checkout session.
- * It handles the bookkeeping for both invoice and product-based checkout sessions.
+ * It handles the bookkeeping for product-based checkout sessions.
  * It will create the invoice for the checkout, but it will not modify the status of the invoice.
  *
  * That happens in methods that consume this one, or downstream in the codepath.
@@ -723,24 +592,6 @@ export const processStripeChargeForCheckoutSession = async (
     ReturnType<typeof processPurchaseBookkeepingForCheckoutSession>
   > | null = null
 
-  if (checkoutSession.type === CheckoutSessionType.Invoice) {
-    const result = await processStripeChargeForInvoiceCheckoutSession(
-      {
-        checkoutSession,
-        charge,
-      },
-      transaction
-    )
-    return {
-      result: {
-        purchase: null,
-        invoice: result.result.invoice,
-        checkoutSession: result.result.checkoutSession,
-      },
-      eventsToInsert: result.eventsToInsert,
-      ledgerCommand: result.ledgerCommand,
-    }
-  }
   const checkoutSessionStatus =
     checkoutSessionStatusFromStripeCharge(charge)
   if (
