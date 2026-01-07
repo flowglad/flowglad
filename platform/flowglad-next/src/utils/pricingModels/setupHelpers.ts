@@ -117,14 +117,17 @@ export async function getPricingModelSetupData(
   // Usage prices now belong directly to usage meters, not products
   const usagePricesByMeterId = new Map<string, Price.UsageRecord[]>()
   for (const price of usagePricesWithoutProducts) {
-    if (price.usageMeterId) {
-      const existing =
-        usagePricesByMeterId.get(price.usageMeterId) || []
-      usagePricesByMeterId.set(price.usageMeterId, [
-        ...existing,
-        price as Price.UsageRecord,
-      ])
+    if (!price.usageMeterId) {
+      throw new Error(
+        `Usage price ${price.id} has no usageMeterId. Usage prices must be associated with a usage meter.`
+      )
     }
+    const existing =
+      usagePricesByMeterId.get(price.usageMeterId) || []
+    usagePricesByMeterId.set(price.usageMeterId, [
+      ...existing,
+      price as Price.UsageRecord,
+    ])
   }
 
   // Transform usage meters with their nested prices (PR 5 structure)

@@ -3373,7 +3373,7 @@
                                   ]
                                 },
                                 "isDefault": {
-                                  "description": "Whether or not this price is the default price for the product.",
+                                  "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
                                   "type": "boolean"
                                 },
                                 "unitPrice": {
@@ -3444,7 +3444,7 @@
                                   "type": "null"
                                 },
                                 "isDefault": {
-                                  "description": "Whether or not this price is the default price for the product.",
+                                  "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
                                   "type": "boolean"
                                 },
                                 "unitPrice": {
@@ -3563,7 +3563,7 @@
                                 "type": "null"
                               },
                               "isDefault": {
-                                "description": "Whether or not this price is the default price for the product.",
+                                "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
                                 "type": "boolean"
                               },
                               "unitPrice": {
@@ -8017,7 +8017,7 @@
             ]
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -8095,7 +8095,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -8169,7 +8169,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -8361,7 +8361,7 @@
             ]
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -8444,7 +8444,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -8522,7 +8522,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -8621,7 +8621,7 @@
             "const": "subscription"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "active": {
@@ -8661,7 +8661,7 @@
             "const": "single_payment"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "active": {
@@ -8701,7 +8701,7 @@
             "const": "usage"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "active": {
@@ -12742,7 +12742,7 @@
             ]
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -12861,7 +12861,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -12978,7 +12978,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
