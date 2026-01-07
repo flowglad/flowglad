@@ -4,6 +4,7 @@
   "license": "MIT",
   "version": "0.0.0",
   "scripts": {
+    "postinstall": "[ -f node_modules/@biomejs/cli-linux-x64-musl/biome ] && [ -f node_modules/@biomejs/cli-linux-x64/biome ] && ! node_modules/@biomejs/cli-linux-x64/biome --version >/dev/null 2>&1 && ln -sf ../cli-linux-x64-musl/biome node_modules/@biomejs/cli-linux-x64/biome || true",
     "randombytes": "tsx scripts/randomBytes.ts",
     "test": "bunx turbo run test --filter=!@flowglad/playground-*",
     "format": "biome format --write .",
@@ -16,7 +17,6 @@
     "clean": "bunx turbo run clean",
     "changeset:empty": "bunx changeset --empty",
     "prebuild": "bun run build:declarations",
-    "preinstall": "bunx --bun only-allow bun",
     "build": "bunx turbo run build --filter=!@flowglad/playground-*",
     "build:declarations": "bunx turbo run build:declarations",
     "packages:changeset": "changeset",
