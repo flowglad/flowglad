@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
+import { RevenueChartIntervalUnit } from '@/types'
 import { RecurringRevenueChart } from './RecurringRevenueChart'
 
 const DateRangeRecurringRevenueChart = ({
@@ -8,12 +9,14 @@ const DateRangeRecurringRevenueChart = ({
   productId,
   fromDate,
   toDate,
+  interval,
 }: {
   organizationCreatedAt: Date
   alignDatePicker?: 'left' | 'right'
   productId?: string
   fromDate?: Date
   toDate?: Date
+  interval?: RevenueChartIntervalUnit
 }) => {
   const [range, setRange] = useState<{
     from: Date
@@ -52,6 +55,7 @@ const DateRangeRecurringRevenueChart = ({
         fromDate={effectiveFromDate}
         toDate={effectiveToDate}
         productId={productId}
+        interval={interval}
       />
     </>
   )
