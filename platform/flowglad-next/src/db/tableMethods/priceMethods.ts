@@ -558,10 +558,12 @@ export const selectPricesPaginated = createPaginatedSelectFunction(
 
 export const pricesTableRowOutputSchema = z.object({
   price: pricesClientSelectSchema,
-  product: z.object({
-    id: z.string(),
-    name: z.string(),
-  }),
+  product: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+    })
+    .nullable(),
 })
 
 export const selectPricesTableRowData =
@@ -595,10 +597,7 @@ export const selectPricesTableRowData =
               id: productsById.get(price.productId)!.id,
               name: productsById.get(price.productId)!.name,
             }
-          : {
-              id: '',
-              name: 'Usage-Based',
-            },
+          : null,
       }))
     },
     // Searchable columns for ILIKE search on name and slug

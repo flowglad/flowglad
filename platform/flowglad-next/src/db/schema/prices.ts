@@ -755,10 +755,12 @@ export type PricingModelWithProductsAndUsageMeters = z.infer<
 
 export const pricesTableRowDataSchema = z.object({
   price: pricesClientSelectSchema,
-  product: z.object({
-    id: z.string(),
-    name: z.string(),
-  }),
+  product: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+    })
+    .nullable(),
 })
 
 export const productsTableRowDataSchema = z.object({
