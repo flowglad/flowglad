@@ -587,6 +587,8 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
         `processActivateSubscriptionCheckoutSessionSetupIntentSucceeded: Subscription not found for checkout session ${checkoutSession.id}`
       )
     }
+
+    // Fetch customer and payment method (needed in all paths)
     const customer = await selectCustomerById(
       result.subscription.customerId,
       transaction
@@ -597,6 +599,24 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
         customer,
         transaction
       )
+
+    // Defense-in-depth: Check if this exact setup intent was already processed
+    // (outer idempotency check should catch this, but this provides additional safety)
+    if (result.subscription.stripeSetupIntentId === setupIntent.id) {
+      return {
+        type: CheckoutSessionType.ActivateSubscription as const,
+        checkoutSession,
+        organization: await selectOrganizationById(
+          checkoutSession.organizationId,
+          transaction
+        ),
+        customer,
+        paymentMethod,
+        billingRun: null,
+        subscription: result.subscription,
+        purchase: null,
+      }
+    }
 
     // Set stripeSetupIntentId BEFORE activateSubscription to prevent race conditions
     // This ensures concurrent webhook deliveries will fail the idempotency check
