@@ -14,8 +14,18 @@ Note that this should be easy to review, and not super voluminuous - the whole i
 
 Roughly, the shape should be:
 
+- Project Name
+  A short, kebab-case identifier for this gameplan (e.g., `subscription-adjustments`, `usage-billing-v2`).
+  This name is used in branch names and PR titles to identify which gameplan a patch belongs to.
+
+- Problem Statement
+  A concise (2-4 sentences) description of what problem we're solving and why.
+
+- Solution Summary
+  A concise (3-5 sentences) high-level description of how we're solving it.
+
 - Current State Analysis
-  What's the currrent state of the codebase relative to where we want it to be.
+  What's the current state of the codebase relative to where we want it to be.
 
 - Required Changes
     Be specific. Cite files with approximate line numbers, and name functions. When creating a new function or updating an existing one's signature, explicitly state the signature using a typescript codeblock, like so:
@@ -64,8 +74,17 @@ Roughly, the shape should be:
 
     ```
 
-- Parallelization
-    Specify which patches block which others and propose how to run the gameplan's patches in parallel to the extent possible.
+- Dependency Graph
+    Express patch dependencies in this exact format:
+    ```
+    - Patch 1 -> []
+    - Patch 2 -> [1]
+    - Patch 3 -> [1]
+    - Patch 4 -> [2, 3]
+    ```
+    Where `[]` means no dependencies, and `[1, 2]` means depends on patches 1 and 2.
+
+    This format enables automated tooling to fan out parallel patch execution.
 
 
 # Notes

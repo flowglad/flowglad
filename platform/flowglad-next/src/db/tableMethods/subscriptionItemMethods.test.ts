@@ -53,6 +53,7 @@ import {
   selectSubscriptionItemById,
   selectSubscriptionItems,
   selectSubscriptionItemsAndSubscriptionBySubscriptionId,
+  selectSubscriptionItemsWithPricesBySubscriptionIds,
   updateSubscriptionItem,
 } from './subscriptionItemMethods'
 import { updateSubscription } from './subscriptionMethods'
@@ -620,6 +621,96 @@ describe('subscriptionItemMethods', async () => {
         expect(updatedItem3Feature1?.expiredAt).toEqual(
           expiryDate.getTime()
         )
+      })
+    })
+  })
+
+  describe('selectSubscriptionItemsWithPricesBySubscriptionIds', () => {
+    it('should return an empty array when given an empty array of subscription IDs', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const results =
+          await selectSubscriptionItemsWithPricesBySubscriptionIds(
+            [],
+            transaction
+          )
+        expect(results).toEqual([])
+      })
+    })
+
+    it('should return subscription items with their associated prices for valid subscription IDs', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const results =
+          await selectSubscriptionItemsWithPricesBySubscriptionIds(
+            [subscription.id],
+            transaction
+          )
+
+        expect(results.length).toBe(1)
+        expect(results[0].subscriptionItem.id).toBe(
+          subscriptionItem.id
+        )
+        expect(results[0].subscriptionItem.subscriptionId).toBe(
+          subscription.id
+        )
+        expect(results[0].price).not.toBeNull()
+        expect(results[0].price?.id).toBe(price.id)
+      })
+    })
+
+    it('should return items from multiple subscriptions when given multiple subscription IDs', async () => {
+      const secondSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+      })
+
+      const secondSubscriptionItem = await setupSubscriptionItem({
+        subscriptionId: secondSubscription.id,
+        name: 'Second Subscription Item',
+        quantity: 2,
+        unitPrice: 2000,
+        priceId: price.id,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const results =
+          await selectSubscriptionItemsWithPricesBySubscriptionIds(
+            [subscription.id, secondSubscription.id],
+            transaction
+          )
+
+        expect(results.length).toBe(2)
+
+        const firstSubItems = results.filter(
+          (r) => r.subscriptionItem.subscriptionId === subscription.id
+        )
+        const secondSubItems = results.filter(
+          (r) =>
+            r.subscriptionItem.subscriptionId ===
+            secondSubscription.id
+        )
+
+        expect(firstSubItems.length).toBe(1)
+        expect(firstSubItems[0].subscriptionItem.id).toBe(
+          subscriptionItem.id
+        )
+
+        expect(secondSubItems.length).toBe(1)
+        expect(secondSubItems[0].subscriptionItem.id).toBe(
+          secondSubscriptionItem.id
+        )
+      })
+    })
+
+    it('should return an empty array when given non-existent subscription IDs', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const results =
+          await selectSubscriptionItemsWithPricesBySubscriptionIds(
+            [core.nanoid(), core.nanoid()],
+            transaction
+          )
+        expect(results).toEqual([])
       })
     })
   })

@@ -1,8 +1,8 @@
-import { SpanKind } from '@opentelemetry/api'
 import { kebabCase } from 'change-case'
 import {
   type CreateEmailOptions,
   type CreateEmailRequestOptions,
+  type CreateEmailResponse,
   Resend,
 } from 'resend'
 import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
@@ -28,53 +28,46 @@ import { OrganizationPayoutsEnabledNotificationEmail } from '@/email-templates/o
 import { OrganizationOnboardingCompletedNotificationEmail } from '@/email-templates/organization/payout-notification'
 import SendPurchaseAccessSessionTokenEmail from '@/email-templates/send-purchase-access-session-token'
 import type { CurrencyCode } from '@/types'
-import { withSpan } from '@/utils/tracing'
+import { resendTraced } from '@/utils/tracing'
 import core from './core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from './stripe'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))
 
-const withResendSpan = async <T>(
-  operation: string,
-  attributes: Record<string, string | number | boolean | undefined>,
-  fn: () => Promise<T>
-): Promise<T> => {
-  return withSpan(
-    {
-      spanName: `resend.${operation}`,
-      tracerName: 'resend',
-      kind: SpanKind.CLIENT,
-      attributes: {
-        'resend.operation': operation,
-        ...attributes,
-      },
-    },
-    fn
-  )
+interface SafeSendParams {
+  email: CreateEmailOptions
+  options?: CreateEmailRequestOptions & { templateName?: string }
+}
+
+/**
+ * Core safeSend logic without tracing.
+ */
+const safeSendCore = async ({
+  email,
+  options,
+}: SafeSendParams): Promise<CreateEmailResponse | undefined> => {
+  if (core.IS_TEST) {
+    return undefined
+  }
+  return resend().emails.send({ ...email }, options)
 }
 
 export const safeSend = (
   email: CreateEmailOptions,
   options?: CreateEmailRequestOptions & { templateName?: string }
-) => {
+): Promise<CreateEmailResponse | undefined> => {
   if (core.IS_TEST) {
-    return
+    return Promise.resolve(undefined)
   }
   const recipientCount = Array.isArray(email.to) ? email.to.length : 1
-  return withResendSpan(
+  return resendTraced(
     'emails.send',
-    {
-      'resend.template': options?.templateName,
+    ({ options: opts }: SafeSendParams) => ({
+      'resend.template': opts?.templateName,
       'resend.recipient_count': recipientCount,
-    },
-    () =>
-      resend().emails.send(
-        {
-          ...email,
-        },
-        options
-      )
-  )
+    }),
+    safeSendCore
+  )({ email, options })
 }
 
 const safeTo = (email: string) =>

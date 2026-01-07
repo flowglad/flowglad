@@ -113,6 +113,12 @@ export const updateSubscription = createUpdateFunction(
   config
 )
 
+/**
+ * Selects subscriptions by the given where conditions.
+ * This query is used as part of the decomposed subscription fetching strategy
+ * in selectRichSubscriptionsAndActiveItems, enabling independent caching of
+ * subscription records.
+ */
 export const selectSubscriptions = createSelectFunction(
   subscriptions,
   config

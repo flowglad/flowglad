@@ -169,10 +169,16 @@ export function HomeClient() {
   // Compute plan totals dynamically from current subscription's feature items
   // This calculates how many usage credits (e.g., "360 fast generations")
   // are included in the current subscription plan
-  const fastGenerationsTotal = computeUsageTotal(
+  const fastGenerationsPlanTotal = computeUsageTotal(
     'fast_generations',
     currentSubscription,
     billing.pricingModel
+  )
+  // Use the higher of plan total or remaining balance as the display total
+  // This handles cases where top-ups increase balance beyond plan allocation
+  const fastGenerationsTotal = Math.max(
+    fastGenerationsPlanTotal,
+    fastGenerationsRemaining
   )
   const fastGenerationsProgress =
     fastGenerationsTotal > 0
@@ -184,10 +190,16 @@ export function HomeClient() {
 
   const hdVideoMinutesRemaining =
     hdVideoMinutesBalance?.availableBalance ?? 0
-  const hdVideoMinutesTotal = computeUsageTotal(
+  const hdVideoMinutesPlanTotal = computeUsageTotal(
     'hd_video_minutes',
     currentSubscription,
     billing.pricingModel
+  )
+  // Use the higher of plan total or remaining balance as the display total
+  // This handles cases where top-ups increase balance beyond plan allocation
+  const hdVideoMinutesTotal = Math.max(
+    hdVideoMinutesPlanTotal,
+    hdVideoMinutesRemaining
   )
   const hdVideoMinutesProgress =
     hdVideoMinutesTotal > 0

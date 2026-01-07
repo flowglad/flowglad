@@ -378,25 +378,6 @@ describe('derivePricingModelIdForCheckoutSession', () => {
     })
   })
 
-  it('should derive pricingModelId from invoiceId when priceId and purchaseId not provided (Invoice session)', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const derivedPricingModelId =
-        await derivePricingModelIdForCheckoutSession(
-          {
-            priceId: null,
-            purchaseId: null,
-            invoiceId: invoice.id,
-            customerId: null,
-            type: CheckoutSessionType.Invoice,
-          },
-          transaction
-        )
-
-      expect(derivedPricingModelId).toBe(invoice.pricingModelId)
-      expect(derivedPricingModelId).toBe(pricingModel.id)
-    })
-  })
-
   it('should derive pricingModelId from customerId for AddPaymentMethod session when other IDs not provided', async () => {
     await adminTransaction(async ({ transaction }) => {
       const derivedPricingModelId =

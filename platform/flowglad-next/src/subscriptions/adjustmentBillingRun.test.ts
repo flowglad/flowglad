@@ -445,12 +445,22 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
   })
 
   it('should succeed billing run and create payment intent when existing payments partially cover the adjustment', async () => {
+    // Setup: Create an original billing run for the initial subscription payment
+    const originalBillingRun = await setupBillingRun({
+      billingPeriodId: billingPeriod.id,
+      paymentMethodId: paymentMethod.id,
+      subscriptionId: subscription.id,
+      status: BillingRunStatus.Succeeded,
+      isAdjustment: false,
+    })
+
     // Setup: Create an existing payment for the billing period
     const invoice = await setupInvoice({
       billingPeriodId: billingPeriod.id,
       customerId: customer.id,
       organizationId: organization.id,
       priceId: staticPrice.id,
+      billingRunId: originalBillingRun.id,
     })
 
     const existingPaymentAmount = staticPrice.unitPrice / 2 // Half the price

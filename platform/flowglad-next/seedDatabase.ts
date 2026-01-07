@@ -1064,6 +1064,10 @@ export const setupPayment = async ({
   chargeDate,
   purchaseId,
   paymentMethodId,
+  stripeTaxTransactionId,
+  stripeTaxCalculationId,
+  taxAmount,
+  subtotal,
 }: {
   stripeChargeId: string
   status: PaymentStatus
@@ -1082,6 +1086,10 @@ export const setupPayment = async ({
   chargeDate?: number
   purchaseId?: string
   paymentMethodId?: string
+  stripeTaxTransactionId?: string | null
+  stripeTaxCalculationId?: string | null
+  taxAmount?: number
+  subtotal?: number
 }): Promise<Payment.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const payment = await insertPayment(
@@ -1105,6 +1113,10 @@ export const setupPayment = async ({
         refundedAmount,
         refundedAt,
         paymentMethodId,
+        stripeTaxTransactionId: stripeTaxTransactionId ?? null,
+        stripeTaxCalculationId: stripeTaxCalculationId ?? null,
+        taxAmount: taxAmount ?? 0,
+        subtotal: subtotal ?? amount,
       },
       transaction
     )

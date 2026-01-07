@@ -1,9 +1,8 @@
+import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
-import type {
-  AuthenticatedTransactionParams,
-  DbTransaction,
-} from '@/db/types'
+import type { AuthenticatedTransactionParams } from '@/db/types'
 import core from '@/utils/core'
+import { traced } from '@/utils/tracing'
 import db from './client'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
 import { processLedgerCommand } from './ledgerManager/ledgerManager'
@@ -26,12 +25,17 @@ interface AuthenticatedTransactionOptions {
 }
 
 /**
- * Original authenticatedTransaction. Consider deprecating or refactoring.
+ * Core authenticated transaction logic without tracing.
  */
-export async function authenticatedTransaction<T>(
+const executeAuthenticatedTransaction = async <T>(
   fn: (params: AuthenticatedTransactionParams) => Promise<T>,
   options?: AuthenticatedTransactionOptions
-) {
+): Promise<{
+  result: T
+  userId: string
+  organizationId?: string
+  livemode: boolean
+}> => {
   const { apiKey, __testOnlyOrganizationId, customerId } =
     options ?? {}
   if (!core.IS_TEST && __testOnlyOrganizationId) {
@@ -45,7 +49,8 @@ export async function authenticatedTransaction<T>(
       __testOnlyOrganizationId,
       customerId,
     })
-  return await db.transaction(async (transaction) => {
+
+  const result = await db.transaction(async (transaction) => {
     if (!jwtClaim) {
       throw new Error('No jwtClaim found')
     }
@@ -91,17 +96,62 @@ export async function authenticatedTransaction<T>(
 
     return resp
   })
+
+  return {
+    result,
+    userId,
+    organizationId: jwtClaim?.organization_id,
+    livemode,
+  }
 }
 
 /**
- * New comprehensive authenticated transaction handler.
+ * Original authenticatedTransaction. Consider deprecating or refactoring.
  */
-export async function comprehensiveAuthenticatedTransaction<T>(
+export async function authenticatedTransaction<T>(
+  fn: (params: AuthenticatedTransactionParams) => Promise<T>,
+  options?: AuthenticatedTransactionOptions
+): Promise<T> {
+  // We need to execute and get the auth info to set span attributes
+  // The traced combinator wraps the entire operation including auth lookup
+  // Static attributes are set at span creation for debugging failed transactions
+  const { result } = await traced(
+    {
+      options: {
+        spanName: 'db.authenticatedTransaction',
+        tracerName: 'db.transaction',
+        kind: SpanKind.CLIENT,
+        attributes: {
+          'db.transaction.type': 'authenticated',
+        },
+      },
+      extractResultAttributes: (data) => ({
+        'db.user_id': data.userId,
+        'db.organization_id': data.organizationId,
+        'db.livemode': data.livemode,
+      }),
+    },
+    () => executeAuthenticatedTransaction(fn, options)
+  )()
+
+  return result
+}
+
+/**
+ * Core comprehensive authenticated transaction logic without tracing.
+ * Returns the full TransactionOutput plus auth info so the traced wrapper can extract metrics.
+ */
+const executeComprehensiveAuthenticatedTransaction = async <T>(
   fn: (
     params: AuthenticatedTransactionParams
   ) => Promise<TransactionOutput<T>>,
   options?: AuthenticatedTransactionOptions
-): Promise<T> {
+): Promise<{
+  output: TransactionOutput<T>
+  userId: string
+  organizationId?: string
+  livemode: boolean
+}> => {
   const { apiKey, __testOnlyOrganizationId, customerId } =
     options ?? {}
   const { userId, livemode, jwtClaim } =
@@ -111,7 +161,7 @@ export async function comprehensiveAuthenticatedTransaction<T>(
       customerId,
     })
 
-  return db.transaction(async (transaction) => {
+  const output = await db.transaction(async (transaction) => {
     if (!jwtClaim) {
       throw new Error('No jwtClaim found')
     }
@@ -165,7 +215,7 @@ export async function comprehensiveAuthenticatedTransaction<T>(
     if (output.eventsToInsert && output.eventsToInsert.length > 0) {
       await bulkInsertOrDoNothingEventsByHash(
         output.eventsToInsert,
-        transaction as DbTransaction
+        transaction
       )
     }
 
@@ -185,8 +235,51 @@ export async function comprehensiveAuthenticatedTransaction<T>(
     // However, keeping it doesn't harm and can be an explicit cleanup.
     await transaction.execute(sql`RESET ROLE;`)
 
-    return output.result
+    return output
   })
+
+  return {
+    output,
+    userId,
+    organizationId: jwtClaim?.organization_id,
+    livemode,
+  }
+}
+
+/**
+ * New comprehensive authenticated transaction handler.
+ */
+export async function comprehensiveAuthenticatedTransaction<T>(
+  fn: (
+    params: AuthenticatedTransactionParams
+  ) => Promise<TransactionOutput<T>>,
+  options?: AuthenticatedTransactionOptions
+): Promise<T> {
+  // Static attributes are set at span creation for debugging failed transactions
+  const { output } = await traced(
+    {
+      options: {
+        spanName: 'db.comprehensiveAuthenticatedTransaction',
+        tracerName: 'db.transaction',
+        kind: SpanKind.CLIENT,
+        attributes: {
+          'db.transaction.type': 'authenticated',
+        },
+      },
+      extractResultAttributes: (data) => ({
+        'db.user_id': data.userId,
+        'db.organization_id': data.organizationId,
+        'db.livemode': data.livemode,
+        'db.events_count': data.output.eventsToInsert?.length ?? 0,
+        'db.ledger_commands_count': data.output.ledgerCommand
+          ? 1
+          : (data.output.ledgerCommands?.length ?? 0),
+      }),
+    },
+    () => executeComprehensiveAuthenticatedTransaction(fn, options)
+  )()
+
+  return output.result
 }
 
 /**
@@ -198,7 +291,7 @@ export function eventfulAuthenticatedTransaction<T>(
     params: AuthenticatedTransactionParams
   ) => Promise<[T, Event.Insert[]]>,
   options: AuthenticatedTransactionOptions
-) {
+): Promise<T> {
   return comprehensiveAuthenticatedTransaction(async (params) => {
     const [result, eventInserts] = await fn(params)
     return {

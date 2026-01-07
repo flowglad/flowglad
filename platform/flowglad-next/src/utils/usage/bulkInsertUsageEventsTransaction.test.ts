@@ -282,6 +282,61 @@ describe('bulkInsertUsageEventsTransaction', () => {
       ).rejects.toThrow("not found for this customer's pricing model")
     })
 
+    it('should throw error when priceId not in customer pricing model', async () => {
+      // Create a usage price in a different pricing model (different org)
+      const otherOrg = await adminTransaction(
+        async ({ transaction }) => setupOrg()
+      )
+      const otherUsageMeter = await adminTransaction(
+        async ({ transaction }) =>
+          setupUsageMeter({
+            organizationId: otherOrg.organization.id,
+            name: 'Other Usage Meter',
+            livemode: true,
+            pricingModelId: otherOrg.pricingModel.id,
+          })
+      )
+      const otherPrice = await adminTransaction(
+        async ({ transaction }) =>
+          setupPrice(
+            asUsagePriceInput({
+              name: 'Other Usage Price',
+              type: PriceType.Usage,
+              unitPrice: 10,
+              intervalUnit: IntervalUnit.Day,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              currency: CurrencyCode.USD,
+              usageMeterId: otherUsageMeter.id,
+            })
+          )
+      )
+
+      // Try to create a usage event for our customer's subscription using a priceId
+      // from a different pricing model - this should throw an error
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          bulkInsertUsageEventsTransaction(
+            {
+              input: {
+                usageEvents: [
+                  {
+                    subscriptionId: subscription.id,
+                    priceId: otherPrice.id,
+                    amount: 100,
+                    transactionId: `txn_invalid_price_${Date.now()}`,
+                  },
+                ],
+              },
+              livemode: true,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow("not found for this customer's pricing model")
+    })
+
     it('should throw error when CountDistinctProperties meter is used with subscription missing billing period', async () => {
       const countDistinctMeter = await adminTransaction(
         async ({ transaction }) =>

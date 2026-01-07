@@ -144,6 +144,13 @@ export const IS_PROD =
 export const IS_TEST =
   (process.env.NODE_ENV === 'test' || process.env.FORCE_TEST_MODE) &&
   process.env.VERCEL_ENV !== 'production'
+
+/**
+ * Test database URL used by both local docker-compose and CI service containers.
+ * Both environments provide PostgreSQL at localhost:5432 with identical credentials.
+ */
+export const TEST_DB_URL =
+  'postgresql://test:test@localhost:5432/test_db'
 export const IS_DEV =
   !IS_PROD && process.env.NODE_ENV === 'development'
 
@@ -532,6 +539,7 @@ export const safeZodSanitizedString = z
 export const core = {
   IS_PROD,
   IS_TEST,
+  TEST_DB_URL,
   DEV_ENVIRONMENT_NOTIF_PREFIX,
   NEXT_PUBLIC_APP_URL,
   notEmptyOrNil,

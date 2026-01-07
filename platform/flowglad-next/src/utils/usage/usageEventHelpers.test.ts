@@ -799,6 +799,56 @@ describe('usageEventHelpers', () => {
       )
     })
 
+    it('should throw error when priceId from different pricing model is provided directly', async () => {
+      // Create a usage price in a different organization/pricing model
+      const otherOrgPrice = await adminTransaction(
+        async ({ transaction }) => {
+          const otherOrgSetup = await setupOrg()
+          const otherUsageMeter = await setupUsageMeter({
+            organizationId: otherOrgSetup.organization.id,
+            name: 'Other Org Usage Meter',
+            livemode: true,
+            pricingModelId: otherOrgSetup.pricingModel.id,
+          })
+          const otherPrice = await setupPrice(
+            asUsagePriceInput({
+              name: 'Other Org Usage Price',
+              type: PriceType.Usage,
+              unitPrice: 10,
+              intervalUnit: IntervalUnit.Day,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              currency: CurrencyCode.USD,
+              usageMeterId: otherUsageMeter.id,
+            })
+          )
+          return otherPrice
+        }
+      )
+
+      const input: CreateUsageEventInput = {
+        usageEvent: {
+          subscriptionId: mainSubscription.id, // Belongs to original org
+          priceId: otherOrgPrice.id, // Belongs to different org
+          usageMeterId: otherOrgPrice.usageMeterId!,
+          amount: 100,
+          transactionId: `txn_wrong_pricing_model_price_${core.nanoid()}`,
+        },
+      }
+
+      await expect(
+        comprehensiveAdminTransaction(async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input, livemode: true },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        `Price ${otherOrgPrice.id} not found for this customer's pricing model`
+      )
+    })
+
     it('should successfully create usage event when priceId is null and valid usageMeterId is provided directly', async () => {
       const input: CreateUsageEventInput = {
         usageEvent: {

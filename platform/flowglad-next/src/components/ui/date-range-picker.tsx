@@ -97,6 +97,43 @@ function createDefaultPresets(): DateRangePreset[] {
   ]
 }
 
+/**
+ * Checks if two date ranges match (comparing by date string to ignore time).
+ */
+function dateRangesMatch(
+  range1: { from: Date; to: Date },
+  range2: { from: Date; to: Date }
+): boolean {
+  return (
+    range1.from.toDateString() === range2.from.toDateString() &&
+    range1.to.toDateString() === range2.to.toDateString()
+  )
+}
+
+/**
+ * Finds the matching preset label for a given date range.
+ * When multiple presets match (e.g., "Month to date" and "Year to date" in January),
+ * prioritizes "Year to date" over "Month to date".
+ */
+function findMatchingPresetLabel(
+  fromDate: Date,
+  toDate: Date,
+  presets: DateRangePreset[]
+): string | null {
+  const matches = presets.filter((preset) =>
+    dateRangesMatch({ from: fromDate, to: toDate }, preset.dateRange)
+  )
+
+  if (matches.length === 0) return null
+
+  // Prioritize "Year to date" over other matches (relevant in January)
+  const yearToDate = matches.find((m) => m.label === 'Year to date')
+  if (yearToDate) return yearToDate.label
+
+  // Otherwise return the first match
+  return matches[0].label
+}
+
 interface DateRangePickerProps {
   fromDate?: Date
   toDate?: Date
@@ -127,6 +164,11 @@ export function DateRangePicker({
   // When false, we show the preview and don't pass `selected` to Calendar
   const [hasStartedSelecting, setHasStartedSelecting] =
     React.useState(false)
+
+  // Track explicitly selected preset label (for when user clicks a preset button)
+  // This ensures "Month to date" shows when clicked, even if "Year to date" also matches
+  const [selectedPresetLabel, setSelectedPresetLabel] =
+    React.useState<string | null>(null)
 
   // Internal state for in-progress selection
   const [internalRange, setInternalRange] = React.useState<
@@ -178,6 +220,8 @@ export function DateRangePicker({
   }
 
   const handlePresetClick = (preset: DateRangePreset) => {
+    // Store the preset label so it shows in the trigger button
+    setSelectedPresetLabel(preset.label)
     // Apply preset immediately and close the popover
     onSelect({
       from: preset.dateRange.from,
@@ -189,6 +233,8 @@ export function DateRangePicker({
   const handleApply = () => {
     // Only apply if we have a complete range
     if (internalRange?.from && internalRange?.to) {
+      // Clear preset label since user selected custom dates via calendar
+      setSelectedPresetLabel(null)
       onSelect(internalRange)
       setOpen(false)
     }
@@ -201,6 +247,12 @@ export function DateRangePicker({
     setOpen(false)
   }
 
+  // Generate fresh presets for trigger button display (needs to work when popover is closed)
+  const triggerPresets = React.useMemo(() => {
+    if (presets) return presets
+    return createDefaultPresets()
+  }, [presets])
+
   // Format for trigger button (committed range from props)
   const formatDateRange = () => {
     if (!fromDate) {
@@ -210,6 +262,31 @@ export function DateRangePicker({
       return format(fromDate, 'LLL dd, y')
     }
     if (fromDate && toDate) {
+      // First, check if user explicitly selected a preset that still matches
+      if (selectedPresetLabel) {
+        const selectedPreset = triggerPresets.find(
+          (p) => p.label === selectedPresetLabel
+        )
+        if (
+          selectedPreset &&
+          dateRangesMatch(
+            { from: fromDate, to: toDate },
+            selectedPreset.dateRange
+          )
+        ) {
+          return selectedPresetLabel
+        }
+      }
+
+      // Otherwise, infer the preset label (with Year to date priority)
+      const presetLabel = findMatchingPresetLabel(
+        fromDate,
+        toDate,
+        triggerPresets
+      )
+      if (presetLabel) {
+        return presetLabel
+      }
       return `${format(fromDate, 'LLL dd, y')} - ${format(toDate, 'LLL dd, y')}`
     }
     return placeholder
@@ -220,24 +297,57 @@ export function DateRangePicker({
     if (!internalRange?.from) {
       return null
     }
-    if (internalRange.from && !internalRange.to) {
-      return format(internalRange.from, 'dd MMM, yyyy')
+    // Show single date if no end date selected yet
+    if (!internalRange.to) {
+      return format(internalRange.from, 'MMM d, yyyy')
     }
-    if (internalRange.from && internalRange.to) {
-      return `${format(internalRange.from, 'dd MMM, yyyy')} - ${format(internalRange.to, 'dd MMM, yyyy')}`
+    // Show single date if start and end are the same day
+    // (selection in progress or intentional single-day range)
+    if (isSameDay(internalRange.from, internalRange.to)) {
+      return format(internalRange.from, 'MMM d, yyyy')
     }
-    return null
+    return `${format(internalRange.from, 'MMM d, yyyy')} - ${format(internalRange.to, 'MMM d, yyyy')}`
   }
 
   // Check if a preset matches the current internal selection
+  // When multiple presets match (e.g., "Month to date" and "Year to date" in January),
+  // only highlight the explicitly selected one, or default to "Year to date"
   const isPresetActive = (preset: DateRangePreset) => {
     if (!internalRange?.from || !internalRange?.to) return false
-    return (
-      internalRange.from.toDateString() ===
-        preset.dateRange.from.toDateString() &&
-      internalRange.to.toDateString() ===
-        preset.dateRange.to.toDateString()
+
+    const datesMatch = dateRangesMatch(
+      { from: internalRange.from, to: internalRange.to },
+      preset.dateRange
     )
+
+    if (!datesMatch) return false
+
+    // Find all presets that match these dates
+    const matchingPresets = activePresets.filter((p) =>
+      dateRangesMatch(
+        { from: internalRange.from!, to: internalRange.to! },
+        p.dateRange
+      )
+    )
+
+    // If only one preset matches, it's active
+    if (matchingPresets.length === 1) return true
+
+    // Multiple presets match - check if user explicitly selected this one
+    if (selectedPresetLabel) {
+      return preset.label === selectedPresetLabel
+    }
+
+    // No explicit selection - default to "Year to date" if it matches
+    const yearToDateMatches = matchingPresets.some(
+      (p) => p.label === 'Year to date'
+    )
+    if (yearToDateMatches) {
+      return preset.label === 'Year to date'
+    }
+
+    // Otherwise, first matching preset wins
+    return preset.label === matchingPresets[0].label
   }
 
   // Check if Apply should be enabled
@@ -263,15 +373,20 @@ export function DateRangePicker({
       }
     : undefined
 
-  // Apply same styling as selected range for the preview
+  // Apply same styling as selected range for the preview.
+  // Includes hover overrides to prevent ghost button's hover styles from changing colors and border-radius.
+  //
+  // Border radius uses literal '6px' to match RANGE_BORDER_RADIUS from calendar.tsx.
+  // Literal strings are required because Tailwind's JIT cannot detect classes
+  // constructed via template literals with variables.
   const previewModifiersClassNames = showPreview
     ? {
         previewRangeStart:
-          '[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:!rounded-l bg-accent rounded-l',
+          '[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:hover:bg-primary [&_button]:hover:text-primary-foreground [&_button]:!rounded-l-[6px] [&_button]:!rounded-r-none [&_button]:hover:!rounded-l-[6px] [&_button]:hover:!rounded-r-none bg-accent rounded-l-[6px]',
         previewRangeMiddle:
-          '[&_button]:bg-accent [&_button]:text-accent-foreground [&_button]:!rounded-none bg-accent',
+          '[&_button]:bg-accent [&_button]:text-accent-foreground [&_button]:hover:bg-accent [&_button]:hover:text-accent-foreground [&_button]:!rounded-none [&_button]:hover:!rounded-none bg-accent',
         previewRangeEnd:
-          '[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:!rounded-r bg-accent rounded-r',
+          '[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:hover:bg-primary [&_button]:hover:text-primary-foreground [&_button]:!rounded-r-[6px] [&_button]:!rounded-l-none [&_button]:hover:!rounded-r-[6px] [&_button]:hover:!rounded-l-none bg-accent rounded-r-[6px]',
       }
     : undefined
 
@@ -282,10 +397,8 @@ export function DateRangePicker({
           <Button
             id="date"
             variant="secondary"
-            className={cn(
-              'h-8 justify-start text-left font-normal',
-              !fromDate && 'text-muted-foreground'
-            )}
+            size="sm"
+            className={cn(!fromDate && 'text-muted-foreground')}
             disabled={disabled}
           >
             {formatDateRange()}
@@ -297,16 +410,17 @@ export function DateRangePicker({
           align="start"
         >
           <div className="flex flex-col sm:flex-row">
-            {/* Presets - horizontal scroll on mobile, vertical sidebar on desktop */}
-            <div className="flex h-14 w-full items-center gap-2 border-b border-border px-3 overflow-x-auto sm:h-auto sm:w-auto sm:flex-col sm:items-stretch sm:gap-0 sm:border-b-0 sm:border-r sm:px-0 sm:py-2 sm:overflow-visible">
+            {/* Presets - horizontal scroll on mobile (reversed order), vertical sidebar on desktop */}
+            <div className="flex flex-row-reverse h-14 w-full items-center gap-2 border-b border-dashed border-border px-3 overflow-x-auto sm:flex-col sm:h-auto sm:w-auto sm:items-stretch sm:gap-0 sm:border-b-0 sm:border-r sm:px-0 sm:py-2 sm:overflow-visible">
               {activePresets.map((preset) => (
                 <Button
                   key={preset.label}
                   variant="outline"
                   size="sm"
                   className={cn(
-                    'shrink-0 font-normal sm:border-0 sm:bg-transparent sm:rounded-none sm:justify-start',
-                    isPresetActive(preset) && 'font-medium bg-accent'
+                    'shrink-0 font-normal sm:border-0 sm:bg-transparent sm:rounded-none sm:justify-start sm:px-5',
+                    isPresetActive(preset) &&
+                      'font-medium bg-accent sm:bg-accent'
                   )}
                   onClick={() => handlePresetClick(preset)}
                 >
@@ -338,13 +452,10 @@ export function DateRangePicker({
                 />
               </div>
 
-              {/* Footer with Range label and buttons */}
-              <div className="border-t border-border px-3 py-2 sm:flex sm:items-center sm:justify-between">
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    Range:
-                  </span>
-                  {formatRangeLabel() && <> {formatRangeLabel()}</>}
+              {/* Footer with date range and buttons */}
+              <div className="border-t border-dashed border-border px-2 py-2 sm:flex sm:items-center sm:justify-between">
+                <div className="text-sm text-foreground">
+                  {formatRangeLabel()}
                 </div>
                 <div className="mt-2 flex items-center gap-2 sm:mt-0">
                   <Button

@@ -133,17 +133,14 @@ export const updateInvoiceTransaction = async (
   return {
     invoice: updatedInvoice,
     /**
-     * Sort the invoice line items by createdAt
-     * ascending to consistent ordering of the line items
+     * Sort the invoice line items by createdAt ascending,
+     * with id as a tiebreaker for consistent ordering
      */
-    invoiceLineItems: updatedInvoiceLineItems
-      .slice()
-      .sort((a, b) =>
-        a.createdAt < b.createdAt
-          ? -1
-          : a.createdAt > b.createdAt
-            ? 1
-            : 0
-      ),
+    invoiceLineItems: updatedInvoiceLineItems.slice().sort((a, b) => {
+      if (a.createdAt < b.createdAt) return -1
+      if (a.createdAt > b.createdAt) return 1
+      // When createdAt is equal, use id as tiebreaker for deterministic ordering
+      return a.id.localeCompare(b.id)
+    }),
   }
 }
