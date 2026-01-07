@@ -3,7 +3,7 @@ import { RevenueChartIntervalUnit } from '@/types'
 import {
   getDefaultInterval,
   minimumUnitInHours,
-} from './revenueChartUtils'
+} from './chartIntervalUtils'
 
 describe('minimumUnitInHours', () => {
   it('should have correct minimum hours for each interval unit', () => {

@@ -1,5 +1,4 @@
 'use client'
-import { differenceInHours } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import {
@@ -18,8 +17,8 @@ import { useAuthenticatedContext } from '@/contexts/authContext'
 import { RevenueChartIntervalUnit } from '@/types'
 import {
   getDefaultInterval,
-  minimumUnitInHours,
-} from '@/utils/revenueChartUtils'
+  getIntervalConfig,
+} from '@/utils/chartIntervalUtils'
 import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
@@ -75,21 +74,25 @@ function formatDateUTC(
  * where the chart lines will show up underneath the X axis if there's a single point above zero.
  * This seems to be an issue with how Tremor handles single > 0 point data sets.
  * It's not worth fixing.
- * @param param0
- * @returns
+ *
+ * @param interval - Optional controlled interval. When provided, the chart uses this value
+ *                   and hides its inline interval selector.
+ * @param onIntervalChange - Optional callback for controlled mode interval changes.
  */
 export function RevenueChart({
   fromDate,
   toDate,
   productId,
+  interval: controlledInterval,
+  onIntervalChange,
 }: {
   fromDate: Date
   toDate: Date
   productId?: string
+  interval?: RevenueChartIntervalUnit
+  onIntervalChange?: (interval: RevenueChartIntervalUnit) => void
 }) {
   const { organization } = useAuthenticatedContext()
-
-  const timespanInHours = differenceInHours(toDate, fromDate)
 
   // Compute the best default interval based on available options
   const defaultInterval = React.useMemo(
@@ -97,20 +100,29 @@ export function RevenueChart({
     [fromDate, toDate]
   )
 
-  const [interval, setInterval] =
+  const [internalInterval, setInternalInterval] =
     React.useState<RevenueChartIntervalUnit>(defaultInterval)
 
+  // Use controlled value if provided, otherwise internal
+  const interval = controlledInterval ?? internalInterval
+  const handleIntervalChange = onIntervalChange ?? setInternalInterval
+
+  // Hide inline selector when controlled externally
+  const showInlineSelector = controlledInterval === undefined
+
   // Update interval if current selection becomes invalid due to date range change
-  // Hour is always valid as the absolute minimum fallback
   React.useEffect(() => {
+    // Only auto-correct for uncontrolled mode
+    if (controlledInterval !== undefined) return
+
+    const config = getIntervalConfig(fromDate, toDate)
     const isCurrentIntervalInvalid =
-      interval !== RevenueChartIntervalUnit.Hour &&
-      timespanInHours < minimumUnitInHours[interval]
+      !config.options.includes(internalInterval)
 
     if (isCurrentIntervalInvalid) {
-      setInterval(getDefaultInterval(fromDate, toDate))
+      setInternalInterval(config.default)
     }
-  }, [timespanInHours, interval, fromDate, toDate])
+  }, [fromDate, toDate, internalInterval, controlledInterval])
 
   const { data: revenueData, isLoading } =
     trpc.organizations.getRevenue.useQuery({
@@ -203,55 +215,21 @@ export function RevenueChart({
   ])
 
   const intervalOptions = React.useMemo(() => {
-    const options = []
-
-    // Only show years if span is >= 1 year
-    if (
-      timespanInHours >=
-      minimumUnitInHours[RevenueChartIntervalUnit.Year]
-    ) {
-      options.push({
-        label: 'year',
-        value: RevenueChartIntervalUnit.Year,
-      })
-    }
-
-    // Only show months if span is >= 1 month
-    if (
-      timespanInHours >=
-      minimumUnitInHours[RevenueChartIntervalUnit.Month]
-    ) {
-      options.push({
-        label: 'month',
-        value: RevenueChartIntervalUnit.Month,
-      })
-    }
-
-    // Only show weeks if span is >= 1 week
-    if (
-      timespanInHours >=
-      minimumUnitInHours[RevenueChartIntervalUnit.Week]
-    ) {
-      options.push({
-        label: 'week',
-        value: RevenueChartIntervalUnit.Week,
-      })
-    }
-
-    // Always show days and hours
-    options.push(
-      {
-        label: 'day',
-        value: RevenueChartIntervalUnit.Day,
-      },
-      {
-        label: 'hour',
-        value: RevenueChartIntervalUnit.Hour,
-      }
-    )
-
-    return options
-  }, [timespanInHours])
+    const config = getIntervalConfig(fromDate, toDate)
+    return config.options.map((opt) => ({
+      label:
+        opt === RevenueChartIntervalUnit.Hour
+          ? 'hour'
+          : opt === RevenueChartIntervalUnit.Day
+            ? 'day'
+            : opt === RevenueChartIntervalUnit.Week
+              ? 'week'
+              : opt === RevenueChartIntervalUnit.Month
+                ? 'month'
+                : 'year',
+      value: opt,
+    }))
+  }, [fromDate, toDate])
   const tooltipLabel = tooltipData?.label
   let isTooltipLabelDate: boolean = false
   if (tooltipLabel) {
@@ -267,24 +245,30 @@ export function RevenueChart({
       <div className="flex flex-row gap-2 justify-between px-4">
         <div className="text-foreground w-fit flex items-center flex-row gap-0.5">
           <p className="whitespace-nowrap">Revenue</p>
-          <Select
-            value={interval}
-            onValueChange={(value) =>
-              setInterval(value as RevenueChartIntervalUnit)
-            }
-          >
-            <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground shadow-none h-auto py-0 gap-0 text-base">
-              <span className="text-muted-foreground">by&nbsp;</span>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {intervalOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {showInlineSelector && (
+            <Select
+              value={interval}
+              onValueChange={(value) =>
+                handleIntervalChange(
+                  value as RevenueChartIntervalUnit
+                )
+              }
+            >
+              <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground shadow-none h-auto py-0 gap-0 text-base">
+                <span className="text-muted-foreground">
+                  by&nbsp;
+                </span>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {intervalOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <ChartInfoTooltip content="Total revenue collected from all payments in the selected period, including one-time purchases and subscription payments." />
         </div>
       </div>
