@@ -47,8 +47,18 @@
             ]
           },
           {
+            "group": "Concepts",
+            "pages": ["principles", "data-model", "countries"]
+          }
+        ]
+      },
+      {
+        "tab": "Features",
+        "groups": [
+          {
             "group": "Features",
             "pages": [
+              "features/introduction",
               "features/pricing-models",
               "features/products",
               "features/prices",
@@ -59,10 +69,6 @@
               "features/usage",
               "features/webhooks"
             ]
-          },
-          {
-            "group": "Concepts",
-            "pages": ["principles", "data-model", "countries"]
           }
         ]
       },
