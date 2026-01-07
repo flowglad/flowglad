@@ -230,7 +230,7 @@ Always link to the full `pricing.yaml` in the GitHub repo for users who want the
 
 - File `sdks/auth.mdx` corresponds to URL path `/sdks/auth`
 - File `features/usage.mdx` corresponds to URL path `/features/usage`
-- File `examples/nextjs/generation-based-subscription.mdx` corresponds to `/examples/nextjs/generation-based-subscription`
+- File `guides/nextjs/generation-based-subscription.mdx` corresponds to `/guides/nextjs/generation-based-subscription`
 
 **Always include a GitHub card** linking to the specific example in the flowglad/examples repo:
 
@@ -248,7 +248,7 @@ Always link to the full `pricing.yaml` in the GitHub repo for users who want the
 - `/features/usage` - Usage meters
 - `/features/subscriptions` - Subscriptions
 - `/features/webhooks` - Webhooks
-- `/examples/pricing-models` - Pricing models overview
+- `/guides/pricing-models` - Pricing models overview
 
 ## Framework-Specific Notes
 

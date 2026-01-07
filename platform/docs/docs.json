@@ -37,15 +37,12 @@
         "groups": [
           {
             "group": "Get Started",
-            "pages": [
-              "welcome",
-              "quickstart",
-              "integrate-by-http",
-              "mcp-server",
-              "faq"
-            ]
+            "pages": ["welcome", "quickstart", "faq"]
+          },
+          {
+            "group": "Additional Resources",
+            "pages": ["integrate-by-http", "mcp-server"]
           }
-        
         ]
       },
       {
@@ -100,6 +97,36 @@
         ]
       },
       {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["guides/introduction", "guides/pricing-models"]
+          },
+          {
+            "group": "Next.js",
+            "pages": [
+              "guides/nextjs/generation-based-subscription",
+              "guides/nextjs/pay-as-you-go",
+              "guides/nextjs/tiered-usage-gated-subscription",
+              "guides/nextjs/usage-limit-subscription"
+            ]
+          },
+          {
+            "group": "Tanstack Start",
+            "pages": ["guides/tanstack-start/generation-based-subscription"]
+          },
+          {
+            "group": "Vite",
+            "pages": ["guides/vite/generation-based-subscription"]
+          },
+          {
+            "group": "React Native",
+            "pages": ["guides/react-native/generation-based-subscription"]
+          }
+        ]
+      },
+      {
         "tab": "API Reference",
         "openapi": {
           "source": "https://app.flowglad.com/api/openapi",
@@ -109,37 +136,6 @@
           {
             "group": "API Documentation",
             "pages": ["api-reference/introduction"]
-          }
-        ]
-      },
-
-      {
-        "tab": "Examples",
-        "groups": [
-          {
-            "group": "Overview",
-            "pages": ["examples/introduction", "examples/pricing-models"]
-          },
-          {
-            "group": "Next.js",
-            "pages": [
-              "examples/nextjs/generation-based-subscription",
-              "examples/nextjs/pay-as-you-go",
-              "examples/nextjs/tiered-usage-gated-subscription",
-              "examples/nextjs/usage-limit-subscription"
-            ]
-          },
-          {
-            "group": "Tanstack Start",
-            "pages": ["examples/tanstack-start/generation-based-subscription"]
-          },
-          {
-            "group": "Vite",
-            "pages": ["examples/vite/generation-based-subscription"]
-          },
-          {
-            "group": "React Native",
-            "pages": ["examples/react-native/generation-based-subscription"]
           }
         ]
       }
