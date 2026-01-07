@@ -33,12 +33,14 @@ import {
   createAndConfirmPaymentIntentForBillingRun,
   createCustomerSessionForCheckout,
   createPaymentIntentForBillingRun,
+  createPaymentIntentForCheckoutSession,
   createSetupIntentForCheckoutSession,
   createStripeCustomer,
   createStripeTaxCalculationByPrice,
   createStripeTaxTransactionFromCalculation,
   dateFromStripeTimestamp,
   getLatestChargeForPaymentIntent,
+  getPaymentIntent,
   getSetupIntent,
   getStripeCharge,
   getStripePaymentMethod,
@@ -46,6 +48,7 @@ import {
   listRefundsForCharge,
   paymentMethodFromStripeCharge,
   refundPayment,
+  updatePaymentIntent,
   updateSetupIntent,
 } from '@/utils/stripe'
 
@@ -213,14 +216,13 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       const testEmail = `test+${core.nanoid()}@flowglad-integration.com`
       const testName = `Integration Test Customer ${core.nanoid()}`
 
-      // Setup: create a Stripe customer first (using direct API for setup)
       const stripeCustomer = await createTestStripeCustomer({
         email: testEmail,
         name: testName,
       })
       createdCustomerId = stripeCustomer.id
 
-      // Create a Customer record with the stripeCustomerId
+      // Create a customer record with the stripe customer ID
       const customerRecord: Customer.Record = {
         id: `cust_${core.nanoid()}`,
         createdAt: Date.now(),
@@ -246,11 +248,10 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         livemode: false,
       }
 
-      // Action: call the application function
+      // Use the application function
       const clientSecret =
         await createCustomerSessionForCheckout(customerRecord)
 
-      // Verify the client_secret is returned correctly
       expect(typeof clientSecret).toBe('string')
       expect(clientSecret).toContain('_secret_')
     })
@@ -287,6 +288,317 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         'Missing stripeCustomerId for customer session creation'
       )
     })
+  })
+
+  describe('Checkout Session Payment Intents', () => {
+    /**
+     * Creates a minimal CheckoutSession record for test purposes.
+     */
+    const createTestCheckoutSession = (
+      overrides?: Partial<CheckoutSession.ProductRecord>
+    ): CheckoutSession.ProductRecord => {
+      const sessionId = `chckt_session_${core.nanoid()}`
+      return {
+        id: sessionId,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdByCommit: null,
+        updatedByCommit: null,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        organizationId: `org_${core.nanoid()}`,
+        priceId: `price_${core.nanoid()}`,
+        quantity: 1,
+        purchaseId: null,
+        invoiceId: null,
+        customerId: null,
+        customerName: null,
+        customerEmail: null,
+        stripeSetupIntentId: null,
+        stripePaymentIntentId: null,
+        billingAddress: null,
+        paymentMethodType: null,
+        discountId: null,
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel',
+        expires: Date.now() + 1000 * 60 * 60 * 24,
+        livemode: false,
+        pricingModelId: `pm_${core.nanoid()}`,
+        preserveBillingCycleAnchor: false,
+        outputMetadata: null,
+        outputName: null,
+        targetSubscriptionId: null,
+        automaticallyUpdateSubscriptions: null,
+        position: 0,
+        ...overrides,
+      }
+    }
+
+    /**
+     * Creates a minimal Price record for test purposes.
+     * Uses SinglePaymentRecord which is the simplest price type.
+     */
+    const createTestPrice = (overrides?: {
+      unitPrice?: number
+    }): Price.SinglePaymentRecord => {
+      return {
+        id: `price_${core.nanoid()}`,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdByCommit: null,
+        updatedByCommit: null,
+        position: 0,
+        name: 'Test Price',
+        unitPrice: overrides?.unitPrice ?? 5000,
+        currency: CurrencyCode.USD,
+        productId: `prod_${core.nanoid()}`,
+        isDefault: true,
+        active: true,
+        livemode: false,
+        type: PriceType.SinglePayment,
+        slug: `test-price-${core.nanoid()}`,
+        externalId: null,
+        pricingModelId: `pm_${core.nanoid()}`,
+      }
+    }
+
+    /**
+     * Creates a minimal Product record for test purposes.
+     */
+    const createTestProduct = (
+      overrides?: Partial<Product.Record>
+    ): Product.Record => {
+      return {
+        id: `prod_${core.nanoid()}`,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdByCommit: null,
+        updatedByCommit: null,
+        position: 0,
+        name: 'Test Product',
+        description: 'A test product',
+        organizationId: `org_${core.nanoid()}`,
+        active: true,
+        livemode: false,
+        singularQuantityLabel: null,
+        pluralQuantityLabel: null,
+        slug: `test-product-${core.nanoid()}`,
+        externalId: null,
+        imageURL: null,
+        default: false,
+        pricingModelId: `pm_${core.nanoid()}`,
+        ...overrides,
+      }
+    }
+
+    describe('createPaymentIntentForCheckoutSession', () => {
+      let createdPaymentIntentId: string | undefined
+
+      afterEach(async () => {
+        if (createdPaymentIntentId) {
+          await cleanupStripeTestData({
+            stripePaymentIntentId: createdPaymentIntentId,
+          })
+          createdPaymentIntentId = undefined
+        }
+      })
+
+      it('creates a payment intent with correct amount, currency, and metadata for MoR organization', async () => {
+        const organization = createTestOrganization()
+        const price = createTestPrice({ unitPrice: 5000 })
+        const product = createTestProduct({
+          organizationId: organization.id,
+        })
+        const checkoutSession = createTestCheckoutSession({
+          organizationId: organization.id,
+          priceId: price.id,
+          quantity: 2,
+        })
+
+        // Use the application function
+        const paymentIntent =
+          await createPaymentIntentForCheckoutSession({
+            price,
+            organization,
+            product,
+            checkoutSession,
+          })
+
+        createdPaymentIntentId = paymentIntent.id
+
+        // Verify payment intent ID format
+        expect(paymentIntent.id).toMatch(/^pi_/)
+
+        // Verify amount equals price * quantity (5000 * 2 = 10000 cents)
+        expect(paymentIntent.amount).toBe(10000)
+
+        // Verify currency matches price currency
+        expect(paymentIntent.currency).toBe('usd')
+
+        // Verify status is appropriate for a new payment intent
+        expect([
+          'requires_payment_method',
+          'requires_confirmation',
+        ]).toContain(paymentIntent.status)
+
+        // Verify metadata contains checkoutSessionId and type
+        expect(paymentIntent.metadata?.checkoutSessionId).toBe(
+          checkoutSession.id
+        )
+        expect(paymentIntent.metadata?.type).toBe(
+          IntentMetadataType.CheckoutSession
+        )
+
+        // Verify livemode is false
+        expect(paymentIntent.livemode).toBe(false)
+
+        // Verify no transfer_data or application_fee in test mode
+        expect(paymentIntent.transfer_data).toBeNull()
+        expect(paymentIntent.application_fee_amount).toBeNull()
+      })
+    })
+
+    describe('updatePaymentIntent', () => {
+      let createdPaymentIntentId: string | undefined
+      let createdCustomerId: string | undefined
+
+      afterEach(async () => {
+        if (createdPaymentIntentId) {
+          await cleanupStripeTestData({
+            stripePaymentIntentId: createdPaymentIntentId,
+          })
+          createdPaymentIntentId = undefined
+        }
+        if (createdCustomerId) {
+          await cleanupStripeTestData({
+            stripeCustomerId: createdCustomerId,
+          })
+          createdCustomerId = undefined
+        }
+      })
+
+      it('updates payment intent customer association', async () => {
+        const organization = createTestOrganization()
+        const price = createTestPrice({ unitPrice: 1000 })
+        const product = createTestProduct({
+          organizationId: organization.id,
+        })
+        const checkoutSession = createTestCheckoutSession({
+          organizationId: organization.id,
+          priceId: price.id,
+          quantity: 1,
+        })
+
+        // Create a payment intent without a customer using app function
+        const paymentIntent =
+          await createPaymentIntentForCheckoutSession({
+            price,
+            organization,
+            product,
+            checkoutSession,
+          })
+        createdPaymentIntentId = paymentIntent.id
+
+        // Create a customer to associate
+        const customer = await createTestStripeCustomer()
+        createdCustomerId = customer.id
+
+        // Update the payment intent with the customer using app function
+        const updatedPaymentIntent = await updatePaymentIntent(
+          paymentIntent.id,
+          { customer: customer.id },
+          false // livemode
+        )
+
+        // Verify customer is now associated
+        expect(updatedPaymentIntent.customer).toBe(customer.id)
+      })
+
+      it('updates payment intent amount', async () => {
+        const organization = createTestOrganization()
+        const price = createTestPrice({ unitPrice: 1000 })
+        const product = createTestProduct({
+          organizationId: organization.id,
+        })
+        const checkoutSession = createTestCheckoutSession({
+          organizationId: organization.id,
+          priceId: price.id,
+          quantity: 1,
+        })
+
+        // Create a payment intent using app function
+        const paymentIntent =
+          await createPaymentIntentForCheckoutSession({
+            price,
+            organization,
+            product,
+            checkoutSession,
+          })
+        createdPaymentIntentId = paymentIntent.id
+
+        // Update the payment intent with new amount using app function
+        const updatedPaymentIntent = await updatePaymentIntent(
+          paymentIntent.id,
+          { amount: 2000 },
+          false // livemode
+        )
+
+        // Verify amount is updated
+        expect(updatedPaymentIntent.amount).toBe(2000)
+      })
+    })
+
+    describe('getPaymentIntent', () => {
+      let createdPaymentIntentId: string | undefined
+
+      afterEach(async () => {
+        if (createdPaymentIntentId) {
+          await cleanupStripeTestData({
+            stripePaymentIntentId: createdPaymentIntentId,
+          })
+          createdPaymentIntentId = undefined
+        }
+      })
+
+      it('retrieves payment intent by id, falling back to test mode', async () => {
+        const organization = createTestOrganization()
+        const price = createTestPrice({ unitPrice: 1500 })
+        const product = createTestProduct({
+          organizationId: organization.id,
+        })
+        const checkoutSession = createTestCheckoutSession({
+          organizationId: organization.id,
+          priceId: price.id,
+          quantity: 1,
+        })
+
+        // Create a payment intent using app function
+        const paymentIntent =
+          await createPaymentIntentForCheckoutSession({
+            price,
+            organization,
+            product,
+            checkoutSession,
+          })
+        createdPaymentIntentId = paymentIntent.id
+
+        // Retrieve using the app function (which tries live then test)
+        const retrievedPaymentIntent = await getPaymentIntent(
+          paymentIntent.id
+        )
+
+        // Verify the retrieved payment intent matches
+        expect(retrievedPaymentIntent.id).toBe(paymentIntent.id)
+        expect(retrievedPaymentIntent.amount).toBe(1500)
+        expect(retrievedPaymentIntent.currency).toBe('usd')
+        expect(retrievedPaymentIntent.livemode).toBe(false)
+      })
+    })
+
+    // Note: confirmPaymentIntent is tested via confirmPaymentIntentForBillingRun
+    // in the Billing Run Payment Intents section. The checkout session payment intent
+    // flow requires redirect-based payment methods which can't be confirmed without
+    // a return_url, making it unsuitable for automated testing.
   })
 
   describe('Billing Run Payment Intents', () => {
