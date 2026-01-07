@@ -17,6 +17,7 @@ import {
   type FeeCalculation,
 } from '@/db/schema/feeCalculations'
 import type { Invoice } from '@/db/schema/invoices'
+import type { BillingAddress } from '@/db/schema/organizations'
 import type { Purchase } from '@/db/schema/purchases'
 import {
   insertCheckoutSession,
@@ -38,6 +39,7 @@ import {
   selectLatestFeeCalculation,
   updateFeeCalculation,
 } from '@/db/tableMethods/feeCalculationMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import {
   selectPurchaseById,
@@ -51,6 +53,7 @@ import {
   FeeCalculationType,
   PriceType,
   PurchaseStatus,
+  StripeConnectContractType,
 } from '@/types'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import {
@@ -167,6 +170,118 @@ export const editCheckoutSession = async (
   }
   return {
     checkoutSession: updatedCheckoutSession,
+  }
+}
+
+/**
+ * Updates the billing address on a checkout session and triggers fee calculation for MOR organizations.
+ *
+ * For MOR (Merchant of Record) organizations, this function calculates tax immediately when
+ * the billing address is set, rather than waiting for confirmation. This ensures customers
+ * see the correct total (including tax) before clicking "Pay".
+ *
+ * For Platform organizations, this simply updates the billing address without tax calculation.
+ *
+ * @param input - Object containing checkoutSessionId and billingAddress
+ * @param transaction - Database transaction
+ * @returns Updated checkout session and fee calculation (if applicable)
+ */
+export const editCheckoutSessionBillingAddress = async (
+  input: {
+    checkoutSessionId: string
+    billingAddress: BillingAddress
+  },
+  transaction: DbTransaction
+): Promise<{
+  checkoutSession: CheckoutSession.Record
+  feeCalculation: FeeCalculation.Record | null
+}> => {
+  const previousCheckoutSession = await selectCheckoutSessionById(
+    input.checkoutSessionId,
+    transaction
+  )
+
+  if (!previousCheckoutSession) {
+    throw new Error('Checkout session not found')
+  }
+
+  if (previousCheckoutSession.status !== CheckoutSessionStatus.Open) {
+    throw new Error('Checkout session is not open')
+  }
+
+  // Update the checkout session with new billing address
+  const updatedCheckoutSession = await updateCheckoutSession(
+    {
+      ...previousCheckoutSession,
+      billingAddress: input.billingAddress,
+    } as CheckoutSession.Update,
+    transaction
+  )
+
+  // Check if we should calculate fees (MOR orgs only, and only if fee-ready)
+  const organization = await selectOrganizationById(
+    updatedCheckoutSession.organizationId,
+    transaction
+  )
+
+  let feeCalculation: FeeCalculation.Record | null = null
+
+  // Only calculate fees for MOR organizations
+  if (
+    organization.stripeConnectContractType ===
+    StripeConnectContractType.MerchantOfRecord
+  ) {
+    const feeReadyResult =
+      feeReadyCheckoutSessionSelectSchema.safeParse(
+        updatedCheckoutSession
+      )
+
+    if (feeReadyResult.success) {
+      const feeReadySession = feeReadyResult.data
+      const feeParametersChanged =
+        checkoutSessionFeeCalculationParametersChanged({
+          previousSession: previousCheckoutSession,
+          currentSession: feeReadySession,
+        })
+
+      if (feeParametersChanged) {
+        feeCalculation = await createFeeCalculationForCheckoutSession(
+          feeReadySession,
+          transaction
+        )
+      } else {
+        feeCalculation = await selectLatestFeeCalculation(
+          { checkoutSessionId: input.checkoutSessionId },
+          transaction
+        )
+      }
+
+      // Update payment intent if exists and fee calculation is ready
+      const stripePaymentIntentId =
+        updatedCheckoutSession.stripePaymentIntentId
+      if (stripePaymentIntentId && feeCalculation) {
+        const totalDue = await calculateTotalDueAmount(feeCalculation)
+        if (totalDue > 0) {
+          const totalFeeAmount =
+            calculateTotalFeeAmount(feeCalculation)
+          await updatePaymentIntent(
+            stripePaymentIntentId,
+            {
+              amount: totalDue,
+              application_fee_amount: feeCalculation.livemode
+                ? totalFeeAmount
+                : undefined,
+            },
+            feeCalculation.livemode
+          )
+        }
+      }
+    }
+  }
+
+  return {
+    checkoutSession: updatedCheckoutSession,
+    feeCalculation,
   }
 }
 
