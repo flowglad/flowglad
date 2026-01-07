@@ -3487,87 +3487,6 @@
                                 "isDefault",
                                 "unitPrice"
                               ]
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "intervalUnit": {
-                                  "type": "string",
-                                  "enum": [
-                                    "day",
-                                    "week",
-                                    "month",
-                                    "year"
-                                  ]
-                                },
-                                "name": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "maxLength": 255
-                                },
-                                "intervalCount": {
-                                  "description": "A positive integer",
-                                  "type": "integer",
-                                  "exclusiveMinimum": 0,
-                                  "maximum": 9007199254740991
-                                },
-                                "type": {
-                                  "type": "string",
-                                  "const": "usage"
-                                },
-                                "trialPeriodDays": {
-                                  "description": "Omitted.",
-                                  "type": "null"
-                                },
-                                "isDefault": {
-                                  "description": "Whether or not this price is the default price for the product.",
-                                  "type": "boolean"
-                                },
-                                "unitPrice": {
-                                  "description": "The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents.",
-                                  "anyOf": [
-                                    {
-                                      "description": "A positive integer",
-                                      "type": "integer",
-                                      "exclusiveMinimum": 0,
-                                      "maximum": 9007199254740991
-                                    },
-                                    {
-                                      "type": "number",
-                                      "const": 0
-                                    }
-                                  ]
-                                },
-                                "usageEventsPerUnit": {
-                                  "description": "The number of usage events per unit. Used to determine how to map usage events to quantities when raising invoices for usage.",
-                                  "type": "integer",
-                                  "exclusiveMinimum": 0,
-                                  "maximum": 9007199254740991
-                                },
-                                "active": {
-                                  "type": "boolean"
-                                },
-                                "slug": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "maxLength": 255
-                                },
-                                "usageMeterSlug": {
-                                  "type": "string"
-                                },
-                                "currency": {
-                                  "$ref": "#/components/schemas/CurrencyCode"
-                                }
-                              },
-                              "required": [
-                                "intervalUnit",
-                                "intervalCount",
-                                "type",
-                                "isDefault",
-                                "unitPrice",
-                                "usageEventsPerUnit",
-                                "usageMeterSlug"
-                              ]
                             }
                           ],
                           "type": "object"
@@ -3586,22 +3505,112 @@
                   "usageMeters": {
                     "type": "array",
                     "items": {
-                      "description": "The usage meters to add to the pricingModel. If the pricingModel has any prices that are based on usage, each dimension along which usage will be tracked will need its own meter.",
                       "type": "object",
                       "properties": {
-                        "name": {
-                          "type": "string"
+                        "usageMeter": {
+                          "description": "The usage meter configuration. Each dimension along which usage will be tracked needs its own meter.",
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "slug": {
+                              "type": "string"
+                            },
+                            "aggregationType": {
+                              "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
+                              "type": "string",
+                              "enum": [
+                                "sum",
+                                "count_distinct_properties"
+                              ]
+                            }
+                          },
+                          "required": ["name", "slug"]
                         },
-                        "slug": {
-                          "type": "string"
-                        },
-                        "aggregationType": {
-                          "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
-                          "type": "string",
-                          "enum": ["sum", "count_distinct_properties"]
+                        "prices": {
+                          "description": "The prices for this usage meter. Each price defines how usage on this meter is billed.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "intervalUnit": {
+                                "type": "string",
+                                "enum": [
+                                  "day",
+                                  "week",
+                                  "month",
+                                  "year"
+                                ]
+                              },
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "intervalCount": {
+                                "description": "A positive integer",
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "type": {
+                                "type": "string",
+                                "const": "usage"
+                              },
+                              "trialPeriodDays": {
+                                "description": "Omitted.",
+                                "type": "null"
+                              },
+                              "isDefault": {
+                                "description": "Whether or not this price is the default price for the product.",
+                                "type": "boolean"
+                              },
+                              "unitPrice": {
+                                "description": "The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents.",
+                                "anyOf": [
+                                  {
+                                    "description": "A positive integer",
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  {
+                                    "type": "number",
+                                    "const": 0
+                                  }
+                                ]
+                              },
+                              "usageEventsPerUnit": {
+                                "description": "The number of usage events per unit. Used to determine how to map usage events to quantities when raising invoices for usage.",
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "active": {
+                                "type": "boolean"
+                              },
+                              "slug": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "currency": {
+                                "$ref": "#/components/schemas/CurrencyCode"
+                              }
+                            },
+                            "required": [
+                              "intervalUnit",
+                              "intervalCount",
+                              "type",
+                              "isDefault",
+                              "unitPrice",
+                              "usageEventsPerUnit"
+                            ]
+                          }
                         }
                       },
-                      "required": ["name", "slug"]
+                      "required": ["usageMeter"]
                     }
                   }
                 },
