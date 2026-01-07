@@ -11,7 +11,7 @@
     "build": "tsup",
     "clean": "rm -rf dist",
     "dev": "tsup --watch",
-    "check": "biome check . && tsc --noEmit",
+    "check": "BIOME_BINARY=@biomejs/cli-linux-x64-musl/biome biome check . && tsc --noEmit",
     "build:declarations": "tsc -p tsconfig.declarations.json"
   },
   "dependencies": {

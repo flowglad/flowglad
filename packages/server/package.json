@@ -22,9 +22,9 @@
     "clean": "rm -rf dist",
     "dev": "tsup --watch",
     "build:declarations": "tsc -p tsconfig.declarations.json",
-    "format": "biome format --write .",
-    "format:check": "biome format .",
-    "check": "biome check . && tsc --noEmit",
+    "format": "BIOME_BINARY=@biomejs/cli-linux-x64-musl/biome biome format --write .",
+    "format:check": "BIOME_BINARY=@biomejs/cli-linux-x64-musl/biome biome format .",
+    "check": "BIOME_BINARY=@biomejs/cli-linux-x64-musl/biome biome check . && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.mts"
