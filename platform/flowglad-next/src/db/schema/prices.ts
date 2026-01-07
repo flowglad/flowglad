@@ -173,6 +173,8 @@ export const prices = pgTable(
         }
       ),
       // Product FK integrity for non-usage prices
+      // For usage prices (type='usage'), this policy passes via the type check.
+      // For non-usage prices, productId must exist in products table.
       merchantPolicy(
         'Ensure product FK integrity for non-usage prices',
         {
@@ -180,9 +182,12 @@ export const prices = pgTable(
           to: 'merchant',
           for: 'all',
           using: sql`"type" = 'usage' OR "product_id" IN (SELECT "id" FROM "products")`,
+          withCheck: sql`"type" = 'usage' OR "product_id" IN (SELECT "id" FROM "products")`,
         }
       ),
       // Usage meter FK integrity for usage prices
+      // For non-usage prices (type!='usage'), this policy passes via the type check.
+      // For usage prices, usageMeterId must exist in usage_meters table.
       merchantPolicy(
         'Ensure usage meter FK integrity for usage prices',
         {
@@ -190,6 +195,7 @@ export const prices = pgTable(
           to: 'merchant',
           for: 'all',
           using: sql`"type" != 'usage' OR "usage_meter_id" IN (SELECT "id" FROM "usage_meters")`,
+          withCheck: sql`"type" != 'usage' OR "usage_meter_id" IN (SELECT "id" FROM "usage_meters")`,
         }
       ),
       livemodePolicy(TABLE_NAME),
