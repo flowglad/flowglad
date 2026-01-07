@@ -38,6 +38,7 @@
           {
             "group": "Get Started",
             "pages": [
+              "introduction",
               "quickstart",
               "integrate-by-prompt",
               "integrate-by-http",
