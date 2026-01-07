@@ -28,6 +28,15 @@ import {
 import { Button } from '@/components/ui/button'
 import { AdjustSubscriptionGrid } from '@/components/adjust-subscription-grid'
 
+/**
+ * Render the account navigation bar with account actions and a change-plan dialog.
+ *
+ * Provides a dropdown menu showing the account name and actions for signing out,
+ * changing plans, cancelling or uncancelling subscriptions, and surface cancellation
+ * status and errors. Also includes a Dialog that opens the change-plan flow.
+ *
+ * @returns The navbar JSX containing the account dropdown and change-plan dialog, or `null` when session or billing data is unavailable.
+ */
 export function Navbar() {
   const router = useRouter()
   const queryClient = useQueryClient()

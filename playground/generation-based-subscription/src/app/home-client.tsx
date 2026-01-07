@@ -39,6 +39,15 @@ const mockVideoGif = [
   'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3OWN6emx1M2JpM3lkczB4Y2Y2M3U5ejgyNzNmbnJnM2ZqMDlvb3B4ciZlcD12MV9naWZzX3RyZW5kaW5nJmN0PWc/pa37AAGzKXoek/giphy.gif',
 ]
 
+/**
+ * Render the billing-aware home dashboard with generation controls, top-up flows, and usage meters.
+ *
+ * The component displays generated media, provides actions to create fast/HD/relaxed content, and
+ * shows usage progress for fast generations and HD video minutes. It redirects users on a free plan
+ * to the pricing page and automatically reloads billing data when the authenticated user changes.
+ *
+ * @returns A React element representing the home dashboard UI
+ */
 export function HomeClient() {
   const router = useRouter()
   const { data: session, isPending: isSessionPending } =

@@ -6,12 +6,24 @@ import { XIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
+/**
+ * Render the dialog root element with data-slot="dialog" and forward all received props.
+ *
+ * @param props - Props forwarded to the underlying dialog root element
+ * @returns The dialog root React element
+ */
 function Dialog({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
+/**
+ * Renders the dialog's trigger element.
+ *
+ * @param props - Props forwarded to the Trigger element.
+ * @returns A DialogPrimitive.Trigger element with `data-slot="dialog-trigger"` and the provided props.
+ */
 function DialogTrigger({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
@@ -20,6 +32,11 @@ function DialogTrigger({
   )
 }
 
+/**
+ * Renders a Radix UI Portal for dialog content and forwards all received props.
+ *
+ * @returns A DialogPrimitive.Portal element with `data-slot="dialog-portal"` and the given props applied.
+ */
 function DialogPortal({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
@@ -28,12 +45,28 @@ function DialogPortal({
   )
 }
 
+/**
+ * Renders a close control for the dialog.
+ *
+ * Forwards all received props to the underlying close primitive and sets
+ * `data-slot="dialog-close"`.
+ *
+ * @returns The rendered close control element that closes the dialog when activated and includes `data-slot="dialog-close"`.
+ */
 function DialogClose({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Close>) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
+/**
+ * Renders the dialog overlay element used to dim the background behind the dialog.
+ *
+ * This wrapper applies default overlay styling and animations, sets `data-slot="dialog-overlay"`,
+ * and merges any provided `className` with the built-in classes via the `cn` utility.
+ *
+ * @returns The rendered DialogPrimitive.Overlay element
+ */
 function DialogOverlay({
   className,
   ...props
@@ -50,6 +83,13 @@ function DialogOverlay({
   )
 }
 
+/**
+ * Renders the dialog's content area inside a portal with an overlay, built-in close control, and standardized styling.
+ *
+ * @param className - Additional class names to merge with the component's default styling
+ * @param children - Elements to render inside the dialog content area
+ * @returns The rendered dialog content element
+ */
 function DialogContent({
   className,
   children,
@@ -76,6 +116,13 @@ function DialogContent({
   )
 }
 
+/**
+ * Renders a header container for dialog content with responsive layout.
+ *
+ * The element includes a `data-slot="dialog-header"` attribute and merges the component's default layout classes with any `className` provided via props.
+ *
+ * @returns The header element for a dialog's content area.
+ */
 function DialogHeader({
   className,
   ...props
@@ -92,6 +139,15 @@ function DialogHeader({
   )
 }
 
+/**
+ * Renders a footer container for dialog content with responsive layout and spacing.
+ *
+ * The element includes a `data-slot="dialog-footer"` attribute and merges provided
+ * `className` with default flex and gap utilities to present a column-reverse layout
+ * on small screens and a right-aligned row on larger screens.
+ *
+ * @returns A `div` element serving as the dialog footer.
+ */
 function DialogFooter({
   className,
   ...props
@@ -108,6 +164,12 @@ function DialogFooter({
   )
 }
 
+/**
+ * Renders the dialog title with standardized typography and a `data-slot="dialog-title"` attribute.
+ *
+ * @param className - Additional CSS class names appended to the default title styles.
+ * @returns The rendered DialogPrimitive.Title element.
+ */
 function DialogTitle({
   className,
   ...props
@@ -121,6 +183,11 @@ function DialogTitle({
   )
 }
 
+/**
+ * Renders the dialog description element with standardized typography and a slot marker.
+ *
+ * @returns The DialogPrimitive.Description element with default `text-muted-foreground text-sm` classes merged with `className` and `data-slot="dialog-description"`.
+ */
 function DialogDescription({
   className,
   ...props

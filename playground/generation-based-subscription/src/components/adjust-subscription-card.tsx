@@ -26,8 +26,21 @@ interface AdjustSubscriptionCardProps {
 }
 
 /**
- * AdjustSubscriptionCard component displays a single pricing plan
- * with the ability to switch to it from an existing subscription
+ * Render a pricing plan card that shows plan details, timing badges, features,
+ * and a contextual action button to switch or adjust the subscription.
+ *
+ * The card highlights popular or current plans, displays pricing and when a
+ * change will take effect (Immediate, Starts <date>, or End of period), and
+ * disables the action when switching is not allowed by billing state or when
+ * the plan is the current/default plan.
+ *
+ * @param plan - The pricing plan to display
+ * @param isCurrentPlan - Whether this plan is the user's current subscription
+ * @param currentPlanPrice - The current plan's unit price used to determine upgrade/downgrade
+ * @param billingPeriodEnd - Timestamp or date string for when the current billing period ends
+ * @param hideFeatures - If true, hide the plan features list
+ * @param onAdjustClick - Optional callback invoked with (plan, isUpgrade) when the action button is clicked
+ * @returns The plan card element
  */
 export function AdjustSubscriptionCard({
   plan,

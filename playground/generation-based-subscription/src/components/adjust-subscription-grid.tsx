@@ -21,9 +21,10 @@ interface AdjustSubscriptionGridProps {
 }
 
 /**
- * AdjustSubscriptionGrid component displays all available plans for switching.
- * The adjustSubscription API is atomic - it waits for any billing run to complete
- * before returning, so no client-side polling or realtime subscription is needed.
+ * Render a grid of available subscription plans and manage the subscription adjustment flow.
+ *
+ * @param onSuccess - Optional callback invoked after a successful subscription adjustment.
+ * @returns The UI for browsing plans, selecting an upgrade or change, and confirming the adjustment (includes pricing details, prorated calculation for upgrades, and an interactive confirmation dialog).
  */
 export function AdjustSubscriptionGrid({
   onSuccess,
