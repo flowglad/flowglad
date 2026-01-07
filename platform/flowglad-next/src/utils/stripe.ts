@@ -4,8 +4,6 @@ import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Country } from '@/db/schema/countries'
 import type { Customer } from '@/db/schema/customers'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import type { Invoice } from '@/db/schema/invoices'
 import type {
   BillingAddress,
   Organization,
@@ -1073,63 +1071,6 @@ export const getConnectedAccountOnboardingStatus = async (
 export type StripeAccountOnboardingStatus = Awaited<
   ReturnType<typeof getConnectedAccountOnboardingStatus>
 > | null
-
-export const createPaymentIntentForInvoiceCheckoutSession =
-  async (params: {
-    invoice: Invoice.Record
-    invoiceLineItems: InvoiceLineItem.Record[]
-    organization: Organization.Record
-    stripeCustomerId: string
-    checkoutSession: CheckoutSession.Record
-    feeCalculation?: FeeCalculation.Record
-  }) => {
-    const {
-      invoice,
-      organization,
-      stripeCustomerId,
-      checkoutSession,
-      invoiceLineItems,
-      feeCalculation,
-    } = params
-    const livemode = invoice.livemode
-    const achOnlyParams = unitedStatesBankAccountPaymentMethodOptions(
-      invoice.bankPaymentOnly
-    ) as Partial<Stripe.PaymentIntentCreateParams>
-    const transferData = stripeConnectTransferDataForOrganization({
-      organization,
-      livemode,
-    })
-    const feeMetadata = buildFeeMetadata(feeCalculation)
-    const metadata: CheckoutSessionStripeIntentMetadata &
-      FeeMetadata = {
-      checkoutSessionId: checkoutSession.id,
-      type: IntentMetadataType.CheckoutSession,
-      ...feeMetadata,
-    }
-    const totalDue = feeCalculation
-      ? await calculateTotalDueAmount(feeCalculation)
-      : invoiceLineItems.reduce(
-          (acc, item) => acc + item.price * item.quantity,
-          0
-        )
-    const totalFeeAmount = feeCalculation
-      ? calculateTotalFeeAmount(feeCalculation)
-      : calculatePlatformApplicationFee({
-          organization,
-          subtotal: totalDue,
-          currency: invoice.currency,
-        })
-
-    return stripe(livemode).paymentIntents.create({
-      amount: totalDue,
-      currency: invoice.currency,
-      application_fee_amount: livemode ? totalFeeAmount : undefined,
-      ...transferData,
-      metadata,
-      customer: stripeCustomerId,
-      ...achOnlyParams,
-    })
-  }
 
 export const createPaymentIntentForCheckoutSession = async (params: {
   price: Price.Record
