@@ -1,4 +1,5 @@
 import { and, eq, inArray, lte } from 'drizzle-orm'
+import { z } from 'zod'
 import {
   type SubscriptionItem,
   subscriptionItems,
@@ -268,77 +269,133 @@ export const expireSubscriptionItems = async (
 }
 
 /**
- * Processes a single row from the subscription query result, updating the rich subscriptions map.
+ * Selects subscriptions by the given where conditions.
+ * This is a decomposed query that can be cached independently.
+ *
+ * @param whereConditions - Conditions to filter the subscriptions
+ * @param transaction - Database transaction
+ * @returns Array of subscription records
+ */
+export const selectSubscriptionsByWhere = async (
+  whereConditions: SelectConditions<typeof subscriptions>,
+  transaction: DbTransaction
+) => {
+  const rows = await transaction
+    .select()
+    .from(subscriptions)
+    .where(whereClauseFromObject(subscriptions, whereConditions))
+
+  return rows.map((row) => subscriptionsSelectSchema.parse(row))
+}
+
+/**
+ * Selects subscription items with their associated prices for the given subscription IDs.
+ * This is a decomposed query that can be cached independently.
+ *
+ * @param subscriptionIds - Array of subscription IDs to fetch items for
+ * @param transaction - Database transaction
+ * @returns Array of subscription items with their prices
+ */
+export const selectSubscriptionItemsWithPricesBySubscriptionIds =
+  async (subscriptionIds: string[], transaction: DbTransaction) => {
+    if (subscriptionIds.length === 0) {
+      return []
+    }
+
+    const rows = await transaction
+      .select({
+        subscriptionItem: subscriptionItems,
+        price: prices,
+      })
+      .from(subscriptionItems)
+      .leftJoin(prices, eq(subscriptionItems.priceId, prices.id))
+      .where(
+        inArray(subscriptionItems.subscriptionId, subscriptionIds)
+      )
+
+    return rows.map((row) => ({
+      subscriptionItem: subscriptionItemsSelectSchema.parse(
+        row.subscriptionItem
+      ),
+      price: row.price
+        ? pricesClientSelectSchema.parse(row.price)
+        : null,
+    }))
+  }
+
+/**
+ * Processes subscription and item data to build the rich subscriptions map.
  * This helper function handles:
- * 1. Creating a new subscription entry if it doesn't exist
+ * 1. Creating subscription entries with their current status
  * 2. Adding active subscription items with their associated prices
  *
- * @param row - The database row containing subscription, item, and price data
- * @param richSubscriptionsMap - Map of subscription IDs to their rich subscription objects
+ * @param subscriptionRecords - Array of subscription records
+ * @param itemsWithPrices - Array of subscription items with their prices
+ * @returns Map of subscription IDs to their rich subscription objects
  */
-const processSubscriptionRow = (
-  row: {
-    subscription: typeof subscriptions.$inferSelect | null
-    subscriptionItems: typeof subscriptionItems.$inferSelect | null
-    price: typeof prices.$inferSelect | null
-  },
-  richSubscriptionsMap: Map<string, RichSubscription>
-): void => {
-  const subscriptionId = row.subscription?.id
-  if (!subscriptionId) return
+const buildRichSubscriptionsMap = (
+  subscriptionRecords: z.infer<typeof subscriptionsSelectSchema>[],
+  itemsWithPrices: {
+    subscriptionItem: z.infer<typeof subscriptionItemsSelectSchema>
+    price: z.infer<typeof pricesClientSelectSchema> | null
+  }[]
+): Map<string, RichSubscription> => {
+  const richSubscriptionsMap = new Map<string, RichSubscription>()
 
-  // Initialize subscription if not exists
-  if (!richSubscriptionsMap.has(subscriptionId)) {
-    richSubscriptionsMap.set(subscriptionId, {
-      ...subscriptionsSelectSchema.parse(row.subscription),
+  // Initialize all subscriptions
+  for (const subscription of subscriptionRecords) {
+    richSubscriptionsMap.set(subscription.id, {
+      ...subscription,
       current: isSubscriptionCurrent(
-        row.subscription?.status as SubscriptionStatus,
-        row.subscription?.cancellationReason
+        subscription.status as SubscriptionStatus,
+        subscription.cancellationReason
       ),
       subscriptionItems: [],
     })
   }
 
-  // Add active subscription item if exists
-  if (
-    row.subscriptionItems &&
-    isSubscriptionItemActive(row.subscriptionItems)
-  ) {
-    const price = row.price
-      ? pricesClientSelectSchema.parse(row.price)
-      : undefined
-    if (price) {
-      richSubscriptionsMap
-        .get(subscriptionId)
-        ?.subscriptionItems.push({
-          ...subscriptionItemsSelectSchema.parse(
-            row.subscriptionItems
-          ),
-          price,
-        })
+  // Add active subscription items to their subscriptions
+  for (const { subscriptionItem, price } of itemsWithPrices) {
+    if (!isSubscriptionItemActive(subscriptionItem)) {
+      continue
+    }
+    if (!price) {
+      continue
+    }
+    const subscription = richSubscriptionsMap.get(
+      subscriptionItem.subscriptionId
+    )
+    if (subscription) {
+      subscription.subscriptionItems.push({
+        ...subscriptionItem,
+        price,
+      })
     }
   }
+
+  return richSubscriptionsMap
 }
 
 /**
  * Determines if a subscription item is currently active based on its expiry date.
  * An item is active if it has no expiry date or if the expiry date is in the future.
  */
-const isSubscriptionItemActive = (
-  item: typeof subscriptionItems.$inferSelect
-): boolean => {
+const isSubscriptionItemActive = (item: {
+  expiredAt?: number | null
+}): boolean => {
   return !item.expiredAt || item.expiredAt > Date.now()
 }
 
 /**
  * Fetches subscriptions with their active items, features, and usage meter balances.
- * This function performs a comprehensive query to get all subscription-related data in a single call.
+ * This function performs decomposed queries that can be cached independently.
  *
  * The function follows these steps:
- * 1. Fetches subscriptions with their items and prices using a LEFT JOIN to include subscriptions without items
- * 2. Processes the results to create a map of rich subscriptions with their active items
- * 3. Fetches related data (features and meter balances) in parallel for better performance
- * 4. Combines all data into the final rich subscription objects
+ * 1. Fetches subscriptions matching the where conditions
+ * 2. Fetches subscription items with their prices for those subscriptions
+ * 3. Builds a map of rich subscriptions with their active items
+ * 4. Fetches related data (features and meter balances) in parallel
+ * 5. Combines all data into the final rich subscription objects
  *
  * @param whereConditions - Conditions to filter the subscriptions
  * @param transaction - Database transaction to use for all queries
@@ -348,41 +405,37 @@ export const selectRichSubscriptionsAndActiveItems = async (
   whereConditions: SelectConditions<typeof subscriptions>,
   transaction: DbTransaction
 ): Promise<RichSubscription[]> => {
-  // Step 1: Fetch subscriptions with their items and prices
-  // Uses LEFT JOIN to include subscriptions even if they have no items
-  const rows = await transaction
-    .select({
-      subscriptionItems,
-      subscription: subscriptions,
-      price: prices,
-    })
-    .from(subscriptions)
-    .leftJoin(
-      subscriptionItems,
-      eq(subscriptionItems.subscriptionId, subscriptions.id)
+  // Step 1: Fetch subscriptions (cacheable by whereConditions)
+  const subscriptionRecords = await selectSubscriptionsByWhere(
+    whereConditions,
+    transaction
+  )
+
+  const subscriptionIds = subscriptionRecords.map((s) => s.id)
+
+  if (subscriptionIds.length === 0) {
+    return []
+  }
+
+  // Step 2: Fetch subscription items with prices (cacheable by subscription IDs)
+  const itemsWithPrices =
+    await selectSubscriptionItemsWithPricesBySubscriptionIds(
+      subscriptionIds,
+      transaction
     )
-    .leftJoin(prices, eq(subscriptionItems.priceId, prices.id))
-    .where(whereClauseFromObject(subscriptions, whereConditions))
 
-  // Step 2: Process subscriptions and their items
-  // Creates a map of subscription IDs to their rich subscription objects
-  const richSubscriptionsMap = rows.reduce((acc, row) => {
-    processSubscriptionRow(row, acc)
-    return acc
-  }, new Map<string, RichSubscription>())
+  // Step 3: Build the rich subscriptions map
+  const richSubscriptionsMap = buildRichSubscriptionsMap(
+    subscriptionRecords,
+    itemsWithPrices
+  )
 
-  const subscriptionIds = Array.from(richSubscriptionsMap.keys())
-
-  // Step 3: Prepare active subscription items for feature lookup
-  // Filters out expired items and null values
-  const activeSubscriptionItems = rows
-    .filter(
-      (row) =>
-        row.subscriptionItems &&
-        isSubscriptionItemActive(row.subscriptionItems)
+  // Step 4: Prepare active subscription items for feature lookup
+  const activeSubscriptionItems = itemsWithPrices
+    .filter(({ subscriptionItem }) =>
+      isSubscriptionItemActive(subscriptionItem)
     )
-    .map((row) => row.subscriptionItems)
-    .filter((item): item is NonNullable<typeof item> => item !== null)
+    .map(({ subscriptionItem }) => subscriptionItem)
 
   // Step 4: Fetch related data in parallel for better performance
   // Gets features and meter balances in a single Promise.all call
