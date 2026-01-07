@@ -549,7 +549,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     }
   }
 
-interface ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult {
+export interface ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult {
   type: CheckoutSessionType.ActivateSubscription
   checkoutSession: CheckoutSession.Record
   organization: Organization.Record
