@@ -185,8 +185,11 @@
   },
   "footer": {
     "socials": {
+      "x": "https://x.com/flowglad",
+      "discord": "https://discord.com/servers/flowglad-1273695198639161364",
       "github": "https://github.com/flowglad",
-      "x": "https://x.com/flowglad"
+      "linkedin": "https://www.linkedin.com/company/flowglad/",
+      "youtube": "https://www.youtube.com/@Flowglad"
     }
   }
 }
