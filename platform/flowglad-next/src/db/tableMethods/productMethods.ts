@@ -1,20 +1,15 @@
 import { eq, inArray, notExists, sql } from 'drizzle-orm'
 import * as R from 'ramda'
-import { z } from 'zod'
 import {
   type Price,
   prices,
   pricesClientSelectSchema,
   productsTableRowDataSchema,
 } from '@/db/schema/prices'
-import {
-  type PricingModel,
-  pricingModelsClientSelectSchema,
-} from '@/db/schema/pricingModels'
+import { type PricingModel } from '@/db/schema/pricingModels'
 import {
   type Product,
   products,
-  productsClientSelectSchema,
   productsInsertSchema,
   productsSelectSchema,
   productsUpdateSchema,

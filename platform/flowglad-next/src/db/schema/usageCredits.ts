@@ -9,6 +9,7 @@ import {
 import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { billingPeriods } from '@/db/schema/billingPeriods'
+import { features } from '@/db/schema/features'
 import { organizations } from '@/db/schema/organizations'
 import { payments } from '@/db/schema/payments'
 import { pricingModels } from '@/db/schema/pricingModels'
@@ -70,6 +71,7 @@ export const usageCredits = pgTable(
       'usage_meter_id',
       usageMeters
     ),
+    featureId: nullableStringForeignKey('feature_id', features),
     paymentId: nullableStringForeignKey('payment_id', payments),
     issuedAmount: integer('issued_amount').notNull(),
     issuedAt: timestampWithTimezoneColumn('issued_at')
@@ -100,11 +102,8 @@ export const usageCredits = pgTable(
       constructIndex(TABLE_NAME, [table.paymentId]),
       constructIndex(TABLE_NAME, [table.pricingModelId]),
       constructIndex(TABLE_NAME, [table.sourceReferenceId]),
-      constructUniqueIndex(TABLE_NAME, [
-        table.paymentId,
-        table.subscriptionId,
-        table.usageMeterId,
-      ]),
+
+      
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
         {

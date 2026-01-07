@@ -601,6 +601,7 @@ describe('Ledger Management System', async () => {
             usageMeterId: usageMeter.id,
             pricingModelId: usageMeter.pricingModelId,
             paymentId: null,
+            featureId: null,
             issuedAmount: 1000,
             issuedAt: Date.now(),
             expiresAt: null,
@@ -768,6 +769,7 @@ describe('Ledger Management System', async () => {
             billingPeriodId: billingPeriod.id,
             usageMeterId: usageMeter.id,
             paymentId: null,
+            featureId: null,
             issuedAmount: 1000,
             issuedAt: Date.now() - 100 * 24 * 60 * 60 * 1000, // 100 days ago
             expiresAt: Date.now() - 1, // Expired

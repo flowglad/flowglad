@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import * as R from 'ramda'
 import type { CreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import { Customer } from '@/db/schema/customers'
@@ -15,7 +15,10 @@ import {
   subscriptionItems,
 } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
-import { usageCredits } from '@/db/schema/usageCredits'
+import {
+  usageCredits,
+  usageCreditsSelectSchema,
+} from '@/db/schema/usageCredits'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
@@ -37,7 +40,10 @@ import {
   derivePricingModelIdFromSubscription,
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
-import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
+import {
+  insertUsageCredit,
+  insertUsageCreditOrDoNothing,
+} from '@/db/tableMethods/usageCreditMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { DbTransaction } from '@/db/types'
 import {
@@ -401,51 +407,11 @@ const grantImmediateUsageCredits = async (
       transaction
     )
 
-  // Check for existing credits for this feature in this billing period (or without billing period)
-  // Use stable featureId (not ephemeral subscription_item_feature.id) for deduplication
-  const stableFeatureId = subscriptionItemFeature.featureId
-  if (stableFeatureId) {
-    // Build the WHERE conditions
-    const whereConditions = [
-      eq(usageCredits.subscriptionId, subscription.id),
-      eq(
-        usageCredits.sourceReferenceType,
-        UsageCreditSourceReferenceType.ManualAdjustment
-      ),
-      eq(subscriptionItemFeatures.featureId, stableFeatureId),
-      eq(usageCredits.usageMeterId, usageMeterId),
-    ]
-
-    // If we have a billing period, scope deduplication to that period
-    // If not, check for credits with null billingPeriodId
-    if (currentBillingPeriod) {
-      whereConditions.push(
-        eq(usageCredits.billingPeriodId, currentBillingPeriod.id)
-      )
-    } else {
-      whereConditions.push(isNull(usageCredits.billingPeriodId))
-    }
-
-    const existingCredits = await transaction
-      .select({ id: usageCredits.id })
-      .from(usageCredits)
-      .innerJoin(
-        subscriptionItemFeatures,
-        eq(
-          usageCredits.sourceReferenceId,
-          subscriptionItemFeatures.id
-        )
-      )
-      .where(and(...whereConditions))
-      .limit(1)
-
-    if (existingCredits.length > 0) {
-      // Credits already exist for this feature in this billing period - skip
-      return
-    }
-  }
-
-  const usageCredit = await insertUsageCredit(
+  /*
+   * We rely on the database unique index on (subscriptionId, billingPeriodId, featureId, usageMeterId)
+   * to prevent duplicate grants for ManualAdjustment type. The helper `insertUsageCreditOrDoNothing` handles the conflict gracefully.
+   */
+  const insertedUsageCredit = await insertUsageCreditOrDoNothing(
     {
       subscriptionId: subscription.id,
       organizationId: subscription.organizationId,
@@ -456,6 +422,7 @@ const grantImmediateUsageCredits = async (
         UsageCreditSourceReferenceType.ManualAdjustment,
       billingPeriodId: currentBillingPeriod?.id ?? null,
       usageMeterId,
+      featureId: subscriptionItemFeature.featureId,
       paymentId: null,
       issuedAmount: grantAmount,
       issuedAt: Date.now(),
@@ -467,18 +434,54 @@ const grantImmediateUsageCredits = async (
     transaction
   )
 
+  if (!insertedUsageCredit) {
+    // If undefined, it means the credit already existed (conflict).
+    // Fetch the existing record for the caller (idempotency), but do NOT emit a new ledger command.
+    const [existing] = await transaction
+      .select()
+      .from(usageCredits)
+      .where(
+        and(
+          eq(usageCredits.subscriptionId, subscription.id),
+          eq(usageCredits.usageMeterId, usageMeterId),
+          eq(usageCredits.featureId, subscriptionItemFeature.featureId),
+          eq(
+            usageCredits.sourceReferenceType,
+            UsageCreditSourceReferenceType.ManualAdjustment
+          ),
+          currentBillingPeriod
+            ? eq(
+                usageCredits.billingPeriodId,
+                currentBillingPeriod.id
+              )
+            : isNull(usageCredits.billingPeriodId)
+        )
+      )
+      .orderBy(asc(usageCredits.createdAt))
+      .limit(1)
+
+    if (!existing) {
+      return undefined
+    }
+
+    return {
+      usageCredit: usageCreditsSelectSchema.parse(existing),
+      ledgerCommand: undefined,
+    }
+  }
+
   const ledgerCommand: CreditGrantRecognizedLedgerCommand = {
     type: LedgerTransactionType.CreditGrantRecognized,
     organizationId: subscription.organizationId,
     livemode: subscription.livemode,
     subscriptionId: subscription.id,
     payload: {
-      usageCredit,
+      usageCredit: insertedUsageCredit,
     },
   }
 
   return {
-    usageCredit,
+    usageCredit: insertedUsageCredit,
     ledgerCommand,
   }
 }
