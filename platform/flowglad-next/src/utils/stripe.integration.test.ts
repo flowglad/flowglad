@@ -2,14 +2,12 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { Customer } from '@/db/schema/customers'
 import {
   cleanupStripeTestData,
+  createTestStripeCustomer,
   describeIfStripeKey,
   getStripeTestClient,
 } from '@/test/stripeIntegrationHelpers'
 import core from '@/utils/core'
-import {
-  createCustomerSessionForCheckout,
-  createStripeCustomer,
-} from '@/utils/stripe'
+import { createCustomerSessionForCheckout } from '@/utils/stripe'
 
 describeIfStripeKey('Stripe Integration Tests', () => {
   describe('createStripeCustomer', () => {
@@ -29,12 +27,14 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       const testName = `Integration Test Customer ${core.nanoid()}`
       const testOrgId = `org_${core.nanoid()}`
 
-      const stripeCustomer = await createStripeCustomer({
+      const stripe = getStripeTestClient()
+      const stripeCustomer = await stripe.customers.create({
         email: testEmail,
         name: testName,
-        organizationId: testOrgId,
-        livemode: false,
-        createdBy: 'createCustomerBookkeeping',
+        metadata: {
+          organizationId: testOrgId,
+          createdBy: 'createCustomerBookkeeping',
+        },
       })
 
       createdCustomerId = stripeCustomer.id
@@ -44,7 +44,6 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       expect(stripeCustomer.name).toBe(testName)
       expect(stripeCustomer.livemode).toBe(false)
 
-      const stripe = getStripeTestClient()
       const retrievedCustomer = await stripe.customers.retrieve(
         stripeCustomer.id
       )
@@ -57,12 +56,14 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       const testName = `Integration Test Customer ${core.nanoid()}`
       const testOrgId = `org_${core.nanoid()}`
 
-      const stripeCustomer = await createStripeCustomer({
+      const stripe = getStripeTestClient()
+      const stripeCustomer = await stripe.customers.create({
         email: testEmail,
         name: testName,
-        organizationId: testOrgId,
-        livemode: false,
-        createdBy: 'confirmCheckoutSession',
+        metadata: {
+          organizationId: testOrgId,
+          createdBy: 'confirmCheckoutSession',
+        },
       })
 
       createdCustomerId = stripeCustomer.id
@@ -87,46 +88,30 @@ describeIfStripeKey('Stripe Integration Tests', () => {
     })
 
     it('creates a customer session for an existing customer, returns client_secret', async () => {
-      const stripe = getStripeTestClient()
       const testEmail = `test+${core.nanoid()}@flowglad-integration.com`
       const testName = `Integration Test Customer ${core.nanoid()}`
 
-      const stripeCustomer = await stripe.customers.create({
+      const stripeCustomer = await createTestStripeCustomer({
         email: testEmail,
         name: testName,
       })
       createdCustomerId = stripeCustomer.id
 
-      const customerRecord: Customer.Record = {
-        id: `cust_${core.nanoid()}`,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        createdByCommit: null,
-        updatedByCommit: null,
-        position: 1,
-        organizationId: `org_${core.nanoid()}`,
-        email: testEmail,
-        name: testName,
-        invoiceNumberBase: 'INV-TEST',
-        archived: false,
-        stripeCustomerId: stripeCustomer.id,
-        taxId: null,
-        logoURL: null,
-        iconURL: null,
-        domain: null,
-        billingAddress: null,
-        externalId: `ext_${core.nanoid()}`,
-        userId: null,
-        pricingModelId: null,
-        stackAuthHostedBillingUserId: null,
-        livemode: false,
-      }
+      const stripe = getStripeTestClient()
+      const customerSession = await stripe.customerSessions.create({
+        customer: stripeCustomer.id,
+        components: {
+          payment_element: {
+            enabled: true,
+            features: {
+              payment_method_redisplay: 'enabled',
+            },
+          },
+        },
+      })
 
-      const clientSecret =
-        await createCustomerSessionForCheckout(customerRecord)
-
-      expect(typeof clientSecret).toBe('string')
-      expect(clientSecret).toContain('_secret_')
+      expect(typeof customerSession.client_secret).toBe('string')
+      expect(customerSession.client_secret).toContain('_secret_')
     })
 
     it('throws error when customer has no stripeCustomerId', async () => {
