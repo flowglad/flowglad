@@ -109,7 +109,6 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
   },
   {
     id: 'productName',
-    // FIXME: PR 3 - Product may be null for usage-based subscriptions
     accessorFn: (row) => row.product?.name ?? '-',
     header: 'Product',
     cell: ({ row }) => {

@@ -771,7 +771,9 @@ export const safelyInsertPrice = async (
   price: Omit<Price.Insert, 'isDefault' | 'active'>,
   transaction: DbTransaction
 ) => {
-  // For non-usage prices, reset default/active for existing product prices
+  // For non-usage prices, reset default/active for existing product prices.
+  // Usage prices (no productId) skip this step since they don't share product-level
+  // default semantics - they're scoped to usage meters instead.
   if (price.productId) {
     await setPricesForProductToNonDefaultNonActive(
       price.productId,
