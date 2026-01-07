@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 import { afterEach, describe, expect, it } from 'vitest'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import {
@@ -8,6 +9,7 @@ import {
 } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
+import type { Purchase } from '@/db/schema/purchases'
 import {
   cleanupStripeTestData,
   createTestPaymentMethod,
@@ -17,6 +19,8 @@ import {
 } from '@/test/stripeIntegrationHelpers'
 import {
   BusinessOnboardingStatus,
+  CheckoutSessionStatus,
+  CheckoutSessionType,
   CurrencyCode,
   FeeCalculationType,
   PaymentMethodType,
@@ -29,17 +33,20 @@ import {
   createAndConfirmPaymentIntentForBillingRun,
   createCustomerSessionForCheckout,
   createPaymentIntentForBillingRun,
+  createSetupIntentForCheckoutSession,
   createStripeCustomer,
   createStripeTaxCalculationByPrice,
   createStripeTaxTransactionFromCalculation,
   dateFromStripeTimestamp,
   getLatestChargeForPaymentIntent,
+  getSetupIntent,
   getStripeCharge,
   getStripePaymentMethod,
   IntentMetadataType,
   listRefundsForCharge,
   paymentMethodFromStripeCharge,
   refundPayment,
+  updateSetupIntent,
 } from '@/utils/stripe'
 
 /**
@@ -734,6 +741,347 @@ describeIfStripeKey('Stripe Integration Tests', () => {
 
         // Verify payment_method_details is present (proves it's a full object)
         expect(charge!.payment_method_details).not.toBeNull()
+      })
+    })
+  })
+
+  describe('Setup Intents', () => {
+    /**
+     * Creates a minimal CheckoutSession record for setup intent tests.
+     */
+    const createTestCheckoutSessionForSetupIntent = (
+      overrides?: Partial<CheckoutSession.ProductRecord>
+    ): CheckoutSession.ProductRecord => {
+      const sessionId = `chckt_session_${core.nanoid()}`
+      return {
+        id: sessionId,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdByCommit: null,
+        updatedByCommit: null,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        organizationId: `org_${core.nanoid()}`,
+        priceId: `price_${core.nanoid()}`,
+        quantity: 1,
+        purchaseId: null,
+        invoiceId: null,
+        customerId: null,
+        customerName: null,
+        customerEmail: null,
+        stripeSetupIntentId: null,
+        stripePaymentIntentId: null,
+        billingAddress: null,
+        paymentMethodType: null,
+        discountId: null,
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel',
+        expires: Date.now() + 1000 * 60 * 60 * 24,
+        livemode: false,
+        pricingModelId: `pm_${core.nanoid()}`,
+        preserveBillingCycleAnchor: false,
+        outputMetadata: null,
+        outputName: null,
+        targetSubscriptionId: null,
+        automaticallyUpdateSubscriptions: null,
+        position: 0,
+        ...overrides,
+      }
+    }
+
+    /**
+     * Creates a minimal Purchase record for setup intent tests.
+     * Only bankPaymentOnly is used by createSetupIntentForCheckoutSession.
+     */
+    const createTestPurchase = (overrides?: {
+      bankPaymentOnly?: boolean
+    }): Purchase.Record => {
+      return {
+        bankPaymentOnly: overrides?.bankPaymentOnly ?? false,
+      } as Purchase.Record
+    }
+
+    /**
+     * Creates a minimal Customer record for setup intent tests.
+     */
+    const createTestCustomerRecord = (
+      overrides?: Partial<Customer.Record>
+    ): Customer.Record => {
+      return {
+        id: `cust_${core.nanoid()}`,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdByCommit: null,
+        updatedByCommit: null,
+        position: 0,
+        organizationId: `org_${core.nanoid()}`,
+        email: `test+${core.nanoid()}@flowglad-integration.com`,
+        name: `Test Customer ${core.nanoid()}`,
+        invoiceNumberBase: 'INV-TEST',
+        archived: false,
+        stripeCustomerId: null,
+        taxId: null,
+        logoURL: null,
+        iconURL: null,
+        domain: null,
+        billingAddress: null,
+        externalId: `ext_${core.nanoid()}`,
+        userId: null,
+        pricingModelId: null,
+        stackAuthHostedBillingUserId: null,
+        livemode: false,
+        ...overrides,
+      }
+    }
+
+    describe('createSetupIntentForCheckoutSession', () => {
+      let createdSetupIntentId: string | undefined
+      let createdCustomerId: string | undefined
+
+      afterEach(async () => {
+        if (createdSetupIntentId) {
+          await cleanupStripeTestData({
+            stripeSetupIntentId: createdSetupIntentId,
+          })
+          createdSetupIntentId = undefined
+        }
+        if (createdCustomerId) {
+          await cleanupStripeTestData({
+            stripeCustomerId: createdCustomerId,
+          })
+          createdCustomerId = undefined
+        }
+      })
+
+      it('creates a setup intent with automatic_payment_methods for Platform organization', async () => {
+        const organization = createTestOrganization({
+          stripeConnectContractType:
+            StripeConnectContractType.Platform,
+        })
+        const checkoutSession =
+          createTestCheckoutSessionForSetupIntent()
+
+        const setupIntent = await createSetupIntentForCheckoutSession(
+          {
+            organization,
+            checkoutSession,
+          }
+        )
+
+        createdSetupIntentId = setupIntent.id
+
+        // Verify setup intent ID format
+        expect(setupIntent.id).toMatch(/^seti_/)
+
+        // Verify status is requires_payment_method
+        expect(setupIntent.status).toBe('requires_payment_method')
+
+        // Verify client_secret is present
+        expect(typeof setupIntent.client_secret).toBe('string')
+        expect(setupIntent.client_secret).toContain('_secret_')
+
+        // Verify metadata contains checkoutSessionId and type
+        expect(setupIntent.metadata?.checkoutSessionId).toBe(
+          checkoutSession.id
+        )
+        expect(setupIntent.metadata?.type).toBe(
+          IntentMetadataType.CheckoutSession
+        )
+
+        // Verify livemode is false
+        expect(setupIntent.livemode).toBe(false)
+      })
+
+      it('creates a setup intent without explicit automatic_payment_methods for MoR organization', async () => {
+        const organization = createTestOrganization({
+          stripeConnectContractType:
+            StripeConnectContractType.MerchantOfRecord,
+        })
+        const checkoutSession =
+          createTestCheckoutSessionForSetupIntent()
+
+        const setupIntent = await createSetupIntentForCheckoutSession(
+          {
+            organization,
+            checkoutSession,
+          }
+        )
+
+        createdSetupIntentId = setupIntent.id
+
+        // Verify setup intent ID format
+        expect(setupIntent.id).toMatch(/^seti_/)
+
+        // Verify status is requires_payment_method (standard initial status)
+        expect(setupIntent.status).toBe('requires_payment_method')
+
+        // Verify metadata is correctly set
+        expect(setupIntent.metadata?.checkoutSessionId).toBe(
+          checkoutSession.id
+        )
+        expect(setupIntent.metadata?.type).toBe(
+          IntentMetadataType.CheckoutSession
+        )
+
+        // Verify livemode is false
+        expect(setupIntent.livemode).toBe(false)
+      })
+
+      it('creates a setup intent with bank-only payment methods when purchase.bankPaymentOnly is true', async () => {
+        const organization = createTestOrganization()
+        const checkoutSession =
+          createTestCheckoutSessionForSetupIntent()
+        const purchase = createTestPurchase({
+          bankPaymentOnly: true,
+        })
+
+        const setupIntent = await createSetupIntentForCheckoutSession(
+          {
+            organization,
+            checkoutSession,
+            purchase,
+          }
+        )
+
+        createdSetupIntentId = setupIntent.id
+
+        // Verify setup intent ID format
+        expect(setupIntent.id).toMatch(/^seti_/)
+
+        // Verify payment_method_types includes us_bank_account
+        expect(setupIntent.payment_method_types).toContain(
+          'us_bank_account'
+        )
+
+        // Verify payment_method_types does NOT include card
+        expect(setupIntent.payment_method_types).not.toContain('card')
+
+        // Verify livemode is false
+        expect(setupIntent.livemode).toBe(false)
+      })
+
+      it('creates a setup intent with customer when customer has stripeCustomerId', async () => {
+        // Create a real Stripe customer first
+        const stripeCustomer = await createTestStripeCustomer()
+        createdCustomerId = stripeCustomer.id
+
+        const organization = createTestOrganization()
+        const checkoutSession =
+          createTestCheckoutSessionForSetupIntent()
+        const customer = createTestCustomerRecord({
+          stripeCustomerId: stripeCustomer.id,
+        })
+
+        const setupIntent = await createSetupIntentForCheckoutSession(
+          {
+            organization,
+            checkoutSession,
+            customer,
+          }
+        )
+
+        createdSetupIntentId = setupIntent.id
+
+        // Verify setup intent ID format
+        expect(setupIntent.id).toMatch(/^seti_/)
+
+        // Verify customer is associated
+        expect(setupIntent.customer).toBe(stripeCustomer.id)
+
+        // Verify livemode is false
+        expect(setupIntent.livemode).toBe(false)
+      })
+    })
+
+    describe('getSetupIntent', () => {
+      let createdSetupIntentId: string | undefined
+
+      afterEach(async () => {
+        if (createdSetupIntentId) {
+          await cleanupStripeTestData({
+            stripeSetupIntentId: createdSetupIntentId,
+          })
+          createdSetupIntentId = undefined
+        }
+      })
+
+      it('retrieves setup intent by id, falling back to test mode', async () => {
+        const organization = createTestOrganization()
+        const checkoutSession =
+          createTestCheckoutSessionForSetupIntent()
+
+        // Create setup intent using the app function
+        const setupIntent = await createSetupIntentForCheckoutSession(
+          {
+            organization,
+            checkoutSession,
+          }
+        )
+        createdSetupIntentId = setupIntent.id
+
+        // Retrieve using the app function (which tries live then test)
+        const retrievedSetupIntent = await getSetupIntent(
+          setupIntent.id
+        )
+
+        // Verify the retrieved setup intent matches
+        expect(retrievedSetupIntent.id).toBe(setupIntent.id)
+        expect(retrievedSetupIntent.metadata?.checkoutSessionId).toBe(
+          checkoutSession.id
+        )
+        expect(retrievedSetupIntent.livemode).toBe(false)
+      })
+    })
+
+    describe('updateSetupIntent', () => {
+      let createdSetupIntentId: string | undefined
+      let createdCustomerId: string | undefined
+
+      afterEach(async () => {
+        if (createdSetupIntentId) {
+          await cleanupStripeTestData({
+            stripeSetupIntentId: createdSetupIntentId,
+          })
+          createdSetupIntentId = undefined
+        }
+        if (createdCustomerId) {
+          await cleanupStripeTestData({
+            stripeCustomerId: createdCustomerId,
+          })
+          createdCustomerId = undefined
+        }
+      })
+
+      it('updates setup intent to associate with customer', async () => {
+        const organization = createTestOrganization()
+        const checkoutSession =
+          createTestCheckoutSessionForSetupIntent()
+
+        // Create setup intent without customer
+        const setupIntent = await createSetupIntentForCheckoutSession(
+          {
+            organization,
+            checkoutSession,
+          }
+        )
+        createdSetupIntentId = setupIntent.id
+
+        // Verify no customer initially
+        expect(setupIntent.customer).toBeNull()
+
+        // Create a real Stripe customer
+        const stripeCustomer = await createTestStripeCustomer()
+        createdCustomerId = stripeCustomer.id
+
+        // Update the setup intent with the customer using the app function
+        const updatedSetupIntent = await updateSetupIntent(
+          setupIntent.id,
+          { customer: stripeCustomer.id },
+          false // livemode
+        )
+
+        // Verify customer is now associated
+        expect(updatedSetupIntent.customer).toBe(stripeCustomer.id)
       })
     })
   })
