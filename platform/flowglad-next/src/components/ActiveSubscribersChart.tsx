@@ -1,30 +1,24 @@
 'use client'
+
 import { isValid } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
-import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  ChartBody,
+  ChartHeader,
+  ChartValueDisplay,
+  LineChart,
+  type TooltipProps,
+} from '@/components/charts'
+import ErrorBoundary from '@/components/ErrorBoundary'
+import { useChartInterval } from '@/hooks/useChartInterval'
+import { useChartTooltip } from '@/hooks/useChartTooltip'
 import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
 import {
   formatDateUTC,
   MONTH_NAMES_FULL,
 } from '@/utils/chart/dateFormatting'
-import {
-  getDefaultInterval,
-  getIntervalConfig,
-  getIntervalSelectOptions,
-} from '@/utils/chartIntervalUtils'
-import { LineChart } from './charts/LineChart'
-import ErrorBoundary from './ErrorBoundary'
-import { ChartInfoTooltip } from './ui/chart-info-tooltip'
-import { Skeleton } from './ui/skeleton'
 
 /**
  * Formats a date label for the tooltip using UTC.
@@ -62,7 +56,7 @@ const SubscriberCountTooltip = ({
   active,
   payload,
   label,
-}: TooltipCallbackProps) => {
+}: TooltipProps) => {
   if (!active || !payload?.[0] || !label) {
     return null
   }
@@ -92,12 +86,20 @@ const SubscriberCountTooltip = ({
   )
 }
 
+interface ActiveSubscribersChartProps {
+  fromDate: Date
+  toDate: Date
+  productId?: string
+  /** Optional controlled interval. When provided, the chart uses this value
+   *  and hides its inline interval selector. */
+  interval?: RevenueChartIntervalUnit
+  /** Optional callback for controlled mode interval changes. */
+  onIntervalChange?: (interval: RevenueChartIntervalUnit) => void
+}
+
 /**
- * Component for displaying Active Subscribers data in a chart
- *
- * @param interval - Optional controlled interval. When provided, the chart uses this value
- *                   and hides its inline interval selector.
- * @param onIntervalChange - Optional callback for controlled mode interval changes.
+ * Component for displaying Active Subscribers data in a chart.
+ * Shows the last subscriber count by default, individual period count on hover.
  */
 export const ActiveSubscribersChart = ({
   fromDate,
@@ -105,42 +107,16 @@ export const ActiveSubscribersChart = ({
   productId,
   interval: controlledInterval,
   onIntervalChange,
-}: {
-  fromDate: Date
-  toDate: Date
-  productId?: string
-  interval?: RevenueChartIntervalUnit
-  onIntervalChange?: (interval: RevenueChartIntervalUnit) => void
-}) => {
-  // Compute the best default interval based on available options
-  const defaultInterval = React.useMemo(
-    () => getDefaultInterval(fromDate, toDate),
-    [fromDate, toDate]
-  )
-
-  const [internalInterval, setInternalInterval] =
-    React.useState<RevenueChartIntervalUnit>(defaultInterval)
-
-  // Use controlled value if provided, otherwise internal
-  const interval = controlledInterval ?? internalInterval
-  const handleIntervalChange = onIntervalChange ?? setInternalInterval
-
-  // Hide inline selector when controlled externally
-  const showInlineSelector = controlledInterval === undefined
-
-  // Update interval if current selection becomes invalid due to date range change
-  React.useEffect(() => {
-    // Only auto-correct for uncontrolled mode
-    if (controlledInterval !== undefined) return
-
-    const config = getIntervalConfig(fromDate, toDate)
-    const isCurrentIntervalInvalid =
-      !config.options.includes(internalInterval)
-
-    if (isCurrentIntervalInvalid) {
-      setInternalInterval(config.default)
-    }
-  }, [fromDate, toDate, internalInterval, controlledInterval])
+}: ActiveSubscribersChartProps) => {
+  // Use shared hooks for tooltip and interval management
+  const { tooltipData, tooltipCallback } = useChartTooltip()
+  const { interval, handleIntervalChange, showInlineSelector } =
+    useChartInterval({
+      fromDate,
+      toDate,
+      controlledInterval,
+      onIntervalChange,
+    })
 
   const { data: subscriberData, isLoading } =
     trpc.organizations.getActiveSubscribers.useQuery({
@@ -148,30 +124,9 @@ export const ActiveSubscribersChart = ({
       endDate: toDate,
       granularity: interval,
     })
-  const [tooltipData, setTooltipData] =
-    React.useState<TooltipCallbackProps | null>(null)
-
-  // Use useRef to store tooltip data during render, then update state after render
-  const pendingTooltipData =
-    React.useRef<TooltipCallbackProps | null>(null)
-
-  // Use useEffect to safely update tooltip state after render
-
-  // FIXME(FG-384): Fix this warning:
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  React.useEffect(() => {
-    if (pendingTooltipData.current !== null) {
-      setTooltipData(pendingTooltipData.current)
-      pendingTooltipData.current = null
-    }
-  })
-
-  const intervalOptions = React.useMemo(
-    () => getIntervalSelectOptions(fromDate, toDate),
-    [fromDate, toDate]
-  )
 
   const firstPayloadValue = tooltipData?.payload?.[0]?.value
+
   const chartData = React.useMemo(() => {
     if (!subscriberData) return []
     return subscriberData.map((item) => {
@@ -200,66 +155,33 @@ export const ActiveSubscribersChart = ({
     if (!subscriberData?.length) {
       return '0'
     }
-    /**
-     * If the tooltip is active, we use the value from the tooltip
-     */
+    // If the tooltip is active, use the value from the tooltip
     if (firstPayloadValue) {
       return firstPayloadValue.toString()
     }
-    /**
-     * If the tooltip is not active, we use the last value in the chart
-     */
+    // If the tooltip is not active, use the last value in the chart
     const count = subscriberData[subscriberData.length - 1].count
     return count.toString()
   }, [subscriberData, firstPayloadValue])
 
   return (
     <div className="w-full h-full">
-      <div className="flex flex-row gap-2 justify-between px-4">
-        <div className="text-foreground w-fit flex items-center flex-row gap-0.5">
-          <p className="whitespace-nowrap">Active Subscribers</p>
-          {showInlineSelector && (
-            <Select
-              value={interval}
-              onValueChange={(value) =>
-                handleIntervalChange(
-                  value as RevenueChartIntervalUnit
-                )
-              }
-            >
-              <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground shadow-none h-auto py-0 gap-0 text-base">
-                <span className="text-muted-foreground">
-                  by&nbsp;
-                </span>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {intervalOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          <ChartInfoTooltip content="The number of customers with active paid subscriptions at each point in time." />
-        </div>
-      </div>
+      <ChartHeader
+        title="Active Subscribers"
+        infoTooltip="The number of customers with active paid subscriptions at each point in time."
+        showInlineSelector={showInlineSelector}
+        interval={interval}
+        onIntervalChange={handleIntervalChange}
+        fromDate={fromDate}
+        toDate={toDate}
+      />
 
-      <div className="px-4 mt-1">
-        {isLoading ? (
-          <Skeleton className="w-36 h-7" />
-        ) : (
-          <p className="text-xl font-semibold text-foreground">
-            {formattedSubscriberValue}
-          </p>
-        )}
-      </div>
-      {isLoading ? (
-        <div className="-mb-2 mt-2 w-full flex items-center justify-center">
-          <Skeleton className="h-80 w-full" />
-        </div>
-      ) : (
+      <ChartValueDisplay
+        value={formattedSubscriberValue}
+        isLoading={isLoading}
+      />
+
+      <ChartBody isLoading={isLoading}>
         <LineChart
           data={chartData}
           index="date"
@@ -275,19 +197,9 @@ export const ActiveSubscribersChart = ({
           startEndOnlyYAxis={true}
           showYAxis={false}
           valueFormatter={(value: number) => value.toString()}
-          tooltipCallback={(props: any) => {
-            // Store tooltip data in ref during render, useEffect will update state safely
-            if (props.active) {
-              // Only update if the data is different to prevent unnecessary re-renders
-              if (tooltipData?.label !== props.label) {
-                pendingTooltipData.current = props
-              }
-            } else {
-              pendingTooltipData.current = null
-            }
-          }}
+          tooltipCallback={tooltipCallback}
         />
-      )}
+      </ChartBody>
     </div>
   )
 }

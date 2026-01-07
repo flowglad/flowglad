@@ -1,66 +1,52 @@
 'use client'
+
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
-import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
+import {
+  ChartBody,
+  ChartHeader,
+  ChartValueDisplay,
+  LineChart,
+} from '@/components/charts'
 import { RevenueTooltip } from '@/components/RevenueTooltip'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { RevenueChartIntervalUnit } from '@/types'
+import { useChartInterval } from '@/hooks/useChartInterval'
+import { useChartTooltip } from '@/hooks/useChartTooltip'
+import { CurrencyCode, RevenueChartIntervalUnit } from '@/types'
 import { formatDateUTC } from '@/utils/chart/dateFormatting'
-import {
-  getDefaultInterval,
-  getIntervalConfig,
-} from '@/utils/chartIntervalUtils'
 import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
 } from '@/utils/stripe'
-import { LineChart } from './charts/LineChart'
-import { ChartInfoTooltip } from './ui/chart-info-tooltip'
-import { Skeleton } from './ui/skeleton'
+
+interface RecurringRevenueChartProps {
+  fromDate: Date
+  toDate: Date
+  productId?: string
+  /** Optional controlled interval. When provided, the chart uses this value. */
+  interval?: RevenueChartIntervalUnit
+}
 
 /**
- * Component for displaying Monthly Recurring Revenue (MRR) data in a chart
- *
- * @param interval - Optional controlled interval. When provided, the chart uses this value.
+ * Component for displaying Monthly Recurring Revenue (MRR) data in a chart.
+ * Shows the last MRR value by default, individual period value on hover.
  */
 export const RecurringRevenueChart = ({
   fromDate,
   toDate,
   productId,
   interval: controlledInterval,
-}: {
-  fromDate: Date
-  toDate: Date
-  productId?: string
-  interval?: RevenueChartIntervalUnit
-}) => {
+}: RecurringRevenueChartProps) => {
   const { organization } = useAuthenticatedContext()
 
-  // Compute the best default interval based on available options
-  const defaultInterval = React.useMemo(
-    () => getDefaultInterval(fromDate, toDate),
-    [fromDate, toDate]
-  )
-
-  const [internalInterval, setInternalInterval] =
-    React.useState<RevenueChartIntervalUnit>(defaultInterval)
-
-  // Use controlled value if provided, otherwise internal
-  const interval = controlledInterval ?? internalInterval
-
-  // Update interval if current selection becomes invalid due to date range change
-  React.useEffect(() => {
-    // Only auto-correct for uncontrolled mode
-    if (controlledInterval !== undefined) return
-
-    const config = getIntervalConfig(fromDate, toDate)
-    const isCurrentIntervalInvalid =
-      !config.options.includes(internalInterval)
-
-    if (isCurrentIntervalInvalid) {
-      setInternalInterval(config.default)
-    }
-  }, [fromDate, toDate, internalInterval, controlledInterval])
+  // Use shared hooks for tooltip and interval management
+  const { tooltipData, tooltipCallback } = useChartTooltip()
+  const { interval } = useChartInterval({
+    fromDate,
+    toDate,
+    controlledInterval,
+    // No onIntervalChange - MRR chart doesn't have inline selector
+  })
 
   const { data: mrrData, isLoading } =
     trpc.organizations.getMRR.useQuery({
@@ -68,24 +54,9 @@ export const RecurringRevenueChart = ({
       endDate: toDate,
       granularity: interval,
     })
-  const [tooltipData, setTooltipData] =
-    React.useState<TooltipCallbackProps | null>(null)
 
-  // Use useRef to store tooltip data during render, then update state after render
-  const pendingTooltipData =
-    React.useRef<TooltipCallbackProps | null>(null)
-
-  // Use useEffect to safely update tooltip state after render
-
-  // FIXME(FG-384): Fix this warning:
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  React.useEffect(() => {
-    if (pendingTooltipData.current !== null) {
-      setTooltipData(pendingTooltipData.current)
-      pendingTooltipData.current = null
-    }
-  })
   const defaultCurrency = organization?.defaultCurrency
+
   const chartData = React.useMemo(() => {
     if (!mrrData) return []
     if (!defaultCurrency) return []
@@ -116,23 +87,21 @@ export const RecurringRevenueChart = ({
     const max = Math.max(...mrrData.map((item) => item.amount))
     return max
   }, [mrrData])
+
   const firstPayloadValue = tooltipData?.payload?.[0]?.value
+
   const formattedMRRValue = React.useMemo(() => {
     if (!mrrData?.length || !defaultCurrency) {
       return '0.00'
     }
-    /**
-     * If the tooltip is active, we use the value from the tooltip
-     */
+    // If the tooltip is active, use the value from the tooltip
     if (firstPayloadValue) {
       return stripeCurrencyAmountToHumanReadableCurrencyAmount(
         defaultCurrency,
         firstPayloadValue
       )
     }
-    /**
-     * If the tooltip is not active, we use the last value in the chart
-     */
+    // If the tooltip is not active, use the last value in the chart
     const amount = mrrData[mrrData.length - 1].amount
     return stripeCurrencyAmountToHumanReadableCurrencyAmount(
       defaultCurrency,
@@ -140,41 +109,23 @@ export const RecurringRevenueChart = ({
     )
   }, [mrrData, defaultCurrency, firstPayloadValue])
 
-  const tooltipLabel = tooltipData?.label
-  let isTooltipLabelDate: boolean = false
-  if (tooltipLabel) {
-    try {
-      new Date(tooltipLabel as string).toISOString()
-      isTooltipLabelDate = true
-    } catch {
-      isTooltipLabelDate = false
-    }
-  }
+  const currencyForFormatter = defaultCurrency ?? CurrencyCode.USD
+
   return (
     <div className="w-full h-full">
-      <div className="flex flex-row gap-2 justify-between px-4">
-        <div className="text-foreground w-fit flex items-center flex-row min-h-6">
-          <p className="whitespace-nowrap">
-            Monthly Recurring Revenue
-          </p>
-          <ChartInfoTooltip content="The normalized monthly value of all active recurring subscriptions. Calculated as the sum of subscription amounts adjusted to a monthly rate." />
-        </div>
-      </div>
+      <ChartHeader
+        title="Monthly Recurring Revenue"
+        infoTooltip="The normalized monthly value of all active recurring subscriptions. Calculated as the sum of subscription amounts adjusted to a monthly rate."
+        // No inline selector for MRR chart
+        showInlineSelector={false}
+      />
 
-      <div className="px-4 mt-1">
-        {isLoading ? (
-          <Skeleton className="w-36 h-7" />
-        ) : (
-          <p className="text-xl font-semibold text-foreground">
-            {formattedMRRValue}
-          </p>
-        )}
-      </div>
-      {isLoading ? (
-        <div className="-mb-2 mt-2 flex items-center">
-          <Skeleton className="h-80 w-full" />
-        </div>
-      ) : (
+      <ChartValueDisplay
+        value={formattedMRRValue}
+        isLoading={isLoading}
+      />
+
+      <ChartBody isLoading={isLoading}>
         <LineChart
           data={chartData}
           index="date"
@@ -191,29 +142,19 @@ export const RecurringRevenueChart = ({
           showYAxis={false}
           valueFormatter={(value: number) =>
             stripeCurrencyAmountToHumanReadableCurrencyAmount(
-              organization?.defaultCurrency!,
+              currencyForFormatter,
               value
             )
           }
           yAxisValueFormatter={(value: number) =>
             stripeCurrencyAmountToShortReadableCurrencyAmount(
-              organization?.defaultCurrency!,
+              currencyForFormatter,
               value
             )
           }
-          tooltipCallback={(props: any) => {
-            // Store tooltip data in ref during render, useEffect will update state safely
-            if (props.active) {
-              // Only update if the data is different to prevent unnecessary re-renders
-              if (tooltipData?.label !== props.label) {
-                pendingTooltipData.current = props
-              }
-            } else {
-              pendingTooltipData.current = null
-            }
-          }}
+          tooltipCallback={tooltipCallback}
         />
-      )}
+      </ChartBody>
     </div>
   )
 }
