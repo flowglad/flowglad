@@ -714,24 +714,52 @@ export const bulkInsertOrDoNothingPricesByExternalId = async (
   priceInserts: Price.Insert[],
   transaction: DbTransaction
 ) => {
-  // Get productIds from non-usage prices only
+  // Get productIds from non-usage prices
   const productIds = priceInserts
-    .filter((insert) => insert.productId !== null)
+    .filter(
+      (insert) =>
+        insert.productId !== null && insert.productId !== undefined
+    )
     .map((insert) => insert.productId as string)
-  const pricingModelIdMap =
+  // Get usageMeterIds from usage prices
+  const usageMeterIds = priceInserts
+    .filter(
+      (insert) =>
+        insert.usageMeterId !== null &&
+        insert.usageMeterId !== undefined
+    )
+    .map((insert) => insert.usageMeterId as string)
+
+  const productPricingModelIdMap =
     productIds.length > 0
       ? await pricingModelIdsForProducts(productIds, transaction)
       : new Map<string, string>()
+  const usageMeterPricingModelIdMap =
+    usageMeterIds.length > 0
+      ? await pricingModelIdsForUsageMeters(
+          usageMeterIds,
+          transaction
+        )
+      : new Map<string, string>()
+
   const pricesWithPricingModelId = priceInserts.map(
     (priceInsert): Price.Insert => {
-      const pricingModelId =
-        priceInsert.pricingModelId ??
-        (priceInsert.productId
-          ? pricingModelIdMap.get(priceInsert.productId)
-          : undefined)
+      // Use provided pricingModelId, or derive from product or usage meter
+      let pricingModelId = priceInsert.pricingModelId
+      if (!pricingModelId) {
+        if (priceInsert.productId) {
+          pricingModelId = productPricingModelIdMap.get(
+            priceInsert.productId
+          )
+        } else if (priceInsert.usageMeterId) {
+          pricingModelId = usageMeterPricingModelIdMap.get(
+            priceInsert.usageMeterId
+          )
+        }
+      }
       if (!pricingModelId) {
         throw new Error(
-          `Pricing model id not found for product ${priceInsert.productId}`
+          `Pricing model id not found for price insert (productId: ${priceInsert.productId}, usageMeterId: ${priceInsert.usageMeterId})`
         )
       }
       return {
