@@ -1480,9 +1480,10 @@ describe('editCheckoutSessionBillingAddress', async () => {
       expect(result.feeCalculation!.organizationId).toEqual(
         morOrganization.id
       )
-      // Tax should be calculated for MOR - stripeTaxCalculationId should be set
-      // Note: In test mode, actual tax calculation may return 0 or may not hit Stripe
-      expect(result.feeCalculation!.taxAmountFixed).toBeDefined()
+      // Tax should be calculated for MOR - taxAmountFixed should be a number (may be 0 in test mode)
+      expect(typeof result.feeCalculation!.taxAmountFixed).toBe(
+        'number'
+      )
     })
 
     it('recalculates tax when billing address country changes', async () => {
@@ -1599,17 +1600,24 @@ describe('editCheckoutSessionBillingAddress', async () => {
   })
 
   describe('for Platform organizations', () => {
+    // Setup Platform organization for tests in this describe block
+    const platformOrgSetup = setupOrg({
+      stripeConnectContractType: StripeConnectContractType.Platform,
+    })
+
     it('returns null feeCalculation for Platform organizations (no tax calculation)', async () => {
-      // For this test, we use the same org but the function should skip
-      // tax calculation for Platform orgs. However, since we only have MOR org
-      // setup at the top, let's test using the organization field directly.
-      // The real Platform org behavior is controlled by stripeConnectContractType.
-      // Since we can't easily create a new Platform org here without conflicts,
-      // we'll just verify the billing address is updated correctly.
+      const {
+        organization: platformOrganization,
+        price: platformPrice,
+      } = await platformOrgSetup
+      const platformCustomer = await setupCustomer({
+        organizationId: platformOrganization.id,
+      })
+
       const session = await setupCheckoutSession({
-        organizationId: morOrganization.id,
-        customerId: morCustomer.id,
-        priceId: morPrice.id,
+        organizationId: platformOrganization.id,
+        customerId: platformCustomer.id,
+        priceId: platformPrice.id,
         status: CheckoutSessionStatus.Open,
         type: CheckoutSessionType.Product,
         quantity: 1,
@@ -1652,9 +1660,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
       expect(result.checkoutSession.billingAddress).toEqual(
         billingAddress
       )
-      // MOR org will still calculate fees, so this test validates
-      // the function works correctly with billing address updates
-      expect(result.feeCalculation).not.toBeNull()
+      // Platform orgs should not calculate fees/tax
+      expect(result.feeCalculation).toBeNull()
     })
   })
 
