@@ -1666,7 +1666,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
   })
 
   describe('error cases', () => {
-    it("throws 'Checkout session not found' when checkout session does not exist", async () => {
+    it("throws 'No checkout sessions found' when checkout session does not exist", async () => {
       const billingAddress: BillingAddress = {
         address: {
           line1: '123 Test St',
@@ -1687,7 +1687,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
             transaction
           )
         })
-      ).rejects.toThrow('Checkout session not found')
+      ).rejects.toThrow('No checkout sessions found with id:')
     })
 
     it("throws 'Checkout session is not open' when checkout session is not open", async () => {
