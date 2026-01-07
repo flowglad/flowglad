@@ -2,7 +2,7 @@ import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
 import type { AdminTransactionParams } from '@/db/types'
 import { isNil } from '@/utils/core'
-import { withSpan } from '@/utils/tracing'
+import { traced } from '@/utils/tracing'
 import db from './client'
 import { processLedgerCommand } from './ledgerManager/ledgerManager'
 import type { Event } from './schema/events'
@@ -19,46 +19,118 @@ interface AdminTransactionOptions {
 // only works in the context of a nextjs sessionful runtime.
 
 /**
+ * Core admin transaction logic without tracing.
+ */
+const executeAdminTransaction = async <T>(
+  fn: (params: AdminTransactionParams) => Promise<T>,
+  effectiveLivemode: boolean
+): Promise<T> => {
+  return db.transaction(async (transaction) => {
+    /**
+     * Reseting the role and request.jwt.claims here,
+     * becuase the auth state seems to be returned to the client "dirty",
+     * with the role from the previous session still applied.
+     */
+    await transaction.execute(
+      sql`SELECT set_config('request.jwt.claims', NULL, true);`
+    )
+
+    const resp = await fn({
+      transaction,
+      userId: 'ADMIN',
+      livemode: effectiveLivemode,
+    })
+    await transaction.execute(sql`RESET ROLE;`)
+    return resp
+  })
+}
+
+/**
  * Original adminTransaction. Consider deprecating or refactoring to use comprehensiveAdminTransaction.
  */
 export async function adminTransaction<T>(
   fn: (params: AdminTransactionParams) => Promise<T>,
   options: AdminTransactionOptions = {}
-) {
+): Promise<T> {
   const { livemode = true } = options
   const effectiveLivemode = isNil(livemode) ? true : livemode
-  return withSpan(
+
+  return traced(
     {
-      spanName: 'db.adminTransaction',
-      tracerName: 'db.transaction',
-      kind: SpanKind.CLIENT,
-      attributes: {
-        'db.transaction.type': 'admin',
-        'db.user_id': 'ADMIN',
-        'db.livemode': effectiveLivemode,
+      options: {
+        spanName: 'db.adminTransaction',
+        tracerName: 'db.transaction',
+        kind: SpanKind.CLIENT,
+        attributes: {
+          'db.transaction.type': 'admin',
+          'db.user_id': 'ADMIN',
+          'db.livemode': effectiveLivemode,
+        },
       },
     },
-    async () => {
-      return db.transaction(async (transaction) => {
-        /**
-         * Reseting the role and request.jwt.claims here,
-         * becuase the auth state seems to be returned to the client "dirty",
-         * with the role from the previous session still applied.
-         */
-        await transaction.execute(
-          sql`SELECT set_config('request.jwt.claims', NULL, true);`
-        )
+    () => executeAdminTransaction(fn, effectiveLivemode)
+  )()
+}
 
-        const resp = await fn({
-          transaction, // Cast to DrizzleTransaction
-          userId: 'ADMIN',
-          livemode: effectiveLivemode,
-        })
-        await transaction.execute(sql`RESET ROLE;`)
-        return resp
-      })
+/**
+ * Core comprehensive admin transaction logic without tracing.
+ * Returns the full TransactionOutput so the traced wrapper can extract metrics.
+ */
+const executeComprehensiveAdminTransaction = async <T>(
+  fn: (
+    params: AdminTransactionParams
+  ) => Promise<TransactionOutput<T>>,
+  effectiveLivemode: boolean
+): Promise<TransactionOutput<T>> => {
+  return db.transaction(async (transaction) => {
+    // Set up transaction context (e.g., clearing previous JWT claims)
+    await transaction.execute(
+      sql`SELECT set_config('request.jwt.claims', NULL, true);`
+    )
+    // Admin transactions typically run with higher privileges, no specific role needs to be set via JWT claims normally.
+
+    const paramsForFn: AdminTransactionParams = {
+      transaction,
+      userId: 'ADMIN',
+      livemode: effectiveLivemode,
     }
-  )
+
+    const output = await fn(paramsForFn)
+
+    // Validate that only one of ledgerCommand or ledgerCommands is provided
+    if (
+      output.ledgerCommand &&
+      output.ledgerCommands &&
+      output.ledgerCommands.length > 0
+    ) {
+      throw new Error(
+        'Cannot provide both ledgerCommand and ledgerCommands. Please provide only one.'
+      )
+    }
+
+    // Process events if any
+    if (output.eventsToInsert && output.eventsToInsert.length > 0) {
+      await bulkInsertOrDoNothingEventsByHash(
+        output.eventsToInsert,
+        transaction
+      )
+    }
+
+    // Process ledger commands if any
+    if (output.ledgerCommand) {
+      await processLedgerCommand(output.ledgerCommand, transaction)
+    } else if (
+      output.ledgerCommands &&
+      output.ledgerCommands.length > 0
+    ) {
+      for (const command of output.ledgerCommands) {
+        await processLedgerCommand(command, transaction)
+      }
+    }
+
+    // Return the full output so tracing can extract metrics
+    return output
+  })
 }
 
 /**
@@ -91,84 +163,29 @@ export async function comprehensiveAdminTransaction<T>(
   const { livemode = true } = options
   const effectiveLivemode = isNil(livemode) ? true : livemode
 
-  return withSpan(
+  const output = await traced(
     {
-      spanName: 'db.comprehensiveAdminTransaction',
-      tracerName: 'db.transaction',
-      kind: SpanKind.CLIENT,
-      attributes: {
-        'db.transaction.type': 'admin',
-        'db.user_id': 'ADMIN',
-        'db.livemode': effectiveLivemode,
+      options: {
+        spanName: 'db.comprehensiveAdminTransaction',
+        tracerName: 'db.transaction',
+        kind: SpanKind.CLIENT,
+        attributes: {
+          'db.transaction.type': 'admin',
+          'db.user_id': 'ADMIN',
+          'db.livemode': effectiveLivemode,
+        },
       },
+      extractResultAttributes: (output: TransactionOutput<T>) => ({
+        'db.events_count': output.eventsToInsert?.length ?? 0,
+        'db.ledger_commands_count': output.ledgerCommand
+          ? 1
+          : (output.ledgerCommands?.length ?? 0),
+      }),
     },
-    async (span) => {
-      return db.transaction(async (transaction) => {
-        // Set up transaction context (e.g., clearing previous JWT claims)
-        await transaction.execute(
-          sql`SELECT set_config('request.jwt.claims', NULL, true);`
-        )
-        // Admin transactions typically run with higher privileges, no specific role needs to be set via JWT claims normally.
+    () => executeComprehensiveAdminTransaction(fn, effectiveLivemode)
+  )()
 
-        const paramsForFn: AdminTransactionParams = {
-          transaction,
-          userId: 'ADMIN', // Or appropriate admin identifier
-          livemode: effectiveLivemode,
-        }
-
-        const output = await fn(paramsForFn)
-
-        // Set additional attributes after transaction completes
-        span.setAttributes({
-          'db.events_count': output.eventsToInsert?.length ?? 0,
-          'db.ledger_commands_count': output.ledgerCommand
-            ? 1
-            : (output.ledgerCommands?.length ?? 0),
-        })
-
-        // Validate that only one of ledgerCommand or ledgerCommands is provided
-        if (
-          output.ledgerCommand &&
-          output.ledgerCommands &&
-          output.ledgerCommands.length > 0
-        ) {
-          throw new Error(
-            'Cannot provide both ledgerCommand and ledgerCommands. Please provide only one.'
-          )
-        }
-
-        // Process events if any
-        if (
-          output.eventsToInsert &&
-          output.eventsToInsert.length > 0
-        ) {
-          await bulkInsertOrDoNothingEventsByHash(
-            output.eventsToInsert,
-            transaction
-          )
-        }
-
-        // Process ledger commands if any
-        if (output.ledgerCommand) {
-          await processLedgerCommand(
-            output.ledgerCommand,
-            transaction
-          )
-        } else if (
-          output.ledgerCommands &&
-          output.ledgerCommands.length > 0
-        ) {
-          for (const command of output.ledgerCommands) {
-            await processLedgerCommand(command, transaction)
-          }
-        }
-
-        // No RESET ROLE typically needed here as admin role wasn't set via session context
-
-        return output.result
-      })
-    }
-  )
+  return output.result
 }
 
 /**
@@ -181,7 +198,7 @@ export async function eventfulAdminTransaction<T>(
     params: AdminTransactionParams
   ) => Promise<[T, Event.Insert[]]>,
   options: AdminTransactionOptions
-) {
+): Promise<T> {
   // This is now a simple wrapper around comprehensiveAdminTransaction
   return comprehensiveAdminTransaction(async (params) => {
     const [result, eventInserts] = await fn(params)

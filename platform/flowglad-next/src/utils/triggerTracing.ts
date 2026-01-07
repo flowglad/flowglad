@@ -1,5 +1,5 @@
 import { SpanKind } from '@opentelemetry/api'
-import { withSpan } from '@/utils/tracing'
+import { traced } from '@/utils/tracing'
 
 /**
  * Wraps a Trigger.dev task dispatch call in a tracing span.
@@ -16,24 +16,25 @@ import { withSpan } from '@/utils/tracing'
  * )
  * ```
  */
-export const tracedTrigger = async <T>(
+export const tracedTrigger = <T>(
   taskName: string,
   triggerFn: () => Promise<T>,
   attributes?: Record<string, string | number | boolean | undefined>
-): Promise<T> => {
-  return withSpan(
+): Promise<T> =>
+  traced(
     {
-      spanName: `trigger.dispatch.${taskName}`,
-      tracerName: 'trigger',
-      kind: SpanKind.PRODUCER,
-      attributes: {
-        'trigger.task_name': taskName,
-        ...attributes,
+      options: {
+        spanName: `trigger.dispatch.${taskName}`,
+        tracerName: 'trigger',
+        kind: SpanKind.PRODUCER,
+        attributes: {
+          'trigger.task_name': taskName,
+          ...attributes,
+        },
       },
     },
     triggerFn
-  )
-}
+  )()
 
 /**
  * Wraps a Trigger.dev task's run function in a tracing span.
@@ -53,21 +54,22 @@ export const tracedTrigger = async <T>(
  * })
  * ```
  */
-export const tracedTaskRun = async <T>(
+export const tracedTaskRun = <T>(
   taskName: string,
   runFn: () => Promise<T>,
   attributes?: Record<string, string | number | boolean | undefined>
-): Promise<T> => {
-  return withSpan(
+): Promise<T> =>
+  traced(
     {
-      spanName: `trigger.run.${taskName}`,
-      tracerName: 'trigger',
-      kind: SpanKind.INTERNAL,
-      attributes: {
-        'trigger.task_name': taskName,
-        ...attributes,
+      options: {
+        spanName: `trigger.run.${taskName}`,
+        tracerName: 'trigger',
+        kind: SpanKind.INTERNAL,
+        attributes: {
+          'trigger.task_name': taskName,
+          ...attributes,
+        },
       },
     },
     runFn
-  )
-}
+  )()
