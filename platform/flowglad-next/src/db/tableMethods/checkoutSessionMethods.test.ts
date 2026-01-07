@@ -86,7 +86,6 @@ describe('isCheckoutSessionSubscriptionCreating', () => {
     // Create stubs for non-subscription creating types
     const nonSubscriptionCreatingTypes = [
       CheckoutSessionType.AddPaymentMethod,
-      CheckoutSessionType.Invoice,
     ]
 
     // Test each non-subscription creating type

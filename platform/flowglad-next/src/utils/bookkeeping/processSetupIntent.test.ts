@@ -331,33 +331,6 @@ describe('Process setup intent', async () => {
       )
     })
 
-    it('throws an error when checkout session type is Invoice', async () => {
-      // Update checkout session to Invoice type
-      const invoiceCheckoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Invoice,
-        livemode: true,
-        quantity: 1,
-      })
-      const invoiceSetupIntent = mockSucceededSetupIntent({
-        checkoutSessionId: invoiceCheckoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          return processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
-            invoiceSetupIntent,
-            transaction
-          )
-        })
-      ).rejects.toThrow(
-        'processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Invoice checkout flow not supported'
-      )
-    })
-
     it('throws an error when checkout session type is AddPaymentMethod', async () => {
       // Update checkout session to AddPaymentMethod type
       const addPaymentMethodCheckoutSession =
