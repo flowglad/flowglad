@@ -2131,7 +2131,7 @@ describe('calculatePlatformApplicationFee', () => {
     expect(result).toBe(169)
   })
 
-  it('handles small subtotal amounts correctly', () => {
+  it('calculates fee with default 0.65% take rate plus 2.9% + $0.50 for $1 subtotal', () => {
     const organization = createTestOrganization({
       feePercentage: '0.65',
     })
