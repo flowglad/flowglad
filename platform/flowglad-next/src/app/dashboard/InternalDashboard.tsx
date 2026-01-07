@@ -1,13 +1,16 @@
 'use client'
 import { startOfDay, subMonths } from 'date-fns'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DateRangeActiveSubscribersChart from '@/components/DateRangeActiveSubscribersChart'
 import DateRangeRecurringRevenueChart from '@/components/DateRangeRecurringRevenueChart'
 import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import { RevenueChart } from '@/components/RevenueChart'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
+import { IntervalPicker } from '@/components/ui/interval-picker'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { useAuthContext } from '@/contexts/authContext'
+import { RevenueChartIntervalUnit } from '@/types'
+import { getIntervalConfig } from '@/utils/chartIntervalUtils'
 
 const ChartContainer = ({
   children,
@@ -44,27 +47,56 @@ function InternalDashboardPage({
     from: subMonths(today, 12),
     to: today,
   })
+
+  // Global interval state for all charts
+  const [interval, setInterval] = useState<RevenueChartIntervalUnit>(
+    () => getIntervalConfig(range.from, range.to).default
+  )
+
+  // Auto-correct interval when date range changes if it becomes invalid
+  useEffect(() => {
+    const config = getIntervalConfig(range.from, range.to)
+    const isCurrentIntervalInvalid =
+      !config.options.includes(interval)
+
+    if (isCurrentIntervalInvalid) {
+      setInterval(config.default)
+    }
+  }, [range, interval])
+
   return (
     <InnerPageContainerNew>
       <PageHeaderNew
         title={greeting}
         className="pb-2"
         description={
-          <DateRangePicker
-            fromDate={range.from}
-            toDate={range.to}
-            maxDate={new Date()}
-            onSelect={(newRange) => {
-              if (newRange?.from && newRange?.to) {
-                setRange({ from: newRange.from, to: newRange.to })
-              }
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <DateRangePicker
+              fromDate={range.from}
+              toDate={range.to}
+              maxDate={new Date()}
+              onSelect={(newRange) => {
+                if (newRange?.from && newRange?.to) {
+                  setRange({ from: newRange.from, to: newRange.to })
+                }
+              }}
+            />
+            <IntervalPicker
+              value={interval}
+              onValueChange={setInterval}
+              fromDate={range.from}
+              toDate={range.to}
+            />
+          </div>
         }
       />
       <div className="w-full flex flex-col gap-6 pt-4 pb-16">
         <ChartContainer>
-          <RevenueChart fromDate={range.from} toDate={range.to} />
+          <RevenueChart
+            fromDate={range.from}
+            toDate={range.to}
+            interval={interval}
+          />
         </ChartContainer>
         <ChartDivider />
         <ChartContainer>
@@ -72,6 +104,7 @@ function InternalDashboardPage({
             organizationCreatedAt={organizationCreatedAt}
             fromDate={range.from}
             toDate={range.to}
+            interval={interval}
           />
         </ChartContainer>
         <ChartDivider />
@@ -80,6 +113,7 @@ function InternalDashboardPage({
             organizationCreatedAt={organizationCreatedAt}
             fromDate={range.from}
             toDate={range.to}
+            interval={interval}
           />
         </ChartContainer>
       </div>

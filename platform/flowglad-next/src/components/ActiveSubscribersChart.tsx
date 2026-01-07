@@ -1,5 +1,5 @@
 'use client'
-import { differenceInHours, format, isValid } from 'date-fns'
+import { isValid } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
@@ -12,51 +12,15 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
+import {
+  getDefaultInterval,
+  getIntervalConfig,
+  intervalNounLabels,
+} from '@/utils/chartIntervalUtils'
 import { LineChart } from './charts/LineChart'
 import ErrorBoundary from './ErrorBoundary'
 import { ChartInfoTooltip } from './ui/chart-info-tooltip'
 import { Skeleton } from './ui/skeleton'
-
-/**
- * Two dots make a graph principle: this is the minimum range duration required
- * in hours, required to display a multi-point graph
- */
-const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
-  [RevenueChartIntervalUnit.Year]: 24 * 365 * 2,
-  [RevenueChartIntervalUnit.Month]: 24 * 30 * 2,
-  [RevenueChartIntervalUnit.Week]: 24 * 7 * 2,
-  [RevenueChartIntervalUnit.Day]: 24 * 2,
-  [RevenueChartIntervalUnit.Hour]: 1 * 2,
-} as const
-
-/**
- * Computes the best default interval based on the date range.
- * Based on preset expectations:
- * - Last 3/6/12 months → Monthly (>= 60 days)
- * - Last 7/30 days → Daily (>= 1 day but < 60 days)
- * - Today → Hourly (< 1 day)
- */
-function getDefaultInterval(
-  fromDate: Date,
-  toDate: Date
-): RevenueChartIntervalUnit {
-  const timespanInHours = differenceInHours(toDate, fromDate)
-
-  // 2+ months (60 days = 1440 hours): Monthly
-  // Covers Last 3 months, Last 6 months, Last 12 months
-  if (timespanInHours >= 24 * 60) {
-    return RevenueChartIntervalUnit.Month
-  }
-
-  // 2+ days (48 hours) but less than 2 months: Daily
-  // Covers Last 7 days, Last 30 days
-  if (timespanInHours >= 24 * 2) {
-    return RevenueChartIntervalUnit.Day
-  }
-
-  // Less than 1 day (including "Today"): Hourly
-  return RevenueChartIntervalUnit.Hour
-}
 
 const MONTH_NAMES_SHORT = [
   'Jan',
@@ -184,15 +148,23 @@ const SubscriberCountTooltip = ({
 
 /**
  * Component for displaying Active Subscribers data in a chart
+ *
+ * @param interval - Optional controlled interval. When provided, the chart uses this value
+ *                   and hides its inline interval selector.
+ * @param onIntervalChange - Optional callback for controlled mode interval changes.
  */
 export const ActiveSubscribersChart = ({
   fromDate,
   toDate,
   productId,
+  interval: controlledInterval,
+  onIntervalChange,
 }: {
   fromDate: Date
   toDate: Date
   productId?: string
+  interval?: RevenueChartIntervalUnit
+  onIntervalChange?: (interval: RevenueChartIntervalUnit) => void
 }) => {
   // Compute the best default interval based on available options
   const defaultInterval = React.useMemo(
@@ -200,21 +172,29 @@ export const ActiveSubscribersChart = ({
     [fromDate, toDate]
   )
 
-  const [interval, setInterval] =
+  const [internalInterval, setInternalInterval] =
     React.useState<RevenueChartIntervalUnit>(defaultInterval)
 
-  const timespanInHours = differenceInHours(toDate, fromDate)
+  // Use controlled value if provided, otherwise internal
+  const interval = controlledInterval ?? internalInterval
+  const handleIntervalChange = onIntervalChange ?? setInternalInterval
+
+  // Hide inline selector when controlled externally
+  const showInlineSelector = controlledInterval === undefined
 
   // Update interval if current selection becomes invalid due to date range change
   React.useEffect(() => {
+    // Only auto-correct for uncontrolled mode
+    if (controlledInterval !== undefined) return
+
+    const config = getIntervalConfig(fromDate, toDate)
     const isCurrentIntervalInvalid =
-      interval !== RevenueChartIntervalUnit.Hour &&
-      timespanInHours < minimumUnitInHours[interval]
+      !config.options.includes(internalInterval)
 
     if (isCurrentIntervalInvalid) {
-      setInterval(getDefaultInterval(fromDate, toDate))
+      setInternalInterval(config.default)
     }
-  }, [timespanInHours, interval, fromDate, toDate])
+  }, [fromDate, toDate, internalInterval, controlledInterval])
 
   const { data: subscriberData, isLoading } =
     trpc.organizations.getActiveSubscribers.useQuery({
@@ -241,55 +221,12 @@ export const ActiveSubscribersChart = ({
   })
 
   const intervalOptions = React.useMemo(() => {
-    const options = []
-
-    // Only show years if span is >= 2 years
-    if (
-      timespanInHours >=
-      minimumUnitInHours[RevenueChartIntervalUnit.Year]
-    ) {
-      options.push({
-        label: 'year',
-        value: RevenueChartIntervalUnit.Year,
-      })
-    }
-
-    // Only show months if span is >= 2 months
-    if (
-      timespanInHours >=
-      minimumUnitInHours[RevenueChartIntervalUnit.Month]
-    ) {
-      options.push({
-        label: 'month',
-        value: RevenueChartIntervalUnit.Month,
-      })
-    }
-
-    // Only show weeks if span is >= 2 weeks
-    if (
-      timespanInHours >=
-      minimumUnitInHours[RevenueChartIntervalUnit.Week]
-    ) {
-      options.push({
-        label: 'week',
-        value: RevenueChartIntervalUnit.Week,
-      })
-    }
-
-    // Always show days and hours
-    options.push(
-      {
-        label: 'day',
-        value: RevenueChartIntervalUnit.Day,
-      },
-      {
-        label: 'hour',
-        value: RevenueChartIntervalUnit.Hour,
-      }
-    )
-
-    return options
-  }, [timespanInHours])
+    const config = getIntervalConfig(fromDate, toDate)
+    return config.options.map((opt) => ({
+      label: intervalNounLabels[opt],
+      value: opt,
+    }))
+  }, [fromDate, toDate])
 
   const firstPayloadValue = tooltipData?.payload?.[0]?.value
   const chartData = React.useMemo(() => {
@@ -338,24 +275,30 @@ export const ActiveSubscribersChart = ({
       <div className="flex flex-row gap-2 justify-between px-4">
         <div className="text-foreground w-fit flex items-center flex-row gap-0.5">
           <p className="whitespace-nowrap">Active Subscribers</p>
-          <Select
-            value={interval}
-            onValueChange={(value) =>
-              setInterval(value as RevenueChartIntervalUnit)
-            }
-          >
-            <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground shadow-none h-auto py-0 gap-0 text-base">
-              <span className="text-muted-foreground">by&nbsp;</span>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {intervalOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {showInlineSelector && (
+            <Select
+              value={interval}
+              onValueChange={(value) =>
+                handleIntervalChange(
+                  value as RevenueChartIntervalUnit
+                )
+              }
+            >
+              <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground shadow-none h-auto py-0 gap-0 text-base">
+                <span className="text-muted-foreground">
+                  by&nbsp;
+                </span>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {intervalOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <ChartInfoTooltip content="The number of customers with active paid subscriptions at each point in time." />
         </div>
       </div>

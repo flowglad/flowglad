@@ -1,5 +1,5 @@
 'use client'
-import { differenceInHours, format } from 'date-fns'
+import { format } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
@@ -8,8 +8,8 @@ import { useAuthenticatedContext } from '@/contexts/authContext'
 import { RevenueChartIntervalUnit } from '@/types'
 import {
   getDefaultInterval,
-  minimumUnitInHours,
-} from '@/utils/revenueChartUtils'
+  getIntervalConfig,
+} from '@/utils/chartIntervalUtils'
 import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
@@ -20,15 +20,19 @@ import { Skeleton } from './ui/skeleton'
 
 /**
  * Component for displaying Monthly Recurring Revenue (MRR) data in a chart
+ *
+ * @param interval - Optional controlled interval. When provided, the chart uses this value.
  */
 export const RecurringRevenueChart = ({
   fromDate,
   toDate,
   productId,
+  interval: controlledInterval,
 }: {
   fromDate: Date
   toDate: Date
   productId?: string
+  interval?: RevenueChartIntervalUnit
 }) => {
   const { organization } = useAuthenticatedContext()
 
@@ -38,21 +42,25 @@ export const RecurringRevenueChart = ({
     [fromDate, toDate]
   )
 
-  const [interval, setInterval] =
+  const [internalInterval, setInternalInterval] =
     React.useState<RevenueChartIntervalUnit>(defaultInterval)
 
-  const timespanInHours = differenceInHours(toDate, fromDate)
+  // Use controlled value if provided, otherwise internal
+  const interval = controlledInterval ?? internalInterval
 
   // Update interval if current selection becomes invalid due to date range change
   React.useEffect(() => {
+    // Only auto-correct for uncontrolled mode
+    if (controlledInterval !== undefined) return
+
+    const config = getIntervalConfig(fromDate, toDate)
     const isCurrentIntervalInvalid =
-      interval !== RevenueChartIntervalUnit.Hour &&
-      timespanInHours < minimumUnitInHours[interval]
+      !config.options.includes(internalInterval)
 
     if (isCurrentIntervalInvalid) {
-      setInterval(getDefaultInterval(fromDate, toDate))
+      setInternalInterval(config.default)
     }
-  }, [timespanInHours, interval, fromDate, toDate])
+  }, [fromDate, toDate, internalInterval, controlledInterval])
 
   const { data: mrrData, isLoading } =
     trpc.organizations.getMRR.useQuery({

@@ -112,7 +112,10 @@ interface BillingRunNotificationParams {
 interface ProcessOutcomeForBillingRunParams {
   input: PaymentIntentEvent | Stripe.PaymentIntent
   adjustmentParams?: {
-    newSubscriptionItems: SubscriptionItem.Record[]
+    newSubscriptionItems: (
+      | SubscriptionItem.Insert
+      | SubscriptionItem.Record
+    )[]
     adjustmentDate: Date | number
   }
 }

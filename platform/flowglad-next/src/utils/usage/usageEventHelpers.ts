@@ -147,6 +147,29 @@ export const resolveUsageEventInput = async (
         message: `Price ${price.id} does not have a usage meter associated with it.`,
       })
     }
+
+    // Validate that the price belongs to the customer's pricing model
+    const subscription = await selectSubscriptionById(
+      input.usageEvent.subscriptionId,
+      transaction
+    )
+    const customer = await selectCustomerById(
+      subscription.customerId,
+      transaction
+    )
+    if (!customer.pricingModelId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Customer ${customer.id} does not have a pricing model associated`,
+      })
+    }
+    if (price.pricingModelId !== customer.pricingModelId) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `Price ${price.id} not found for this customer's pricing model`,
+      })
+    }
+
     const usageMeterId = price.usageMeterId
     return {
       usageEvent: {
@@ -593,6 +616,12 @@ export const ingestAndProcessUsageEvent = async (
       transaction
     )
 
+  // Fetch subscription - needed for validation and for insert
+  const subscription = await selectSubscriptionById(
+    usageEventInput.subscriptionId,
+    transaction
+  )
+
   // Determine usageMeterId based on whether priceId is provided or not
   let usageMeterId: string
 
@@ -614,6 +643,25 @@ export const ingestAndProcessUsageEvent = async (
         message: `Price ${price.id} does not have a usage meter associated with it.`,
       })
     }
+
+    // Validate that the price belongs to the customer's pricing model
+    const customer = await selectCustomerById(
+      subscription.customerId,
+      transaction
+    )
+    if (!customer.pricingModelId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Customer ${customer.id} does not have a pricing model associated`,
+      })
+    }
+    if (price.pricingModelId !== customer.pricingModelId) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `Price ${price.id} not found for this customer's pricing model`,
+      })
+    }
+
     usageMeterId = price.usageMeterId
   } else {
     // When priceId is null, usageMeterId must be provided in the input
@@ -626,12 +674,6 @@ export const ingestAndProcessUsageEvent = async (
     }
     usageMeterId = usageEventInput.usageMeterId
   }
-
-  // Fetch subscription - needed for validation (if usageMeterId path) and for insert
-  const subscription = await selectSubscriptionById(
-    usageEventInput.subscriptionId,
-    transaction
-  )
 
   // If usageMeterId was provided directly, validate it belongs to customer's pricing model
   if (!usageEventInput.priceId) {

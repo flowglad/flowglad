@@ -9,17 +9,18 @@ import {
   type CheckoutSession,
   checkoutSessionsPaginatedListSchema,
   checkoutSessionsPaginatedSelectSchema,
+  checkoutSessionsSelectSchema,
   createCheckoutSessionInputSchema,
   editCheckoutSessionInputSchema,
   singleCheckoutSessionOutputSchema,
 } from '@/db/schema/checkoutSessions'
+import { customerFacingFeeCalculationSelectSchema } from '@/db/schema/feeCalculations'
 import { billingAddressSchema } from '@/db/schema/organizations'
 import {
   selectCheckoutSessionById,
   selectCheckoutSessions,
   selectCheckoutSessionsPaginated,
   updateCheckoutSessionAutomaticallyUpdateSubscriptions,
-  updateCheckoutSessionBillingAddress,
   updateCheckoutSessionCustomerEmail,
   updateCheckoutSession as updateCheckoutSessionDb,
   updateCheckoutSessionPaymentMethodType,
@@ -38,6 +39,7 @@ import {
   CheckoutSessionType,
   PaymentMethodType,
 } from '@/types'
+import { editCheckoutSessionBillingAddress } from '@/utils/bookkeeping/checkoutSessions'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
 import core from '@/utils/core'
 import { generateOpenApiMetas } from '@/utils/openapi'
@@ -217,12 +219,25 @@ export const setBillingAddressProcedure = publicProcedure
   .input(
     z.object({ id: z.string(), billingAddress: billingAddressSchema })
   )
-  .mutation(async ({ input, ctx }) => {
+  .output(
+    z.object({
+      checkoutSession: checkoutSessionsSelectSchema,
+      feeCalculation:
+        customerFacingFeeCalculationSelectSchema.nullable(),
+    })
+  )
+  .mutation(async ({ input }) => {
     return adminTransaction(async ({ transaction }) => {
-      const checkoutSession =
-        await updateCheckoutSessionBillingAddress(input, transaction)
+      const result = await editCheckoutSessionBillingAddress(
+        {
+          checkoutSessionId: input.id,
+          billingAddress: input.billingAddress,
+        },
+        transaction
+      )
       return {
-        checkoutSession,
+        checkoutSession: result.checkoutSession,
+        feeCalculation: result.feeCalculation,
       }
     })
   })
