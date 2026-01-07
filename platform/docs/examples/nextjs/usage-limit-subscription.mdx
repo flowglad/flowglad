@@ -48,41 +48,7 @@ Unlike pure usage-based billing, customers get cost predictability from their su
 
 The `pricing.yaml` defines subscription tiers with included credits and an overage product for additional usage. See the [full configuration](https://github.com/flowglad/examples/blob/main/nextjs/usage-limit-subscription/pricing.yaml) in the repository.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           USAGE METER                                       │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │   fast_premium_requests (sum aggregation)                           │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                    ┌─────────────────┴─────────────────┐
-                    ▼                                   ▼
-┌───────────────────────────────────┐   ┌───────────────────────────────────┐
-│      SUBSCRIPTION TIERS           │   │         OVERAGE                   │
-│  (renews every billing period)    │   │    (billed per request)           │
-├───────────────────────────────────┤   ├───────────────────────────────────┤
-│                                   │   │                                   │
-│  Hobby     $0/mo (14-day trial)   │   │  Fast Request Overage   $0.10    │
-│            250 fast requests      │   │  per request after limit          │
-│                                   │   │                                   │
-│  Pro       $20/mo                 │   └───────────────────────────────────┘
-│            500 fast requests      │
-│            + Unlimited Slow       │
-│            + Unlimited Completions│
-│            + Background Agents    │
-│                                   │
-│  Pro+      $60/mo                 │
-│            1,500 fast requests    │
-│            + All Pro features     │
-│                                   │
-│  Ultra     $200/mo                │
-│            10,000 fast requests   │
-│            + All Pro+ features    │
-│            + Priority Access      │
-│                                   │
-└───────────────────────────────────┘
-```
+![pricing diagram](/images/example-diagrams/usage-limit-diagram.svg)
 
 The key distinction in `pricing.yaml` is `renewalFrequency: "every_billing_period"` for subscription credits that reset monthly. The overage product uses `type: "usage"` to bill per-request when credits are exhausted.
 

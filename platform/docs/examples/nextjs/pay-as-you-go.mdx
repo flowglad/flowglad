@@ -44,26 +44,7 @@ This model works well for products with unpredictable usage patterns or where cu
 
 The `pricing.yaml` file defines the free plan, usage meter, and credit top-up product. See the [full configuration](https://github.com/flowglad/examples/blob/main/nextjs/pay-as-you-go/pricing.yaml) in the repository.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           USAGE METER                                       │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │   message_credits (sum aggregation)                                  │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                    ┌─────────────────┴─────────────────┐
-                    ▼                                   ▼
-┌───────────────────────────────────┐   ┌───────────────────────────────────┐
-│         FREE PLAN                 │   │         TOP-UP                    │
-│    (default for all users)        │   │    (one-time purchase)            │
-├───────────────────────────────────┤   ├───────────────────────────────────┤
-│                                   │   │                                   │
-│  $0                               │   │  Message Top-Up          $100     │
-│  No included credits              │   │  +100 message credits             │
-│                                   │   │                                   │
-└───────────────────────────────────┘   └───────────────────────────────────┘
-```
+![pricing diagram](/images/example-diagrams/pay-as-you-go-diagram.svg)
 
 The key distinction from subscription models: there is no `renewalFrequency: "every_billing_period"`. All credits use `renewalFrequency: "once"`, meaning they persist until consumed.
 

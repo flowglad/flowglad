@@ -49,56 +49,7 @@ The key distinction from generation-based billing: here, different features have
 
 The `pricing.yaml` defines features as toggles or usage credit grants. See the [full configuration](https://github.com/flowglad/examples/blob/main/nextjs/tiered-usage-gated-subscription/pricing.yaml) in the repository.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              USAGE METERS                                   │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐                │
-│  │ o3_messages     │ │ o4_mini_messages│ │ agent_messages  │  ...           │
-│  │ (sum)           │ │ (sum)           │ │ (sum)           │                │
-│  └─────────────────┘ └─────────────────┘ └─────────────────┘                │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-        ┌───────────────────────────┼───────────────────────────┐
-        ▼                           ▼                           ▼
-┌───────────────────┐   ┌───────────────────────┐   ┌───────────────────────┐
-│  TOGGLE FEATURES  │   │  USAGE CREDIT GRANTS  │   │  TRACKING PRODUCTS    │
-│  (binary access)  │   │  (monthly limits)     │   │  (usage recording)    │
-├───────────────────┤   ├───────────────────────┤   ├───────────────────────┤
-│                   │   │                       │   │                       │
-│  o3_access        │   │  o3_limit             │   │  o3_tracking          │
-│  o4_mini_access   │   │  400/month            │   │  $0 per event         │
-│  agent_mode       │   │  → o3_messages meter  │   │  → o3_messages meter  │
-│  deep_research    │   │                       │   │                       │
-│  context_128k     │   │  o4_mini_limit        │   │  o4_mini_tracking     │
-│  ...              │   │  9,000/month          │   │  agent_tracking       │
-│                   │   │  → o4_mini_messages   │   │  ...                  │
-│                   │   │                       │   │                       │
-└───────────────────┘   └───────────────────────┘   └───────────────────────┘
-                                    │
-              ┌─────────────────────┴─────────────────────┐
-              ▼                                           ▼
-┌───────────────────────────────────┐   ┌───────────────────────────────────┐
-│       SUBSCRIPTION TIERS          │   │          BUSINESS TIER            │
-│  (each includes feature slugs)    │   │     (per-seat pricing)            │
-├───────────────────────────────────┤   ├───────────────────────────────────┤
-│                                   │   │                                   │
-│  Free       $0/mo                 │   │  Business    $30/user/mo          │
-│             gpt_5_fast            │   │              All Plus features    │
-│             context_16k           │   │              + workspace_admin    │
-│                                   │   │                                   │
-│  Plus       $20/mo                │   └───────────────────────────────────┘
-│             gpt_5_thinking        │
-│             o3_access + o3_limit  │
-│             o4_mini_access + ...  │
-│             agent_mode + limit    │
-│                                   │
-│  Pro        $200/mo               │
-│             Unlimited o-models    │
-│             agent_limit_pro (400) │
-│             deep_research         │
-│                                   │
-└───────────────────────────────────┘
-```
+![pricing diagram](/images/example-diagrams/tiered-usage-gated-diagram.svg)
 
 The key distinction in this model: features combine **toggles** (binary access) with **usage credit grants** (monthly limits). Products reference feature slugs to compose each tier's capabilities.
 

@@ -47,45 +47,7 @@ This model works well when you want predictable recurring revenue while giving c
 
 The `pricing.yaml` file defines subscription tiers, credit allocations, and top-up products. See the [full configuration](https://github.com/flowglad/examples/blob/main/tanstack-start/generation-based-subscription/pricing.yaml) in the repository.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         USAGE METERS                                        │
-│  ┌─────────────────────────┐    ┌─────────────────────────┐                 │
-│  │   fast_generations      │    │   hd_video_minutes      │                 │
-│  │   (sum aggregation)     │    │   (sum aggregation)     │                 │
-│  └─────────────────────────┘    └─────────────────────────┘                 │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                    ┌─────────────────┴─────────────────┐
-                    ▼                                   ▼
-┌───────────────────────────────────┐   ┌───────────────────────────────────┐
-│      SUBSCRIPTION TIERS           │   │         TOP-UPS                   │
-│  (renews every billing period)    │   │    (one-time purchase)            │
-├───────────────────────────────────┤   ├───────────────────────────────────┤
-│                                   │   │                                   │
-│  Free      $0/mo                  │   │  Fast Generations    $4           │
-│            No credits             │   │  +80 credits                      │
-│                                   │   │                                   │
-│  Basic     $10/mo                 │   │  HD Video Minutes    $10          │
-│            200 fast generations   │   │  +10 minutes                      │
-│                                   │   │                                   │
-│  Standard  $30/mo                 │   └───────────────────────────────────┘
-│            360 fast generations   │
-│            30 HD video minutes    │
-│            + Unlimited Relaxed    │
-│                                   │
-│  Pro       $60/mo                 │
-│            750 fast generations   │
-│            60 HD video minutes    │
-│            + Stealth Mode         │
-│                                   │
-│  Mega      $120/mo                │
-│            900+ fast generations  │
-│            120 HD video minutes   │
-│            + All features         │
-│                                   │
-└───────────────────────────────────┘
-```
+![pricing diagram](/images/example-diagrams/generation-based-diagram.svg)
 
 The key distinction in `pricing.yaml` is `renewalFrequency`: use `"every_billing_period"` for subscription credits that reset monthly, and `"once"` for top-up credits that are consumed permanently.
 

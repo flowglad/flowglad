@@ -87,28 +87,70 @@ View the complete source code on [GitHub](https://github.com/flowglad/examples/t
 
 The `pricing.yaml` file defines [brief description of what it configures]. See the [full configuration](https://github.com/flowglad/examples/blob/main/[framework]/[example-name]/pricing.yaml) in the repository.
 
-[MERMAID DIAGRAM of the pricing model - show the relationship between usage meters, subscription tiers, and any top-ups or features. Follow this pattern:]
+**SVG DIAGRAM:** Create a separate `.svg` file in the `images/` directory and reference it in MDX like this:
 
-```mermaid
-flowchart TB
-    subgraph UsageMeters["USAGE METERS"]
-        meter1["meter_name<br/>(aggregation type)"]
-        meter2["another_meter<br/>(aggregation type)"]
-    end
-
-    subgraph Subscriptions["SUBSCRIPTION TIERS<br/>(renews every billing period)"]
-        free["**Free** $0/mo<br/>No credits"]
-        basic["**Basic** $X/mo<br/>N credits"]
-        pro["**Pro** $Y/mo<br/>M credits<br/>+ Premium features"]
-    end
-
-    subgraph TopUps["TOP-UPS<br/>(one-time purchase)"]
-        topup1["**Credit Pack** $X<br/>+N credits"]
-    end
-
-    UsageMeters --> Subscriptions
-    UsageMeters --> TopUps
+```mdx
+![pricing diagram](/images/[example-name]-diagram.svg)
 ```
+
+**Brand colors for dark mode (primary theme):**
+- Primary light (strokes/arrows): `#ffc898`
+- Container background: `#3f3935`
+- Inner box background: `#45403d`
+- Primary text: `#fbfaf4`
+- Secondary text: `#ccc2a9`
+- Border radius: `rx="4"` for inner boxes, `rx="6"` for containers
+
+**SVG structure pattern:**
+
+```html
+<svg viewBox="0 0 800 620" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, sans-serif; max-width: 100%;">
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ffc898"/>
+    </marker>
+  </defs>
+
+  <!-- Usage Meters Section -->
+  <g>
+    <rect x="50" y="20" width="700" height="90" rx="6" fill="#3f3935" stroke="#ffc898" stroke-width="1.5"/>
+    <text x="400" y="45" text-anchor="middle" font-weight="600" font-size="14" fill="#fbfaf4">USAGE METERS</text>
+    <!-- Meter boxes -->
+    <rect x="120" y="55" width="200" height="45" rx="4" fill="#45403d" stroke="#ffc898"/>
+    <text x="220" y="75" text-anchor="middle" font-size="12" fill="#fbfaf4">meter_name</text>
+    <text x="220" y="90" text-anchor="middle" font-size="10" fill="#ccc2a9">(sum aggregation)</text>
+  </g>
+
+  <!-- Arrows from meters -->
+  <path d="M250 110 L250 140 L220 170" stroke="#ffc898" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M550 110 L550 140 L580 170" stroke="#ffc898" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Subscription Tiers Section -->
+  <g>
+    <rect x="50" y="170" width="340" height="300" rx="6" fill="#3f3935" stroke="#ffc898" stroke-width="1.5"/>
+    <text x="220" y="195" text-anchor="middle" font-weight="600" font-size="14" fill="#fbfaf4">SUBSCRIPTION TIERS</text>
+    <text x="220" y="212" text-anchor="middle" font-size="10" fill="#ccc2a9">(renews every billing period)</text>
+    <!-- Tier boxes -->
+    <rect x="70" y="225" width="300" height="45" rx="4" fill="#45403d" stroke="#ffc898"/>
+    <text x="220" y="248" text-anchor="middle" font-weight="600" font-size="12" fill="#fbfaf4">Free $0/mo</text>
+    <text x="220" y="263" text-anchor="middle" font-size="10" fill="#ccc2a9">No credits</text>
+  </g>
+
+  <!-- Top-ups Section -->
+  <g>
+    <rect x="410" y="170" width="340" height="180" rx="6" fill="#3f3935" stroke="#ffc898" stroke-width="1.5"/>
+    <text x="580" y="195" text-anchor="middle" font-weight="600" font-size="14" fill="#fbfaf4">TOP-UPS</text>
+    <text x="580" y="212" text-anchor="middle" font-size="10" fill="#ccc2a9">(one-time purchase)</text>
+    <!-- Top-up boxes -->
+    <rect x="430" y="225" width="300" height="50" rx="4" fill="#45403d" stroke="#ffc898"/>
+    <text x="580" y="248" text-anchor="middle" font-weight="600" font-size="12" fill="#fbfaf4">Credit Pack $X</text>
+    <text x="580" y="265" text-anchor="middle" font-size="10" fill="#ccc2a9">+N credits</text>
+  </g>
+</svg>
+```
+
+**Reference example:** See `/images/generation-based-diagram.svg` for a complete implementation.
 
 [1-2 sentences explaining the key distinction of this pricing model, e.g., renewalFrequency settings or feature toggles vs usage grants]
 
@@ -159,25 +201,26 @@ const balance = billing.checkUsageBalance('generations');
 
 **IMPORTANT**: The filename in the code block MUST match the exact path from the repository. For example, if the code comes from `src/app/api/usage-events/route.ts` in the flowglad/examples repo, use that exact path.
 
-For pricing configurations, use Mermaid diagrams instead of YAML snippets. This makes the pricing model structure immediately clear and renders nicely in documentation:
+For pricing configurations, create SVG diagram files and reference them in the MDX. This makes the pricing model structure immediately clear and renders nicely in documentation.
 
-```mermaid
-flowchart TB
-    subgraph UsageMeters["USAGE METER"]
-        meter["message_credits<br/>(sum aggregation)"]
-    end
+**SVG diagram file creation:**
+1. Create a new `.svg` file in the `images/` directory (e.g., `images/[example-name]-diagram.svg`)
+2. Reference in MDX with standard markdown image syntax:
+   ```mdx
+   ![pricing diagram](/images/[example-name]-diagram.svg)
+   ```
 
-    subgraph Subscriptions["FREE PLAN<br/>(default for all users)"]
-        free["$0<br/>No included credits"]
-    end
-
-    subgraph TopUps["TOP-UP<br/>(one-time purchase)"]
-        topup["**Message Top-Up** $100<br/>+100 message credits"]
-    end
-
-    UsageMeters --> Subscriptions
-    UsageMeters --> TopUps
-```
+**SVG diagram guidelines:**
+- Use `viewBox` for responsive scaling (e.g., `viewBox="0 0 800 620"`)
+- Use dark mode colors for the page background (`#2d2a28`):
+  - Container fills: `#3f3935`
+  - Inner box fills: `#45403d`
+  - Strokes/arrows: `#ffc898` (primary light)
+  - Primary text: `#fbfaf4`
+  - Secondary text: `#ccc2a9`
+- Use `rx="4"` for inner boxes, `rx="6"` for container boxes
+- Include arrow marker definition in `<defs>` section
+- Keep font sizes readable: 12-14px for labels, 10px for descriptions
 
 Always link to the full `pricing.yaml` in the GitHub repo for users who want the exact configuration.
 
@@ -243,7 +286,7 @@ Common pricing models to document:
 - [ ] Key concepts are explained in plain English, not just shown in code
 - [ ] No full file dumps - only essential snippets
 - [ ] File paths in code blocks match EXACT paths from the repository (e.g., `src/app/api/usage-events/route.ts`)
-- [ ] Pricing model shown as Mermaid diagram with link to full pricing.yaml in repo
+- [ ] Pricing model SVG diagram created in `images/` directory and referenced with `![pricing diagram](/images/[name]-diagram.svg)`
 - [ ] Link to source repository prominently displayed
 - [ ] Total doc length is reasonable (aim for <200 lines of markdown)
 - [ ] Next steps CardGroup includes GitHub link to the specific example

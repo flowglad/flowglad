@@ -48,29 +48,8 @@ This model works well when you want predictable recurring revenue while giving c
 
 The `pricing.yaml` file defines subscription tiers, credit allocations, and top-up products. See the [full configuration](https://github.com/flowglad/examples/blob/main/nextjs/generation-based-subscription/pricing.yaml) in the repository.
 
-```mermaid
-flowchart TB
-    subgraph UsageMeters["USAGE METERS"]
-        meter1["fast_generations<br/>(sum aggregation)"]
-        meter2["hd_video_minutes<br/>(sum aggregation)"]
-    end
 
-    subgraph Subscriptions["MONTHLY PLANS"]
-        free["**Free** $0/mo<br/>No credits"]
-        basic["**Basic** $10/mo<br/>200 fast generations"]
-        standard["**Standard** $30/mo<br/>360 fast generations<br/>30 HD video minutes<br/>+ Unlimited Relaxed"]
-        pro["**Pro** $60/mo<br/>750 fast generations<br/>60 HD video minutes<br/>+ Stealth Mode"]
-        mega["**Mega** $120/mo<br/>900+ fast generations<br/>120 HD video minutes<br/>+ All features"]
-    end
-
-    subgraph TopUps["ONE TIME TOP-UPS"]
-        topup1["**Fast Generations** $4<br/>+80 credits"]
-        topup2["**HD Video Minutes** $10<br/>+10 minutes"]
-    end
-
-    UsageMeters --> Subscriptions
-    UsageMeters --> TopUps
-```
+![pricing diagram](/images/example-diagrams/generation-based-diagram.svg)
 
 The key distinction in `pricing.yaml` is `renewalFrequency`: use `"every_billing_period"` for subscription credits that reset monthly, and `"once"` for top-up credits that are consumed permanently.
 
