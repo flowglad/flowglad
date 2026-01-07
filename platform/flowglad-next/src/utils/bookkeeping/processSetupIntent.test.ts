@@ -24,11 +24,9 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { BillingRun } from '@/db/schema/billingRuns'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
 import { Invoice } from '@/db/schema/invoices'
-import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Purchase } from '@/db/schema/purchases'
 import type { Subscription } from '@/db/schema/subscriptions'
@@ -1154,6 +1152,18 @@ describe('Process setup intent', async () => {
           setupIntent1.id
         )
 
+        // Get billing periods after first activation
+        const firstBillingPeriods = await adminTransaction(
+          async ({ transaction }) => {
+            return selectBillingPeriods(
+              { subscriptionId: incompleteSubscription.id },
+              transaction
+            )
+          }
+        )
+        expect(firstBillingPeriods.length).toBeGreaterThan(0)
+        const firstBillingPeriodCount = firstBillingPeriods.length
+
         // Process the SAME setup intent again (webhook replay)
         // The idempotency check should find the subscription by its stripeSetupIntentId
         // and short-circuit, returning the existing subscription without reprocessing
@@ -1188,6 +1198,21 @@ describe('Process setup intent', async () => {
         )
         expect(secondResult.subscription.stripeSetupIntentId).toBe(
           setupIntent1.id
+        )
+
+        // Get billing periods after replay to verify no duplicates were created
+        const secondBillingPeriods = await adminTransaction(
+          async ({ transaction }) => {
+            return selectBillingPeriods(
+              { subscriptionId: incompleteSubscription.id },
+              transaction
+            )
+          }
+        )
+
+        // Critical: Should not have created new billing periods
+        expect(secondBillingPeriods.length).toBe(
+          firstBillingPeriodCount
         )
       })
     })

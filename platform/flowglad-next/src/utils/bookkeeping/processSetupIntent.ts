@@ -597,9 +597,21 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
         customer,
         transaction
       )
+
+    // Set stripeSetupIntentId BEFORE activateSubscription to prevent race conditions
+    // This ensures concurrent webhook deliveries will fail the idempotency check
+    const updatedSubscription = await updateSubscription(
+      {
+        id: result.subscription.id,
+        stripeSetupIntentId: setupIntent.id,
+        renews: result.subscription.renews,
+      },
+      transaction
+    )
+
     const { billingRun } = await activateSubscription(
       {
-        subscription: result.subscription,
+        subscription: updatedSubscription,
         subscriptionItems: result.subscriptionItems,
         defaultPaymentMethod: paymentMethod,
         autoStart: true,
@@ -607,13 +619,9 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       transaction
     )
 
-    // Set stripeSetupIntentId for idempotency protection against webhook replays
-    const updatedSubscription = await updateSubscription(
-      {
-        id: result.subscription.id,
-        stripeSetupIntentId: setupIntent.id,
-        renews: result.subscription.renews,
-      },
+    // Fetch the subscription again to get the updated status after activation
+    const activatedSubscription = await selectSubscriptionById(
+      updatedSubscription.id,
       transaction
     )
 
@@ -639,7 +647,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
         transaction
       ),
       billingRun,
-      subscription: updatedSubscription,
+      subscription: activatedSubscription,
       purchase: null,
     }
   }
