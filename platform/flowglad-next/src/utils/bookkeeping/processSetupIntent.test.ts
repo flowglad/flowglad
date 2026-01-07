@@ -18,6 +18,7 @@ import {
   setupPaymentMethod,
   setupPurchase,
   setupSubscription,
+  setupSubscriptionItem,
 } from '@/../seedDatabase'
 import {
   adminTransaction,
@@ -29,6 +30,7 @@ import { Invoice } from '@/db/schema/invoices'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Purchase } from '@/db/schema/purchases'
 import type { Subscription } from '@/db/schema/subscriptions'
+import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import {
   safelyUpdateCheckoutSessionStatus,
   selectCheckoutSessionById,
@@ -54,6 +56,7 @@ import {
   calculateTrialEnd,
   checkoutSessionFromSetupIntent,
   createSubscriptionFromSetupIntentableCheckoutSession,
+  type ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult,
   processAddPaymentMethodSetupIntentSucceeded,
   processSetupIntentSucceeded,
   processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded,
@@ -71,14 +74,16 @@ import { createFeeCalculationForCheckoutSession } from './checkoutSessions'
 const mockSucceededSetupIntent = ({
   checkoutSessionId,
   stripeCustomerId,
+  paymentMethodId,
 }: {
   checkoutSessionId: string
   stripeCustomerId: string
+  paymentMethodId?: string
 }): CoreSripeSetupIntent => ({
   status: 'succeeded',
   id: `seti_${core.nanoid()}`,
   customer: stripeCustomerId,
-  payment_method: `pm_${core.nanoid()}`,
+  payment_method: paymentMethodId ?? `pm_${core.nanoid()}`,
   metadata: {
     type: IntentMetadataType.CheckoutSession,
     checkoutSessionId,
@@ -913,6 +918,303 @@ describe('Process setup intent', async () => {
     it('throws an error when price.intervalCount is missing', async () => {
       // Update price to have missing intervalCount
       // This would require mocking or setting up a specific test scenario
+    })
+
+    describe('ActivateSubscription Idempotency', () => {
+      it('should not create duplicate billing periods when webhook is replayed', async () => {
+        // Create a payment method for the test
+        const testPaymentMethod = await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+          stripePaymentMethodId: `pm_${core.nanoid()}`,
+          type: PaymentMethodType.Card,
+        })
+
+        // Setup: Create an incomplete subscription that needs activation
+        const incompleteSubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          livemode: true,
+          status: SubscriptionStatus.Incomplete,
+        })
+
+        // Create subscription items for the incomplete subscription
+        await setupSubscriptionItem({
+          subscriptionId: incompleteSubscription.id,
+          name: 'Test Item',
+          quantity: 1,
+          unitPrice: 1000,
+          priceId: price.id,
+        })
+
+        // Create ActivateSubscription checkout session
+        const activateCheckoutSession = await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.ActivateSubscription,
+          targetSubscriptionId: incompleteSubscription.id,
+          livemode: true,
+          priceId: price.id,
+          quantity: 1,
+        })
+
+        const setupIntent = mockSucceededSetupIntent({
+          checkoutSessionId: activateCheckoutSession.id,
+          stripeCustomerId: customer.stripeCustomerId!,
+          paymentMethodId: testPaymentMethod.stripePaymentMethodId!,
+        })
+
+        // First webhook delivery - should succeed
+        const firstActivationResult =
+          await comprehensiveAdminTransaction(
+            async ({ transaction }) => {
+              return processSetupIntentSucceeded(
+                setupIntent,
+                transaction
+              )
+            }
+          )
+
+        // Verify the result type
+        expect(firstActivationResult.type).toBe(
+          CheckoutSessionType.ActivateSubscription
+        )
+        if (
+          firstActivationResult.type !==
+          CheckoutSessionType.ActivateSubscription
+        ) {
+          throw new Error('Expected ActivateSubscription result')
+        }
+        // Type assertion after guard
+        const firstResult =
+          firstActivationResult as ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult
+        expect(firstResult.subscription.status).toBe(
+          SubscriptionStatus.Active
+        )
+        expect(firstResult.subscription.stripeSetupIntentId).toBe(
+          setupIntent.id
+        )
+
+        // Get billing periods after first delivery
+        const firstBillingPeriods = await adminTransaction(
+          async ({ transaction }) => {
+            return selectBillingPeriods(
+              { subscriptionId: incompleteSubscription.id },
+              transaction
+            )
+          }
+        )
+
+        expect(firstBillingPeriods.length).toBeGreaterThan(0)
+        const firstBillingPeriodCount = firstBillingPeriods.length
+        const firstCurrentBillingPeriodStart =
+          firstResult.subscription.currentBillingPeriodStart
+        const firstCurrentBillingPeriodEnd =
+          firstResult.subscription.currentBillingPeriodEnd
+        const firstBillingCycleAnchorDate =
+          firstResult.subscription.billingCycleAnchorDate
+
+        // Second webhook delivery (replay) - should be idempotent
+        const secondActivationResult =
+          await comprehensiveAdminTransaction(
+            async ({ transaction }) => {
+              return processSetupIntentSucceeded(
+                setupIntent,
+                transaction
+              )
+            }
+          )
+
+        // Verify idempotent behavior
+        expect(secondActivationResult.type).toBe(
+          CheckoutSessionType.ActivateSubscription
+        )
+        if (
+          secondActivationResult.type !==
+          CheckoutSessionType.ActivateSubscription
+        ) {
+          throw new Error('Expected ActivateSubscription result')
+        }
+        // Type assertion after guard
+        const secondResult =
+          secondActivationResult as ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult
+
+        // Get billing periods after replay
+        const secondBillingPeriods = await adminTransaction(
+          async ({ transaction }) => {
+            return selectBillingPeriods(
+              { subscriptionId: incompleteSubscription.id },
+              transaction
+            )
+          }
+        )
+
+        // Assertions: Should have same data (idempotent)
+        expect(secondResult.subscription.id).toBe(
+          firstResult.subscription.id
+        )
+        expect(
+          secondResult.subscription.currentBillingPeriodStart
+        ).toBe(firstCurrentBillingPeriodStart)
+        expect(
+          secondResult.subscription.currentBillingPeriodEnd
+        ).toBe(firstCurrentBillingPeriodEnd)
+        expect(secondResult.subscription.billingCycleAnchorDate).toBe(
+          firstBillingCycleAnchorDate
+        )
+
+        // Critical: Should not have created duplicate billing periods
+        expect(secondBillingPeriods.length).toBe(
+          firstBillingPeriodCount
+        )
+
+        // Verify the stripeSetupIntentId is still set
+        expect(secondResult.subscription.stripeSetupIntentId).toBe(
+          setupIntent.id
+        )
+      })
+
+      it('should short-circuit on second setup intent when subscription already has stripeSetupIntentId', async () => {
+        // Create a payment method for the test
+        const testPaymentMethod = await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+          stripePaymentMethodId: `pm_${core.nanoid()}`,
+          type: PaymentMethodType.Card,
+        })
+
+        // Setup: Create an incomplete subscription
+        const incompleteSubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          livemode: true,
+          status: SubscriptionStatus.Incomplete,
+        })
+
+        // Create subscription items for the incomplete subscription
+        await setupSubscriptionItem({
+          subscriptionId: incompleteSubscription.id,
+          name: 'Test Item',
+          quantity: 1,
+          unitPrice: 1000,
+          priceId: price.id,
+        })
+
+        // First activation with setup intent 1
+        const activateCheckoutSession1 = await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.ActivateSubscription,
+          targetSubscriptionId: incompleteSubscription.id,
+          livemode: true,
+          priceId: price.id,
+          quantity: 1,
+        })
+
+        const setupIntent1 = mockSucceededSetupIntent({
+          checkoutSessionId: activateCheckoutSession1.id,
+          stripeCustomerId: customer.stripeCustomerId!,
+          paymentMethodId: testPaymentMethod.stripePaymentMethodId!,
+        })
+
+        // Process first activation
+        const firstActivationResult =
+          await comprehensiveAdminTransaction(
+            async ({ transaction }) => {
+              return processSetupIntentSucceeded(
+                setupIntent1,
+                transaction
+              )
+            }
+          )
+
+        // Verify first activation succeeded and set stripeSetupIntentId
+        expect(firstActivationResult.type).toBe(
+          CheckoutSessionType.ActivateSubscription
+        )
+        if (
+          firstActivationResult.type !==
+          CheckoutSessionType.ActivateSubscription
+        ) {
+          throw new Error('Expected ActivateSubscription result')
+        }
+        // Type assertion after guard
+        const firstResult =
+          firstActivationResult as ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult
+        expect(firstResult.subscription.status).toBe(
+          SubscriptionStatus.Active
+        )
+        expect(firstResult.subscription.stripeSetupIntentId).toBe(
+          setupIntent1.id
+        )
+
+        // Get billing periods after first activation
+        const firstBillingPeriods = await adminTransaction(
+          async ({ transaction }) => {
+            return selectBillingPeriods(
+              { subscriptionId: incompleteSubscription.id },
+              transaction
+            )
+          }
+        )
+        expect(firstBillingPeriods.length).toBeGreaterThan(0)
+        const firstBillingPeriodCount = firstBillingPeriods.length
+
+        // Process the SAME setup intent again (webhook replay)
+        // The idempotency check should find the subscription by its stripeSetupIntentId
+        // and short-circuit, returning the existing subscription without reprocessing
+        const secondActivationResult =
+          await comprehensiveAdminTransaction(
+            async ({ transaction }) => {
+              return processSetupIntentSucceeded(
+                setupIntent1, // Same setup intent as before
+                transaction
+              )
+            }
+          )
+
+        // Verify it short-circuited and returned the existing subscription
+        expect(secondActivationResult.type).toBe(
+          CheckoutSessionType.ActivateSubscription
+        )
+        if (
+          secondActivationResult.type !==
+          CheckoutSessionType.ActivateSubscription
+        ) {
+          throw new Error('Expected ActivateSubscription result')
+        }
+        // Type assertion after guard
+        const secondResult =
+          secondActivationResult as ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult
+
+        // The idempotency check should have found the subscription by stripeSetupIntentId
+        // and returned it without reprocessing
+        expect(secondResult.subscription.id).toBe(
+          firstResult.subscription.id
+        )
+        expect(secondResult.subscription.stripeSetupIntentId).toBe(
+          setupIntent1.id
+        )
+
+        // Get billing periods after replay to verify no duplicates were created
+        const secondBillingPeriods = await adminTransaction(
+          async ({ transaction }) => {
+            return selectBillingPeriods(
+              { subscriptionId: incompleteSubscription.id },
+              transaction
+            )
+          }
+        )
+
+        // Critical: Should not have created new billing periods
+        expect(secondBillingPeriods.length).toBe(
+          firstBillingPeriodCount
+        )
+      })
     })
 
     describe('Integration Tests', () => {
