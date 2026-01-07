@@ -1,24 +1,26 @@
 import { z } from 'zod'
-import { eq } from 'drizzle-orm'
+import { adminTransaction } from '@/db/adminTransaction'
+import { selectBetterAuthUserByEmail } from '@/db/tableMethods/betterAuthSchemaMethods'
 import { publicProcedure } from '@/server/trpc'
-import db from '@/db/client'
-import { user } from '@/db/schema/betterAuthSchema'
-import { authClient } from '@/utils/authClient'
+import { auth } from '@/utils/auth'
 
 export const resetPassword = publicProcedure
   .input(z.object({ email: z.string().email() }))
   .mutation(async ({ input }) => {
     const { email } = input
 
-    const userExists = await db
-      .select()
-      .from(user)
-      .where(eq(user.email, email))
+    const userExists = await adminTransaction(
+      async ({ transaction }) => {
+        return selectBetterAuthUserByEmail(email, transaction)
+      }
+    )
 
-    if (userExists.length > 0) {
-      await authClient.requestPasswordReset({
-        email: email,
-        redirectTo: '/sign-in/reset-password',
+    if (userExists) {
+      await auth.api.forgetPassword({
+        body: {
+          email,
+          redirectTo: '/sign-in/reset-password',
+        },
       })
     }
 

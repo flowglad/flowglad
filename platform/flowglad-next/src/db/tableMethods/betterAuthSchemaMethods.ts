@@ -15,3 +15,15 @@ export const selectBetterAuthUserById = async (
   }
   return betterAuthUser
 }
+
+export const selectBetterAuthUserByEmail = async (
+  email: string,
+  transaction: DbTransaction
+) => {
+  const [betterAuthUser] = await transaction
+    .select({ id: user.id })
+    .from(user)
+    .where(eq(user.email, email))
+    .limit(1)
+  return betterAuthUser ?? null
+}

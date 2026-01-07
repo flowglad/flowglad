@@ -1,14 +1,21 @@
 'use client'
 
-import { CheckCircle, Loader2, Lock, XCircle, Eye, EyeOff } from 'lucide-react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  CheckCircle,
+  Eye,
+  EyeOff,
+  Loader2,
+  Lock,
+  XCircle,
+} from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
-import ErrorLabel from '@/components/ErrorLabel'
-import { zodResolver } from '@hookform/resolvers/zod'
+import type { FieldErrors } from 'react-hook-form'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
-import { newPasswordSchema } from '@/lib/schemas'
+import ErrorLabel from '@/components/ErrorLabel'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -19,6 +26,7 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { newPasswordSchema, PASSWORD_MIN_LENGTH } from '@/lib/schemas'
 import { cn } from '@/lib/utils'
 import { authClient } from '@/utils/authClient'
 
@@ -73,7 +81,10 @@ export default function ResetPasswordPage() {
         router.push('/sign-in')
       }, 2000)
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to reset password'
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Failed to reset password'
       setError(errorMessage)
       toast.error('Failed to reset password')
     } finally {
@@ -81,7 +92,7 @@ export default function ResetPasswordPage() {
     }
   }
 
-  const onError = (errs: Record<string, { message?: string }>) => {
+  const onError = (errs: FieldErrors<ResetPasswordValues>) => {
     const first = Object.values(errs)[0]
     const message = first?.message ?? 'Validation failed'
     toast.error(String(message))
@@ -149,7 +160,11 @@ export default function ResetPasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-4" noValidate>
+          <form
+            onSubmit={handleSubmit(onSubmit, onError)}
+            className="space-y-4"
+            noValidate
+          >
             <div className="space-y-2">
               <Label htmlFor="password">New Password</Label>
               <div className="relative">
@@ -157,9 +172,9 @@ export default function ResetPasswordPage() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter new password"
-                  disabled={isLoading}
+                  disabled={isLoading || isSubmitting}
                   required
-                  minLength={8}
+                  minLength={PASSWORD_MIN_LENGTH}
                   {...register('password')}
                 />
                 <button
@@ -170,21 +185,27 @@ export default function ResetPasswordPage() {
                     showPassword ? 'Hide password' : 'Show password'
                   }
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? (
+                    <EyeOff size={16} />
+                  ) : (
+                    <Eye size={16} />
+                  )}
                 </button>
               </div>
               <ErrorLabel error={errors.password} />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">
+                Confirm Password
+              </Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 placeholder="Confirm new password"
-                disabled={isLoading}
+                disabled={isLoading || isSubmitting}
                 required
-                minLength={8}
+                minLength={PASSWORD_MIN_LENGTH}
                 {...register('passwordConfirmation')}
               />
               <ErrorLabel error={errors.passwordConfirmation} />
