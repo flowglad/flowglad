@@ -337,15 +337,48 @@ describe('diffFeatures', () => {
   // TODO: after validation is implemented, add tests for permitted feature update fields
 })
 
+/**
+ * Helper to create a UsageMeterDiffInput with the nested structure.
+ * PR 5 changed usage meters to use { usageMeter: {...}, prices?: [...] } format.
+ */
+const createUsageMeterInput = (
+  slug: string,
+  name: string,
+  aggregationType: UsageMeterAggregationType = UsageMeterAggregationType.Sum
+): UsageMeterDiffInput => ({
+  usageMeter: {
+    slug,
+    name,
+    aggregationType,
+  },
+})
+
+/**
+ * Helper to create a SluggedResource<UsageMeterDiffInput> for direct DiffResult usage.
+ * The diffUsageMeters function adds a top-level `slug` field to each meter.
+ */
+const createSluggedUsageMeterInput = (
+  slug: string,
+  name: string,
+  aggregationType: UsageMeterAggregationType = UsageMeterAggregationType.Sum
+): SluggedResource<UsageMeterDiffInput> => ({
+  slug, // Top-level slug for SluggedResource
+  usageMeter: {
+    slug,
+    name,
+    aggregationType,
+  },
+})
+
 describe('diffUsageMeters', () => {
   it('should use diffSluggedResources to compute diff', () => {
     // Setup: existing has usage meter, proposed is empty
     const existing: UsageMeterDiffInput[] = [
-      {
-        slug: 'foo',
-        name: 'Foo Meter',
-        aggregationType: UsageMeterAggregationType.Sum,
-      },
+      createUsageMeterInput(
+        'foo',
+        'Foo Meter',
+        UsageMeterAggregationType.Sum
+      ),
     ]
     const proposed: UsageMeterDiffInput[] = []
 
@@ -353,7 +386,7 @@ describe('diffUsageMeters', () => {
 
     // Expectation: toRemove contains the usage meter
     expect(result.toRemove).toHaveLength(1)
-    expect(result.toRemove[0].slug).toBe('foo')
+    expect(result.toRemove[0].usageMeter.slug).toBe('foo')
     expect(result.toCreate).toEqual([])
     expect(result.toUpdate).toEqual([])
   })
@@ -361,18 +394,18 @@ describe('diffUsageMeters', () => {
   it('should handle usage meter updates', () => {
     // Setup: existing and proposed both have same slug but different name
     const existing: UsageMeterDiffInput[] = [
-      {
-        slug: 'foo',
-        name: 'Old Name',
-        aggregationType: UsageMeterAggregationType.Sum,
-      },
+      createUsageMeterInput(
+        'foo',
+        'Old Name',
+        UsageMeterAggregationType.Sum
+      ),
     ]
     const proposed: UsageMeterDiffInput[] = [
-      {
-        slug: 'foo',
-        name: 'New Name',
-        aggregationType: UsageMeterAggregationType.Sum,
-      },
+      createUsageMeterInput(
+        'foo',
+        'New Name',
+        UsageMeterAggregationType.Sum
+      ),
     ]
 
     const result = diffUsageMeters(existing, proposed)
@@ -381,20 +414,23 @@ describe('diffUsageMeters', () => {
     expect(result.toRemove).toEqual([])
     expect(result.toCreate).toEqual([])
     expect(result.toUpdate).toHaveLength(1)
-    expect(result.toUpdate[0].existing.name).toBe('Old Name')
-    expect(result.toUpdate[0].proposed.name).toBe('New Name')
+    expect(result.toUpdate[0].existing.usageMeter.name).toBe(
+      'Old Name'
+    )
+    expect(result.toUpdate[0].proposed.usageMeter.name).toBe(
+      'New Name'
+    )
   })
 
   it('should handle usage meter creation', () => {
     // Setup: proposed has new usage meter not in existing
     const existing: UsageMeterDiffInput[] = []
     const proposed: UsageMeterDiffInput[] = [
-      {
-        slug: 'new-meter',
-        name: 'New Meter',
-        aggregationType:
-          UsageMeterAggregationType.CountDistinctProperties,
-      },
+      createUsageMeterInput(
+        'new-meter',
+        'New Meter',
+        UsageMeterAggregationType.CountDistinctProperties
+      ),
     ]
 
     const result = diffUsageMeters(existing, proposed)
@@ -402,48 +438,47 @@ describe('diffUsageMeters', () => {
     // Expectation: toCreate contains the new usage meter
     expect(result.toRemove).toEqual([])
     expect(result.toCreate).toHaveLength(1)
-    expect(result.toCreate[0].slug).toBe('new-meter')
+    expect(result.toCreate[0].usageMeter.slug).toBe('new-meter')
     expect(result.toUpdate).toEqual([])
   })
 
   it('should handle mixed changes for usage meters', () => {
     // Setup: remove one, update one, create one
     const existing: UsageMeterDiffInput[] = [
-      {
-        slug: 'remove-me',
-        name: 'Remove',
-        aggregationType: UsageMeterAggregationType.Sum,
-      },
-      {
-        slug: 'update-me',
-        name: 'Old',
-        aggregationType: UsageMeterAggregationType.Sum,
-      },
+      createUsageMeterInput(
+        'remove-me',
+        'Remove',
+        UsageMeterAggregationType.Sum
+      ),
+      createUsageMeterInput(
+        'update-me',
+        'Old',
+        UsageMeterAggregationType.Sum
+      ),
     ]
     const proposed: UsageMeterDiffInput[] = [
-      {
-        slug: 'update-me',
-        name: 'New',
-        aggregationType:
-          UsageMeterAggregationType.CountDistinctProperties,
-      },
-      {
-        slug: 'create-me',
-        name: 'Create',
-        aggregationType: UsageMeterAggregationType.Sum,
-      },
+      createUsageMeterInput(
+        'update-me',
+        'New',
+        UsageMeterAggregationType.CountDistinctProperties
+      ),
+      createUsageMeterInput(
+        'create-me',
+        'Create',
+        UsageMeterAggregationType.Sum
+      ),
     ]
 
     const result = diffUsageMeters(existing, proposed)
 
     // Expectations
     expect(result.toRemove).toHaveLength(1)
-    expect(result.toRemove[0].slug).toBe('remove-me')
+    expect(result.toRemove[0].usageMeter.slug).toBe('remove-me')
     expect(result.toCreate).toHaveLength(1)
-    expect(result.toCreate[0].slug).toBe('create-me')
+    expect(result.toCreate[0].usageMeter.slug).toBe('create-me')
     expect(result.toUpdate).toHaveLength(1)
-    expect(result.toUpdate[0].existing.name).toBe('Old')
-    expect(result.toUpdate[0].proposed.name).toBe('New')
+    expect(result.toUpdate[0].existing.usageMeter.name).toBe('Old')
+    expect(result.toUpdate[0].proposed.usageMeter.name).toBe('New')
   })
 
   // TODO: after validation is implemented, add tests for permitted usage meter update fields
@@ -891,11 +926,7 @@ describe('validateUsageMeterDiff', () => {
   it('should throw error when toRemove is non-empty', () => {
     const diff: DiffResult<UsageMeterDiffInput> = {
       toRemove: [
-        {
-          slug: 'api-calls',
-          name: 'API Calls',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
+        createSluggedUsageMeterInput('api-calls', 'API Calls'),
       ],
       toCreate: [],
       toUpdate: [],
@@ -909,16 +940,8 @@ describe('validateUsageMeterDiff', () => {
   it('should throw error when multiple usage meters are removed', () => {
     const diff: DiffResult<UsageMeterDiffInput> = {
       toRemove: [
-        {
-          slug: 'api-calls',
-          name: 'API Calls',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-        {
-          slug: 'storage',
-          name: 'Storage',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
+        createSluggedUsageMeterInput('api-calls', 'API Calls'),
+        createSluggedUsageMeterInput('storage', 'Storage'),
       ],
       toCreate: [],
       toUpdate: [],
@@ -935,17 +958,15 @@ describe('validateUsageMeterDiff', () => {
       toCreate: [],
       toUpdate: [
         {
-          existing: {
-            slug: 'api-calls',
-            name: 'Old Name',
-            aggregationType: UsageMeterAggregationType.Sum,
-          },
-          proposed: {
-            slug: 'api-calls',
-            name: 'New Name',
-            aggregationType:
-              UsageMeterAggregationType.CountDistinctProperties,
-          },
+          existing: createSluggedUsageMeterInput(
+            'api-calls',
+            'Old Name'
+          ),
+          proposed: createSluggedUsageMeterInput(
+            'api-calls',
+            'New Name',
+            UsageMeterAggregationType.CountDistinctProperties
+          ),
         },
       ],
     }
@@ -960,16 +981,14 @@ describe('validateUsageMeterDiff', () => {
       toCreate: [],
       toUpdate: [
         {
-          existing: {
-            slug: 'api-calls',
-            name: 'API Calls',
-            aggregationType: UsageMeterAggregationType.Sum,
-          },
-          proposed: {
-            slug: 'api-calls',
-            name: 'API Calls',
-            aggregationType: UsageMeterAggregationType.Sum,
-          },
+          existing: createSluggedUsageMeterInput(
+            'api-calls',
+            'API Calls'
+          ),
+          proposed: createSluggedUsageMeterInput(
+            'api-calls',
+            'API Calls'
+          ),
         },
       ],
     }
@@ -981,11 +1000,7 @@ describe('validateUsageMeterDiff', () => {
     const diff: DiffResult<UsageMeterDiffInput> = {
       toRemove: [],
       toCreate: [
-        {
-          slug: 'new-meter',
-          name: 'New Meter',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
+        createSluggedUsageMeterInput('new-meter', 'New Meter'),
       ],
       toUpdate: [],
     }
@@ -1192,12 +1207,12 @@ describe('validateFeatureDiff', () => {
 
 /**
  * Helper function to create test prices for validation tests.
- * Uses type assertion since the actual SetupPricingModelProductPriceInput
- * has additional required fields from the client insert schemas.
+ * PR 5: Product prices can only be Subscription or SinglePayment.
+ * Usage prices now belong to usage meters, not products.
  */
 const createTestPrice = (
   overrides: Partial<{
-    type: PriceType
+    type: PriceType.Subscription | PriceType.SinglePayment
     unitPrice: number
     intervalUnit: IntervalUnit
     intervalCount: number
@@ -1206,8 +1221,6 @@ const createTestPrice = (
     slug: string
     name: string
     currency: CurrencyCode
-    usageMeterSlug: string
-    usageEventsPerUnit: number
   }> = {}
 ): SetupPricingModelProductPriceInput => {
   const {
@@ -1220,12 +1233,9 @@ const createTestPrice = (
     slug = 'test-price',
     name,
     currency = CurrencyCode.USD,
-    usageMeterSlug,
-    usageEventsPerUnit,
   } = overrides
 
   const basePrice = {
-    type,
     unitPrice,
     isDefault,
     active,
@@ -1243,21 +1253,10 @@ const createTestPrice = (
     } as SetupPricingModelProductPriceInput
   }
 
-  if (type === PriceType.SinglePayment) {
-    return {
-      ...basePrice,
-      type: PriceType.SinglePayment,
-    } as SetupPricingModelProductPriceInput
-  }
-
-  // Usage price
+  // SinglePayment
   return {
     ...basePrice,
-    type: PriceType.Usage,
-    intervalUnit,
-    intervalCount,
-    usageMeterSlug: usageMeterSlug ?? 'test-meter',
-    usageEventsPerUnit: usageEventsPerUnit ?? 1,
+    type: PriceType.SinglePayment,
   } as SetupPricingModelProductPriceInput
 }
 
@@ -1413,33 +1412,7 @@ describe('validatePriceChange', () => {
     ).not.toThrow()
   })
 
-  it('allows usageMeterSlug change for usage price when proposed price is well-formed, treating it as a price replacement', () => {
-    const existingUsagePrice = createTestPrice({
-      type: PriceType.Usage,
-      unitPrice: 100,
-      currency: CurrencyCode.USD,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-      slug: 'usage-price',
-      usageMeterSlug: 'old-meter',
-      usageEventsPerUnit: 1,
-    })
-
-    const proposedUsagePrice = createTestPrice({
-      type: PriceType.Usage,
-      unitPrice: 100,
-      currency: CurrencyCode.USD,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-      slug: 'usage-price',
-      usageMeterSlug: 'new-meter',
-      usageEventsPerUnit: 1,
-    })
-
-    expect(() =>
-      validatePriceChange(existingUsagePrice, proposedUsagePrice)
-    ).not.toThrow()
-  })
+  // Note: Usage price tests removed in PR 5 - Usage prices now belong to usage meters, not products
 
   it('throws error when create-only fields change but proposed price is malformed (missing required fields)', () => {
     // Create a malformed subscription price missing intervalUnit
@@ -1455,37 +1428,6 @@ describe('validatePriceChange', () => {
 
     expect(() =>
       validatePriceChange(baseSubscriptionPrice, malformedPrice)
-    ).toThrow('Invalid price for replacement')
-  })
-
-  it('throws error when create-only fields change but proposed usage price is malformed (missing usageMeterSlug)', () => {
-    const existingUsagePrice = createTestPrice({
-      type: PriceType.Usage,
-      unitPrice: 100,
-      currency: CurrencyCode.USD,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-      slug: 'usage-price',
-      usageMeterSlug: 'old-meter',
-      usageEventsPerUnit: 1,
-    })
-
-    // Create malformed usage price - changing unitPrice (create-only) but missing usageEventsPerUnit
-    const malformedUsagePrice = {
-      type: PriceType.Usage,
-      unitPrice: 200, // changed (create-only field)
-      currency: CurrencyCode.USD,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-      slug: 'usage-price',
-      usageMeterSlug: 'old-meter',
-      // missing usageEventsPerUnit
-      isDefault: true,
-      active: true,
-    } as SetupPricingModelProductPriceInput
-
-    expect(() =>
-      validatePriceChange(existingUsagePrice, malformedUsagePrice)
     ).toThrow('Invalid price for replacement')
   })
 
@@ -1838,13 +1780,7 @@ describe('diffPricingModel', () => {
           unitPrice: 1000,
         }),
       ],
-      usageMeters: [
-        {
-          slug: 'api-calls',
-          name: 'API Calls',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-      ],
+      usageMeters: [createUsageMeterInput('api-calls', 'API Calls')],
     })
 
     // Setup: proposed with changes to all resource types
@@ -1866,11 +1802,7 @@ describe('diffPricingModel', () => {
         }),
       ],
       usageMeters: [
-        {
-          slug: 'api-calls',
-          name: 'API Calls Updated',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
+        createUsageMeterInput('api-calls', 'API Calls Updated'),
       ],
     })
 
@@ -1901,12 +1833,12 @@ describe('diffPricingModel', () => {
 
     // Usage meter diff should have an update
     expect(result.usageMeters.toUpdate).toHaveLength(1)
-    expect(result.usageMeters.toUpdate[0].existing.name).toBe(
-      'API Calls'
-    )
-    expect(result.usageMeters.toUpdate[0].proposed.name).toBe(
-      'API Calls Updated'
-    )
+    expect(
+      result.usageMeters.toUpdate[0].existing.usageMeter.name
+    ).toBe('API Calls')
+    expect(
+      result.usageMeters.toUpdate[0].proposed.usageMeter.name
+    ).toBe('API Calls Updated')
   })
 
   it('should succeed validation with valid changes', () => {
@@ -1927,13 +1859,7 @@ describe('diffPricingModel', () => {
           productName: 'Old Name',
         }),
       ],
-      usageMeters: [
-        {
-          slug: 'api-calls',
-          name: 'Old Name',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-      ],
+      usageMeters: [createUsageMeterInput('api-calls', 'Old Name')],
     })
 
     const proposed = createPricingModelInput({
@@ -1952,13 +1878,7 @@ describe('diffPricingModel', () => {
           productName: 'New Name',
         }),
       ],
-      usageMeters: [
-        {
-          slug: 'api-calls',
-          name: 'New Name',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-      ],
+      usageMeters: [createUsageMeterInput('api-calls', 'New Name')],
     })
 
     // Expectation: should not throw (all validations pass)
@@ -1970,13 +1890,7 @@ describe('diffPricingModel', () => {
     const existing = createPricingModelInput({
       features: [],
       products: [],
-      usageMeters: [
-        {
-          slug: 'api-calls',
-          name: 'API Calls',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-      ],
+      usageMeters: [createUsageMeterInput('api-calls', 'API Calls')],
     })
 
     const proposed = createPricingModelInput({
@@ -2089,13 +2003,7 @@ describe('diffPricingModel', () => {
           productName: 'New Product',
         }),
       ],
-      usageMeters: [
-        {
-          slug: 'new-meter',
-          name: 'New Meter',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-      ],
+      usageMeters: [createUsageMeterInput('new-meter', 'New Meter')],
     })
 
     const result = diffPricingModel(existing, proposed)
@@ -2114,7 +2022,9 @@ describe('diffPricingModel', () => {
     expect(result.products.toUpdate).toEqual([])
 
     expect(result.usageMeters.toCreate).toHaveLength(1)
-    expect(result.usageMeters.toCreate[0].slug).toBe('new-meter')
+    expect(result.usageMeters.toCreate[0].usageMeter.slug).toBe(
+      'new-meter'
+    )
     expect(result.usageMeters.toRemove).toEqual([])
     expect(result.usageMeters.toUpdate).toEqual([])
   })
@@ -2137,13 +2047,7 @@ describe('diffPricingModel', () => {
           productName: 'Pro',
         }),
       ],
-      usageMeters: [
-        {
-          slug: 'api-calls',
-          name: 'API Calls',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-      ],
+      usageMeters: [createUsageMeterInput('api-calls', 'API Calls')],
     })
 
     const proposed = createPricingModelInput({
@@ -2221,13 +2125,7 @@ describe('diffPricingModel', () => {
           productName: 'Pro',
         }),
       ],
-      usageMeters: [
-        {
-          slug: 'api-calls',
-          name: 'API Calls',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-      ],
+      usageMeters: [createUsageMeterInput('api-calls', 'API Calls')],
     })
 
     const proposed = createPricingModelInput({
@@ -2275,11 +2173,7 @@ describe('diffPricingModel', () => {
         }),
       ],
       usageMeters: [
-        {
-          slug: 'api-calls',
-          name: 'Old API Calls Name',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
+        createUsageMeterInput('api-calls', 'Old API Calls Name'),
       ],
     })
 
@@ -2312,17 +2206,12 @@ describe('diffPricingModel', () => {
         }),
       ],
       usageMeters: [
-        {
-          slug: 'api-calls',
-          name: 'New API Calls Name',
-          aggregationType:
-            UsageMeterAggregationType.CountDistinctProperties,
-        },
-        {
-          slug: 'new-meter',
-          name: 'New Meter',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
+        createUsageMeterInput(
+          'api-calls',
+          'New API Calls Name',
+          UsageMeterAggregationType.CountDistinctProperties
+        ),
+        createUsageMeterInput('new-meter', 'New Meter'),
       ],
     })
 
@@ -2375,11 +2264,7 @@ describe('diffPricingModel', () => {
         }),
       ],
       usageMeters: [
-        {
-          slug: 'meter-update',
-          name: 'Old Name',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
+        createUsageMeterInput('meter-update', 'Old Name'),
       ],
     })
 
@@ -2411,17 +2296,12 @@ describe('diffPricingModel', () => {
         }),
       ],
       usageMeters: [
-        {
-          slug: 'meter-update',
-          name: 'New Name',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-        {
-          slug: 'meter-create',
-          name: 'Create Meter',
-          aggregationType:
-            UsageMeterAggregationType.CountDistinctProperties,
-        },
+        createUsageMeterInput('meter-update', 'New Name'),
+        createUsageMeterInput(
+          'meter-create',
+          'Create Meter',
+          UsageMeterAggregationType.CountDistinctProperties
+        ),
       ],
     })
 
@@ -2456,14 +2336,16 @@ describe('diffPricingModel', () => {
     // Verify usage meters
     expect(result.usageMeters.toRemove).toEqual([])
     expect(result.usageMeters.toCreate).toHaveLength(1)
-    expect(result.usageMeters.toCreate[0].slug).toBe('meter-create')
+    expect(result.usageMeters.toCreate[0].usageMeter.slug).toBe(
+      'meter-create'
+    )
     expect(result.usageMeters.toUpdate).toHaveLength(1)
-    expect(result.usageMeters.toUpdate[0].existing.name).toBe(
-      'Old Name'
-    )
-    expect(result.usageMeters.toUpdate[0].proposed.name).toBe(
-      'New Name'
-    )
+    expect(
+      result.usageMeters.toUpdate[0].existing.usageMeter.name
+    ).toBe('Old Name')
+    expect(
+      result.usageMeters.toUpdate[0].proposed.usageMeter.name
+    ).toBe('New Name')
   })
 
   it('places all resources in toUpdate with empty toRemove and toCreate for identical pricing models', () => {
@@ -2484,13 +2366,7 @@ describe('diffPricingModel', () => {
           productName: 'Pro',
         }),
       ],
-      usageMeters: [
-        {
-          slug: 'api-calls',
-          name: 'API Calls',
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-      ],
+      usageMeters: [createUsageMeterInput('api-calls', 'API Calls')],
     })
 
     const result = diffPricingModel(pricingModel, pricingModel)

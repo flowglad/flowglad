@@ -17,8 +17,6 @@ import {
   singlePaymentPriceClientUpdateSchema,
   subscriptionPriceClientInsertSchema,
   subscriptionPriceClientUpdateSchema,
-  usagePriceClientInsertSchema,
-  usagePriceClientUpdateSchema,
 } from '@/db/schema/prices'
 import { productsClientUpdateSchema } from '@/db/schema/products'
 import { usageMetersClientUpdateSchema } from '@/db/schema/usageMeters'
@@ -177,21 +175,44 @@ export const diffFeatures = (
 }
 
 /**
+ * Extracts the slug from a UsageMeterDiffInput for slug-based diffing.
+ * Usage meters now have a nested structure: { usageMeter: { slug, name, ... }, prices: [...] }
+ */
+const getUsageMeterSlug = (
+  meterInput: UsageMeterDiffInput
+): string => {
+  return meterInput.usageMeter.slug
+}
+
+/**
+ * Converts UsageMeterDiffInput array to a format compatible with diffSluggedResources
+ * by adding the slug at the top level.
+ */
+const toSluggedUsageMeters = (
+  meters: UsageMeterDiffInput[]
+): SluggedResource<UsageMeterDiffInput>[] => {
+  return meters.map((m) => ({
+    ...m,
+    slug: getUsageMeterSlug(m),
+  }))
+}
+
+/**
  * Diffs usage meter arrays to identify which usage meters need to be removed, created, or updated.
  *
- * Usage meters are compared by their slug field. The function uses the generic
+ * Usage meters are compared by their usageMeter.slug field. The function uses the generic
  * `diffSluggedResources` utility to perform the comparison.
  *
  * Note: Usage meter removal is not allowed and will cause validation errors in later stages.
  *
- * @param existing - Array of existing usage meters
- * @param proposed - Array of proposed usage meters
+ * @param existing - Array of existing usage meters (with nested usageMeter and prices)
+ * @param proposed - Array of proposed usage meters (with nested usageMeter and prices)
  * @returns A DiffResult containing usage meters to remove, create, and update
  *
  * @example
  * ```typescript
- * const existing = [{ slug: 'api-calls', name: 'API Calls', aggregationType: 'sum' }]
- * const proposed = [{ slug: 'api-calls', name: 'API Requests', aggregationType: 'sum' }]
+ * const existing = [{ usageMeter: { slug: 'api-calls', name: 'API Calls' }, prices: [...] }]
+ * const proposed = [{ usageMeter: { slug: 'api-calls', name: 'API Requests' }, prices: [...] }]
  * const diff = diffUsageMeters(existing, proposed)
  * // diff.toUpdate will contain the usage meter with name change
  * ```
@@ -200,7 +221,29 @@ export const diffUsageMeters = (
   existing: UsageMeterDiffInput[],
   proposed: UsageMeterDiffInput[]
 ): DiffResult<UsageMeterDiffInput> => {
-  return diffSluggedResources(existing, proposed)
+  // Convert to slugged format for generic diffing
+  const sluggedExisting = toSluggedUsageMeters(existing)
+  const sluggedProposed = toSluggedUsageMeters(proposed)
+
+  // Use generic diffing for basic categorization
+  const baseDiff = diffSluggedResources(
+    sluggedExisting,
+    sluggedProposed
+  )
+
+  // Cast back to UsageMeterDiffInput (removing the added slug field)
+  return {
+    toRemove:
+      baseDiff.toRemove as unknown as SluggedResource<UsageMeterDiffInput>[],
+    toCreate:
+      baseDiff.toCreate as unknown as SluggedResource<UsageMeterDiffInput>[],
+    toUpdate: baseDiff.toUpdate.map(({ existing, proposed }) => ({
+      existing:
+        existing as unknown as SluggedResource<UsageMeterDiffInput>,
+      proposed:
+        proposed as unknown as SluggedResource<UsageMeterDiffInput>,
+    })),
+  }
 }
 
 /**
@@ -424,7 +467,9 @@ export const validateUsageMeterDiff = (
 ): void => {
   // Usage meters cannot be removed
   if (diff.toRemove.length > 0) {
-    const removedSlugs = diff.toRemove.map((m) => m.slug).join(', ')
+    const removedSlugs = diff.toRemove
+      .map((m) => m.usageMeter.slug)
+      .join(', ')
     throw new Error(
       `Usage meters cannot be removed. Attempted to remove: ${removedSlugs}`
     )
@@ -432,10 +477,14 @@ export const validateUsageMeterDiff = (
 
   // Validate each update entry
   for (const { existing, proposed } of diff.toUpdate) {
-    const updateObject = computeUpdateObject(existing, proposed)
+    // Compare the usageMeter nested object, not the top-level object (which includes prices)
+    const usageMeterUpdateObject = computeUpdateObject(
+      existing.usageMeter,
+      proposed.usageMeter
+    )
 
-    // Skip if nothing changed
-    if (Object.keys(updateObject).length === 0) {
+    // Skip if nothing changed in the usageMeter itself
+    if (Object.keys(usageMeterUpdateObject).length === 0) {
       continue
     }
 
@@ -443,11 +492,11 @@ export const validateUsageMeterDiff = (
     const result = usageMetersClientUpdateSchema
       .partial()
       .strict()
-      .safeParse(updateObject)
+      .safeParse(usageMeterUpdateObject)
 
     if (!result.success) {
       throw new Error(
-        `Invalid usage meter update for slug '${existing.slug}': ${result.error.message}`
+        `Invalid usage meter update for slug '${existing.usageMeter.slug}': ${result.error.message}`
       )
     }
   }
@@ -590,6 +639,8 @@ export const validatePriceChange = (
 
   // If immutable fields are changing, this will be a price replacement.
   // We still need to validate the proposed price is well-formed using the insert schema.
+  // Note: Usage prices are now handled separately under usage meters (PR 5),
+  // so product prices are only subscription or single payment.
   if (hasImmutableFieldChanges) {
     let insertResult: { success: boolean; error?: z.ZodError }
     switch (proposed.type) {
@@ -603,11 +654,12 @@ export const validatePriceChange = (
           .omit({ productId: true })
           .safeParse(proposed)
         break
-      case PriceType.Usage:
-        insertResult = usagePriceClientInsertSchema
-          .omit({ productId: true, usageMeterId: true })
-          .safeParse(proposed)
-        break
+      default: {
+        const unexpectedType = (proposed as { type: string }).type
+        throw new Error(
+          `Product prices cannot be of type '${unexpectedType}'. Usage prices belong to usage meters.`
+        )
+      }
     }
 
     if (!insertResult.success) {
@@ -619,6 +671,7 @@ export const validatePriceChange = (
   }
 
   // Select the appropriate schema based on price type and try to parse with strict mode
+  // Note: Product prices are only subscription or single payment (PR 5)
   let result: { success: boolean; error?: z.ZodError }
   switch (existing.type) {
     case PriceType.Subscription:
@@ -633,12 +686,12 @@ export const validatePriceChange = (
         .strict()
         .safeParse(transformedUpdate)
       break
-    case PriceType.Usage:
-      result = usagePriceClientUpdateSchema
-        .partial()
-        .strict()
-        .safeParse(transformedUpdate)
-      break
+    default: {
+      const unexpectedType = (existing as { type: string }).type
+      throw new Error(
+        `Product prices cannot be of type '${unexpectedType}'. Usage prices belong to usage meters.`
+      )
+    }
   }
 
   if (!result.success) {

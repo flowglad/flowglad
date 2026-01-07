@@ -189,31 +189,49 @@ describe('setupPricingModelSchema', () => {
       expect(result.success).toBe(true)
     })
 
+    // PR 5: Usage meters now use nested structure with prices
     it('should reject when usage meters have duplicate slugs', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [
         {
-          slug: 'duplicate-slug',
-          name: 'Usage Meter 1',
+          usageMeter: {
+            slug: 'duplicate-slug',
+            name: 'Usage Meter 1',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'usage-price-1',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
         },
         {
-          slug: 'duplicate-slug',
-          name: 'Usage Meter 2',
+          usageMeter: {
+            slug: 'duplicate-slug',
+            name: 'Usage Meter 2',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'usage-price-2',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
         },
       ]
-      // Add a usage price so the meter is valid
-      input.products[0].price = {
-        type: PriceType.Usage,
-        slug: 'usage-price',
-        isDefault: true,
-        unitPrice: 100,
-        usageMeterSlug: 'duplicate-slug',
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        trialPeriodDays: null,
-        usageEventsPerUnit: 1,
-        active: true,
-      }
 
       const result = setupPricingModelSchema.safeParse(input)
       expect(result.success).toBe(false)
@@ -224,31 +242,49 @@ describe('setupPricingModelSchema', () => {
       }
     })
 
+    // PR 5: Usage meters now use nested structure with prices
     it('should accept when all usage meter slugs are unique', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [
         {
-          slug: 'meter-1',
-          name: 'Usage Meter 1',
+          usageMeter: {
+            slug: 'meter-1',
+            name: 'Usage Meter 1',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'usage-price-1',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
         },
         {
-          slug: 'meter-2',
-          name: 'Usage Meter 2',
+          usageMeter: {
+            slug: 'meter-2',
+            name: 'Usage Meter 2',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'usage-price-2',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
         },
       ]
-      // Add usage price so the meter is valid (can only reference one meter per product now)
-      input.products[0].price = {
-        type: PriceType.Usage,
-        slug: 'usage-price-1',
-        isDefault: true,
-        unitPrice: 100,
-        usageMeterSlug: 'meter-1',
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        trialPeriodDays: null,
-        usageEventsPerUnit: 1,
-        active: true,
-      }
 
       const result = setupPricingModelSchema.safeParse(input)
       expect(result.success).toBe(true)

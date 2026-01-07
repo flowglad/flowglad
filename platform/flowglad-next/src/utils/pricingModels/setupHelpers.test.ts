@@ -33,21 +33,54 @@ afterEach(async () => {
 })
 
 describe('getPricingModelSetupData', () => {
-  // TODO: PR 2 - This test expects usage prices to have associated products (api-usage product)
-  // but in the new data model, usage prices have productId: null
-  it.skip('should fetch and transform a complete pricing model with all related entities', async () => {
+  // PR 5: Rewritten test to use new usage meter structure where usage prices
+  // belong to usage meters, not products
+  it('should fetch and transform a complete pricing model with all related entities', async () => {
     // First, create a pricing model with all the complex parts
     const originalInput: SetupPricingModelInput = {
       name: 'Test Pricing Model',
       isDefault: false,
+      // PR 5: Usage meters now have nested prices
       usageMeters: [
         {
-          slug: 'api-calls',
-          name: 'API Calls',
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'API Calls',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              name: 'Extra API Calls',
+              slug: 'api-usage-price',
+              unitPrice: 10,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageEventsPerUnit: 100,
+              trialPeriodDays: null,
+            },
+          ],
         },
         {
-          slug: 'storage',
-          name: 'Storage',
+          usageMeter: {
+            slug: 'storage',
+            name: 'Storage',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              name: 'Storage Overages',
+              slug: 'storage-usage-price',
+              unitPrice: 5,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageEventsPerUnit: 50,
+              trialPeriodDays: null,
+            },
+          ],
         },
       ],
       features: [
@@ -70,6 +103,7 @@ describe('getPricingModelSetupData', () => {
           active: true,
         },
       ],
+      // PR 5: Products only have subscription/single payment prices now
       products: [
         {
           product: {
@@ -118,52 +152,6 @@ describe('getPricingModelSetupData', () => {
             usageEventsPerUnit: null,
           },
           features: ['basic-feature', 'api-credits'],
-        },
-        {
-          product: {
-            name: 'API Usage',
-            slug: 'api-usage',
-            description: 'Pay per API call',
-            default: false,
-            active: true,
-          },
-          price: {
-            type: PriceType.Usage,
-            name: 'Extra API Calls',
-            slug: 'api-usage-price',
-            unitPrice: 10,
-            isDefault: true,
-            active: true,
-            intervalCount: 1,
-            intervalUnit: IntervalUnit.Month,
-            usageMeterSlug: 'api-calls',
-            usageEventsPerUnit: 100,
-            trialPeriodDays: null,
-          },
-          features: [],
-        },
-        {
-          product: {
-            name: 'Storage Usage',
-            slug: 'storage-usage',
-            description: 'Pay per storage',
-            default: false,
-            active: true,
-          },
-          price: {
-            type: PriceType.Usage,
-            name: 'Storage Overages',
-            slug: 'storage-usage-price',
-            unitPrice: 5,
-            isDefault: true,
-            active: true,
-            intervalCount: 1,
-            intervalUnit: IntervalUnit.Month,
-            usageMeterSlug: 'storage',
-            usageEventsPerUnit: 50,
-            trialPeriodDays: null,
-          },
-          features: [],
         },
         {
           product: {
@@ -216,14 +204,35 @@ describe('getPricingModelSetupData', () => {
     expect(fetchedData.name).toBe(originalInput.name)
     expect(fetchedData.isDefault).toBe(originalInput.isDefault)
 
-    // Verify usage meters
+    // PR 5: Verify usage meters with nested structure
     expect(fetchedData.usageMeters).toHaveLength(
       originalInput.usageMeters.length
     )
-    const usageMeterSlugs = fetchedData.usageMeters.map((m) => m.slug)
+    const usageMeterSlugs = fetchedData.usageMeters.map(
+      (m) => m.usageMeter.slug
+    )
     expect(usageMeterSlugs).toEqual(
       expect.arrayContaining(['api-calls', 'storage'])
     )
+
+    // PR 5: Verify usage prices are nested under meters
+    const apiCallsMeter = fetchedData.usageMeters.find(
+      (m) => m.usageMeter.slug === 'api-calls'
+    )
+    expect(apiCallsMeter).toBeDefined()
+    expect(apiCallsMeter?.prices).toHaveLength(1)
+    expect(apiCallsMeter?.prices?.[0].slug).toBe('api-usage-price')
+    expect(apiCallsMeter?.prices?.[0].unitPrice).toBe(10)
+    expect(apiCallsMeter?.prices?.[0].usageEventsPerUnit).toBe(100)
+
+    const storageMeter = fetchedData.usageMeters.find(
+      (m) => m.usageMeter.slug === 'storage'
+    )
+    expect(storageMeter).toBeDefined()
+    expect(storageMeter?.prices).toHaveLength(1)
+    expect(storageMeter?.prices?.[0].slug).toBe('storage-usage-price')
+    expect(storageMeter?.prices?.[0].unitPrice).toBe(5)
+    expect(storageMeter?.prices?.[0].usageEventsPerUnit).toBe(50)
 
     // Verify features
     expect(fetchedData.features).toHaveLength(
@@ -244,8 +253,8 @@ describe('getPricingModelSetupData', () => {
       expect(creditFeature.amount).toBe(1000)
     }
 
-    // Verify products (should include auto-generated default + our 5 products)
-    expect(fetchedData.products.length).toBeGreaterThanOrEqual(5)
+    // PR 5: Verify products (now only 3 - no usage price products)
+    expect(fetchedData.products.length).toBeGreaterThanOrEqual(3)
 
     const starterProduct = fetchedData.products.find(
       (p) => p.product.slug === 'starter'
@@ -269,8 +278,6 @@ describe('getPricingModelSetupData', () => {
       expect(starterPrice.unitPrice).toBe(1999)
       expect(starterPrice.intervalUnit).toBe(IntervalUnit.Month)
       expect(starterPrice.trialPeriodDays).toBe(14)
-      expect(starterPrice.usageMeterId).toBe(null)
-      expect(starterPrice.usageEventsPerUnit).toBe(null)
     }
 
     // Verify Pro product
@@ -279,35 +286,6 @@ describe('getPricingModelSetupData', () => {
     )
     expect(proProduct).toBeDefined()
     expect(proProduct?.price?.type).toBe(PriceType.Subscription)
-
-    // Verify API Usage product
-    const apiUsageProduct = fetchedData.products.find(
-      (p) => p.product.slug === 'api-usage'
-    )
-    expect(apiUsageProduct).toBeDefined()
-    const apiUsagePrice = apiUsageProduct?.price
-    expect(apiUsagePrice?.type).toBe(PriceType.Usage)
-    if (apiUsagePrice?.type === PriceType.Usage) {
-      expect(apiUsagePrice.usageMeterSlug).toBe('api-calls')
-      expect(apiUsagePrice.usageEventsPerUnit).toBe(100)
-      expect(apiUsagePrice.trialPeriodDays).toBe(null)
-      expect(apiUsagePrice.isDefault).toBe(true)
-      expect(apiUsagePrice.active).toBe(true)
-    }
-
-    // Verify Storage Usage product
-    const storageUsageProduct = fetchedData.products.find(
-      (p) => p.product.slug === 'storage-usage'
-    )
-    const storageUsagePrice = storageUsageProduct?.price
-    expect(storageUsagePrice?.type).toBe(PriceType.Usage)
-    if (storageUsagePrice?.type === PriceType.Usage) {
-      expect(storageUsagePrice.usageMeterSlug).toBe('storage')
-      expect(storageUsagePrice.usageEventsPerUnit).toBe(50)
-      expect(storageUsagePrice.trialPeriodDays).toBe(null)
-      expect(storageUsagePrice.isDefault).toBe(true)
-      expect(storageUsagePrice.active).toBe(true)
-    }
 
     // Verify single payment product
     const addonProduct = fetchedData.products.find(
@@ -461,8 +439,23 @@ describe('getPricingModelSetupData', () => {
       isDefault: false,
       usageMeters: [
         {
-          slug: 'test-meter',
-          name: 'Test Meter',
+          usageMeter: {
+            slug: 'test-meter',
+            name: 'Test Meter',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'test-meter-usage',
+              unitPrice: 10,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageEventsPerUnit: 100,
+              trialPeriodDays: null,
+            },
+          ],
         },
       ],
       features: [
@@ -524,27 +517,6 @@ describe('getPricingModelSetupData', () => {
             'active-credit',
             'inactive-credit',
           ],
-        },
-        {
-          product: {
-            name: 'Usage Product',
-            slug: 'usage-product',
-            default: false,
-            active: true,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'test-meter-usage',
-            unitPrice: 10,
-            isDefault: true,
-            active: true,
-            intervalCount: 1,
-            intervalUnit: IntervalUnit.Month,
-            usageMeterSlug: 'test-meter',
-            usageEventsPerUnit: 100,
-            trialPeriodDays: null,
-          },
-          features: [],
         },
       ],
     }
