@@ -44,6 +44,7 @@ import {
 } from '@/db/tableMethods/productMethods'
 import {
   bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId,
+  derivePricingModelIdFromUsageMeter,
   selectUsageMeters,
 } from '@/db/tableMethods/usageMeterMethods'
 import type {
@@ -140,7 +141,33 @@ export const createPriceTransaction = async (
     })
   }
 
-  // FIXME: PR 3 - Product validation only applies to non-usage prices.
+  // Validate price type and productId consistency
+  // For usage prices, productId must be null or undefined (not a valid string)
+  // Cast to unknown first to avoid TypeScript narrowing issues
+  const rawPrice = price as unknown as { productId?: string | null }
+  if (
+    price.type === PriceType.Usage &&
+    rawPrice.productId !== null &&
+    rawPrice.productId !== undefined
+  ) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message:
+        'Usage prices cannot have a productId. They belong to usage meters.',
+    })
+  }
+  if (
+    price.type !== PriceType.Usage &&
+    !Price.clientInsertHasProductId(price)
+  ) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message:
+        'Subscription and single payment prices require a productId.',
+    })
+  }
+
+  // Product validation only applies to non-usage prices.
   // Usage prices don't have productId, so skip product-related validation.
   if (Price.clientInsertHasProductId(price)) {
     // Get product to check if it's a default product
@@ -193,10 +220,20 @@ export const createPriceTransaction = async (
     transaction
   )
 
+  // For usage prices, derive pricingModelId from usageMeterId
+  let pricingModelId: string | undefined
+  if (price.type === PriceType.Usage && price.usageMeterId) {
+    pricingModelId = await derivePricingModelIdFromUsageMeter(
+      price.usageMeterId,
+      transaction
+    )
+  }
+
   // for now, created prices have default = true and active = true
   const newPrice = await safelyInsertPrice(
     {
       ...price,
+      ...(pricingModelId ? { pricingModelId } : {}),
       livemode: livemode ?? false,
       currency: organization.defaultCurrency,
       externalId: null,

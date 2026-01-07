@@ -26,13 +26,6 @@ export const useSetCheckoutSessionCookieEffect = (
     }
     mountedRef.current = true
     const checkoutSessionType = checkoutSession.type
-    if (checkoutSessionType === CheckoutSessionType.Invoice) {
-      setCheckoutSessionCookie.mutateAsync({
-        invoiceId: checkoutSession.invoiceId,
-        id: checkoutSessionId,
-        type: CheckoutSessionType.Invoice,
-      })
-    }
     if (checkoutSessionType === CheckoutSessionType.Purchase) {
       setCheckoutSessionCookie.mutateAsync({
         purchaseId: checkoutSession.purchaseId,

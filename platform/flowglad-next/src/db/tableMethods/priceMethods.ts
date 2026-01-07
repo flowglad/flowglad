@@ -610,10 +610,12 @@ export const selectPricesPaginated = createPaginatedSelectFunction(
 
 export const pricesTableRowOutputSchema = z.object({
   price: pricesClientSelectSchema,
-  product: z.object({
-    id: z.string(),
-    name: z.string(),
-  }),
+  product: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+    })
+    .nullable(),
 })
 
 export const selectPricesTableRowData =
@@ -658,10 +660,7 @@ export const selectPricesTableRowData =
         }
         return {
           price,
-          product: {
-            id: '',
-            name: 'Usage-Based',
-          },
+          product: null,
         }
       })
     },
