@@ -33,23 +33,19 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Documentation",
+        "tab": "Introduction",
         "groups": [
           {
             "group": "Get Started",
             "pages": [
-              "introduction",
+              "welcome",
               "quickstart",
-              "integrate-by-prompt",
               "integrate-by-http",
               "mcp-server",
               "faq"
             ]
-          },
-          {
-            "group": "Concepts",
-            "pages": ["principles", "data-model", "countries"]
           }
+        
         ]
       },
       {
@@ -69,6 +65,10 @@
               "features/usage",
               "features/webhooks"
             ]
+          },
+          {
+            "group": "Concepts",
+            "pages": ["principles", "data-model", "countries"]
           }
         ]
       },
@@ -118,10 +118,7 @@
         "groups": [
           {
             "group": "Overview",
-            "pages": [
-              "examples/introduction",
-              "examples/pricing-models"
-            ]
+            "pages": ["examples/introduction", "examples/pricing-models"]
           },
           {
             "group": "Next.js",
@@ -134,9 +131,7 @@
           },
           {
             "group": "Tanstack Start",
-            "pages": [
-              "examples/tanstack-start/generation-based-subscription"
-            ]
+            "pages": ["examples/tanstack-start/generation-based-subscription"]
           },
           {
             "group": "Vite",
@@ -144,9 +139,7 @@
           },
           {
             "group": "React Native",
-            "pages": [
-              "examples/react-native/generation-based-subscription"
-            ]
+            "pages": ["examples/react-native/generation-based-subscription"]
           }
         ]
       }

@@ -27,308 +27,356 @@ Quicklinks to add your key to your secrets:
 
 [Infisical Dashboard](https://app.infisical.com/dashboard)
 
-## 3. Install Flowglad
+## Installation & Setup
+From here you can install and setup Flowglad in one of two ways. 
 
-<CodeGroup>
+<Accordion title="Integrate by Prompt (recommended)" icon="copy">
+  <Note>
+      Flowglad has an MCP server! It can give your AI coding agents more context with the Flowglad docs. You can add it to your AI coding tool of choice by following the [MCP server documentation](/mcp-server).
+  </Note>
+  
+  ## 1. Install The Flowglad Package
+  
+  <CodeGroup>
+  
+  ```bash bun
+  bun add @flowglad/nextjs
+  ```
+  
+  ```bash yarn
+  yarn add @flowglad/nextjs
+  ```
+  
+  ```bash npm
+  npm install @flowglad/nextjs
+  ```
+  
+  </CodeGroup>
+  
+  ## 2. Codebase Overview
+  
+  Flowglad can create a custom integration prompt for each pricing model in your organization.
+  
+  If you haven't already, you'll need to complete a codebase overview to give Flowglad context about your codebase. You'll be asked to complete this overview when creating a new organization or you can do it later in [settings](https://app.flowglad.com/settings).
+  
+  Simply copy the overview prompt into your AI coding tool of choice and paste the output into the provided text area in Flowglad. 
+  
+  ## 3. One Shot Integration
+  
+  To access a pricing model's custom integration prompt, go to your pricing model, click "More Options", click "Integrate", and you'll see the prompt (it may take some time to generate).
+  
+  ![integrate button](/images/integration-prompt-button.png)
+  
+  You can then copy this prompt into your AI coding tool and it should be able to one shot the integration.
+</Accordion>
 
-```bash Next.js
-bun add @flowglad/nextjs
-```
+<Accordion title="Continue Manually" icon="wrench">
+  ## 1. Install Flowglad
 
-```bash Other React Frameworks
-bun add @flowglad/react @flowglad/server
-```
-
-</CodeGroup>
-
-## 4. Server Setup
-
-First, set up a Flowglad server factory function.
-Do this in a file that can be imported wherever you need to access billing data, or make calls to Flowglad.
-
-<CodeGroup>
-
-```ts lib/flowglad.ts
-import { FlowgladServer } from '@flowglad/nextjs/server'
-
-export const flowglad = (customerExternalId: string) => {
-  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
-  return new FlowgladServer({
-    customerExternalId,
-    getCustomerDetails: async (customerExternalId) => {
-      // Fetch customer details from YOUR database using YOUR app's ID
-      const user = await db.users.findOne({ id: customerExternalId })
-      if (!user) {
-        throw new Error('Customer not found')
+  <CodeGroup>
+  
+  ```bash Next.js
+  bun add @flowglad/nextjs
+  ```
+  
+  ```bash Other React Frameworks
+  bun add @flowglad/react @flowglad/server
+  ```
+  
+  </CodeGroup>
+  
+  ## 2. Server Setup
+  
+  First, set up a Flowglad server factory function.
+  Do this in a file that can be imported wherever you need to access billing data, or make calls to Flowglad.
+  
+  <CodeGroup>
+  
+  ```ts lib/flowglad.ts
+  import { FlowgladServer } from '@flowglad/nextjs/server'
+  
+  export const flowglad = (customerExternalId: string) => {
+    // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (customerExternalId) => {
+        // Fetch customer details from YOUR database using YOUR app's ID
+        const user = await db.users.findOne({ id: customerExternalId })
+        if (!user) {
+          throw new Error('Customer not found')
+        }
+        return {
+          email: user.email,
+          name: user.name,
+        }
+      },
+    })
+  }
+  ```
+  
+  
+  ```ts Example: Better Auth
+  import { FlowgladServer } from '@flowglad/nextjs/server'
+  import { auth } from '@/utils/auth'
+  import { headers } from 'next/headers'
+  
+  export const flowglad = (customerExternalId: string) => {
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (customerExternalId) => {
+        const session = await auth.api.getSession({
+          headers: await headers(),
+        })
+        if (!session?.user) {
+          throw new Error('User not authenticated')
+        }
+        return {
+          email: session.user.email || '',
+          name: session.user.name || ''
+        }
+      },
+    })
+  }
+  ```
+  
+  ```ts Example: Supabase Auth
+  import { FlowgladServer } from '@flowglad/nextjs/server'
+  import { createClient } from '@/utils/supabase/server'
+  
+  export const flowglad = (customerExternalId: string) => {
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (customerExternalId) => {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          throw new Error('User not authenticated')
+        }
+        return {
+          email: user.email || '',
+          name: user.user_metadata.name || user.email || ''
+        }
+      },
+    })
+  }
+  ```
+  
+  ```ts Example: B2B (Organization-based)
+  import { FlowgladServer } from '@flowglad/nextjs/server'
+  
+  export const flowglad = (organizationId: string) => {
+    // For B2B apps: organizationId is ID from YOUR app's database
+    return new FlowgladServer({
+      customerExternalId: organizationId,
+      getCustomerDetails: async (customerExternalId) => {
+        // Fetch organization details from YOUR database using YOUR org ID
+        const org = await db.organizations.findOne({ id: customerExternalId })
+        if (!org) {
+          throw new Error('Organization not found')
+        }
+        return {
+          email: org.billingEmail || org.ownerEmail,
+          name: org.name,
+        }
+      },
+    })
+  }
+  ```
+  
+  </CodeGroup>
+  
+  <Note>
+  **Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
+  
+  **B2C apps:** Pass `user.id` as `customerExternalId`  
+  **B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
+  </Note>
+  
+  Next, set up your Flowglad API route at `/api/flowglad/[...path]`. Your app will use this to send and receive data from Flowglad.
+  
+  <CodeGroup>
+  
+  ```ts app/api/flowglad/[...path]/route.ts (App Router)
+  import { nextRouteHandler } from '@flowglad/nextjs/server'
+  import { flowglad } from '@/utils/flowglad'
+  
+  export const { GET, POST } = nextRouteHandler({
+    flowglad,
+    getCustomerExternalId: async (req) => {
+      // Extract customerExternalId from your auth/session
+      // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+      // For B2C: return user.id (from your database)
+      // For B2B: return organization.id (from your database)
+      const userId = await getUserIdFromRequest(req)
+      if (!userId) {
+        throw new Error('User not authenticated')
       }
-      return {
-        email: user.email,
-        name: user.name,
-      }
+      return userId
     },
   })
-}
-```
-
-```ts Example: Better Auth
-import { FlowgladServer } from '@flowglad/nextjs/server'
-import { auth } from '@/utils/auth'
-import { headers } from 'next/headers'
-
-export const flowglad = (customerExternalId: string) => {
-  return new FlowgladServer({
-    customerExternalId,
-    getCustomerDetails: async (customerExternalId) => {
+  ```
+  
+  ```ts Example: Better Auth
+  import { nextRouteHandler } from '@flowglad/nextjs/server'
+  import { flowglad } from '@/utils/flowglad'
+  import { auth } from '@/utils/auth'
+  import { headers } from 'next/headers'
+  
+  export const { GET, POST } = nextRouteHandler({
+    flowglad,
+    getCustomerExternalId: async (req) => {
       const session = await auth.api.getSession({
         headers: await headers(),
       })
-      if (!session?.user) {
-        throw new Error('User not authenticated')
+      const userId = session?.user?.id
+      if (!userId) {
+        throw new Error('User not found')
       }
-      return {
-        email: session.user.email || '',
-        name: session.user.name || ''
-      }
+      return userId
     },
   })
-}
-```
-
-```ts Example: Supabase Auth
-import { FlowgladServer } from '@flowglad/nextjs/server'
-import { createClient } from '@/utils/supabase/server'
-
-export const flowglad = (customerExternalId: string) => {
-  return new FlowgladServer({
-    customerExternalId,
-    getCustomerDetails: async (customerExternalId) => {
+  ```
+  
+  ```ts Example: Supabase Auth
+  import { nextRouteHandler } from '@flowglad/nextjs/server'
+  import { flowglad } from '@/utils/flowglad'
+  import { createClient } from '@/utils/supabase/server'
+  
+  export const { GET, POST } = nextRouteHandler({
+    flowglad,
+    getCustomerExternalId: async (req) => {
       const supabase = await createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        throw new Error('User not authenticated')
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+      const userId = user?.id
+      if (!userId) {
+        throw new Error('User not found')
       }
-      return {
-        email: user.email || '',
-        name: user.user_metadata.name || user.email || ''
-      }
+      return userId
     },
   })
-}
-```
-
-```ts Example: B2B (Organization-based)
-import { FlowgladServer } from '@flowglad/nextjs/server'
-
-export const flowglad = (organizationId: string) => {
-  // For B2B apps: organizationId is ID from YOUR app's database
-  return new FlowgladServer({
-    customerExternalId: organizationId,
-    getCustomerDetails: async (customerExternalId) => {
-      // Fetch organization details from YOUR database using YOUR org ID
-      const org = await db.organizations.findOne({ id: customerExternalId })
-      if (!org) {
-        throw new Error('Organization not found')
-      }
-      return {
-        email: org.billingEmail || org.ownerEmail,
-        name: org.name,
-      }
-    },
-  })
-}
-```
-
-</CodeGroup>
-
-<Note>
-**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
-
-**B2C apps:** Pass `user.id` as `customerExternalId`  
-**B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
-</Note>
-
-Next, set up your Flowglad API route at `/api/flowglad/[...path]`. Your app will use this to send and receive data from Flowglad.
-
-<CodeGroup>
-
-```ts app/api/flowglad/[...path]/route.ts (App Router)
-import { nextRouteHandler } from '@flowglad/nextjs/server'
-import { flowglad } from '@/utils/flowglad'
-
-export const { GET, POST } = nextRouteHandler({
-  flowglad,
-  getCustomerExternalId: async (req) => {
-    // Extract customerExternalId from your auth/session
-    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
-    // For B2C: return user.id (from your database)
-    // For B2B: return organization.id (from your database)
-    const userId = await getUserIdFromRequest(req)
-    if (!userId) {
-      throw new Error('User not authenticated')
-    }
-    return userId
-  },
-})
-```
-
-```ts Example: Better Auth
-import { nextRouteHandler } from '@flowglad/nextjs/server'
-import { flowglad } from '@/utils/flowglad'
-import { auth } from '@/utils/auth'
-import { headers } from 'next/headers'
-
-export const { GET, POST } = nextRouteHandler({
-  flowglad,
-  getCustomerExternalId: async (req) => {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-    const userId = session?.user?.id
-    if (!userId) {
-      throw new Error('User not found')
-    }
-    return userId
-  },
-})
-```
-
-```ts Example: Supabase Auth
-import { nextRouteHandler } from '@flowglad/nextjs/server'
-import { flowglad } from '@/utils/flowglad'
-import { createClient } from '@/utils/supabase/server'
-
-export const { GET, POST } = nextRouteHandler({
-  flowglad,
-  getCustomerExternalId: async (req) => {
-    const supabase = await createClient()
+  ```
+  
+  </CodeGroup>
+  
+  <Note>
+  The `getCustomerExternalId` function extracts the customer ID from **your app's database** (via your authentication system). Flowglad doesn't care how you authenticate—just return the ID from your system that represents the billing entity (user ID for B2C, organization ID for B2B). This is **not** Flowglad's customer ID.
+  </Note>
+  
+  <Info>
+  Flowglad integrates seamlessly with your auth provider. Read more about auth options [here](/sdks/auth).
+  </Info>
+  
+  <Info>
+    You can mount Flowglad's handler at a different route, but you'll
+    need to specify it via the `baseURL` prop in `
+              <FlowgladProvider />` in your React app. Flowglad will automatically append `/api/flowglad` to the baseURL when making requests.
+  </Info>
+  
+  ## 3. Set up React
+  
+  Next, you need to set up the FlowgladProvider component.
+  
+  <CodeGroup>
+  
+  ```tsx Supabase Auth
+  // app/layout.tsx
+  import { PropsWithChildren } from 'react'
+  import { FlowgladProvider } from '@flowglad/react'
+  // or wherever you initialize your supabase client
+  import { createClient } from '@/utils/supabase'
+  
+  export default function RootLayout({
+    children,
+  }: PropsWithChildren) {
+      const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser()
-    const userId = user?.id
-    if (!userId) {
-      throw new Error('User not found')
-    }
-    return userId
-  },
-})
-```
-
-</CodeGroup>
-
-<Note>
-The `getCustomerExternalId` function extracts the customer ID from **your app's database** (via your authentication system). Flowglad doesn't care how you authenticate—just return the ID from your system that represents the billing entity (user ID for B2C, organization ID for B2B). This is **not** Flowglad's customer ID.
-</Note>
-
-<Info>
-Flowglad integrates seamlessly with your auth provider. Read more about auth options [here](/sdks/auth).
-</Info>
-
-<Info>
-  You can mount Flowglad's handler at a different route, but you'll
-  need to specify it via the `baseURL` prop in `
-            <FlowgladProvider />` in your React app. Flowglad will automatically append `/api/flowglad` to the baseURL when making requests.
-</Info>
-
-## 5. Set up React
-
-Next, you need to set up the FlowgladProvider component.
-
-<CodeGroup>
-
-```tsx Supabase Auth
-// app/layout.tsx
-import { PropsWithChildren } from 'react'
-import { FlowgladProvider } from '@flowglad/react'
-// or wherever you initialize your supabase client
-import { createClient } from '@/utils/supabase'
-
-export default function RootLayout({
-  children,
-}: PropsWithChildren) {
-    const supabase = createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-  return (
-    <FlowgladProvider loadBilling={!!user}>
-    { /* ... existing layout JSX ... */}
-      {children}
-    { /* ... existing layout JSX ... */}
-    </FlowgladProvider>
-  )
-}
-```
-
-
-```tsx Clerk
-// app/layout.tsx
-import { PropsWithChildren } from 'react'
-import { FlowgladProvider } from '@flowglad/nextjs'
-import { currentUser } from '@clerk/nextjs/server'
-
-export default async function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
-  const user = await currentUser()
-  return (
-      <html lang="en">
-        <body>
-          <FlowgladProvider loadBilling={!!user}>
-            {children}
-          </FlowgladProvider>
-        </body>
-      </html>
-  )
-}
-```
-
-
-```tsx Next Auth
-// app/layout.tsx
-import { PropsWithChildren } from 'react'
-import { FlowgladProvider } from '@flowglad/react'
-import { SessionProvider } from 'next-auth/react'
-
-export default async function RootLayout({
-  children,
-}: PropsWithChildren) {
-  const session = await auth()
-  return (
-    <SessionProvider basePath={'/auth'} session={session}>
-      <FlowgladProviderWithAuth
-        loadBilling={session.status === 'authenticated'}
-      >
+    } = await supabase.auth.getUser();
+    return (
+      <FlowgladProvider loadBilling={!!user}>
+      { /* ... existing layout JSX ... */}
         {children}
-      </FlowgladProviderWithAuth>
-    </SessionProvider>
-  )
-}
-```
-
-</CodeGroup>
-
-## 6. `useBilling`
-
-Use the `useBilling` hook to get billing data on your customer's frontend.
-
-<CodeGroup>
-
-```tsx Next
-'use client'
-import { useBilling } from '@flowglad/nextjs'
-
-export default function Billing() {
-  const { checkFeatureAccess } = useBilling()
-  if (!checkFeatureAccess) {
-    return <div>Loading ...</div>  
+      { /* ... existing layout JSX ... */}
+      </FlowgladProvider>
+    )
   }
-  if (checkFeatureAccess("my_feature")) {
-    return <div>You have access!</div>
-  } else {
-    return <div>Please upgrade</div>
+  ```
+  
+  
+  ```tsx Clerk
+  // app/layout.tsx
+  import { PropsWithChildren } from 'react'
+  import { FlowgladProvider } from '@flowglad/nextjs'
+  import { currentUser } from '@clerk/nextjs/server'
+  
+  export default async function RootLayout({
+    children,
+  }: Readonly<{
+    children: React.ReactNode
+  }>) {
+    const user = await currentUser()
+    return (
+        <html lang="en">
+          <body>
+            <FlowgladProvider loadBilling={!!user}>
+              {children}
+            </FlowgladProvider>
+          </body>
+        </html>
+    )
   }
-}
-```
-</CodeGroup>
+  ```
+  
+  
+  ```tsx Next Auth
+  // app/layout.tsx
+  import { PropsWithChildren } from 'react'
+  import { FlowgladProvider } from '@flowglad/react'
+  import { SessionProvider } from 'next-auth/react'
+  
+  export default async function RootLayout({
+    children,
+  }: PropsWithChildren) {
+    const session = await auth()
+    return (
+      <SessionProvider basePath={'/auth'} session={session}>
+        <FlowgladProviderWithAuth
+          loadBilling={session.status === 'authenticated'}
+        >
+          {children}
+        </FlowgladProviderWithAuth>
+      </SessionProvider>
+    )
+  }
+  ```
+  
+  </CodeGroup>
+  
+  ## 4. `useBilling`
+  
+  Use the `useBilling` hook to get billing data on your customer's frontend.
+  
+  <CodeGroup>
+  
+  ```tsx Next
+  'use client'
+  import { useBilling } from '@flowglad/nextjs'
+  
+  export default function Billing() {
+    const { checkFeatureAccess } = useBilling()
+    if (!checkFeatureAccess) {
+      return <div>Loading ...</div>  
+    }
+    if (checkFeatureAccess("my_feature")) {
+      return <div>You have access!</div>
+    } else {
+      return <div>Please upgrade</div>
+    }
+  }
+  ```
+  </CodeGroup>
+</Accordion>
+
+Not using the SDKs? Check out our guide for [integrating with HTTP](/integrate-by-http).
