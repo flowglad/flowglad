@@ -247,8 +247,19 @@ const clonePricingModelProcedure = protectedProcedure
      * We intentionally use adminTransaction here to allow cloning pricing models
      * across environments (test mode to live mode and vice versa). This is a
      * supported UI feature that lets users promote their pricing model configuration
-     * from test to production. The authenticatedTransaction above ensures the user
-     * has permission to read the source pricing model.
+     * from test to production.
+     *
+     * Security note: Any authenticated API key (test or live) can clone to either
+     * environment via the destinationEnvironment parameter. The authenticatedTransaction
+     * above ensures the caller has read access to the source pricing model. This is
+     * acceptable because:
+     * 1. Pricing models contain configuration data, not sensitive customer information
+     * 2. Only authenticated users within the organization can access this endpoint
+     * 3. The feature enables legitimate workflows like promoting test configs to production
+     *
+     * If stricter controls are needed in the future, consider either:
+     * - Removing destinationEnvironment from the public API schema (clonePricingModelInputSchema)
+     * - Adding role/scope checks before allowing cross-environment clones
      */
     const clonedPricingModel = await adminTransaction(
       async ({ transaction }) => {
