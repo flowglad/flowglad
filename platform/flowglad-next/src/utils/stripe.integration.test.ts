@@ -22,7 +22,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       }
     })
 
-    it('creates a customer with email and name, returns valid Stripe customer object', async () => {
+    it('creates a customer with email, name, and metadata, returns valid Stripe customer object that can be retrieved', async () => {
       const testEmail = `test+${core.nanoid()}@flowglad-integration.com`
       const testName = `Integration Test Customer ${core.nanoid()}`
       const testOrgId = `org_${core.nanoid()}`
@@ -39,39 +39,24 @@ describeIfStripeKey('Stripe Integration Tests', () => {
 
       createdCustomerId = stripeCustomer.id
 
+      // Verify customer ID format and basic properties
       expect(stripeCustomer.id).toMatch(/^cus_/)
       expect(stripeCustomer.email).toBe(testEmail)
       expect(stripeCustomer.name).toBe(testName)
       expect(stripeCustomer.livemode).toBe(false)
 
+      // Verify metadata is stored correctly
+      expect(stripeCustomer.metadata?.organizationId).toBe(testOrgId)
+      expect(stripeCustomer.metadata?.createdBy).toBe(
+        'createCustomerBookkeeping'
+      )
+
+      // Verify customer can be retrieved from Stripe
       const retrievedCustomer = await stripe.customers.retrieve(
         stripeCustomer.id
       )
       expect(retrievedCustomer.id).toBe(stripeCustomer.id)
       expect(retrievedCustomer.deleted).not.toBe(true)
-    })
-
-    it('creates a customer with metadata containing organizationId', async () => {
-      const testEmail = `test+${core.nanoid()}@flowglad-integration.com`
-      const testName = `Integration Test Customer ${core.nanoid()}`
-      const testOrgId = `org_${core.nanoid()}`
-
-      const stripe = getStripeTestClient()
-      const stripeCustomer = await stripe.customers.create({
-        email: testEmail,
-        name: testName,
-        metadata: {
-          organizationId: testOrgId,
-          createdBy: 'confirmCheckoutSession',
-        },
-      })
-
-      createdCustomerId = stripeCustomer.id
-
-      expect(stripeCustomer.metadata?.organizationId).toBe(testOrgId)
-      expect(stripeCustomer.metadata?.createdBy).toBe(
-        'confirmCheckoutSession'
-      )
     })
   })
 
