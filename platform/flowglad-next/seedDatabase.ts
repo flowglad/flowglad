@@ -1331,33 +1331,6 @@ export const setupCheckoutSession = async ({
     insert = productCheckoutSessionInsert
   } else if (type === CheckoutSessionType.Purchase) {
     insert = purchaseCheckoutSessionInsert
-  } else if (type === CheckoutSessionType.Invoice) {
-    let invoiceIdToUse: string
-    if (invoiceId) {
-      invoiceIdToUse = invoiceId
-    } else {
-      const invoice = await setupInvoice({
-        customerId: customerId,
-        organizationId: organizationId,
-        priceId: priceId,
-      })
-      invoiceIdToUse = invoice.id
-    }
-
-    insert = {
-      ...coreFields,
-      priceId: null,
-      status: status,
-      type: CheckoutSessionType.Invoice,
-      preserveBillingCycleAnchor: false,
-      quantity,
-      livemode,
-      targetSubscriptionId: null,
-      outputName: outputName ?? null,
-      invoiceId: invoiceIdToUse,
-      purchaseId: null,
-      outputMetadata: null,
-    }
   } else if (type === CheckoutSessionType.ActivateSubscription) {
     insert = activateSubscriptionCheckoutSessionInsert
   }
