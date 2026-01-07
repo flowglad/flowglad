@@ -85,11 +85,32 @@ View the complete source code on [GitHub](https://github.com/flowglad/examples/t
 
 ### Pricing Configuration
 
-[1 sentence intro explaining what this config sets up]
+The `pricing.yaml` file defines [brief description of what it configures]. See the [full configuration](https://github.com/flowglad/examples/blob/main/[framework]/[example-name]/pricing.yaml) in the repository.
 
-[Show ABBREVIATED pricing.yaml - only the parts unique to this model, ~30 lines max]
+[MERMAID DIAGRAM of the pricing model - show the relationship between usage meters, subscription tiers, and any top-ups or features. Follow this pattern:]
 
-[1-2 sentences explaining the key parts of the config]
+```mermaid
+flowchart TB
+    subgraph UsageMeters["USAGE METERS"]
+        meter1["meter_name<br/>(aggregation type)"]
+        meter2["another_meter<br/>(aggregation type)"]
+    end
+
+    subgraph Subscriptions["SUBSCRIPTION TIERS<br/>(renews every billing period)"]
+        free["**Free** $0/mo<br/>No credits"]
+        basic["**Basic** $X/mo<br/>N credits"]
+        pro["**Pro** $Y/mo<br/>M credits<br/>+ Premium features"]
+    end
+
+    subgraph TopUps["TOP-UPS<br/>(one-time purchase)"]
+        topup1["**Credit Pack** $X<br/>+N credits"]
+    end
+
+    UsageMeters --> Subscriptions
+    UsageMeters --> TopUps
+```
+
+[1-2 sentences explaining the key distinction of this pricing model, e.g., renewalFrequency settings or feature toggles vs usage grants]
 
 ### [Feature-specific section, e.g., "Checking Usage Balance"]
 
@@ -138,21 +159,27 @@ const balance = billing.checkUsageBalance('generations');
 
 **IMPORTANT**: The filename in the code block MUST match the exact path from the repository. For example, if the code comes from `src/app/api/usage-events/route.ts` in the flowglad/examples repo, use that exact path.
 
-For YAML configs, show abbreviated versions or use diagrams:
+For pricing configurations, use Mermaid diagrams instead of YAML snippets. This makes the pricing model structure immediately clear and renders nicely in documentation:
 
-```yaml pricing.yaml
-# Key parts only - see full file in repo
-usageMeters:
-  - name: "Generations"
-    slug: "generations"
-    aggregationType: "sum"
+```mermaid
+flowchart TB
+    subgraph UsageMeters["USAGE METER"]
+        meter["message_credits<br/>(sum aggregation)"]
+    end
 
-products:
-  - product:
-      name: "Pro"
-      slug: "pro_monthly"
-    # ... see repo for full config
+    subgraph Subscriptions["FREE PLAN<br/>(default for all users)"]
+        free["$0<br/>No included credits"]
+    end
+
+    subgraph TopUps["TOP-UP<br/>(one-time purchase)"]
+        topup["**Message Top-Up** $100<br/>+100 message credits"]
+    end
+
+    UsageMeters --> Subscriptions
+    UsageMeters --> TopUps
 ```
+
+Always link to the full `pricing.yaml` in the GitHub repo for users who want the exact configuration.
 
 ## Next Steps Card Links
 
@@ -216,7 +243,7 @@ Common pricing models to document:
 - [ ] Key concepts are explained in plain English, not just shown in code
 - [ ] No full file dumps - only essential snippets
 - [ ] File paths in code blocks match EXACT paths from the repository (e.g., `src/app/api/usage-events/route.ts`)
-- [ ] YAML configs are abbreviated with comments pointing to full file
+- [ ] Pricing model shown as Mermaid diagram with link to full pricing.yaml in repo
 - [ ] Link to source repository prominently displayed
 - [ ] Total doc length is reasonable (aim for <200 lines of markdown)
 - [ ] Next steps CardGroup includes GitHub link to the specific example
