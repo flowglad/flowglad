@@ -64,6 +64,48 @@ export const refundPaymentTransaction = async (
     )
     refundCreatedSeconds = refund.created
     nextRefundedAmount = (payment.refundedAmount ?? 0) + refund.amount
+
+    // Only reverse tax transaction when we successfully create a new refund
+    // (not when recovering from an already-refunded state)
+    if (payment.stripeTaxTransactionId) {
+      const organization = await selectOrganizationById(
+        payment.organizationId,
+        transaction
+      )
+
+      if (
+        organization.stripeConnectContractType ===
+        StripeConnectContractType.MerchantOfRecord
+      ) {
+        const isFullRefund = nextRefundedAmount >= payment.amount
+        try {
+          await reverseStripeTaxTransaction({
+            stripeTaxTransactionId: payment.stripeTaxTransactionId,
+            // Use Stripe refund ID for deterministic idempotency
+            reference: `refund_${payment.id}_${refund.id}`,
+            livemode: payment.livemode,
+            mode: isFullRefund ? 'full' : 'partial',
+            // Use actual refund amount from Stripe for accurate tax reversal
+            flatAmount: isFullRefund ? undefined : refund.amount,
+          })
+        } catch (taxError) {
+          // Log but don't fail the refund - tax reversal is best-effort
+          // similar to how tax transaction creation is handled
+          logger.error(
+            taxError instanceof Error
+              ? taxError
+              : new Error(String(taxError)),
+            {
+              message: 'Failed to reverse tax transaction',
+              paymentId: payment.id,
+              organizationId: payment.organizationId,
+              stripeTaxTransactionId: payment.stripeTaxTransactionId,
+              refundId: refund.id,
+            }
+          )
+        }
+      }
+    }
   } catch (error) {
     const alreadyRefundedError =
       error instanceof Stripe.errors.StripeError &&
@@ -72,6 +114,8 @@ export const refundPaymentTransaction = async (
     if (!alreadyRefundedError) {
       throw error
     }
+    // When recovering from an already-refunded charge, we don't attempt
+    // tax reversal since the original refund should have handled it
     const paymentIntent = await getPaymentIntent(
       payment.stripePaymentIntentId
     )
@@ -111,44 +155,6 @@ export const refundPaymentTransaction = async (
             return sum + refund.amount
           }, 0)
     nextRefundedAmount = amountRefundedFromStripe
-  }
-
-  // Reverse tax transaction for MOR organizations
-  if (payment.stripeTaxTransactionId) {
-    const organization = await selectOrganizationById(
-      payment.organizationId,
-      transaction
-    )
-
-    if (
-      organization.stripeConnectContractType ===
-      StripeConnectContractType.MerchantOfRecord
-    ) {
-      const isFullRefund = nextRefundedAmount >= payment.amount
-      try {
-        await reverseStripeTaxTransaction({
-          stripeTaxTransactionId: payment.stripeTaxTransactionId,
-          reference: `refund_${payment.id}_${Date.now()}`,
-          livemode: payment.livemode,
-          mode: isFullRefund ? 'full' : 'partial',
-          flatAmount: isFullRefund
-            ? undefined
-            : (partialAmount ?? undefined),
-        })
-      } catch (error) {
-        // Log but don't fail the refund - tax reversal is best-effort
-        // similar to how tax transaction creation is handled
-        logger.error(
-          error instanceof Error ? error : new Error(String(error)),
-          {
-            message: 'Failed to reverse tax transaction',
-            paymentId: payment.id,
-            organizationId: payment.organizationId,
-            stripeTaxTransactionId: payment.stripeTaxTransactionId,
-          }
-        )
-      }
-    }
   }
 
   const updatedPayment = await safelyUpdatePaymentForRefund(

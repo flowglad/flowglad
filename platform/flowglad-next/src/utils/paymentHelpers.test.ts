@@ -529,16 +529,18 @@ describe('refundPaymentTransaction', () => {
       ).mockResolvedValue(null)
     })
 
-    it('calls reverseStripeTaxTransaction with mode: full on full refund for MOR organization', async () => {
+    it('calls reverseStripeTaxTransaction with mode: full and Stripe refund ID in reference on full refund for MOR organization', async () => {
       const fullRefundAmount = 10800
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
+      const refundId = `re_${nanoid()}`
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
-        makeStripeRefundResponse({
+      vi.mocked(stripeUtils.refundPayment).mockResolvedValue({
+        ...makeStripeRefundResponse({
           amount: fullRefundAmount,
           created: refundCreatedTimestamp,
-        })
-      )
+        }),
+        id: refundId,
+      })
 
       await adminTransaction(async ({ transaction }) => {
         await refundPaymentTransaction(
@@ -555,26 +557,32 @@ describe('refundPaymentTransaction', () => {
             morPaymentWithTax.stripeTaxTransactionId,
           mode: 'full',
           livemode: morPaymentWithTax.livemode,
+          // Reference should use deterministic Stripe refund ID, not Date.now()
+          reference: `refund_${morPaymentWithTax.id}_${refundId}`,
         })
       )
     })
 
-    it('calls reverseStripeTaxTransaction with mode: partial and flatAmount on partial refund for MOR organization', async () => {
-      const partialRefundAmount = 5000
+    it('calls reverseStripeTaxTransaction with mode: partial and uses actual Stripe refund amount as flatAmount', async () => {
+      const requestedRefundAmount = 5000
+      // Stripe may return a different amount in some edge cases
+      const actualStripeRefundAmount = 5000
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
+      const refundId = `re_${nanoid()}`
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
-        makeStripeRefundResponse({
-          amount: partialRefundAmount,
+      vi.mocked(stripeUtils.refundPayment).mockResolvedValue({
+        ...makeStripeRefundResponse({
+          amount: actualStripeRefundAmount,
           created: refundCreatedTimestamp,
-        })
-      )
+        }),
+        id: refundId,
+      })
 
       await adminTransaction(async ({ transaction }) => {
         await refundPaymentTransaction(
           {
             id: morPaymentWithTax.id,
-            partialAmount: partialRefundAmount,
+            partialAmount: requestedRefundAmount,
           },
           transaction
         )
@@ -587,8 +595,10 @@ describe('refundPaymentTransaction', () => {
           stripeTaxTransactionId:
             morPaymentWithTax.stripeTaxTransactionId,
           mode: 'partial',
-          flatAmount: partialRefundAmount,
+          // Should use actual Stripe refund amount, not the requested amount
+          flatAmount: actualStripeRefundAmount,
           livemode: morPaymentWithTax.livemode,
+          reference: `refund_${morPaymentWithTax.id}_${refundId}`,
         })
       )
     })
@@ -652,6 +662,68 @@ describe('refundPaymentTransaction', () => {
         )
       })
 
+      expect(
+        stripeUtils.reverseStripeTaxTransaction
+      ).not.toHaveBeenCalled()
+    })
+
+    it('does not call reverseStripeTaxTransaction when charge_already_refunded error is thrown (exception path)', async () => {
+      const chargeId = `ch_${nanoid()}`
+      const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
+
+      // Simulate Stripe throwing "charge_already_refunded" error
+      const stripeError = new Error('Charge already refunded')
+      Object.assign(stripeError, {
+        type: 'StripeCardError',
+        raw: { code: 'charge_already_refunded' },
+      })
+      vi.mocked(stripeUtils.refundPayment).mockRejectedValue(
+        stripeError
+      )
+
+      // Mock the recovery path
+      vi.mocked(stripeUtils.getPaymentIntent).mockResolvedValue({
+        id: morPaymentWithTax.stripePaymentIntentId,
+        latest_charge: chargeId,
+      } as Stripe.PaymentIntent)
+
+      vi.mocked(stripeUtils.getStripeCharge).mockResolvedValue({
+        id: chargeId,
+        refunded: true,
+        amount_refunded: 10800,
+      } as Stripe.Charge)
+
+      vi.mocked(stripeUtils.listRefundsForCharge).mockResolvedValue({
+        data: [
+          {
+            id: `re_${nanoid()}`,
+            amount: 10800,
+            created: refundCreatedTimestamp,
+          } as Stripe.Refund,
+        ],
+        has_more: false,
+        object: 'list',
+        url: '/v1/refunds',
+        lastResponse: {
+          headers: {},
+          requestId: `req_${nanoid()}`,
+          statusCode: 200,
+        },
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const updatedPayment = await refundPaymentTransaction(
+          { id: morPaymentWithTax.id, partialAmount: null },
+          transaction
+        )
+
+        // Refund should succeed via recovery path
+        expect(updatedPayment.status).toBe(PaymentStatus.Refunded)
+        expect(updatedPayment.refunded).toBe(true)
+      })
+
+      // Tax reversal should NOT be called because we didn't create a new refund
+      // (the refund already existed in Stripe)
       expect(
         stripeUtils.reverseStripeTaxTransaction
       ).not.toHaveBeenCalled()
