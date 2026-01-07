@@ -1486,8 +1486,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
       )
     })
 
-    it('recalculates tax when billing address country changes', async () => {
-      const usAddress: BillingAddress = {
+    it('recalculates tax when billing address state changes', async () => {
+      const caAddress: BillingAddress = {
         address: {
           line1: '123 Test St',
           city: 'San Francisco',
@@ -1497,13 +1497,13 @@ describe('editCheckoutSessionBillingAddress', async () => {
         },
       }
 
-      // First set US address
+      // First set CA address
       const firstResult = await adminTransaction(
         async ({ transaction }) => {
           return editCheckoutSessionBillingAddress(
             {
               checkoutSessionId: morCheckoutSession.id,
-              billingAddress: usAddress,
+              billingAddress: caAddress,
             },
             transaction
           )
@@ -1512,8 +1512,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
 
       const firstFeeCalculationId = firstResult.feeCalculation?.id
 
-      // Then change to a different state
-      const caAddress: BillingAddress = {
+      // Then change to a different state (OR)
+      const orAddress: BillingAddress = {
         address: {
           line1: '456 New St',
           city: 'Portland',
@@ -1528,7 +1528,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
           return editCheckoutSessionBillingAddress(
             {
               checkoutSessionId: morCheckoutSession.id,
-              billingAddress: caAddress,
+              billingAddress: orAddress,
             },
             transaction
           )
@@ -1536,7 +1536,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
       )
 
       expect(secondResult.checkoutSession.billingAddress).toEqual(
-        caAddress
+        orAddress
       )
       expect(secondResult.feeCalculation).not.toBeNull()
       // A new fee calculation should be created since billing address changed
