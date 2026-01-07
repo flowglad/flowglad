@@ -13,72 +13,18 @@ import {
 import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
 import {
+  formatDateUTC,
+  MONTH_NAMES_FULL,
+} from '@/utils/chart/dateFormatting'
+import {
   getDefaultInterval,
   getIntervalConfig,
-  intervalNounLabels,
+  getIntervalSelectOptions,
 } from '@/utils/chartIntervalUtils'
 import { LineChart } from './charts/LineChart'
 import ErrorBoundary from './ErrorBoundary'
 import { ChartInfoTooltip } from './ui/chart-info-tooltip'
 import { Skeleton } from './ui/skeleton'
-
-const MONTH_NAMES_SHORT = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-]
-
-/**
- * Formats a UTC date without timezone conversion.
- * This ensures dates generated in UTC (like from PostgreSQL date_trunc)
- * display correctly regardless of the user's local timezone.
- */
-function formatDateUTC(
-  date: Date,
-  granularity: RevenueChartIntervalUnit
-): string {
-  const day = date.getUTCDate()
-  const month = MONTH_NAMES_SHORT[date.getUTCMonth()]
-  const year = date.getUTCFullYear()
-  const hours = date.getUTCHours().toString().padStart(2, '0')
-  const minutes = date.getUTCMinutes().toString().padStart(2, '0')
-
-  switch (granularity) {
-    case RevenueChartIntervalUnit.Year:
-      return `${year}`
-    case RevenueChartIntervalUnit.Hour:
-      return `${day} ${month} ${hours}:${minutes}`
-    case RevenueChartIntervalUnit.Month:
-    case RevenueChartIntervalUnit.Week:
-    case RevenueChartIntervalUnit.Day:
-    default:
-      return `${day} ${month}`
-  }
-}
-
-const MONTH_NAMES_FULL = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
 
 /**
  * Formats a date label for the tooltip using UTC.
@@ -220,13 +166,10 @@ export const ActiveSubscribersChart = ({
     }
   })
 
-  const intervalOptions = React.useMemo(() => {
-    const config = getIntervalConfig(fromDate, toDate)
-    return config.options.map((opt) => ({
-      label: intervalNounLabels[opt],
-      value: opt,
-    }))
-  }, [fromDate, toDate])
+  const intervalOptions = React.useMemo(
+    () => getIntervalSelectOptions(fromDate, toDate),
+    [fromDate, toDate]
+  )
 
   const firstPayloadValue = tooltipData?.payload?.[0]?.value
   const chartData = React.useMemo(() => {

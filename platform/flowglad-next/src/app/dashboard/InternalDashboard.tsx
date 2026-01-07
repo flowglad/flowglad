@@ -1,9 +1,9 @@
 'use client'
 import { startOfDay, subMonths } from 'date-fns'
 import { useEffect, useState } from 'react'
-import DateRangeActiveSubscribersChart from '@/components/DateRangeActiveSubscribersChart'
-import DateRangeRecurringRevenueChart from '@/components/DateRangeRecurringRevenueChart'
+import { ActiveSubscribersChart } from '@/components/ActiveSubscribersChart'
 import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import { RecurringRevenueChart } from '@/components/RecurringRevenueChart'
 import { RevenueChart } from '@/components/RevenueChart'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { IntervalPicker } from '@/components/ui/interval-picker'
@@ -100,8 +100,7 @@ function InternalDashboardPage({
         </ChartContainer>
         <ChartDivider />
         <ChartContainer>
-          <DateRangeRecurringRevenueChart
-            organizationCreatedAt={organizationCreatedAt}
+          <RecurringRevenueChart
             fromDate={range.from}
             toDate={range.to}
             interval={interval}
@@ -109,8 +108,7 @@ function InternalDashboardPage({
         </ChartContainer>
         <ChartDivider />
         <ChartContainer>
-          <DateRangeActiveSubscribersChart
-            organizationCreatedAt={organizationCreatedAt}
+          <ActiveSubscribersChart
             fromDate={range.from}
             toDate={range.to}
             interval={interval}

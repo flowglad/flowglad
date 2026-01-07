@@ -1,11 +1,11 @@
 'use client'
-import { format } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
 import { RevenueTooltip } from '@/components/RevenueTooltip'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { RevenueChartIntervalUnit } from '@/types'
+import { formatDateUTC } from '@/utils/chart/dateFormatting'
 import {
   getDefaultInterval,
   getIntervalConfig,
@@ -97,14 +97,17 @@ export const RecurringRevenueChart = ({
         )
       const dateObj = new Date(item.month)
       return {
-        date: format(dateObj, 'd MMM'),
+        // Use UTC formatting to match PostgreSQL's date_trunc behavior
+        date: formatDateUTC(dateObj, interval),
         // Store the ISO date string for the tooltip to use for proper year formatting
         isoDate: dateObj.toISOString(),
+        // Store the interval unit for the tooltip to format dates appropriately
+        intervalUnit: interval,
         formattedRevenue,
         revenue: Number(item.amount).toFixed(2),
       }
     })
-  }, [mrrData, defaultCurrency])
+  }, [mrrData, defaultCurrency, interval])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data

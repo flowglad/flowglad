@@ -3,38 +3,12 @@ import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
+import {
+  MONTH_NAMES_FULL,
+  MONTH_NAMES_SHORT,
+} from '@/utils/chart/dateFormatting'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import ErrorBoundary from './ErrorBoundary'
-
-const MONTH_NAMES_SHORT = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-]
-
-const MONTH_NAMES_FULL = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
 
 /**
  * Formats a UTC date without timezone conversion for tooltip display.

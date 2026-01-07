@@ -135,3 +135,22 @@ export function getDefaultInterval(
 ): RevenueChartIntervalUnit {
   return getIntervalConfig(fromDate, toDate).default
 }
+
+/**
+ * Returns interval options for a Select component based on date range.
+ * Each option has a `label` (e.g., "day") and `value` (the enum value).
+ *
+ * @example
+ * const options = getIntervalSelectOptions(fromDate, toDate)
+ * // [{ label: 'day', value: 'day' }, { label: 'week', value: 'week' }]
+ */
+export function getIntervalSelectOptions(
+  fromDate: Date,
+  toDate: Date
+): Array<{ label: string; value: RevenueChartIntervalUnit }> {
+  const config = getIntervalConfig(fromDate, toDate)
+  return config.options.map((opt) => ({
+    label: intervalNounLabels[opt],
+    value: opt,
+  }))
+}
