@@ -606,6 +606,17 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       },
       transaction
     )
+
+    // Set stripeSetupIntentId for idempotency protection against webhook replays
+    const updatedSubscription = await updateSubscription(
+      {
+        id: result.subscription.id,
+        stripeSetupIntentId: setupIntent.id,
+        renews: result.subscription.renews,
+      },
+      transaction
+    )
+
     return {
       type: CheckoutSessionType.ActivateSubscription as const,
       checkoutSession,
@@ -628,7 +639,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
         transaction
       ),
       billingRun,
-      subscription: result.subscription,
+      subscription: updatedSubscription,
       purchase: null,
     }
   }
