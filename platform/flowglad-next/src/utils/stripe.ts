@@ -1254,13 +1254,18 @@ export const refundPayment = async (
       ? paymentIntent.latest_charge
       : paymentIntent.latest_charge.id
 
+  // Retrieve the charge to check if it has an associated transfer
+  const charge = await stripe(livemode).charges.retrieve(chargeId)
+  const hasTransfer = Boolean(charge.transfer)
+
   return stripe(livemode).refunds.create({
     charge: chargeId,
     amount: partialAmount ?? undefined,
     /**
-     * Always attempt to reverse the transfer associated with the payment to be refunded
+     * Only reverse the transfer if one exists.
+     * In MoR test mode, payments may not have transfers.
      */
-    reverse_transfer: true,
+    reverse_transfer: hasTransfer ? true : undefined,
   })
 }
 
