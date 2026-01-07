@@ -390,11 +390,11 @@ export const adjustSubscription = async (
   // Get the subscription's pricing model for resolving priceSlug
   const pricingModelId = subscription.pricingModelId
 
-  // Batch fetch prices for better performance
-  // Collect all slugs and priceIds that need resolution
+  // Collect all slugs and price IDs that need resolution
   const slugsToResolve = newSubscriptionItems
     .filter(hasSlug)
     .map((item) => item.priceSlug)
+
   const priceIdsToResolve = newSubscriptionItems
     .filter((item) => isTerseSubscriptionItem(item) && !hasSlug(item))
     .map((item) => (item as TerseSubscriptionItem).priceId)
@@ -418,11 +418,20 @@ export const adjustSubscription = async (
     }
   }
 
-  // Batch fetch prices by id
+  // Batch fetch prices by ID (includes slugs not found above - they may be UUIDs)
+  const slugsNotFoundAsSlug = slugsToResolve.filter(
+    (s) => !pricesBySlug.has(s)
+  )
+  const allIdsToFetch = [...priceIdsToResolve, ...slugsNotFoundAsSlug]
+
   const pricesById = new Map<string, Price.Record>()
-  if (priceIdsToResolve.length > 0) {
+  if (allIdsToFetch.length > 0) {
     const idPrices = await selectPrices(
-      { id: priceIdsToResolve },
+      {
+        id: allIdsToFetch,
+        pricingModelId,
+        active: true,
+      },
       transaction
     )
     for (const price of idPrices) {
@@ -430,16 +439,19 @@ export const adjustSubscription = async (
     }
   }
 
-  // Resolve priceSlug to priceId and expand terse items to full subscription items
+  // Expand terse items to full subscription items
   const resolvedSubscriptionItems: SubscriptionItem.ClientInsert[] =
     []
   for (const item of newSubscriptionItems) {
-    // Check if item has priceSlug that needs resolution
     if (hasSlug(item)) {
-      const resolvedPrice = pricesBySlug.get(item.priceSlug)
+      // Try slug first, then fall back to ID lookup
+      let resolvedPrice =
+        pricesBySlug.get(item.priceSlug) ??
+        pricesById.get(item.priceSlug)
+
       if (!resolvedPrice) {
         throw new Error(
-          `Price with slug "${item.priceSlug}" not found in the subscription's pricing model`
+          `Price "${item.priceSlug}" not found. Ensure the price exists, is active, and belongs to the subscription's pricing model.`
         )
       }
 
@@ -467,7 +479,9 @@ export const adjustSubscription = async (
       // Terse item with priceId: expand to full subscription item
       const price = pricesById.get(item.priceId)
       if (!price) {
-        throw new Error(`Price with id ${item.priceId} not found`)
+        throw new Error(
+          `Price "${item.priceId}" not found. Ensure the price exists, is active, and belongs to the subscription's pricing model.`
+        )
       }
       resolvedSubscriptionItems.push({
         name: price.name,

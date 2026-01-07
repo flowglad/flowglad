@@ -94,7 +94,10 @@ function InnerPricingModelDetailsPage({
   ]
 
   const getProductFilterForTab = (tab: string) => {
-    const baseFilter = { pricingModelId: pricingModel.id }
+    const baseFilter = {
+      pricingModelId: pricingModel.id,
+      excludeUsageProducts: true,
+    }
 
     if (tab === 'all') {
       return baseFilter
