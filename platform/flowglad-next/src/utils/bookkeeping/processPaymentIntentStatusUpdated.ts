@@ -194,17 +194,6 @@ export const upsertPaymentForStripeCharge = async (
     checkoutSessionEvents = eventsFromCheckoutSession
     invoiceId = invoice?.id ?? null
     currency = invoice?.currency ?? null
-    organizationId = invoice?.organizationId!
-    taxCountry = invoice?.taxCountry ?? null
-    purchase = updatedPurchase
-    purchaseId = purchase?.id ?? null
-    livemode = checkoutSession.livemode
-    customerId = purchase?.customerId || invoice?.customerId || null
-    // hard assumption
-    // checkoutSessionId payment intents are only for anonymous single payment purchases
-    subscriptionId = null
-    invoiceId = invoice?.id ?? null
-    currency = invoice?.currency ?? null
     if (!checkoutSession.organizationId) {
       throw new Error(
         `Checkout session ${checkoutSession.id} does not have an organizationId`
