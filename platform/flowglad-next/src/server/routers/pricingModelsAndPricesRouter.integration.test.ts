@@ -6,10 +6,15 @@ import {
   selectPrices,
   selectPricesAndProductsByProductWhere,
 } from '@/db/tableMethods/priceMethods'
+import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
 import { pricesRouter } from '@/server/routers/pricesRouter'
 import { pricingModelsRouter } from '@/server/routers/pricingModelsRouter'
-import { IntervalUnit, PriceType } from '@/types'
+import {
+  DestinationEnvironment,
+  IntervalUnit,
+  PriceType,
+} from '@/types'
 
 describe('beforeEach setup', () => {
   let organizationId: string
@@ -454,5 +459,188 @@ describe('pricesRouter.create', () => {
     )
     expect(stored.currency).toBe(orgData.organization.defaultCurrency)
     expect(stored.livemode).toBe(false)
+  })
+})
+
+// pricingModelsRouter.clone
+describe('pricingModelsRouter.clone', () => {
+  it('returns NOT_FOUND when cloning a pricing model from another organization', async () => {
+    const org1 = await setupOrg()
+    const org2 = await setupOrg()
+
+    const { apiKey: org1ApiKey } = await setupUserAndApiKey({
+      organizationId: org1.organization.id,
+      livemode: true,
+    })
+    const { apiKey: org2ApiKey } = await setupUserAndApiKey({
+      organizationId: org2.organization.id,
+      livemode: true,
+    })
+
+    const org1Ctx = {
+      organizationId: org1.organization.id,
+      apiKey: org1ApiKey.token!,
+      livemode: true,
+      environment: 'live' as const,
+      isApi: true as const,
+      path: '',
+    }
+
+    const org2Ctx = {
+      organizationId: org2.organization.id,
+      apiKey: org2ApiKey.token!,
+      livemode: true,
+      environment: 'live' as const,
+      isApi: true as const,
+      path: '',
+    }
+
+    // Create a pricing model in org1
+    const { pricingModel: org1PricingModel } =
+      await pricingModelsRouter.createCaller(org1Ctx).create({
+        pricingModel: { name: 'Org1 PM', isDefault: false },
+      })
+
+    // Attempt to clone org1's pricing model using org2's API key - should fail
+    try {
+      await pricingModelsRouter.createCaller(org2Ctx).clone({
+        id: org1PricingModel.id,
+        name: 'Stolen Clone',
+      })
+      throw new Error(
+        'Expected TRPCError NOT_FOUND when cloning another org pricing model'
+      )
+    } catch (err) {
+      expect(err).toBeInstanceOf(TRPCError)
+      expect((err as TRPCError).code).toBe('NOT_FOUND')
+    }
+  })
+
+  it('clones a pricing model within the same environment when no destinationEnvironment is specified', async () => {
+    const orgData = await setupOrg()
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId: orgData.organization.id,
+      livemode: true,
+    })
+    const ctx = {
+      organizationId: orgData.organization.id,
+      apiKey: apiKey.token!,
+      livemode: true,
+      environment: 'live' as const,
+      isApi: true as const,
+      path: '',
+    }
+
+    const { pricingModel: sourcePM } = await pricingModelsRouter
+      .createCaller(ctx)
+      .create({
+        pricingModel: { name: 'Source PM', isDefault: false },
+      })
+
+    const { pricingModel: clonedPM } = await pricingModelsRouter
+      .createCaller(ctx)
+      .clone({
+        id: sourcePM.id,
+        name: 'Cloned PM',
+      })
+
+    expect(clonedPM.name).toBe('Cloned PM')
+    expect(clonedPM.livemode).toBe(true)
+    expect(clonedPM.isDefault).toBe(false)
+    expect(clonedPM.id).not.toBe(sourcePM.id)
+  })
+
+  it('clones a pricing model from test mode to live mode when destinationEnvironment is livemode', async () => {
+    const orgData = await setupOrg()
+
+    // Create test mode API key and pricing model
+    const { apiKey: testApiKey } = await setupUserAndApiKey({
+      organizationId: orgData.organization.id,
+      livemode: false,
+    })
+    const testCtx = {
+      organizationId: orgData.organization.id,
+      apiKey: testApiKey.token!,
+      livemode: false,
+      environment: 'test' as const,
+      isApi: true as const,
+      path: '',
+    }
+
+    const { pricingModel: testPM } = await pricingModelsRouter
+      .createCaller(testCtx)
+      .create({
+        pricingModel: { name: 'Test Mode PM', isDefault: false },
+      })
+
+    expect(testPM.livemode).toBe(false)
+
+    // Clone to livemode using the test mode API key
+    const { pricingModel: clonedPM } = await pricingModelsRouter
+      .createCaller(testCtx)
+      .clone({
+        id: testPM.id,
+        name: 'Promoted to Live',
+        destinationEnvironment: DestinationEnvironment.Livemode,
+      })
+
+    expect(clonedPM.name).toBe('Promoted to Live')
+    expect(clonedPM.livemode).toBe(true)
+    expect(clonedPM.isDefault).toBe(false)
+
+    // Verify in database that the cloned model is actually livemode
+    const dbClonedPM = await adminTransaction(
+      async ({ transaction }) => {
+        return selectPricingModelById(clonedPM.id, transaction)
+      }
+    )
+    expect(dbClonedPM?.livemode).toBe(true)
+  })
+
+  it('clones a pricing model from live mode to test mode when destinationEnvironment is testmode', async () => {
+    const orgData = await setupOrg()
+
+    // Create live mode API key and pricing model
+    const { apiKey: liveApiKey } = await setupUserAndApiKey({
+      organizationId: orgData.organization.id,
+      livemode: true,
+    })
+    const liveCtx = {
+      organizationId: orgData.organization.id,
+      apiKey: liveApiKey.token!,
+      livemode: true,
+      environment: 'live' as const,
+      isApi: true as const,
+      path: '',
+    }
+
+    const { pricingModel: livePM } = await pricingModelsRouter
+      .createCaller(liveCtx)
+      .create({
+        pricingModel: { name: 'Live Mode PM', isDefault: false },
+      })
+
+    expect(livePM.livemode).toBe(true)
+
+    // Clone to testmode using the live mode API key
+    const { pricingModel: clonedPM } = await pricingModelsRouter
+      .createCaller(liveCtx)
+      .clone({
+        id: livePM.id,
+        name: 'Demoted to Test',
+        destinationEnvironment: DestinationEnvironment.Testmode,
+      })
+
+    expect(clonedPM.name).toBe('Demoted to Test')
+    expect(clonedPM.livemode).toBe(false)
+    expect(clonedPM.isDefault).toBe(false)
+
+    // Verify in database
+    const dbClonedPM = await adminTransaction(
+      async ({ transaction }) => {
+        return selectPricingModelById(clonedPM.id, transaction)
+      }
+    )
+    expect(dbClonedPM?.livemode).toBe(false)
   })
 })
