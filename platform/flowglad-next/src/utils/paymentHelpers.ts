@@ -56,6 +56,7 @@ export const refundPaymentTransaction = async (
   }
   let refundCreatedSeconds: number
   let nextRefundedAmount: number
+  let newlyCreatedRefund: Stripe.Refund | null = null
   try {
     const refund = await refundPayment(
       payment.stripePaymentIntentId,
@@ -64,6 +65,7 @@ export const refundPaymentTransaction = async (
     )
     refundCreatedSeconds = refund.created
     nextRefundedAmount = (payment.refundedAmount ?? 0) + refund.amount
+    newlyCreatedRefund = refund
   } catch (error) {
     const alreadyRefundedError =
       error instanceof Stripe.errors.StripeError &&
@@ -114,7 +116,8 @@ export const refundPaymentTransaction = async (
   }
 
   // Reverse tax transaction for MOR organizations
-  if (payment.stripeTaxTransactionId) {
+  // Only reverse when we actually created a new refund (not when recovering from existing refund state)
+  if (newlyCreatedRefund && payment.stripeTaxTransactionId) {
     const organization = await selectOrganizationById(
       payment.organizationId,
       transaction
@@ -128,12 +131,12 @@ export const refundPaymentTransaction = async (
       try {
         await reverseStripeTaxTransaction({
           stripeTaxTransactionId: payment.stripeTaxTransactionId,
-          reference: `refund_${payment.id}_${Date.now()}`,
+          reference: `refund_${payment.id}_${newlyCreatedRefund.id}`,
           livemode: payment.livemode,
           mode: isFullRefund ? 'full' : 'partial',
           flatAmount: isFullRefund
             ? undefined
-            : (partialAmount ?? undefined),
+            : newlyCreatedRefund.amount,
         })
       } catch (error) {
         // Log but don't fail the refund - tax reversal is best-effort
