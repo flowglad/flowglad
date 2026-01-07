@@ -864,8 +864,7 @@ export const setupInvoice = async ({
 }
 
 // Strict validation schemas for setupPrice to catch test data errors
-const baseSetupPriceSchema = z.object({
-  productId: z.string(),
+const baseSetupPriceSchemaWithoutProductId = z.object({
   name: z.string(),
   unitPrice: z.number(),
   livemode: z.boolean(),
@@ -875,6 +874,11 @@ const baseSetupPriceSchema = z.object({
   active: z.boolean().optional(),
   slug: z.string().optional(),
 })
+
+const baseSetupPriceSchema =
+  baseSetupPriceSchemaWithoutProductId.extend({
+    productId: z.string(),
+  })
 
 const setupSinglePaymentPriceSchema = baseSetupPriceSchema.extend({
   type: z.literal(PriceType.SinglePayment),
@@ -894,22 +898,15 @@ const setupSubscriptionPriceSchema = baseSetupPriceSchema.extend({
 })
 
 // Usage prices do NOT have productId - they belong to usage meters
-const setupUsagePriceSchema = z.object({
-  type: z.literal(PriceType.Usage),
-  name: z.string(),
-  unitPrice: z.number(),
-  livemode: z.boolean(),
-  isDefault: z.boolean(),
-  currency: z.nativeEnum(CurrencyCode).optional(),
-  externalId: z.string().optional(),
-  active: z.boolean().optional(),
-  slug: z.string().optional(),
-  intervalUnit: z.nativeEnum(IntervalUnit).optional(),
-  intervalCount: z.number().optional(),
-  usageMeterId: z.string(), // Required for Usage prices - replaces productId
-  trialPeriodDays: z.never().optional(), // Usage prices don't have trial periods
-  productId: z.never().optional(), // Usage prices do NOT have productId
-})
+const setupUsagePriceSchema =
+  baseSetupPriceSchemaWithoutProductId.extend({
+    type: z.literal(PriceType.Usage),
+    intervalUnit: z.enum(IntervalUnit).optional(),
+    intervalCount: z.number().optional(),
+    usageMeterId: z.string(), // Required for Usage prices - replaces productId
+    trialPeriodDays: z.never().optional(), // Usage prices don't have trial periods
+    productId: z.never().optional(), // Usage prices do NOT have productId
+  })
 
 const setupPriceInputSchema = z.discriminatedUnion('type', [
   setupSinglePaymentPriceSchema,
