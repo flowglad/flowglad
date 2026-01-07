@@ -12,10 +12,10 @@
     "build": "tsup",
     "clean": "rm -rf dist",
     "dev": "tsup --watch",
-    "check": "biome check . && tsc --noEmit",
+    "check": "BIOME_BINARY=@biomejs/cli-linux-x64-musl/biome biome check . && tsc --noEmit",
     "build:declarations": "tsc -p tsconfig.declarations.json",
-    "format": "biome format --write .",
-    "format:check": "biome format ."
+    "format": "BIOME_BINARY=@biomejs/cli-linux-x64-musl/biome biome format --write .",
+    "format:check": "BIOME_BINARY=@biomejs/cli-linux-x64-musl/biome biome format ."
   },
   "dependencies": {
     "@flowglad/shared": "workspace:*",
