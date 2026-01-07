@@ -1,3 +1,4 @@
+import Stripe from 'stripe'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Customer } from '@/db/schema/customers'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
@@ -32,9 +33,13 @@ import {
   createStripeCustomer,
   createStripeTaxCalculationByPrice,
   createStripeTaxTransactionFromCalculation,
+  dateFromStripeTimestamp,
   getLatestChargeForPaymentIntent,
   getPaymentIntent,
+  getStripeCharge,
+  getStripePaymentMethod,
   IntentMetadataType,
+  paymentMethodFromStripeCharge,
   updatePaymentIntent,
 } from '@/utils/stripe'
 
@@ -1073,6 +1078,213 @@ describeIfStripeKey('Tax Calculations', () => {
       expect(result).not.toBeNull()
       expect(result!.id).toMatch(/^tax_/)
       expect(result!.reference).toBe(reference)
+    })
+  })
+})
+
+const getChargeIdFromPaymentIntent = (
+  paymentIntent: Stripe.PaymentIntent
+): string | undefined =>
+  typeof paymentIntent.latest_charge === 'string'
+    ? paymentIntent.latest_charge
+    : paymentIntent.latest_charge?.id
+
+/**
+ * Integration tests for Stripe utility functions.
+ *
+ * These tests make real API calls to Stripe's test mode.
+ * They require STRIPE_TEST_MODE_SECRET_KEY to be set.
+ */
+describeIfStripeKey('Stripe Utility Functions', () => {
+  describe('Utility Functions', () => {
+    let testCustomerId: string | undefined
+    let testPaymentIntentId: string | undefined
+
+    afterEach(async () => {
+      await cleanupStripeTestData({
+        stripeCustomerId: testCustomerId,
+        stripePaymentIntentId: testPaymentIntentId,
+      })
+      testCustomerId = undefined
+      testPaymentIntentId = undefined
+    })
+
+    describe('getStripePaymentMethod', () => {
+      it('retrieves payment method with id, type, billing_details, and card properties', async () => {
+        // Setup: create customer, attach payment method
+        const stripe = getStripeTestClient()
+        const customer = await createTestStripeCustomer({
+          email: 'payment-method-test@flowglad-test.com',
+          name: 'Payment Method Test Customer',
+        })
+        testCustomerId = customer.id
+
+        const paymentMethod = await createTestPaymentMethod({
+          stripeCustomerId: customer.id,
+          livemode: false,
+        })
+
+        // Action: retrieve payment method using the actual utility function
+        const retrieved = await getStripePaymentMethod(
+          paymentMethod.id,
+          false // livemode
+        )
+
+        // Expectations
+        expect(retrieved.id).toBe(paymentMethod.id)
+        expect(retrieved.type).toBe('card')
+        // Use toMatchObject since Stripe may add new fields to billing_details over time
+        expect(retrieved.billing_details).toMatchObject({
+          address: {
+            city: null,
+            country: null,
+            line1: null,
+            line2: null,
+            postal_code: null,
+            state: null,
+          },
+          email: null,
+          name: null,
+          phone: null,
+        })
+        expect(retrieved.card).toMatchObject({
+          brand: 'visa',
+          last4: '4242',
+        })
+
+        // Cleanup: detach payment method (customer deletion will also clean this up)
+        await stripe.paymentMethods.detach(paymentMethod.id)
+      })
+    })
+
+    describe('getStripeCharge', () => {
+      it('retrieves charge with id, amount, currency, payment_method_details, and status', async () => {
+        // Setup: create customer, attach payment method, create and confirm payment
+        const stripe = getStripeTestClient()
+        const customer = await createTestStripeCustomer({
+          email: 'charge-test@flowglad-test.com',
+          name: 'Charge Test Customer',
+        })
+        testCustomerId = customer.id
+
+        const paymentMethod = await createTestPaymentMethod({
+          stripeCustomerId: customer.id,
+          livemode: false,
+        })
+
+        // Create and confirm a payment intent to generate a charge
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: 2500, // $25.00
+          currency: 'usd',
+          customer: customer.id,
+          payment_method: paymentMethod.id,
+          confirm: true,
+          off_session: true,
+        })
+        testPaymentIntentId = paymentIntent.id
+
+        // Get the charge ID from the payment intent
+        const chargeId = getChargeIdFromPaymentIntent(paymentIntent)
+
+        expect(chargeId).toMatch(/^ch_/)
+
+        // Action: retrieve charge using the actual utility function
+        const charge = await getStripeCharge(chargeId!)
+
+        // Expectations
+        expect(charge.id).toBe(chargeId)
+        expect(charge.amount).toBe(2500)
+        expect(charge.currency).toBe('usd')
+        expect(charge.payment_method_details?.type).toBe('card')
+        expect(charge.status).toBe('succeeded')
+      })
+    })
+
+    describe('dateFromStripeTimestamp', () => {
+      it('converts Stripe timestamp 1704067200 (2024-01-01 00:00:00 UTC) to corresponding JavaScript Date', () => {
+        // Setup: use timestamp 1704067200 (2024-01-01 00:00:00 UTC)
+        const timestamp = 1704067200
+
+        // Action: convert timestamp to Date
+        const result = dateFromStripeTimestamp(timestamp)
+
+        // Expectations
+        expect(result).toBeInstanceOf(Date)
+        expect(result.getUTCFullYear()).toBe(2024)
+        expect(result.getUTCMonth()).toBe(0) // January is month 0
+        expect(result.getUTCDate()).toBe(1)
+        expect(result.getUTCHours()).toBe(0)
+        expect(result.getUTCMinutes()).toBe(0)
+        expect(result.getUTCSeconds()).toBe(0)
+        expect(result.getTime()).toBe(1704067200000) // Milliseconds
+      })
+    })
+
+    describe('paymentMethodFromStripeCharge', () => {
+      it('returns PaymentMethodType.Card for card payment method type', async () => {
+        // Setup: create charge with card payment
+        const stripe = getStripeTestClient()
+        const customer = await createTestStripeCustomer({
+          email: 'payment-method-type-test@flowglad-test.com',
+          name: 'Payment Method Type Test Customer',
+        })
+        testCustomerId = customer.id
+
+        const paymentMethod = await createTestPaymentMethod({
+          stripeCustomerId: customer.id,
+          livemode: false,
+        })
+
+        // Create and confirm a payment intent to generate a charge
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: 1000, // $10.00
+          currency: 'usd',
+          customer: customer.id,
+          payment_method: paymentMethod.id,
+          confirm: true,
+          off_session: true,
+        })
+        testPaymentIntentId = paymentIntent.id
+
+        // Retrieve the charge
+        const chargeId = getChargeIdFromPaymentIntent(paymentIntent)
+
+        const charge = await stripe.charges.retrieve(chargeId!)
+
+        // Action: get payment method type from charge
+        const result = paymentMethodFromStripeCharge(charge)
+
+        // Expectation
+        expect(result).toBe(PaymentMethodType.Card)
+      })
+
+      it('throws error "Unknown payment method type: unknown_type" for unrecognized payment method type', () => {
+        // Setup: create a mock charge with an unknown payment method type
+        const mockCharge = {
+          id: 'ch_mock',
+          payment_method_details: {
+            type: 'unknown_type',
+          },
+        } as unknown as Stripe.Charge
+
+        // Action & Expectation: should throw
+        expect(() =>
+          paymentMethodFromStripeCharge(mockCharge)
+        ).toThrow('Unknown payment method type: unknown_type')
+      })
+
+      it('throws error when charge has no payment_method_details', () => {
+        // Setup: create a mock charge without payment method details
+        const mockCharge = {
+          id: 'ch_mock',
+          payment_method_details: null,
+        } as unknown as Stripe.Charge
+
+        // Action & Expectation: should throw
+        expect(() =>
+          paymentMethodFromStripeCharge(mockCharge)
+        ).toThrow('No payment method details found for charge')
+      })
     })
   })
 })
