@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import { buildFeeMetadata } from './stripe'
+import {
+  buildFeeMetadata,
+  reverseStripeTaxTransaction,
+} from './stripe'
 
 describe('buildFeeMetadata', () => {
   /**
@@ -101,5 +104,40 @@ describe('buildFeeMetadata', () => {
       'notaxoverride_xyz789'
     )
     expect(result.tax_amount).toBe('0')
+  })
+})
+
+describe('reverseStripeTaxTransaction', () => {
+  it('returns null for test tax transaction IDs (testtaxcalc_ prefix)', async () => {
+    const result = await reverseStripeTaxTransaction({
+      stripeTaxTransactionId: 'testtaxcalc_abc123',
+      reference: 'refund_test_123',
+      livemode: false,
+      mode: 'full',
+    })
+
+    expect(result).toBeNull()
+  })
+
+  it('returns null for notaxoverride_ IDs', async () => {
+    const result = await reverseStripeTaxTransaction({
+      stripeTaxTransactionId: 'notaxoverride_xyz789',
+      reference: 'refund_test_456',
+      livemode: false,
+      mode: 'full',
+    })
+
+    expect(result).toBeNull()
+  })
+
+  it('returns null for empty stripeTaxTransactionId', async () => {
+    const result = await reverseStripeTaxTransaction({
+      stripeTaxTransactionId: '',
+      reference: 'refund_test_789',
+      livemode: false,
+      mode: 'full',
+    })
+
+    expect(result).toBeNull()
   })
 })
