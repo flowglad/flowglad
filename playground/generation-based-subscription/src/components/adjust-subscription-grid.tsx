@@ -200,7 +200,9 @@ export function AdjustSubscriptionGrid({
 
     try {
       // The API is atomic - it waits for any billing run to complete before returning
-      await billing.adjustSubscription(selectedPlan.slug)
+      await billing.adjustSubscription({
+        priceSlug: selectedPlan.slug,
+      })
 
       // Reload billing data to get the updated subscription
       if (billing.reload) {
