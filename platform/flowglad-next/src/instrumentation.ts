@@ -53,6 +53,20 @@ export async function register() {
       // If we move off Sentry, re-enable this by removing the line below or setting
       // instrumentations: ['fetch'] to restore HTTP span creation.
       instrumentations: [],
+      attributes: {
+        'deployment.environment.name':
+          process.env.FLOWGLAD_OTEL_ENV ||
+          process.env.VERCEL_ENV ||
+          process.env.NODE_ENV ||
+          'unknown',
+        'host.id': process.env.VERCEL_DEPLOYMENT_ID || 'localhost',
+        ...(process.env.VERCEL_GIT_COMMIT_SHA && {
+          'vcs.ref.head.revision': process.env.VERCEL_GIT_COMMIT_SHA,
+        }),
+        ...(process.env.VERCEL_GIT_COMMIT_REF && {
+          'vcs.ref.head.name': process.env.VERCEL_GIT_COMMIT_REF,
+        }),
+      },
     })
   } finally {
     // Restore original variables for trigger.dev to use
