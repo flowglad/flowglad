@@ -1,4 +1,5 @@
 import { and, eq, inArray, lte } from 'drizzle-orm'
+import { z } from 'zod'
 import {
   type SubscriptionItem,
   subscriptionItems,
@@ -25,7 +26,9 @@ import {
   richSubscriptionClientSelectSchema,
 } from '@/subscriptions/schemas'
 import type { SubscriptionStatus } from '@/types'
+import { CacheDependency, cached } from '@/utils/cache'
 import core from '@/utils/core'
+import { RedisKeyNamespace } from '@/utils/redis'
 import {
   type Price,
   prices,
@@ -309,6 +312,36 @@ export const selectSubscriptionItemsWithPricesBySubscriptionIds =
     }))
   }
 
+/** Schema for validating cached subscription items with prices */
+const subscriptionItemWithPriceSchema = z.object({
+  subscriptionItem: subscriptionItemsSelectSchema,
+  price: pricesClientSelectSchema.nullable(),
+})
+
+/**
+ * Cache-enabled version for single subscription lookup.
+ * Wraps selectSubscriptionItemsWithPricesBySubscriptionIds with caching.
+ */
+export const selectSubscriptionItemsWithPricesBySubscriptionIdCached =
+  cached(
+    {
+      namespace: RedisKeyNamespace.ItemsBySubscription,
+      keyFn: (subscriptionId: string, _transaction: DbTransaction) =>
+        subscriptionId,
+      schema: subscriptionItemWithPriceSchema.array(),
+      // This cache depends on the subscription's items
+      dependenciesFn: (subscriptionId: string) => [
+        CacheDependency.subscription(subscriptionId),
+      ],
+    },
+    async (subscriptionId: string, transaction: DbTransaction) => {
+      return selectSubscriptionItemsWithPricesBySubscriptionIds(
+        [subscriptionId],
+        transaction
+      )
+    }
+  )
+
 /**
  * Processes subscription and item data to build the rich subscriptions map.
  * This helper function handles:
@@ -413,12 +446,17 @@ export const selectRichSubscriptionsAndActiveItems = async (
     return []
   }
 
-  // Step 2: Fetch subscription items with prices (cacheable by subscription IDs)
-  const itemsWithPrices =
-    await selectSubscriptionItemsWithPricesBySubscriptionIds(
-      subscriptionIds,
-      transaction
+  // Step 2: Fetch subscription items with prices - use cache per subscription
+  const itemsWithPrices = (
+    await Promise.all(
+      subscriptionIds.map((id) =>
+        selectSubscriptionItemsWithPricesBySubscriptionIdCached(
+          id,
+          transaction
+        )
+      )
     )
+  ).flat()
 
   // Step 3: Build the rich subscriptions map
   const richSubscriptionsMap = buildRichSubscriptionsMap(

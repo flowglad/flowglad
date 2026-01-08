@@ -39,6 +39,10 @@ import {
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
+import {
+  CacheDependency,
+  type CacheDependencyKey,
+} from '@/utils/cache'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
   createBillingRun,
@@ -323,6 +327,11 @@ export interface AdjustSubscriptionResult {
    * The caller should wait for this run to complete before considering the adjustment done.
    */
   pendingBillingRunId?: string
+  /**
+   * Cache dependency keys to invalidate after the transaction commits.
+   * These should be passed to invalidateDependencies after the transaction.
+   */
+  cacheInvalidations: CacheDependencyKey[]
 }
 
 /**
@@ -689,6 +698,9 @@ export const adjustSubscription = async (
   // Track pending billing run ID for immediate adjustments with proration
   let pendingBillingRunId: string | undefined
 
+  // Track cache invalidations - populated in non-billing-run path
+  let cacheInvalidations: CacheDependencyKey[] = []
+
   if (netChargeAmount > 0 && shouldProrate) {
     // Format description similar to createSubscription pattern: single-line with key info
     const prorationPercentage = (split.afterPercentage * 100).toFixed(
@@ -775,12 +787,13 @@ export const adjustSubscription = async (
       livemode: subscription.livemode,
     }))
 
-    await handleSubscriptionItemAdjustment({
+    const adjustmentResult = await handleSubscriptionItemAdjustment({
       subscriptionId: id,
       newSubscriptionItems: preparedItems,
       adjustmentDate: adjustmentDate,
       transaction,
     })
+    cacheInvalidations = adjustmentResult.cacheInvalidations
 
     // For AtEndOfCurrentBillingPeriod, don't sync with future-dated items
     // Sync using current time to preserve the current subscription state
@@ -864,6 +877,13 @@ export const adjustSubscription = async (
     id,
     transaction
   )
+  // For billing run path, invalidate cache after billing run completes
+  // The actual subscription item changes happen in processOutcomeForBillingRun
+  // But we still need to signal that subscription data has changed
+  if (pendingBillingRunId && cacheInvalidations.length === 0) {
+    cacheInvalidations = [CacheDependency.subscription(id)]
+  }
+
   return {
     subscription: standardSubscriptionSelectSchema.parse(
       updatedSubscription
@@ -872,5 +892,6 @@ export const adjustSubscription = async (
     resolvedTiming,
     isUpgrade,
     pendingBillingRunId,
+    cacheInvalidations,
   }
 }
