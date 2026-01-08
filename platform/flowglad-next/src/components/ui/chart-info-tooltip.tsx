@@ -29,7 +29,11 @@ export function ChartInfoTooltip({ content }: ChartInfoTooltipProps) {
             <Info className="h-4 w-4" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs text-sm">
+        <TooltipContent
+          variant="muted"
+          side="top"
+          className="max-w-xs text-sm"
+        >
           {content}
         </TooltipContent>
       </Tooltip>
