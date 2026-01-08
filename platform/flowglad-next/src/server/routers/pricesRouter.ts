@@ -11,11 +11,11 @@ import {
   pricesClientSelectSchema,
   pricesPaginatedListSchema,
   pricesPaginatedSelectSchema,
+  pricesTableRowDataSchema,
 } from '@/db/schema/prices'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   insertPrice,
-  pricesTableRowOutputSchema,
   safelyInsertPrice,
   safelyUpdatePrice,
   selectPriceById,
@@ -218,7 +218,7 @@ export const getTableRows = protectedProcedure
     )
   )
   .output(
-    createPaginatedTableRowOutputSchema(pricesTableRowOutputSchema)
+    createPaginatedTableRowOutputSchema(pricesTableRowDataSchema)
   )
   .query(authenticatedProcedureTransaction(selectPricesTableRowData))
 

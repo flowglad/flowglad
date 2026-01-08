@@ -15,6 +15,7 @@ import {
   pricesClientSelectSchema,
   pricesInsertSchema,
   pricesSelectSchema,
+  pricesTableRowDataSchema,
   pricesUpdateSchema,
 } from '@/db/schema/prices'
 import {
@@ -430,7 +431,10 @@ export const selectPricesAndProductByProductId = async (
 export const selectDefaultPriceAndProductByProductId = async (
   productId: string,
   transaction: DbTransaction
-) => {
+): Promise<{
+  defaultPrice: Price.ClientRecord
+  product: Omit<ProductWithPrices, 'prices'>
+}> => {
   const { prices, ...product } =
     await selectPricesAndProductByProductId(productId, transaction)
 
@@ -643,24 +647,16 @@ export const selectPricesPaginated = createPaginatedSelectFunction(
 )
 
 /**
- * Schema for price table row output.
- * Product is nullable because usage prices don't have a productId.
+ * Re-export pricesTableRowDataSchema for backwards compatibility.
+ * The canonical schema is defined in @/db/schema/prices.
  */
-export const pricesTableRowOutputSchema = z.object({
-  price: pricesClientSelectSchema,
-  product: z
-    .object({
-      id: z.string(),
-      name: z.string(),
-    })
-    .nullable(),
-})
+export const pricesTableRowOutputSchema = pricesTableRowDataSchema
 
 export const selectPricesTableRowData =
   createCursorPaginatedSelectFunction(
     prices,
     config,
-    pricesTableRowOutputSchema,
+    pricesTableRowDataSchema,
     async (
       priceRecords: Price.Record[],
       transaction: DbTransaction

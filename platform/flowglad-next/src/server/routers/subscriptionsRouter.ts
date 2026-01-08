@@ -9,6 +9,7 @@ import {
 import {
   PRICE_ID_DESCRIPTION,
   PRICE_SLUG_DESCRIPTION,
+  Price,
 } from '@/db/schema/prices'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import {
@@ -29,6 +30,7 @@ import {
   selectPaymentMethods,
 } from '@/db/tableMethods/paymentMethodMethods'
 import {
+  selectPriceById,
   selectPriceBySlugAndCustomerId,
   selectPriceProductAndOrganizationByPriceWhere,
 } from '@/db/tableMethods/priceMethods'
@@ -47,6 +49,7 @@ import {
   createPaginatedTableRowOutputSchema,
   idInputSchema,
   metadataSchema,
+  NotFoundError,
 } from '@/db/tableUtils'
 import { adjustSubscription } from '@/subscriptions/adjustSubscription'
 import {
@@ -511,6 +514,25 @@ const createSubscriptionProcedure = protectedProcedure
         // Resolve price ID from either priceId or priceSlug
         let resolvedPriceId: string
         if (input.priceId) {
+          // Early validation: fetch price and reject usage prices before the heavier query
+          let price: Price.Record
+          try {
+            price = await selectPriceById(input.priceId, transaction)
+          } catch (error) {
+            if (error instanceof NotFoundError) {
+              throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: `Price with id "${input.priceId}" not found`,
+              })
+            }
+            throw error
+          }
+          if (!Price.hasProductId(price)) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Price "${input.priceId}" is a usage price and cannot be used to create a subscription directly. Use a subscription price instead.`,
+            })
+          }
           resolvedPriceId = input.priceId
         } else if (input.priceSlug) {
           const price = await selectPriceBySlugAndCustomerId(
@@ -524,6 +546,13 @@ const createSubscriptionProcedure = protectedProcedure
             throw new TRPCError({
               code: 'NOT_FOUND',
               message: `Price with slug "${input.priceSlug}" not found for this customer's pricing model`,
+            })
+          }
+          // Early validation: reject usage prices before fetching related data
+          if (!Price.clientHasProductId(price)) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Price "${input.priceSlug}" is a usage price and cannot be used to create a subscription directly. Use a subscription price instead.`,
             })
           }
           resolvedPriceId = price.id
@@ -549,7 +578,8 @@ const createSubscriptionProcedure = protectedProcedure
         }
         const { price, product, organization } = priceResult[0]
         // Product is required for creating subscriptions - usage prices (with null product) are not supported
-        if (!product) {
+        // Use type guard for type-safe product access
+        if (!Price.hasProductId(price) || !product) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message: `Price ${resolvedPriceId} is a usage price and cannot be used to create a subscription directly. Use a subscription price instead.`,
