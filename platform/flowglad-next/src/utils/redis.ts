@@ -80,7 +80,24 @@ type ApiKeyVerificationResult = z.infer<
   typeof apiKeyVerificationResultSchema
 >
 
-// Default stub client for tests that don't need real Redis behavior
+/**
+ * No-op stub client used in unit tests by default.
+ *
+ * IMPORTANT: This stub does NOT store or retrieve any data. All operations
+ * are no-ops that return empty/null values. This means:
+ *
+ * - Caching behavior is NOT tested in unit tests using this stub
+ * - Cache invalidation has no observable effect
+ * - Any code that relies on cached data will always get cache misses
+ *
+ * If you need to test actual caching behavior, use one of these approaches:
+ *
+ * 1. Integration tests: Set REDIS_INTEGRATION_TEST_MODE=true to use real Redis
+ *    (see cache.integration.test.ts for examples)
+ *
+ * 2. Stateful mock: Use _setTestRedisClient() to inject a mock that stores data
+ *    (useful if you need to test cache hits/misses in unit tests)
+ */
 const testStubClient = {
   get: () => null,
   getdel: () => null,
@@ -92,8 +109,11 @@ const testStubClient = {
   exists: () => 0,
 }
 
-// Allows tests to inject a custom Redis client for testing
-// Uses 'any' to allow flexible mock implementations
+/**
+ * Allows tests to inject a custom Redis client.
+ * Use this to provide a stateful mock if you need to test cache behavior
+ * in unit tests without hitting real Redis.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _testRedisClient: any = null
 
@@ -102,8 +122,17 @@ export const _setTestRedisClient = (client: any) => {
   _testRedisClient = client
 }
 
+/**
+ * Returns a Redis client.
+ *
+ * In unit tests (NODE_ENV=test), returns either:
+ * - A custom client set via _setTestRedisClient(), or
+ * - The default testStubClient (no-op stub)
+ *
+ * In integration tests (REDIS_INTEGRATION_TEST_MODE=true), returns real Redis.
+ * In production, returns real Redis.
+ */
 export const redis = () => {
-  // In integration tests, use real Redis (similar to STRIPE_INTEGRATION_TEST_MODE)
   if (
     core.IS_TEST &&
     process.env.REDIS_INTEGRATION_TEST_MODE !== 'true'
