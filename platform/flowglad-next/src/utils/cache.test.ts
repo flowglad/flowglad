@@ -147,7 +147,6 @@ describe('cached combinator', () => {
 
     // Check that the key was stored with correct format
     const expectedKey = `${RedisKeyNamespace.ItemsBySubscription}:items-sub_456`
-    expect(mockRedis.store[expectedKey]).toBeDefined()
     expect(JSON.parse(mockRedis.store[expectedKey])).toEqual({
       value: 42,
     })
@@ -346,10 +345,10 @@ describe('dependency-based invalidation (Redis-backed)', () => {
     const key2 = `${RedisKeyNamespace.ItemsBySubscription}:entry2`
     const key3 = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:entry3`
 
-    // Verify all keys exist
-    expect(mockRedis.store[key1]).toBeDefined()
-    expect(mockRedis.store[key2]).toBeDefined()
-    expect(mockRedis.store[key3]).toBeDefined()
+    // Verify all keys exist with correct values
+    expect(JSON.parse(mockRedis.store[key1])).toEqual({ entry: 1 })
+    expect(JSON.parse(mockRedis.store[key2])).toEqual({ entry: 2 })
+    expect(JSON.parse(mockRedis.store[key3])).toEqual({ entry: 3 })
 
     // Invalidate dep:A
     await invalidateDependencies(['dep:A'])
@@ -357,7 +356,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
     // Keys 1 and 2 should be deleted, key 3 should remain
     expect(mockRedis.store[key1]).toBeUndefined()
     expect(mockRedis.store[key2]).toBeUndefined()
-    expect(mockRedis.store[key3]).toBeDefined()
+    expect(JSON.parse(mockRedis.store[key3])).toEqual({ entry: 3 })
   })
 
   it('handles invalidation of non-existent dependencies gracefully', async () => {
@@ -387,7 +386,10 @@ describe('dependency-based invalidation (Redis-backed)', () => {
     await cachedFn()
 
     const registryKey = `${RedisKeyNamespace.CacheDependencyRegistry}:dep:cleanup`
-    expect(mockRedis.sets[registryKey]).toBeDefined()
+    const expectedCacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:cleanup-test`
+    expect(mockRedis.sets[registryKey]?.has(expectedCacheKey)).toBe(
+      true
+    )
 
     await invalidateDependencies(['dep:cleanup'])
 
