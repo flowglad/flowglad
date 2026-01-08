@@ -195,6 +195,9 @@ export const confirmCheckoutSessionTransaction = async (
 
       // Handle zero-total checkouts (e.g., 100% discount applied)
       // Cancel the PaymentIntent since we can't charge $0 through Stripe
+      // FIXME: If input.savePaymentMethodForFuture is true, we should create a SetupIntent
+      // to save the card instead of just canceling the PaymentIntent. Currently the card
+      // data is lost when the PaymentIntent is canceled in this edge case.
       if (totalAmountDue === 0) {
         await cancelPaymentIntent(
           checkoutSession.stripePaymentIntentId,
