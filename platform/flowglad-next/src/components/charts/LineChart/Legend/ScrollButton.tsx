@@ -66,6 +66,9 @@ export function ScrollButton({
         e.stopPropagation()
         setIsPressed(false)
       }}
+      onMouseLeave={() => {
+        setIsPressed(false)
+      }}
     >
       <Icon className="size-full" aria-hidden="true" />
     </button>

@@ -28,14 +28,17 @@ export function useChartTooltip() {
 
   // Use useRef to store tooltip data during render, then update state after render
   // FIXME(FG-384): This is a workaround for Recharts calling tooltip callbacks during render
-  const pendingTooltipData = useRef<TooltipProps | null>(null)
+  // Use `undefined` to mean "no pending change", allowing `null` to clear the tooltip
+  const pendingTooltipData = useRef<TooltipProps | null | undefined>(
+    undefined
+  )
 
   // Use useEffect to safely update tooltip state after render
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (pendingTooltipData.current !== null) {
+    if (pendingTooltipData.current !== undefined) {
       setTooltipData(pendingTooltipData.current)
-      pendingTooltipData.current = null
+      pendingTooltipData.current = undefined
     }
   })
 
@@ -46,7 +49,8 @@ export function useChartTooltip() {
       if (tooltipData?.label !== props.label) {
         pendingTooltipData.current = props
       }
-    } else {
+    } else if (tooltipData !== null) {
+      // Only mark for clearing if we currently have tooltip data
       pendingTooltipData.current = null
     }
   }

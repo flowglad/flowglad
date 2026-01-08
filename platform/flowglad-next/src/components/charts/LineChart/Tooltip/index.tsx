@@ -61,9 +61,9 @@ export function ChartTooltip({
           </p>
         </div>
         <div className={cn('space-y-1 px-3 py-2')}>
-          {legendPayload.map(({ value, category, color }, index) => (
+          {legendPayload.map(({ value, category, color }) => (
             <div
-              key={`id-${index}`}
+              key={category}
               className="flex items-center justify-between gap-4"
             >
               <div className="flex items-center gap-2">

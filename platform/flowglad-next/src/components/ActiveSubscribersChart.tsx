@@ -89,7 +89,7 @@ const SubscriberCountTooltip = ({
 interface ActiveSubscribersChartProps {
   fromDate: Date
   toDate: Date
-  productId?: string
+  // TODO: Add productId prop when global dashboard product filter is implemented
   /** Optional controlled interval. When provided, the chart uses this value
    *  and hides its inline interval selector. */
   interval?: RevenueChartIntervalUnit
@@ -104,7 +104,6 @@ interface ActiveSubscribersChartProps {
 export const ActiveSubscribersChart = ({
   fromDate,
   toDate,
-  productId,
   interval: controlledInterval,
   onIntervalChange,
 }: ActiveSubscribersChartProps) => {

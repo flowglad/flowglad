@@ -118,7 +118,7 @@ export const Legend = React.forwardRef<HTMLOListElement, LegendProps>(
       enableLegendSlider = false,
       ...other
     } = props
-    const scrollableRef = useRef<HTMLInputElement>(null)
+    const scrollableRef = useRef<HTMLDivElement>(null)
     const scrollButtonsRef = useRef<HTMLDivElement>(null)
     const [hasScroll, setHasScroll] = useState<HasScrollProps | null>(
       null
