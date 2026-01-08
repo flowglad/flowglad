@@ -19,6 +19,7 @@ import {
   type CurrencyCode,
   type Nullish,
   PriceType,
+  StripeConnectContractType,
 } from '@/types'
 import {
   calculateDiscountAmount,
@@ -38,6 +39,7 @@ const BillingLine = ({
   isLoading = false,
   className,
   testId,
+  showDashWhenZero = false,
 }: {
   label: string
   amount: number
@@ -45,7 +47,16 @@ const BillingLine = ({
   isLoading?: boolean
   className?: string
   testId?: string
+  showDashWhenZero?: boolean
 }) => {
+  const displayValue =
+    showDashWhenZero && amount === 0
+      ? '-'
+      : stripeCurrencyAmountToHumanReadableCurrencyAmount(
+          currency,
+          amount
+        )
+
   return (
     <div
       className={cn('flex justify-between items-center', className)}
@@ -58,10 +69,7 @@ const BillingLine = ({
           className="text-sm font-medium text-gray-900"
           data-testid={testId}
         >
-          {stripeCurrencyAmountToHumanReadableCurrencyAmount(
-            currency,
-            amount
-          )}
+          {displayValue}
         </span>
       )}
     </div>
@@ -161,7 +169,12 @@ export const TotalBillingDetails = React.forwardRef<
     subscriptionDetails,
     feeCalculation,
     flowType,
+    sellerOrganization,
   } = checkoutPageContext
+
+  const isMerchantOfRecord =
+    sellerOrganization?.stripeConnectContractType ===
+    StripeConnectContractType.MerchantOfRecord
 
   // Don't render for add payment method flow
   if (flowType === CheckoutFlowType.AddPaymentMethod) {
@@ -255,12 +268,13 @@ export const TotalBillingDetails = React.forwardRef<
           />
         )}
 
-      {taxAmount != null && taxAmount > 0 && (
+      {(taxAmount != null || isMerchantOfRecord) && (
         <BillingLine
           label="Tax"
-          amount={taxAmount}
+          amount={taxAmount ?? 0}
           currency={currency}
           isLoading={editCheckoutSessionLoading}
+          showDashWhenZero
         />
       )}
 
