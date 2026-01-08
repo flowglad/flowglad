@@ -32,6 +32,7 @@ import {
   CurrencyCode,
   StripeConnectContractType,
 } from '@/types'
+import core from '@/utils/core'
 import { createOrganizationTransaction } from '@/utils/organizationHelpers'
 import { behaviorTest, Dependency, defineBehavior } from './index'
 
@@ -142,7 +143,7 @@ const authenticateUserBehavior = defineBehavior({
     _deps,
     _prev: undefined
   ): Promise<AuthenticateUserResult> => {
-    const nanoid = (await import('@/utils/core')).default.nanoid()
+    const nanoid = core.nanoid()
     const betterAuthId = `ba_${nanoid}`
 
     const user = await adminTransaction(async ({ transaction }) => {
