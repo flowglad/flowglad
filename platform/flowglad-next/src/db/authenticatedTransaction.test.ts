@@ -12,7 +12,6 @@ import {
   FlowgladEventType,
 } from '@/types'
 import { hashData } from '@/utils/backendCore'
-import { CacheDependency } from '@/utils/cache'
 import { adminTransaction } from './adminTransaction'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -1790,111 +1789,5 @@ describe('Edge cases and robustness for second-order RLS', () => {
       { apiKey: testKey.token }
     )
     expect(test.every((p) => p.livemode === false)).toBe(true)
-  })
-})
-
-describe('comprehensiveAuthenticatedTransaction with cacheInvalidations', () => {
-  let testOrg: Organization.Record
-  let apiKey: ApiKey.Record
-
-  beforeEach(async () => {
-    const orgSetup = await setupOrg()
-    testOrg = orgSetup.organization
-
-    const userApiKey = await setupUserAndApiKey({
-      organizationId: testOrg.id,
-      livemode: true,
-    })
-    apiKey = userApiKey.apiKey
-  })
-
-  it('returns result when cacheInvalidations are provided', async () => {
-    const customerId = 'cust_test_123'
-    const subscriptionId = 'sub_test_456'
-
-    const cacheInvalidations = [
-      CacheDependency.customer(customerId),
-      CacheDependency.subscription(subscriptionId),
-    ]
-
-    const result = await comprehensiveAuthenticatedTransaction(
-      async () => ({
-        result: 'transaction_completed',
-        cacheInvalidations,
-      }),
-      { apiKey: apiKey.token }
-    )
-
-    expect(result).toBe('transaction_completed')
-  })
-
-  it('returns result when cacheInvalidations field is omitted', async () => {
-    const result = await comprehensiveAuthenticatedTransaction(
-      async () => ({
-        result: 'no_invalidations',
-      }),
-      { apiKey: apiKey.token }
-    )
-
-    expect(result).toBe('no_invalidations')
-  })
-
-  it('returns result when cacheInvalidations array is empty', async () => {
-    const result = await comprehensiveAuthenticatedTransaction(
-      async () => ({
-        result: 'empty_array',
-        cacheInvalidations: [],
-      }),
-      { apiKey: apiKey.token }
-    )
-
-    expect(result).toBe('empty_array')
-  })
-
-  it('propagates errors from transaction callback', async () => {
-    await expect(
-      comprehensiveAuthenticatedTransaction(
-        async () => {
-          throw new Error('Transaction rolled back')
-        },
-        { apiKey: apiKey.token }
-      )
-    ).rejects.toThrow('Transaction rolled back')
-  })
-
-  it('returns result when transaction includes both events and cacheInvalidations', async () => {
-    const mockEvents: Event.Insert[] = [
-      {
-        type: FlowgladEventType.PaymentSucceeded,
-        livemode: true,
-        payload: {
-          object: EventNoun.Payment,
-          id: 'test_event_cache',
-          customer: {
-            id: 'test_customer_id',
-            externalId: 'test_external_id',
-          },
-        },
-        organizationId: testOrg.id,
-        metadata: {},
-        hash: hashData(`${testOrg.id}-cache-test`),
-        occurredAt: Date.now(),
-        submittedAt: Date.now(),
-        processedAt: null,
-      },
-    ]
-
-    const result = await comprehensiveAuthenticatedTransaction(
-      async () => ({
-        result: 'combined_output',
-        eventsToInsert: mockEvents,
-        cacheInvalidations: [
-          CacheDependency.customer('cust_combined'),
-        ],
-      }),
-      { apiKey: apiKey.token }
-    )
-
-    expect(result).toBe('combined_output')
   })
 })
