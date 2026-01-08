@@ -12,6 +12,7 @@ import {
   FlowgladEventType,
 } from '@/types'
 import { hashData } from '@/utils/backendCore'
+import core from '@/utils/core'
 import { adminTransaction } from './adminTransaction'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -812,6 +813,59 @@ describe('Error Handling Tests', () => {
       livemode: true,
     })
     apiKeyA = userApiKeyA.apiKey
+  })
+
+  describe('Test-Only Organization ID Validation', () => {
+    it('throws error when __testOnlyOrganizationId is used in non-test environment', async () => {
+      const originalIsTest = core.IS_TEST
+      // Temporarily override IS_TEST to simulate non-test environment
+      Object.defineProperty(core, 'IS_TEST', {
+        value: false,
+        writable: true,
+        configurable: true,
+      })
+
+      try {
+        await expect(
+          authenticatedTransaction(
+            async () => 'should not reach here',
+            { __testOnlyOrganizationId: testOrg1.id }
+          )
+        ).rejects.toThrow(
+          'Attempted to use test organization id in a non-test environment'
+        )
+
+        // Also verify comprehensiveAuthenticatedTransaction has the same check
+        await expect(
+          comprehensiveAuthenticatedTransaction(
+            async () => ({ result: 'should not reach here' }),
+            { __testOnlyOrganizationId: testOrg1.id }
+          )
+        ).rejects.toThrow(
+          'Attempted to use test organization id in a non-test environment'
+        )
+      } finally {
+        // Restore original IS_TEST value
+        Object.defineProperty(core, 'IS_TEST', {
+          value: originalIsTest,
+          writable: true,
+          configurable: true,
+        })
+      }
+    })
+
+    it('allows __testOnlyOrganizationId in test environment', async () => {
+      // This test runs in test environment where IS_TEST is true
+      // The transaction should proceed (though it may fail for other reasons like missing session)
+      // We just verify it doesn't throw the specific "non-test environment" error
+      await expect(
+        authenticatedTransaction(async () => 'result', {
+          __testOnlyOrganizationId: testOrg1.id,
+        })
+      ).rejects.not.toThrow(
+        'Attempted to use test organization id in a non-test environment'
+      )
+    })
   })
 
   describe('Authentication Failures', () => {
