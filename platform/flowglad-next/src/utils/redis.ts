@@ -80,18 +80,31 @@ type ApiKeyVerificationResult = z.infer<
   typeof apiKeyVerificationResultSchema
 >
 
+// Default stub client for tests that don't need real Redis behavior
+const testStubClient = {
+  get: () => null,
+  getdel: () => null,
+  set: () => null,
+  del: () => null,
+  sadd: () => 0,
+  smembers: () => [] as string[],
+  expire: () => null,
+  exists: () => 0,
+}
+
+// Allows tests to inject a custom Redis client for testing
+// Uses 'any' to allow flexible mock implementations
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _testRedisClient: any = null
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const _setTestRedisClient = (client: any) => {
+  _testRedisClient = client
+}
+
 export const redis = () => {
   if (core.IS_TEST) {
-    return {
-      get: () => null,
-      getdel: () => null,
-      set: () => null,
-      del: () => null,
-      sadd: () => 0,
-      smembers: () => [] as string[],
-      expire: () => null,
-      exists: () => 0,
-    }
+    return _testRedisClient ?? testStubClient
   }
   return new Redis({
     url: core.envVariable('UPSTASH_REDIS_REST_URL'),
@@ -109,6 +122,7 @@ export enum RedisKeyNamespace {
   ItemsBySubscription = 'itemsBySubscription',
   FeaturesBySubscriptionItem = 'featuresBySubscriptionItem',
   MeterBalancesBySubscription = 'meterBalancesBySubscription',
+  CacheDependencyRegistry = 'cacheDeps',
 }
 
 const evictionPolicy: Record<
@@ -145,6 +159,9 @@ const evictionPolicy: Record<
   },
   [RedisKeyNamespace.MeterBalancesBySubscription]: {
     max: 100000,
+  },
+  [RedisKeyNamespace.CacheDependencyRegistry]: {
+    max: 500000, // Higher limit - these are small Sets mapping deps to cache keys
   },
 }
 

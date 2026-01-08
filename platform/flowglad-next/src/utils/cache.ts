@@ -6,6 +6,7 @@ import { RedisKeyNamespace, redis } from './redis'
 import { traced } from './tracing'
 
 const DEFAULT_TTL = 300 // 5 minutes
+const DEPENDENCY_REGISTRY_TTL = 86400 // 24 hours - longer than any cache TTL
 
 /**
  * A dependency key is an arbitrary string that represents something
@@ -18,28 +19,50 @@ const DEFAULT_TTL = 300 // 5 minutes
 export type CacheDependencyKey = string
 
 /**
- * Registry mapping dependency keys to cache keys that should be invalidated.
- * This is populated when cached functions are called, creating a reverse index
- * from dependencies to the cache keys that depend on them.
+ * Get the Redis key for storing cache keys that depend on a given dependency.
+ * Uses Redis Sets to store the mapping: dependency -> Set of cache keys.
+ *
+ * Example: dependencyRegistryKey("customer:cust_123") returns "cacheDeps:customer:cust_123"
+ * The Set at this key contains all cache keys that should be invalidated when
+ * customer cust_123 changes.
  */
-const dependencyToCacheKeys = new Map<
-  CacheDependencyKey,
-  Set<string>
->()
+function dependencyRegistryKey(
+  dependency: CacheDependencyKey
+): string {
+  return `${RedisKeyNamespace.CacheDependencyRegistry}:${dependency}`
+}
 
 /**
  * Register that a cache key depends on certain dependency keys.
  * Called internally by the cached combinator after populating the cache.
+ *
+ * Uses Redis SADD to add the cache key to each dependency's Set.
+ * Sets expire after DEPENDENCY_REGISTRY_TTL to prevent unbounded growth
+ * from cache keys that were never invalidated.
  */
-function registerDependencies(
+async function registerDependencies(
   cacheKey: string,
   dependencies: CacheDependencyKey[]
-): void {
-  for (const dep of dependencies) {
-    if (!dependencyToCacheKeys.has(dep)) {
-      dependencyToCacheKeys.set(dep, new Set())
-    }
-    dependencyToCacheKeys.get(dep)!.add(cacheKey)
+): Promise<void> {
+  if (dependencies.length === 0) return
+
+  const client = redis()
+  try {
+    await Promise.all(
+      dependencies.map(async (dep) => {
+        const registryKey = dependencyRegistryKey(dep)
+        await client.sadd(registryKey, cacheKey)
+        // Refresh TTL on the registry key to keep it alive while cache entries exist
+        await client.expire(registryKey, DEPENDENCY_REGISTRY_TTL)
+      })
+    )
+  } catch (error) {
+    // Log but don't throw - dependency registration is best-effort
+    logger.error('Failed to register cache dependencies', {
+      cacheKey,
+      dependencies,
+      error: error instanceof Error ? error.message : String(error),
+    })
   }
 }
 
@@ -81,7 +104,7 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
  * Combinator that adds caching to an async function.
  *
  * Dependency tracking:
- * - When cache is populated, dependencies are registered via dependenciesFn
+ * - When cache is populated, dependencies are registered in Redis via dependenciesFn
  * - When dependencies are invalidated, associated cache keys are deleted
  *
  * Observability:
@@ -172,7 +195,7 @@ export function cached<TArgs extends unknown[], TResult>(
       // Cache miss - call wrapped function
       const result = await fn(...args)
 
-      // Store in cache (fire-and-forget)
+      // Store in cache and register dependencies (fire-and-forget)
       try {
         const redisClient = redis()
         const ttl = getTtlForNamespace(config.namespace)
@@ -180,8 +203,8 @@ export function cached<TArgs extends unknown[], TResult>(
           ex: ttl,
         })
 
-        // Register dependencies
-        registerDependencies(fullKey, dependencies)
+        // Register dependencies in Redis
+        await registerDependencies(fullKey, dependencies)
 
         logger.debug('Cache populated', {
           key: fullKey,
@@ -206,9 +229,9 @@ export function cached<TArgs extends unknown[], TResult>(
  * Invalidate all cache entries that depend on the given dependency keys.
  *
  * This is the core invalidation function. It:
- * 1. Looks up which cache keys depend on each dependency
+ * 1. For each dependency, uses SMEMBERS to get all cache keys from Redis Set
  * 2. Deletes all those cache keys from Redis
- * 3. Cleans up the dependency registry
+ * 3. Deletes the dependency registry Set itself
  *
  * Observability:
  * - Logs invalidation at debug level (includes dependency and cache keys)
@@ -217,46 +240,37 @@ export function cached<TArgs extends unknown[], TResult>(
 export async function invalidateDependencies(
   dependencies: CacheDependencyKey[]
 ): Promise<void> {
-  const keysToInvalidate = new Set<string>()
+  if (dependencies.length === 0) return
 
-  // Collect all cache keys that depend on the given dependencies
-  for (const dep of dependencies) {
-    const cacheKeys = dependencyToCacheKeys.get(dep)
-    if (cacheKeys) {
-      for (const key of cacheKeys) {
-        keysToInvalidate.add(key)
-      }
-    }
-  }
-
-  if (keysToInvalidate.size === 0) {
-    logger.debug('No cache keys to invalidate', { dependencies })
-    return
-  }
-
-  logger.debug('Invalidating cache keys', {
-    dependencies,
-    cacheKeys: Array.from(keysToInvalidate),
-  })
-
-  // Delete from Redis
+  const client = redis()
   try {
-    const redisClient = redis()
-    for (const key of keysToInvalidate) {
-      await redisClient.del(key)
+    for (const dep of dependencies) {
+      const registryKey = dependencyRegistryKey(dep)
+      // Get all cache keys that depend on this dependency
+      const cacheKeys = await client.smembers(registryKey)
+
+      if (cacheKeys.length > 0) {
+        logger.debug('Invalidating cache keys for dependency', {
+          dependency: dep,
+          cacheKeys,
+        })
+        // Delete all the cache keys
+        await client.del(...cacheKeys)
+      } else {
+        logger.debug('No cache keys to invalidate for dependency', {
+          dependency: dep,
+        })
+      }
+
+      // Delete the registry Set itself
+      await client.del(registryKey)
     }
   } catch (error) {
-    // Fire-and-forget - log error but don't throw
-    logger.error('Cache invalidation error', {
+    // Log but don't throw - invalidation is fire-and-forget
+    logger.error('Failed to invalidate cache dependencies', {
       dependencies,
-      cacheKeys: Array.from(keysToInvalidate),
       error: error instanceof Error ? error.message : String(error),
     })
-  }
-
-  // Clean up dependency registry
-  for (const dep of dependencies) {
-    dependencyToCacheKeys.delete(dep)
   }
 }
 
@@ -275,12 +289,3 @@ export const CacheDependency = {
   subscriptionLedger: (subscriptionId: string): CacheDependencyKey =>
     `ledger:${subscriptionId}`,
 } as const
-
-/**
- * Export the dependency registry for testing purposes.
- * @internal
- */
-export const _testUtils = {
-  getDependencyToCacheKeys: () => dependencyToCacheKeys,
-  clearDependencyRegistry: () => dependencyToCacheKeys.clear(),
-}

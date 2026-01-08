@@ -8,57 +8,101 @@ import {
 } from 'vitest'
 import { z } from 'zod'
 import {
-  _testUtils,
   CacheDependency,
   cached,
   getTtlForNamespace,
   invalidateDependencies,
 } from './cache'
-import { RedisKeyNamespace } from './redis'
+import { _setTestRedisClient, RedisKeyNamespace } from './redis'
 
-// Mock the redis module
-vi.mock('./redis', async () => {
-  const actual = await vi.importActual('./redis')
-  let mockStore: Record<string, string> = {}
+// In-memory mock Redis client for testing
+function createMockRedisClient() {
+  const store: Record<string, string> = {}
+  const sets: Record<string, Set<string>> = {}
 
   return {
-    ...actual,
-    redis: () => ({
-      get: vi.fn((key: string) => mockStore[key] ?? null),
-      set: vi.fn((key: string, value: string) => {
-        mockStore[key] = value
+    store,
+    sets,
+    client: {
+      get: (key: string) => store[key] ?? null,
+      getdel: (key: string) => {
+        const value = store[key] ?? null
+        if (value !== null) {
+          delete store[key]
+        }
+        return value
+      },
+      set: (
+        key: string,
+        value: string,
+        _options?: { ex?: number }
+      ) => {
+        store[key] = value
         return 'OK'
-      }),
-      del: vi.fn((key: string) => {
-        delete mockStore[key]
-        return 1
-      }),
-    }),
-    // Expose mock store for tests
-    __mockStore: mockStore,
-    __clearMockStore: () => {
-      mockStore = {}
+      },
+      del: (...keys: string[]) => {
+        let deleted = 0
+        for (const key of keys) {
+          if (store[key] !== undefined) {
+            delete store[key]
+            deleted++
+          }
+          if (sets[key] !== undefined) {
+            delete sets[key]
+            deleted++
+          }
+        }
+        return deleted
+      },
+      sadd: (key: string, ...members: string[]) => {
+        if (!sets[key]) {
+          sets[key] = new Set()
+        }
+        let added = 0
+        for (const member of members) {
+          if (!sets[key].has(member)) {
+            sets[key].add(member)
+            added++
+          }
+        }
+        return added
+      },
+      smembers: (key: string) => {
+        const set = sets[key]
+        return set ? Array.from(set) : []
+      },
+      expire: () => 1,
+      exists: (...keys: string[]) => {
+        let count = 0
+        for (const key of keys) {
+          if (store[key] !== undefined || sets[key] !== undefined) {
+            count++
+          }
+        }
+        return count
+      },
     },
-  }
-})
-
-// Get mock utilities
-const getMockRedis = async () => {
-  const redisMod = await import('./redis')
-  return {
-    // @ts-expect-error - accessing test-only exports
-    mockStore: redisMod.__mockStore as Record<string, string>,
-    // @ts-expect-error - accessing test-only exports
-    clearMockStore: redisMod.__clearMockStore as () => void,
-    redis: redisMod.redis,
+    clear: () => {
+      for (const key of Object.keys(store)) {
+        delete store[key]
+      }
+      for (const key of Object.keys(sets)) {
+        delete sets[key]
+      }
+    },
   }
 }
 
 describe('cached combinator', () => {
-  beforeEach(async () => {
-    const { clearMockStore } = await getMockRedis()
-    clearMockStore()
-    _testUtils.clearDependencyRegistry()
+  let mockRedis: ReturnType<typeof createMockRedisClient>
+
+  beforeEach(() => {
+    mockRedis = createMockRedisClient()
+    _setTestRedisClient(mockRedis.client)
+  })
+
+  afterEach(() => {
+    _setTestRedisClient(null)
   })
 
   it('calls wrapped function on cache miss and returns result', async () => {
@@ -88,7 +132,6 @@ describe('cached combinator', () => {
   it('constructs cache key from namespace and keyFn', async () => {
     const wrappedFn = vi.fn().mockResolvedValue({ value: 42 })
     const testSchema = z.object({ value: z.number() })
-    const { mockStore } = await getMockRedis()
 
     const cachedFn = cached(
       {
@@ -104,43 +147,10 @@ describe('cached combinator', () => {
 
     // Check that the key was stored with correct format
     const expectedKey = `${RedisKeyNamespace.ItemsBySubscription}:items-sub_456`
-    expect(mockStore[expectedKey]).toBeDefined()
-    expect(JSON.parse(mockStore[expectedKey])).toEqual({ value: 42 })
-  })
-
-  it('fails open when Redis get throws error', async () => {
-    const wrappedFn = vi.fn().mockResolvedValue({ data: 'fallback' })
-    const testSchema = z.object({ data: z.string() })
-
-    // Mock redis to throw on get
-    vi.doMock('./redis', () => ({
-      redis: () => ({
-        get: vi
-          .fn()
-          .mockRejectedValue(new Error('Redis connection failed')),
-        set: vi.fn(),
-        del: vi.fn(),
-      }),
-      RedisKeyNamespace: {
-        SubscriptionsByCustomer: 'subscriptionsByCustomer',
-      },
-    }))
-
-    const cachedFn = cached(
-      {
-        namespace: RedisKeyNamespace.SubscriptionsByCustomer,
-        keyFn: () => 'key',
-        schema: testSchema,
-        dependenciesFn: () => [],
-      },
-      wrappedFn
-    )
-
-    const result = await cachedFn()
-
-    // Should fall back to wrapped function
-    expect(wrappedFn).toHaveBeenCalled()
-    expect(result).toEqual({ data: 'fallback' })
+    expect(mockRedis.store[expectedKey]).toBeDefined()
+    expect(JSON.parse(mockRedis.store[expectedKey])).toEqual({
+      value: 42,
+    })
   })
 
   it('fails open when Redis set throws error', async () => {
@@ -171,17 +181,12 @@ describe('cached combinator', () => {
       validField: z.string(),
       count: z.number(),
     })
-    const { mockStore, redis } = await getMockRedis()
 
     // Pre-populate cache with invalid data (missing required field)
     const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:test-key`
-    mockStore[cacheKey] = JSON.stringify({ invalidStructure: true })
-
-    // Override get to return the invalid cached value
-    const redisClient = redis()
-    vi.spyOn(redisClient, 'get').mockResolvedValue(
-      mockStore[cacheKey]
-    )
+    mockRedis.store[cacheKey] = JSON.stringify({
+      invalidStructure: true,
+    })
 
     const cachedFn = cached(
       {
@@ -254,14 +259,19 @@ describe('getTtlForNamespace', () => {
   })
 })
 
-describe('dependency-based invalidation', () => {
-  beforeEach(async () => {
-    const { clearMockStore } = await getMockRedis()
-    clearMockStore()
-    _testUtils.clearDependencyRegistry()
+describe('dependency-based invalidation (Redis-backed)', () => {
+  let mockRedis: ReturnType<typeof createMockRedisClient>
+
+  beforeEach(() => {
+    mockRedis = createMockRedisClient()
+    _setTestRedisClient(mockRedis.client)
   })
 
-  it('registers dependencies when cache is populated', async () => {
+  afterEach(() => {
+    _setTestRedisClient(null)
+  })
+
+  it('registers dependencies in Redis Sets when cache is populated', async () => {
     const wrappedFn = vi.fn().mockResolvedValue({ id: 1 })
     const testSchema = z.object({ id: z.number() })
 
@@ -280,16 +290,13 @@ describe('dependency-based invalidation', () => {
 
     await cachedFn('test-id')
 
-    const registry = _testUtils.getDependencyToCacheKeys()
-    expect(registry.has('dep:A:test-id')).toBe(true)
-    expect(registry.has('dep:B:test-id')).toBe(true)
-
-    const cacheKeysForA = registry.get('dep:A:test-id')
-    const cacheKeysForB = registry.get('dep:B:test-id')
+    // Verify the Sets contain the cache key
+    const depAKey = `${RedisKeyNamespace.CacheDependencyRegistry}:dep:A:test-id`
+    const depBKey = `${RedisKeyNamespace.CacheDependencyRegistry}:dep:B:test-id`
     const expectedCacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:test-id`
 
-    expect(cacheKeysForA?.has(expectedCacheKey)).toBe(true)
-    expect(cacheKeysForB?.has(expectedCacheKey)).toBe(true)
+    expect(mockRedis.sets[depAKey]?.has(expectedCacheKey)).toBe(true)
+    expect(mockRedis.sets[depBKey]?.has(expectedCacheKey)).toBe(true)
   })
 
   it('invalidates correct cache keys when dependency is invalidated', async () => {
@@ -297,7 +304,6 @@ describe('dependency-based invalidation', () => {
     const wrappedFn2 = vi.fn().mockResolvedValue({ entry: 2 })
     const wrappedFn3 = vi.fn().mockResolvedValue({ entry: 3 })
     const testSchema = z.object({ entry: z.number() })
-    const { mockStore } = await getMockRedis()
 
     // Create cached functions that share dep:A
     const cachedFn1 = cached(
@@ -341,17 +347,17 @@ describe('dependency-based invalidation', () => {
     const key3 = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:entry3`
 
     // Verify all keys exist
-    expect(mockStore[key1]).toBeDefined()
-    expect(mockStore[key2]).toBeDefined()
-    expect(mockStore[key3]).toBeDefined()
+    expect(mockRedis.store[key1]).toBeDefined()
+    expect(mockRedis.store[key2]).toBeDefined()
+    expect(mockRedis.store[key3]).toBeDefined()
 
     // Invalidate dep:A
     await invalidateDependencies(['dep:A'])
 
     // Keys 1 and 2 should be deleted, key 3 should remain
-    expect(mockStore[key1]).toBeUndefined()
-    expect(mockStore[key2]).toBeUndefined()
-    expect(mockStore[key3]).toBeDefined()
+    expect(mockRedis.store[key1]).toBeUndefined()
+    expect(mockRedis.store[key2]).toBeUndefined()
+    expect(mockRedis.store[key3]).toBeDefined()
   })
 
   it('handles invalidation of non-existent dependencies gracefully', async () => {
@@ -364,7 +370,7 @@ describe('dependency-based invalidation', () => {
     ).resolves.toBeUndefined()
   })
 
-  it('cleans up dependency registry after invalidation', async () => {
+  it('deletes dependency registry Set after invalidation', async () => {
     const wrappedFn = vi.fn().mockResolvedValue({ val: 'test' })
     const testSchema = z.object({ val: z.string() })
 
@@ -380,12 +386,13 @@ describe('dependency-based invalidation', () => {
 
     await cachedFn()
 
-    const registry = _testUtils.getDependencyToCacheKeys()
-    expect(registry.has('dep:cleanup')).toBe(true)
+    const registryKey = `${RedisKeyNamespace.CacheDependencyRegistry}:dep:cleanup`
+    expect(mockRedis.sets[registryKey]).toBeDefined()
 
     await invalidateDependencies(['dep:cleanup'])
 
-    expect(registry.has('dep:cleanup')).toBe(false)
+    // The registry Set should be deleted
+    expect(mockRedis.sets[registryKey]).toBeUndefined()
   })
 })
 

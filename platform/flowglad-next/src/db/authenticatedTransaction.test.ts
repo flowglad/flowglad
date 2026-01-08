@@ -13,7 +13,7 @@ import {
 } from '@/types'
 import { hashData } from '@/utils/backendCore'
 import * as cacheModule from '@/utils/cache'
-import { _testUtils, CacheDependency } from '@/utils/cache'
+import { CacheDependency } from '@/utils/cache'
 import { adminTransaction } from './adminTransaction'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -1807,9 +1807,6 @@ describe('Cache invalidation in transactions', () => {
       livemode: true,
     })
     apiKey = userApiKey.apiKey
-
-    // Clear the dependency registry before each test
-    _testUtils.clearDependencyRegistry()
   })
 
   it('processes cacheInvalidations after successful transaction commit', async () => {
