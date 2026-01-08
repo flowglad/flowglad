@@ -9,6 +9,17 @@
 export type DependencyFactory<T> = () => T
 
 /**
+ * Teardown function signature for dependency implementations.
+ * Called once after all tests complete, receives all results from tests
+ * that used this implementation.
+ *
+ * @typeParam TResult - The final result type from the behavior chain
+ */
+export type TeardownFn<TResult = unknown> = (
+  results: TResult[]
+) => void | Promise<void>
+
+/**
  * Abstract class constructor type for dependency classes.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -87,4 +98,23 @@ export interface BehaviorTestConfig {
 
   /** Optional: Skip specific combinations */
   skip?: DependencyCombination[]
+
+  /**
+   * Optional: Teardown function called after all tests complete.
+   * Receives all final results from the behavior chain.
+   * Use this to clean up resources created during tests.
+   *
+   * @example
+   * ```typescript
+   * behaviorTest({
+   *   chain: [...],
+   *   teardown: async (results) => {
+   *     for (const result of results) {
+   *       await teardownOrg({ organizationId: result.organization.id })
+   *     }
+   *   }
+   * })
+   * ```
+   */
+  teardown?: TeardownFn
 }
