@@ -37,7 +37,7 @@ function getOrCreateImplMap(
 export function registerImplementation<T extends DependencyClass>(
   depClass: T,
   name: string,
-  implementation: Omit<InstanceType<T>, never>
+  implementation: InstanceType<T>
 ): void {
   const implMap = getOrCreateImplMap(depClass)
   const factory: DependencyFactory<InstanceType<T>> = () => {
@@ -124,7 +124,7 @@ export function Dependency<T>() {
       registerImplementation(
         this as unknown as DependencyClass,
         name,
-        implementation as Omit<InstanceType<DependencyClass>, never>
+        implementation as InstanceType<DependencyClass>
       )
     }
 
