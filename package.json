@@ -17,12 +17,11 @@
     "lint:fix": "biome lint --write .",
     "check:biome": "biome check .",
     "dev": "bunx turbo run dev --parallel --no-cache --filter=!@flowglad/playground-*",
-    "check": "bunx turbo run check",
+    "check": "BIOME_BINARY=${BIOME_BINARY:-$(getconf GNU_LIBC_VERSION >/dev/null 2>&1 || echo '@biomejs/cli-linux-x64-musl/biome')} bunx turbo run check",
     "clean": "bunx turbo run clean",
     "changeset:empty": "bunx changeset --empty",
     "prebuild": "bun run build:declarations",
-    "preinstall": "bunx --bun only-allow bun",
-    "build": "bunx turbo run build --filter=!@flowglad/playground-*",
+        "build": "bunx turbo run build --filter=!@flowglad/playground-*",
     "build:declarations": "bunx turbo run build:declarations",
     "packages:changeset": "changeset",
     "packages:version": "changeset version && bunx @biomejs/biome format --write packages/*/package.json",
@@ -56,5 +55,5 @@
     "packages/*",
     "playground/*"
   ],
-  "packageManager": "bun@1.3.1"
+  "packageManager": "bun@1.2.5"
 }
