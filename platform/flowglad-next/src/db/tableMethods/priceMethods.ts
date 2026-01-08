@@ -64,6 +64,10 @@ import {
   selectProductById,
   selectProducts,
 } from './productMethods'
+import {
+  derivePricingModelIdFromUsageMeter,
+  pricingModelIdsForUsageMeters,
+} from './usageMeterMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof prices,
@@ -99,36 +103,77 @@ export const pricingModelIdsForPrices = createDerivePricingModelIds(
 
 const baseBulkInsertPrices = createBulkInsertFunction(prices, config)
 
+/**
+ * Enriches price inserts with pricingModelId by deriving from productId or usageMeterId.
+ * Used by bulk insert operations to batch the lookups efficiently.
+ */
+const enrichPriceInsertsWithPricingModelIds = async (
+  priceInserts: Price.Insert[],
+  transaction: DbTransaction
+): Promise<Price.Insert[]> => {
+  // Get productIds from non-usage prices
+  const productIds = priceInserts
+    .filter(
+      (insert) =>
+        insert.productId !== null && insert.productId !== undefined
+    )
+    .map((insert) => insert.productId as string)
+  // Get usageMeterIds from usage prices
+  const usageMeterIds = priceInserts
+    .filter(
+      (insert) =>
+        insert.usageMeterId !== null &&
+        insert.usageMeterId !== undefined
+    )
+    .map((insert) => insert.usageMeterId as string)
+
+  const productPricingModelIdMap =
+    productIds.length > 0
+      ? await pricingModelIdsForProducts(productIds, transaction)
+      : new Map<string, string>()
+  const usageMeterPricingModelIdMap =
+    usageMeterIds.length > 0
+      ? await pricingModelIdsForUsageMeters(
+          usageMeterIds,
+          transaction
+        )
+      : new Map<string, string>()
+
+  return priceInserts.map((priceInsert): Price.Insert => {
+    // Use provided pricingModelId, or derive from product or usage meter
+    let pricingModelId = priceInsert.pricingModelId
+    if (!pricingModelId) {
+      if (priceInsert.productId) {
+        pricingModelId = productPricingModelIdMap.get(
+          priceInsert.productId
+        )
+      } else if (priceInsert.usageMeterId) {
+        pricingModelId = usageMeterPricingModelIdMap.get(
+          priceInsert.usageMeterId
+        )
+      }
+    }
+    if (!pricingModelId) {
+      throw new Error(
+        `Pricing model id not found for price insert (productId: ${priceInsert.productId}, usageMeterId: ${priceInsert.usageMeterId})`
+      )
+    }
+    return {
+      ...priceInsert,
+      pricingModelId,
+    }
+  })
+}
+
 export const bulkInsertPrices = async (
   priceInserts: Price.Insert[],
   transaction: DbTransaction
 ): Promise<Price.Record[]> => {
-  // Get productIds from non-usage prices only
-  const productIds = priceInserts
-    .filter((insert) => insert.productId !== null)
-    .map((insert) => insert.productId as string)
-  const pricingModelIdMap =
-    productIds.length > 0
-      ? await pricingModelIdsForProducts(productIds, transaction)
-      : new Map<string, string>()
-  const pricesWithPricingModelId = priceInserts.map(
-    (priceInsert): Price.Insert => {
-      const pricingModelId =
-        priceInsert.pricingModelId ??
-        (priceInsert.productId
-          ? pricingModelIdMap.get(priceInsert.productId)
-          : undefined)
-      if (!pricingModelId) {
-        throw new Error(
-          `Pricing model id not found for product ${priceInsert.productId}`
-        )
-      }
-      return {
-        ...priceInsert,
-        pricingModelId,
-      }
-    }
-  )
+  const pricesWithPricingModelId =
+    await enrichPriceInsertsWithPricingModelIds(
+      priceInserts,
+      transaction
+    )
   return baseBulkInsertPrices(pricesWithPricingModelId, transaction)
 }
 
@@ -140,19 +185,26 @@ export const insertPrice = async (
   priceInsert: Price.Insert,
   transaction: DbTransaction
 ): Promise<Price.Record> => {
-  // For usage prices (no productId), pricingModelId must be provided
-  // For product prices, derive from product if not provided
-  const pricingModelId = priceInsert.pricingModelId
-    ? priceInsert.pricingModelId
-    : priceInsert.productId
-      ? await derivePricingModelIdFromProduct(
-          priceInsert.productId,
-          transaction
-        )
-      : undefined
+  // Derive pricingModelId if not provided:
+  // - For product prices: derive from product
+  // - For usage prices: derive from usage meter
+  let pricingModelId = priceInsert.pricingModelId
+  if (!pricingModelId) {
+    if (priceInsert.productId) {
+      pricingModelId = await derivePricingModelIdFromProduct(
+        priceInsert.productId,
+        transaction
+      )
+    } else if (priceInsert.usageMeterId) {
+      pricingModelId = await derivePricingModelIdFromUsageMeter(
+        priceInsert.usageMeterId,
+        transaction
+      )
+    }
+  }
   if (!pricingModelId) {
     throw new Error(
-      `Pricing model id must be provided for usage prices or derivable from productId`
+      `Pricing model id must be provided or derivable from productId or usageMeterId`
     )
   }
   return baseInsertPrice(
@@ -590,15 +642,27 @@ export const selectPricesTableRowData =
         ])
       )
 
-      return priceRecords.map((price) => ({
-        price,
-        product: Price.hasProductId(price)
-          ? {
-              id: productsById.get(price.productId)!.id,
-              name: productsById.get(price.productId)!.name,
-            }
-          : null,
-      }))
+      return priceRecords.map((price) => {
+        if (Price.hasProductId(price)) {
+          const product = productsById.get(price.productId)
+          if (!product) {
+            throw new Error(
+              `Product not found for price ${price.id} (productId: ${price.productId})`
+            )
+          }
+          return {
+            price,
+            product: {
+              id: product.id,
+              name: product.name,
+            },
+          }
+        }
+        return {
+          price,
+          product: null,
+        }
+      })
     },
     // Searchable columns for ILIKE search on name and slug
     [prices.name, prices.slug],
@@ -674,32 +738,11 @@ export const bulkInsertOrDoNothingPricesByExternalId = async (
   priceInserts: Price.Insert[],
   transaction: DbTransaction
 ) => {
-  // Get productIds from non-usage prices only
-  const productIds = priceInserts
-    .filter((insert) => insert.productId !== null)
-    .map((insert) => insert.productId as string)
-  const pricingModelIdMap =
-    productIds.length > 0
-      ? await pricingModelIdsForProducts(productIds, transaction)
-      : new Map<string, string>()
-  const pricesWithPricingModelId = priceInserts.map(
-    (priceInsert): Price.Insert => {
-      const pricingModelId =
-        priceInsert.pricingModelId ??
-        (priceInsert.productId
-          ? pricingModelIdMap.get(priceInsert.productId)
-          : undefined)
-      if (!pricingModelId) {
-        throw new Error(
-          `Pricing model id not found for product ${priceInsert.productId}`
-        )
-      }
-      return {
-        ...priceInsert,
-        pricingModelId,
-      }
-    }
-  )
+  const pricesWithPricingModelId =
+    await enrichPriceInsertsWithPricingModelIds(
+      priceInserts,
+      transaction
+    )
   return bulkInsertOrDoNothingPrices(
     pricesWithPricingModelId,
     [prices.externalId, prices.productId],
@@ -721,16 +764,10 @@ const setPricesForProductToNonDefaultNonActive = async (
   productId: string,
   transaction: DbTransaction
 ) => {
-  const result = await transaction
+  await transaction
     .update(prices)
     .set({ isDefault: false, active: false })
     .where(eq(prices.productId, productId))
-    .returning({
-      id: prices.id,
-      slug: prices.slug,
-      active: prices.active,
-      isDefault: prices.isDefault,
-    })
 }
 
 const baseDangerouslyInsertPrice = createInsertFunction(
@@ -742,19 +779,26 @@ export const dangerouslyInsertPrice = async (
   priceInsert: Price.Insert,
   transaction: DbTransaction
 ): Promise<Price.Record> => {
-  // For usage prices (no productId), pricingModelId must be provided
-  // For product prices, derive from product if not provided
-  const pricingModelId = priceInsert.pricingModelId
-    ? priceInsert.pricingModelId
-    : priceInsert.productId
-      ? await derivePricingModelIdFromProduct(
-          priceInsert.productId,
-          transaction
-        )
-      : undefined
+  // Derive pricingModelId if not provided:
+  // - For product prices: derive from product
+  // - For usage prices: derive from usage meter
+  let pricingModelId = priceInsert.pricingModelId
+  if (!pricingModelId) {
+    if (priceInsert.productId) {
+      pricingModelId = await derivePricingModelIdFromProduct(
+        priceInsert.productId,
+        transaction
+      )
+    } else if (priceInsert.usageMeterId) {
+      pricingModelId = await derivePricingModelIdFromUsageMeter(
+        priceInsert.usageMeterId,
+        transaction
+      )
+    }
+  }
   if (!pricingModelId) {
     throw new Error(
-      `Pricing model id must be provided for usage prices or derivable from productId`
+      `Pricing model id must be provided or derivable from productId or usageMeterId`
     )
   }
   return baseDangerouslyInsertPrice(

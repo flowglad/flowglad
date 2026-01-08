@@ -5,13 +5,20 @@ import {
   setupPrice,
   setupPricingModel,
   setupProduct,
+  setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { core } from '@/utils/core'
 import type { Organization } from '../schema/organizations'
-import { nulledPriceColumns, type Price } from '../schema/prices'
+import {
+  nulledPriceColumns,
+  type Price,
+  usagePriceDefaultColumns,
+} from '../schema/prices'
+import type { PricingModel } from '../schema/pricingModels'
 import type { Product } from '../schema/products'
+import type { UsageMeter } from '../schema/usageMeters'
 import { updateCustomer } from './customerMethods'
 import {
   bulkInsertPrices,
@@ -1790,6 +1797,210 @@ describe('priceMethods.ts', () => {
         expect(prices[1]!.pricingModelId).toBe(
           product2.pricingModelId
         )
+      })
+    })
+  })
+
+  describe('Deriving pricingModelId from usage meter', () => {
+    let organization: Organization.Record
+    let pricingModel: PricingModel.Record
+    let usageMeter: UsageMeter.Record
+
+    beforeEach(async () => {
+      const setup = await setupOrg()
+      organization = setup.organization
+      pricingModel = setup.pricingModel
+
+      usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter for Price Tests',
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+    })
+
+    describe('insertPrice', () => {
+      it('derives pricingModelId from usageMeterId when inserting a usage price without pricingModelId', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const newPrice = await insertPrice(
+            {
+              ...usagePriceDefaultColumns,
+              usageMeterId: usageMeter.id,
+              name: 'Usage Price via Meter',
+              unitPrice: 100,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `usage-price-${core.nanoid()}`,
+              isDefault: false,
+            },
+            transaction
+          )
+
+          expect(newPrice.pricingModelId).toBe(
+            usageMeter.pricingModelId
+          )
+          expect(newPrice.pricingModelId).toBe(pricingModel.id)
+          expect(newPrice.type).toBe(PriceType.Usage)
+          expect(newPrice.usageMeterId).toBe(usageMeter.id)
+          expect(newPrice.productId).toBeNull()
+        })
+      })
+
+      it('uses provided pricingModelId instead of deriving from usageMeterId when both are provided', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const newPrice = await insertPrice(
+            {
+              ...usagePriceDefaultColumns,
+              usageMeterId: usageMeter.id,
+              name: 'Usage Price with PM ID',
+              unitPrice: 200,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `usage-price-pm-${core.nanoid()}`,
+              isDefault: false,
+              pricingModelId: pricingModel.id, // Explicitly provided
+            },
+            transaction
+          )
+
+          expect(newPrice.pricingModelId).toBe(pricingModel.id)
+          expect(newPrice.usageMeterId).toBe(usageMeter.id)
+        })
+      })
+    })
+
+    describe('dangerouslyInsertPrice', () => {
+      it('derives pricingModelId from usageMeterId when inserting a usage price without pricingModelId', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const newPrice = await dangerouslyInsertPrice(
+            {
+              ...usagePriceDefaultColumns,
+              usageMeterId: usageMeter.id,
+              name: 'Dangerous Usage Price',
+              unitPrice: 150,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `dangerous-usage-${core.nanoid()}`,
+              isDefault: false,
+              active: true,
+            },
+            transaction
+          )
+
+          expect(newPrice.pricingModelId).toBe(
+            usageMeter.pricingModelId
+          )
+          expect(newPrice.pricingModelId).toBe(pricingModel.id)
+          expect(newPrice.type).toBe(PriceType.Usage)
+          expect(newPrice.usageMeterId).toBe(usageMeter.id)
+        })
+      })
+    })
+
+    describe('bulkInsertPrices', () => {
+      it('derives pricingModelId from usageMeterId for usage prices in bulk insert', async () => {
+        const secondUsageMeter = await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Second Usage Meter',
+          livemode: true,
+          pricingModelId: pricingModel.id,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          const prices = await bulkInsertPrices(
+            [
+              {
+                ...usagePriceDefaultColumns,
+                usageMeterId: usageMeter.id,
+                name: 'Bulk Usage Price 1',
+                unitPrice: 100,
+                livemode: true,
+                currency: CurrencyCode.USD,
+                slug: `bulk-usage-1-${core.nanoid()}`,
+                isDefault: false,
+              },
+              {
+                ...usagePriceDefaultColumns,
+                usageMeterId: secondUsageMeter.id,
+                name: 'Bulk Usage Price 2',
+                unitPrice: 200,
+                livemode: true,
+                currency: CurrencyCode.USD,
+                slug: `bulk-usage-2-${core.nanoid()}`,
+                isDefault: false,
+              },
+            ],
+            transaction
+          )
+
+          expect(prices).toHaveLength(2)
+          expect(prices[0]!.pricingModelId).toBe(
+            usageMeter.pricingModelId
+          )
+          expect(prices[0]!.pricingModelId).toBe(pricingModel.id)
+          expect(prices[0]!.usageMeterId).toBe(usageMeter.id)
+          expect(prices[1]!.pricingModelId).toBe(
+            secondUsageMeter.pricingModelId
+          )
+          expect(prices[1]!.pricingModelId).toBe(pricingModel.id)
+          expect(prices[1]!.usageMeterId).toBe(secondUsageMeter.id)
+        })
+      })
+
+      it('bulk insert derives pricingModelId from product for product prices and from usage meter for usage prices', async () => {
+        const testProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Test Product for Mixed Insert',
+          livemode: true,
+          pricingModelId: pricingModel.id,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          const prices = await bulkInsertPrices(
+            [
+              {
+                ...nulledPriceColumns,
+                productId: testProduct.id,
+                name: 'Subscription Price',
+                type: PriceType.Subscription,
+                unitPrice: 1000,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                livemode: true,
+                currency: CurrencyCode.USD,
+                slug: `sub-price-${core.nanoid()}`,
+                isDefault: false,
+                trialPeriodDays: 0,
+              },
+              {
+                ...usagePriceDefaultColumns,
+                usageMeterId: usageMeter.id,
+                name: 'Usage Price in Mixed Insert',
+                unitPrice: 50,
+                livemode: true,
+                currency: CurrencyCode.USD,
+                slug: `usage-mixed-${core.nanoid()}`,
+                isDefault: false,
+              },
+            ],
+            transaction
+          )
+
+          expect(prices).toHaveLength(2)
+          // Subscription price derived from product
+          expect(prices[0]!.pricingModelId).toBe(
+            testProduct.pricingModelId
+          )
+          expect(prices[0]!.productId).toBe(testProduct.id)
+          expect(prices[0]!.type).toBe(PriceType.Subscription)
+          // Usage price derived from usage meter
+          expect(prices[1]!.pricingModelId).toBe(
+            usageMeter.pricingModelId
+          )
+          expect(prices[1]!.usageMeterId).toBe(usageMeter.id)
+          expect(prices[1]!.type).toBe(PriceType.Usage)
+          expect(prices[1]!.productId).toBeNull()
+        })
       })
     })
   })
