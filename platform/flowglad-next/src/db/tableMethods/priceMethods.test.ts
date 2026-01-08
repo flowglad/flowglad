@@ -1864,7 +1864,7 @@ describe('priceMethods.ts', () => {
       })
     })
 
-    it('should handle mixed usage and subscription prices', async () => {
+    it('should bulk insert subscription prices with pricingModelId from product and usage prices with pricingModelId from usage meter', async () => {
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Bulk Test Usage Meter',
