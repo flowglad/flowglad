@@ -3982,4 +3982,265 @@ describe('ledgerEntryMethods', () => {
       })
     })
   })
+
+  describe('selectUsageMeterBalancesForSubscriptions', () => {
+    it('returns aggregated balances for a subscription with usage - credits minus debits equals availableBalance', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const { selectUsageMeterBalancesForSubscriptions } =
+          await import('./ledgerEntryMethods')
+        const testLedgerTransaction = await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+
+        // Create usage credit
+        const usageCredit = await setupUsageCredit({
+          organizationId: organization.id,
+          livemode: true,
+          issuedAmount: 1000,
+          usageMeterId: usageMeter.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+        })
+
+        // Create usage event
+        const usageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+          amount: 300,
+          priceId: price.id,
+          billingPeriodId: billingPeriod.id,
+          transactionId: testLedgerTransaction.id,
+          customerId: customer.id,
+        })
+
+        // Insert credit entry (adds to balance)
+        await bulkInsertLedgerEntries(
+          [
+            {
+              ...ledgerEntryNulledSourceIdColumns,
+              metadata: {},
+              discardedAt: null,
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              direction: LedgerEntryDirection.Credit,
+              amount: 1000,
+              status: LedgerEntryStatus.Posted,
+              livemode: true,
+              entryTimestamp: Date.now(),
+              sourceUsageCreditId: usageCredit.id,
+              claimedByBillingRunId: null,
+            },
+            // Insert debit entry (subtracts from balance)
+            {
+              ...ledgerEntryNulledSourceIdColumns,
+              metadata: {},
+              discardedAt: null,
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              direction: LedgerEntryDirection.Debit,
+              amount: 300,
+              status: LedgerEntryStatus.Posted,
+              livemode: true,
+              entryTimestamp: Date.now(),
+              sourceUsageEventId: usageEvent.id,
+            },
+          ],
+          transaction
+        )
+
+        const result = await selectUsageMeterBalancesForSubscriptions(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+
+        expect(result).toHaveLength(1)
+        expect(result[0].subscriptionId).toBe(subscription.id)
+        expect(result[0].usageMeterBalance.availableBalance).toBe(700) // 1000 - 300 = 700
+        expect(result[0].usageMeterBalance.id).toBe(usageMeter.id)
+      })
+    })
+
+    it('returns empty array for subscription with no ledger entries', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const { selectUsageMeterBalancesForSubscriptions } =
+          await import('./ledgerEntryMethods')
+        // Create a new subscription without any ledger entries
+        const newCustomer = await setupCustomer({
+          organizationId: organization.id,
+          livemode: true,
+          email: `customer+${core.nanoid()}@test.com`,
+          pricingModelId: pricingModel.id,
+        })
+        const newSubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: newCustomer.id,
+          status: SubscriptionStatus.Active,
+          currentBillingPeriodStart:
+            Date.now() - 30 * 24 * 60 * 60 * 1000,
+          currentBillingPeriodEnd:
+            Date.now() + 1 * 24 * 60 * 60 * 1000,
+          priceId: price.id,
+          livemode: true,
+        })
+
+        const result = await selectUsageMeterBalancesForSubscriptions(
+          { subscriptionId: newSubscription.id },
+          transaction
+        )
+
+        expect(result).toEqual([])
+      })
+    })
+
+    it('excludes pending credit entries from available balance - only includes posted credits', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const { selectUsageMeterBalancesForSubscriptions } =
+          await import('./ledgerEntryMethods')
+        const testLedgerTransaction = await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+
+        const usageCredit = await setupUsageCredit({
+          organizationId: organization.id,
+          livemode: true,
+          issuedAmount: 500,
+          usageMeterId: usageMeter.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+        })
+
+        // Insert pending credit entry (should NOT be included in available balance)
+        await bulkInsertLedgerEntries(
+          [
+            {
+              ...ledgerEntryNulledSourceIdColumns,
+              metadata: {},
+              discardedAt: null,
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              direction: LedgerEntryDirection.Credit,
+              amount: 500,
+              status: LedgerEntryStatus.Pending, // Pending credit
+              livemode: true,
+              entryTimestamp: Date.now(),
+              sourceUsageCreditId: usageCredit.id,
+              claimedByBillingRunId: null,
+            },
+          ],
+          transaction
+        )
+
+        const result = await selectUsageMeterBalancesForSubscriptions(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+
+        // Pending credits are excluded from available balance
+        expect(result).toEqual([])
+      })
+    })
+
+    it('includes pending debit entries in available balance - subtracts pending debits', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const { selectUsageMeterBalancesForSubscriptions } =
+          await import('./ledgerEntryMethods')
+        const testLedgerTransaction = await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+
+        const usageCredit = await setupUsageCredit({
+          organizationId: organization.id,
+          livemode: true,
+          issuedAmount: 1000,
+          usageMeterId: usageMeter.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+        })
+
+        const usageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+          amount: 200,
+          priceId: price.id,
+          billingPeriodId: billingPeriod.id,
+          transactionId: testLedgerTransaction.id,
+          customerId: customer.id,
+        })
+
+        // Insert posted credit entry
+        await bulkInsertLedgerEntries(
+          [
+            {
+              ...ledgerEntryNulledSourceIdColumns,
+              metadata: {},
+              discardedAt: null,
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              direction: LedgerEntryDirection.Credit,
+              amount: 1000,
+              status: LedgerEntryStatus.Posted,
+              livemode: true,
+              entryTimestamp: Date.now(),
+              sourceUsageCreditId: usageCredit.id,
+              claimedByBillingRunId: null,
+            },
+            // Insert pending debit entry (SHOULD be included in available balance)
+            {
+              ...ledgerEntryNulledSourceIdColumns,
+              metadata: {},
+              discardedAt: null,
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              direction: LedgerEntryDirection.Debit,
+              amount: 200,
+              status: LedgerEntryStatus.Pending, // Pending debit
+              livemode: true,
+              entryTimestamp: Date.now(),
+              sourceUsageEventId: usageEvent.id,
+            },
+          ],
+          transaction
+        )
+
+        const result = await selectUsageMeterBalancesForSubscriptions(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+
+        expect(result).toHaveLength(1)
+        // Pending debits ARE included: 1000 (posted credit) - 200 (pending debit) = 800
+        expect(result[0].usageMeterBalance.availableBalance).toBe(800)
+      })
+    })
+  })
 })

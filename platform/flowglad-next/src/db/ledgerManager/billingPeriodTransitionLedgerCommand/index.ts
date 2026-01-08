@@ -15,6 +15,7 @@ import {
 } from '@/db/tableMethods/ledgerTransactionMethods'
 import type { DbTransaction } from '@/db/types'
 import { LedgerTransactionType } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import { expireCreditsAtEndOfBillingPeriod } from './expireCreditsAtEndOfBillingPeriod'
 import { grantEntitlementUsageCredits } from './grantEntitlementUsageCredits'
 
@@ -115,6 +116,13 @@ export const processBillingPeriodTransitionLedgerCommand = async (
     ledgerEntries: [
       ...entitlementLedgerEntryRecords,
       ...expirationLedgerEntryRecords,
+    ],
+    // Invalidate meter balances cache for this subscription
+    // Both granting credits and expiring credits affect meter balances
+    cacheInvalidations: [
+      CacheDependency.subscriptionLedger(
+        command.payload.subscription.id
+      ),
     ],
   }
 }

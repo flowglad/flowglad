@@ -37,7 +37,7 @@ import {
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
 import { createDateNotPassedFilter } from '../tableUtils'
-import { selectUsageMeterBalancesForSubscriptions } from './ledgerEntryMethods'
+import { selectUsageMeterBalancesForSubscriptionCached } from './ledgerEntryMethods'
 import {
   expireSubscriptionItemFeaturesForSubscriptionItems,
   selectSubscriptionItemFeaturesWithFeatureSlug,
@@ -416,21 +416,25 @@ export const selectRichSubscriptionsAndActiveItems = async (
     .map(({ subscriptionItem }) => subscriptionItem)
 
   // Step 5: Fetch related data in parallel for better performance
-  const [allSubscriptionItemFeatures, usageMeterBalances] =
-    await Promise.all([
-      selectSubscriptionItemFeaturesWithFeatureSlug(
-        {
-          subscriptionItemId: activeSubscriptionItems.map(
-            (item) => item.id
-          ),
-        },
-        transaction
-      ),
-      selectUsageMeterBalancesForSubscriptions(
-        { subscriptionId: subscriptionIds },
-        transaction
-      ),
-    ])
+  // Step 5a: Fetch subscription item features
+  const allSubscriptionItemFeatures =
+    await selectSubscriptionItemFeaturesWithFeatureSlug(
+      {
+        subscriptionItemId: activeSubscriptionItems.map(
+          (item) => item.id
+        ),
+      },
+      transaction
+    )
+
+  // Step 5b: Fetch meter balances - use cache per subscription
+  const usageMeterBalances = (
+    await Promise.all(
+      subscriptionIds.map((id) =>
+        selectUsageMeterBalancesForSubscriptionCached(id, transaction)
+      )
+    )
+  ).flat()
 
   // Step 6: Filter out expired subscription item features
   const subscriptionItemFeatures = allSubscriptionItemFeatures.filter(

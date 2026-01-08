@@ -1,4 +1,5 @@
 import { and, asc, eq, inArray, lt, not, or, sql } from 'drizzle-orm'
+import { z } from 'zod'
 import {
   type LedgerEntry,
   ledgerEntries,
@@ -23,7 +24,9 @@ import {
   LedgerEntryType,
   type UsageBillingInfo,
 } from '@/types'
+import { CacheDependency, cached } from '@/utils/cache'
 import core from '@/utils/core'
+import { RedisKeyNamespace } from '@/utils/redis'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import type { BillingRun } from '../schema/billingRuns'
 import { prices } from '../schema/prices'
@@ -31,6 +34,7 @@ import { usageCredits } from '../schema/usageCredits'
 import { usageEvents } from '../schema/usageEvents'
 import {
   type UsageMeterBalance,
+  usageMeterBalanceClientSelectSchema,
   usageMeters,
   usageMetersClientSelectSchema,
   usageMetersSelectSchema,
@@ -416,6 +420,38 @@ export const selectUsageMeterBalancesForSubscriptions = async (
       }
     })
 }
+
+/** Schema for the cached usage meter balance result */
+const usageMeterBalanceWithSubscriptionIdSchema = z.object({
+  usageMeterBalance: usageMeterBalanceClientSelectSchema,
+  subscriptionId: z.string(),
+})
+
+/**
+ * Cache-enabled version of selectUsageMeterBalancesForSubscriptions for single subscription lookup.
+ * This function caches meter balances per subscription and depends on the subscription's ledger entries.
+ *
+ * The cache is invalidated when ledger entries for the subscription are modified
+ * (e.g., usage events processed, credit grants recognized, credits expired).
+ */
+export const selectUsageMeterBalancesForSubscriptionCached = cached(
+  {
+    namespace: RedisKeyNamespace.MeterBalancesBySubscription,
+    keyFn: (subscriptionId: string, _transaction: DbTransaction) =>
+      subscriptionId,
+    schema: usageMeterBalanceWithSubscriptionIdSchema.array(),
+    // This cache depends on the subscription's ledger entries
+    dependenciesFn: (subscriptionId: string) => [
+      CacheDependency.subscriptionLedger(subscriptionId),
+    ],
+  },
+  async (subscriptionId: string, transaction: DbTransaction) => {
+    return selectUsageMeterBalancesForSubscriptions(
+      { subscriptionId },
+      transaction
+    )
+  }
+)
 
 /**
  * Optimized version of aggregateAvailableBalanceForUsageCredit that performs
