@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   behaviorTest,
   clearImplementations,
+  combinationMatches,
   Dependency,
   defineBehavior,
   formatCombination,
@@ -16,7 +17,7 @@ import {
 } from './index'
 
 // ============================================================================
-// Mock Dependencies for Testing the Framework
+// Mock Dependencies for Unit Tests (cleared after each test)
 // ============================================================================
 
 /**
@@ -47,10 +48,36 @@ abstract class MockFormatterDep extends Dependency<MockFormatter>() {
 }
 
 // ============================================================================
-// Setup/Teardown
+// Mock Dependencies for behaviorTest Integration Tests
+// (Registered at module level, not cleared between tests)
+// ============================================================================
+
+interface BehaviorTestGreeter {
+  greet(name: string): string
+  language: string
+}
+
+abstract class BehaviorTestGreeterDep extends Dependency<BehaviorTestGreeter>() {
+  abstract greet(name: string): string
+  abstract language: string
+}
+
+interface BehaviorTestFormatter {
+  format(text: string): string
+  style: string
+}
+
+abstract class BehaviorTestFormatterDep extends Dependency<BehaviorTestFormatter>() {
+  abstract format(text: string): string
+  abstract style: string
+}
+
+// ============================================================================
+// Setup/Teardown for Unit Tests
 // ============================================================================
 
 afterEach(() => {
+  // Only clear the unit test dependencies, not the behaviorTest integration test ones
   clearImplementations(MockGreeterDep)
   clearImplementations(MockFormatterDep)
 })
@@ -172,6 +199,57 @@ describe('Cartesian product generation', () => {
       'MockGreeterDep=english, MockFormatterDep=upper'
     )
   })
+
+  it('combinationMatches returns true when filter is subset of combination', () => {
+    const combination = {
+      MockGreeterDep: 'english',
+      MockFormatterDep: 'upper',
+    }
+
+    // Exact match
+    expect(
+      combinationMatches(combination, {
+        MockGreeterDep: 'english',
+        MockFormatterDep: 'upper',
+      })
+    ).toBe(true)
+
+    // Partial match (filter is subset)
+    expect(
+      combinationMatches(combination, { MockGreeterDep: 'english' })
+    ).toBe(true)
+    expect(
+      combinationMatches(combination, { MockFormatterDep: 'upper' })
+    ).toBe(true)
+
+    // Empty filter matches everything
+    expect(combinationMatches(combination, {})).toBe(true)
+  })
+
+  it('combinationMatches returns false when filter does not match', () => {
+    const combination = {
+      MockGreeterDep: 'english',
+      MockFormatterDep: 'upper',
+    }
+
+    // Different value for same key
+    expect(
+      combinationMatches(combination, { MockGreeterDep: 'spanish' })
+    ).toBe(false)
+
+    // One key matches, one doesn't
+    expect(
+      combinationMatches(combination, {
+        MockGreeterDep: 'english',
+        MockFormatterDep: 'lower',
+      })
+    ).toBe(false)
+
+    // Key doesn't exist in combination
+    expect(
+      combinationMatches(combination, { NonExistentDep: 'value' })
+    ).toBe(false)
+  })
 })
 
 describe('defineBehavior', () => {
@@ -222,95 +300,92 @@ describe('runBehavior', () => {
   })
 })
 
-describe('behaviorTest', () => {
-  it('runs behavior against all combinations with invariants', () => {
-    MockGreeterDep.implement('english', {
-      language: 'en',
-      greet: (name: string) => `Hello, ${name}!`,
-    })
-    MockGreeterDep.implement('spanish', {
-      language: 'es',
-      greet: (name: string) => `Hola, ${name}!`,
-    })
+// ============================================================================
+// behaviorTest Integration Tests
+// ============================================================================
+// NOTE: behaviorTest() calls describe()/it() internally, so these tests
+// must register implementations BEFORE calling behaviorTest() at the
+// describe level (not inside it() blocks).
 
-    const greetBehavior = defineBehavior({
-      name: 'greet',
-      dependencies: [MockGreeterDep],
-      run: async ({ mockGreeterDep }, _prev: undefined) => {
-        const greeting = mockGreeterDep.greet('World')
-        return { greeting, language: mockGreeterDep.language }
+// Register implementations for single-dependency test
+BehaviorTestGreeterDep.implement('english', {
+  language: 'en',
+  greet: (name: string) => `Hello, ${name}!`,
+})
+BehaviorTestGreeterDep.implement('spanish', {
+  language: 'es',
+  greet: (name: string) => `Hola, ${name}!`,
+})
+
+const greetBehavior = defineBehavior({
+  name: 'greet',
+  dependencies: [BehaviorTestGreeterDep],
+  run: async ({ behaviorTestGreeterDep }, _prev: undefined) => {
+    const greeting = behaviorTestGreeterDep.greet('World')
+    return { greeting, language: behaviorTestGreeterDep.language }
+  },
+})
+
+// This creates a describe block with 2 it blocks (one per implementation)
+behaviorTest({
+  chain: [
+    {
+      behavior: greetBehavior,
+      invariants: (result) => {
+        // Universal invariants - must pass for ALL implementations
+        expect(result.greeting).toContain('World')
+        expect(['en', 'es']).toContain(result.language)
       },
-    })
+    },
+  ],
+})
 
-    // This creates a describe block with 2 it blocks (one per implementation)
-    behaviorTest({
-      chain: [
-        {
-          behavior: greetBehavior,
-          invariants: (result) => {
-            // Universal invariants - must pass for ALL implementations
-            expect(result.greeting).toContain('World')
-            expect(result.language).toBeTruthy()
-          },
-        },
-      ],
-    })
-  })
+// Register implementations for chained behavior test
+BehaviorTestFormatterDep.implement('upper', {
+  style: 'uppercase',
+  format: (t: string) => t.toUpperCase(),
+})
+BehaviorTestFormatterDep.implement('lower', {
+  style: 'lowercase',
+  format: (t: string) => t.toLowerCase(),
+})
 
-  it('chains behaviors with state passing', () => {
-    MockGreeterDep.implement('english', {
-      language: 'en',
-      greet: (name: string) => `Hello, ${name}!`,
-    })
+const greetForChainBehavior = defineBehavior({
+  name: 'greet for chain',
+  dependencies: [BehaviorTestGreeterDep],
+  run: async ({ behaviorTestGreeterDep }, _prev: undefined) => {
+    const greeting = behaviorTestGreeterDep.greet('World')
+    return { greeting }
+  },
+})
 
-    MockFormatterDep.implement('upper', {
-      style: 'uppercase',
-      format: (t: string) => t.toUpperCase(),
-    })
-    MockFormatterDep.implement('lower', {
-      style: 'lowercase',
-      format: (t: string) => t.toLowerCase(),
-    })
+const formatBehavior = defineBehavior({
+  name: 'format',
+  dependencies: [BehaviorTestFormatterDep],
+  run: async (
+    { behaviorTestFormatterDep },
+    prev: { greeting: string }
+  ) => {
+    const formatted = behaviorTestFormatterDep.format(prev.greeting)
+    return { ...prev, formatted }
+  },
+})
 
-    const greetBehavior = defineBehavior({
-      name: 'greet',
-      dependencies: [MockGreeterDep],
-      run: async ({ mockGreeterDep }, _prev: undefined) => {
-        const greeting = mockGreeterDep.greet('World')
-        return { greeting }
+// This creates 4 test cases (english+upper, english+lower, spanish+upper, spanish+lower)
+behaviorTest({
+  chain: [
+    {
+      behavior: greetForChainBehavior,
+      invariants: (result) => {
+        expect(result.greeting).toContain('World')
       },
-    })
-
-    const formatBehavior = defineBehavior({
-      name: 'format',
-      dependencies: [MockFormatterDep],
-      run: async (
-        { mockFormatterDep },
-        prev: { greeting: string }
-      ) => {
-        const formatted = mockFormatterDep.format(prev.greeting)
-        return { ...prev, formatted }
+    },
+    {
+      behavior: formatBehavior,
+      invariants: (result) => {
+        // Formatted version contains the original greeting text
+        expect(result.formatted.toLowerCase()).toContain('world')
       },
-    })
-
-    // This creates 2 test cases (english + upper, english + lower)
-    behaviorTest({
-      chain: [
-        {
-          behavior: greetBehavior,
-          invariants: (result) => {
-            expect(result.greeting).toBe('Hello, World!')
-          },
-        },
-        {
-          behavior: formatBehavior,
-          invariants: (result) => {
-            // Formatted version contains the original greeting text
-            expect(result.formatted.toLowerCase()).toContain('hello')
-            expect(result.formatted.toLowerCase()).toContain('world')
-          },
-        },
-      ],
-    })
-  })
+    },
+  ],
 })
