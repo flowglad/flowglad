@@ -251,7 +251,7 @@ export function DiscountsDataTable({
       </Table>
 
       {/* Pagination */}
-      <div className="py-2 px-4">
+      <div className="py-2 px-6">
         <DataTablePagination
           table={table}
           totalCount={data?.total}

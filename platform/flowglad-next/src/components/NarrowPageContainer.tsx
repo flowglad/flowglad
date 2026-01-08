@@ -27,8 +27,8 @@ const NarrowPageContainer = ({
         className
       )}
     >
-      <div className="h-full w-full max-w-[38rem] mx-auto flex gap-8 p-4 pb-10 md:p-10">
-        <div className="h-full w-full flex flex-col">{children}</div>
+      <div className="h-full w-full max-w-[38rem] mx-auto flex flex-col gap-8 p-4 pb-10 md:p-10">
+        {children}
       </div>
     </div>
   )

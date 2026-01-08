@@ -8,7 +8,7 @@ interface PageContainerProps {
 /**
  * Standard container for dashboard page content.
  *
- * Width is controlled by the parent SidebarProvider (53rem / 848px).
+ * Width is controlled by the parent SidebarProvider.
  * This component provides:
  * - Flex column layout for page structure
  * - Dashed right border for visual consistency
