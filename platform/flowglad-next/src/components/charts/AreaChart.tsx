@@ -38,6 +38,40 @@ import {
   hasOnlyOneValueForKey,
 } from '@/utils/chartStyles'
 
+//#region Types for Recharts callbacks
+
+/**
+ * Props provided by Recharts to legend content render functions.
+ */
+interface RechartsLegendPayloadItem {
+  value: string
+  type: string
+  id?: string
+  color?: string
+  dataKey?: string
+}
+
+interface RechartsLegendContentProps {
+  payload: RechartsLegendPayloadItem[]
+}
+
+/**
+ * Props provided by Recharts to dot/activeDot render functions.
+ */
+interface RechartsDotProps {
+  cx: number
+  cy: number
+  r?: number
+  stroke?: string
+  strokeWidth?: number
+  strokeLinecap?: 'butt' | 'round' | 'square'
+  strokeLinejoin?: 'miter' | 'round' | 'bevel'
+  fill?: string
+  dataKey?: string
+  index?: number
+  payload?: Record<string, unknown>
+}
+
 // Add useContainerSize hook
 const useContainerSize = () => {
   const [size, setSize] = React.useState({ width: 0, height: 0 })
@@ -363,7 +397,7 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>(
 Legend.displayName = 'Legend'
 
 const ChartLegend = (
-  { payload }: any,
+  { payload }: RechartsLegendContentProps,
   categoryColors: Map<string, AvailableChartColorsKeys>,
   setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
   activeLegend: string | undefined,
@@ -381,7 +415,7 @@ const ChartLegend = (
   })
 
   const legendPayload = payload.filter(
-    (item: any) => item.type !== 'none'
+    (item: RechartsLegendPayloadItem) => item.type !== 'none'
   )
 
   const paddingLeft =
@@ -399,10 +433,17 @@ const ChartLegend = (
       )}
     >
       <Legend
-        categories={legendPayload.map((entry: any) => entry.value)}
-        colors={legendPayload.map((entry: any) =>
-          categoryColors.get(entry.value)
+        categories={legendPayload.map(
+          (entry: RechartsLegendPayloadItem) => entry.value
         )}
+        colors={legendPayload
+          .map((entry: RechartsLegendPayloadItem) =>
+            categoryColors.get(entry.value)
+          )
+          .filter(
+            (color): color is AvailableChartColorsKeys =>
+              color !== undefined
+          )}
         onClickLegendItem={onClick}
         activeLegend={activeLegend}
         enableLegendSlider={enableLegendSlider}
@@ -424,7 +465,7 @@ export type PayloadItem = {
   index: string
   color: AvailableChartColorsKeys
   type?: string
-  payload: any
+  payload: Record<string, unknown>
 }
 
 interface ChartTooltipProps {
@@ -680,14 +721,18 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
       return `${(value * 100).toFixed(0)}%`
     }
 
-    function onDotClick(itemData: any, event: React.MouseEvent) {
+    function onDotClick(
+      itemData: RechartsDotProps,
+      event: React.MouseEvent
+    ) {
       event.stopPropagation()
 
       if (!hasOnValueChange) return
       if (
         (itemData.index === activeDot?.index &&
           itemData.dataKey === activeDot?.dataKey) ||
-        (hasOnlyOneValueForKey(data, itemData.dataKey) &&
+        (itemData.dataKey &&
+          hasOnlyOneValueForKey(data, itemData.dataKey) &&
           activeLegend &&
           activeLegend === itemData.dataKey)
       ) {
@@ -702,8 +747,8 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
         })
         onValueChange?.({
           eventType: 'dot',
-          categoryClicked: itemData.dataKey,
-          ...itemData.payload,
+          categoryClicked: itemData.dataKey ?? '',
+          ...(itemData.payload as Record<string, string | number>),
         })
       }
     }
@@ -857,15 +902,21 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
               position={{ y: 0 }}
               content={({ active, payload, label }) => {
                 const cleanPayload: TooltipProps['payload'] = payload
-                  ? payload.map((item: any) => ({
-                      category: item.dataKey,
-                      value: item.value,
-                      index: item.payload[index],
+                  ? payload.map((item) => ({
+                      category: String(item.dataKey ?? ''),
+                      value: Number(item.value ?? 0),
+                      index: String(
+                        (item.payload as Record<string, unknown>)?.[
+                          index
+                        ] ?? ''
+                      ),
                       color: categoryColors.get(
-                        item.dataKey
+                        String(item.dataKey ?? '')
                       ) as AvailableChartColorsKeys,
                       type: item.type,
-                      payload: item.payload,
+                      payload:
+                        (item.payload as Record<string, unknown>) ??
+                        {},
                     }))
                   : []
 
@@ -908,7 +959,10 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                 height={legendHeight}
                 content={({ payload }) =>
                   ChartLegend(
-                    { payload },
+                    {
+                      payload: (payload ??
+                        []) as RechartsLegendPayloadItem[],
+                    },
                     categoryColors,
                     setLegendHeight,
                     activeLegend,
@@ -970,7 +1024,8 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                         ? 0.3
                         : 1
                     }
-                    activeDot={(props: any) => {
+                    activeDot={(props: unknown) => {
+                      const dotProps = props as RechartsDotProps
                       const {
                         cx: cxCoord,
                         cy: cyCoord,
@@ -978,8 +1033,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                         strokeLinecap,
                         strokeLinejoin,
                         strokeWidth,
-                        dataKey,
-                      } = props
+                      } = dotProps
                       return (
                         <Dot
                           className={cn(
@@ -995,12 +1049,13 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                           strokeLinejoin={strokeLinejoin}
                           strokeWidth={strokeWidth}
                           onClick={(_, event) =>
-                            onDotClick(props, event)
+                            onDotClick(dotProps, event)
                           }
                         />
                       )
                     }}
-                    dot={(props: any) => {
+                    dot={(props: unknown) => {
+                      const dotProps = props as RechartsDotProps
                       const {
                         stroke,
                         strokeLinecap,
@@ -1008,9 +1063,8 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                         strokeWidth,
                         cx: cxCoord,
                         cy: cyCoord,
-                        dataKey,
-                        index,
-                      } = props
+                        index: dotIndex,
+                      } = dotProps
 
                       if (
                         (hasOnlyOneValueForKey(data, category) &&
@@ -1019,12 +1073,12 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                             (activeLegend &&
                               activeLegend !== category)
                           )) ||
-                        (activeDot?.index === index &&
+                        (activeDot?.index === dotIndex &&
                           activeDot?.dataKey === category)
                       ) {
                         return (
                           <Dot
-                            key={index}
+                            key={dotIndex}
                             cx={cxCoord}
                             cy={cyCoord}
                             r={5}
@@ -1041,7 +1095,9 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                         )
                       }
                       return (
-                        <React.Fragment key={index}></React.Fragment>
+                        <React.Fragment
+                          key={dotIndex}
+                        ></React.Fragment>
                       )
                     }}
                     key={category}
@@ -1076,10 +1132,10 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                     tooltipType="none"
                     strokeWidth={12}
                     connectNulls={connectNulls}
-                    onClick={(props: any, event) => {
+                    onClick={(props, event) => {
                       event.stopPropagation()
-                      const { name } = props
-                      onCategoryClick(name)
+                      const lineProps = props as { name?: string }
+                      onCategoryClick(lineProps.name ?? category)
                     }}
                   />
                 ))

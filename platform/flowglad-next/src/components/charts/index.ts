@@ -2,15 +2,13 @@
  * Chart components and composition primitives
  */
 
-export {
-  AreaChart,
-  type TooltipCallbackProps,
-  type TooltipProps as AreaChartTooltipProps,
-} from './AreaChart'
-export { ChartBody } from './ChartBody'
+// Base chart components
+// Backward compatibility - TooltipCallbackProps is an alias for TooltipProps
+// Prefer using TooltipProps for new code
+export { AreaChart, type TooltipCallbackProps } from './AreaChart'
 
 // Composition primitives for building dashboard charts
+export { ChartBody } from './ChartBody'
 export { ChartHeader } from './ChartHeader'
 export { ChartValueDisplay } from './ChartValueDisplay'
-// Base chart components
 export { LineChart, type TooltipProps } from './LineChart'
