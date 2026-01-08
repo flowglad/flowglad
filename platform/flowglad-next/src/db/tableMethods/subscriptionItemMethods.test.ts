@@ -39,6 +39,10 @@ import {
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
+import {
+  CacheDependency,
+  invalidateDependencies,
+} from '@/utils/cache'
 import { core } from '@/utils/core'
 import { insertSubscriptionItemFeature } from './subscriptionItemFeatureMethods'
 import {
@@ -53,6 +57,7 @@ import {
   selectSubscriptionItemById,
   selectSubscriptionItems,
   selectSubscriptionItemsAndSubscriptionBySubscriptionId,
+  selectSubscriptionItemsWithPricesBySubscriptionIdCached,
   selectSubscriptionItemsWithPricesBySubscriptionIds,
   updateSubscriptionItem,
 } from './subscriptionItemMethods'
@@ -714,6 +719,99 @@ describe('subscriptionItemMethods', async () => {
             transaction,
             livemode,
             { ignoreCache: true }
+          )
+        expect(results).toEqual([])
+      })
+    })
+  })
+
+  describe('selectSubscriptionItemsWithPricesBySubscriptionIdCached', () => {
+    it('should return subscription items with their associated prices for a single subscription ID', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const results =
+          await selectSubscriptionItemsWithPricesBySubscriptionIdCached(
+            subscription.id,
+            transaction
+          )
+
+        expect(results.length).toBe(1)
+        expect(results[0].subscriptionItem.id).toBe(
+          subscriptionItem.id
+        )
+        expect(results[0].subscriptionItem.subscriptionId).toBe(
+          subscription.id
+        )
+        expect(results[0].price).not.toBeNull()
+        expect(results[0].price?.id).toBe(price.id)
+      })
+    })
+
+    it('should return cached results on subsequent calls', async () => {
+      // First call should populate cache
+      await adminTransaction(async ({ transaction }) => {
+        const results1 =
+          await selectSubscriptionItemsWithPricesBySubscriptionIdCached(
+            subscription.id,
+            transaction
+          )
+        expect(results1.length).toBe(1)
+
+        // Second call should return same data (from cache)
+        const results2 =
+          await selectSubscriptionItemsWithPricesBySubscriptionIdCached(
+            subscription.id,
+            transaction
+          )
+        expect(results2.length).toBe(1)
+        expect(results2[0].subscriptionItem.id).toBe(
+          results1[0].subscriptionItem.id
+        )
+      })
+    })
+
+    it('should return fresh data after cache invalidation', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // First call to populate cache
+        const initialResults =
+          await selectSubscriptionItemsWithPricesBySubscriptionIdCached(
+            subscription.id,
+            transaction
+          )
+        expect(initialResults.length).toBe(1)
+
+        // Add a new subscription item
+        await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'New Item After Cache',
+          quantity: 3,
+          unitPrice: 3000,
+          priceId: price.id,
+        })
+
+        // Invalidate the cache for this subscription
+        await invalidateDependencies([
+          CacheDependency.subscription(subscription.id),
+        ])
+
+        // Wait a bit for cache invalidation to propagate
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
+        // Now fetch again - should see the new item
+        const refreshedResults =
+          await selectSubscriptionItemsWithPricesBySubscriptionIdCached(
+            subscription.id,
+            transaction
+          )
+        expect(refreshedResults.length).toBe(2)
+      })
+    })
+
+    it('should return an empty array for non-existent subscription ID', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const results =
+          await selectSubscriptionItemsWithPricesBySubscriptionIdCached(
+            core.nanoid(),
+            transaction
           )
         expect(results).toEqual([])
       })
