@@ -30,6 +30,7 @@ import {
   selectPaymentMethods,
 } from '@/db/tableMethods/paymentMethodMethods'
 import {
+  selectPriceById,
   selectPriceBySlugAndCustomerId,
   selectPriceProductAndOrganizationByPriceWhere,
 } from '@/db/tableMethods/priceMethods'
@@ -512,6 +513,17 @@ const createSubscriptionProcedure = protectedProcedure
         // Resolve price ID from either priceId or priceSlug
         let resolvedPriceId: string
         if (input.priceId) {
+          // Early validation: fetch price and reject usage prices before the heavier query
+          const price = await selectPriceById(
+            input.priceId,
+            transaction
+          )
+          if (!Price.hasProductId(price)) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Price "${input.priceId}" is a usage price and cannot be used to create a subscription directly. Use a subscription price instead.`,
+            })
+          }
           resolvedPriceId = input.priceId
         } else if (input.priceSlug) {
           const price = await selectPriceBySlugAndCustomerId(
