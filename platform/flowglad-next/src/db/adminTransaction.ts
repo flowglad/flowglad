@@ -19,57 +19,17 @@ interface AdminTransactionOptions {
 // only works in the context of a nextjs sessionful runtime.
 
 /**
- * Core admin transaction logic without tracing.
- */
-const executeAdminTransaction = async <T>(
-  fn: (params: AdminTransactionParams) => Promise<T>,
-  effectiveLivemode: boolean
-): Promise<T> => {
-  return db.transaction(async (transaction) => {
-    /**
-     * Reseting the role and request.jwt.claims here,
-     * becuase the auth state seems to be returned to the client "dirty",
-     * with the role from the previous session still applied.
-     */
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', NULL, true);`
-    )
-
-    const resp = await fn({
-      transaction,
-      userId: 'ADMIN',
-      livemode: effectiveLivemode,
-    })
-    await transaction.execute(sql`RESET ROLE;`)
-    return resp
-  })
-}
-
-/**
- * Original adminTransaction. Consider deprecating or refactoring to use comprehensiveAdminTransaction.
+ * Executes a function within an admin database transaction.
+ * Delegates to comprehensiveAdminTransaction by wrapping the result.
  */
 export async function adminTransaction<T>(
   fn: (params: AdminTransactionParams) => Promise<T>,
   options: AdminTransactionOptions = {}
 ): Promise<T> {
-  const { livemode = true } = options
-  const effectiveLivemode = isNil(livemode) ? true : livemode
-
-  return traced(
-    {
-      options: {
-        spanName: 'db.adminTransaction',
-        tracerName: 'db.transaction',
-        kind: SpanKind.CLIENT,
-        attributes: {
-          'db.transaction.type': 'admin',
-          'db.user_id': 'ADMIN',
-          'db.livemode': effectiveLivemode,
-        },
-      },
-    },
-    () => executeAdminTransaction(fn, effectiveLivemode)
-  )()
+  return comprehensiveAdminTransaction(async (params) => {
+    const result = await fn(params)
+    return { result }
+  }, options)
 }
 
 /**
