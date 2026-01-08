@@ -56,6 +56,7 @@ import {
   processStripeChargeForCheckoutSession,
 } from '@/utils/bookkeeping/checkoutSessions'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
+import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
 import core from '../core'
 
 type TestCharge = Pick<
@@ -648,11 +649,6 @@ describe('Checkout Sessions', async () => {
         }
       )
 
-      // Import and use calculateTotalDueAmount to verify the total due is 0
-      const { calculateTotalDueAmount } = await import(
-        '@/utils/bookkeeping/fees/common'
-      )
-
       const totalDue = calculateTotalDueAmount(
         feeCalculationWith100Discount
       )
@@ -729,11 +725,6 @@ describe('Checkout Sessions', async () => {
             transaction
           )
         }
-      )
-
-      // Import and use calculateTotalDueAmount
-      const { calculateTotalDueAmount } = await import(
-        '@/utils/bookkeeping/fees/common'
       )
 
       const totalDue = calculateTotalDueAmount(latestFeeCalc!)
