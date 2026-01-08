@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupCheckoutSession,
   setupCustomer,
+  setupDiscount,
   setupOrg,
   setupPaymentMethod,
   setupPrice,
@@ -20,7 +21,10 @@ import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Purchase } from '@/db/schema/purchases'
-import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import {
+  selectCheckoutSessionById,
+  updateCheckoutSession,
+} from '@/db/tableMethods/checkoutSessionMethods'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
 import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'
@@ -30,6 +34,7 @@ import { createMockCustomer } from '@/test/helpers/stripeMocks'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
+  DiscountAmountType,
   FlowgladEventType,
   IntervalUnit,
   PaymentMethodType,
@@ -39,6 +44,7 @@ import {
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import core from '@/utils/core'
 import {
+  cancelPaymentIntent,
   createStripeCustomer,
   getSetupIntent,
   updatePaymentIntent,
@@ -48,6 +54,7 @@ import { createFeeCalculationForCheckoutSession } from './checkoutSessions'
 
 // Mock Stripe functions
 vi.mock('@/utils/stripe', () => ({
+  cancelPaymentIntent: vi.fn(),
   createStripeCustomer: vi.fn(),
   getPaymentIntent: vi.fn(async () => ({
     id: 'pi_test',
@@ -1008,6 +1015,80 @@ describe('confirmCheckoutSessionTransaction', () => {
       expect(result.customer).toBeDefined()
       // Verify that updatePaymentIntent was not called
       expect(updatePaymentIntent).not.toHaveBeenCalled()
+    })
+
+    it('should cancel payment intent and clear stripePaymentIntentId when total due is zero from 100% discount', async () => {
+      // Create a 100% off discount that equals the full price amount
+      const fullDiscount = await setupDiscount({
+        organizationId: organization.id,
+        name: 'FULL100',
+        code: core.nanoid().slice(0, 10),
+        amount: price.unitPrice, // Full price coverage
+        amountType: DiscountAmountType.Fixed,
+        livemode: true,
+      })
+
+      const paymentIntentId = `pi_${core.nanoid()}`
+
+      // Update checkout session to have stripePaymentIntentId and the 100% discount
+      const updatedCheckoutSession =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            const result = await updateCheckoutSession(
+              {
+                ...checkoutSession,
+                stripePaymentIntentId: paymentIntentId,
+                discountId: fullDiscount.id,
+                type: CheckoutSessionType.Product,
+              } as CheckoutSession.Update,
+              transaction
+            )
+            return { result }
+          }
+        )
+
+      // Create fee calculation with the discount applied
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
+        const result = await createFeeCalculationForCheckoutSession(
+          updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
+          transaction
+        )
+        return { result }
+      })
+
+      const result = await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return confirmCheckoutSessionTransaction(
+            { id: updatedCheckoutSession.id },
+            transaction
+          )
+        }
+      )
+
+      // Verify the customer is returned correctly
+      expect(result.customer.id).toEqual(customer.id)
+
+      // Verify that cancelPaymentIntent was called instead of updatePaymentIntent
+      expect(cancelPaymentIntent).toHaveBeenCalledWith(
+        paymentIntentId,
+        updatedCheckoutSession.livemode
+      )
+      expect(updatePaymentIntent).not.toHaveBeenCalled()
+
+      // Verify that stripePaymentIntentId was cleared from the checkout session
+      const refetchedCheckoutSession =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            const result = await selectCheckoutSessionById(
+              updatedCheckoutSession.id,
+              transaction
+            )
+            return { result }
+          }
+        )
+      expect(
+        refetchedCheckoutSession.stripePaymentIntentId
+      ).toBeNull()
     })
   })
 

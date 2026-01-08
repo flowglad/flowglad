@@ -1352,6 +1352,20 @@ export const confirmPaymentIntent = async (
   )
 }
 
+export const cancelPaymentIntent = async (
+  paymentIntentId: string,
+  livemode: boolean
+) => {
+  return stripeCall(
+    'paymentIntents.cancel',
+    {
+      'stripe.payment_intent_id': paymentIntentId,
+      'stripe.livemode': livemode,
+    },
+    () => stripe(livemode).paymentIntents.cancel(paymentIntentId)
+  )
+}
+
 export const getStripeCharge = async (chargeId: string) => {
   let charge: Stripe.Charge
   try {

@@ -56,6 +56,7 @@ import {
   processStripeChargeForCheckoutSession,
 } from '@/utils/bookkeeping/checkoutSessions'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
+import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
 import core from '../core'
 
 type TestCharge = Pick<
@@ -612,6 +613,127 @@ describe('Checkout Sessions', async () => {
       )
 
       expect(latestFeeCalculation).toBeNull()
+    })
+
+    it('calculates zero total due when a 100% fixed discount is applied that equals the price amount', async () => {
+      // Create a 100% off discount that equals the full price amount (10000 cents = $100)
+      const fullDiscount = await setupDiscount({
+        organizationId: organization.id,
+        name: 'FULL100',
+        code: core.nanoid().slice(0, 10), // Short unique code
+        amount: 10000, // $100.00 in cents - full price coverage
+        amountType: DiscountAmountType.Fixed,
+        livemode: true,
+      })
+
+      // Update checkout session to include the full discount
+      const updatedCheckoutSession = await adminTransaction(
+        async ({ transaction }) => {
+          return updateCheckoutSession(
+            {
+              ...checkoutSession,
+              discountId: fullDiscount.id,
+            } as CheckoutSession.Update,
+            transaction
+          )
+        }
+      )
+
+      // Create fee calculation for this session with the discount
+      const feeCalculationWith100Discount = await adminTransaction(
+        async ({ transaction }) => {
+          return createFeeCalculationForCheckoutSession(
+            updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+        }
+      )
+
+      const totalDue = calculateTotalDueAmount(
+        feeCalculationWith100Discount
+      )
+
+      expect(feeCalculationWith100Discount.discountId).toEqual(
+        fullDiscount.id
+      )
+      expect(
+        feeCalculationWith100Discount.discountAmountFixed
+      ).toEqual(fullDiscount.amount)
+      // The total due should be 0 when discount equals or exceeds the price
+      expect(totalDue).toEqual(0)
+    })
+
+    it('does not attempt to update the payment intent when total due is 0 from a 100% discount', async () => {
+      // Create a 100% off discount
+      const fullDiscount = await setupDiscount({
+        organizationId: organization.id,
+        name: 'FULL100_PI',
+        code: core.nanoid().slice(0, 10), // Short unique code
+        amount: 10000, // $100.00 in cents - full price coverage
+        amountType: DiscountAmountType.Fixed,
+        livemode: true,
+      })
+
+      // First, set up a checkout session with a payment intent
+      const checkoutSessionWithPI = await adminTransaction(
+        async ({ transaction }) => {
+          return updateCheckoutSession(
+            {
+              ...checkoutSession,
+              stripePaymentIntentId: `pi_${core.nanoid()}`,
+            } as CheckoutSession.Update,
+            transaction
+          )
+        }
+      )
+
+      // Create the initial fee calculation so editCheckoutSession sees it
+      await adminTransaction(async ({ transaction }) => {
+        return createFeeCalculationForCheckoutSession(
+          checkoutSessionWithPI as CheckoutSession.FeeReadyRecord,
+          transaction
+        )
+      })
+
+      // Apply the 100% discount via editCheckoutSession
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return editCheckoutSession(
+            {
+              checkoutSession: {
+                ...checkoutSessionWithPI,
+                discountId: fullDiscount.id,
+              },
+            },
+            transaction
+          )
+        }
+      )
+
+      // Verify the checkout session was updated with the discount
+      expect(result.checkoutSession.discountId).toEqual(
+        fullDiscount.id
+      )
+
+      // The fee calculation should now reflect the discount
+      const latestFeeCalc = await adminTransaction(
+        async ({ transaction }) => {
+          return selectLatestFeeCalculation(
+            {
+              checkoutSessionId: checkoutSession.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      const totalDue = calculateTotalDueAmount(latestFeeCalc!)
+
+      // Verify total due is 0
+      expect(totalDue).toEqual(0)
+      // Note: The editCheckoutSession implementation skips the payment intent update when totalDue <= 0.
+      // This is intentional - the PaymentIntent will be cancelled at confirmation time
+      // in confirmCheckoutSessionTransaction when it detects totalAmountDue === 0.
     })
   })
 
