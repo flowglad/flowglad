@@ -165,7 +165,7 @@ export function FeaturesDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar */}
-      <div className="flex flex-col gap-3 pt-1 pb-2 px-4">
+      <div className="flex flex-col gap-3 pt-1 pb-2 px-6">
         {/* Title row */}
         {title && (
           <div>

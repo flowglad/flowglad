@@ -501,9 +501,9 @@ export function DateRangePicker({
                 </div>
                 <div className="mt-2 flex items-center gap-2 sm:mt-0">
                   <Button
-                    variant="secondary"
+                    variant="outline"
                     size="sm"
-                    className="w-full sm:w-fit"
+                    className="w-full bg-popover sm:w-fit"
                     onClick={handleCancel}
                   >
                     Cancel

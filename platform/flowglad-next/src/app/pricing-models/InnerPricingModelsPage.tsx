@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import PageContainer from '@/components/PageContainer'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { PricingModelsDataTable } from './data-table'
 
@@ -11,7 +11,7 @@ const InnerPricingModelsPage = () => {
 
   return (
     <>
-      <InnerPageContainerNew>
+      <PageContainer>
         <PageHeaderNew
           title="Pricing Models"
           hideBorder
@@ -23,7 +23,7 @@ const InnerPricingModelsPage = () => {
           }
           hiddenColumns={['id']}
         />
-      </InnerPageContainerNew>
+      </PageContainer>
       <CreatePricingModelModal
         isOpen={isCreatePricingModelOpen}
         setIsOpen={setIsCreatePricingModelOpen}

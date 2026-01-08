@@ -22,8 +22,8 @@ import CreateProductModal from '@/components/forms/CreateProductModal'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import { PricingModelIntegrationGuideModal } from '@/components/forms/PricingModelIntegrationGuideModal'
 import SetPricingModelAsDefaultModal from '@/components/forms/SetPricingModelAsDefaultModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import { MoreIcon } from '@/components/icons/MoreIcon'
+import PageContainer from '@/components/PageContainer'
 import PopoverMenu, {
   type PopoverMenuItem,
 } from '@/components/PopoverMenu'
@@ -189,7 +189,7 @@ function InnerPricingModelDetailsPage({
   ]
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title={pricingModel.name}
@@ -347,7 +347,7 @@ function InnerPricingModelDetailsPage({
         setIsOpen={setIsSetDefaultOpen}
         pricingModel={pricingModel}
       />
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

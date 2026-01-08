@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import CreateWebhookModal from '@/components/forms/CreateWebhookModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import PageContainer from '@/components/PageContainer'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { WebhooksDataTable } from './data-table'
 
@@ -12,7 +12,7 @@ function WebhooksPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title="Webhooks"
@@ -35,7 +35,7 @@ function WebhooksPage() {
         isOpen={isCreateModalOpen}
         setIsOpen={setIsCreateModalOpen}
       />
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

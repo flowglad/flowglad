@@ -58,7 +58,7 @@ export function ChartHeader({
   }, [fromDate, toDate])
 
   return (
-    <div className="flex flex-row gap-2 justify-between px-4">
+    <div className="flex flex-row gap-2 justify-between px-6">
       <div className="text-foreground w-fit flex items-center flex-row gap-0.5">
         <p className="whitespace-nowrap">{title}</p>
         {showInlineSelector && interval && onIntervalChange && (

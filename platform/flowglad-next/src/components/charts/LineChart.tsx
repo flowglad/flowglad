@@ -401,8 +401,8 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             }
             margin={{
               bottom: xAxisLabel ? 30 : undefined,
-              left: 16,
-              right: 16,
+              left: 24,
+              right: 24,
               top: 5,
             }}
           >

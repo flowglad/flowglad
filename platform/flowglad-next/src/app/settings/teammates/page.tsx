@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import PageContainer from '@/components/PageContainer'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { OrganizationMembersDataTable } from './data-table'
 
@@ -12,7 +12,7 @@ function TeammatesPage() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title="Team"
@@ -35,7 +35,7 @@ function TeammatesPage() {
         isOpen={isInviteModalOpen}
         setIsOpen={setIsInviteModalOpen}
       />
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 
