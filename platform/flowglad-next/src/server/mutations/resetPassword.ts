@@ -16,12 +16,17 @@ export const resetPassword = publicProcedure
     )
 
     if (userExists) {
-      await auth.api.forgetPassword({
-        body: {
-          email,
-          redirectTo: '/sign-in/reset-password',
-        },
-      })
+      try {
+        await auth.api.forgetPassword({
+          body: {
+            email,
+            redirectTo: '/sign-in/reset-password',
+          },
+        })
+      } catch (error) {
+        console.error('Failed to send password reset email:', error)
+        // Swallow error to prevent user enumeration via timing/error differences
+      }
     }
 
     // Always return success to prevent user enumeration
