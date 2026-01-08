@@ -28,6 +28,12 @@ export function ChartTooltip({
     const legendPayload = payload.filter(
       (item: PayloadItem) => item.type !== 'none'
     )
+
+    // Return null if no visible items after filtering
+    if (legendPayload.length === 0) {
+      return null
+    }
+
     // For single category charts, show simplified tooltip
     if (legendPayload.length === 1) {
       const { value } = legendPayload[0]

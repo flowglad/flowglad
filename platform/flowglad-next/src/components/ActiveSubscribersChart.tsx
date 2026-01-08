@@ -155,7 +155,7 @@ export const ActiveSubscribersChart = ({
       return '0'
     }
     // If the tooltip is active, use the value from the tooltip
-    if (firstPayloadValue) {
+    if (firstPayloadValue != null) {
       return firstPayloadValue.toString()
     }
     // If the tooltip is not active, use the last value in the chart
