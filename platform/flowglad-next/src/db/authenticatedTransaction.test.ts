@@ -1847,7 +1847,7 @@ describe('Cache invalidation in transactions', () => {
     expect(result).toBe('no_invalidations')
   })
 
-  it('handles empty cacheInvalidations array gracefully', async () => {
+  it('returns result successfully when cacheInvalidations array is empty', async () => {
     const result = await comprehensiveAuthenticatedTransaction(
       async () => ({
         result: 'empty_array',
