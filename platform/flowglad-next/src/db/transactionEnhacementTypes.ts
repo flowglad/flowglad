@@ -1,3 +1,4 @@
+import type { CacheDependencyKey } from '@/utils/cache'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 import type { Event } from './schema/events'
 
@@ -7,4 +8,15 @@ export interface TransactionOutput<T> {
   eventsToInsert?: Event.Insert[]
   ledgerCommand?: LedgerCommand
   ledgerCommands?: LedgerCommand[]
+  /**
+   * Cache dependency keys to invalidate AFTER the transaction commits.
+   * Use CacheDependency helpers to construct these keys.
+   *
+   * Example:
+   * cacheInvalidations: [
+   *   CacheDependency.customer(customerId),
+   *   CacheDependency.subscription(subscriptionId),
+   * ]
+   */
+  cacheInvalidations?: CacheDependencyKey[]
 }

@@ -1,6 +1,10 @@
 import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
 import type { AuthenticatedTransactionParams } from '@/db/types'
+import {
+  type CacheDependencyKey,
+  invalidateDependencies,
+} from '@/utils/cache'
 import core from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
@@ -66,6 +70,9 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       __testOnlyOrganizationId,
       customerId,
     })
+
+  // Collect cache invalidations to process after commit
+  let cacheInvalidations: CacheDependencyKey[] = []
 
   const output = await db.transaction(async (transaction) => {
     if (!jwtClaim) {
@@ -137,12 +144,26 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       }
     }
 
+    // Collect cache invalidations (don't process yet - wait for commit)
+    if (
+      output.cacheInvalidations &&
+      output.cacheInvalidations.length > 0
+    ) {
+      cacheInvalidations = output.cacheInvalidations
+    }
+
     // RESET ROLE is not strictly necessary with SET LOCAL ROLE, as the role is session-local.
     // However, keeping it doesn't harm and can be an explicit cleanup.
     await transaction.execute(sql`RESET ROLE;`)
 
     return output
   })
+
+  // Transaction committed successfully - now invalidate caches
+  // Fire-and-forget; errors are logged but don't fail the request
+  if (cacheInvalidations.length > 0) {
+    void invalidateDependencies(cacheInvalidations)
+  }
 
   return {
     output,
