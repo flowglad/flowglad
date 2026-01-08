@@ -572,7 +572,38 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = 'SidebarMenuItem'
 
 const sidebarMenuButtonVariants = cva(
-  'peer/menu-button flex w-full items-center gap-1.5 overflow-hidden py-2 px-4 text-left text-sm font-medium outline-none ring-sidebar-ring transition-[width,height,padding,opacity,color] duration-150 ease text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:text-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!w-auto group-data-[collapsible=icon]:!px-3.5 group-data-[collapsible=icon]:!py-2 [&>span:last-child]:truncate group-data-[collapsible=icon]:[&>span]:hidden [&>svg]:size-5 [&>svg]:shrink-0',
+  [
+    // Base layout
+    'peer/menu-button flex w-full items-center gap-2.5 overflow-hidden',
+    // Padding & text
+    'py-1.5 px-4 text-left text-sm font-medium',
+    // Focus & ring
+    'outline-none ring-sidebar-ring focus-visible:ring-2',
+    // Transition
+    'transition-[width,height,padding,opacity,color] duration-150 ease',
+    // Default (inactive) color
+    'text-muted-foreground',
+    // Hover state
+    'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+    // Active (pressed) state
+    'active:bg-sidebar-accent active:text-sidebar-accent-foreground',
+    // Disabled state
+    'disabled:pointer-events-none disabled:opacity-50',
+    'aria-disabled:pointer-events-none aria-disabled:opacity-50',
+    // Menu action padding adjustment
+    'group-has-[[data-sidebar=menu-action]]/menu-item:pr-8',
+    // Active (selected) state
+    'data-[active=true]:text-foreground',
+    // Open state (for dropdowns)
+    'data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground',
+    // Collapsed icon mode
+    'group-data-[collapsible=icon]:!w-auto',
+    'group-data-[collapsible=icon]:!px-3.5 group-data-[collapsible=icon]:!py-2',
+    // Child element styling
+    '[&>span:last-child]:truncate',
+    'group-data-[collapsible=icon]:[&>span]:hidden',
+    '[&>svg]:size-5 [&>svg]:shrink-0',
+  ].join(' '),
   {
     variants: {
       variant: {
