@@ -8,10 +8,14 @@ Examples:
 - Build: `bun run build`
 
 ## Init
-Run the following script EVERY TIME you are in a new context:
+Run the following command EVERY TIME you are in a new context:
 ```bash
-init_claude_code_flowglad_next
+bun run init:flowglad-next
 ```
+
+**Note:** This requires two environment variables to be set:
+- `FLOWGLAD_VERCEL_PROJECT_ID` - The Vercel project ID
+- `FLOWGLAD_LOCAL_USER` - Your local username for env var prefixing (e.g., BROOKS)
 
 ## Resources
 
