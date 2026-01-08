@@ -211,8 +211,8 @@ export function ChartDataTooltip({
     <ErrorBoundary fallback={<div>Error</div>}>
       <div
         className={cn(
-          'bg-popover flex flex-col gap-2 p-2 rounded border border-border',
-          'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
+          'bg-popover flex flex-col gap-2 p-3 rounded-sm border border-border',
+          'shadow-realistic-sm'
         )}
       >
         <p className="text-base font-medium text-foreground tracking-tight leading-none">

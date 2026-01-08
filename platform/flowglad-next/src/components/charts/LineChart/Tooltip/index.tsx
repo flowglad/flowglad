@@ -40,8 +40,8 @@ export function ChartTooltip({
       return (
         <div
           className={cn(
-            'bg-popover flex flex-col gap-2 p-2 rounded border border-border',
-            'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
+            'bg-popover flex flex-col gap-2 p-2 rounded-sm border border-border',
+            'shadow-realistic-sm'
           )}
         >
           <p className="text-base font-medium text-foreground tracking-tight leading-none">
@@ -58,7 +58,7 @@ export function ChartTooltip({
       <div
         className={cn(
           'bg-popover rounded border border-border',
-          'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
+          'shadow-realistic-sm'
         )}
       >
         <div className={cn('border-b border-inherit px-3 py-2')}>

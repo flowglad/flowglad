@@ -19,7 +19,7 @@ const tooltipContentVariants = cva(
       variant: {
         default: 'bg-primary text-primary-foreground',
         muted:
-          'bg-popover text-foreground border border-border shadow-md',
+          'bg-popover text-foreground border border-border shadow-realistic-sm',
       },
     },
     defaultVariants: {
