@@ -805,16 +805,9 @@ export enum CheckoutSessionType {
   Purchase = 'purchase',
   AddPaymentMethod = 'add_payment_method',
   ActivateSubscription = 'activate_subscription',
-  /**
-   * @deprecated
-   */
-  Invoice = 'invoice',
 }
 
-export type SetupIntentableCheckoutSessionType = Exclude<
-  CheckoutSessionType,
-  CheckoutSessionType.Invoice
->
+export type SetupIntentableCheckoutSessionType = CheckoutSessionType
 
 export enum FeatureFlag {
   Usage = 'usage',
