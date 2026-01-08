@@ -5,7 +5,7 @@
  * across different organization and customer type configurations.
  */
 
-import { afterAll, afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,
@@ -18,7 +18,6 @@ import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import {
   behaviorTest,
-  clearImplementations,
   Dependency,
   defineBehavior,
   runBehavior,
@@ -166,22 +165,16 @@ const createCustomerBehavior = defineBehavior({
 // Behavior Test - Runs against all combinations
 // ============================================================================
 
-// Track created orgs for cleanup
-const createdOrgIds: string[] = []
-
-// Cleanup after all tests
-afterAll(async () => {
-  for (const orgId of createdOrgIds) {
-    try {
-      await teardownOrg({ organizationId: orgId })
-    } catch {
-      // Ignore cleanup errors
-    }
-  }
-  // Clear implementations for test isolation
-  clearImplementations(OrgTypeDep)
-  clearImplementations(CustomerTypeDep)
-})
+/**
+ * Result type for the behavior chain - used for typed teardown
+ */
+interface BehaviorChainResult {
+  organization: Organization.Record
+  pricingModel: PricingModel.Record
+  product: Product.Record
+  price: Price.Record
+  customer: Customer.Record
+}
 
 /**
  * This test runs through the org creation and customer creation behaviors
@@ -196,9 +189,6 @@ behaviorTest({
     {
       behavior: createOrgBehavior,
       invariants: (result) => {
-        // Track for cleanup
-        createdOrgIds.push(result.organization.id)
-
         // Universal invariants - must hold for ALL org types
         expect(result.organization.id).toMatch(/^org_/)
         expect(result.organization.name).toBeTruthy()
@@ -222,6 +212,16 @@ behaviorTest({
     },
   ],
   testOptions: { timeout: 30000 },
+  // Cleanup: teardown is called after all tests with all final results
+  teardown: async (results) => {
+    for (const result of results as BehaviorChainResult[]) {
+      try {
+        await teardownOrg({ organizationId: result.organization.id })
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  },
 })
 
 // ============================================================================

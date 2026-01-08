@@ -93,4 +93,5 @@ export type {
   DependencyCombination,
   DependencyFactory,
   ResolvedDependencies,
+  TeardownFn,
 } from './types'

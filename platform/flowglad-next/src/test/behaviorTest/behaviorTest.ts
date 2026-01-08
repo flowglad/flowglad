@@ -5,7 +5,7 @@
  * dependency implementations, asserting universal invariants.
  */
 
-import { describe, it } from 'vitest'
+import { afterAll, describe, it } from 'vitest'
 import {
   combinationMatches,
   formatCombination,
@@ -91,12 +91,18 @@ function instantiateDependencies(
  *         expect(result.customer.organizationId).toBe(result.organization.id)
  *       }
  *     }
- *   ]
+ *   ],
+ *   // Optional: cleanup after all tests
+ *   teardown: async (results) => {
+ *     for (const result of results) {
+ *       await teardownOrg({ organizationId: result.organization.id })
+ *     }
+ *   }
  * })
  * ```
  */
 export function behaviorTest(config: BehaviorTestConfig): void {
-  const { chain, testOptions, only, skip } = config
+  const { chain, testOptions, only, skip, teardown } = config
 
   if (chain.length === 0) {
     throw new Error(
@@ -138,7 +144,17 @@ export function behaviorTest(config: BehaviorTestConfig): void {
     .map((step) => step.behavior.name)
     .join(' -> ')
 
+  // Track final results from each test for teardown
+  const finalResults: unknown[] = []
+
   describe(`Behavior: ${behaviorNames}`, () => {
+    // Register teardown hook if provided
+    if (teardown) {
+      afterAll(async () => {
+        await teardown(finalResults)
+      })
+    }
+
     for (const combination of combinations) {
       const testName = formatCombination(combination)
 
@@ -166,6 +182,9 @@ export function behaviorTest(config: BehaviorTestConfig): void {
             // Pass result to next behavior
             prev = result
           }
+
+          // Track final result for teardown
+          finalResults.push(prev)
         },
         testOptions
       )
