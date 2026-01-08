@@ -2,18 +2,19 @@
 
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
+import { ChartDataTooltip } from '@/components/ChartDataTooltip'
 import {
   ChartBody,
   ChartHeader,
   ChartValueDisplay,
   LineChart,
 } from '@/components/charts'
-import { RevenueTooltip } from '@/components/RevenueTooltip'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { useChartInterval } from '@/hooks/useChartInterval'
 import { useChartTooltip } from '@/hooks/useChartTooltip'
 import { CurrencyCode, RevenueChartIntervalUnit } from '@/types'
 import { formatDateUTC } from '@/utils/chart/dateFormatting'
+import { createChartTooltipMetadata } from '@/utils/chart/types'
 import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
@@ -60,7 +61,7 @@ export const RecurringRevenueChart = ({
   const chartData = React.useMemo(() => {
     if (!mrrData) return []
     if (!defaultCurrency) return []
-    return mrrData.map((item) => {
+    return mrrData.map((item, index) => {
       const formattedRevenue =
         stripeCurrencyAmountToHumanReadableCurrencyAmount(
           defaultCurrency,
@@ -70,15 +71,20 @@ export const RecurringRevenueChart = ({
       return {
         // Use UTC formatting to match PostgreSQL's date_trunc behavior
         date: formatDateUTC(dateObj, interval),
-        // Store the ISO date string for the tooltip to use for proper year formatting
-        isoDate: dateObj.toISOString(),
-        // Store the interval unit for the tooltip to format dates appropriately
-        intervalUnit: interval,
+        // Tooltip metadata for consistent date/period formatting
+        ...createChartTooltipMetadata({
+          date: dateObj,
+          intervalUnit: interval,
+          rangeStart: fromDate,
+          rangeEnd: toDate,
+          index,
+          totalPoints: mrrData.length,
+        }),
         formattedRevenue,
         revenue: Number(item.amount).toFixed(2),
       }
     })
-  }, [mrrData, defaultCurrency, interval])
+  }, [mrrData, defaultCurrency, interval, fromDate, toDate])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data
@@ -114,7 +120,7 @@ export const RecurringRevenueChart = ({
   return (
     <div className="w-full h-full">
       <ChartHeader
-        title="Monthly Recurring Revenue"
+        title="Monthly recurring revenue"
         infoTooltip="The normalized monthly value of all active recurring subscriptions. Calculated as the sum of subscription amounts adjusted to a monthly rate."
         // No inline selector for MRR chart
         showInlineSelector={false}
@@ -133,13 +139,24 @@ export const RecurringRevenueChart = ({
           className="-mb-2 mt-2"
           colors={['foreground']}
           fill="gradient"
-          customTooltip={RevenueTooltip}
+          customTooltip={(props) => (
+            <ChartDataTooltip
+              {...props}
+              valueFormatter={(value) =>
+                stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  currencyForFormatter,
+                  value
+                )
+              }
+            />
+          )}
           maxValue={maxValue}
           autoMinValue={false}
           minValue={0}
           startEndOnly={true}
           startEndOnlyYAxis={true}
           showYAxis={false}
+          intervalUnit={interval}
           valueFormatter={(value: number) =>
             stripeCurrencyAmountToHumanReadableCurrencyAmount(
               currencyForFormatter,

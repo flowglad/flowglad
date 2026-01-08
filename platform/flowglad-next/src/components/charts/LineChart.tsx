@@ -21,6 +21,7 @@ import {
 import type { AxisDomain } from 'recharts/types/util/types'
 
 import { cn } from '@/lib/utils'
+import { RevenueChartIntervalUnit } from '@/types'
 import {
   AvailableChartColors,
   type AvailableChartColorsKeys,
@@ -124,6 +125,71 @@ interface LineChartProps
   startEndOnlyYAxis?: boolean
   /** Fill style for the area under the line. Defaults to 'none' for backwards compatibility. */
   fill?: 'gradient' | 'solid' | 'none'
+  /** The time interval unit of the data. Used for smart grid line sampling when there are many data points. */
+  intervalUnit?: RevenueChartIntervalUnit
+}
+
+/**
+ * Maximum number of grid lines to show before sampling kicks in.
+ * This keeps charts readable while still allowing hover on all data points.
+ */
+const MAX_GRID_LINES = 35
+
+/**
+ * Calculates a smart sampling interval that snaps to meaningful time boundaries.
+ * Returns 0 if no sampling needed, otherwise the interval step.
+ *
+ * @param dataLength - Number of data points
+ * @param intervalUnit - The time granularity of the data (hour, day, week, month)
+ * @returns The interval step (0 = show all, N = show every Nth)
+ *
+ * @example
+ * // 168 hourly points (7 days) → sample every 6 hours = 28 grid lines
+ * getSmartTickInterval(168, RevenueChartIntervalUnit.Hour) // returns 6
+ *
+ * // 52 weekly points (1 year) → sample every 2 weeks = 26 grid lines
+ * getSmartTickInterval(52, RevenueChartIntervalUnit.Week) // returns 2
+ */
+function getSmartTickInterval(
+  dataLength: number,
+  intervalUnit?: RevenueChartIntervalUnit
+): number {
+  if (dataLength <= MAX_GRID_LINES) return 0 // Show all ticks
+
+  const baseInterval = Math.ceil(dataLength / MAX_GRID_LINES)
+
+  // Snap to meaningful time boundaries based on the data's granularity.
+  // Always ensure we return at least baseInterval to stay under MAX_GRID_LINES.
+  switch (intervalUnit) {
+    case RevenueChartIntervalUnit.Hour:
+      // Snap to clock-friendly intervals: 2, 3, 4, 6, 12 hours
+      const hourOptions = [2, 3, 4, 6, 12]
+      return (
+        hourOptions.find((h) => h >= baseInterval) ?? baseInterval
+      )
+
+    case RevenueChartIntervalUnit.Day:
+      // Snap to 7 days (weekly boundaries) when needed
+      return baseInterval >= 4
+        ? Math.max(7, baseInterval)
+        : baseInterval
+
+    case RevenueChartIntervalUnit.Week:
+      // Snap to 2 or 4 weeks (bi-weekly or monthly rhythm)
+      const weekOptions = [2, 4]
+      return (
+        weekOptions.find((w) => w >= baseInterval) ?? baseInterval
+      )
+
+    case RevenueChartIntervalUnit.Month:
+      // Snap to quarterly (3 months) if needed
+      return baseInterval >= 2
+        ? Math.max(3, baseInterval)
+        : baseInterval
+
+    default:
+      return baseInterval
+  }
 }
 
 const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
@@ -159,6 +225,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       customTooltip,
       startEndOnlyYAxis = false,
       fill = 'none',
+      intervalUnit,
       ...other
     } = props
     const { containerRef, width, height } = useContainerSize()
@@ -230,14 +297,19 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       0.2 // 20% padding above max value for visual breathing room
     )
 
-    // When startEndOnly is true, we want grid lines at actual data positions
-    // but only show labels for start/end. Calculate a sensible interval
-    // to avoid too many grid lines (target ~8 lines for readability).
+    // Smart grid line sampling: show one tick per data point up to MAX_GRID_LINES,
+    // then sample at meaningful time boundaries to prevent visual overload.
+    // Labels are only rendered for first/last points when startEndOnly is true.
     const xAxisInterval = React.useMemo(() => {
       if (!startEndOnly) return intervalType
-      if (data.length <= 8) return 0 // Show all if few data points
-      return Math.max(1, Math.floor(data.length / 8))
-    }, [startEndOnly, data.length, intervalType])
+
+      // Use smart sampling when we have many data points
+      const smartInterval = getSmartTickInterval(
+        data.length,
+        intervalUnit
+      )
+      return smartInterval
+    }, [startEndOnly, intervalType, data.length, intervalUnit])
 
     const hasOnValueChange = !!onValueChange
     const prevActiveRef = React.useRef<boolean | undefined>(undefined)
@@ -356,9 +428,19 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                         index: tickIndex,
                       } = props
                       const isFirst = tickIndex === 0
+
+                      // Calculate the last visible tick index accounting for sampling interval
+                      // When interval > 0, ticks appear at 0, interval, 2*interval, etc.
+                      const interval =
+                        typeof xAxisInterval === 'number' &&
+                        xAxisInterval > 0
+                          ? xAxisInterval
+                          : 1
+                      const lastVisibleTickIndex =
+                        Math.floor((data.length - 1) / interval) *
+                        interval
                       const isLast =
-                        tickIndex >=
-                        data.length - 1 - (xAxisInterval as number)
+                        tickIndex === lastVisibleTickIndex
 
                       // Only render first and last labels
                       if (!isFirst && !isLast) return <g />

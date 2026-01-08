@@ -2,18 +2,19 @@
 
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
+import { ChartDataTooltip } from '@/components/ChartDataTooltip'
 import {
   ChartBody,
   ChartHeader,
   ChartValueDisplay,
   LineChart,
 } from '@/components/charts'
-import { RevenueTooltip } from '@/components/RevenueTooltip'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { useChartInterval } from '@/hooks/useChartInterval'
 import { useChartTooltip } from '@/hooks/useChartTooltip'
 import { CurrencyCode, RevenueChartIntervalUnit } from '@/types'
 import { formatDateUTC } from '@/utils/chart/dateFormatting'
+import { createChartTooltipMetadata } from '@/utils/chart/types'
 import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
@@ -70,7 +71,7 @@ export function RevenueChart({
   const chartData = React.useMemo(() => {
     if (!revenueData) return []
     if (!organization?.defaultCurrency) return []
-    return revenueData.map((item) => {
+    return revenueData.map((item, index) => {
       const formattedRevenue =
         stripeCurrencyAmountToHumanReadableCurrencyAmount(
           organization?.defaultCurrency,
@@ -80,15 +81,26 @@ export function RevenueChart({
       return {
         // Use UTC formatting to match PostgreSQL's date_trunc behavior
         date: formatDateUTC(dateObj, interval),
-        // Store the ISO date string for the tooltip to use for proper year formatting
-        isoDate: dateObj.toISOString(),
-        // Store the interval unit for the tooltip to format dates appropriately
-        intervalUnit: interval,
+        // Tooltip metadata for consistent date/period formatting
+        ...createChartTooltipMetadata({
+          date: dateObj,
+          intervalUnit: interval,
+          rangeStart: fromDate,
+          rangeEnd: toDate,
+          index,
+          totalPoints: revenueData.length,
+        }),
         formattedRevenue,
         revenue: Number(item.revenue).toFixed(2),
       }
     })
-  }, [revenueData, organization?.defaultCurrency, interval])
+  }, [
+    revenueData,
+    organization?.defaultCurrency,
+    interval,
+    fromDate,
+    toDate,
+  ])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data
@@ -131,7 +143,7 @@ export function RevenueChart({
   return (
     <div className="w-full h-full">
       <ChartHeader
-        title="Revenue"
+        title="All revenue"
         infoTooltip="Total revenue collected from all payments in the selected period, including one-time purchases and subscription payments."
         showInlineSelector={showInlineSelector}
         interval={interval}
@@ -153,13 +165,24 @@ export function RevenueChart({
           className="-mb-2 mt-2"
           colors={['foreground']}
           fill="gradient"
-          customTooltip={RevenueTooltip}
+          customTooltip={(props) => (
+            <ChartDataTooltip
+              {...props}
+              valueFormatter={(value) =>
+                stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  defaultCurrency,
+                  value
+                )
+              }
+            />
+          )}
           maxValue={maxValue}
           autoMinValue={false}
           minValue={0}
           startEndOnly={true}
           startEndOnlyYAxis={true}
           showYAxis={false}
+          intervalUnit={interval}
           valueFormatter={(value: number) =>
             stripeCurrencyAmountToHumanReadableCurrencyAmount(
               defaultCurrency,
