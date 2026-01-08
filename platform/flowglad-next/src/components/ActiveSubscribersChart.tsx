@@ -16,33 +16,115 @@ import { useChartTooltip } from '@/hooks/useChartTooltip'
 import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
 import {
+  calculateActualPeriodBoundary,
   formatDateUTC,
-  MONTH_NAMES_FULL,
+  MONTH_NAMES_SHORT,
 } from '@/utils/chart/dateFormatting'
+import type { ChartTooltipMetadata } from '@/utils/chart/types'
 
 /**
- * Formats a date label for the tooltip using UTC.
- * Uses the ISO date string if available, otherwise attempts to parse the label.
- * Formats as "MMMM yyyy" (e.g., "October 2025") in UTC.
- * Falls back to the original label if parsing fails.
+ * Formats a UTC date for tooltip display.
+ */
+function formatTooltipDate(date: Date): string {
+  const day = date.getUTCDate()
+  const month = MONTH_NAMES_SHORT[date.getUTCMonth()]
+  const year = date.getUTCFullYear()
+  return `${day} ${month}, ${year}`
+}
+
+/**
+ * Formats a period for the tooltip with accurate date ranges.
+ * Handles partial periods at the start/end of the user's selected range.
+ */
+function formatPeriodForTooltip(
+  periodStart: Date,
+  intervalUnit: RevenueChartIntervalUnit,
+  rangeStart: Date,
+  rangeEnd: Date,
+  isFirstPoint: boolean,
+  isLastPoint: boolean
+): string {
+  const { start, end } = calculateActualPeriodBoundary(
+    periodStart,
+    intervalUnit,
+    rangeStart,
+    rangeEnd,
+    isFirstPoint,
+    isLastPoint
+  )
+
+  // Single day doesn't need a range
+  if (intervalUnit === RevenueChartIntervalUnit.Day) {
+    return formatTooltipDate(start)
+  }
+
+  // Show date range for week/month/year
+  return `${formatTooltipDate(start)} - ${formatTooltipDate(end)}`
+}
+
+/**
+ * Formats a date label for the tooltip with period boundary support.
  */
 function TooltipDateLabel({
   label,
   isoDate,
+  intervalUnit,
+  rangeStart,
+  rangeEnd,
+  isFirstPoint,
+  isLastPoint,
 }: {
   label: string
   isoDate?: string
+  intervalUnit?: RevenueChartIntervalUnit
+  rangeStart?: string
+  rangeEnd?: string
+  isFirstPoint?: boolean
+  isLastPoint?: boolean
 }) {
   try {
-    // Prefer isoDate if available, as it contains the full date with year
     const dateString = isoDate ?? label
     const date = new Date(dateString)
-    if (isValid(date)) {
-      const month = MONTH_NAMES_FULL[date.getUTCMonth()]
-      const year = date.getUTCFullYear()
-      return <span>{`${month} ${year}`}</span>
+
+    if (!isValid(date)) {
+      return <span>{label}</span>
     }
-    return <span>{label}</span>
+
+    // If we have full metadata, use period boundary calculation
+    if (
+      intervalUnit &&
+      rangeStart &&
+      rangeEnd &&
+      isFirstPoint !== undefined &&
+      isLastPoint !== undefined
+    ) {
+      return (
+        <span>
+          {formatPeriodForTooltip(
+            date,
+            intervalUnit,
+            new Date(rangeStart),
+            new Date(rangeEnd),
+            isFirstPoint,
+            isLastPoint
+          )}
+        </span>
+      )
+    }
+
+    // Fallback for data without full metadata
+    return (
+      <span>
+        {formatPeriodForTooltip(
+          date,
+          intervalUnit ?? RevenueChartIntervalUnit.Month,
+          date,
+          date,
+          false,
+          false
+        )}
+      </span>
+    )
   } catch {
     return <span>{label}</span>
   }
@@ -50,7 +132,7 @@ function TooltipDateLabel({
 
 /**
  * Tooltip component for subscriber count chart.
- * Shows subscriber count on top, date below - matching the Figma design.
+ * Shows subscriber count on top, date range below - matching the Figma design.
  */
 const SubscriberCountTooltip = ({
   active,
@@ -61,8 +143,17 @@ const SubscriberCountTooltip = ({
     return null
   }
   const value = payload[0].value as number
-  // Extract the ISO date from the payload data for proper year formatting
-  const isoDate = payload[0].payload?.isoDate as string | undefined
+
+  // Extract tooltip metadata from payload
+  const payloadData = payload[0].payload as
+    | Partial<ChartTooltipMetadata>
+    | undefined
+  const isoDate = payloadData?.isoDate
+  const intervalUnit = payloadData?.intervalUnit
+  const rangeStart = payloadData?.rangeStart
+  const rangeEnd = payloadData?.rangeEnd
+  const isFirstPoint = payloadData?.isFirstPoint
+  const isLastPoint = payloadData?.isLastPoint
 
   return (
     <ErrorBoundary fallback={<div>Error</div>}>
@@ -79,6 +170,11 @@ const SubscriberCountTooltip = ({
           <TooltipDateLabel
             label={label as string}
             isoDate={isoDate}
+            intervalUnit={intervalUnit}
+            rangeStart={rangeStart}
+            rangeEnd={rangeEnd}
+            isFirstPoint={isFirstPoint}
+            isLastPoint={isLastPoint}
           />
         </p>
       </div>
@@ -128,7 +224,7 @@ export const ActiveSubscribersChart = ({
 
   const chartData = React.useMemo(() => {
     if (!subscriberData) return []
-    return subscriberData.map((item) => {
+    return subscriberData.map((item, index) => {
       const dateObj = new Date(item.month)
       return {
         // Use UTC formatting to match PostgreSQL's date_trunc behavior
@@ -137,10 +233,15 @@ export const ActiveSubscribersChart = ({
         isoDate: dateObj.toISOString(),
         // Store the interval unit for the tooltip to format dates appropriately
         intervalUnit: interval,
+        // Range metadata for accurate period boundary display in tooltips
+        rangeStart: fromDate.toISOString(),
+        rangeEnd: toDate.toISOString(),
+        isFirstPoint: index === 0,
+        isLastPoint: index === subscriberData.length - 1,
         subscribers: item.count,
       }
     })
-  }, [subscriberData, interval])
+  }, [subscriberData, interval, fromDate, toDate])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data
@@ -195,6 +296,7 @@ export const ActiveSubscribersChart = ({
           startEndOnly={true}
           startEndOnlyYAxis={true}
           showYAxis={false}
+          intervalUnit={interval}
           valueFormatter={(value: number) => value.toString()}
           tooltipCallback={tooltipCallback}
         />

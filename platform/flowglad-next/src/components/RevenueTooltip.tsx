@@ -4,9 +4,10 @@ import { useAuthenticatedContext } from '@/contexts/authContext'
 import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
 import {
-  MONTH_NAMES_FULL,
+  calculateActualPeriodBoundary,
   MONTH_NAMES_SHORT,
 } from '@/utils/chart/dateFormatting'
+import type { ChartTooltipMetadata } from '@/utils/chart/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import ErrorBoundary from './ErrorBoundary'
 
@@ -15,7 +16,7 @@ import ErrorBoundary from './ErrorBoundary'
  */
 function formatDateUTC(
   date: Date,
-  pattern: 'HH:mm' | 'd MMM, yyyy' | 'MMMM yyyy'
+  pattern: 'HH:mm' | 'd MMM, yyyy'
 ): string {
   const day = date.getUTCDate()
   const month = date.getUTCMonth()
@@ -27,82 +28,127 @@ function formatDateUTC(
     case 'HH:mm':
       return `${hours}:${minutes}`
     case 'd MMM, yyyy':
-      return `${day} ${MONTH_NAMES_SHORT[month]}, ${year}`
-    case 'MMMM yyyy':
-      return `${MONTH_NAMES_FULL[month]} ${year}`
     default:
       return `${day} ${MONTH_NAMES_SHORT[month]}, ${year}`
   }
 }
 
 /**
- * Adds hours to a UTC date and returns a new date.
- */
-function addHoursUTC(date: Date, hours: number): Date {
-  return new Date(date.getTime() + hours * 60 * 60 * 1000)
-}
-
-/**
- * Adds days to a UTC date and returns a new date.
- */
-function addDaysUTC(date: Date, days: number): Date {
-  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000)
-}
-
-/**
- * Formats a date for the tooltip based on the interval unit using UTC.
- * - Hour: "10:00 - 11:00, 21 Oct, 2025" (hour range first, then date)
- * - Week: "12 Oct, 2025 - 18 Oct, 2025" (week range)
+ * Formats a period boundary for display in the tooltip.
+ * Shows date ranges that match LemonSqueezy's style:
+ * - Hour: "10:00 - 11:00, 21 Oct, 2025"
  * - Day: "21 Oct, 2025"
- * - Month/Year: "October 2025"
+ * - Week: "12 Oct, 2025 - 18 Oct, 2025"
+ * - Month: "1 Feb, 2025 - 28 Feb, 2025"
+ *
+ * Handles partial periods at range boundaries:
+ * - First point: "8 Jan, 2025 - 31 Jan, 2025" (if range starts Jan 8)
+ * - Last point: "1 Jan, 2026 - 8 Jan, 2026" (if today is Jan 8)
  */
-function formatDateForInterval(
-  date: Date,
-  intervalUnit?: RevenueChartIntervalUnit
+function formatPeriodForTooltip(
+  periodStart: Date,
+  intervalUnit: RevenueChartIntervalUnit,
+  rangeStart: Date,
+  rangeEnd: Date,
+  isFirstPoint: boolean,
+  isLastPoint: boolean
 ): string {
-  if (intervalUnit === RevenueChartIntervalUnit.Hour) {
-    const hourStart = date
-    const hourEnd = addHoursUTC(hourStart, 1)
-    return `${formatDateUTC(hourStart, 'HH:mm')} - ${formatDateUTC(hourEnd, 'HH:mm')}, ${formatDateUTC(hourStart, 'd MMM, yyyy')}`
+  const { start, end } = calculateActualPeriodBoundary(
+    periodStart,
+    intervalUnit,
+    rangeStart,
+    rangeEnd,
+    isFirstPoint,
+    isLastPoint
+  )
+
+  switch (intervalUnit) {
+    case RevenueChartIntervalUnit.Hour: {
+      // "10:00 - 11:00, 21 Oct, 2025"
+      return `${formatDateUTC(start, 'HH:mm')} - ${formatDateUTC(end, 'HH:mm')}, ${formatDateUTC(start, 'd MMM, yyyy')}`
+    }
+    case RevenueChartIntervalUnit.Day: {
+      // Single day: "21 Oct, 2025"
+      return formatDateUTC(start, 'd MMM, yyyy')
+    }
+    case RevenueChartIntervalUnit.Week:
+    case RevenueChartIntervalUnit.Month:
+    case RevenueChartIntervalUnit.Year:
+    default: {
+      // Date range: "1 Feb, 2025 - 28 Feb, 2025"
+      return `${formatDateUTC(start, 'd MMM, yyyy')} - ${formatDateUTC(end, 'd MMM, yyyy')}`
+    }
   }
-  if (intervalUnit === RevenueChartIntervalUnit.Week) {
-    const weekStart = date
-    const weekEnd = addDaysUTC(weekStart, 6)
-    return `${formatDateUTC(weekStart, 'd MMM, yyyy')} - ${formatDateUTC(weekEnd, 'd MMM, yyyy')}`
-  }
-  if (intervalUnit === RevenueChartIntervalUnit.Day) {
-    return formatDateUTC(date, 'd MMM, yyyy')
-  }
-  return formatDateUTC(date, 'MMMM yyyy')
 }
 
 /**
- * Formats a date label for the tooltip.
- * Uses the ISO date string if available, otherwise attempts to parse the label.
- * Formats based on interval unit:
- * - Hour: "10:00 - 11:00, 21 Oct, 2025" (hour range first, then date)
- * - Week: "12 Oct, 2025 - 18 Oct, 2025" (week range)
- * - Day: "21 Oct, 2025"
- * - Month/Year: "October 2025"
- * Falls back to the original label if parsing fails.
+ * Formats a date label for the tooltip using period boundary calculations.
+ * Handles partial periods at the start/end of the user's selected range.
+ *
+ * MIGRATION NOTE: When backend provides `periodStart` and `periodEnd` directly,
+ * update this component to use those values instead of calculating boundaries.
  */
 function DateLabel({
   label,
   isoDate,
   intervalUnit,
+  rangeStart,
+  rangeEnd,
+  isFirstPoint,
+  isLastPoint,
 }: {
   label?: string
   isoDate?: string
   intervalUnit?: RevenueChartIntervalUnit
+  rangeStart?: string
+  rangeEnd?: string
+  isFirstPoint?: boolean
+  isLastPoint?: boolean
 }) {
   try {
     // Prefer isoDate if available, as it contains the full date with year
     const dateString = isoDate ?? label ?? ''
     const date = new Date(dateString)
-    if (isValid(date)) {
-      return <span>{formatDateForInterval(date, intervalUnit)}</span>
+
+    if (!isValid(date)) {
+      return <span>{label ?? ''}</span>
     }
-    return <span>{label ?? ''}</span>
+
+    // If we have full metadata, use period boundary calculation
+    if (
+      intervalUnit &&
+      rangeStart &&
+      rangeEnd &&
+      isFirstPoint !== undefined &&
+      isLastPoint !== undefined
+    ) {
+      return (
+        <span>
+          {formatPeriodForTooltip(
+            date,
+            intervalUnit,
+            new Date(rangeStart),
+            new Date(rangeEnd),
+            isFirstPoint,
+            isLastPoint
+          )}
+        </span>
+      )
+    }
+
+    // Fallback for data without full metadata (backwards compatibility)
+    return (
+      <span>
+        {formatPeriodForTooltip(
+          date,
+          intervalUnit ?? RevenueChartIntervalUnit.Day,
+          date,
+          date,
+          false,
+          false
+        )}
+      </span>
+    )
   } catch {
     return <span>{label ?? ''}</span>
   }
@@ -123,12 +169,20 @@ function InnerRevenueTooltip({
       organization.defaultCurrency,
       value
     )
-  // Extract the ISO date from the payload data for proper year formatting
-  const isoDate = payload[0].payload?.isoDate as string | undefined
-  // Extract the interval unit from the payload data for proper date formatting
-  const intervalUnit = payload[0].payload?.intervalUnit as
-    | RevenueChartIntervalUnit
+
+  // Extract tooltip metadata from payload
+  // MIGRATION NOTE: When backend provides period boundaries, these will come
+  // from the API response instead of being calculated on the frontend.
+  const payloadData = payload[0].payload as
+    | Partial<ChartTooltipMetadata>
     | undefined
+  const isoDate = payloadData?.isoDate
+  const intervalUnit = payloadData?.intervalUnit
+  const rangeStart = payloadData?.rangeStart
+  const rangeEnd = payloadData?.rangeEnd
+  const isFirstPoint = payloadData?.isFirstPoint
+  const isLastPoint = payloadData?.isLastPoint
+
   return (
     <div
       className={cn(
@@ -145,6 +199,10 @@ function InnerRevenueTooltip({
             label={label}
             isoDate={isoDate}
             intervalUnit={intervalUnit}
+            rangeStart={rangeStart}
+            rangeEnd={rangeEnd}
+            isFirstPoint={isFirstPoint}
+            isLastPoint={isLastPoint}
           />
         </ErrorBoundary>
       </p>

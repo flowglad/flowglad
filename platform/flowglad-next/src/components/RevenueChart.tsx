@@ -70,7 +70,7 @@ export function RevenueChart({
   const chartData = React.useMemo(() => {
     if (!revenueData) return []
     if (!organization?.defaultCurrency) return []
-    return revenueData.map((item) => {
+    return revenueData.map((item, index) => {
       const formattedRevenue =
         stripeCurrencyAmountToHumanReadableCurrencyAmount(
           organization?.defaultCurrency,
@@ -84,11 +84,24 @@ export function RevenueChart({
         isoDate: dateObj.toISOString(),
         // Store the interval unit for the tooltip to format dates appropriately
         intervalUnit: interval,
+        // Range metadata for accurate period boundary display in tooltips
+        // MIGRATION NOTE: When backend provides periodStart/periodEnd, these
+        // fields can be removed and tooltip will use backend values directly.
+        rangeStart: fromDate.toISOString(),
+        rangeEnd: toDate.toISOString(),
+        isFirstPoint: index === 0,
+        isLastPoint: index === revenueData.length - 1,
         formattedRevenue,
         revenue: Number(item.revenue).toFixed(2),
       }
     })
-  }, [revenueData, organization?.defaultCurrency, interval])
+  }, [
+    revenueData,
+    organization?.defaultCurrency,
+    interval,
+    fromDate,
+    toDate,
+  ])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data
@@ -160,6 +173,7 @@ export function RevenueChart({
           startEndOnly={true}
           startEndOnlyYAxis={true}
           showYAxis={false}
+          intervalUnit={interval}
           valueFormatter={(value: number) =>
             stripeCurrencyAmountToHumanReadableCurrencyAmount(
               defaultCurrency,

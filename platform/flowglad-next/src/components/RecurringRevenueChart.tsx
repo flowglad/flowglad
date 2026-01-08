@@ -60,7 +60,7 @@ export const RecurringRevenueChart = ({
   const chartData = React.useMemo(() => {
     if (!mrrData) return []
     if (!defaultCurrency) return []
-    return mrrData.map((item) => {
+    return mrrData.map((item, index) => {
       const formattedRevenue =
         stripeCurrencyAmountToHumanReadableCurrencyAmount(
           defaultCurrency,
@@ -74,11 +74,16 @@ export const RecurringRevenueChart = ({
         isoDate: dateObj.toISOString(),
         // Store the interval unit for the tooltip to format dates appropriately
         intervalUnit: interval,
+        // Range metadata for accurate period boundary display in tooltips
+        rangeStart: fromDate.toISOString(),
+        rangeEnd: toDate.toISOString(),
+        isFirstPoint: index === 0,
+        isLastPoint: index === mrrData.length - 1,
         formattedRevenue,
         revenue: Number(item.amount).toFixed(2),
       }
     })
-  }, [mrrData, defaultCurrency, interval])
+  }, [mrrData, defaultCurrency, interval, fromDate, toDate])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data
@@ -140,6 +145,7 @@ export const RecurringRevenueChart = ({
           startEndOnly={true}
           startEndOnlyYAxis={true}
           showYAxis={false}
+          intervalUnit={interval}
           valueFormatter={(value: number) =>
             stripeCurrencyAmountToHumanReadableCurrencyAmount(
               currencyForFormatter,

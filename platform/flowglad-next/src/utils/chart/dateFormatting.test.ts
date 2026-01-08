@@ -11,16 +11,16 @@ describe('formatDateUTC', () => {
     ).toBe('2025')
   })
 
-  it('should format Hour granularity with day, month, and time', () => {
+  it('should format Hour granularity as time only (LemonSqueezy style)', () => {
     expect(
       formatDateUTC(testDate, RevenueChartIntervalUnit.Hour)
-    ).toBe('15 Jan 10:30')
+    ).toBe('10:30')
   })
 
-  it('should format Month granularity as day and month', () => {
+  it('should format Month granularity as month name only (LemonSqueezy style)', () => {
     expect(
       formatDateUTC(testDate, RevenueChartIntervalUnit.Month)
-    ).toBe('15 Jan')
+    ).toBe('Jan')
   })
 
   it('should format Week granularity as day and month', () => {
@@ -39,6 +39,13 @@ describe('formatDateUTC', () => {
     const earlyMorning = new Date('2025-03-05T04:07:00Z')
     expect(
       formatDateUTC(earlyMorning, RevenueChartIntervalUnit.Hour)
-    ).toBe('5 Mar 04:07')
+    ).toBe('04:07')
+  })
+
+  it('should show different months correctly', () => {
+    const october = new Date('2025-10-01T00:00:00Z')
+    expect(
+      formatDateUTC(october, RevenueChartIntervalUnit.Month)
+    ).toBe('Oct')
   })
 })
