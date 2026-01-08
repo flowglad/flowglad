@@ -42,7 +42,7 @@ describe('formatDateUTC', () => {
     ).toBe('04:07')
   })
 
-  it('should show different months correctly', () => {
+  it('should format October as three-letter abbreviation "Oct"', () => {
     const october = new Date('2025-10-01T00:00:00Z')
     expect(
       formatDateUTC(october, RevenueChartIntervalUnit.Month)

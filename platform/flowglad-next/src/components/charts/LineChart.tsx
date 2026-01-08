@@ -158,25 +158,34 @@ function getSmartTickInterval(
 
   const baseInterval = Math.ceil(dataLength / MAX_GRID_LINES)
 
-  // Snap to meaningful time boundaries based on the data's granularity
+  // Snap to meaningful time boundaries based on the data's granularity.
+  // Always ensure we return at least baseInterval to stay under MAX_GRID_LINES.
   switch (intervalUnit) {
     case RevenueChartIntervalUnit.Hour:
       // Snap to clock-friendly intervals: 2, 3, 4, 6, 12 hours
       const hourOptions = [2, 3, 4, 6, 12]
-      return hourOptions.find((h) => h >= baseInterval) || 12
+      return (
+        hourOptions.find((h) => h >= baseInterval) ?? baseInterval
+      )
 
     case RevenueChartIntervalUnit.Day:
       // Snap to 7 days (weekly boundaries) when needed
-      return baseInterval >= 4 ? 7 : baseInterval
+      return baseInterval >= 4
+        ? Math.max(7, baseInterval)
+        : baseInterval
 
     case RevenueChartIntervalUnit.Week:
       // Snap to 2 or 4 weeks (bi-weekly or monthly rhythm)
       const weekOptions = [2, 4]
-      return weekOptions.find((w) => w >= baseInterval) || 4
+      return (
+        weekOptions.find((w) => w >= baseInterval) ?? baseInterval
+      )
 
     case RevenueChartIntervalUnit.Month:
       // Snap to quarterly (3 months) if needed
-      return baseInterval >= 2 ? 3 : baseInterval
+      return baseInterval >= 2
+        ? Math.max(3, baseInterval)
+        : baseInterval
 
     default:
       return baseInterval
