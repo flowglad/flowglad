@@ -1,5 +1,6 @@
 'use client'
 
+import { Check } from 'lucide-react'
 import * as React from 'react'
 import { ChevronDown } from '@/components/icons/navigation'
 import { Button } from '@/components/ui/button'
@@ -80,11 +81,14 @@ export function IntervalPicker({
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  'justify-start font-normal',
+                  'justify-start font-normal pl-8 relative',
                   value === option && 'bg-accent font-medium'
                 )}
                 onClick={() => handleSelect(option)}
               >
+                <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                  {value === option && <Check className="h-4 w-4" />}
+                </span>
                 {intervalLabels[option]}
               </Button>
             ))}

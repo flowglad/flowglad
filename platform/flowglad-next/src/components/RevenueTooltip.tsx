@@ -1,40 +1,14 @@
 import { isValid } from 'date-fns'
-import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
+import type { TooltipProps } from '@/components/charts'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
+import {
+  MONTH_NAMES_FULL,
+  MONTH_NAMES_SHORT,
+} from '@/utils/chart/dateFormatting'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import ErrorBoundary from './ErrorBoundary'
-
-const MONTH_NAMES_SHORT = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-]
-
-const MONTH_NAMES_FULL = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
 
 /**
  * Formats a UTC date without timezone conversion for tooltip display.
@@ -117,20 +91,20 @@ function DateLabel({
   isoDate,
   intervalUnit,
 }: {
-  label: string
+  label?: string
   isoDate?: string
   intervalUnit?: RevenueChartIntervalUnit
 }) {
   try {
     // Prefer isoDate if available, as it contains the full date with year
-    const dateString = isoDate ?? label
+    const dateString = isoDate ?? label ?? ''
     const date = new Date(dateString)
     if (isValid(date)) {
       return <span>{formatDateForInterval(date, intervalUnit)}</span>
     }
-    return <span>{label}</span>
+    return <span>{label ?? ''}</span>
   } catch {
-    return <span>{label}</span>
+    return <span>{label ?? ''}</span>
   }
 }
 
@@ -138,7 +112,7 @@ function InnerRevenueTooltip({
   active,
   payload,
   label,
-}: TooltipCallbackProps) {
+}: TooltipProps) {
   const { organization } = useAuthenticatedContext()
   if (!active || !payload?.[0] || !organization) {
     return null
@@ -178,7 +152,7 @@ function InnerRevenueTooltip({
   )
 }
 
-export function RevenueTooltip(props: TooltipCallbackProps) {
+export function RevenueTooltip(props: TooltipProps) {
   return (
     <ErrorBoundary fallback={<div>Error</div>}>
       <InnerRevenueTooltip {...props} />
