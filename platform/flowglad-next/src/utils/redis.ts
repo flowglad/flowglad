@@ -135,6 +135,7 @@ const evictionPolicy: Record<
   },
   [RedisKeyNamespace.ReferralSelection]: {
     max: 200000, // up to 200k selections across tenants
+    ttl: 60 * 60 * 24 * 30, // 30 days - allows time for later processing
   },
   [RedisKeyNamespace.Telemetry]: {
     max: 500000, // up to 500k telemetry records
