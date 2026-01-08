@@ -55,7 +55,15 @@ I'm providing a gameplan with patches and a dependency graph (includes a **Proje
 - Branch name: `{project-name}/patch-{N}-{descriptive-slug}`
 - PR base: `{base branch determined in step 5 for this patch}`
 - After completing, run `bun run check` to verify lint/typecheck passes.
-- Create a PR with title: "[{project-name}] Patch {N}: {Title}"
+
+## PR Title (CRITICAL)
+**You MUST use this EXACT title format when creating the PR:**
+
+`[{project-name}] Patch {N}: {Title}`
+
+For example: `[redis-cache-helpers] Patch 1: Cache Infrastructure`
+
+Do NOT use conventional commit format (e.g., `feat:`, `fix:`). The bracketed project name and patch number are required for tracking.
 ```
 
 7. Output a summary: "Created prompts for patches: [X, Y, Z]"
