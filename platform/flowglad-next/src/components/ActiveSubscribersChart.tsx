@@ -99,7 +99,7 @@ export const ActiveSubscribersChart = ({
   return (
     <div className="w-full h-full">
       <ChartHeader
-        title="Active Subscribers"
+        title="Active subscribers"
         infoTooltip="The number of customers with active paid subscriptions at each point in time."
         showInlineSelector={showInlineSelector}
         interval={interval}

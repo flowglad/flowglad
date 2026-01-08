@@ -119,7 +119,7 @@ export const RecurringRevenueChart = ({
   return (
     <div className="w-full h-full">
       <ChartHeader
-        title="Monthly Recurring Revenue"
+        title="Monthly recurring revenue"
         infoTooltip="The normalized monthly value of all active recurring subscriptions. Calculated as the sum of subscription amounts adjusted to a monthly rate."
         // No inline selector for MRR chart
         showInlineSelector={false}
