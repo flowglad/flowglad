@@ -113,6 +113,25 @@ describe('Dependency registration', () => {
     )
   })
 
+  it('returns fresh instances to prevent state leakage between tests', () => {
+    MockGreeterDep.implement('mutable', {
+      language: 'en',
+      greet: (name: string) => `Hello, ${name}!`,
+    })
+
+    const instance1 = MockGreeterDep.get('mutable')
+    const instance2 = MockGreeterDep.get('mutable')
+
+    // Instances should be different objects
+    expect(instance1).not.toBe(instance2)
+
+    // Mutating one instance should not affect the other
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(instance1 as any).language = 'modified'
+    expect(instance1.language).toBe('modified')
+    expect(instance2.language).toBe('en')
+  })
+
   it('getAll returns all registered implementations', () => {
     MockGreeterDep.implement('english', {
       language: 'en',
