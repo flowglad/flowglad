@@ -9,6 +9,11 @@ import { triggerServer } from './mocks/triggerServer'
 import { unkeyServer } from './mocks/unkeyServer'
 import { seedDatabase } from './seedDatabase'
 
+// Ensure Unkey env vars are set for tests (MSW mocks the actual API calls)
+process.env.UNKEY_API_ID = process.env.UNKEY_API_ID || 'api_test_mock'
+process.env.UNKEY_ROOT_KEY =
+  process.env.UNKEY_ROOT_KEY || 'unkey_test_mock'
+
 // Polyfill crypto for Node.js environment
 // needed for github actions
 if (!global.crypto) {
