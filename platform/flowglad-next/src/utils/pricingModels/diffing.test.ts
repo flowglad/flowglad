@@ -1105,7 +1105,7 @@ describe('diffUsageMeterPrices', () => {
     expect(result.toUpdate[0].proposed.unitPrice).toBe(300)
   })
 
-  it('handles empty arrays and undefined inputs', () => {
+  it('returns empty diff arrays when both inputs are undefined or empty, identifies prices to create when existing is undefined, and identifies prices to remove when proposed is undefined', () => {
     // Both undefined
     const resultUndefined = diffUsageMeterPrices(undefined, undefined)
     expect(resultUndefined.toRemove).toEqual([])
