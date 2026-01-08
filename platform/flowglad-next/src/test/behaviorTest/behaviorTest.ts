@@ -6,18 +6,18 @@
  */
 
 import { describe, it } from 'vitest'
+import {
+  combinationMatches,
+  formatCombination,
+  generateCombinations,
+} from './cartesian'
+import { getImplementation } from './Dependency'
 import type {
   BehaviorTestConfig,
   ChainStep,
   DependencyClass,
   DependencyCombination,
 } from './types'
-import { getImplementation } from './Dependency'
-import {
-  generateCombinations,
-  formatCombination,
-  combinationMatches,
-} from './cartesian'
 
 /**
  * Collects all unique dependency classes from a chain of behaviors.

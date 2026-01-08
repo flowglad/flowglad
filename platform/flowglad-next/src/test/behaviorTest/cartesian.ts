@@ -2,8 +2,8 @@
  * Behavioral Testing Framework - Cartesian Product Utilities
  */
 
-import type { DependencyClass, DependencyCombination } from './types'
 import { getImplementations } from './Dependency'
+import type { DependencyClass, DependencyCombination } from './types'
 
 /**
  * Generates all combinations of dependency implementations.

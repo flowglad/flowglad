@@ -6,14 +6,16 @@
  *
  * @example
  * ```typescript
- * // 1. Define a dependency interface and abstract class
+ * // 1. Define return types, then the dependency interface and abstract class
+ * type CreateCustomerResult = Promise<Customer.Record>
+ *
  * interface Residency {
- *   createCustomer(orgId: string): Promise<Customer>
+ *   createCustomer(orgId: string): CreateCustomerResult
  *   countryCode: string
  * }
  *
  * abstract class ResidencyDep extends Dependency<Residency>() {
- *   abstract createCustomer(orgId: string): Promise<Customer>
+ *   abstract createCustomer(orgId: string): CreateCustomerResult
  *   abstract countryCode: string
  * }
  *
@@ -54,35 +56,27 @@
  * ```
  */
 
-// Types
-export type {
-  DependencyFactory,
-  DependencyClass,
-  DependencyCombination,
-  ResolvedDependencies,
-  BehaviorDefinition,
-  ChainStep,
-  BehaviorTestConfig,
-} from './types'
-
-// Dependency registration
-export {
-  Dependency,
-  registerImplementation,
-  getImplementation,
-  getImplementations,
-  clearImplementations,
-  createImplement,
-  createGet,
-  createGetAll,
-} from './Dependency'
+// Test runner
+export { behaviorTest } from './behaviorTest'
 
 // Cartesian product utilities
 export {
-  generateCombinations,
-  formatCombination,
   combinationMatches,
+  formatCombination,
+  generateCombinations,
 } from './cartesian'
+
+// Dependency registration
+export {
+  clearImplementations,
+  createGet,
+  createGetAll,
+  createImplement,
+  Dependency,
+  getImplementation,
+  getImplementations,
+  registerImplementation,
+} from './Dependency'
 
 // Behavior definition
 export { defineBehavior } from './defineBehavior'
@@ -90,5 +84,13 @@ export { defineBehavior } from './defineBehavior'
 // Behavior execution
 export { runBehavior } from './runBehavior'
 
-// Test runner
-export { behaviorTest } from './behaviorTest'
+// Types
+export type {
+  BehaviorDefinition,
+  BehaviorTestConfig,
+  ChainStep,
+  DependencyClass,
+  DependencyCombination,
+  DependencyFactory,
+  ResolvedDependencies,
+} from './types'

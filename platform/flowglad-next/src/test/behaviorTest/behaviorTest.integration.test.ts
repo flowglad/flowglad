@@ -7,22 +7,22 @@
 
 import { afterAll, afterEach, describe, expect, it } from 'vitest'
 import {
-  setupOrg,
   setupCustomer,
+  setupOrg,
   teardownOrg,
 } from '@/../seedDatabase'
-import {
-  behaviorTest,
-  defineBehavior,
-  runBehavior,
-  Dependency,
-  clearImplementations,
-} from './index'
-import type { Organization } from '@/db/schema/organizations'
 import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
+import {
+  behaviorTest,
+  clearImplementations,
+  Dependency,
+  defineBehavior,
+  runBehavior,
+} from './index'
 
 // ============================================================================
 // Dependency Definitions
@@ -32,22 +32,19 @@ import type { Product } from '@/db/schema/products'
  * OrgTypeDep - Defines how organizations are set up.
  * Different implementations create orgs with different configurations.
  */
+type OrgSetupResult = {
+  organization: Organization.Record
+  pricingModel: PricingModel.Record
+  product: Product.Record
+  price: Price.Record
+}
+
 interface OrgType {
-  setup(): Promise<{
-    organization: Organization.Record
-    pricingModel: PricingModel.Record
-    product: Product.Record
-    price: Price.Record
-  }>
+  setup(): Promise<OrgSetupResult>
 }
 
 abstract class OrgTypeDep extends Dependency<OrgType>() {
-  abstract setup(): Promise<{
-    organization: Organization.Record
-    pricingModel: PricingModel.Record
-    product: Product.Record
-    price: Price.Record
-  }>
+  abstract setup(): Promise<OrgSetupResult>
 }
 
 /**
