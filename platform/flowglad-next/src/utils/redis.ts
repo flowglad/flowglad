@@ -105,6 +105,10 @@ export enum RedisKeyNamespace {
   Telemetry = 'telemetry',
   BannerDismissals = 'bannerDismissals',
   StripeOAuthCsrfToken = 'stripeOAuthCsrfToken',
+  SubscriptionsByCustomer = 'subscriptionsByCustomer',
+  ItemsBySubscription = 'itemsBySubscription',
+  FeaturesBySubscriptionItem = 'featuresBySubscriptionItem',
+  MeterBalancesBySubscription = 'meterBalancesBySubscription',
 }
 
 const evictionPolicy: Record<
@@ -129,6 +133,18 @@ const evictionPolicy: Record<
   [RedisKeyNamespace.StripeOAuthCsrfToken]: {
     max: 10000, // up to 10k concurrent OAuth flows
     ttl: 60 * 15, // 15 minutes - OAuth flow timeout
+  },
+  [RedisKeyNamespace.SubscriptionsByCustomer]: {
+    max: 50000,
+  },
+  [RedisKeyNamespace.ItemsBySubscription]: {
+    max: 100000,
+  },
+  [RedisKeyNamespace.FeaturesBySubscriptionItem]: {
+    max: 200000,
+  },
+  [RedisKeyNamespace.MeterBalancesBySubscription]: {
+    max: 100000,
   },
 }
 

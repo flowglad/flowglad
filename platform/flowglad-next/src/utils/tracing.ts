@@ -63,6 +63,7 @@ type TracerName =
   | 'trigger'
   | 'resend'
   | 'api-key-verification'
+  | 'cache'
 
 const getTracer = (name: TracerName) => trace.getTracer(name)
 

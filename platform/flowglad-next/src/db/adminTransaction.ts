@@ -1,6 +1,10 @@
 import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
 import type { AdminTransactionParams } from '@/db/types'
+import {
+  type CacheDependencyKey,
+  invalidateDependencies,
+} from '@/utils/cache'
 import { isNil } from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
@@ -42,7 +46,10 @@ const executeComprehensiveAdminTransaction = async <T>(
   ) => Promise<TransactionOutput<T>>,
   effectiveLivemode: boolean
 ): Promise<TransactionOutput<T>> => {
-  return db.transaction(async (transaction) => {
+  // Collect cache invalidations to process after commit
+  let cacheInvalidations: CacheDependencyKey[] = []
+
+  const output = await db.transaction(async (transaction) => {
     // Set up transaction context (e.g., clearing previous JWT claims)
     await transaction.execute(
       sql`SELECT set_config('request.jwt.claims', NULL, true);`
@@ -88,9 +95,25 @@ const executeComprehensiveAdminTransaction = async <T>(
       }
     }
 
+    // Collect cache invalidations (don't process yet - wait for commit)
+    if (
+      output.cacheInvalidations &&
+      output.cacheInvalidations.length > 0
+    ) {
+      cacheInvalidations = output.cacheInvalidations
+    }
+
     // Return the full output so tracing can extract metrics
     return output
   })
+
+  // Transaction committed successfully - now invalidate caches
+  // This is fire-and-forget; errors are logged but don't fail the request
+  if (cacheInvalidations.length > 0) {
+    await invalidateDependencies(cacheInvalidations)
+  }
+
+  return output
 }
 
 /**
