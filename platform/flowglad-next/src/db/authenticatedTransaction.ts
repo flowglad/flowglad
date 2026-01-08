@@ -1,6 +1,7 @@
 import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
 import type { AuthenticatedTransactionParams } from '@/db/types'
+import core from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
@@ -54,6 +55,11 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
 }> => {
   const { apiKey, __testOnlyOrganizationId, customerId } =
     options ?? {}
+  if (!core.IS_TEST && __testOnlyOrganizationId) {
+    throw new Error(
+      'Attempted to use test organization id in a non-test environment'
+    )
+  }
   const { userId, livemode, jwtClaim } =
     await getDatabaseAuthenticationInfo({
       apiKey,
