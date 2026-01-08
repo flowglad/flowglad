@@ -49,6 +49,7 @@ import {
   createPaginatedTableRowOutputSchema,
   idInputSchema,
   metadataSchema,
+  NotFoundError,
 } from '@/db/tableUtils'
 import { adjustSubscription } from '@/subscriptions/adjustSubscription'
 import {
@@ -514,10 +515,18 @@ const createSubscriptionProcedure = protectedProcedure
         let resolvedPriceId: string
         if (input.priceId) {
           // Early validation: fetch price and reject usage prices before the heavier query
-          const price = await selectPriceById(
-            input.priceId,
-            transaction
-          )
+          let price: Price.Record
+          try {
+            price = await selectPriceById(input.priceId, transaction)
+          } catch (error) {
+            if (error instanceof NotFoundError) {
+              throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: `Price with id "${input.priceId}" not found`,
+              })
+            }
+            throw error
+          }
           if (!Price.hasProductId(price)) {
             throw new TRPCError({
               code: 'BAD_REQUEST',
