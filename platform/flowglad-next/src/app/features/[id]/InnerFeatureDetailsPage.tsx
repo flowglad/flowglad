@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import EditFeatureModal from '@/components/forms/EditFeatureModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import PageContainer from '@/components/PageContainer'
 import { CopyableField } from '@/components/ui/copyable-field'
 import {
   ContentSection,
@@ -134,7 +134,7 @@ function InnerFeatureDetailsPage({
   }
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <div className="w-full relative flex flex-col justify-center gap-0 pb-32">
         <PageHeaderNew
           title={feature.name}
@@ -251,7 +251,7 @@ function InnerFeatureDetailsPage({
         setIsOpen={setIsToggleModalOpen}
         feature={feature}
       />
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

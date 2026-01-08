@@ -8,7 +8,7 @@ import EditUsageMeterModal from '@/components/components/EditUsageMeterModal'
 import { ExpandSection } from '@/components/ExpandSection'
 import CreateUsagePriceModal from '@/components/forms/CreateUsagePriceModal'
 import EditUsagePriceModal from '@/components/forms/EditUsagePriceModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import PageContainer from '@/components/PageContainer'
 import { UsagePricesGridSection } from '@/components/UsagePricesGridSection'
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
@@ -108,7 +108,7 @@ function InnerUsageMeterDetailsPage({
   }
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <div className="w-full relative flex flex-col justify-center gap-0 pb-32">
         <PageHeaderNew
           title={usageMeter.name}
@@ -183,7 +183,7 @@ function InnerUsageMeterDetailsPage({
             pricingModelId={usageMeter.pricingModelId}
           />
         )}
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

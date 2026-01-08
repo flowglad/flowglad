@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import PageContainer from '@/components/PageContainer'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { InvoiceStatus } from '@/types'
 import { InvoicesDataTable } from './data-table'
@@ -29,7 +29,7 @@ export default function InternalInvoicesPage() {
   }
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <PageHeaderNew title="Invoices" hideBorder className="pb-2" />
       <InvoicesDataTable
         filters={getFilters()}
@@ -37,6 +37,6 @@ export default function InternalInvoicesPage() {
         filterValue={statusFilter}
         onFilterChange={setStatusFilter}
       />
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
