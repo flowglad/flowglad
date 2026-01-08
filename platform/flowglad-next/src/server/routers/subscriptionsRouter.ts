@@ -9,6 +9,7 @@ import {
 import {
   PRICE_ID_DESCRIPTION,
   PRICE_SLUG_DESCRIPTION,
+  Price,
 } from '@/db/schema/prices'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import {
@@ -526,6 +527,13 @@ const createSubscriptionProcedure = protectedProcedure
               message: `Price with slug "${input.priceSlug}" not found for this customer's pricing model`,
             })
           }
+          // Early validation: reject usage prices before fetching related data
+          if (!Price.clientHasProductId(price)) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Price "${input.priceSlug}" is a usage price and cannot be used to create a subscription directly. Use a subscription price instead.`,
+            })
+          }
           resolvedPriceId = price.id
         } else {
           throw new TRPCError({
@@ -549,7 +557,8 @@ const createSubscriptionProcedure = protectedProcedure
         }
         const { price, product, organization } = priceResult[0]
         // Product is required for creating subscriptions - usage prices (with null product) are not supported
-        if (!product) {
+        // Use type guard for type-safe product access
+        if (!Price.hasProductId(price) || !product) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message: `Price ${resolvedPriceId} is a usage price and cannot be used to create a subscription directly. Use a subscription price instead.`,
