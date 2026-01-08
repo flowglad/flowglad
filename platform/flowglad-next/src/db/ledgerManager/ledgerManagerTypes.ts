@@ -12,6 +12,7 @@ import { usageCreditBalanceAdjustmentsSelectSchema } from '@/db/schema/usageCred
 import { usageCreditsSelectSchema } from '@/db/schema/usageCredits'
 import { usageEventsSelectSchema } from '@/db/schema/usageEvents'
 import { LedgerTransactionType } from '@/types'
+import type { CacheDependencyKey } from '@/utils/cache'
 import { invoiceWithLineItemsSchema } from '../schema/invoiceLineItems'
 
 // Base fields for all ledger commands, primarily for the LedgerTransaction record
@@ -203,6 +204,12 @@ export type LedgerCommand = z.infer<typeof ledgerCommandSchema>
 export interface LedgerCommandResult {
   ledgerTransaction: LedgerTransaction.Record
   ledgerEntries: LedgerEntry.Record[]
+  /**
+   * Cache dependency keys to invalidate after the transaction commits.
+   * These are collected by processLedgerCommand and returned to the caller
+   * to be included in the TransactionOutput.cacheInvalidations array.
+   */
+  cacheInvalidations?: CacheDependencyKey[]
 }
 
 export interface OutstandingUsageCostAggregation {

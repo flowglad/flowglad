@@ -83,24 +83,36 @@ const executeComprehensiveAdminTransaction = async <T>(
       )
     }
 
-    // Process ledger commands if any
+    // Process ledger commands if any and collect their cache invalidations
     if (output.ledgerCommand) {
-      await processLedgerCommand(output.ledgerCommand, transaction)
+      const result = await processLedgerCommand(
+        output.ledgerCommand,
+        transaction
+      )
+      if (result.cacheInvalidations) {
+        cacheInvalidations.push(...result.cacheInvalidations)
+      }
     } else if (
       output.ledgerCommands &&
       output.ledgerCommands.length > 0
     ) {
       for (const command of output.ledgerCommands) {
-        await processLedgerCommand(command, transaction)
+        const result = await processLedgerCommand(
+          command,
+          transaction
+        )
+        if (result.cacheInvalidations) {
+          cacheInvalidations.push(...result.cacheInvalidations)
+        }
       }
     }
 
-    // Collect cache invalidations (don't process yet - wait for commit)
+    // Collect cache invalidations from output (don't process yet - wait for commit)
     if (
       output.cacheInvalidations &&
       output.cacheInvalidations.length > 0
     ) {
-      cacheInvalidations = output.cacheInvalidations
+      cacheInvalidations.push(...output.cacheInvalidations)
     }
 
     // Return the full output so tracing can extract metrics

@@ -25,6 +25,7 @@ import {
   LedgerTransactionInitiatingSourceType,
   UsageCreditApplicationStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 
 export const createUsageCreditApplicationsForUsageEvent = async (
   params: {
@@ -230,5 +231,9 @@ export const processUsageEventProcessedLedgerCommand = async (
   return {
     ledgerTransaction,
     ledgerEntries: createdLedgerEntries,
+    // Invalidate meter balances cache for this subscription
+    cacheInvalidations: [
+      CacheDependency.subscriptionLedger(command.subscriptionId!),
+    ],
   }
 }

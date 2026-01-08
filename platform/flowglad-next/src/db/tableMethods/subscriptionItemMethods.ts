@@ -574,7 +574,7 @@ export const selectRichSubscriptionsAndActiveItems = async (
     .map(({ subscriptionItem }) => subscriptionItem)
 
   // Step 5: Fetch related data in parallel for better performance
-  // Step 5a: Fetch features
+  // Step 5a: Fetch subscription item features
   const activeSubscriptionItemIds = activeSubscriptionItems.map(
     (item) => item.id
   )
@@ -586,13 +586,17 @@ export const selectRichSubscriptionsAndActiveItems = async (
       transaction
     )
 
+  // Step 5b: Fetch meter balances - use bulk cached lookup
+  const usageMeterBalancesPromise =
+    selectUsageMeterBalancesForSubscriptions(
+      { subscriptionId: subscriptionIds },
+      transaction
+    )
+
   const [allSubscriptionItemFeatures, usageMeterBalances] =
     await Promise.all([
       allSubscriptionItemFeaturesPromise,
-      selectUsageMeterBalancesForSubscriptions(
-        { subscriptionId: subscriptionIds },
-        transaction
-      ),
+      usageMeterBalancesPromise,
     ])
 
   // Step 6: Filter out expired subscription item features

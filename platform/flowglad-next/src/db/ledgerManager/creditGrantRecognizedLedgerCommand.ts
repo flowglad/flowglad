@@ -11,6 +11,7 @@ import {
   LedgerEntryStatus,
   LedgerEntryType,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import { findOrCreateLedgerAccountsForSubscriptionAndUsageMeters } from '../tableMethods/ledgerAccountMethods'
 import type {
   CreditGrantRecognizedLedgerCommand,
@@ -92,5 +93,9 @@ export const processCreditGrantRecognizedLedgerCommand = async (
   return {
     ledgerTransaction: insertedLedgerTransaction,
     ledgerEntries: [insertedLedgerEntry],
+    // Invalidate meter balances cache for this subscription
+    cacheInvalidations: [
+      CacheDependency.subscriptionLedger(command.subscriptionId!),
+    ],
   }
 }
