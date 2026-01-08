@@ -854,17 +854,19 @@ describe('Error Handling Tests', () => {
       }
     })
 
-    it('allows __testOnlyOrganizationId in test environment', async () => {
+    it('allows __testOnlyOrganizationId in test environment (validation passes before auth fails)', async () => {
       // This test runs in test environment where IS_TEST is true
-      // The transaction should proceed (though it may fail for other reasons like missing session)
-      // We just verify it doesn't throw the specific "non-test environment" error
+      // The __testOnlyOrganizationId validation should pass, but without a session
+      // the transaction will fail with "No user found" - this proves the validation passed
       await expect(
         authenticatedTransaction(async () => 'result', {
           __testOnlyOrganizationId: testOrg1.id,
         })
-      ).rejects.not.toThrow(
-        'Attempted to use test organization id in a non-test environment'
-      )
+      ).rejects.toThrow('No user found for a non-API key transaction')
+
+      // If we had thrown the test-only error, we would have gotten:
+      // "Attempted to use test organization id in a non-test environment"
+      // Getting "No user found" proves we passed the IS_TEST check
     })
   })
 
