@@ -1,4 +1,4 @@
-import { SpanKind } from '@opentelemetry/api'
+import { SpanKind, trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import core from './core'
 import { logger } from './logger'
@@ -147,6 +147,7 @@ export function cached<TArgs extends unknown[], TResult>(
       const key = config.keyFn(...args)
       const fullKey = `${config.namespace}:${key}`
       const dependencies = config.dependenciesFn(...args)
+      const span = trace.getActiveSpan()
 
       // Try to get from cache
       try {
@@ -154,6 +155,8 @@ export function cached<TArgs extends unknown[], TResult>(
         const startTime = Date.now()
         const cachedValue = await redisClient.get(fullKey)
         const latencyMs = Date.now() - startTime
+
+        span?.setAttribute('cache.latency_ms', latencyMs)
 
         if (cachedValue !== null) {
           // Parse the cached value
@@ -165,6 +168,7 @@ export function cached<TArgs extends unknown[], TResult>(
           // Validate with schema
           const parsed = config.schema.safeParse(jsonValue)
           if (parsed.success) {
+            span?.setAttribute('cache.hit', true)
             logger.debug('Cache hit', {
               key: fullKey,
               latency_ms: latencyMs,
@@ -172,12 +176,15 @@ export function cached<TArgs extends unknown[], TResult>(
             return parsed.data
           } else {
             // Schema validation failed - treat as cache miss
+            span?.setAttribute('cache.hit', false)
+            span?.setAttribute('cache.validation_failed', true)
             logger.warn('Cache schema validation failed', {
               key: fullKey,
               error: parsed.error.message,
             })
           }
         } else {
+          span?.setAttribute('cache.hit', false)
           logger.debug('Cache miss', {
             key: fullKey,
             latency_ms: latencyMs,
@@ -185,10 +192,13 @@ export function cached<TArgs extends unknown[], TResult>(
         }
       } catch (error) {
         // Fail open - log error and continue to wrapped function
+        const errorMessage =
+          error instanceof Error ? error.message : String(error)
+        span?.setAttribute('cache.hit', false)
+        span?.setAttribute('cache.error', errorMessage)
         logger.error('Cache read error', {
           key: fullKey,
-          error:
-            error instanceof Error ? error.message : String(error),
+          error: errorMessage,
         })
       }
 
@@ -206,6 +216,9 @@ export function cached<TArgs extends unknown[], TResult>(
         // Register dependencies in Redis
         await registerDependencies(fullKey, dependencies)
 
+        span?.setAttribute('cache.ttl', ttl)
+        span?.setAttribute('cache.dependencies', dependencies)
+
         logger.debug('Cache populated', {
           key: fullKey,
           ttl,
@@ -213,10 +226,12 @@ export function cached<TArgs extends unknown[], TResult>(
         })
       } catch (error) {
         // Fail open - log error but return result
+        const errorMessage =
+          error instanceof Error ? error.message : String(error)
+        span?.setAttribute('cache.error', errorMessage)
         logger.error('Cache write error', {
           key: fullKey,
-          error:
-            error instanceof Error ? error.message : String(error),
+          error: errorMessage,
         })
       }
 
