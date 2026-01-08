@@ -12,11 +12,8 @@ import {
   FlowgladEventType,
 } from '@/types'
 import { hashData } from '@/utils/backendCore'
-import {
-  _testUtils,
-  CacheDependency,
-  invalidateDependencies,
-} from '@/utils/cache'
+import * as cacheModule from '@/utils/cache'
+import { _testUtils, CacheDependency } from '@/utils/cache'
 import { adminTransaction } from './adminTransaction'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -1867,8 +1864,11 @@ describe('Cache invalidation in transactions', () => {
   })
 
   it('does not process cache invalidations if transaction rolls back due to error', async () => {
-    // Track if invalidateDependencies was called
-    let cacheInvalidationsCalled = false
+    // Spy on invalidateDependencies to track if it was called
+    const invalidateSpy = vi.spyOn(
+      cacheModule,
+      'invalidateDependencies'
+    )
 
     // Create a test that throws during transaction
     await expect(
@@ -1883,7 +1883,10 @@ describe('Cache invalidation in transactions', () => {
 
     // Cache invalidations should not have been processed since transaction failed
     // In the implementation, invalidateDependencies is only called after successful commit
-    expect(cacheInvalidationsCalled).toBe(false)
+    expect(invalidateSpy).not.toHaveBeenCalled()
+
+    // Clean up spy
+    invalidateSpy.mockRestore()
   })
 
   it('combines cache invalidations with events and ledger commands', async () => {
