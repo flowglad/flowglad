@@ -547,7 +547,7 @@ export const bulkInsertUsageEventsTransaction = async (
         })
       }
 
-      // Check if usage meter requires billing period (CountDistinctProperties)
+      // Check if usage meter requires billing period and properties (CountDistinctProperties)
       const usageMeter = usageMetersMap.get(finalUsageMeterId)
       if (
         usageMeter?.aggregationType ===
@@ -557,6 +557,17 @@ export const bulkInsertUsageEventsTransaction = async (
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message: `Billing period is required for usage meter "${usageMeter.name}" at index ${index} because it uses "count_distinct_properties" aggregation. This aggregation type requires a billing period for deduplication.`,
+          })
+        }
+
+        // Validate that properties are provided and non-empty for count_distinct_properties meters
+        if (
+          !usageEvent.properties ||
+          Object.keys(usageEvent.properties).length === 0
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Properties are required for usage meter "${usageMeter.name}" at index ${index} because it uses "count_distinct_properties" aggregation. Each usage event must have a non-empty properties object to identify the distinct combination being counted.`,
           })
         }
       }

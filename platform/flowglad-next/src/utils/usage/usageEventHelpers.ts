@@ -773,6 +773,17 @@ export const ingestAndProcessUsageEvent = async (
       })
     }
 
+    // Validate that properties are provided and non-empty for count_distinct_properties meters
+    if (
+      !usageEventInput.properties ||
+      Object.keys(usageEventInput.properties).length === 0
+    ) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Properties are required for usage meter "${usageMeter.name}" because it uses "count_distinct_properties" aggregation. Each usage event must have a non-empty properties object to identify the distinct combination being counted.`,
+      })
+    }
+
     // Fetch all events in the same billing period for this usage meter
     const eventsInPeriod = await selectUsageEvents(
       {
