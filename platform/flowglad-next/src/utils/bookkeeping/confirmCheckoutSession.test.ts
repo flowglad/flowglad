@@ -21,7 +21,10 @@ import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Purchase } from '@/db/schema/purchases'
-import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import {
+  selectCheckoutSessionById,
+  updateCheckoutSession,
+} from '@/db/tableMethods/checkoutSessionMethods'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
 import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'
@@ -1062,13 +1065,30 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      // Verify the customer is returned correctly
+      expect(result.customer.id).toEqual(customer.id)
+
       // Verify that cancelPaymentIntent was called instead of updatePaymentIntent
       expect(cancelPaymentIntent).toHaveBeenCalledWith(
         paymentIntentId,
         updatedCheckoutSession.livemode
       )
       expect(updatePaymentIntent).not.toHaveBeenCalled()
+
+      // Verify that stripePaymentIntentId was cleared from the checkout session
+      const refetchedCheckoutSession =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            const result = await selectCheckoutSessionById(
+              updatedCheckoutSession.id,
+              transaction
+            )
+            return { result }
+          }
+        )
+      expect(
+        refetchedCheckoutSession.stripePaymentIntentId
+      ).toBeNull()
     })
   })
 
