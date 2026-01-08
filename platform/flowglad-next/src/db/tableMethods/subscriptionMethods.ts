@@ -37,6 +37,8 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { CancellationReason, SubscriptionStatus } from '@/types'
+import { CacheDependency, cached } from '@/utils/cache'
+import { RedisKeyNamespace } from '@/utils/redis'
 import {
   customerClientSelectSchema,
   customers,
@@ -118,6 +120,25 @@ export const updateSubscription = createUpdateFunction(
 export const selectSubscriptions = createSelectFunction(
   subscriptions,
   config
+)
+
+/**
+ * Cache-enabled version of selectSubscriptions for customerId lookups.
+ * This cache entry depends on the customer - invalidate when customer's subscriptions change.
+ */
+export const selectSubscriptionsByCustomerIdCached = cached(
+  {
+    namespace: RedisKeyNamespace.SubscriptionsByCustomer,
+    keyFn: (customerId: string, _transaction: DbTransaction) =>
+      customerId,
+    schema: subscriptionsSelectSchema.array(),
+    dependenciesFn: (customerId: string) => [
+      CacheDependency.customer(customerId),
+    ],
+  },
+  async (customerId: string, transaction: DbTransaction) => {
+    return selectSubscriptions({ customerId }, transaction)
+  }
 )
 
 export const isSubscriptionInTerminalState = (

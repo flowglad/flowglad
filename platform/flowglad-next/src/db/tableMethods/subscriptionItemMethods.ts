@@ -47,6 +47,7 @@ import {
   isSubscriptionCurrent,
   pricingModelIdsForSubscriptions,
   selectSubscriptions,
+  selectSubscriptionsByCustomerIdCached,
 } from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -383,11 +384,23 @@ export const selectRichSubscriptionsAndActiveItems = async (
   whereConditions: SelectConditions<typeof subscriptions>,
   transaction: DbTransaction
 ): Promise<RichSubscription[]> => {
-  // Step 1: Fetch subscriptions (cacheable by whereConditions)
-  const subscriptionRecords = await selectSubscriptions(
-    whereConditions,
-    transaction
-  )
+  // Step 1: Fetch subscriptions - use cache if querying by customerId only
+  let subscriptionRecords: Subscription.Record[]
+
+  if (
+    'customerId' in whereConditions &&
+    Object.keys(whereConditions).length === 1
+  ) {
+    subscriptionRecords = await selectSubscriptionsByCustomerIdCached(
+      whereConditions.customerId as string,
+      transaction
+    )
+  } else {
+    subscriptionRecords = await selectSubscriptions(
+      whereConditions,
+      transaction
+    )
+  }
 
   const subscriptionIds = subscriptionRecords.map((s) => s.id)
 

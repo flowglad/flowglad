@@ -1,11 +1,22 @@
 import { afterEach, beforeEach, expect, it } from 'vitest'
 import { z } from 'zod'
 import {
+  setupCustomer,
+  setupOrg,
+  setupPaymentMethod,
+  setupPrice,
+  setupProduct,
+  setupSubscription,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { selectSubscriptionsByCustomerIdCached } from '@/db/tableMethods/subscriptionMethods'
+import {
   cleanupRedisTestKeys,
   describeIfRedisKey,
   generateTestKeyPrefix,
   getRedisTestClient,
 } from '@/test/redisIntegrationHelpers'
+import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
 import {
   CacheDependency,
   cached,
@@ -264,3 +275,193 @@ describeIfRedisKey('Cache Integration Tests', () => {
     expect(result3.version).toBe(2)
   })
 })
+
+describeIfRedisKey(
+  'selectSubscriptionsByCustomerIdCached Integration Tests',
+  () => {
+    let keysToCleanup: string[] = []
+
+    afterEach(async () => {
+      const client = getRedisTestClient()
+      await cleanupRedisTestKeys(client, keysToCleanup)
+      keysToCleanup = []
+    })
+
+    it('caches subscription results and returns cached data on subsequent calls', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data
+      const { organization, pricingModel } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      const product = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Cache Test Product',
+      })
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Cache Test Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+      })
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      // Track the cache key for cleanup
+      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}`
+      const dependencyKey = CacheDependency.customer(customer.id)
+      const registryKey = `cacheDeps:${dependencyKey}`
+      keysToCleanup.push(cacheKey, registryKey)
+
+      // First call - should cache the result
+      const result1 = await adminTransaction(
+        async ({ transaction }) => {
+          return selectSubscriptionsByCustomerIdCached(
+            customer.id,
+            transaction
+          )
+        }
+      )
+
+      expect(result1).toHaveLength(1)
+      expect(result1[0].id).toBe(subscription.id)
+      expect(result1[0].customerId).toBe(customer.id)
+
+      // Verify data is in Redis
+      const cachedValue = await client.get(cacheKey)
+      expect(cachedValue).not.toBeNull()
+
+      // Second call - should return cached result
+      const result2 = await adminTransaction(
+        async ({ transaction }) => {
+          return selectSubscriptionsByCustomerIdCached(
+            customer.id,
+            transaction
+          )
+        }
+      )
+
+      expect(result2).toHaveLength(1)
+      expect(result2[0].id).toBe(subscription.id)
+    })
+
+    it('returns empty array for customer with no subscriptions and caches the empty result', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data - customer with no subscriptions
+      const { organization } = await setupOrg()
+      const customerWithNoSubs = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      // Track the cache key for cleanup
+      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customerWithNoSubs.id}`
+      const dependencyKey = CacheDependency.customer(
+        customerWithNoSubs.id
+      )
+      const registryKey = `cacheDeps:${dependencyKey}`
+      keysToCleanup.push(cacheKey, registryKey)
+
+      // First call - should cache the empty result
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return selectSubscriptionsByCustomerIdCached(
+            customerWithNoSubs.id,
+            transaction
+          )
+        }
+      )
+
+      expect(result).toEqual([])
+
+      // Verify the empty array is cached
+      const cachedValue = await client.get(cacheKey)
+      expect(cachedValue).not.toBeNull()
+      const parsedValue =
+        typeof cachedValue === 'string'
+          ? JSON.parse(cachedValue)
+          : cachedValue
+      expect(parsedValue).toEqual([])
+    })
+
+    it('registers customer dependency that can be invalidated', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data
+      const { organization, pricingModel } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      const product = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Invalidation Test Product',
+      })
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Invalidation Test Price',
+        type: PriceType.Subscription,
+        unitPrice: 2000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+      })
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      // Track keys for cleanup
+      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}`
+      const dependencyKey = CacheDependency.customer(customer.id)
+      const registryKey = `cacheDeps:${dependencyKey}`
+      keysToCleanup.push(cacheKey, registryKey)
+
+      // Populate cache
+      await adminTransaction(async ({ transaction }) => {
+        return selectSubscriptionsByCustomerIdCached(
+          customer.id,
+          transaction
+        )
+      })
+
+      // Verify cache is populated
+      const beforeInvalidation = await client.get(cacheKey)
+      expect(beforeInvalidation).not.toBeNull()
+
+      // Verify dependency is registered
+      const registeredKeys = await client.smembers(registryKey)
+      expect(registeredKeys).toContain(cacheKey)
+
+      // Invalidate the customer dependency
+      await invalidateDependencies([dependencyKey])
+
+      // Verify cache is cleared
+      const afterInvalidation = await client.get(cacheKey)
+      expect(afterInvalidation).toBeNull()
+    })
+  }
+)
