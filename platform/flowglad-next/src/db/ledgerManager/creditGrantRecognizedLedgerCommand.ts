@@ -30,7 +30,7 @@ export const processCreditGrantRecognizedLedgerCommand = async (
     metadata: command.transactionMetadata ?? null,
     initiatingSourceType: command.type,
     initiatingSourceId: command.payload.usageCredit.id,
-    subscriptionId: command.subscriptionId!,
+    subscriptionId: command.subscriptionId,
   }
   const insertedLedgerTransaction = await insertLedgerTransaction(
     ledgerTransactionInput,
@@ -55,7 +55,7 @@ export const processCreditGrantRecognizedLedgerCommand = async (
   const [ledgerAccount] =
     await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
       {
-        subscriptionId: command.subscriptionId!,
+        subscriptionId: command.subscriptionId,
         usageMeterIds: [command.payload.usageCredit.usageMeterId],
       },
       transaction
@@ -69,7 +69,7 @@ export const processCreditGrantRecognizedLedgerCommand = async (
     ...ledgerEntryNulledSourceIdColumns,
     ledgerTransactionId: insertedLedgerTransaction.id,
     ledgerAccountId: ledgerAccount.id,
-    subscriptionId: command.subscriptionId!,
+    subscriptionId: command.subscriptionId,
     organizationId: command.organizationId,
     livemode: command.livemode,
     entryTimestamp: Date.now(),
@@ -95,7 +95,7 @@ export const processCreditGrantRecognizedLedgerCommand = async (
     ledgerEntries: [insertedLedgerEntry],
     // Invalidate meter balances cache for this subscription
     cacheInvalidations: [
-      CacheDependency.subscriptionLedger(command.subscriptionId!),
+      CacheDependency.subscriptionLedger(command.subscriptionId),
     ],
   }
 }
