@@ -430,7 +430,15 @@ export const SideNavigation = () => {
                 id: organization.id,
                 name: organization.name,
               }}
-              onSignOut={() => signOut()}
+              onSignOut={() =>
+                signOut({
+                  fetchOptions: {
+                    onSuccess: () => {
+                      router.push('/sign-in')
+                    },
+                  },
+                })
+              }
             />
           )}
         </div>
