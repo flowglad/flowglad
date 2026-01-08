@@ -13,6 +13,7 @@ import { buildSchemas } from '@/db/createZodSchemas'
 import { features } from '@/db/schema/features'
 import { pricingModels } from '@/db/schema/pricingModels'
 import { productFeatures } from '@/db/schema/productFeatures'
+import { resources } from '@/db/schema/resources'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import { usageMeters } from '@/db/schema/usageMeters'
 import {
@@ -75,6 +76,7 @@ export const subscriptionItemFeatures = pgTable(
       'pricing_model_id',
       pricingModels
     ),
+    resourceId: nullableStringForeignKey('resource_id', resources),
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.subscriptionItemId]),
@@ -131,6 +133,7 @@ const columnRefinements = {
   usageMeterId: zodOptionalNullableString,
   productFeatureId: zodOptionalNullableString,
   detachedReason: zodOptionalNullableString,
+  resourceId: zodOptionalNullableString,
 }
 
 /*
@@ -159,6 +162,7 @@ const toggleSubscriptionItemFeatureSharedColumns = {
   amount: z.literal(null).optional(),
   usageMeterId: z.literal(null).optional(),
   renewalFrequency: z.literal(null).optional(),
+  resourceId: z.literal(null).optional(),
 }
 
 export const {
@@ -201,6 +205,7 @@ const usageCreditGrantSubscriptionItemFeatureSharedColumns = {
   renewalFrequency: core.createSafeZodEnum(
     FeatureUsageGrantFrequency
   ),
+  resourceId: z.literal(null).optional(),
 }
 export const {
   insert: usageCreditGrantSubscriptionItemFeatureInsertSchema,
@@ -235,12 +240,53 @@ export const {
 })
 
 /*
+ * Resource SubscriptionItemFeature schemas
+ */
+const resourceSubscriptionItemFeatureSharedColumns = {
+  type: z.literal(FeatureType.Resource),
+  amount: z.number().int(),
+  usageMeterId: z.literal(null).optional(),
+  renewalFrequency: z.literal(null).optional(),
+  resourceId: z.string(),
+}
+export const {
+  insert: resourceSubscriptionItemFeatureInsertSchema,
+  select: resourceSubscriptionItemFeatureSelectSchema,
+  update: resourceSubscriptionItemFeatureUpdateSchema,
+  client: {
+    insert: baseResourceSubscriptionItemFeatureClientInsertSchema,
+    select: baseResourceSubscriptionItemFeatureClientSelectSchema,
+    update: resourceSubscriptionItemFeatureClientUpdateSchema,
+  },
+} = buildSchemas(subscriptionItemFeatures, {
+  discriminator: 'type',
+  refine: {
+    ...columnRefinements,
+    ...resourceSubscriptionItemFeatureSharedColumns,
+  },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
+  client: {
+    hiddenColumns: {
+      ...baseHiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {
+      pricingModelId: true,
+    },
+    createOnlyColumns: {},
+  },
+  entityName: 'ResourceSubscriptionItemFeature',
+})
+
+/*
  * Combined discriminated union schemas (internal)
  */
 export const subscriptionItemFeaturesInsertSchema = z
   .discriminatedUnion('type', [
     toggleSubscriptionItemFeatureInsertSchema,
     usageCreditGrantSubscriptionItemFeatureInsertSchema,
+    resourceSubscriptionItemFeatureInsertSchema,
   ])
   .meta({ id: 'SubscriptionItemFeaturesInsertSchema' })
 
@@ -248,6 +294,7 @@ export const subscriptionItemFeaturesSelectSchema = z
   .discriminatedUnion('type', [
     toggleSubscriptionItemFeatureSelectSchema,
     usageCreditGrantSubscriptionItemFeatureSelectSchema,
+    resourceSubscriptionItemFeatureSelectSchema,
   ])
   .meta({ id: 'SubscriptionItemFeaturesSelectSchema' })
 
@@ -255,6 +302,7 @@ export const subscriptionItemFeaturesUpdateSchema = z
   .discriminatedUnion('type', [
     toggleSubscriptionItemFeatureUpdateSchema,
     usageCreditGrantSubscriptionItemFeatureUpdateSchema,
+    resourceSubscriptionItemFeatureUpdateSchema,
   ])
   .meta({ id: 'SubscriptionItemFeaturesUpdateSchema' })
 
@@ -284,6 +332,16 @@ export const usageCreditGrantSubscriptionItemFeatureClientInsertSchema =
     .extend(clientSelectWithFeatureFieldRefinements)
     .meta({ id: 'UsageCreditGrantSubscriptionItemFeatureInsert' })
 
+export const resourceSubscriptionItemFeatureClientSelectSchema =
+  baseResourceSubscriptionItemFeatureClientSelectSchema
+    .extend(clientSelectWithFeatureFieldRefinements)
+    .meta({ id: 'ResourceSubscriptionItemFeatureRecord' })
+
+export const resourceSubscriptionItemFeatureClientInsertSchema =
+  baseResourceSubscriptionItemFeatureClientInsertSchema
+    .extend(clientSelectWithFeatureFieldRefinements)
+    .meta({ id: 'ResourceSubscriptionItemFeatureInsert' })
+
 /*
  * Combined client-facing discriminated union schemas
  */
@@ -291,6 +349,7 @@ export const subscriptionItemFeaturesClientInsertSchema = z
   .discriminatedUnion('type', [
     toggleSubscriptionItemFeatureClientInsertSchema,
     usageCreditGrantSubscriptionItemFeatureClientInsertSchema,
+    resourceSubscriptionItemFeatureClientInsertSchema,
   ])
   .meta({ id: 'SubscriptionItemFeaturesClientInsertSchema' })
 
@@ -298,6 +357,7 @@ export const subscriptionItemFeaturesClientSelectSchema = z
   .discriminatedUnion('type', [
     toggleSubscriptionItemFeatureClientSelectSchema,
     usageCreditGrantSubscriptionItemFeatureClientSelectSchema,
+    resourceSubscriptionItemFeatureClientSelectSchema,
   ])
   .meta({ id: 'SubscriptionItemFeaturesClientSelectSchema' })
 
@@ -305,6 +365,7 @@ export const subscriptionItemFeaturesClientUpdateSchema = z
   .discriminatedUnion('type', [
     toggleSubscriptionItemFeatureClientUpdateSchema,
     usageCreditGrantSubscriptionItemFeatureClientUpdateSchema,
+    resourceSubscriptionItemFeatureClientUpdateSchema,
   ])
   .meta({ id: 'SubscriptionItemFeaturesClientUpdateSchema' })
 
@@ -370,6 +431,26 @@ export namespace SubscriptionItemFeature {
   >
   export type UsageCreditGrantUpdate = z.infer<
     typeof usageCreditGrantSubscriptionItemFeatureUpdateSchema
+  >
+
+  // Resource subtypes
+  export type ResourceClientInsert = z.infer<
+    typeof resourceSubscriptionItemFeatureClientInsertSchema
+  >
+  export type ResourceClientUpdate = z.infer<
+    typeof resourceSubscriptionItemFeatureClientUpdateSchema
+  >
+  export type ResourceClientRecord = z.infer<
+    typeof resourceSubscriptionItemFeatureClientSelectSchema
+  >
+  export type ResourceRecord = z.infer<
+    typeof resourceSubscriptionItemFeatureSelectSchema
+  >
+  export type ResourceInsert = z.infer<
+    typeof resourceSubscriptionItemFeatureInsertSchema
+  >
+  export type ResourceUpdate = z.infer<
+    typeof resourceSubscriptionItemFeatureUpdateSchema
   >
 }
 
