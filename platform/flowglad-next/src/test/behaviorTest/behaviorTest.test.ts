@@ -7,12 +7,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   behaviorTest,
-  defineBehavior,
-  runBehavior,
-  Dependency,
   clearImplementations,
-  generateCombinations,
+  Dependency,
+  defineBehavior,
   formatCombination,
+  generateCombinations,
+  runBehavior,
 } from './index'
 
 // ============================================================================

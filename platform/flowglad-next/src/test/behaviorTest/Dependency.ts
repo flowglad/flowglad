@@ -97,8 +97,16 @@ export function clearImplementations(
  *
  * Usage:
  * ```typescript
- * abstract class ResidencyDep extends Dependency<ResidencyDep>() {
- *   abstract createCustomer(orgId: string): Promise<Customer>
+ * // Define return types to avoid repetition
+ * type CreateCustomerResult = Promise<Customer.Record>
+ *
+ * interface Residency {
+ *   createCustomer(orgId: string): CreateCustomerResult
+ *   countryCode: string
+ * }
+ *
+ * abstract class ResidencyDep extends Dependency<Residency>() {
+ *   abstract createCustomer(orgId: string): CreateCustomerResult
  *   abstract countryCode: string
  * }
  *
