@@ -103,7 +103,11 @@ export const _setTestRedisClient = (client: any) => {
 }
 
 export const redis = () => {
-  if (core.IS_TEST) {
+  // In integration tests, use real Redis (similar to STRIPE_INTEGRATION_TEST_MODE)
+  if (
+    core.IS_TEST &&
+    process.env.REDIS_INTEGRATION_TEST_MODE !== 'true'
+  ) {
     return _testRedisClient ?? testStubClient
   }
   return new Redis({
