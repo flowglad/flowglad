@@ -1744,7 +1744,9 @@ describe('billingRunHelpers', async () => {
           billingPeriod.subscriptionId
         )
         expect(result.payment.billingPeriodId).toBe(billingPeriod.id)
-        expect(result.payment.amount).toBe(result.totalDueAmount)
+        // Payment amount should be the actual amount to charge (totalDueAmount - totalAmountPaid),
+        // not the full totalDueAmount. This ensures the payment record matches what Stripe charges.
+        expect(result.payment.amount).toBe(result.amountToCharge)
         expect(result.payment.currency).toBe(result.invoice.currency)
         expect(result.payment.paymentMethodId).toBe(
           billingRun.paymentMethodId
@@ -2012,6 +2014,72 @@ describe('billingRunHelpers', async () => {
 
       expect(result.totalAmountPaid).toBe(50)
       expect(result.payments.length).toBeGreaterThan(0)
+    })
+
+    it('payment.amount equals amountToCharge (not totalDueAmount) when existing payments reduce amount owed', async () => {
+      // Setup: Create a billing period item with a known price
+      const knownPrice = 10000 // $100 in cents
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriodItem(
+          {
+            id: staticBillingPeriodItem.id,
+            unitPrice: knownPrice,
+            type: SubscriptionItemType.Static,
+          },
+          transaction
+        )
+      })
+
+      // Create an existing payment of $50 for this billing period
+      const existingPaymentAmount = 5000 // $50 in cents
+      const testInvoice = await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: staticPrice.id,
+      })
+
+      await setupPayment({
+        stripeChargeId: 'ch_existing_' + core.nanoid(),
+        status: PaymentStatus.Succeeded,
+        amount: existingPaymentAmount,
+        livemode: billingPeriod.livemode,
+        customerId: customer.id,
+        organizationId: organization.id,
+        stripePaymentIntentId: 'pi_existing_' + core.nanoid(),
+        invoiceId: testInvoice.id,
+        paymentMethod: paymentMethod.type,
+        billingPeriodId: billingPeriod.id,
+        subscriptionId: billingPeriod.subscriptionId,
+        paymentMethodId: paymentMethod.id,
+      })
+
+      // Execute the billing run
+      const result = await adminTransaction(({ transaction }) =>
+        executeBillingRunCalculationAndBookkeepingSteps(
+          billingRun,
+          transaction
+        )
+      )
+
+      // Verify the amounts are calculated correctly
+      expect(result.totalAmountPaid).toBe(existingPaymentAmount)
+      expect(result.amountToCharge).toBe(
+        result.totalDueAmount - result.totalAmountPaid
+      )
+
+      // The payment record must store amountToCharge, not totalDueAmount
+      // This is critical because:
+      // 1. Stripe will only charge amountToCharge
+      // 2. Refund logic uses payment.amount to validate max refundable
+      // 3. Revenue reporting sums payment.amount
+      if (result.payment) {
+        expect(result.payment.amount).toBe(result.amountToCharge)
+        expect(result.payment.amount).not.toBe(result.totalDueAmount)
+        expect(result.payment.amount).toBeLessThan(
+          result.totalDueAmount
+        )
+      }
     })
 
     it('should throw an error if customer has no stripe customer ID', async () => {
