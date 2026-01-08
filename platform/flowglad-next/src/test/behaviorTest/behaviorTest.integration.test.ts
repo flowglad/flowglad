@@ -217,8 +217,12 @@ behaviorTest({
     for (const result of results as BehaviorChainResult[]) {
       try {
         await teardownOrg({ organizationId: result.organization.id })
-      } catch {
-        // Ignore cleanup errors
+      } catch (error) {
+        // Log but don't fail - cleanup errors shouldn't mask test failures
+        console.warn(
+          `[teardown] Failed to cleanup org ${result.organization.id}:`,
+          error
+        )
       }
     }
   },
@@ -235,8 +239,12 @@ describe('Integration test reusing behaviors', () => {
     if (testOrgId) {
       try {
         await teardownOrg({ organizationId: testOrgId })
-      } catch {
-        // Ignore cleanup errors
+      } catch (error) {
+        // Log but don't fail - cleanup errors shouldn't mask test failures
+        console.warn(
+          `[afterEach] Failed to cleanup org ${testOrgId}:`,
+          error
+        )
       }
       testOrgId = null
     }
