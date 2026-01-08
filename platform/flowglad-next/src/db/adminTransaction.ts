@@ -156,7 +156,7 @@ export async function eventfulAdminTransaction<T>(
   fn: (
     params: AdminTransactionParams
   ) => Promise<[T, Event.Insert[]]>,
-  options: AdminTransactionOptions
+  options: AdminTransactionOptions = {}
 ): Promise<T> {
   return comprehensiveAdminTransaction(async (params) => {
     const [result, eventInserts] = await fn(params)
