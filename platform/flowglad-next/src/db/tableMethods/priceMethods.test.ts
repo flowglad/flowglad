@@ -1916,13 +1916,11 @@ describe('priceMethods.ts', () => {
           (p) => p.type === PriceType.Usage
         )
 
-        expect(subscriptionPrice).toBeTruthy()
         expect(subscriptionPrice!.productId).toBe(product.id)
         expect(subscriptionPrice!.pricingModelId).toBe(
           product.pricingModelId
         )
 
-        expect(usagePrice).toBeTruthy()
         expect(usagePrice!.productId).toBeNull()
         expect(usagePrice!.usageMeterId).toBe(usageMeter.id)
         expect(usagePrice!.pricingModelId).toBe(
