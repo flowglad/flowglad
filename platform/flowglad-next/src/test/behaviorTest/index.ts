@@ -69,9 +69,6 @@ export {
 // Dependency registration
 export {
   clearImplementations,
-  createGet,
-  createGetAll,
-  createImplement,
   Dependency,
   getImplementation,
   getImplementations,
