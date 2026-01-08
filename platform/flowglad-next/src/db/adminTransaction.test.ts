@@ -49,7 +49,7 @@ describe('comprehensiveAdminTransaction cache invalidation', () => {
     expect(result).toBe('empty_array')
   })
 
-  it('does not process cache invalidations if transaction rolls back due to error', async () => {
+  it('propagates errors from transaction callback', async () => {
     await expect(
       comprehensiveAdminTransaction(async () => {
         throw new Error('Admin transaction rolled back')
@@ -57,7 +57,7 @@ describe('comprehensiveAdminTransaction cache invalidation', () => {
     ).rejects.toThrow('Admin transaction rolled back')
   })
 
-  it('combines cache invalidations with events and ledger commands', async () => {
+  it('returns result successfully when transaction includes both events and cache invalidations', async () => {
     const mockEvents: Event.Insert[] = [
       {
         type: FlowgladEventType.PaymentSucceeded,
