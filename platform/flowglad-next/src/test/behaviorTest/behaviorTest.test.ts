@@ -126,8 +126,7 @@ describe('Dependency registration', () => {
     expect(instance1).not.toBe(instance2)
 
     // Mutating one instance should not affect the other
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(instance1 as any).language = 'modified'
+    instance1.language = 'modified'
     expect(instance1.language).toBe('modified')
     expect(instance2.language).toBe('en')
   })
