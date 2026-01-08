@@ -149,28 +149,3 @@ export function Dependency<T>() {
     getAll(): Map<string, DependencyFactory<T>>
   }
 }
-
-// Keep the old helpers for backwards compatibility
-export function createImplement<T extends DependencyClass>() {
-  return function implement(
-    this: T,
-    name: string,
-    implementation: Omit<InstanceType<T>, never>
-  ): void {
-    registerImplementation(this, name, implementation)
-  }
-}
-
-export function createGet<T extends DependencyClass>() {
-  return function get(this: T, name: string): InstanceType<T> {
-    return getImplementation(this, name)
-  }
-}
-
-export function createGetAll<T extends DependencyClass>() {
-  return function getAll(
-    this: T
-  ): Map<string, DependencyFactory<InstanceType<T>>> {
-    return getImplementations(this)
-  }
-}
