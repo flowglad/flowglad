@@ -1793,7 +1793,7 @@ describe('Edge cases and robustness for second-order RLS', () => {
   })
 })
 
-describe('Cache invalidation in transactions', () => {
+describe('comprehensiveAuthenticatedTransaction with cacheInvalidations', () => {
   let testOrg: Organization.Record
   let apiKey: ApiKey.Record
 
@@ -1808,17 +1808,15 @@ describe('Cache invalidation in transactions', () => {
     apiKey = userApiKey.apiKey
   })
 
-  it('processes cacheInvalidations after successful transaction commit', async () => {
+  it('returns result when cacheInvalidations are provided', async () => {
     const customerId = 'cust_test_123'
     const subscriptionId = 'sub_test_456'
 
-    // Create invalidation dependencies
     const cacheInvalidations = [
       CacheDependency.customer(customerId),
       CacheDependency.subscription(subscriptionId),
     ]
 
-    // Run transaction that returns cache invalidations
     const result = await comprehensiveAuthenticatedTransaction(
       async () => ({
         result: 'transaction_completed',
@@ -1827,19 +1825,13 @@ describe('Cache invalidation in transactions', () => {
       { apiKey: apiKey.token }
     )
 
-    // Verify transaction completed successfully
     expect(result).toBe('transaction_completed')
-
-    // The invalidateDependencies function is called internally after commit
-    // In test environment, Redis operations are mocked, so we just verify the transaction completes
   })
 
-  it('does not process cache invalidations when transaction is empty', async () => {
-    // Run transaction without cache invalidations
+  it('returns result when cacheInvalidations field is omitted', async () => {
     const result = await comprehensiveAuthenticatedTransaction(
       async () => ({
         result: 'no_invalidations',
-        // No cacheInvalidations field
       }),
       { apiKey: apiKey.token }
     )
@@ -1847,7 +1839,7 @@ describe('Cache invalidation in transactions', () => {
     expect(result).toBe('no_invalidations')
   })
 
-  it('returns result successfully when cacheInvalidations array is empty', async () => {
+  it('returns result when cacheInvalidations array is empty', async () => {
     const result = await comprehensiveAuthenticatedTransaction(
       async () => ({
         result: 'empty_array',
@@ -1859,33 +1851,18 @@ describe('Cache invalidation in transactions', () => {
     expect(result).toBe('empty_array')
   })
 
-  it('does not process cache invalidations if transaction rolls back due to error', async () => {
-    // This test verifies that when a transaction throws an error,
-    // the cacheInvalidations are not processed. Since invalidateDependencies
-    // is only called after successful commit, a thrown error means the
-    // transaction output (including cacheInvalidations) is never processed.
-
-    // Create a test that throws during transaction - even if cacheInvalidations
-    // were returned before the throw, they should not be processed
+  it('propagates errors from transaction callback', async () => {
     await expect(
       comprehensiveAuthenticatedTransaction(
         async () => {
-          // This error prevents the transaction from completing successfully,
-          // so cacheInvalidations would never be returned or processed
           throw new Error('Transaction rolled back')
         },
         { apiKey: apiKey.token }
       )
     ).rejects.toThrow('Transaction rolled back')
-
-    // The transaction threw, so comprehensiveAuthenticatedTransaction never
-    // reached the point where it would call invalidateDependencies.
-    // This is verified by the fact that the error propagated correctly -
-    // if post-commit processing had run, it would indicate a bug in the
-    // transaction error handling.
   })
 
-  it('combines cache invalidations with events and ledger commands', async () => {
+  it('returns result when transaction includes both events and cacheInvalidations', async () => {
     const mockEvents: Event.Insert[] = [
       {
         type: FlowgladEventType.PaymentSucceeded,

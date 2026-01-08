@@ -7,7 +7,7 @@ import { comprehensiveAdminTransaction } from './adminTransaction'
 import type { Event } from './schema/events'
 import type { Organization } from './schema/organizations'
 
-describe('comprehensiveAdminTransaction cache invalidation', () => {
+describe('comprehensiveAdminTransaction', () => {
   let testOrg: Organization.Record
 
   beforeEach(async () => {
@@ -15,7 +15,7 @@ describe('comprehensiveAdminTransaction cache invalidation', () => {
     testOrg = orgSetup.organization
   })
 
-  it('processes cacheInvalidations after successful transaction commit', async () => {
+  it('returns result when cacheInvalidations are provided', async () => {
     const customerId = 'cust_admin_test_123'
     const subscriptionId = 'sub_admin_test_456'
 
@@ -32,7 +32,7 @@ describe('comprehensiveAdminTransaction cache invalidation', () => {
     expect(result).toBe('admin_transaction_completed')
   })
 
-  it('does not process cache invalidations when cacheInvalidations field is omitted', async () => {
+  it('returns result when cacheInvalidations field is omitted', async () => {
     const result = await comprehensiveAdminTransaction(async () => ({
       result: 'no_invalidations',
     }))
@@ -40,7 +40,7 @@ describe('comprehensiveAdminTransaction cache invalidation', () => {
     expect(result).toBe('no_invalidations')
   })
 
-  it('returns result successfully when cacheInvalidations array is empty', async () => {
+  it('returns result when cacheInvalidations array is empty', async () => {
     const result = await comprehensiveAdminTransaction(async () => ({
       result: 'empty_array',
       cacheInvalidations: [],
@@ -57,7 +57,7 @@ describe('comprehensiveAdminTransaction cache invalidation', () => {
     ).rejects.toThrow('Admin transaction rolled back')
   })
 
-  it('returns result successfully when transaction includes both events and cache invalidations', async () => {
+  it('returns result when transaction includes both events and cacheInvalidations', async () => {
     const mockEvents: Event.Insert[] = [
       {
         type: FlowgladEventType.PaymentSucceeded,
