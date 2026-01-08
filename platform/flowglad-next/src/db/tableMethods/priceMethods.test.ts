@@ -5,6 +5,7 @@ import {
   setupPrice,
   setupPricingModel,
   setupProduct,
+  setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
@@ -12,6 +13,7 @@ import { core } from '@/utils/core'
 import type { Organization } from '../schema/organizations'
 import { nulledPriceColumns, type Price } from '../schema/prices'
 import type { Product } from '../schema/products'
+import type { UsageMeter } from '../schema/usageMeters'
 import { updateCustomer } from './customerMethods'
 import {
   bulkInsertPrices,
@@ -24,6 +26,7 @@ import {
   selectPriceBySlugAndCustomerId,
   selectPriceBySlugForDefaultPricingModel,
   selectPricesAndProductByProductId,
+  selectPricesAndProductsForOrganization,
   updatePrice,
 } from './priceMethods'
 import { updatePricingModel } from './pricingModelMethods'
@@ -1634,7 +1637,7 @@ describe('priceMethods.ts', () => {
   })
 
   describe('insertPrice', () => {
-    it('should insert price and derive pricingModelId from product', async () => {
+    it('should insert price and derive pricingModelId from product for subscription prices', async () => {
       await adminTransaction(async ({ transaction }) => {
         const newPrice = await insertPrice(
           {
@@ -1652,6 +1655,74 @@ describe('priceMethods.ts', () => {
         )
 
         expect(newPrice.pricingModelId).toBe(product.pricingModelId)
+      })
+    })
+
+    it('should derive pricingModelId from usage meter for usage prices', async () => {
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        livemode: true,
+        pricingModelId: product.pricingModelId,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const newPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: null,
+            usageMeterId: usageMeter.id,
+            name: 'Usage Price',
+            type: PriceType.Usage,
+            unitPrice: 100,
+            livemode: true,
+            currency: CurrencyCode.USD,
+            slug: `usage-price-${core.nanoid()}`,
+            isDefault: false,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            usageEventsPerUnit: 1,
+          },
+          transaction
+        )
+
+        expect(newPrice.pricingModelId).toBe(
+          usageMeter.pricingModelId
+        )
+      })
+    })
+
+    it('should set productId to null for usage prices', async () => {
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter For Null Product',
+        livemode: true,
+        pricingModelId: product.pricingModelId,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const newPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: null,
+            usageMeterId: usageMeter.id,
+            name: 'Usage Price Null Product',
+            type: PriceType.Usage,
+            unitPrice: 200,
+            livemode: true,
+            currency: CurrencyCode.USD,
+            slug: `usage-price-null-${core.nanoid()}`,
+            isDefault: false,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            usageEventsPerUnit: 1,
+          },
+          transaction
+        )
+
+        expect(newPrice.productId).toBeNull()
+        expect(newPrice.usageMeterId).toBe(usageMeter.id)
+        expect(newPrice.type).toBe(PriceType.Usage)
       })
     })
 
@@ -1790,6 +1861,175 @@ describe('priceMethods.ts', () => {
         expect(prices[1]!.pricingModelId).toBe(
           product2.pricingModelId
         )
+      })
+    })
+
+    it('should handle mixed usage and subscription prices', async () => {
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Bulk Test Usage Meter',
+        livemode: true,
+        pricingModelId: product.pricingModelId,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const prices = await bulkInsertPrices(
+          [
+            {
+              ...nulledPriceColumns,
+              productId: product.id,
+              name: 'Subscription Price',
+              type: PriceType.Subscription,
+              unitPrice: 2000,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `bulk-sub-${core.nanoid()}`,
+              isDefault: false,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+            },
+            {
+              ...nulledPriceColumns,
+              productId: null,
+              usageMeterId: usageMeter.id,
+              name: 'Usage Price',
+              type: PriceType.Usage,
+              unitPrice: 100,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `bulk-usage-${core.nanoid()}`,
+              isDefault: false,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              usageEventsPerUnit: 1,
+            },
+          ],
+          transaction
+        )
+
+        expect(prices).toHaveLength(2)
+
+        const subscriptionPrice = prices.find(
+          (p) => p.type === PriceType.Subscription
+        )
+        const usagePrice = prices.find(
+          (p) => p.type === PriceType.Usage
+        )
+
+        expect(subscriptionPrice).toBeTruthy()
+        expect(subscriptionPrice!.productId).toBe(product.id)
+        expect(subscriptionPrice!.pricingModelId).toBe(
+          product.pricingModelId
+        )
+
+        expect(usagePrice).toBeTruthy()
+        expect(usagePrice!.productId).toBeNull()
+        expect(usagePrice!.usageMeterId).toBe(usageMeter.id)
+        expect(usagePrice!.pricingModelId).toBe(
+          usageMeter.pricingModelId
+        )
+      })
+    })
+  })
+
+  describe('selectPricesAndProductsForOrganization', () => {
+    it('should return null product for usage prices', async () => {
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Select Test Usage Meter',
+        livemode: true,
+        pricingModelId: product.pricingModelId,
+      })
+
+      const usagePrice = await setupPrice({
+        name: 'Usage Price For Select',
+        type: PriceType.Usage,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 50,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        usageMeterId: usageMeter.id,
+        isDefault: false,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const results = await selectPricesAndProductsForOrganization(
+          { id: usagePrice.id },
+          organization.id,
+          transaction
+        )
+
+        expect(results).toHaveLength(1)
+        expect(results[0]!.price.id).toBe(usagePrice.id)
+        expect(results[0]!.price.type).toBe(PriceType.Usage)
+        expect(results[0]!.product).toBeNull()
+      })
+    })
+
+    it('should return product for subscription prices', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const results = await selectPricesAndProductsForOrganization(
+          { id: price.id },
+          organization.id,
+          transaction
+        )
+
+        expect(results).toHaveLength(1)
+        expect(results[0]!.price.id).toBe(price.id)
+        expect(results[0]!.price.type).toBe(PriceType.Subscription)
+        expect(results[0]!.product).not.toBeNull()
+        expect(results[0]!.product!.id).toBe(product.id)
+      })
+    })
+
+    it('should return both usage and subscription prices for an organization', async () => {
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Mixed Select Test Meter',
+        livemode: true,
+        pricingModelId: product.pricingModelId,
+      })
+
+      const usagePrice = await setupPrice({
+        name: 'Mixed Usage Price',
+        type: PriceType.Usage,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 75,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        usageMeterId: usageMeter.id,
+        isDefault: false,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const results = await selectPricesAndProductsForOrganization(
+          {},
+          organization.id,
+          transaction
+        )
+
+        // Should have at least the subscription price from beforeEach and the usage price
+        const subscriptionResults = results.filter(
+          (r) => r.price.type === PriceType.Subscription
+        )
+        const usageResults = results.filter(
+          (r) => r.price.type === PriceType.Usage
+        )
+
+        expect(subscriptionResults.length).toBeGreaterThan(0)
+        expect(usageResults.length).toBeGreaterThan(0)
+
+        // Subscription prices should have products
+        subscriptionResults.forEach((result) => {
+          expect(result.product).not.toBeNull()
+        })
+
+        // Usage prices should have null products
+        usageResults.forEach((result) => {
+          expect(result.product).toBeNull()
+        })
       })
     })
   })
