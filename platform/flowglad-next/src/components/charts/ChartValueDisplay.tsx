@@ -24,9 +24,7 @@ export function ChartValueDisplay({
       {isLoading ? (
         <Skeleton className="w-36 h-7" />
       ) : (
-        <p className="text-xl font-semibold text-foreground">
-          {value}
-        </p>
+        <p className="text-xl font-medium text-foreground">{value}</p>
       )}
     </div>
   )

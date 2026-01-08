@@ -1,6 +1,8 @@
+'use client'
+
 import { isValid } from 'date-fns'
 import type { TooltipProps } from '@/components/charts'
-import { useAuthenticatedContext } from '@/contexts/authContext'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
 import {
@@ -8,8 +10,6 @@ import {
   MONTH_NAMES_SHORT,
 } from '@/utils/chart/dateFormatting'
 import type { ChartTooltipMetadata } from '@/utils/chart/types'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import ErrorBoundary from './ErrorBoundary'
 
 /**
  * Formats a UTC date without timezone conversion for tooltip display.
@@ -84,9 +84,6 @@ function formatPeriodForTooltip(
 /**
  * Formats a date label for the tooltip using period boundary calculations.
  * Handles partial periods at the start/end of the user's selected range.
- *
- * MIGRATION NOTE: When backend provides `periodStart` and `periodEnd` directly,
- * update this component to use those values instead of calculating boundaries.
  */
 function DateLabel({
   label,
@@ -154,25 +151,52 @@ function DateLabel({
   }
 }
 
-function InnerRevenueTooltip({
+interface ChartDataTooltipProps extends TooltipProps {
+  /** Function to format the numeric value for display */
+  valueFormatter: (value: number) => string
+}
+
+/**
+ * Unified chart data tooltip component.
+ * Displays a formatted value on top with a date/period label below.
+ * Used across all dashboard charts for consistent styling.
+ *
+ * @example
+ * // For currency values
+ * <LineChart
+ *   customTooltip={(props) => (
+ *     <ChartDataTooltip
+ *       {...props}
+ *       valueFormatter={(v) => formatCurrency(currency, v)}
+ *     />
+ *   )}
+ * />
+ *
+ * @example
+ * // For count values
+ * <LineChart
+ *   customTooltip={(props) => (
+ *     <ChartDataTooltip
+ *       {...props}
+ *       valueFormatter={(v) => v.toLocaleString()}
+ *     />
+ *   )}
+ * />
+ */
+export function ChartDataTooltip({
   active,
   payload,
   label,
-}: TooltipProps) {
-  const { organization } = useAuthenticatedContext()
-  if (!active || !payload?.[0] || !organization) {
+  valueFormatter,
+}: ChartDataTooltipProps) {
+  if (!active || !payload?.[0]) {
     return null
   }
+
   const value = payload[0].value as number
-  const formattedValue =
-    stripeCurrencyAmountToHumanReadableCurrencyAmount(
-      organization.defaultCurrency,
-      value
-    )
+  const formattedValue = valueFormatter(value)
 
   // Extract tooltip metadata from payload
-  // MIGRATION NOTE: When backend provides period boundaries, these will come
-  // from the API response instead of being calculated on the frontend.
   const payloadData = payload[0].payload as
     | Partial<ChartTooltipMetadata>
     | undefined
@@ -184,17 +208,17 @@ function InnerRevenueTooltip({
   const isLastPoint = payloadData?.isLastPoint
 
   return (
-    <div
-      className={cn(
-        'bg-popover flex flex-col gap-2 p-2 rounded border border-border',
-        'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
-      )}
-    >
-      <p className="text-base font-medium text-foreground tracking-tight leading-none">
-        {formattedValue}
-      </p>
-      <p className="text-sm text-muted-foreground tracking-tight leading-5">
-        <ErrorBoundary fallback={<span>{label}</span>}>
+    <ErrorBoundary fallback={<div>Error</div>}>
+      <div
+        className={cn(
+          'bg-popover flex flex-col gap-2 p-2 rounded border border-border',
+          'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
+        )}
+      >
+        <p className="text-base font-medium text-foreground tracking-tight leading-none">
+          {formattedValue}
+        </p>
+        <p className="text-sm text-muted-foreground tracking-tight leading-5">
           <DateLabel
             label={label}
             isoDate={isoDate}
@@ -204,16 +228,8 @@ function InnerRevenueTooltip({
             isFirstPoint={isFirstPoint}
             isLastPoint={isLastPoint}
           />
-        </ErrorBoundary>
-      </p>
-    </div>
-  )
-}
-
-export function RevenueTooltip(props: TooltipProps) {
-  return (
-    <ErrorBoundary fallback={<div>Error</div>}>
-      <InnerRevenueTooltip {...props} />
+        </p>
+      </div>
     </ErrorBoundary>
   )
 }

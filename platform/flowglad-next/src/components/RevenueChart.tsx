@@ -2,13 +2,13 @@
 
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
+import { ChartDataTooltip } from '@/components/ChartDataTooltip'
 import {
   ChartBody,
   ChartHeader,
   ChartValueDisplay,
   LineChart,
 } from '@/components/charts'
-import { RevenueTooltip } from '@/components/RevenueTooltip'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { useChartInterval } from '@/hooks/useChartInterval'
 import { useChartTooltip } from '@/hooks/useChartTooltip'
@@ -144,7 +144,7 @@ export function RevenueChart({
   return (
     <div className="w-full h-full">
       <ChartHeader
-        title="Revenue"
+        title="All revenue"
         infoTooltip="Total revenue collected from all payments in the selected period, including one-time purchases and subscription payments."
         showInlineSelector={showInlineSelector}
         interval={interval}
@@ -166,7 +166,17 @@ export function RevenueChart({
           className="-mb-2 mt-2"
           colors={['foreground']}
           fill="gradient"
-          customTooltip={RevenueTooltip}
+          customTooltip={(props) => (
+            <ChartDataTooltip
+              {...props}
+              valueFormatter={(value) =>
+                stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  defaultCurrency,
+                  value
+                )
+              }
+            />
+          )}
           maxValue={maxValue}
           autoMinValue={false}
           minValue={0}

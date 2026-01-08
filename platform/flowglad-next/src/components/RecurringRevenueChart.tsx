@@ -2,13 +2,13 @@
 
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
+import { ChartDataTooltip } from '@/components/ChartDataTooltip'
 import {
   ChartBody,
   ChartHeader,
   ChartValueDisplay,
   LineChart,
 } from '@/components/charts'
-import { RevenueTooltip } from '@/components/RevenueTooltip'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { useChartInterval } from '@/hooks/useChartInterval'
 import { useChartTooltip } from '@/hooks/useChartTooltip'
@@ -138,7 +138,17 @@ export const RecurringRevenueChart = ({
           className="-mb-2 mt-2"
           colors={['foreground']}
           fill="gradient"
-          customTooltip={RevenueTooltip}
+          customTooltip={(props) => (
+            <ChartDataTooltip
+              {...props}
+              valueFormatter={(value) =>
+                stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  currencyForFormatter,
+                  value
+                )
+              }
+            />
+          )}
           maxValue={maxValue}
           autoMinValue={false}
           minValue={0}
