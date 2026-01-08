@@ -90,9 +90,13 @@ describeIfRedisKey(
       await cleanupRedisTestKeys(client, keysToCleanup)
     })
 
-    it('selectSubscriptionItemsWithPricesBySubscriptionIdCached stores result in Redis and returns cached result on subsequent calls', async () => {
+    it('selectSubscriptionItemsWithPricesBySubscriptionIdCached populates cache, returns cached result on subsequent calls, and registers subscription dependency', async () => {
       const client = getRedisTestClient()
       const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}`
+      const dependencyKey = CacheDependency.subscription(
+        subscription.id
+      )
+      const registryKey = `cacheDeps:${dependencyKey}`
 
       await adminTransaction(async ({ transaction }) => {
         // First call - should populate cache
@@ -102,6 +106,7 @@ describeIfRedisKey(
             transaction
           )
 
+        // Verify correct data returned
         expect(result1.length).toBe(1)
         expect(result1[0].subscriptionItem.id).toBe(
           subscriptionItem.id
@@ -111,6 +116,10 @@ describeIfRedisKey(
         // Verify the value is stored in Redis
         const storedValue = await client.get(cacheKey)
         expect(storedValue).not.toBeNull()
+
+        // Verify the dependency registry contains our cache key
+        const registeredKeys = await client.smembers(registryKey)
+        expect(registeredKeys).toContain(cacheKey)
 
         // Second call - should return cached result
         const result2 =
@@ -123,27 +132,6 @@ describeIfRedisKey(
         expect(result2[0].subscriptionItem.id).toBe(
           result1[0].subscriptionItem.id
         )
-      })
-    })
-
-    it('selectSubscriptionItemsWithPricesBySubscriptionIdCached registers subscription dependency in Redis', async () => {
-      const client = getRedisTestClient()
-      const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}`
-      const dependencyKey = CacheDependency.subscription(
-        subscription.id
-      )
-      const registryKey = `cacheDeps:${dependencyKey}`
-
-      await adminTransaction(async ({ transaction }) => {
-        // Call the cached function to trigger caching and dependency registration
-        await selectSubscriptionItemsWithPricesBySubscriptionIdCached(
-          subscription.id,
-          transaction
-        )
-
-        // Verify the dependency registry contains our cache key
-        const registeredKeys = await client.smembers(registryKey)
-        expect(registeredKeys).toContain(cacheKey)
       })
     })
 
@@ -195,7 +183,10 @@ describeIfRedisKey(
     it('cache returns empty array for non-existent subscription', async () => {
       const nonExistentId = 'sub_nonexistent_12345'
       const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${nonExistentId}`
-      keysToCleanup.push(cacheKey)
+      const dependencyKey =
+        CacheDependency.subscription(nonExistentId)
+      const registryKey = `cacheDeps:${dependencyKey}`
+      keysToCleanup.push(cacheKey, registryKey)
 
       await adminTransaction(async ({ transaction }) => {
         const result =
