@@ -14,6 +14,7 @@ import { useChartInterval } from '@/hooks/useChartInterval'
 import { useChartTooltip } from '@/hooks/useChartTooltip'
 import { CurrencyCode, RevenueChartIntervalUnit } from '@/types'
 import { formatDateUTC } from '@/utils/chart/dateFormatting'
+import { createChartTooltipMetadata } from '@/utils/chart/types'
 import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
@@ -70,15 +71,15 @@ export const RecurringRevenueChart = ({
       return {
         // Use UTC formatting to match PostgreSQL's date_trunc behavior
         date: formatDateUTC(dateObj, interval),
-        // Store the ISO date string for the tooltip to use for proper year formatting
-        isoDate: dateObj.toISOString(),
-        // Store the interval unit for the tooltip to format dates appropriately
-        intervalUnit: interval,
-        // Range metadata for accurate period boundary display in tooltips
-        rangeStart: fromDate.toISOString(),
-        rangeEnd: toDate.toISOString(),
-        isFirstPoint: index === 0,
-        isLastPoint: index === mrrData.length - 1,
+        // Tooltip metadata for consistent date/period formatting
+        ...createChartTooltipMetadata({
+          date: dateObj,
+          intervalUnit: interval,
+          rangeStart: fromDate,
+          rangeEnd: toDate,
+          index,
+          totalPoints: mrrData.length,
+        }),
         formattedRevenue,
         revenue: Number(item.amount).toFixed(2),
       }
