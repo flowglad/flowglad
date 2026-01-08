@@ -125,6 +125,14 @@ export function behaviorTest(config: BehaviorTestConfig): void {
     )
   }
 
+  // Fail if no combinations remain after filtering
+  if (combinations.length === 0) {
+    throw new Error(
+      'behaviorTest: No test combinations remain after applying only/skip filters. ' +
+        'Check your filter configuration or ensure implementations are registered.'
+    )
+  }
+
   // Build describe block name from behavior names
   const behaviorNames = chain
     .map((step) => step.behavior.name)
