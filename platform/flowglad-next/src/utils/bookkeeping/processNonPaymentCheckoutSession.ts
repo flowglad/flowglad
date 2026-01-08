@@ -4,13 +4,17 @@ import type { Purchase } from '@/db/schema/purchases'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
-import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
+import {
+  selectPurchaseById,
+  updatePurchase,
+} from '@/db/tableMethods/purchaseMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { DbTransaction } from '@/db/types'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PriceType,
+  PurchaseStatus,
 } from '@/types'
 import { createInitialInvoiceForPurchase } from '@/utils/bookkeeping'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
@@ -89,6 +93,20 @@ export const processNonPaymentCheckoutSession = async (
       transaction
     )
   purchase = upsertPurchaseResult.result.purchase
+
+  // Update purchase to Paid status for successful zero-total checkouts
+  // This mirrors the behavior in updatePurchaseStatusToReflectLatestPayment
+  // but without a payment record since there's no charge for $0 checkouts
+  purchase = await updatePurchase(
+    {
+      id: purchase.id,
+      status: PurchaseStatus.Paid,
+      purchaseDate: Date.now(),
+      priceType: purchase.priceType,
+    },
+    transaction
+  )
+
   const invoiceForPurchase = await createInitialInvoiceForPurchase(
     {
       purchase,
