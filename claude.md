@@ -30,7 +30,8 @@ You run in an environment where `ast-grep` is available; whenever a search requi
 When making database schema changes:
 1. Modify the schema definition files (e.g., files in `platform/flowglad-next/src/db/schema/`)
 2. Run `bun run migrations:generate` from `platform/flowglad-next` to auto-generate the migration SQL
-3. Run `bun run migrations:push` to apply the migrations
+
+**NEVER run `bun run migrations:push`** - applying migrations to the database should only be done by the user, not by agents.
 
 Drizzle Kit analyzes your schema changes and generates the appropriate migration files automatically. Manually created migration files will likely have incorrect formatting, missing metadata, or cause conflicts with the migration system.
 
