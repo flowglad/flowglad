@@ -149,9 +149,8 @@ export async function comprehensiveAdminTransaction<T>(
 }
 
 /**
- * Original eventfulAdminTransaction.
- * Consider deprecating or refactoring to use comprehensiveAdminTransaction.
- * If kept, it could be a wrapper that adapts the old fn signature to TransactionOutput.
+ * Wrapper around comprehensiveAdminTransaction for functions that return
+ * a tuple of [result, events]. Adapts the old signature to TransactionOutput.
  */
 export async function eventfulAdminTransaction<T>(
   fn: (
@@ -159,7 +158,6 @@ export async function eventfulAdminTransaction<T>(
   ) => Promise<[T, Event.Insert[]]>,
   options: AdminTransactionOptions
 ): Promise<T> {
-  // This is now a simple wrapper around comprehensiveAdminTransaction
   return comprehensiveAdminTransaction(async (params) => {
     const [result, eventInserts] = await fn(params)
     return {

@@ -147,7 +147,8 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
 }
 
 /**
- * New comprehensive authenticated transaction handler.
+ * Executes a function within an authenticated database transaction and automatically
+ * processes events and ledger commands from the transaction output.
  */
 export async function comprehensiveAuthenticatedTransaction<T>(
   fn: (
@@ -183,8 +184,8 @@ export async function comprehensiveAuthenticatedTransaction<T>(
 }
 
 /**
- * Original eventfulAuthenticatedTransaction.
- * Consider deprecating. If kept, adapt to use comprehensiveAuthenticatedTransaction.
+ * Wrapper around comprehensiveAuthenticatedTransaction for functions that return
+ * a tuple of [result, events]. Adapts the old signature to TransactionOutput.
  */
 export function eventfulAuthenticatedTransaction<T>(
   fn: (
