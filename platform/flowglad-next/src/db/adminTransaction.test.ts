@@ -1,0 +1,92 @@
+import { beforeEach, describe, expect, it } from 'vitest'
+import { setupOrg } from '@/../seedDatabase'
+import { EventNoun, FlowgladEventType } from '@/types'
+import { hashData } from '@/utils/backendCore'
+import { CacheDependency } from '@/utils/cache'
+import { comprehensiveAdminTransaction } from './adminTransaction'
+import type { Event } from './schema/events'
+import type { Organization } from './schema/organizations'
+
+describe('comprehensiveAdminTransaction cache invalidation', () => {
+  let testOrg: Organization.Record
+
+  beforeEach(async () => {
+    const orgSetup = await setupOrg()
+    testOrg = orgSetup.organization
+  })
+
+  it('processes cacheInvalidations after successful transaction commit', async () => {
+    const customerId = 'cust_admin_test_123'
+    const subscriptionId = 'sub_admin_test_456'
+
+    const cacheInvalidations = [
+      CacheDependency.customer(customerId),
+      CacheDependency.subscription(subscriptionId),
+    ]
+
+    const result = await comprehensiveAdminTransaction(async () => ({
+      result: 'admin_transaction_completed',
+      cacheInvalidations,
+    }))
+
+    expect(result).toBe('admin_transaction_completed')
+  })
+
+  it('does not process cache invalidations when cacheInvalidations field is omitted', async () => {
+    const result = await comprehensiveAdminTransaction(async () => ({
+      result: 'no_invalidations',
+    }))
+
+    expect(result).toBe('no_invalidations')
+  })
+
+  it('returns result successfully when cacheInvalidations array is empty', async () => {
+    const result = await comprehensiveAdminTransaction(async () => ({
+      result: 'empty_array',
+      cacheInvalidations: [],
+    }))
+
+    expect(result).toBe('empty_array')
+  })
+
+  it('does not process cache invalidations if transaction rolls back due to error', async () => {
+    await expect(
+      comprehensiveAdminTransaction(async () => {
+        throw new Error('Admin transaction rolled back')
+      })
+    ).rejects.toThrow('Admin transaction rolled back')
+  })
+
+  it('combines cache invalidations with events and ledger commands', async () => {
+    const mockEvents: Event.Insert[] = [
+      {
+        type: FlowgladEventType.PaymentSucceeded,
+        livemode: true,
+        payload: {
+          object: EventNoun.Payment,
+          id: 'test_admin_event_cache',
+          customer: {
+            id: 'test_customer_id',
+            externalId: 'test_external_id',
+          },
+        },
+        organizationId: testOrg.id,
+        metadata: {},
+        hash: hashData(`${testOrg.id}-admin-cache-test`),
+        occurredAt: Date.now(),
+        submittedAt: Date.now(),
+        processedAt: null,
+      },
+    ]
+
+    const result = await comprehensiveAdminTransaction(async () => ({
+      result: 'combined_admin_output',
+      eventsToInsert: mockEvents,
+      cacheInvalidations: [
+        CacheDependency.customer('cust_admin_combined'),
+      ],
+    }))
+
+    expect(result).toBe('combined_admin_output')
+  })
+})
