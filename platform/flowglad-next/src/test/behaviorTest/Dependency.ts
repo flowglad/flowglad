@@ -31,6 +31,8 @@ function getOrCreateImplMap(
 
 /**
  * Register an implementation for a dependency class.
+ * The implementation is shallow-cloned each time the factory is called
+ * to ensure test isolation (mutations in one test don't leak to others).
  */
 export function registerImplementation<T extends DependencyClass>(
   depClass: T,
@@ -39,7 +41,9 @@ export function registerImplementation<T extends DependencyClass>(
 ): void {
   const implMap = getOrCreateImplMap(depClass)
   const factory: DependencyFactory<InstanceType<T>> = () => {
-    return implementation as InstanceType<T>
+    // Shallow clone to ensure each test gets a fresh instance
+    // This prevents accidental state sharing between tests
+    return { ...implementation } as InstanceType<T>
   }
   implMap.set(name, factory)
 }
