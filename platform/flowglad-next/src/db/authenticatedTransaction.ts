@@ -160,9 +160,9 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
   })
 
   // Transaction committed successfully - now invalidate caches
-  // This is fire-and-forget; errors are logged but don't fail the request
+  // Fire-and-forget; errors are logged but don't fail the request
   if (cacheInvalidations.length > 0) {
-    await invalidateDependencies(cacheInvalidations)
+    void invalidateDependencies(cacheInvalidations)
   }
 
   return {
