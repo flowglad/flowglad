@@ -4,17 +4,20 @@ import {
   setupCustomer,
   setupDiscount,
   setupOrg,
+  setupPrice,
 } from '@/../seedDatabase'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   DiscountAmountType,
+  PriceType,
   PurchaseStatus,
 } from '@/types'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
@@ -23,6 +26,7 @@ import core from '@/utils/core'
 
 describe('processNonPaymentCheckoutSession', () => {
   let organization: Organization.Record
+  let product: Product.Record
   let price: Price.Record
   let customer: Customer.Record
   let checkoutSession: CheckoutSession.Record
@@ -30,7 +34,18 @@ describe('processNonPaymentCheckoutSession', () => {
   beforeEach(async () => {
     const setupData = await setupOrg()
     organization = setupData.organization
-    price = setupData.price
+    product = setupData.product
+
+    // Create a single payment price (not subscription) since processNonPaymentCheckoutSession
+    // does not support subscriptions
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Single Payment Price',
+      type: PriceType.SinglePayment,
+      unitPrice: 10000, // $100.00
+      livemode: true,
+      isDefault: false,
+    })
 
     customer = await setupCustomer({
       organizationId: organization.id,
