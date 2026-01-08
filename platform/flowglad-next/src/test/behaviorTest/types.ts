@@ -24,7 +24,7 @@ export type TeardownFn<TResult = unknown> = (
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DependencyClass<T = any> = abstract new (
-  ...args: any[]
+  ...args: unknown[]
 ) => T
 
 /**
