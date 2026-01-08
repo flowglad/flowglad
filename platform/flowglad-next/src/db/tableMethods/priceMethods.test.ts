@@ -1947,7 +1947,7 @@ describe('priceMethods.ts', () => {
         })
       })
 
-      it('bulk insert with mixed product prices and usage prices derives pricingModelId correctly', async () => {
+      it('bulk insert derives pricingModelId from product for product prices and from usage meter for usage prices', async () => {
         const testProduct = await setupProduct({
           organizationId: organization.id,
           name: 'Test Product for Mixed Insert',
