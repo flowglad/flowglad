@@ -169,22 +169,32 @@ export function behaviorTest(config: BehaviorTestConfig): void {
 
           // Run through the chain
           let prev: unknown = undefined
+          let hasResult = false
 
-          for (const step of chain) {
-            // Run behavior
-            const result = await step.behavior.run(resolvedDeps, prev)
+          try {
+            for (const step of chain) {
+              // Run behavior
+              const result = await step.behavior.run(
+                resolvedDeps,
+                prev
+              )
 
-            // Assert invariants if provided
-            if (step.invariants) {
-              await step.invariants(result, combination)
+              // Track that we have a result (for teardown even if invariants fail)
+              prev = result
+              hasResult = true
+
+              // Assert invariants if provided
+              if (step.invariants) {
+                await step.invariants(result, combination)
+              }
             }
-
-            // Pass result to next behavior
-            prev = result
+          } finally {
+            // Track result for teardown even if test failed mid-chain
+            // This ensures resources created by successful behaviors get cleaned up
+            if (hasResult) {
+              finalResults.push(prev)
+            }
           }
-
-          // Track final result for teardown
-          finalResults.push(prev)
         },
         testOptions
       )
