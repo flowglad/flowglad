@@ -17,6 +17,8 @@ import {
   singlePaymentPriceClientUpdateSchema,
   subscriptionPriceClientInsertSchema,
   subscriptionPriceClientUpdateSchema,
+  usagePriceClientInsertSchema,
+  usagePriceClientUpdateSchema,
 } from '@/db/schema/prices'
 import { productsClientUpdateSchema } from '@/db/schema/products'
 import { usageMetersClientUpdateSchema } from '@/db/schema/usageMeters'
@@ -25,6 +27,7 @@ import type {
   SetupPricingModelInput,
   SetupPricingModelProductInput,
   SetupPricingModelProductPriceInput,
+  SetupUsageMeterPriceInput,
 } from './setupSchemas'
 
 /**
@@ -203,24 +206,27 @@ const toSluggedUsageMeters = (
  * Usage meters are compared by their usageMeter.slug field. The function uses the generic
  * `diffSluggedResources` utility to perform the comparison.
  *
+ * For usage meters that exist in both arrays, the function also compares their prices
+ * and includes price diff information in the result.
+ *
  * Note: Usage meter removal is not allowed and will cause validation errors in later stages.
  *
  * @param existing - Array of existing usage meters (with nested usageMeter and prices)
  * @param proposed - Array of proposed usage meters (with nested usageMeter and prices)
- * @returns A DiffResult containing usage meters to remove, create, and update
+ * @returns A UsageMeterDiffResult containing usage meters to remove, create, and update with price diffs
  *
  * @example
  * ```typescript
  * const existing = [{ usageMeter: { slug: 'api-calls', name: 'API Calls' }, prices: [...] }]
  * const proposed = [{ usageMeter: { slug: 'api-calls', name: 'API Requests' }, prices: [...] }]
  * const diff = diffUsageMeters(existing, proposed)
- * // diff.toUpdate will contain the usage meter with name change
+ * // diff.toUpdate will contain the usage meter with name change and price diff
  * ```
  */
 export const diffUsageMeters = (
   existing: UsageMeterDiffInput[],
   proposed: UsageMeterDiffInput[]
-): DiffResult<UsageMeterDiffInput> => {
+): UsageMeterDiffResult => {
   // Convert to slugged format for generic diffing
   const sluggedExisting = toSluggedUsageMeters(existing)
   const sluggedProposed = toSluggedUsageMeters(proposed)
@@ -231,17 +237,151 @@ export const diffUsageMeters = (
     sluggedProposed
   )
 
-  // Cast back to UsageMeterDiffInput (removing the added slug field)
+  // Build the result with price diffs for updates
+  const toUpdate = baseDiff.toUpdate.map(
+    ({ existing: existingMeter, proposed: proposedMeter }) => {
+      // Cast to UsageMeterDiffInput to access prices
+      const existing = existingMeter as unknown as UsageMeterDiffInput
+      const proposed = proposedMeter as unknown as UsageMeterDiffInput
+
+      // Diff the prices within this usage meter
+      const priceDiff = diffUsageMeterPrices(
+        existing.prices,
+        proposed.prices
+      )
+
+      return {
+        existing,
+        proposed,
+        priceDiff,
+      }
+    }
+  )
+
+  return {
+    toRemove: baseDiff.toRemove as unknown as UsageMeterDiffInput[],
+    toCreate: baseDiff.toCreate as unknown as UsageMeterDiffInput[],
+    toUpdate,
+  }
+}
+
+/**
+ * Result of diffing usage prices within a usage meter.
+ * Contains the prices to remove, create, and update for a single usage meter.
+ */
+export type UsageMeterPriceDiffResult = {
+  /**
+   * Prices that exist in the existing usage meter but not in the proposed.
+   * These prices should be removed (deactivated).
+   */
+  toRemove: SetupUsageMeterPriceInput[]
+  /**
+   * Prices that exist in the proposed usage meter but not in the existing.
+   * These prices should be created.
+   */
+  toCreate: SetupUsageMeterPriceInput[]
+  /**
+   * Prices that exist in both (matched by slug).
+   * These prices may need to be updated if their properties differ.
+   */
+  toUpdate: Array<{
+    existing: SetupUsageMeterPriceInput
+    proposed: SetupUsageMeterPriceInput
+  }>
+}
+
+/**
+ * Result of diffing two arrays of usage meters.
+ *
+ * Similar to DiffResult but with additional price comparison information
+ * for usage meters that need to be updated.
+ */
+export type UsageMeterDiffResult = {
+  /**
+   * Usage meters that exist in the existing array but not in the proposed array.
+   * These usage meters should be removed.
+   */
+  toRemove: UsageMeterDiffInput[]
+  /**
+   * Usage meters that exist in the proposed array but not in the existing array.
+   * These usage meters should be created.
+   */
+  toCreate: UsageMeterDiffInput[]
+  /**
+   * Usage meters that exist in both arrays (matched by usageMeter.slug).
+   * These usage meters may need to be updated if their properties differ.
+   * Includes price diff information when prices differ.
+   */
+  toUpdate: Array<{
+    existing: UsageMeterDiffInput
+    proposed: UsageMeterDiffInput
+    /**
+     * Price comparison information for usage prices within this meter.
+     * Always present for updates (may be empty if no price changes).
+     */
+    priceDiff: UsageMeterPriceDiffResult
+  }>
+}
+
+/**
+ * Extracts the slug from a usage price for slug-based diffing.
+ * Falls back to generating a slug from other identifying fields if slug is not present.
+ */
+const getUsagePriceSlug = (
+  price: SetupUsageMeterPriceInput
+): string => {
+  // Prices should have a slug
+  if (price.slug) {
+    return price.slug
+  }
+  // Fallback: generate a unique key from unitPrice and usageEventsPerUnit
+  return `__generated__${price.unitPrice}_${price.usageEventsPerUnit}`
+}
+
+/**
+ * Converts usage prices to a format compatible with diffSluggedResources.
+ */
+const toSluggedUsagePrices = (
+  prices: SetupUsageMeterPriceInput[]
+): SluggedResource<SetupUsageMeterPriceInput>[] => {
+  return prices.map((p) => ({
+    ...p,
+    slug: getUsagePriceSlug(p),
+  }))
+}
+
+/**
+ * Diffs usage prices within a usage meter.
+ *
+ * @param existingPrices - Array of existing usage prices (or undefined/empty)
+ * @param proposedPrices - Array of proposed usage prices (or undefined/empty)
+ * @returns A UsageMeterPriceDiffResult containing prices to remove, create, and update
+ */
+export const diffUsageMeterPrices = (
+  existingPrices: SetupUsageMeterPriceInput[] | undefined,
+  proposedPrices: SetupUsageMeterPriceInput[] | undefined
+): UsageMeterPriceDiffResult => {
+  const existing = existingPrices || []
+  const proposed = proposedPrices || []
+
+  // Convert to slugged format for generic diffing
+  const sluggedExisting = toSluggedUsagePrices(existing)
+  const sluggedProposed = toSluggedUsagePrices(proposed)
+
+  // Use generic diffing
+  const baseDiff = diffSluggedResources(
+    sluggedExisting,
+    sluggedProposed
+  )
+
   return {
     toRemove:
-      baseDiff.toRemove as unknown as SluggedResource<UsageMeterDiffInput>[],
+      baseDiff.toRemove as unknown as SetupUsageMeterPriceInput[],
     toCreate:
-      baseDiff.toCreate as unknown as SluggedResource<UsageMeterDiffInput>[],
+      baseDiff.toCreate as unknown as SetupUsageMeterPriceInput[],
     toUpdate: baseDiff.toUpdate.map(({ existing, proposed }) => ({
-      existing:
-        existing as unknown as SluggedResource<UsageMeterDiffInput>,
-      proposed:
-        proposed as unknown as SluggedResource<UsageMeterDiffInput>,
+      existing: existing as unknown as SetupUsageMeterPriceInput,
+      proposed: proposed as unknown as SetupUsageMeterPriceInput,
     })),
   }
 }
@@ -447,11 +587,84 @@ export const computeUpdateObject = <
 }
 
 /**
+ * Validates a usage price change between existing and proposed prices.
+ *
+ * This function enforces the following rules:
+ * - Price type cannot change (usage prices must remain usage prices)
+ * - Updates must only modify mutable fields (validated via Zod parsing with strict mode)
+ *
+ * @param existing - The existing usage price (or undefined for creation)
+ * @param proposed - The proposed usage price (or undefined for removal)
+ * @param meterSlug - The slug of the usage meter (for error messages)
+ * @throws Error if immutable fields are being modified
+ */
+export const validateUsagePriceChange = (
+  existing: SetupUsageMeterPriceInput | undefined,
+  proposed: SetupUsageMeterPriceInput | undefined,
+  meterSlug: string
+): void => {
+  // Both undefined - no change
+  if (existing === undefined && proposed === undefined) {
+    return
+  }
+
+  // One undefined, one defined - valid (creation or removal)
+  if (existing === undefined || proposed === undefined) {
+    return
+  }
+
+  // Both exist - validate the change
+  const updateObject = computeUpdateObject(existing, proposed)
+
+  // Skip if nothing changed
+  if (Object.keys(updateObject).length === 0) {
+    return
+  }
+
+  // Check if any immutable/create-only fields are being changed.
+  // If so, skip strict validation because this price will be replaced entirely
+  // (create new price + deactivate old price), not updated.
+  const immutableFields = new Set(priceImmutableFields)
+  const changedFields = Object.keys(updateObject)
+  const hasImmutableFieldChanges = changedFields.some((field) =>
+    immutableFields.has(field)
+  )
+
+  // If immutable fields are changing, this will be a price replacement.
+  // We still need to validate the proposed price is well-formed using the insert schema.
+  if (hasImmutableFieldChanges) {
+    const insertResult = usagePriceClientInsertSchema
+      .omit({ usageMeterId: true, productId: true })
+      .safeParse(proposed)
+
+    if (!insertResult.success) {
+      throw new Error(
+        `Invalid usage price for replacement on meter '${meterSlug}': ${insertResult.error.message}`
+      )
+    }
+    return
+  }
+
+  // Try to parse with strict mode - this will fail if any immutable fields are present
+  const result = usagePriceClientUpdateSchema
+    .partial()
+    .strict()
+    .safeParse(updateObject)
+
+  if (!result.success) {
+    throw new Error(
+      `Invalid usage price update on meter '${meterSlug}': ${result.error.message}`
+    )
+  }
+}
+
+/**
  * Validates a usage meter diff result.
  *
  * This function enforces the following rules:
  * - Usage meters cannot be removed (throws if toRemove is non-empty)
  * - Updates must only modify mutable fields (validated via Zod parsing with strict mode)
+ * - Usage price changes are validated via validateUsagePriceChange
  *
  * @param diff - The diff result from diffUsageMeters
  * @throws Error if usage meters are being removed or if immutable fields are being modified
@@ -463,7 +676,7 @@ export const computeUpdateObject = <
  * ```
  */
 export const validateUsageMeterDiff = (
-  diff: DiffResult<UsageMeterDiffInput>
+  diff: UsageMeterDiffResult
 ): void => {
   // Usage meters cannot be removed
   if (diff.toRemove.length > 0) {
@@ -476,27 +689,39 @@ export const validateUsageMeterDiff = (
   }
 
   // Validate each update entry
-  for (const { existing, proposed } of diff.toUpdate) {
+  for (const { existing, proposed, priceDiff } of diff.toUpdate) {
+    const meterSlug = existing.usageMeter.slug
+
     // Compare the usageMeter nested object, not the top-level object (which includes prices)
     const usageMeterUpdateObject = computeUpdateObject(
       existing.usageMeter,
       proposed.usageMeter
     )
 
-    // Skip if nothing changed in the usageMeter itself
-    if (Object.keys(usageMeterUpdateObject).length === 0) {
-      continue
+    // Validate usage meter field updates if there are any
+    if (Object.keys(usageMeterUpdateObject).length > 0) {
+      // Try to parse with strict mode - this will fail if any immutable fields are present
+      const result = usageMetersClientUpdateSchema
+        .partial()
+        .strict()
+        .safeParse(usageMeterUpdateObject)
+
+      if (!result.success) {
+        throw new Error(
+          `Invalid usage meter update for slug '${meterSlug}': ${result.error.message}`
+        )
+      }
     }
 
-    // Try to parse with strict mode - this will fail if any immutable fields are present
-    const result = usageMetersClientUpdateSchema
-      .partial()
-      .strict()
-      .safeParse(usageMeterUpdateObject)
-
-    if (!result.success) {
-      throw new Error(
-        `Invalid usage meter update for slug '${existing.usageMeter.slug}': ${result.error.message}`
+    // Validate usage price updates
+    for (const {
+      existing: existingPrice,
+      proposed: proposedPrice,
+    } of priceDiff.toUpdate) {
+      validateUsagePriceChange(
+        existingPrice,
+        proposedPrice,
+        meterSlug
       )
     }
   }
@@ -767,9 +992,9 @@ export type PricingModelDiffResult = {
    */
   products: ProductDiffResult
   /**
-   * Diff result for usage meters.
+   * Diff result for usage meters, including usage price comparison.
    */
-  usageMeters: DiffResult<UsageMeterDiffInput>
+  usageMeters: UsageMeterDiffResult
 }
 
 /**

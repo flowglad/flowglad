@@ -14,20 +14,25 @@ import {
   diffPricingModel,
   diffProducts,
   diffSluggedResources,
+  diffUsageMeterPrices,
   diffUsageMeters,
   type FeatureDiffInput,
   type ProductDiffInput,
   type ProductDiffResult,
   type SluggedResource,
   type UsageMeterDiffInput,
+  type UsageMeterDiffResult,
+  type UsageMeterPriceDiffResult,
   validateFeatureDiff,
   validatePriceChange,
   validateProductDiff,
   validateUsageMeterDiff,
+  validateUsagePriceChange,
 } from './diffing'
 import type {
   SetupPricingModelInput,
   SetupPricingModelProductPriceInput,
+  SetupUsageMeterPriceInput,
 } from './setupSchemas'
 
 type SlugAndName = SluggedResource<{ name: string }>
@@ -337,48 +342,17 @@ describe('diffFeatures', () => {
   // TODO: after validation is implemented, add tests for permitted feature update fields
 })
 
-/**
- * Helper to create a UsageMeterDiffInput with the nested structure.
- * PR 5 changed usage meters to use { usageMeter: {...}, prices?: [...] } format.
- */
-const createUsageMeterInput = (
-  slug: string,
-  name: string,
-  aggregationType: UsageMeterAggregationType = UsageMeterAggregationType.Sum
-): UsageMeterDiffInput => ({
-  usageMeter: {
-    slug,
-    name,
-    aggregationType,
-  },
-})
-
-/**
- * Helper to create a SluggedResource<UsageMeterDiffInput> for direct DiffResult usage.
- * The diffUsageMeters function adds a top-level `slug` field to each meter.
- */
-const createSluggedUsageMeterInput = (
-  slug: string,
-  name: string,
-  aggregationType: UsageMeterAggregationType = UsageMeterAggregationType.Sum
-): SluggedResource<UsageMeterDiffInput> => ({
-  slug, // Top-level slug for SluggedResource
-  usageMeter: {
-    slug,
-    name,
-    aggregationType,
-  },
-})
-
 describe('diffUsageMeters', () => {
   it('should use diffSluggedResources to compute diff', () => {
     // Setup: existing has usage meter, proposed is empty
     const existing: UsageMeterDiffInput[] = [
-      createUsageMeterInput(
-        'foo',
-        'Foo Meter',
-        UsageMeterAggregationType.Sum
-      ),
+      {
+        usageMeter: {
+          slug: 'foo',
+          name: 'Foo Meter',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+      },
     ]
     const proposed: UsageMeterDiffInput[] = []
 
@@ -394,18 +368,22 @@ describe('diffUsageMeters', () => {
   it('should handle usage meter updates', () => {
     // Setup: existing and proposed both have same slug but different name
     const existing: UsageMeterDiffInput[] = [
-      createUsageMeterInput(
-        'foo',
-        'Old Name',
-        UsageMeterAggregationType.Sum
-      ),
+      {
+        usageMeter: {
+          slug: 'foo',
+          name: 'Old Name',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+      },
     ]
     const proposed: UsageMeterDiffInput[] = [
-      createUsageMeterInput(
-        'foo',
-        'New Name',
-        UsageMeterAggregationType.Sum
-      ),
+      {
+        usageMeter: {
+          slug: 'foo',
+          name: 'New Name',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+      },
     ]
 
     const result = diffUsageMeters(existing, proposed)
@@ -426,11 +404,14 @@ describe('diffUsageMeters', () => {
     // Setup: proposed has new usage meter not in existing
     const existing: UsageMeterDiffInput[] = []
     const proposed: UsageMeterDiffInput[] = [
-      createUsageMeterInput(
-        'new-meter',
-        'New Meter',
-        UsageMeterAggregationType.CountDistinctProperties
-      ),
+      {
+        usageMeter: {
+          slug: 'new-meter',
+          name: 'New Meter',
+          aggregationType:
+            UsageMeterAggregationType.CountDistinctProperties,
+        },
+      },
     ]
 
     const result = diffUsageMeters(existing, proposed)
@@ -445,28 +426,37 @@ describe('diffUsageMeters', () => {
   it('should handle mixed changes for usage meters', () => {
     // Setup: remove one, update one, create one
     const existing: UsageMeterDiffInput[] = [
-      createUsageMeterInput(
-        'remove-me',
-        'Remove',
-        UsageMeterAggregationType.Sum
-      ),
-      createUsageMeterInput(
-        'update-me',
-        'Old',
-        UsageMeterAggregationType.Sum
-      ),
+      {
+        usageMeter: {
+          slug: 'remove-me',
+          name: 'Remove',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+      },
+      {
+        usageMeter: {
+          slug: 'update-me',
+          name: 'Old',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+      },
     ]
     const proposed: UsageMeterDiffInput[] = [
-      createUsageMeterInput(
-        'update-me',
-        'New',
-        UsageMeterAggregationType.CountDistinctProperties
-      ),
-      createUsageMeterInput(
-        'create-me',
-        'Create',
-        UsageMeterAggregationType.Sum
-      ),
+      {
+        usageMeter: {
+          slug: 'update-me',
+          name: 'New',
+          aggregationType:
+            UsageMeterAggregationType.CountDistinctProperties,
+        },
+      },
+      {
+        usageMeter: {
+          slug: 'create-me',
+          name: 'Create',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+      },
     ]
 
     const result = diffUsageMeters(existing, proposed)
@@ -924,9 +914,15 @@ describe('computeUpdateObject', () => {
 
 describe('validateUsageMeterDiff', () => {
   it('should throw error when toRemove is non-empty', () => {
-    const diff: DiffResult<UsageMeterDiffInput> = {
+    const diff: UsageMeterDiffResult = {
       toRemove: [
-        createSluggedUsageMeterInput('api-calls', 'API Calls'),
+        {
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'API Calls',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
       ],
       toCreate: [],
       toUpdate: [],
@@ -938,10 +934,22 @@ describe('validateUsageMeterDiff', () => {
   })
 
   it('should throw error when multiple usage meters are removed', () => {
-    const diff: DiffResult<UsageMeterDiffInput> = {
+    const diff: UsageMeterDiffResult = {
       toRemove: [
-        createSluggedUsageMeterInput('api-calls', 'API Calls'),
-        createSluggedUsageMeterInput('storage', 'Storage'),
+        {
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'API Calls',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
+        {
+          usageMeter: {
+            slug: 'storage',
+            name: 'Storage',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
       ],
       toCreate: [],
       toUpdate: [],
@@ -953,20 +961,27 @@ describe('validateUsageMeterDiff', () => {
   })
 
   it('should allow updates to name and aggregationType', () => {
-    const diff: DiffResult<UsageMeterDiffInput> = {
+    const diff: UsageMeterDiffResult = {
       toRemove: [],
       toCreate: [],
       toUpdate: [
         {
-          existing: createSluggedUsageMeterInput(
-            'api-calls',
-            'Old Name'
-          ),
-          proposed: createSluggedUsageMeterInput(
-            'api-calls',
-            'New Name',
-            UsageMeterAggregationType.CountDistinctProperties
-          ),
+          existing: {
+            usageMeter: {
+              slug: 'api-calls',
+              name: 'Old Name',
+              aggregationType: UsageMeterAggregationType.Sum,
+            },
+          },
+          proposed: {
+            usageMeter: {
+              slug: 'api-calls',
+              name: 'New Name',
+              aggregationType:
+                UsageMeterAggregationType.CountDistinctProperties,
+            },
+          },
+          priceDiff: { toRemove: [], toCreate: [], toUpdate: [] },
         },
       ],
     }
@@ -976,19 +991,26 @@ describe('validateUsageMeterDiff', () => {
   })
 
   it('should pass when nothing is being updated', () => {
-    const diff: DiffResult<UsageMeterDiffInput> = {
+    const diff: UsageMeterDiffResult = {
       toRemove: [],
       toCreate: [],
       toUpdate: [
         {
-          existing: createSluggedUsageMeterInput(
-            'api-calls',
-            'API Calls'
-          ),
-          proposed: createSluggedUsageMeterInput(
-            'api-calls',
-            'API Calls'
-          ),
+          existing: {
+            usageMeter: {
+              slug: 'api-calls',
+              name: 'API Calls',
+              aggregationType: UsageMeterAggregationType.Sum,
+            },
+          },
+          proposed: {
+            usageMeter: {
+              slug: 'api-calls',
+              name: 'API Calls',
+              aggregationType: UsageMeterAggregationType.Sum,
+            },
+          },
+          priceDiff: { toRemove: [], toCreate: [], toUpdate: [] },
         },
       ],
     }
@@ -997,15 +1019,566 @@ describe('validateUsageMeterDiff', () => {
   })
 
   it('should allow creating new usage meters', () => {
-    const diff: DiffResult<UsageMeterDiffInput> = {
+    const diff: UsageMeterDiffResult = {
       toRemove: [],
       toCreate: [
-        createSluggedUsageMeterInput('new-meter', 'New Meter'),
+        {
+          usageMeter: {
+            slug: 'new-meter',
+            name: 'New Meter',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
       ],
       toUpdate: [],
     }
 
     expect(() => validateUsageMeterDiff(diff)).not.toThrow()
+  })
+})
+
+/**
+ * Helper function to create a minimal valid usage price for testing.
+ */
+const createUsagePrice = (
+  overrides: Partial<{
+    unitPrice: number
+    usageEventsPerUnit: number
+    isDefault: boolean
+    active: boolean
+    slug: string
+    name: string
+    currency: CurrencyCode
+    intervalUnit: IntervalUnit
+    intervalCount: number
+  }> = {}
+): SetupUsageMeterPriceInput => {
+  const {
+    unitPrice = 100,
+    usageEventsPerUnit = 1,
+    isDefault = true,
+    active = true,
+    slug = 'usage-price',
+    name,
+    currency = CurrencyCode.USD,
+    intervalUnit = IntervalUnit.Month,
+    intervalCount = 1,
+  } = overrides
+
+  return {
+    type: PriceType.Usage,
+    unitPrice,
+    usageEventsPerUnit,
+    isDefault,
+    active,
+    slug,
+    currency,
+    intervalUnit,
+    intervalCount,
+    ...(name !== undefined && { name }),
+  } as SetupUsageMeterPriceInput
+}
+
+describe('diffUsageMeterPrices', () => {
+  it('identifies prices to remove when slug exists only in existing, prices to create when slug exists only in proposed, and prices to update when slug exists in both', () => {
+    const existingPrices: SetupUsageMeterPriceInput[] = [
+      createUsagePrice({ slug: 'remove-me', unitPrice: 100 }),
+      createUsagePrice({ slug: 'update-me', unitPrice: 200 }),
+    ]
+    const proposedPrices: SetupUsageMeterPriceInput[] = [
+      createUsagePrice({ slug: 'update-me', unitPrice: 300 }),
+      createUsagePrice({ slug: 'create-me', unitPrice: 400 }),
+    ]
+
+    const result = diffUsageMeterPrices(
+      existingPrices,
+      proposedPrices
+    )
+
+    expect(result.toRemove).toHaveLength(1)
+    expect(result.toRemove[0].slug).toBe('remove-me')
+    expect(result.toCreate).toHaveLength(1)
+    expect(result.toCreate[0].slug).toBe('create-me')
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].existing.slug).toBe('update-me')
+    expect(result.toUpdate[0].existing.unitPrice).toBe(200)
+    expect(result.toUpdate[0].proposed.unitPrice).toBe(300)
+  })
+
+  it('handles empty arrays and undefined inputs', () => {
+    // Both undefined
+    const resultUndefined = diffUsageMeterPrices(undefined, undefined)
+    expect(resultUndefined.toRemove).toEqual([])
+    expect(resultUndefined.toCreate).toEqual([])
+    expect(resultUndefined.toUpdate).toEqual([])
+
+    // Empty arrays
+    const resultEmpty = diffUsageMeterPrices([], [])
+    expect(resultEmpty.toRemove).toEqual([])
+    expect(resultEmpty.toCreate).toEqual([])
+    expect(resultEmpty.toUpdate).toEqual([])
+
+    // Existing undefined, proposed has prices
+    const resultCreateFromUndefined = diffUsageMeterPrices(
+      undefined,
+      [createUsagePrice({ slug: 'new-price' })]
+    )
+    expect(resultCreateFromUndefined.toCreate).toHaveLength(1)
+    expect(resultCreateFromUndefined.toRemove).toEqual([])
+
+    // Existing has prices, proposed undefined
+    const resultRemoveToUndefined = diffUsageMeterPrices(
+      [createUsagePrice({ slug: 'old-price' })],
+      undefined
+    )
+    expect(resultRemoveToUndefined.toRemove).toHaveLength(1)
+    expect(resultRemoveToUndefined.toCreate).toEqual([])
+  })
+})
+
+describe('diffUsageMeters with prices', () => {
+  it('includes priceDiff in toUpdate when usage meter prices differ', () => {
+    const existing: UsageMeterDiffInput[] = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'API Calls',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        prices: [
+          createUsagePrice({ slug: 'old-price', unitPrice: 100 }),
+        ],
+      },
+    ]
+    const proposed: UsageMeterDiffInput[] = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'API Calls',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        prices: [
+          createUsagePrice({ slug: 'old-price', unitPrice: 200 }),
+        ],
+      },
+    ]
+
+    const result = diffUsageMeters(existing, proposed)
+
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].priceDiff).toBeTruthy()
+    expect(result.toUpdate[0].priceDiff.toUpdate).toHaveLength(1)
+    expect(
+      result.toUpdate[0].priceDiff.toUpdate[0].existing.unitPrice
+    ).toBe(100)
+    expect(
+      result.toUpdate[0].priceDiff.toUpdate[0].proposed.unitPrice
+    ).toBe(200)
+  })
+
+  it('includes priceDiff with toCreate when new price is added to usage meter', () => {
+    const existing: UsageMeterDiffInput[] = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'API Calls',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        prices: [],
+      },
+    ]
+    const proposed: UsageMeterDiffInput[] = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'API Calls',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        prices: [
+          createUsagePrice({ slug: 'new-price', unitPrice: 100 }),
+        ],
+      },
+    ]
+
+    const result = diffUsageMeters(existing, proposed)
+
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].priceDiff.toCreate).toHaveLength(1)
+    expect(result.toUpdate[0].priceDiff.toCreate[0].slug).toBe(
+      'new-price'
+    )
+    expect(result.toUpdate[0].priceDiff.toRemove).toEqual([])
+    expect(result.toUpdate[0].priceDiff.toUpdate).toEqual([])
+  })
+
+  it('includes priceDiff with toRemove when price is removed from usage meter', () => {
+    const existing: UsageMeterDiffInput[] = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'API Calls',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        prices: [
+          createUsagePrice({ slug: 'old-price', unitPrice: 100 }),
+        ],
+      },
+    ]
+    const proposed: UsageMeterDiffInput[] = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'API Calls',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        prices: [],
+      },
+    ]
+
+    const result = diffUsageMeters(existing, proposed)
+
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].priceDiff.toRemove).toHaveLength(1)
+    expect(result.toUpdate[0].priceDiff.toRemove[0].slug).toBe(
+      'old-price'
+    )
+    expect(result.toUpdate[0].priceDiff.toCreate).toEqual([])
+    expect(result.toUpdate[0].priceDiff.toUpdate).toEqual([])
+  })
+
+  it('includes empty priceDiff when no price changes for usage meter update', () => {
+    const price = createUsagePrice({
+      slug: 'same-price',
+      unitPrice: 100,
+    })
+    const existing: UsageMeterDiffInput[] = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'Old Name',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        prices: [price],
+      },
+    ]
+    const proposed: UsageMeterDiffInput[] = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'New Name',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        prices: [price],
+      },
+    ]
+
+    const result = diffUsageMeters(existing, proposed)
+
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].existing.usageMeter.name).toBe(
+      'Old Name'
+    )
+    expect(result.toUpdate[0].proposed.usageMeter.name).toBe(
+      'New Name'
+    )
+    expect(result.toUpdate[0].priceDiff.toRemove).toEqual([])
+    expect(result.toUpdate[0].priceDiff.toCreate).toEqual([])
+    expect(result.toUpdate[0].priceDiff.toUpdate).toHaveLength(1)
+  })
+})
+
+describe('validateUsagePriceChange', () => {
+  const baseUsagePrice = createUsagePrice({
+    slug: 'test-price',
+    unitPrice: 100,
+    usageEventsPerUnit: 1,
+  })
+
+  it('returns without error when both prices are undefined, when creating a new price (existing undefined), when removing a price (proposed undefined), and when prices are identical', () => {
+    // Both undefined
+    expect(() =>
+      validateUsagePriceChange(undefined, undefined, 'meter-slug')
+    ).not.toThrow()
+
+    // Creating a new price (existing undefined)
+    expect(() =>
+      validateUsagePriceChange(
+        undefined,
+        baseUsagePrice,
+        'meter-slug'
+      )
+    ).not.toThrow()
+
+    // Removing a price (proposed undefined)
+    expect(() =>
+      validateUsagePriceChange(
+        baseUsagePrice,
+        undefined,
+        'meter-slug'
+      )
+    ).not.toThrow()
+
+    // Prices are identical
+    expect(() =>
+      validateUsagePriceChange(
+        baseUsagePrice,
+        baseUsagePrice,
+        'meter-slug'
+      )
+    ).not.toThrow()
+  })
+
+  it('allows mutable field changes (name, active, isDefault) without triggering price replacement validation', () => {
+    const priceWithNewName = createUsagePrice({
+      slug: 'test-price',
+      unitPrice: 100,
+      usageEventsPerUnit: 1,
+      name: 'New Price Name',
+    })
+    expect(() =>
+      validateUsagePriceChange(
+        baseUsagePrice,
+        priceWithNewName,
+        'meter-slug'
+      )
+    ).not.toThrow()
+
+    const priceWithNewActiveStatus = createUsagePrice({
+      slug: 'test-price',
+      unitPrice: 100,
+      usageEventsPerUnit: 1,
+      active: false,
+    })
+    expect(() =>
+      validateUsagePriceChange(
+        baseUsagePrice,
+        priceWithNewActiveStatus,
+        'meter-slug'
+      )
+    ).not.toThrow()
+  })
+
+  it('allows create-only field changes (unitPrice, usageEventsPerUnit) for usage price when proposed price is well-formed, treating them as price replacements', () => {
+    // Changing unitPrice
+    const priceWithNewUnitPrice = createUsagePrice({
+      slug: 'test-price',
+      unitPrice: 200,
+      usageEventsPerUnit: 1,
+    })
+    expect(() =>
+      validateUsagePriceChange(
+        baseUsagePrice,
+        priceWithNewUnitPrice,
+        'meter-slug'
+      )
+    ).not.toThrow()
+
+    // Changing usageEventsPerUnit
+    const priceWithNewUsageEventsPerUnit = createUsagePrice({
+      slug: 'test-price',
+      unitPrice: 100,
+      usageEventsPerUnit: 10,
+    })
+    expect(() =>
+      validateUsagePriceChange(
+        baseUsagePrice,
+        priceWithNewUsageEventsPerUnit,
+        'meter-slug'
+      )
+    ).not.toThrow()
+
+    // Changing multiple create-only fields at once
+    const priceWithMultipleChanges = createUsagePrice({
+      slug: 'test-price',
+      unitPrice: 500,
+      usageEventsPerUnit: 5,
+    })
+    expect(() =>
+      validateUsagePriceChange(
+        baseUsagePrice,
+        priceWithMultipleChanges,
+        'meter-slug'
+      )
+    ).not.toThrow()
+  })
+
+  it('throws error when create-only fields change but proposed price is malformed (missing required fields)', () => {
+    const malformedPrice = {
+      type: PriceType.Usage,
+      unitPrice: 200,
+      // missing usageEventsPerUnit and other required fields
+      isDefault: true,
+      active: true,
+      slug: 'test-price',
+    } as SetupUsageMeterPriceInput
+
+    expect(() =>
+      validateUsagePriceChange(
+        baseUsagePrice,
+        malformedPrice,
+        'meter-slug'
+      )
+    ).toThrow('Invalid usage price for replacement')
+  })
+})
+
+describe('validateUsageMeterDiff with price changes', () => {
+  it('validates usage price updates and allows mutable field changes', () => {
+    const diff: UsageMeterDiffResult = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: {
+            usageMeter: {
+              slug: 'api-calls',
+              name: 'API Calls',
+              aggregationType: UsageMeterAggregationType.Sum,
+            },
+            prices: [
+              createUsagePrice({ slug: 'price-1', unitPrice: 100 }),
+            ],
+          },
+          proposed: {
+            usageMeter: {
+              slug: 'api-calls',
+              name: 'API Calls',
+              aggregationType: UsageMeterAggregationType.Sum,
+            },
+            prices: [
+              createUsagePrice({
+                slug: 'price-1',
+                unitPrice: 100,
+                name: 'New Name',
+              }),
+            ],
+          },
+          priceDiff: {
+            toRemove: [],
+            toCreate: [],
+            toUpdate: [
+              {
+                existing: createUsagePrice({
+                  slug: 'price-1',
+                  unitPrice: 100,
+                }),
+                proposed: createUsagePrice({
+                  slug: 'price-1',
+                  unitPrice: 100,
+                  name: 'New Name',
+                }),
+              },
+            ],
+          },
+        },
+      ],
+    }
+
+    expect(() => validateUsageMeterDiff(diff)).not.toThrow()
+  })
+
+  it('validates usage price updates and allows create-only field changes (unitPrice) treating them as price replacements', () => {
+    const diff: UsageMeterDiffResult = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: {
+            usageMeter: {
+              slug: 'api-calls',
+              name: 'API Calls',
+              aggregationType: UsageMeterAggregationType.Sum,
+            },
+            prices: [
+              createUsagePrice({ slug: 'price-1', unitPrice: 100 }),
+            ],
+          },
+          proposed: {
+            usageMeter: {
+              slug: 'api-calls',
+              name: 'API Calls',
+              aggregationType: UsageMeterAggregationType.Sum,
+            },
+            prices: [
+              createUsagePrice({ slug: 'price-1', unitPrice: 200 }),
+            ],
+          },
+          priceDiff: {
+            toRemove: [],
+            toCreate: [],
+            toUpdate: [
+              {
+                existing: createUsagePrice({
+                  slug: 'price-1',
+                  unitPrice: 100,
+                }),
+                proposed: createUsagePrice({
+                  slug: 'price-1',
+                  unitPrice: 200,
+                }),
+              },
+            ],
+          },
+        },
+      ],
+    }
+
+    expect(() => validateUsageMeterDiff(diff)).not.toThrow()
+  })
+
+  it('throws error when usage price replacement has malformed proposed price', () => {
+    const malformedPrice = {
+      type: PriceType.Usage,
+      unitPrice: 200,
+      // missing usageEventsPerUnit and other required fields
+      isDefault: true,
+      active: true,
+      slug: 'price-1',
+    } as SetupUsageMeterPriceInput
+
+    const diff: UsageMeterDiffResult = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: {
+            usageMeter: {
+              slug: 'api-calls',
+              name: 'API Calls',
+              aggregationType: UsageMeterAggregationType.Sum,
+            },
+            prices: [
+              createUsagePrice({ slug: 'price-1', unitPrice: 100 }),
+            ],
+          },
+          proposed: {
+            usageMeter: {
+              slug: 'api-calls',
+              name: 'API Calls',
+              aggregationType: UsageMeterAggregationType.Sum,
+            },
+            prices: [malformedPrice],
+          },
+          priceDiff: {
+            toRemove: [],
+            toCreate: [],
+            toUpdate: [
+              {
+                existing: createUsagePrice({
+                  slug: 'price-1',
+                  unitPrice: 100,
+                }),
+                proposed: malformedPrice,
+              },
+            ],
+          },
+        },
+      ],
+    }
+
+    expect(() => validateUsageMeterDiff(diff)).toThrow(
+      'Invalid usage price for replacement'
+    )
   })
 })
 
@@ -1780,7 +2353,15 @@ describe('diffPricingModel', () => {
           unitPrice: 1000,
         }),
       ],
-      usageMeters: [createUsageMeterInput('api-calls', 'API Calls')],
+      usageMeters: [
+        {
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'API Calls',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
+      ],
     })
 
     // Setup: proposed with changes to all resource types
@@ -1802,7 +2383,13 @@ describe('diffPricingModel', () => {
         }),
       ],
       usageMeters: [
-        createUsageMeterInput('api-calls', 'API Calls Updated'),
+        {
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'API Calls Updated',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
       ],
     })
 
@@ -1859,7 +2446,15 @@ describe('diffPricingModel', () => {
           productName: 'Old Name',
         }),
       ],
-      usageMeters: [createUsageMeterInput('api-calls', 'Old Name')],
+      usageMeters: [
+        {
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'Old Name',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
+      ],
     })
 
     const proposed = createPricingModelInput({
@@ -1878,7 +2473,15 @@ describe('diffPricingModel', () => {
           productName: 'New Name',
         }),
       ],
-      usageMeters: [createUsageMeterInput('api-calls', 'New Name')],
+      usageMeters: [
+        {
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'New Name',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
+      ],
     })
 
     // Expectation: should not throw (all validations pass)
@@ -1890,7 +2493,15 @@ describe('diffPricingModel', () => {
     const existing = createPricingModelInput({
       features: [],
       products: [],
-      usageMeters: [createUsageMeterInput('api-calls', 'API Calls')],
+      usageMeters: [
+        {
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'API Calls',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
+      ],
     })
 
     const proposed = createPricingModelInput({
@@ -2003,7 +2614,15 @@ describe('diffPricingModel', () => {
           productName: 'New Product',
         }),
       ],
-      usageMeters: [createUsageMeterInput('new-meter', 'New Meter')],
+      usageMeters: [
+        {
+          usageMeter: {
+            slug: 'new-meter',
+            name: 'New Meter',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
+      ],
     })
 
     const result = diffPricingModel(existing, proposed)
@@ -2047,7 +2666,15 @@ describe('diffPricingModel', () => {
           productName: 'Pro',
         }),
       ],
-      usageMeters: [createUsageMeterInput('api-calls', 'API Calls')],
+      usageMeters: [
+        {
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'API Calls',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
+      ],
     })
 
     const proposed = createPricingModelInput({
@@ -2125,7 +2752,15 @@ describe('diffPricingModel', () => {
           productName: 'Pro',
         }),
       ],
-      usageMeters: [createUsageMeterInput('api-calls', 'API Calls')],
+      usageMeters: [
+        {
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'API Calls',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
+      ],
     })
 
     const proposed = createPricingModelInput({
@@ -2173,7 +2808,13 @@ describe('diffPricingModel', () => {
         }),
       ],
       usageMeters: [
-        createUsageMeterInput('api-calls', 'Old API Calls Name'),
+        {
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'Old API Calls Name',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
       ],
     })
 
@@ -2206,12 +2847,21 @@ describe('diffPricingModel', () => {
         }),
       ],
       usageMeters: [
-        createUsageMeterInput(
-          'api-calls',
-          'New API Calls Name',
-          UsageMeterAggregationType.CountDistinctProperties
-        ),
-        createUsageMeterInput('new-meter', 'New Meter'),
+        {
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'New API Calls Name',
+            aggregationType:
+              UsageMeterAggregationType.CountDistinctProperties,
+          },
+        },
+        {
+          usageMeter: {
+            slug: 'new-meter',
+            name: 'New Meter',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
       ],
     })
 
@@ -2264,7 +2914,13 @@ describe('diffPricingModel', () => {
         }),
       ],
       usageMeters: [
-        createUsageMeterInput('meter-update', 'Old Name'),
+        {
+          usageMeter: {
+            slug: 'meter-update',
+            name: 'Old Name',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
       ],
     })
 
@@ -2296,12 +2952,21 @@ describe('diffPricingModel', () => {
         }),
       ],
       usageMeters: [
-        createUsageMeterInput('meter-update', 'New Name'),
-        createUsageMeterInput(
-          'meter-create',
-          'Create Meter',
-          UsageMeterAggregationType.CountDistinctProperties
-        ),
+        {
+          usageMeter: {
+            slug: 'meter-update',
+            name: 'New Name',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
+        {
+          usageMeter: {
+            slug: 'meter-create',
+            name: 'Create Meter',
+            aggregationType:
+              UsageMeterAggregationType.CountDistinctProperties,
+          },
+        },
       ],
     })
 
@@ -2366,7 +3031,15 @@ describe('diffPricingModel', () => {
           productName: 'Pro',
         }),
       ],
-      usageMeters: [createUsageMeterInput('api-calls', 'API Calls')],
+      usageMeters: [
+        {
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'API Calls',
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+        },
+      ],
     })
 
     const result = diffPricingModel(pricingModel, pricingModel)
