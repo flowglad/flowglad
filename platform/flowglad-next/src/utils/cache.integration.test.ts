@@ -168,7 +168,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
     expect(registryExists).toBe(0)
   })
 
-  it('invalidateDependencies handles multiple dependencies in a single call', async () => {
+  it('invalidateDependencies deletes cache entries for all provided dependency keys when given multiple dependencies', async () => {
     const client = getRedisTestClient()
 
     // Set up cache entries for two different dependencies

@@ -77,10 +77,9 @@ export const generateTestKeyPrefix = (): string => {
 
 /**
  * Cleans up Redis keys created during tests.
- * Accepts a list of keys or a pattern to delete.
  *
  * @param client - Redis client
- * @param keys - Array of keys to delete
+ * @param keys - Array of explicit keys to delete
  */
 export const cleanupRedisTestKeys = async (
   client: Redis,
