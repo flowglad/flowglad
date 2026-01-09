@@ -208,31 +208,28 @@ export const updatePrice = createUpdateFunction(prices, config)
 
 /**
  * Selects prices and products for an organization.
- * Uses leftJoin to include usage prices that have productId: null.
- * Filters by pricingModel's organizationId instead of product's organizationId
- * to properly include usage prices.
+ * Uses innerJoin to only include prices that have an associated product.
+ * Filters by pricingModel's organizationId.
  */
 export const selectPricesAndProductsForOrganization = async (
   whereConditions: Partial<Price.Record>,
   organizationId: string,
   transaction: DbTransaction
-): Promise<
-  { price: Price.Record; product: Product.Record | null }[]
-> => {
+): Promise<{ price: Price.Record; product: Product.Record }[]> => {
   let query = transaction
     .select({
       price: prices,
       product: products,
     })
     .from(prices)
-    .leftJoin(products, eq(products.id, prices.productId))
+    // innerJoin: all callers only want product-attached prices
+    .innerJoin(products, eq(products.id, prices.productId))
     .innerJoin(
       pricingModels,
       eq(prices.pricingModelId, pricingModels.id)
     )
     .$dynamic()
 
-  // Filter by pricingModel's organizationId to include both product prices and usage prices
   const whereClauses: SQLWrapper[] = [
     eq(pricingModels.organizationId, organizationId),
   ]
@@ -246,18 +243,15 @@ export const selectPricesAndProductsForOrganization = async (
 
   const results = await query
   return results.map((result) => ({
-    product: result.product
-      ? productsSelectSchema.parse(result.product)
-      : null,
+    product: productsSelectSchema.parse(result.product),
     price: pricesSelectSchema.parse(result.price),
   }))
 }
 
 /**
  * Selects prices, products, and pricing models for an organization.
- * Uses leftJoin for products to include usage prices that have productId: null.
- * Uses innerJoin for pricingModels via the price's pricingModelId to ensure
- * organization filtering works for both product prices and usage prices.
+ * Uses innerJoin for products to only include prices that have an associated product.
+ * Filters by pricingModel's organizationId.
  */
 export const selectPricesProductsAndPricingModelsForOrganization =
   async (
@@ -267,7 +261,7 @@ export const selectPricesProductsAndPricingModelsForOrganization =
   ): Promise<
     {
       price: Price.Record
-      product: Product.Record | null
+      product: Product.Record
       pricingModel: z.infer<typeof pricingModelsSelectSchema>
     }[]
   > => {
@@ -278,14 +272,14 @@ export const selectPricesProductsAndPricingModelsForOrganization =
         pricingModel: pricingModels,
       })
       .from(prices)
-      .leftJoin(products, eq(products.id, prices.productId))
+      // innerJoin: all callers only want product-attached prices
+      .innerJoin(products, eq(products.id, prices.productId))
       .innerJoin(
         pricingModels,
         eq(prices.pricingModelId, pricingModels.id)
       )
       .$dynamic()
 
-    // Filter by pricingModel's organizationId to include both product prices and usage prices
     const whereClauses: SQLWrapper[] = [
       eq(pricingModels.organizationId, organizationId),
     ]
@@ -302,9 +296,7 @@ export const selectPricesProductsAndPricingModelsForOrganization =
 
     const results = await query
     return results.map((result) => ({
-      product: result.product
-        ? productsSelectSchema.parse(result.product)
-        : null,
+      product: productsSelectSchema.parse(result.product),
       price: pricesSelectSchema.parse(result.price),
       pricingModel: pricingModelsSelectSchema.parse(
         result.pricingModel
@@ -472,6 +464,7 @@ export const selectPriceProductAndOrganizationByPriceWhere = async (
       organization: organizations,
     })
     .from(prices)
+    // leftJoin: some callers handle null product gracefully (e.g. metadata generation)
     .leftJoin(products, eq(products.id, prices.productId))
     .innerJoin(
       pricingModels,
