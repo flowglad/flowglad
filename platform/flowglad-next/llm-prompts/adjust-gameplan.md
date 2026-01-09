@@ -103,7 +103,7 @@ The gameplan has been updated and the following changes affect your patch.
 ### Step 7: Output Summary
 
 Report:
-```
+```text
 Gameplan Updated: {project-name}
 
 Changes Made:
@@ -143,7 +143,7 @@ Files Created:
 - Patch 6: Queued (depends on 5) → will pick up changes via fan-gameplan
 
 **Output**:
-```
+```text
 Gameplan Updated: subscription-adjustments
 
 Changes Made:
