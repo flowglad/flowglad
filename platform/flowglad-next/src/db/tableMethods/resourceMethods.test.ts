@@ -377,8 +377,8 @@ describe('resourceMethods', () => {
         const result = await selectResourcesTableRowData({
           input: {
             pageSize: 10,
+            filters: { organizationId: organization.id },
           },
-          where: { organizationId: organization.id },
           transaction,
         })
 
@@ -433,8 +433,8 @@ describe('resourceMethods', () => {
           input: {
             pageSize: 10,
             searchQuery: 'Searchable',
+            filters: { organizationId: organization.id },
           },
-          where: { organizationId: organization.id },
           transaction,
         })
 
@@ -470,8 +470,8 @@ describe('resourceMethods', () => {
           input: {
             pageSize: 10,
             searchQuery: targetResource.id,
+            filters: { organizationId: organization.id },
           },
-          where: { organizationId: organization.id },
           transaction,
         })
 
@@ -496,8 +496,8 @@ describe('resourceMethods', () => {
           input: {
             pageSize: 10,
             searchQuery: '   TrimTest   ',
+            filters: { organizationId: organization.id },
           },
-          where: { organizationId: organization.id },
           transaction,
         })
 
@@ -523,8 +523,10 @@ describe('resourceMethods', () => {
         }
 
         const page1 = await selectResourcesTableRowData({
-          input: { pageSize: 2 },
-          where: { organizationId: organization.id },
+          input: {
+            pageSize: 2,
+            filters: { organizationId: organization.id },
+          },
           transaction,
         })
 
@@ -540,8 +542,11 @@ describe('resourceMethods', () => {
         // Get second page using cursor
         if (page1.endCursor) {
           const page2 = await selectResourcesTableRowData({
-            input: { pageSize: 2, pageAfter: page1.endCursor },
-            where: { organizationId: organization.id },
+            input: {
+              pageSize: 2,
+              pageAfter: page1.endCursor,
+              filters: { organizationId: organization.id },
+            },
             transaction,
           })
 
