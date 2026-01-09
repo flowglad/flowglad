@@ -3188,6 +3188,10 @@
                             "description": {
                               "type": "string"
                             },
+                            "resourceId": {
+                              "type": "null",
+                              "const": null
+                            },
                             "active": {
                               "type": "boolean"
                             }
@@ -3227,6 +3231,10 @@
                             "renewalFrequency": {
                               "type": "string",
                               "enum": ["once", "every_billing_period"]
+                            },
+                            "resourceId": {
+                              "type": "null",
+                              "const": null
                             },
                             "active": {
                               "type": "boolean"
@@ -9753,6 +9761,9 @@
           },
           {
             "$ref": "#/components/schemas/UsageCreditGrantFeatureClientUpdateSchema"
+          },
+          {
+            "$ref": "#/components/schemas/ResourceFeatureClientUpdateSchema"
           }
         ],
         "type": "object",
@@ -9760,7 +9771,8 @@
           "propertyName": "type",
           "mapping": {
             "toggle": "#/components/schemas/ToggleFeatureClientUpdateSchema",
-            "usage_credit_grant": "#/components/schemas/UsageCreditGrantFeatureClientUpdateSchema"
+            "usage_credit_grant": "#/components/schemas/UsageCreditGrantFeatureClientUpdateSchema",
+            "resource": "#/components/schemas/ResourceFeatureClientUpdateSchema"
           }
         }
       },
@@ -9799,6 +9811,10 @@
           },
           "pricingModelId": {
             "type": "string"
+          },
+          "resourceId": {
+            "type": "null",
+            "const": null
           },
           "active": {
             "type": "boolean"
@@ -9843,6 +9859,10 @@
           "pricingModelId": {
             "type": "string"
           },
+          "resourceId": {
+            "type": "null",
+            "const": null
+          },
           "active": {
             "type": "boolean"
           }
@@ -9855,6 +9875,53 @@
           "renewalFrequency"
         ]
       },
+      "ResourceFeatureClientUpdateSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "const": "resource"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "amount": {
+            "description": "A positive integer",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "usageMeterId": {
+            "type": "null",
+            "const": null
+          },
+          "renewalFrequency": {
+            "type": "null",
+            "const": null
+          },
+          "pricingModelId": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": ["id", "type", "amount", "resourceId"]
+      },
       "FeatureInsert": {
         "oneOf": [
           {
@@ -9862,6 +9929,9 @@
           },
           {
             "$ref": "#/components/schemas/UsageCreditGrantFeatureClientInsertSchema"
+          },
+          {
+            "$ref": "#/components/schemas/ResourceFeatureClientInsertSchema"
           }
         ],
         "type": "object",
@@ -9869,7 +9939,8 @@
           "propertyName": "type",
           "mapping": {
             "toggle": "#/components/schemas/ToggleFeatureClientInsertSchema",
-            "usage_credit_grant": "#/components/schemas/UsageCreditGrantFeatureClientInsertSchema"
+            "usage_credit_grant": "#/components/schemas/UsageCreditGrantFeatureClientInsertSchema",
+            "resource": "#/components/schemas/ResourceFeatureClientInsertSchema"
           }
         }
       },
@@ -9905,6 +9976,10 @@
           },
           "pricingModelId": {
             "type": "string"
+          },
+          "resourceId": {
+            "type": "null",
+            "const": null
           },
           "active": {
             "type": "boolean"
@@ -9952,6 +10027,10 @@
           "pricingModelId": {
             "type": "string"
           },
+          "resourceId": {
+            "type": "null",
+            "const": null
+          },
           "active": {
             "type": "boolean"
           }
@@ -9965,6 +10044,58 @@
           "usageMeterId",
           "renewalFrequency",
           "pricingModelId"
+        ]
+      },
+      "ResourceFeatureClientInsertSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "resource"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "amount": {
+            "description": "A positive integer",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "usageMeterId": {
+            "type": "null",
+            "const": null
+          },
+          "renewalFrequency": {
+            "type": "null",
+            "const": null
+          },
+          "pricingModelId": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "type",
+          "slug",
+          "name",
+          "description",
+          "amount",
+          "pricingModelId",
+          "resourceId"
         ]
       },
       "ProductFeatureClientInsertSchema": {
@@ -9999,6 +10130,9 @@
           },
           {
             "$ref": "#/components/schemas/UsageCreditGrantSubscriptionItemFeatureClientUpdateSchema"
+          },
+          {
+            "$ref": "#/components/schemas/ResourceSubscriptionItemFeatureClientUpdateSchema"
           }
         ],
         "type": "object",
@@ -10006,7 +10140,8 @@
           "propertyName": "type",
           "mapping": {
             "toggle": "#/components/schemas/ToggleSubscriptionItemFeatureClientUpdateSchema",
-            "usage_credit_grant": "#/components/schemas/UsageCreditGrantSubscriptionItemFeatureClientUpdateSchema"
+            "usage_credit_grant": "#/components/schemas/UsageCreditGrantSubscriptionItemFeatureClientUpdateSchema",
+            "resource": "#/components/schemas/ResourceSubscriptionItemFeatureClientUpdateSchema"
           }
         }
       },
@@ -10086,6 +10221,10 @@
           },
           "manuallyCreated": {
             "type": "boolean"
+          },
+          "resourceId": {
+            "type": "null",
+            "const": null
           }
         },
         "required": ["id", "type"]
@@ -10166,6 +10305,10 @@
           },
           "manuallyCreated": {
             "type": "boolean"
+          },
+          "resourceId": {
+            "type": "null",
+            "const": null
           }
         },
         "required": [
@@ -10176,6 +10319,90 @@
           "renewalFrequency"
         ]
       },
+      "ResourceSubscriptionItemFeatureClientUpdateSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "subscriptionItemId": {
+            "type": "string"
+          },
+          "featureId": {
+            "type": "string"
+          },
+          "productFeatureId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "type": "string",
+            "const": "resource"
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "usageMeterId": {
+            "type": "null",
+            "const": null
+          },
+          "renewalFrequency": {
+            "type": "null",
+            "const": null
+          },
+          "expiredAt": {
+            "anyOf": [
+              {
+                "description": "Epoch milliseconds.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detachedAt": {
+            "anyOf": [
+              {
+                "description": "Epoch milliseconds.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detachedReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "manuallyCreated": {
+            "type": "boolean"
+          },
+          "resourceId": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "type", "amount", "resourceId"]
+      },
       "SubscriptionItemFeaturesClientInsertSchema": {
         "oneOf": [
           {
@@ -10183,6 +10410,9 @@
           },
           {
             "$ref": "#/components/schemas/UsageCreditGrantSubscriptionItemFeatureInsert"
+          },
+          {
+            "$ref": "#/components/schemas/ResourceSubscriptionItemFeatureInsert"
           }
         ],
         "type": "object",
@@ -10190,7 +10420,8 @@
           "propertyName": "type",
           "mapping": {
             "toggle": "#/components/schemas/ToggleSubscriptionItemFeatureInsert",
-            "usage_credit_grant": "#/components/schemas/UsageCreditGrantSubscriptionItemFeatureInsert"
+            "usage_credit_grant": "#/components/schemas/UsageCreditGrantSubscriptionItemFeatureInsert",
+            "resource": "#/components/schemas/ResourceSubscriptionItemFeatureInsert"
           }
         }
       },
@@ -10267,6 +10498,10 @@
           },
           "manuallyCreated": {
             "type": "boolean"
+          },
+          "resourceId": {
+            "type": "null",
+            "const": null
           },
           "name": {
             "type": "string"
@@ -10357,6 +10592,10 @@
           "manuallyCreated": {
             "type": "boolean"
           },
+          "resourceId": {
+            "type": "null",
+            "const": null
+          },
           "name": {
             "type": "string"
           },
@@ -10371,6 +10610,101 @@
           "amount",
           "usageMeterId",
           "renewalFrequency",
+          "name",
+          "slug"
+        ]
+      },
+      "ResourceSubscriptionItemFeatureInsert": {
+        "type": "object",
+        "properties": {
+          "subscriptionItemId": {
+            "type": "string"
+          },
+          "featureId": {
+            "type": "string"
+          },
+          "productFeatureId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "type": "string",
+            "const": "resource"
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "usageMeterId": {
+            "type": "null",
+            "const": null
+          },
+          "renewalFrequency": {
+            "type": "null",
+            "const": null
+          },
+          "expiredAt": {
+            "anyOf": [
+              {
+                "description": "Epoch milliseconds.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detachedAt": {
+            "anyOf": [
+              {
+                "description": "Epoch milliseconds.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detachedReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "manuallyCreated": {
+            "type": "boolean"
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subscriptionItemId",
+          "featureId",
+          "type",
+          "amount",
+          "resourceId",
           "name",
           "slug"
         ]
@@ -12836,6 +13170,9 @@
           },
           {
             "$ref": "#/components/schemas/UsageCreditGrantFeatureClientSelectSchema"
+          },
+          {
+            "$ref": "#/components/schemas/ResourceFeatureClientSelectSchema"
           }
         ],
         "type": "object",
@@ -12843,7 +13180,8 @@
           "propertyName": "type",
           "mapping": {
             "toggle": "#/components/schemas/ToggleFeatureClientSelectSchema",
-            "usage_credit_grant": "#/components/schemas/UsageCreditGrantFeatureClientSelectSchema"
+            "usage_credit_grant": "#/components/schemas/UsageCreditGrantFeatureClientSelectSchema",
+            "resource": "#/components/schemas/ResourceFeatureClientSelectSchema"
           }
         }
       },
@@ -12900,6 +13238,10 @@
           },
           "pricingModelId": {
             "type": "string"
+          },
+          "resourceId": {
+            "type": "null",
+            "const": null
           },
           "active": {
             "type": "boolean"
@@ -12975,6 +13317,10 @@
           "pricingModelId": {
             "type": "string"
           },
+          "resourceId": {
+            "type": "null",
+            "const": null
+          },
           "active": {
             "type": "boolean"
           }
@@ -12993,6 +13339,86 @@
           "usageMeterId",
           "renewalFrequency",
           "pricingModelId",
+          "active"
+        ],
+        "additionalProperties": false
+      },
+      "ResourceFeatureClientSelectSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "createdAt": {
+            "description": "Epoch milliseconds.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "updatedAt": {
+            "description": "Epoch milliseconds.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "livemode": {
+            "type": "boolean"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "const": "resource"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "amount": {
+            "description": "A positive integer",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "usageMeterId": {
+            "type": "null",
+            "const": null
+          },
+          "renewalFrequency": {
+            "type": "null",
+            "const": null
+          },
+          "pricingModelId": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "createdAt",
+          "updatedAt",
+          "livemode",
+          "organizationId",
+          "type",
+          "slug",
+          "name",
+          "description",
+          "amount",
+          "pricingModelId",
+          "resourceId",
           "active"
         ],
         "additionalProperties": false
@@ -14813,6 +15239,9 @@
           },
           {
             "$ref": "#/components/schemas/UsageCreditGrantSubscriptionItemFeatureRecord"
+          },
+          {
+            "$ref": "#/components/schemas/ResourceSubscriptionItemFeatureRecord"
           }
         ],
         "type": "object",
@@ -14820,7 +15249,8 @@
           "propertyName": "type",
           "mapping": {
             "toggle": "#/components/schemas/ToggleSubscriptionItemFeatureRecord",
-            "usage_credit_grant": "#/components/schemas/UsageCreditGrantSubscriptionItemFeatureRecord"
+            "usage_credit_grant": "#/components/schemas/UsageCreditGrantSubscriptionItemFeatureRecord",
+            "resource": "#/components/schemas/ResourceSubscriptionItemFeatureRecord"
           }
         }
       },
@@ -14918,6 +15348,10 @@
           },
           "pricingModelId": {
             "type": "string"
+          },
+          "resourceId": {
+            "type": "null",
+            "const": null
           },
           "name": {
             "type": "string"
@@ -15036,6 +15470,10 @@
           "pricingModelId": {
             "type": "string"
           },
+          "resourceId": {
+            "type": "null",
+            "const": null
+          },
           "name": {
             "type": "string"
           },
@@ -15056,6 +15494,129 @@
           "renewalFrequency",
           "manuallyCreated",
           "pricingModelId",
+          "name",
+          "slug"
+        ],
+        "additionalProperties": false
+      },
+      "ResourceSubscriptionItemFeatureRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "createdAt": {
+            "description": "Epoch milliseconds.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "updatedAt": {
+            "description": "Epoch milliseconds.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "livemode": {
+            "type": "boolean"
+          },
+          "subscriptionItemId": {
+            "type": "string"
+          },
+          "featureId": {
+            "type": "string"
+          },
+          "productFeatureId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "type": "string",
+            "const": "resource"
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "usageMeterId": {
+            "type": "null",
+            "const": null
+          },
+          "renewalFrequency": {
+            "type": "null",
+            "const": null
+          },
+          "expiredAt": {
+            "anyOf": [
+              {
+                "description": "Epoch milliseconds.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detachedAt": {
+            "anyOf": [
+              {
+                "description": "Epoch milliseconds.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detachedReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "manuallyCreated": {
+            "type": "boolean"
+          },
+          "pricingModelId": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "createdAt",
+          "updatedAt",
+          "livemode",
+          "subscriptionItemId",
+          "featureId",
+          "type",
+          "amount",
+          "manuallyCreated",
+          "pricingModelId",
+          "resourceId",
           "name",
           "slug"
         ],
