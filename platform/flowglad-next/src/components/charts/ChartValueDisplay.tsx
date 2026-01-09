@@ -20,13 +20,11 @@ export function ChartValueDisplay({
   isLoading,
 }: ChartValueDisplayProps) {
   return (
-    <div className="px-4 mt-1">
+    <div className="px-6 mt-1">
       {isLoading ? (
         <Skeleton className="w-36 h-7" />
       ) : (
-        <p className="text-xl font-semibold text-foreground">
-          {value}
-        </p>
+        <p className="text-xl font-medium text-foreground">{value}</p>
       )}
     </div>
   )

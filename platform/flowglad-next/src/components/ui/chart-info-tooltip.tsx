@@ -32,7 +32,7 @@ export function ChartInfoTooltip({ content }: ChartInfoTooltipProps) {
         <TooltipContent
           variant="muted"
           side="top"
-          className="max-w-xs text-sm"
+          className="max-w-xs text-sm px-3 py-2"
         >
           {content}
         </TooltipContent>

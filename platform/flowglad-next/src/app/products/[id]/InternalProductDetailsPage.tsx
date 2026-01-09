@@ -7,8 +7,8 @@ import { ExpandSection } from '@/components/ExpandSection'
 import ArchiveProductModal from '@/components/forms/ArchiveProductModal'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import EditProductModal from '@/components/forms/EditProductModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import { ItemFeature } from '@/components/ItemFeature'
+import PageContainer from '@/components/PageContainer'
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { useAuthenticatedContext } from '@/contexts/authContext'
@@ -134,7 +134,7 @@ function InternalProductDetailsPage(
   ]
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title={product.name}
@@ -233,7 +233,7 @@ function InternalProductDetailsPage(
           active: product.active,
         }}
       />
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

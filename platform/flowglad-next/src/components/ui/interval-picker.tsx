@@ -82,7 +82,7 @@ export function IntervalPicker({
                 size="sm"
                 className={cn(
                   'justify-start font-normal pl-8 relative',
-                  value === option && 'bg-accent font-medium'
+                  value === option && 'font-medium'
                 )}
                 onClick={() => handleSelect(option)}
               >
