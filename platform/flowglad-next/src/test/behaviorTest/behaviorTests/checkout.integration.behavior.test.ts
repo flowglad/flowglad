@@ -118,13 +118,13 @@ const confirmCheckoutSessionBehavior = defineBehavior({
       livemode: false,
     })
 
-    // Create payment intent for the checkout session
+    // Create payment intent for the checkout session (use updatedCheckoutSession which has billing address)
     const paymentIntent = await createPaymentIntentForCheckoutSession(
       {
         price: prev.price,
         organization: prev.organization,
         product: prev.product,
-        checkoutSession: prev.checkoutSession,
+        checkoutSession: prev.updatedCheckoutSession,
       }
     )
 
@@ -138,7 +138,7 @@ const confirmCheckoutSessionBehavior = defineBehavior({
     // Update checkout session with payment intent ID and confirm
     await adminTransaction(async ({ transaction }) => {
       const session = await selectCheckoutSessionById(
-        prev.checkoutSession.id,
+        prev.updatedCheckoutSession.id,
         transaction
       )
       if (!session) {
@@ -219,7 +219,7 @@ const processPaymentSuccessBehavior = defineBehavior({
       async ({ transaction }) => {
         return processStripeChargeForCheckoutSession(
           {
-            checkoutSessionId: prev.checkoutSession.id,
+            checkoutSessionId: prev.updatedCheckoutSession.id,
             charge,
           },
           transaction
@@ -244,7 +244,7 @@ const processPaymentSuccessBehavior = defineBehavior({
           transaction
         )
         const feeCalc = await selectLatestFeeCalculation(
-          { checkoutSessionId: prev.checkoutSession.id },
+          { checkoutSessionId: prev.updatedCheckoutSession.id },
           transaction
         )
 
