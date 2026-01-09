@@ -21,14 +21,13 @@ View the complete source code on [GitHub](https://github.com/flowglad/examples/t
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── flowglad/[...path]/route.ts
-│   │   │   └── usage-events/route.ts
-│   │   ├── home-client.tsx
-│   │   ├── layout.tsx
-│   │   └── page.tsx
+│   │   │   ├── flowglad/[...path]/route.ts  # Flowglad API handler
+│   │   │   └── usage-events/route.ts        # Records usage events
+│   │   └── home-client.tsx                  # Main UI component
 │   └── lib/
-│       └── flowglad.ts
-├── pricing.yaml
+│       ├── billing-helpers.ts               # Usage & pricing utilities
+│       └── flowglad.ts                      # Flowglad server setup
+├── pricing.yaml                             # Pricing configuration
 └── package.json
 ```
 
