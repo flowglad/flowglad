@@ -5,10 +5,12 @@ import type { Organization } from '@/db/schema/organizations'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Resource } from '@/db/schema/resources'
 import {
+  bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug,
   insertResource,
   selectResourceById,
   selectResources,
   selectResourcesPaginated,
+  selectResourcesTableRowData,
   updateResource,
   upsertResourceByPricingModelIdAndSlug,
 } from './resourceMethods'
@@ -328,8 +330,10 @@ describe('resourceMethods', () => {
         expect(page1.data.length).toBe(2)
         // Should indicate more results are available
         expect(page1.hasMore).toBe(true)
-        // Should have a cursor for the next page
-        expect(page1.nextCursor).not.toBeUndefined()
+        // Should have a cursor for the next page (cursor uses last item's ID)
+        expect(page1.nextCursor).toBe(
+          page1.data[page1.data.length - 1].id
+        )
         // Total should be at least 5 (we inserted 5, there may be more in the DB)
         expect(page1.total).toBeGreaterThanOrEqual(5)
 
@@ -347,6 +351,363 @@ describe('resourceMethods', () => {
         expect(page1Ids.some((id) => page2Ids.includes(id))).toBe(
           false
         )
+      })
+    })
+  })
+
+  describe('selectResourcesTableRowData', () => {
+    it('should return resources with joined pricing model data', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const resource1 = await insertResource(
+          createResourceInsert({
+            slug: 'table-row-resource-1',
+            name: 'Table Row Resource 1',
+          }),
+          transaction
+        )
+        const resource2 = await insertResource(
+          createResourceInsert({
+            slug: 'table-row-resource-2',
+            name: 'Table Row Resource 2',
+            pricingModelId: secondPricingModel.id,
+          }),
+          transaction
+        )
+
+        const result = await selectResourcesTableRowData({
+          input: {
+            pageSize: 10,
+          },
+          where: { organizationId: organization.id },
+          transaction,
+        })
+
+        // Should include our resources with pricing model info
+        const foundResource1 = result.items.find(
+          (item) => item.resource.id === resource1.id
+        )
+        const foundResource2 = result.items.find(
+          (item) => item.resource.id === resource2.id
+        )
+
+        expect(foundResource1).toBeTruthy()
+        expect(foundResource1!.resource.slug).toBe(
+          'table-row-resource-1'
+        )
+        expect(foundResource1!.pricingModel.id).toBe(pricingModel.id)
+        expect(foundResource1!.pricingModel.name).toBe(
+          pricingModel.name
+        )
+
+        expect(foundResource2).toBeTruthy()
+        expect(foundResource2!.resource.slug).toBe(
+          'table-row-resource-2'
+        )
+        expect(foundResource2!.pricingModel.id).toBe(
+          secondPricingModel.id
+        )
+        expect(foundResource2!.pricingModel.name).toBe(
+          'Second Pricing Model'
+        )
+      })
+    })
+
+    it('should support search by resource name via ILIKE', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        await insertResource(
+          createResourceInsert({
+            slug: 'searchable-seats',
+            name: 'Searchable Seats Resource',
+          }),
+          transaction
+        )
+        await insertResource(
+          createResourceInsert({
+            slug: 'api-keys',
+            name: 'API Keys',
+          }),
+          transaction
+        )
+
+        const result = await selectResourcesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: 'Searchable',
+          },
+          where: { organizationId: organization.id },
+          transaction,
+        })
+
+        // Should only return the resource matching the search
+        expect(result.items.length).toBeGreaterThanOrEqual(1)
+        const matchingItem = result.items.find(
+          (item) => item.resource.name === 'Searchable Seats Resource'
+        )
+        expect(matchingItem).toBeTruthy()
+        expect(matchingItem!.resource.slug).toBe('searchable-seats')
+      })
+    })
+
+    it('should support search by exact resource ID match', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const targetResource = await insertResource(
+          createResourceInsert({
+            slug: 'id-searchable',
+            name: 'ID Searchable Resource',
+          }),
+          transaction
+        )
+        await insertResource(
+          createResourceInsert({
+            slug: 'other-resource',
+            name: 'Other Resource',
+          }),
+          transaction
+        )
+
+        // Search by exact ID
+        const result = await selectResourcesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: targetResource.id,
+          },
+          where: { organizationId: organization.id },
+          transaction,
+        })
+
+        // Should find the resource by ID
+        expect(result.items.length).toBe(1)
+        expect(result.items[0].resource.id).toBe(targetResource.id)
+        expect(result.items[0].resource.slug).toBe('id-searchable')
+      })
+    })
+
+    it('should trim whitespace from search queries', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        await insertResource(
+          createResourceInsert({
+            slug: 'trim-test',
+            name: 'TrimTestResource',
+          }),
+          transaction
+        )
+
+        const result = await selectResourcesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: '   TrimTest   ',
+          },
+          where: { organizationId: organization.id },
+          transaction,
+        })
+
+        // Should find the resource despite whitespace in query
+        const matchingItem = result.items.find(
+          (item) => item.resource.slug === 'trim-test'
+        )
+        expect(matchingItem).toBeTruthy()
+      })
+    })
+
+    it('should support cursor-based pagination with pricing model joins', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Insert multiple resources
+        for (let i = 0; i < 5; i++) {
+          await insertResource(
+            createResourceInsert({
+              slug: `cursor-pagination-${i}`,
+              name: `Cursor Pagination ${i}`,
+            }),
+            transaction
+          )
+        }
+
+        const page1 = await selectResourcesTableRowData({
+          input: { pageSize: 2 },
+          where: { organizationId: organization.id },
+          transaction,
+        })
+
+        expect(page1.items.length).toBe(2)
+        expect(page1.hasNextPage).toBe(true)
+
+        // All items should have pricing model info
+        for (const item of page1.items) {
+          expect(item.pricingModel.id).toBeTruthy()
+          expect(item.pricingModel.name).toBeTruthy()
+        }
+
+        // Get second page using cursor
+        if (page1.endCursor) {
+          const page2 = await selectResourcesTableRowData({
+            input: { pageSize: 2, pageAfter: page1.endCursor },
+            where: { organizationId: organization.id },
+            transaction,
+          })
+
+          expect(page2.items.length).toBe(2)
+          // Ensure no overlap between pages
+          const page1Ids = page1.items.map((i) => i.resource.id)
+          const page2Ids = page2.items.map((i) => i.resource.id)
+          expect(page1Ids.some((id) => page2Ids.includes(id))).toBe(
+            false
+          )
+        }
+      })
+    })
+  })
+
+  describe('bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug', () => {
+    it('should insert multiple resources when no conflicts exist', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const inserts: Resource.Insert[] = [
+          createResourceInsert({
+            slug: 'bulk-resource-1',
+            name: 'Bulk Resource 1',
+          }),
+          createResourceInsert({
+            slug: 'bulk-resource-2',
+            name: 'Bulk Resource 2',
+          }),
+          createResourceInsert({
+            slug: 'bulk-resource-3',
+            name: 'Bulk Resource 3',
+          }),
+        ]
+
+        const inserted =
+          await bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug(
+            inserts,
+            transaction
+          )
+
+        expect(inserted.length).toBe(3)
+        expect(inserted.map((r) => r.slug).sort()).toEqual([
+          'bulk-resource-1',
+          'bulk-resource-2',
+          'bulk-resource-3',
+        ])
+        for (const resource of inserted) {
+          expect(resource.id).toMatch(/^resource_/)
+          expect(resource.pricingModelId).toBe(pricingModel.id)
+          expect(resource.organizationId).toBe(organization.id)
+        }
+      })
+    })
+
+    it('should skip inserting resources that conflict on pricingModelId + slug + organizationId', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Insert an existing resource
+        const existing = await insertResource(
+          createResourceInsert({
+            slug: 'existing-resource',
+            name: 'Existing Resource',
+          }),
+          transaction
+        )
+
+        // Try bulk insert with one conflicting and one new resource
+        const inserts: Resource.Insert[] = [
+          createResourceInsert({
+            slug: 'existing-resource', // conflicts with existing
+            name: 'Different Name',
+          }),
+          createResourceInsert({
+            slug: 'new-bulk-resource',
+            name: 'New Bulk Resource',
+          }),
+        ]
+
+        const inserted =
+          await bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug(
+            inserts,
+            transaction
+          )
+
+        // Only the non-conflicting resource should be inserted
+        expect(inserted.length).toBe(1)
+        expect(inserted[0].slug).toBe('new-bulk-resource')
+
+        // Verify the existing resource was not modified
+        const existingAfter = await selectResourceById(
+          existing.id,
+          transaction
+        )
+        expect(existingAfter.name).toBe('Existing Resource')
+      })
+    })
+
+    it('should allow same slug across different pricing models', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Insert resource in first pricing model
+        await insertResource(
+          createResourceInsert({
+            slug: 'shared-slug',
+            name: 'Shared Slug PM1',
+            pricingModelId: pricingModel.id,
+          }),
+          transaction
+        )
+
+        // Bulk insert the same slug for a different pricing model
+        const inserts: Resource.Insert[] = [
+          createResourceInsert({
+            slug: 'shared-slug',
+            name: 'Shared Slug PM2',
+            pricingModelId: secondPricingModel.id,
+          }),
+        ]
+
+        const inserted =
+          await bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug(
+            inserts,
+            transaction
+          )
+
+        // Should successfully insert because it's a different pricing model
+        expect(inserted.length).toBe(1)
+        expect(inserted[0].slug).toBe('shared-slug')
+        expect(inserted[0].pricingModelId).toBe(secondPricingModel.id)
+      })
+    })
+
+    it('should return empty array when all inserts conflict', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Pre-insert resources
+        await insertResource(
+          createResourceInsert({
+            slug: 'conflict-1',
+            name: 'Conflict 1',
+          }),
+          transaction
+        )
+        await insertResource(
+          createResourceInsert({
+            slug: 'conflict-2',
+            name: 'Conflict 2',
+          }),
+          transaction
+        )
+
+        // Try bulk insert with all conflicting resources
+        const inserts: Resource.Insert[] = [
+          createResourceInsert({
+            slug: 'conflict-1',
+            name: 'New Conflict 1',
+          }),
+          createResourceInsert({
+            slug: 'conflict-2',
+            name: 'New Conflict 2',
+          }),
+        ]
+
+        const inserted =
+          await bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug(
+            inserts,
+            transaction
+          )
+
+        expect(inserted.length).toBe(0)
       })
     })
   })

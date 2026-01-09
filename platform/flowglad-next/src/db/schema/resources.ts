@@ -71,6 +71,10 @@ const readOnlyColumns = {
   livemode: true,
 } as const
 
+const createOnlyColumns = {
+  pricingModelId: true,
+} as const
+
 export const {
   select: resourcesSelectSchema,
   insert: resourcesInsertSchema,
@@ -84,6 +88,7 @@ export const {
   client: {
     hiddenColumns,
     readOnlyColumns,
+    createOnlyColumns,
   },
   entityName: 'Resource',
 })
