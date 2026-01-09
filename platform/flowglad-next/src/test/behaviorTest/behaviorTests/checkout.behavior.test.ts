@@ -135,8 +135,13 @@ behaviorTest({
         const defaultPricingModel = pricingModels.find(
           (pm) => pm.isDefault
         )
-        expect(defaultPricingModel!.isDefault).toBe(true)
-        expect(defaultPricingModel!.organizationId).toBe(
+        if (!defaultPricingModel) {
+          throw new Error(
+            `No default pricing model found for organization ${result.organization.id}`
+          )
+        }
+        expect(defaultPricingModel.isDefault).toBe(true)
+        expect(defaultPricingModel.organizationId).toBe(
           result.organization.id
         )
       },
