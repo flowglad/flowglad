@@ -55,6 +55,7 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
+import { CacheDependency } from '@/utils/cache'
 
 describe('Pricing Model Migration Test Suite', async () => {
   const { organization, price: orgDefaultPrice } = await setupOrg()
@@ -1559,6 +1560,128 @@ describe('Pricing Model Migration Test Suite', async () => {
       expect(otherCustomerSubs[0].id).toBe(otherSubscription.id)
       expect(otherCustomerSubs[0].status).toBe(
         SubscriptionStatus.Active
+      )
+    })
+  })
+
+  describe('Cache Invalidations', () => {
+    it('should return customerSubscriptions cache invalidation when migrating with subscriptions', async () => {
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Should have cache invalidations for the customer's subscriptions
+      expect(result.cacheInvalidations).toBeDefined()
+      expect(result.cacheInvalidations).toContain(
+        CacheDependency.customerSubscriptions(customer.id)
+      )
+    })
+
+    it('should return customerSubscriptions cache invalidation when migrating with no existing subscriptions', async () => {
+      // Customer with no subscriptions
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Should still have cache invalidation from the new subscription creation
+      expect(result.cacheInvalidations).toBeDefined()
+      expect(result.cacheInvalidations).toContain(
+        CacheDependency.customerSubscriptions(customer.id)
+      )
+    })
+
+    it('should return correct customerSubscriptions cache invalidation for the specific customer', async () => {
+      // Create another customer
+      const otherCustomer = await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
+      })
+
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Should invalidate the migrated customer's cache
+      expect(result.cacheInvalidations).toContain(
+        CacheDependency.customerSubscriptions(customer.id)
+      )
+      // Should NOT invalidate the other customer's cache
+      expect(result.cacheInvalidations).not.toContain(
+        CacheDependency.customerSubscriptions(otherCustomer.id)
+      )
+    })
+
+    it('should return cache invalidations from procedure transaction', async () => {
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return await migrateCustomerPricingModelProcedureTransaction(
+            {
+              input: {
+                externalId: customer.externalId,
+                newPricingModelId: pricingModel2.id,
+              },
+              transaction,
+              ctx: { apiKey: undefined },
+              livemode: false,
+              userId: 'test-user-id',
+              organizationId: organization.id,
+            }
+          )
+        }
+      )
+
+      // Verify cache invalidations are returned from procedure transaction
+      expect(result.cacheInvalidations).toBeDefined()
+      expect(result.cacheInvalidations).toContain(
+        CacheDependency.customerSubscriptions(customer.id)
       )
     })
   })

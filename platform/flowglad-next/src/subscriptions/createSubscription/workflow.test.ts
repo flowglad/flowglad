@@ -59,6 +59,7 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import { core } from '@/utils/core'
 import type {
   NonRenewingCreateSubscriptionResult,
@@ -2200,6 +2201,99 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
       )
       expect(upgraded.isFreePlan).toBe(false)
     })
+  })
+})
+
+describe('createSubscriptionWorkflow cache invalidations', async () => {
+  it('returns customerSubscriptions cache invalidation for the customer', async () => {
+    const { organization, product, price } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    const workflowResult = await adminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_cache_test_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      }
+    )
+
+    // Verify cacheInvalidations contains customerSubscriptions dependency
+    expect(workflowResult.cacheInvalidations).toBeDefined()
+    expect(workflowResult.cacheInvalidations).toHaveLength(1)
+    expect(workflowResult.cacheInvalidations).toContain(
+      CacheDependency.customerSubscriptions(customer.id)
+    )
+  })
+
+  it('returns customerSubscriptions cache invalidation with the correct customerId', async () => {
+    const { organization, product, price } = await setupOrg()
+    const customer1 = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const customer2 = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const paymentMethod1 = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer1.id,
+      livemode: true,
+    })
+
+    const workflowResult = await adminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_cache_cust_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod1,
+            customer: customer1,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      }
+    )
+
+    // Should invalidate customer1's cache, not customer2's
+    expect(workflowResult.cacheInvalidations).toContain(
+      CacheDependency.customerSubscriptions(customer1.id)
+    )
+    expect(workflowResult.cacheInvalidations).not.toContain(
+      CacheDependency.customerSubscriptions(customer2.id)
+    )
   })
 })
 

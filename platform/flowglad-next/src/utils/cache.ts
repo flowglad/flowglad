@@ -112,6 +112,28 @@ export interface CacheOptions {
 }
 
 /**
+ * Extract CacheOptions and function arguments from a combined args array.
+ * The cached combinator accepts an optional CacheOptions as the last argument,
+ * so we need to detect and separate it from the actual function arguments.
+ */
+function extractCacheArgs<TArgs extends unknown[]>(
+  args: [...TArgs, CacheOptions?]
+): { fnArgs: TArgs; options: CacheOptions } {
+  const lastArg = args[args.length - 1]
+  const hasOptions =
+    lastArg !== null &&
+    typeof lastArg === 'object' &&
+    'ignoreCache' in lastArg
+  const fnArgs = (hasOptions
+    ? args.slice(0, -1)
+    : args) as unknown as TArgs
+  const options: CacheOptions = hasOptions
+    ? (lastArg as CacheOptions)
+    : {}
+  return { fnArgs, options }
+}
+
+/**
  * Combinator that adds caching to an async function.
  *
  * Dependency tracking:
@@ -149,15 +171,7 @@ export function cached<TArgs extends unknown[], TResult>(
   return traced(
     {
       options: (...args: [...TArgs, CacheOptions?]) => {
-        // Check if last argument is CacheOptions to correctly extract fnArgs for keyFn
-        const lastArg = args[args.length - 1]
-        const hasOptions =
-          lastArg !== null &&
-          typeof lastArg === 'object' &&
-          'ignoreCache' in lastArg
-        const fnArgs = (hasOptions
-          ? args.slice(0, -1)
-          : args) as unknown as TArgs
+        const { fnArgs } = extractCacheArgs<TArgs>(args)
         return {
           spanName: `cache.${config.namespace}`,
           tracerName: 'cache',
@@ -171,18 +185,7 @@ export function cached<TArgs extends unknown[], TResult>(
       extractResultAttributes: () => ({}),
     },
     async (...args: [...TArgs, CacheOptions?]): Promise<TResult> => {
-      // Extract options from the last argument if present
-      const lastArg = args[args.length - 1]
-      const hasOptions =
-        lastArg !== null &&
-        typeof lastArg === 'object' &&
-        'ignoreCache' in lastArg
-      const options: CacheOptions = hasOptions
-        ? (lastArg as CacheOptions)
-        : {}
-      const fnArgs = (hasOptions
-        ? args.slice(0, -1)
-        : args) as unknown as TArgs
+      const { fnArgs, options } = extractCacheArgs<TArgs>(args)
 
       const key = config.keyFn(...fnArgs)
       const fullKey = `${config.namespace}:${key}`
