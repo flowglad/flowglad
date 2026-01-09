@@ -204,11 +204,17 @@ const processPaymentSuccessBehavior = defineBehavior({
         }
       )
 
-    // Get the charge
+    // Get the charge ID, handling null case explicitly
+    const { latest_charge } = confirmedPaymentIntent
+    if (!latest_charge) {
+      throw new Error(
+        `No charge on payment intent ${prev.stripePaymentIntentId} after confirmation`
+      )
+    }
     const chargeId =
-      typeof confirmedPaymentIntent.latest_charge === 'string'
-        ? confirmedPaymentIntent.latest_charge
-        : confirmedPaymentIntent.latest_charge!.id
+      typeof latest_charge === 'string'
+        ? latest_charge
+        : latest_charge.id
 
     const charge = await stripe.charges.retrieve(chargeId)
 
