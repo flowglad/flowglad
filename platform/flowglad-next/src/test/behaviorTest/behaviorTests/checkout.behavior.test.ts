@@ -217,7 +217,11 @@ behaviorTest({
 // MoR + Tax-Registered Jurisdiction Test (VAT and US Sales Tax)
 //
 // Tests MoR behavior for jurisdictions where Flowglad is registered to collect tax.
-// Key invariant: Tax calculation is performed and tax may be charged.
+// Key invariants:
+// - Tax calculation is performed
+// - Tax amount is greater than zero (when there's a pretax amount)
+//
+// Note: Skips 100% discount case since zero pretax = zero tax.
 // =============================================================================
 
 behaviorTest({
@@ -237,6 +241,7 @@ behaviorTest({
       CustomerResidencyDep: 'us-nyc',
     },
   ],
+  skip: [{ DiscountDep: 'percent-100' }], // Zero pretax = zero tax
   chain: [
     { behavior: authenticateUserBehavior },
     { behavior: createOrganizationBehavior },
@@ -263,6 +268,10 @@ behaviorTest({
 
         // Tax calculation was performed
         expect(fc.stripeTaxCalculationId).toBeTruthy()
+
+        // Tax amount is greater than zero for registered jurisdictions with pretax amount
+        expect(fc.pretaxTotal).toBeGreaterThan(0)
+        expect(fc.taxAmountFixed).toBeGreaterThan(0)
 
         // Billing address matches the customer's location
         expect(fc.billingAddress).toEqual(
