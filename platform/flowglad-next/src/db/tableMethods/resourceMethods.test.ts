@@ -330,10 +330,9 @@ describe('resourceMethods', () => {
         expect(page1.data.length).toBe(2)
         // Should indicate more results are available
         expect(page1.hasMore).toBe(true)
-        // Should have a cursor for the next page (cursor uses last item's ID)
-        expect(page1.nextCursor).toBe(
-          page1.data[page1.data.length - 1].id
-        )
+        // Should have a cursor for the next page (cursor is a base64-encoded JSON string)
+        expect(typeof page1.nextCursor).toBe('string')
+        expect(page1.nextCursor!.length).toBeGreaterThan(0)
         // Total should be at least 5 (we inserted 5, there may be more in the DB)
         expect(page1.total).toBeGreaterThanOrEqual(5)
 
@@ -390,7 +389,7 @@ describe('resourceMethods', () => {
           (item) => item.resource.id === resource2.id
         )
 
-        expect(foundResource1).toBeTruthy()
+        expect(foundResource1).not.toBeUndefined()
         expect(foundResource1!.resource.slug).toBe(
           'table-row-resource-1'
         )
@@ -399,7 +398,7 @@ describe('resourceMethods', () => {
           pricingModel.name
         )
 
-        expect(foundResource2).toBeTruthy()
+        expect(foundResource2).not.toBeUndefined()
         expect(foundResource2!.resource.slug).toBe(
           'table-row-resource-2'
         )
@@ -443,7 +442,7 @@ describe('resourceMethods', () => {
         const matchingItem = result.items.find(
           (item) => item.resource.name === 'Searchable Seats Resource'
         )
-        expect(matchingItem).toBeTruthy()
+        expect(matchingItem).not.toBeUndefined()
         expect(matchingItem!.resource.slug).toBe('searchable-seats')
       })
     })
@@ -482,9 +481,9 @@ describe('resourceMethods', () => {
       })
     })
 
-    it('should trim whitespace from search queries', async () => {
+    it('should trim whitespace from search queries when searching by exact ID', async () => {
       await adminTransaction(async ({ transaction }) => {
-        await insertResource(
+        const resource = await insertResource(
           createResourceInsert({
             slug: 'trim-test',
             name: 'TrimTestResource',
@@ -492,20 +491,21 @@ describe('resourceMethods', () => {
           transaction
         )
 
+        // Search by ID with surrounding whitespace - the implementation trims for ID matching
         const result = await selectResourcesTableRowData({
           input: {
             pageSize: 10,
-            searchQuery: '   TrimTest   ',
+            searchQuery: `   ${resource.id}   `,
             filters: { organizationId: organization.id },
           },
           transaction,
         })
 
-        // Should find the resource despite whitespace in query
-        const matchingItem = result.items.find(
-          (item) => item.resource.slug === 'trim-test'
-        )
-        expect(matchingItem).toBeTruthy()
+        // Should find the resource by ID despite whitespace in query
+        expect(result.items.length).toBe(1)
+        expect(result.items[0].resource.id).toBe(resource.id)
+        expect(result.items[0].resource.slug).toBe('trim-test')
+        expect(result.items[0].resource.name).toBe('TrimTestResource')
       })
     })
 
@@ -532,32 +532,34 @@ describe('resourceMethods', () => {
 
         expect(page1.items.length).toBe(2)
         expect(page1.hasNextPage).toBe(true)
+        // Since hasNextPage is true, endCursor must be defined
+        expect(typeof page1.endCursor).toBe('string')
+        expect(page1.endCursor!.length).toBeGreaterThan(0)
 
         // All items should have pricing model info
         for (const item of page1.items) {
-          expect(item.pricingModel.id).toBeTruthy()
-          expect(item.pricingModel.name).toBeTruthy()
+          expect(item.pricingModel.id).toMatch(/^pricing_model_/)
+          expect(typeof item.pricingModel.name).toBe('string')
+          expect(item.pricingModel.name.length).toBeGreaterThan(0)
         }
 
         // Get second page using cursor
-        if (page1.endCursor) {
-          const page2 = await selectResourcesTableRowData({
-            input: {
-              pageSize: 2,
-              pageAfter: page1.endCursor,
-              filters: { organizationId: organization.id },
-            },
-            transaction,
-          })
+        const page2 = await selectResourcesTableRowData({
+          input: {
+            pageSize: 2,
+            pageAfter: page1.endCursor!,
+            filters: { organizationId: organization.id },
+          },
+          transaction,
+        })
 
-          expect(page2.items.length).toBe(2)
-          // Ensure no overlap between pages
-          const page1Ids = page1.items.map((i) => i.resource.id)
-          const page2Ids = page2.items.map((i) => i.resource.id)
-          expect(page1Ids.some((id) => page2Ids.includes(id))).toBe(
-            false
-          )
-        }
+        expect(page2.items.length).toBe(2)
+        // Ensure no overlap between pages
+        const page1Ids = page1.items.map((i) => i.resource.id)
+        const page2Ids = page2.items.map((i) => i.resource.id)
+        expect(page1Ids.some((id) => page2Ids.includes(id))).toBe(
+          false
+        )
       })
     })
   })

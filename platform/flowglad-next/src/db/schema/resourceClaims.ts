@@ -94,10 +94,6 @@ export const resourceClaims = pgTable(
 const readOnlyColumns = {
   organizationId: true,
   livemode: true,
-  pricingModelId: true,
-  subscriptionId: true,
-  subscriptionItemFeatureId: true,
-  resourceId: true,
   claimedAt: true,
 } as const
 
