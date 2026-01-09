@@ -47,7 +47,17 @@ This model works well when you want predictable recurring revenue while giving c
 
 The `pricing.yaml` file defines subscription tiers, credit allocations, and top-up products. See the [full configuration](https://github.com/flowglad/examples/blob/main/tanstack-start/generation-based-subscription/pricing.yaml) in the repository.
 
-![pricing diagram](/images/example-diagrams/generation-based-diagram.svg)
+<img 
+  className="block dark:hidden" 
+  src="/images/example-diagrams/light/generation-based-diagram.svg" 
+  alt="Pricing model diagram showing usage meters, subscription tiers, and top-ups"
+/>
+
+<img 
+  className="hidden dark:block" 
+  src="/images/example-diagrams/dark/generation-based-diagram.svg" 
+  alt="Pricing model diagram showing usage meters, subscription tiers, and top-ups"
+/>
 
 The key distinction in `pricing.yaml` is `renewalFrequency`: use `"every_billing_period"` for subscription credits that reset monthly, and `"once"` for top-up credits that are consumed permanently.
 

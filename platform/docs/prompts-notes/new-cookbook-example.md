@@ -87,21 +87,57 @@ View the complete source code on [GitHub](https://github.com/flowglad/examples/t
 
 The `pricing.yaml` file defines [brief description of what it configures]. See the [full configuration](https://github.com/flowglad/examples/blob/main/[framework]/[example-name]/pricing.yaml) in the repository.
 
-**SVG DIAGRAM:** Create a separate `.svg` file in the `images/` directory and reference it in MDX like this:
+**SVG DIAGRAMS:** Create TWO separate `.svg` files in their respective subdirectories within `images/example-diagrams/`:
+1. Dark mode: `images/example-diagrams/dark/[example-name]-diagram.svg`
+2. Light mode: `images/example-diagrams/light/[example-name]-diagram.svg`
+
+Reference in MDX using Mintlify's light/dark mode image syntax with Tailwind CSS classes:
 
 ```mdx
-![pricing diagram](/images/[example-name]-diagram.svg)
+{/* Light mode image */}
+<img 
+  className="block dark:hidden" 
+  src="/images/example-diagrams/light/[example-name]-diagram.svg" 
+  alt="Pricing model diagram"
+/>
+
+{/* Dark mode image */}
+<img 
+  className="hidden dark:block" 
+  src="/images/example-diagrams/dark/[example-name]-diagram.svg" 
+  alt="Pricing model diagram"
+/>
 ```
 
-**Brand colors for dark mode (primary theme):**
-- Primary light (strokes/arrows): `#ffc898`
-- Container background: `#3f3935`
-- Inner box background: `#45403d`
-- Primary text: `#fbfaf4`
-- Secondary text: `#ccc2a9`
-- Border radius: `rx="4"` for inner boxes, `rx="6"` for containers
+This ensures the correct diagram variant displays based on the user's theme preference.
 
-**SVG structure pattern:**
+---
+
+### Dark Mode Colors (primary theme)
+
+| Element | Color |
+|---------|-------|
+| Primary/strokes/arrows | `#ffc898` |
+| Container background | `#3f3935` |
+| Inner box background | `#45403d` |
+| Primary text | `#fbfaf4` |
+| Secondary text | `#ccc2a9` |
+
+### Light Mode Colors
+
+| Element | Color |
+|---------|-------|
+| Primary/strokes/arrows | `#dd7d29` (use primary color for better contrast) |
+| Container background | `#f1f0e9` |
+| Inner box background | `#ffffff` |
+| Primary text | `#141312` |
+| Secondary text | `#656359` |
+
+**Border radius:** `rx="4"` for inner boxes, `rx="6"` for containers
+
+---
+
+**Dark Mode SVG structure pattern:**
 
 ```html
 <svg viewBox="0 0 800 620" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, sans-serif; max-width: 100%;">
@@ -150,7 +186,56 @@ The `pricing.yaml` file defines [brief description of what it configures]. See t
 </svg>
 ```
 
-**Reference example:** See `/images/generation-based-diagram.svg` for a complete implementation.
+**Light Mode SVG structure pattern:**
+
+```html
+<svg viewBox="0 0 800 620" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, sans-serif; max-width: 100%;">
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#dd7d29"/>
+    </marker>
+  </defs>
+
+  <!-- Usage Meters Section -->
+  <g>
+    <rect x="50" y="20" width="700" height="90" rx="6" fill="#f1f0e9" stroke="#dd7d29" stroke-width="1.5"/>
+    <text x="400" y="45" text-anchor="middle" font-weight="600" font-size="14" fill="#141312">USAGE METERS</text>
+    <!-- Meter boxes -->
+    <rect x="120" y="55" width="200" height="45" rx="4" fill="#ffffff" stroke="#dd7d29"/>
+    <text x="220" y="75" text-anchor="middle" font-size="12" fill="#141312">meter_name</text>
+    <text x="220" y="90" text-anchor="middle" font-size="10" fill="#656359">(sum aggregation)</text>
+  </g>
+
+  <!-- Arrows from meters -->
+  <path d="M250 110 L250 140 L220 170" stroke="#dd7d29" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M550 110 L550 140 L580 170" stroke="#dd7d29" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Subscription Tiers Section -->
+  <g>
+    <rect x="50" y="170" width="340" height="300" rx="6" fill="#f1f0e9" stroke="#dd7d29" stroke-width="1.5"/>
+    <text x="220" y="195" text-anchor="middle" font-weight="600" font-size="14" fill="#141312">SUBSCRIPTION TIERS</text>
+    <text x="220" y="212" text-anchor="middle" font-size="10" fill="#656359">(renews every billing period)</text>
+    <!-- Tier boxes -->
+    <rect x="70" y="225" width="300" height="45" rx="4" fill="#ffffff" stroke="#dd7d29"/>
+    <text x="220" y="248" text-anchor="middle" font-weight="600" font-size="12" fill="#141312">Free $0/mo</text>
+    <text x="220" y="263" text-anchor="middle" font-size="10" fill="#656359">No credits</text>
+  </g>
+
+  <!-- Top-ups Section -->
+  <g>
+    <rect x="410" y="170" width="340" height="180" rx="6" fill="#f1f0e9" stroke="#dd7d29" stroke-width="1.5"/>
+    <text x="580" y="195" text-anchor="middle" font-weight="600" font-size="14" fill="#141312">TOP-UPS</text>
+    <text x="580" y="212" text-anchor="middle" font-size="10" fill="#656359">(one-time purchase)</text>
+    <!-- Top-up boxes -->
+    <rect x="430" y="225" width="300" height="50" rx="4" fill="#ffffff" stroke="#dd7d29"/>
+    <text x="580" y="248" text-anchor="middle" font-weight="600" font-size="12" fill="#141312">Credit Pack $X</text>
+    <text x="580" y="265" text-anchor="middle" font-size="10" fill="#656359">+N credits</text>
+  </g>
+</svg>
+```
+
+**Reference example:** See `/images/example-diagrams/dark/generation-based-diagram.svg` (dark) and `/images/example-diagrams/light/generation-based-diagram.svg` (light) for complete implementations.
 
 [1-2 sentences explaining the key distinction of this pricing model, e.g., renewalFrequency settings or feature toggles vs usage grants]
 
@@ -204,20 +289,44 @@ const balance = billing.checkUsageBalance('generations');
 For pricing configurations, create SVG diagram files and reference them in the MDX. This makes the pricing model structure immediately clear and renders nicely in documentation.
 
 **SVG diagram file creation:**
-1. Create a new `.svg` file in the `images/` directory (e.g., `images/[example-name]-diagram.svg`)
-2. Reference in MDX with standard markdown image syntax:
+1. Create TWO `.svg` files in their respective subdirectories:
+   - Dark mode: `images/example-diagrams/dark/[example-name]-diagram.svg`
+   - Light mode: `images/example-diagrams/light/[example-name]-diagram.svg`
+2. Reference in MDX using Tailwind CSS classes for theme switching:
    ```mdx
-   ![pricing diagram](/images/[example-name]-diagram.svg)
+   {/* Light mode image */}
+   <img 
+     className="block dark:hidden" 
+     src="/images/example-diagrams/light/[example-name]-diagram.svg" 
+     alt="Pricing model diagram"
+   />
+
+   {/* Dark mode image */}
+   <img 
+     className="hidden dark:block" 
+     src="/images/example-diagrams/dark/[example-name]-diagram.svg" 
+     alt="Pricing model diagram"
+   />
    ```
 
 **SVG diagram guidelines:**
 - Use `viewBox` for responsive scaling (e.g., `viewBox="0 0 800 620"`)
-- Use dark mode colors for the page background (`#2d2a28`):
+- Create both dark and light mode versions with appropriate colors:
+  
+  **Dark mode colors:**
   - Container fills: `#3f3935`
   - Inner box fills: `#45403d`
   - Strokes/arrows: `#ffc898` (primary light)
   - Primary text: `#fbfaf4`
   - Secondary text: `#ccc2a9`
+  
+  **Light mode colors:**
+  - Container fills: `#f1f0e9`
+  - Inner box fills: `#ffffff`
+  - Strokes/arrows: `#dd7d29` (primary)
+  - Primary text: `#141312`
+  - Secondary text: `#656359`
+
 - Use `rx="4"` for inner boxes, `rx="6"` for container boxes
 - Include arrow marker definition in `<defs>` section
 - Keep font sizes readable: 12-14px for labels, 10px for descriptions
@@ -286,7 +395,10 @@ Common pricing models to document:
 - [ ] Key concepts are explained in plain English, not just shown in code
 - [ ] No full file dumps - only essential snippets
 - [ ] File paths in code blocks match EXACT paths from the repository (e.g., `src/app/api/usage-events/route.ts`)
-- [ ] Pricing model SVG diagram created in `images/` directory and referenced with `![pricing diagram](/images/[name]-diagram.svg)`
+- [ ] Pricing model SVG diagrams created in `images/example-diagrams/` subdirectories (both dark and light mode variants)
+- [ ] Dark mode diagram: `images/example-diagrams/dark/[name]-diagram.svg`
+- [ ] Light mode diagram: `images/example-diagrams/light/[name]-diagram.svg`
+- [ ] Referenced in MDX using Tailwind classes: `className="block dark:hidden"` for light, `className="hidden dark:block"` for dark
 - [ ] Link to source repository prominently displayed
 - [ ] Total doc length is reasonable (aim for <200 lines of markdown)
 - [ ] Next steps CardGroup includes GitHub link to the specific example

@@ -48,7 +48,17 @@ Unlike pure usage-based billing, customers get cost predictability from their su
 
 The `pricing.yaml` defines subscription tiers with included credits and an overage product for additional usage. See the [full configuration](https://github.com/flowglad/examples/blob/main/nextjs/usage-limit-subscription/pricing.yaml) in the repository.
 
-![pricing diagram](/images/example-diagrams/usage-limit-diagram.svg)
+<img 
+  className="block dark:hidden" 
+  src="/images/example-diagrams/light/usage-limit-diagram.svg" 
+  alt="Pricing model diagram showing usage meter, subscription tiers, and overage billing"
+/>
+
+<img 
+  className="hidden dark:block" 
+  src="/images/example-diagrams/dark/usage-limit-diagram.svg" 
+  alt="Pricing model diagram showing usage meter, subscription tiers, and overage billing"
+/>
 
 The key distinction in `pricing.yaml` is `renewalFrequency: "every_billing_period"` for subscription credits that reset monthly. The overage product uses `type: "usage"` to bill per-request when credits are exhausted.
 

@@ -43,7 +43,17 @@ This model works well for products with unpredictable usage patterns or where cu
 
 The `pricing.yaml` file defines the free plan, usage meter, and credit top-up product. See the [full configuration](https://github.com/flowglad/examples/blob/main/nextjs/pay-as-you-go/pricing.yaml) in the repository.
 
-![pricing diagram](/images/example-diagrams/pay-as-you-go-diagram.svg)
+<img 
+  className="block dark:hidden" 
+  src="/images/example-diagrams/light/pay-as-you-go-diagram.svg" 
+  alt="Pricing model diagram showing usage meter, free plan, and top-up"
+/>
+
+<img 
+  className="hidden dark:block" 
+  src="/images/example-diagrams/dark/pay-as-you-go-diagram.svg" 
+  alt="Pricing model diagram showing usage meter, free plan, and top-up"
+/>
 
 The key distinction from subscription models: there is no `renewalFrequency: "every_billing_period"`. All credits use `renewalFrequency: "once"`, meaning they persist until consumed.
 

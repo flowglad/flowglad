@@ -48,7 +48,17 @@ The key distinction from generation-based billing: here, different features have
 
 The `pricing.yaml` defines features as toggles or usage credit grants. See the [full configuration](https://github.com/flowglad/examples/blob/main/nextjs/tiered-usage-gated-subscription/pricing.yaml) in the repository.
 
-![pricing diagram](/images/example-diagrams/tiered-usage-gated-diagram.svg)
+<img 
+  className="block dark:hidden" 
+  src="/images/example-diagrams/light/tiered-usage-gated-diagram.svg" 
+  alt="Pricing model diagram showing usage meters, toggle features, usage credit grants, and subscription tiers"
+/>
+
+<img 
+  className="hidden dark:block" 
+  src="/images/example-diagrams/dark/tiered-usage-gated-diagram.svg" 
+  alt="Pricing model diagram showing usage meters, toggle features, usage credit grants, and subscription tiers"
+/>
 
 The key distinction in this model: features combine **toggles** (binary access) with **usage credit grants** (monthly limits). Products reference feature slugs to compose each tier's capabilities.
 
