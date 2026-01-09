@@ -1,8 +1,11 @@
 /**
- * Checkout Behavior Test
+ * Checkout Behavior Tests
  *
- * Tests universal invariants of the checkout flow across all contract types
- * and customer residencies.
+ * This file contains three behavior tests:
+ *
+ * 1. **Universal Checkout Test** - Tests invariants true for ALL combinations
+ * 2. **MoR Checkout Test** - Tests MoR-specific fee calculation behavior
+ * 3. **Platform Checkout Test** - Tests Platform-specific (no fee) behavior
  *
  * Chain:
  * 1. Authenticate User
@@ -11,13 +14,6 @@
  * 4. Create Product with Price
  * 5. Initiate Checkout Session
  * 6. Provide Billing Address
- *
- * Universal invariants tested:
- * - Billing address is correctly saved to checkout session
- * - Checkout session remains in Open status
- *
- * For contract-type-specific behavior (MoR fee calculation vs Platform null),
- * see the dedicated integration tests or filtered behavior tests.
  */
 
 import { expect } from 'vitest'
@@ -36,7 +32,28 @@ import { CustomerResidencyDep } from '../dependencies/customerResidencyDependenc
 import { behaviorTest } from '../index'
 
 // =============================================================================
-// Behavior Test
+// Shared teardown function
+// =============================================================================
+
+const checkoutTeardown = async (results: unknown[]) => {
+  for (const result of results as ProvideBillingAddressResult[]) {
+    try {
+      if (result?.organization?.id) {
+        await teardownOrg({
+          organizationId: result.organization.id,
+        })
+      }
+    } catch (error) {
+      console.warn(
+        `[teardown] Failed to cleanup org ${result?.organization?.id}:`,
+        error
+      )
+    }
+  }
+}
+
+// =============================================================================
+// Universal Checkout Behavior Test (all combinations)
 // =============================================================================
 
 behaviorTest({
@@ -117,20 +134,63 @@ behaviorTest({
     },
   ],
   testOptions: { timeout: 60000 },
-  teardown: async (results) => {
-    for (const result of results as ProvideBillingAddressResult[]) {
-      try {
-        if (result?.organization?.id) {
-          await teardownOrg({
-            organizationId: result.organization.id,
-          })
-        }
-      } catch (error) {
-        console.warn(
-          `[teardown] Failed to cleanup org ${result?.organization?.id}:`,
-          error
+  teardown: checkoutTeardown,
+})
+
+// =============================================================================
+// MoR Checkout Behavior Test (filtered to merchantOfRecord only)
+// =============================================================================
+
+behaviorTest({
+  chain: [
+    { behavior: authenticateUserBehavior },
+    { behavior: createOrganizationBehavior },
+    { behavior: completeStripeOnboardingBehavior },
+    { behavior: createProductWithPriceBehavior },
+    { behavior: initiateCheckoutSessionBehavior },
+    {
+      behavior: provideBillingAddressBehavior,
+      invariants: async (result) => {
+        // MoR invariant: Fee calculation is created
+        expect(result.feeCalculation).not.toBeNull()
+        expect(result.feeCalculation!.checkoutSessionId).toBe(
+          result.checkoutSession.id
         )
-      }
-    }
-  },
+        expect(result.feeCalculation!.organizationId).toBe(
+          result.organization.id
+        )
+        // MoR includes MoR surcharge percentage
+        expect(
+          parseFloat(result.feeCalculation!.morSurchargePercentage)
+        ).toBeGreaterThan(0)
+      },
+    },
+  ],
+  only: [{ ContractTypeDep: 'merchantOfRecord' }],
+  testOptions: { timeout: 60000 },
+  teardown: checkoutTeardown,
+})
+
+// =============================================================================
+// Platform Checkout Behavior Test (filtered to platform only)
+// =============================================================================
+
+behaviorTest({
+  chain: [
+    { behavior: authenticateUserBehavior },
+    { behavior: createOrganizationBehavior },
+    { behavior: completeStripeOnboardingBehavior },
+    { behavior: createProductWithPriceBehavior },
+    { behavior: initiateCheckoutSessionBehavior },
+    {
+      behavior: provideBillingAddressBehavior,
+      invariants: async (result) => {
+        // Platform invariant: No fee calculation
+        expect(result.feeCalculation).toBeNull()
+      },
+    },
+  ],
+  only: [{ ContractTypeDep: 'platform' }],
+  testOptions: { timeout: 60000 },
+  teardown: checkoutTeardown,
 })
