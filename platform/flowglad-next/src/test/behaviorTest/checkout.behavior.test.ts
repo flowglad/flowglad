@@ -42,10 +42,10 @@ import core from '@/utils/core'
 import {
   authenticateUserBehavior,
   type CompleteStripeOnboardingResult,
-  ContractTypeDep,
   completeStripeOnboardingBehavior,
   createOrganizationBehavior,
 } from './behaviors/organizationBehaviors'
+import { ContractTypeDep } from './dependencies/organizationDependencies'
 import { behaviorTest, Dependency, defineBehavior } from './index'
 
 // ============================================================================
