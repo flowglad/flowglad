@@ -11,7 +11,6 @@
  */
 
 import { expect } from 'vitest'
-import { teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
@@ -21,23 +20,24 @@ import {
   CurrencyCode,
   StripeConnectContractType,
 } from '@/types'
+import { teardownOrg } from '../../../../seedDatabase'
 import {
   type AuthenticateUserResult,
   authenticateUserBehavior,
-} from './behaviors/authBehaviors'
+} from '../behaviors/authBehaviors'
 import {
   type CreateOrganizationResult,
   createOrganizationBehavior,
-} from './behaviors/orgSetupBehaviors'
+} from '../behaviors/orgSetupBehaviors'
 import {
   type CompleteStripeOnboardingResult,
   finalizeStripeOnboardingBehavior,
   type InitiateStripeConnectResult,
   initiateStripeConnectBehavior,
-} from './behaviors/stripeOnboardingBehaviors'
-import { ContractTypeDep } from './dependencies/contractTypeDependencies'
-import { CountryDep } from './dependencies/countryDependencies'
-import { behaviorTest } from './index'
+} from '../behaviors/stripeOnboardingBehaviors'
+import { ContractTypeDep } from '../dependencies/contractTypeDependencies'
+import { CountryDep } from '../dependencies/countryDependencies'
+import { behaviorTest } from '../index'
 
 // =============================================================================
 // Behavior Test
