@@ -743,7 +743,21 @@ export const ingestAndProcessUsageEvent = async (
     transaction
   )
 
-  // Validate count_distinct_properties requirements before inserting
+  /**
+   * Validation for CountDistinctProperties aggregation type.
+   *
+   * This aggregation type counts unique property combinations within a billing period.
+   * For example, if tracking unique users who performed an action, each event must include
+   * a properties object like `{ user_id: '123' }` to identify the distinct entity.
+   *
+   * Requirements:
+   * 1. A billing period must exist - deduplication is scoped to billing periods
+   * 2. Properties must be non-empty - without properties, all events would be treated as
+   *    having the same "empty" combination, causing incorrect deduplication where only
+   *    the first event generates a ledger transaction (leading to underbilling)
+   *
+   * @see https://docs.flowglad.com/usage-based-billing/aggregation-types
+   */
   if (
     usageMeter.aggregationType ===
     UsageMeterAggregationType.CountDistinctProperties
