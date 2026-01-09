@@ -173,6 +173,7 @@ const listClaimsOutputSchema = z.object({
 /**
  * Validates that a subscription belongs to the authenticated user's organization.
  * Returns the subscription if valid, throws FORBIDDEN error if not.
+ * Uses generic error message to avoid leaking subscription existence.
  */
 const validateSubscriptionAccess = async (
   subscriptionId: string,
@@ -181,19 +182,31 @@ const validateSubscriptionAccess = async (
     Parameters<typeof authenticatedProcedureTransaction>[0]
   >[0]['transaction']
 ) => {
-  const subscription = await selectSubscriptionById(
-    subscriptionId,
-    transaction
-  )
+  try {
+    const subscription = await selectSubscriptionById(
+      subscriptionId,
+      transaction
+    )
 
-  if (subscription.organizationId !== organizationId) {
+    if (subscription.organizationId !== organizationId) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Subscription not found',
+      })
+    }
+
+    return subscription
+  } catch (error) {
+    // Wrap any error (including NotFoundError) in generic FORBIDDEN
+    // to avoid leaking subscription existence
+    if (error instanceof TRPCError) {
+      throw error
+    }
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: 'Subscription not found',
     })
   }
-
-  return subscription
 }
 
 const claimProcedure = devOnlyProcedure
@@ -338,7 +351,7 @@ const getUsageProcedure = devOnlyProcedure
           )
         }
 
-        // Batch fetch all resource details (fixes N+1)
+        // Batch fetch all resource details in single query
         const resourceIds = [
           ...new Set(resourcesToQuery.map((rf) => rf.resourceId)),
         ]
@@ -348,18 +361,15 @@ const getUsageProcedure = devOnlyProcedure
         >()
 
         if (resourceIds.length > 0) {
-          // Fetch resources in batch - selectResources with multiple IDs
-          for (const resourceId of resourceIds) {
-            const [resource] = await selectResources(
-              { id: resourceId },
-              transaction
-            )
-            if (resource) {
-              resourcesMap.set(resource.id, {
-                id: resource.id,
-                slug: resource.slug,
-              })
-            }
+          const resourcesList = await selectResources(
+            { id: resourceIds },
+            transaction
+          )
+          for (const resource of resourcesList) {
+            resourcesMap.set(resource.id, {
+              id: resource.id,
+              slug: resource.slug,
+            })
           }
         }
 

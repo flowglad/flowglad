@@ -153,8 +153,9 @@ const isCustomerAuthed = t.middleware(
 export const protectedProcedure = baseProcedure.use(isAuthed)
 
 export const devOnlyProcedure = baseProcedure
-  .use(isAuthed)
   .use(({ next, ctx }) => {
+    // Check IS_DEV first to ensure prod always returns FORBIDDEN
+    // regardless of auth state (prevents leaking endpoint existence)
     if (!IS_DEV) {
       throw new TRPCError({
         code: 'FORBIDDEN',
@@ -163,6 +164,7 @@ export const devOnlyProcedure = baseProcedure
     }
     return next({ ctx })
   })
+  .use(isAuthed)
 
 export const customerProtectedProcedure =
   baseProcedure.use(isCustomerAuthed)
