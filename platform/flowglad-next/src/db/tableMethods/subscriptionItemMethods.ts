@@ -319,17 +319,15 @@ const subscriptionItemWithPriceSchema = z.object({
 })
 
 /**
- * Cache-enabled version for single subscription lookup.
- * Wraps selectSubscriptionItemsWithPricesBySubscriptionIds with caching.
+ * Internal cached implementation for single subscription lookup.
  */
-export const selectSubscriptionItemsWithPricesBySubscriptionIdCached =
+const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
   cached(
     {
       namespace: RedisKeyNamespace.ItemsBySubscription,
       keyFn: (subscriptionId: string, _transaction: DbTransaction) =>
         subscriptionId,
       schema: subscriptionItemWithPriceSchema.array(),
-      // This cache depends on the subscription's items
       dependenciesFn: (subscriptionId: string) => [
         CacheDependency.subscription(subscriptionId),
       ],
@@ -341,6 +339,33 @@ export const selectSubscriptionItemsWithPricesBySubscriptionIdCached =
       )
     }
   )
+
+/**
+ * Selects subscription items with their associated prices for a single subscription.
+ * Results are cached by default using Redis with dependency-based invalidation.
+ *
+ * @param subscriptionId - The subscription ID to fetch items for
+ * @param transaction - Database transaction
+ * @param options.ignoreCache - If true, bypasses cache and fetches directly from database
+ * @returns Array of subscription items with their prices
+ */
+export const selectSubscriptionItemsWithPricesBySubscriptionId =
+  async (
+    subscriptionId: string,
+    transaction: DbTransaction,
+    options: { ignoreCache?: boolean } = {}
+  ) => {
+    if (options.ignoreCache) {
+      return selectSubscriptionItemsWithPricesBySubscriptionIds(
+        [subscriptionId],
+        transaction
+      )
+    }
+    return selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal(
+      subscriptionId,
+      transaction
+    )
+  }
 
 /**
  * Processes subscription and item data to build the rich subscriptions map.
@@ -450,7 +475,7 @@ export const selectRichSubscriptionsAndActiveItems = async (
   const itemsWithPrices = (
     await Promise.all(
       subscriptionIds.map((id) =>
-        selectSubscriptionItemsWithPricesBySubscriptionIdCached(
+        selectSubscriptionItemsWithPricesBySubscriptionId(
           id,
           transaction
         )

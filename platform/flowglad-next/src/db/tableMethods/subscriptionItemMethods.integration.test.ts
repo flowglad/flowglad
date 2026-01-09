@@ -23,13 +23,13 @@ import {
   invalidateDependencies,
 } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
-import { selectSubscriptionItemsWithPricesBySubscriptionIdCached } from './subscriptionItemMethods'
+import { selectSubscriptionItemsWithPricesBySubscriptionId } from './subscriptionItemMethods'
 
 /**
  * Integration tests for cached subscription item methods.
  *
  * These tests make real calls to Redis (Upstash) to verify:
- * 1. selectSubscriptionItemsWithPricesBySubscriptionIdCached correctly caches data
+ * 1. selectSubscriptionItemsWithPricesBySubscriptionId correctly caches data
  * 2. Cache invalidation via CacheDependency.subscription works correctly
  *
  * These tests require UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
@@ -90,7 +90,7 @@ describeIfRedisKey(
       await cleanupRedisTestKeys(client, keysToCleanup)
     })
 
-    it('selectSubscriptionItemsWithPricesBySubscriptionIdCached populates cache, returns cached result on subsequent calls, and registers subscription dependency', async () => {
+    it('selectSubscriptionItemsWithPricesBySubscriptionId populates cache, returns cached result on subsequent calls, and registers subscription dependency', async () => {
       const client = getRedisTestClient()
       const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}`
       const dependencyKey = CacheDependency.subscription(
@@ -101,7 +101,7 @@ describeIfRedisKey(
       await adminTransaction(async ({ transaction }) => {
         // First call - should populate cache
         const result1 =
-          await selectSubscriptionItemsWithPricesBySubscriptionIdCached(
+          await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
             transaction
           )
@@ -123,7 +123,7 @@ describeIfRedisKey(
 
         // Second call - should return cached result
         const result2 =
-          await selectSubscriptionItemsWithPricesBySubscriptionIdCached(
+          await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
             transaction
           )
@@ -142,7 +142,7 @@ describeIfRedisKey(
       await adminTransaction(async ({ transaction }) => {
         // First call - populate cache with 1 item
         const result1 =
-          await selectSubscriptionItemsWithPricesBySubscriptionIdCached(
+          await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
             transaction
           )
@@ -172,7 +172,7 @@ describeIfRedisKey(
 
         // Next call should fetch fresh data with 2 items
         const result2 =
-          await selectSubscriptionItemsWithPricesBySubscriptionIdCached(
+          await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
             transaction
           )
@@ -190,7 +190,7 @@ describeIfRedisKey(
 
       await adminTransaction(async ({ transaction }) => {
         const result =
-          await selectSubscriptionItemsWithPricesBySubscriptionIdCached(
+          await selectSubscriptionItemsWithPricesBySubscriptionId(
             nonExistentId,
             transaction
           )
