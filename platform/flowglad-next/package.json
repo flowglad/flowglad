@@ -242,5 +242,8 @@
       "zod": "4.1.5"
     }
   },
-  "packageManager": "bun@1.3.1"
+  "packageManager": "bun@1.3.1",
+  "patchedDependencies": {
+    "@trigger.dev/core@4.0.2": "patches/@trigger.dev%2Fcore@4.0.2.patch"
+  }
 }

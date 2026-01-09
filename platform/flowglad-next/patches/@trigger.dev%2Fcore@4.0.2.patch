@@ -1,0 +1,10 @@
+diff --git a/dist/esm/v3/types/tools.js b/dist/esm/v3/types/tools.js
+index b959039ab6b6f272ef181a3b30f7f60dc19bc7e3..bb66f669879bd35b666bf557ec8c6665ee494955 100644
+--- a/dist/esm/v3/types/tools.js
++++ b/dist/esm/v3/types/tools.js
+@@ -1,4 +1,4 @@
+-import { z } from "zod";
++import { z } from "zod/v3";
+ export function convertToolParametersToSchema(toolParameters) {
+     return toolParameters instanceof z.ZodSchema
+         ? toolParameters

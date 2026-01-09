@@ -203,6 +203,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "@trigger.dev/core@4.0.2": "patches/@trigger.dev%2Fcore@4.0.2.patch",
+  },
   "overrides": {
     "@modelcontextprotocol/sdk": "1.23.0-beta.0",
     "@react-email/render": "0.0.17",
