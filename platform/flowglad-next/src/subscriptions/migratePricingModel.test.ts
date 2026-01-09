@@ -1587,7 +1587,6 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Should have cache invalidations for the customer's subscriptions
-      expect(result.cacheInvalidations).toBeDefined()
       expect(result.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer.id)
       )
@@ -1609,7 +1608,6 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Should still have cache invalidation from the new subscription creation
-      expect(result.cacheInvalidations).toBeDefined()
       expect(result.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer.id)
       )
@@ -1679,7 +1677,6 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Verify cache invalidations are returned from procedure transaction
-      expect(result.cacheInvalidations).toBeDefined()
       expect(result.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer.id)
       )

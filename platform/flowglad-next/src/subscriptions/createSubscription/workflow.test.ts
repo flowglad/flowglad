@@ -2241,7 +2241,6 @@ describe('createSubscriptionWorkflow cache invalidations', async () => {
     )
 
     // Verify cacheInvalidations contains customerSubscriptions dependency
-    expect(workflowResult.cacheInvalidations).toBeDefined()
     expect(workflowResult.cacheInvalidations).toHaveLength(1)
     expect(workflowResult.cacheInvalidations).toContain(
       CacheDependency.customerSubscriptions(customer.id)

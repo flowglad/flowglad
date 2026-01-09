@@ -3585,7 +3585,6 @@ describe('Subscription cancellation cache invalidations', async () => {
         }
       )
 
-      expect(result.cacheInvalidations).toBeDefined()
       expect(result.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer.id)
       )
@@ -3670,7 +3669,6 @@ describe('Subscription cancellation cache invalidations', async () => {
         }
       )
 
-      expect(result.cacheInvalidations).toBeDefined()
       expect(result.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(subscription.customerId)
       )
@@ -3702,7 +3700,6 @@ describe('Subscription cancellation cache invalidations', async () => {
         }
       )
 
-      expect(result.cacheInvalidations).toBeDefined()
       expect(result.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer.id)
       )
