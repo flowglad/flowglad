@@ -83,8 +83,8 @@ CustomerResidencyDep.implement('us-nyc', {
  * Tests UK address format (no state, different postal code format).
  * Subject to UK VAT rules.
  */
-CustomerResidencyDep.implement('eu-london', {
-  description: 'EU customer in London',
+CustomerResidencyDep.implement('uk-london', {
+  description: 'UK customer in London',
   billingAddress: {
     address: {
       line1: '10 Downing Street',
