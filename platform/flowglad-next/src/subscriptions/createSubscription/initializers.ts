@@ -1,3 +1,4 @@
+import { Price } from '@/db/schema/prices'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { isPriceTypeSubscription } from '@/db/tableMethods/priceMethods'
@@ -236,7 +237,10 @@ export const insertSubscriptionAndItems = async (
   } = params
   // Usage prices have productId: null (they belong to usage meters, not products)
   // Only check product association for non-usage prices
-  if (price.productId !== null && price.productId !== product.id) {
+  if (
+    Price.clientHasProductId(price) &&
+    price.productId !== product.id
+  ) {
     throw new Error(
       `insertSubscriptionAndItems: Price ${price.id} is not associated with product ${product.id}`
     )

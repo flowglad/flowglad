@@ -462,13 +462,17 @@ describe('updateInvoiceTransaction', () => {
         )
 
         expect(result.invoiceLineItems).toHaveLength(2)
-        expect(result.invoiceLineItems[0].description).toBe(
-          'Modified Item 1'
+        const modifiedItem = result.invoiceLineItems.find(
+          (item) => item.description === 'Modified Item 1'
         )
-        expect(result.invoiceLineItems[0].price).toBe(1500)
-        expect(result.invoiceLineItems[1].description).toBe(
-          'New Item 3'
+        const newItem = result.invoiceLineItems.find(
+          (item) => item.description === 'New Item 3'
         )
+        expect(modifiedItem).toBeDefined()
+        expect(modifiedItem!.price).toBe(1500)
+        expect(modifiedItem!.quantity).toBe(2)
+        expect(newItem).toBeDefined()
+        expect(newItem!.price).toBe(3000)
       })
     })
   })
