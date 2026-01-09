@@ -5,6 +5,7 @@ import {
   setupPaymentMethod,
   setupPrice,
   setupProductFeature,
+  setupResource,
   setupSubscription,
   setupSubscriptionItem,
   setupTestFeaturesAndProductFeatures,
@@ -12,7 +13,11 @@ import {
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import db from '@/db/client'
+import { resourceClaims } from '@/db/schema/resourceClaims'
 import {
+  resourceSubscriptionItemFeatureClientSelectSchema,
+  resourceSubscriptionItemFeatureInsertSchema,
+  resourceSubscriptionItemFeatureSelectSchema,
   type SubscriptionItemFeature,
   subscriptionItemFeatures,
 } from '@/db/schema/subscriptionItemFeatures'
@@ -31,8 +36,10 @@ import type { Price } from '../schema/prices'
 import type { PricingModel } from '../schema/pricingModels'
 import type { ProductFeature } from '../schema/productFeatures'
 import type { Product } from '../schema/products'
+import type { Resource } from '../schema/resources'
 import type { SubscriptionItem } from '../schema/subscriptionItems'
 import type { Subscription } from '../schema/subscriptions'
+import { insertFeature } from './featureMethods'
 import {
   bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId,
   detachSubscriptionItemFeaturesFromProductFeature,
@@ -60,7 +67,8 @@ describe('subscriptionItemFeatureMethods', () => {
   let usageMeter: any
 
   beforeEach(async () => {
-    // Clear table for isolation
+    // Clear tables for isolation (resource_claims references subscription_item_features)
+    await db.delete(resourceClaims)
     await db.delete(subscriptionItemFeatures)
 
     // Setup org, product, price, pricingModel
@@ -707,6 +715,356 @@ describe('pricingModelId derivation', () => {
             transaction
           )
         ).rejects.toThrow()
+      })
+    })
+  })
+})
+
+describe('Resource SubscriptionItemFeature schema and methods', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let subscription: Subscription.Record
+  let subscriptionItem: SubscriptionItem.Record
+  let resource: Resource.Record
+  let resourceFeature: Feature.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price for Resource',
+      unitPrice: 1000,
+      type: PriceType.Subscription,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test-resource@test.com',
+      livemode: true,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+    })
+
+    subscriptionItem = await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      name: 'Test Subscription Item for Resource',
+      quantity: 1,
+      unitPrice: 1000,
+      priceId: price.id,
+    })
+
+    // Create a resource
+    resource = await setupResource({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      slug: 'team-seats',
+      name: 'Team Seats',
+    })
+
+    // Create a resource feature
+    resourceFeature = await adminTransaction(
+      async ({ transaction }) => {
+        return insertFeature(
+          {
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            type: FeatureType.Resource,
+            name: 'Team Seats Feature',
+            slug: 'team-seats-feature',
+            description: 'Resource feature for team seats',
+            amount: 5,
+            usageMeterId: null,
+            renewalFrequency: null,
+            resourceId: resource.id,
+            livemode: true,
+            active: true,
+          },
+          transaction
+        )
+      }
+    )
+  })
+
+  describe('insertSubscriptionItemFeature for Resource type', () => {
+    it('should insert a resource subscription item feature with type=Resource, resourceId, and amount', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const inserted = await insertSubscriptionItemFeature(
+          {
+            type: FeatureType.Resource,
+            subscriptionItemId: subscriptionItem.id,
+            featureId: resourceFeature.id,
+            productFeatureId: null,
+            resourceId: resource.id,
+            amount: 10,
+            usageMeterId: null,
+            renewalFrequency: null,
+            livemode: true,
+            pricingModelId: pricingModel.id,
+          },
+          transaction
+        )
+
+        expect(inserted.id).toMatch(/^sub_feature_/)
+        expect(inserted.type).toBe(FeatureType.Resource)
+        expect(inserted.resourceId).toBe(resource.id)
+        expect(inserted.amount).toBe(10)
+        expect(inserted.usageMeterId).toBeNull()
+        expect(inserted.renewalFrequency).toBeNull()
+        expect(inserted.subscriptionItemId).toBe(subscriptionItem.id)
+        expect(inserted.featureId).toBe(resourceFeature.id)
+      })
+    })
+
+    it('should select a resource subscription item feature by id', async () => {
+      const inserted = await adminTransaction(
+        async ({ transaction }) => {
+          return insertSubscriptionItemFeature(
+            {
+              type: FeatureType.Resource,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: resourceFeature.id,
+              productFeatureId: null,
+              resourceId: resource.id,
+              amount: 5,
+              usageMeterId: null,
+              renewalFrequency: null,
+              livemode: true,
+              pricingModelId: pricingModel.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      await adminTransaction(async ({ transaction }) => {
+        const selected = await selectSubscriptionItemFeatureById(
+          inserted.id,
+          transaction
+        )
+
+        expect(selected.id).toBe(inserted.id)
+        expect(selected.type).toBe(FeatureType.Resource)
+        expect(selected.resourceId).toBe(resource.id)
+        expect(selected.amount).toBe(5)
+      })
+    })
+  })
+
+  describe('resourceSubscriptionItemFeatureInsertSchema validation', () => {
+    it('should reject resource subscription item feature without resourceId', () => {
+      const invalidFeature = {
+        type: FeatureType.Resource,
+        subscriptionItemId: subscriptionItem.id,
+        featureId: resourceFeature.id,
+        productFeatureId: null,
+        resourceId: null, // Invalid: resourceId is required for Resource type
+        amount: 5,
+        usageMeterId: null,
+        renewalFrequency: null,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      }
+
+      const result =
+        resourceSubscriptionItemFeatureInsertSchema.safeParse(
+          invalidFeature
+        )
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject resource subscription item feature with usageMeterId set', () => {
+      const invalidFeature = {
+        type: FeatureType.Resource,
+        subscriptionItemId: subscriptionItem.id,
+        featureId: resourceFeature.id,
+        productFeatureId: null,
+        resourceId: resource.id,
+        amount: 5,
+        usageMeterId: 'some-meter-id', // Invalid: must be null for Resource type
+        renewalFrequency: null,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      }
+
+      const result =
+        resourceSubscriptionItemFeatureInsertSchema.safeParse(
+          invalidFeature
+        )
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject resource subscription item feature with renewalFrequency set', () => {
+      const invalidFeature = {
+        type: FeatureType.Resource,
+        subscriptionItemId: subscriptionItem.id,
+        featureId: resourceFeature.id,
+        productFeatureId: null,
+        resourceId: resource.id,
+        amount: 5,
+        usageMeterId: null,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod, // Invalid: must be null for Resource type
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      }
+
+      const result =
+        resourceSubscriptionItemFeatureInsertSchema.safeParse(
+          invalidFeature
+        )
+      expect(result.success).toBe(false)
+    })
+
+    it('should validate a correct resource subscription item feature', () => {
+      const validFeature = {
+        type: FeatureType.Resource,
+        subscriptionItemId: subscriptionItem.id,
+        featureId: resourceFeature.id,
+        productFeatureId: null,
+        resourceId: resource.id,
+        amount: 5,
+        usageMeterId: null,
+        renewalFrequency: null,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      }
+
+      const result =
+        resourceSubscriptionItemFeatureInsertSchema.safeParse(
+          validFeature
+        )
+      expect(result.success).toBe(true)
+    })
+  })
+
+  describe('resourceSubscriptionItemFeatureSelectSchema validation', () => {
+    it('should validate a selected resource subscription item feature with resourceId in the record', async () => {
+      const inserted = await adminTransaction(
+        async ({ transaction }) => {
+          return insertSubscriptionItemFeature(
+            {
+              type: FeatureType.Resource,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: resourceFeature.id,
+              productFeatureId: null,
+              resourceId: resource.id,
+              amount: 5,
+              usageMeterId: null,
+              renewalFrequency: null,
+              livemode: true,
+              pricingModelId: pricingModel.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      const result =
+        resourceSubscriptionItemFeatureSelectSchema.safeParse(
+          inserted
+        )
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.type).toBe(FeatureType.Resource)
+        expect(result.data.resourceId).toBe(resource.id)
+        expect(result.data.amount).toBe(5)
+      }
+    })
+  })
+
+  describe('resourceSubscriptionItemFeatureClientSelectSchema validation', () => {
+    it('should include resourceId in client select schema', async () => {
+      const inserted = await adminTransaction(
+        async ({ transaction }) => {
+          return insertSubscriptionItemFeature(
+            {
+              type: FeatureType.Resource,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: resourceFeature.id,
+              productFeatureId: null,
+              resourceId: resource.id,
+              amount: 5,
+              usageMeterId: null,
+              renewalFrequency: null,
+              livemode: true,
+              pricingModelId: pricingModel.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      // The client select schema expects name and slug from the joined feature
+      const clientRecord = {
+        ...inserted,
+        name: resourceFeature.name,
+        slug: (resourceFeature as Feature.ResourceRecord).slug,
+      }
+
+      const result =
+        resourceSubscriptionItemFeatureClientSelectSchema.safeParse(
+          clientRecord
+        )
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.type).toBe(FeatureType.Resource)
+        expect(result.data.resourceId).toBe(resource.id)
+        expect(result.data.name).toBe(resourceFeature.name)
+        expect(result.data.slug).toBe(
+          (resourceFeature as Feature.ResourceRecord).slug
+        )
+      }
+    })
+  })
+
+  describe('selectSubscriptionItemFeatures filtering by type', () => {
+    it('should filter subscription item features by type=Resource', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Insert a Resource subscription item feature
+        await insertSubscriptionItemFeature(
+          {
+            type: FeatureType.Resource,
+            subscriptionItemId: subscriptionItem.id,
+            featureId: resourceFeature.id,
+            productFeatureId: null,
+            resourceId: resource.id,
+            amount: 5,
+            usageMeterId: null,
+            renewalFrequency: null,
+            livemode: true,
+            pricingModelId: pricingModel.id,
+          },
+          transaction
+        )
+
+        const resourceFeatures = await selectSubscriptionItemFeatures(
+          { type: FeatureType.Resource },
+          transaction
+        )
+
+        expect(resourceFeatures.length).toBeGreaterThanOrEqual(1)
+        expect(
+          resourceFeatures.every(
+            (f) => f.type === FeatureType.Resource
+          )
+        ).toBe(true)
+        expect(
+          resourceFeatures.every((f) => f.resourceId !== null)
+        ).toBe(true)
       })
     })
   })
