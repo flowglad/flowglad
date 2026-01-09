@@ -321,19 +321,6 @@ export const validateSetupPricingModelInput = (
       }
     })
 
-    /**
-     * Implicit default logic (PR 5):
-     * If a usage meter has exactly one price and isDefault is not explicitly set,
-     * that price implicitly becomes the default.
-     */
-    if (prices.length === 1) {
-      const singlePrice = prices[0]
-      // If isDefault is not explicitly set (undefined), implicitly set it to true
-      if (singlePrice.isDefault === undefined) {
-        singlePrice.isDefault = true
-      }
-    }
-
     // Validate that at most one price is marked as default per meter
     const defaultPrices = prices.filter((p) => p.isDefault === true)
     if (defaultPrices.length > 1) {
