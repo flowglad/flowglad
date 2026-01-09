@@ -61,7 +61,7 @@ import {
   bulkInsertLedgerEntries,
   derivePricingModelIdForLedgerEntry,
   insertLedgerEntry,
-  selectUsageMeterBalancesForSubscriptions,
+  selectUsageMeterBalancesForSubscription,
 } from './ledgerEntryMethods'
 
 describe('ledgerEntryMethods', () => {
@@ -3984,7 +3984,7 @@ describe('ledgerEntryMethods', () => {
     })
   })
 
-  describe('selectUsageMeterBalancesForSubscriptions', () => {
+  describe('selectUsageMeterBalancesForSubscription', () => {
     it('returns aggregated balances for a subscription with usage - credits minus debits equals availableBalance', async () => {
       await adminTransaction(async ({ transaction }) => {
         const testLedgerTransaction = await setupLedgerTransaction({
@@ -4059,9 +4059,10 @@ describe('ledgerEntryMethods', () => {
           transaction
         )
 
-        const result = await selectUsageMeterBalancesForSubscriptions(
-          { subscriptionId: subscription.id },
-          transaction
+        const result = await selectUsageMeterBalancesForSubscription(
+          subscription.id,
+          transaction,
+          { ignoreCache: true }
         )
 
         expect(result).toHaveLength(1)
@@ -4092,9 +4093,10 @@ describe('ledgerEntryMethods', () => {
           livemode: true,
         })
 
-        const result = await selectUsageMeterBalancesForSubscriptions(
-          { subscriptionId: newSubscription.id },
-          transaction
+        const result = await selectUsageMeterBalancesForSubscription(
+          newSubscription.id,
+          transaction,
+          { ignoreCache: true }
         )
 
         expect(result).toEqual([])
@@ -4143,9 +4145,10 @@ describe('ledgerEntryMethods', () => {
           transaction
         )
 
-        const result = await selectUsageMeterBalancesForSubscriptions(
-          { subscriptionId: subscription.id },
-          transaction
+        const result = await selectUsageMeterBalancesForSubscription(
+          subscription.id,
+          transaction,
+          { ignoreCache: true }
         )
 
         // Pending credits are excluded from available balance
@@ -4225,9 +4228,10 @@ describe('ledgerEntryMethods', () => {
           transaction
         )
 
-        const result = await selectUsageMeterBalancesForSubscriptions(
-          { subscriptionId: subscription.id },
-          transaction
+        const result = await selectUsageMeterBalancesForSubscription(
+          subscription.id,
+          transaction,
+          { ignoreCache: true }
         )
 
         expect(result).toHaveLength(1)

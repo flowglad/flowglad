@@ -44,7 +44,7 @@ import {
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
 import { createDateNotPassedFilter } from '../tableUtils'
-import { selectUsageMeterBalancesForSubscriptions } from './ledgerEntryMethods'
+import { selectUsageMeterBalancesForSubscription } from './ledgerEntryMethods'
 import {
   expireSubscriptionItemFeaturesForSubscriptionItems,
   selectSubscriptionItemFeaturesWithFeatureSlug,
@@ -586,12 +586,12 @@ export const selectRichSubscriptionsAndActiveItems = async (
       transaction
     )
 
-  // Step 5b: Fetch meter balances - use bulk cached lookup
-  const usageMeterBalancesPromise =
-    selectUsageMeterBalancesForSubscriptions(
-      { subscriptionId: subscriptionIds },
-      transaction
+  // Step 5b: Fetch meter balances - use cache per subscription
+  const usageMeterBalancesPromise = Promise.all(
+    subscriptionIds.map((id) =>
+      selectUsageMeterBalancesForSubscription(id, transaction)
     )
+  ).then((results) => results.flat())
 
   const [allSubscriptionItemFeatures, usageMeterBalances] =
     await Promise.all([

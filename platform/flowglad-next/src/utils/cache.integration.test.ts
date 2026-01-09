@@ -434,7 +434,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
     expect(result3.version).toBe(2)
   })
 
-  it('selectUsageMeterBalancesForSubscriptionCached caches meter balances and invalidates on subscriptionLedger dependency', async () => {
+  it('selectUsageMeterBalancesForSubscription caches meter balances and invalidates on subscriptionLedger dependency', async () => {
     const client = getRedisTestClient()
     const subscriptionId = `${testKeyPrefix}_sub_meter_test`
     const fullCacheKey = `${RedisKeyNamespace.MeterBalancesBySubscription}:${subscriptionId}`
@@ -464,7 +464,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
     let callCount = 0
     let mockBalance = 100
 
-    // Create a mock cached function that simulates selectUsageMeterBalancesForSubscriptionCached
+    // Create a mock cached function that simulates selectUsageMeterBalancesForSubscription
     const mockMeterBalanceFn = async (subId: string) => {
       callCount++
       return [
