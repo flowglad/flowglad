@@ -1,3 +1,5 @@
+ALTER TYPE "FeatureType" ADD VALUE IF NOT EXISTS 'resource';
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "resource_claims" (
 	"id" text PRIMARY KEY NOT NULL,
 	"created_at" timestamptz DEFAULT now() NOT NULL,

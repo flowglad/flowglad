@@ -47,7 +47,11 @@ export const selectResources = createSelectFunction(resources, config)
 export const upsertResourceByPricingModelIdAndSlug =
   createUpsertFunction(
     resources,
-    [resources.pricingModelId, resources.slug],
+    [
+      resources.organizationId,
+      resources.pricingModelId,
+      resources.slug,
+    ],
     config
   )
 
