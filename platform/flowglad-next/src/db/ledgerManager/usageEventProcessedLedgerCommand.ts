@@ -159,7 +159,7 @@ export const processUsageEventProcessedLedgerCommand = async (
     initiatingSourceType:
       LedgerTransactionInitiatingSourceType.UsageEvent,
     initiatingSourceId: command.payload.usageEvent.id,
-    subscriptionId: command.subscriptionId!,
+    subscriptionId: command.subscriptionId,
   }
   const ledgerTransaction = await insertLedgerTransaction(
     ledgerTransactionInput,
@@ -168,7 +168,7 @@ export const processUsageEventProcessedLedgerCommand = async (
   const [ledgerAccount] =
     await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
       {
-        subscriptionId: command.subscriptionId!,
+        subscriptionId: command.subscriptionId,
         usageMeterIds: [command.payload.usageEvent.usageMeterId],
       },
       transaction
@@ -198,7 +198,7 @@ export const processUsageEventProcessedLedgerCommand = async (
     ...ledgerEntryNulledSourceIdColumns,
     ledgerTransactionId: ledgerTransaction.id,
     ledgerAccountId: ledgerAccount.id,
-    subscriptionId: command.subscriptionId!,
+    subscriptionId: command.subscriptionId,
     organizationId: command.organizationId,
     livemode: command.livemode,
     entryTimestamp: Date.now(),
@@ -233,7 +233,7 @@ export const processUsageEventProcessedLedgerCommand = async (
     ledgerEntries: createdLedgerEntries,
     // Invalidate meter balances cache for this subscription
     cacheInvalidations: [
-      CacheDependency.subscriptionLedger(command.subscriptionId!),
+      CacheDependency.subscriptionLedger(command.subscriptionId),
     ],
   }
 }
