@@ -15,7 +15,9 @@ import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   selectPriceById,
   selectPrices,
+  selectResourceFeaturesForPrice,
 } from '@/db/tableMethods/priceMethods'
+import { countActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
 import {
   bulkCreateOrUpdateSubscriptionItems,
   expireSubscriptionItems,
@@ -558,6 +560,40 @@ export const adjustSubscription = async (
     (sum, item) => sum + item.unitPrice * item.quantity,
     0
   )
+
+  // Validate resource capacity for downgrades
+  // For each new subscription item with a priceId, check if any Resource features
+  // would have their capacity reduced below active claims
+  for (const newItem of nonManualSubscriptionItems) {
+    if (!newItem.priceId) continue
+
+    const resourceFeatures = await selectResourceFeaturesForPrice(
+      newItem.priceId,
+      transaction
+    )
+
+    for (const feature of resourceFeatures) {
+      // Calculate new capacity: feature.amount (per unit) * item quantity
+      const newCapacity = feature.amount * newItem.quantity
+
+      // Count active claims for this resource and subscription
+      const activeClaims = await countActiveResourceClaims(
+        {
+          subscriptionId: subscription.id,
+          resourceId: feature.resourceId,
+        },
+        transaction
+      )
+
+      if (activeClaims > newCapacity) {
+        throw new Error(
+          `Cannot reduce ${feature.slug} capacity to ${newCapacity}. ` +
+            `${activeClaims} resources are currently claimed. ` +
+            `Release ${activeClaims - newCapacity} claims before downgrading.`
+        )
+      }
+    }
+  }
 
   const isUpgrade = newPlanTotalPrice > oldPlanTotalPrice
 

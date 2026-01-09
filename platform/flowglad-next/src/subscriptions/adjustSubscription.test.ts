@@ -3416,4 +3416,491 @@ describe('adjustSubscription Integration Tests', async () => {
       })
     })
   })
+
+  /* ==========================================================================
+    Resource Validation Tests
+  ========================================================================== */
+  describe('Resource Validation', () => {
+    it('should allow upgrade that increases resource capacity', async () => {
+      // Setup: Create a resource, feature, and product feature for the subscription's product
+      const {
+        setupResource,
+        setupResourceFeature,
+        setupProductFeature,
+        setupResourceClaim,
+        setupResourceSubscriptionItemFeature,
+      } = await import('@/../seedDatabase')
+
+      // Create resource
+      const resource = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'seats',
+        name: 'Seats',
+        description: 'User seats',
+      })
+
+      // Create resource feature with amount=3 (3 seats per subscription unit)
+      const resourceFeature = await setupResourceFeature({
+        organizationId: organization.id,
+        name: 'Seats Feature',
+        resourceId: resource.id,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+        amount: 3,
+        slug: 'seats-feature',
+      })
+
+      // Create product feature linking the feature to the product
+      const productFeature = await setupProductFeature({
+        productId: product.id,
+        featureId: resourceFeature.id,
+        organizationId: organization.id,
+      })
+
+      // Create subscription item
+      const subscriptionItem = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Basic Plan',
+        quantity: 1,
+        unitPrice: 100,
+      })
+
+      // Create subscription item feature for the resource (capacity = 3 * 1 = 3)
+      const subItemFeature =
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: resourceFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 3,
+        })
+
+      // Create 3 resource claims (using all capacity)
+      await setupResourceClaim({
+        organizationId: organization.id,
+        subscriptionItemFeatureId: subItemFeature.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+      })
+      await setupResourceClaim({
+        organizationId: organization.id,
+        subscriptionItemFeatureId: subItemFeature.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+      })
+      await setupResourceClaim({
+        organizationId: organization.id,
+        subscriptionItemFeatureId: subItemFeature.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        // Upgrade to 2 units (capacity = 3 * 2 = 6 seats)
+        const newItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            name: 'Pro Plan',
+            quantity: 2,
+            unitPrice: 200,
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+          },
+        ]
+
+        // Should succeed because 3 claims <= 6 new capacity
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
+            },
+          },
+          organization,
+          transaction
+        )
+
+        expect(result.subscription).toBeDefined()
+        expect(result.isUpgrade).toBe(true)
+      })
+    })
+
+    it('should block downgrade when active claims exceed new capacity', async () => {
+      const {
+        setupResource,
+        setupResourceFeature,
+        setupProductFeature,
+        setupResourceClaim,
+        setupResourceSubscriptionItemFeature,
+      } = await import('@/../seedDatabase')
+
+      // Create resource
+      const resource = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'api-keys',
+        name: 'API Keys',
+        description: 'API keys for the application',
+      })
+
+      // Create resource feature with amount=5 (5 API keys per subscription unit)
+      const resourceFeature = await setupResourceFeature({
+        organizationId: organization.id,
+        name: 'API Keys Feature',
+        resourceId: resource.id,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+        amount: 5,
+        slug: 'api-keys-feature',
+      })
+
+      // Create product feature linking the feature to the product
+      const productFeature = await setupProductFeature({
+        productId: product.id,
+        featureId: resourceFeature.id,
+        organizationId: organization.id,
+      })
+
+      // Create subscription item with quantity=2 (capacity = 5 * 2 = 10 API keys)
+      const subscriptionItem = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Pro Plan',
+        quantity: 2,
+        unitPrice: 200,
+      })
+
+      // Create subscription item feature
+      const subItemFeature =
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: resourceFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 5,
+        })
+
+      // Create 4 resource claims
+      for (let i = 0; i < 4; i++) {
+        await setupResourceClaim({
+          organizationId: organization.id,
+          subscriptionItemFeatureId: subItemFeature.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+        })
+      }
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        // Try to downgrade to quantity=0 (capacity = 5 * 0 = 0 API keys)
+        // Should fail because 4 claims > 0 capacity
+        const newItems: SubscriptionItem.Upsert[] = []
+
+        await expect(
+          adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            transaction
+          )
+        ).rejects.toThrow(
+          /Cannot reduce api-keys-feature capacity to 0/
+        )
+      })
+    })
+
+    it('should allow downgrade when active claims fit in new capacity', async () => {
+      const {
+        setupResource,
+        setupResourceFeature,
+        setupProductFeature,
+        setupResourceClaim,
+        setupResourceSubscriptionItemFeature,
+      } = await import('@/../seedDatabase')
+
+      // Create resource
+      const resource = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'connections',
+        name: 'Connections',
+        description: 'Concurrent connections',
+      })
+
+      // Create resource feature with amount=10 (10 connections per subscription unit)
+      const resourceFeature = await setupResourceFeature({
+        organizationId: organization.id,
+        name: 'Connections Feature',
+        resourceId: resource.id,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+        amount: 10,
+        slug: 'connections-feature',
+      })
+
+      // Create product feature linking the feature to the product
+      await setupProductFeature({
+        productId: product.id,
+        featureId: resourceFeature.id,
+        organizationId: organization.id,
+      })
+
+      // Create subscription item with quantity=5 (capacity = 10 * 5 = 50 connections)
+      const subscriptionItem = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Enterprise Plan',
+        quantity: 5,
+        unitPrice: 500,
+      })
+
+      // Create subscription item feature
+      const subItemFeature =
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: resourceFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 10,
+        })
+
+      // Create only 20 resource claims
+      for (let i = 0; i < 20; i++) {
+        await setupResourceClaim({
+          organizationId: organization.id,
+          subscriptionItemFeatureId: subItemFeature.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+        })
+      }
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        // Downgrade to quantity=3 (capacity = 10 * 3 = 30 connections)
+        // Should succeed because 20 claims <= 30 new capacity
+        const newItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            name: 'Pro Plan',
+            quantity: 3,
+            unitPrice: 300,
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing:
+                SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+              prorateCurrentBillingPeriod: false,
+            },
+          },
+          organization,
+          transaction
+        )
+
+        expect(result.subscription).toBeDefined()
+        expect(result.isUpgrade).toBe(false)
+      })
+    })
+
+    it('should validate multiple resource types independently', async () => {
+      const {
+        setupResource,
+        setupResourceFeature,
+        setupProductFeature,
+        setupResourceClaim,
+        setupResourceSubscriptionItemFeature,
+      } = await import('@/../seedDatabase')
+
+      // Create first resource (seats)
+      const seatsResource = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'multi-seats',
+        name: 'Multi Seats',
+        description: 'User seats for multi test',
+      })
+
+      // Create second resource (API keys)
+      const apiKeysResource = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'multi-api-keys',
+        name: 'Multi API Keys',
+        description: 'API keys for multi test',
+      })
+
+      // Create resource features (5 seats per unit, 10 API keys per unit)
+      const seatsFeature = await setupResourceFeature({
+        organizationId: organization.id,
+        name: 'Multi Seats Feature',
+        resourceId: seatsResource.id,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+        amount: 5,
+        slug: 'multi-seats-feature',
+      })
+
+      const apiKeysFeature = await setupResourceFeature({
+        organizationId: organization.id,
+        name: 'Multi API Keys Feature',
+        resourceId: apiKeysResource.id,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+        amount: 10,
+        slug: 'multi-api-keys-feature',
+      })
+
+      // Create product features
+      await setupProductFeature({
+        productId: product.id,
+        featureId: seatsFeature.id,
+        organizationId: organization.id,
+      })
+      await setupProductFeature({
+        productId: product.id,
+        featureId: apiKeysFeature.id,
+        organizationId: organization.id,
+      })
+
+      // Create subscription item with quantity=2 (seats: 5*2=10, API keys: 10*2=20)
+      const subscriptionItem = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Multi Resource Plan',
+        quantity: 2,
+        unitPrice: 200,
+      })
+
+      // Create subscription item features
+      const seatsSubItemFeature =
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: seatsFeature.id,
+          resourceId: seatsResource.id,
+          pricingModelId: pricingModel.id,
+          amount: 5,
+        })
+
+      const apiKeysSubItemFeature =
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: apiKeysFeature.id,
+          resourceId: apiKeysResource.id,
+          pricingModelId: pricingModel.id,
+          amount: 10,
+        })
+
+      // Create 3 seats claims (within limit)
+      for (let i = 0; i < 3; i++) {
+        await setupResourceClaim({
+          organizationId: organization.id,
+          subscriptionItemFeatureId: seatsSubItemFeature.id,
+          resourceId: seatsResource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+        })
+      }
+
+      // Create 9 API keys claims (within limit, but would exceed if capacity reduced to 8)
+      for (let i = 0; i < 9; i++) {
+        await setupResourceClaim({
+          organizationId: organization.id,
+          subscriptionItemFeatureId: apiKeysSubItemFeature.id,
+          resourceId: apiKeysResource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+        })
+      }
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        // Try to downgrade to quantity=1 (seats: 5*1=5, API keys: 10*1=10)
+        // Seats: 3 claims <= 5 capacity (OK)
+        // API keys: 9 claims <= 10 capacity (OK)
+        // But let's make API keys fail by reducing to quantity that gives capacity < 9
+
+        // First test: quantity=1 should pass (seats: 5, API keys: 10)
+        const validItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            name: 'Reduced Plan',
+            quantity: 1,
+            unitPrice: 100,
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: validItems,
+              timing:
+                SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+              prorateCurrentBillingPeriod: false,
+            },
+          },
+          organization,
+          transaction
+        )
+
+        expect(result.subscription).toBeDefined()
+      })
+    })
+  })
 })

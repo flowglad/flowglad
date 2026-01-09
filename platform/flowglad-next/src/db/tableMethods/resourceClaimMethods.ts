@@ -150,3 +150,24 @@ export const selectActiveClaimByExternalId = async (
   )
   return claims[0] ?? null
 }
+
+/**
+ * Counts active (non-released) claims for a given subscription and resource.
+ * Useful for validating downgrade capacity constraints.
+ */
+export const countActiveResourceClaims = async (
+  params: {
+    subscriptionId: string
+    resourceId: string
+  },
+  transaction: DbTransaction
+): Promise<number> => {
+  const activeClaims = await selectActiveResourceClaims(
+    {
+      subscriptionId: params.subscriptionId,
+      resourceId: params.resourceId,
+    },
+    transaction
+  )
+  return activeClaims.length
+}

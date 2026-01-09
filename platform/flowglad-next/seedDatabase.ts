@@ -2764,3 +2764,45 @@ export const setupResourceClaim = async (params: {
     )
   })
 }
+
+export const setupResourceFeature = async (
+  params: Partial<Omit<Feature.ResourceInsert, 'type'>> & {
+    organizationId: string
+    name: string
+    resourceId: string
+    livemode: boolean
+  }
+): Promise<Feature.ResourceRecord> => {
+  return adminTransaction(async ({ transaction }) => {
+    const { selectDefaultPricingModel } = await import(
+      '@/db/tableMethods/pricingModelMethods'
+    )
+    const pricingModelId =
+      params.pricingModelId ??
+      (
+        await selectDefaultPricingModel(
+          {
+            organizationId: params.organizationId,
+            livemode: params.livemode,
+          },
+          transaction
+        )
+      )?.id
+    const { resourceId, ...restParams } = params
+    const insert: Feature.ResourceInsert = {
+      type: FeatureType.Resource,
+      description: params.description ?? '',
+      slug: params.slug ?? `resource-feature-${core.nanoid()}`,
+      amount: params.amount ?? 5,
+      usageMeterId: null,
+      renewalFrequency: null,
+      pricingModelId: pricingModelId ?? '',
+      resourceId,
+      ...restParams,
+    }
+    return insertFeature(
+      insert,
+      transaction
+    ) as Promise<Feature.ResourceRecord>
+  })
+}

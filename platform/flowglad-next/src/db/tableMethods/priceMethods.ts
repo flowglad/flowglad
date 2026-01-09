@@ -33,11 +33,12 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
-import { PriceType } from '@/types'
+import { FeatureType, PriceType } from '@/types'
 import {
   type Feature,
   features,
   featuresSelectSchema,
+  resourceFeatureSelectSchema,
 } from '../schema/features'
 import {
   organizations,
@@ -47,7 +48,10 @@ import {
   pricingModels,
   pricingModelsSelectSchema,
 } from '../schema/pricingModels'
-import { productFeatures } from '../schema/productFeatures'
+import {
+  productFeatures,
+  productFeaturesSelectSchema,
+} from '../schema/productFeatures'
 import {
   type Product,
   products,
@@ -752,4 +756,51 @@ export const selectPriceBySlugAndPricingModelId = async (
   }
 
   return result[0]
+}
+
+/**
+ * Selects Resource features for a given price.
+ * Used for validating resource capacity during subscription adjustments.
+ *
+ * Returns features with type=Resource that are linked to the price's product
+ * via productFeatures, including the feature's amount, slug, and resourceId.
+ *
+ * @param priceId - The ID of the price to get resource features for
+ * @param transaction - Database transaction
+ * @returns Array of Resource feature records
+ */
+export const selectResourceFeaturesForPrice = async (
+  priceId: string,
+  transaction: DbTransaction
+): Promise<Feature.ResourceRecord[]> => {
+  // Get the price to find its productId
+  const price = await selectPriceById(priceId, transaction)
+
+  // Query productFeatures joined with features, filtering for Resource type
+  // and non-expired productFeatures
+  const results = await transaction
+    .select({
+      feature: features,
+      productFeature: productFeatures,
+    })
+    .from(productFeatures)
+    .innerJoin(features, eq(productFeatures.featureId, features.id))
+    .where(
+      and(
+        eq(productFeatures.productId, price.productId),
+        eq(features.type, FeatureType.Resource),
+        eq(features.active, true)
+      )
+    )
+
+  // Filter for non-expired productFeatures and parse as Resource features
+  return results
+    .filter(
+      (result) =>
+        result.productFeature.expiredAt === null ||
+        result.productFeature.expiredAt > Date.now()
+    )
+    .map((result) =>
+      resourceFeatureSelectSchema.parse(result.feature)
+    )
 }
