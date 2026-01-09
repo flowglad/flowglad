@@ -7,14 +7,13 @@
  * 1. Authenticate User - Creates a user with no organization memberships
  * 2. Create Organization - Sets up org, membership, pricing models, products
  * 3. Initiate Stripe Connect - Links Stripe account, sets PartiallyOnboarded
- * 4. Complete Stripe Onboarding - Marks organization as FullyOnboarded
+ * 4. Finalize Stripe Onboarding - Marks organization as FullyOnboarded
  */
 
 import { expect } from 'vitest'
 import { teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
-import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import {
@@ -22,7 +21,6 @@ import {
   CurrencyCode,
   StripeConnectContractType,
 } from '@/types'
-import core from '@/utils/core'
 import {
   type AuthenticateUserResult,
   authenticateUserBehavior,
@@ -31,119 +29,19 @@ import {
   type CreateOrganizationResult,
   createOrganizationBehavior,
 } from './behaviors/orgSetupBehaviors'
+import {
+  type CompleteStripeOnboardingResult,
+  finalizeStripeOnboardingBehavior,
+  type InitiateStripeConnectResult,
+  initiateStripeConnectBehavior,
+} from './behaviors/stripeOnboardingBehaviors'
 import { ContractTypeDep } from './dependencies/contractTypeDependencies'
 import { CountryDep } from './dependencies/countryDependencies'
-import { behaviorTest, defineBehavior } from './index'
+import { behaviorTest } from './index'
 
-// ============================================================================
-// Result Types (specific to this test's extended flow)
-// ============================================================================
-
-interface InitiateStripeConnectResult
-  extends CreateOrganizationResult {
-  stripeAccountId: string
-}
-
-interface CompleteStripeOnboardingResult
-  extends InitiateStripeConnectResult {}
-
-// ============================================================================
-// Behavior Definitions (specific to the sign-up flow)
-// ============================================================================
-
-/**
- * Initiate Stripe Connect
- *
- * Simulates the user clicking "Connect" to start Stripe onboarding.
- * In the real app, this creates a Stripe Connect account and generates
- * an onboarding link. For testing, we simulate the state changes.
- *
- * Postconditions:
- * - Organization has stripeAccountId
- * - Organization status is PartiallyOnboarded
- * - payoutsEnabled remains false
- */
-const initiateStripeConnectBehavior = defineBehavior({
-  name: 'initiate stripe connect',
-  dependencies: [],
-  run: async (
-    _deps,
-    prev: CreateOrganizationResult
-  ): Promise<InitiateStripeConnectResult> => {
-    // Simulate Stripe account creation
-    const stripeAccountId = `acct_test_${core.nanoid()}`
-
-    await adminTransaction(
-      async ({ transaction }) => {
-        await updateOrganization(
-          {
-            id: prev.organization.id,
-            stripeAccountId,
-            onboardingStatus:
-              BusinessOnboardingStatus.PartiallyOnboarded,
-          },
-          transaction
-        )
-      },
-      { livemode: true }
-    )
-
-    return {
-      ...prev,
-      organization: {
-        ...prev.organization,
-        stripeAccountId,
-        onboardingStatus: BusinessOnboardingStatus.PartiallyOnboarded,
-      },
-      stripeAccountId,
-    }
-  },
-})
-
-/**
- * Complete Stripe Onboarding
- *
- * Simulates Stripe sending an account.updated webhook indicating
- * that onboarding is complete. The organization is marked as FullyOnboarded.
- *
- * Postconditions:
- * - Organization status is FullyOnboarded
- * - payoutsEnabled remains false (requires manual approval)
- * - stripeAccountId unchanged
- */
-const completeStripeOnboardingBehavior = defineBehavior({
-  name: 'complete stripe onboarding',
-  dependencies: [],
-  run: async (
-    _deps,
-    prev: InitiateStripeConnectResult
-  ): Promise<CompleteStripeOnboardingResult> => {
-    await adminTransaction(
-      async ({ transaction }) => {
-        await updateOrganization(
-          {
-            id: prev.organization.id,
-            onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
-          },
-          transaction
-        )
-      },
-      { livemode: true }
-    )
-
-    return {
-      ...prev,
-      organization: {
-        ...prev.organization,
-        onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
-      },
-    }
-  },
-})
-
-// ============================================================================
+// =============================================================================
 // Behavior Test
-// ============================================================================
+// =============================================================================
 
 behaviorTest({
   chain: [
@@ -261,7 +159,7 @@ behaviorTest({
       },
     },
     {
-      behavior: completeStripeOnboardingBehavior,
+      behavior: finalizeStripeOnboardingBehavior,
       invariants: async (result: CompleteStripeOnboardingResult) => {
         // Status updated to FullyOnboarded
         expect(result.organization.onboardingStatus).toBe(
