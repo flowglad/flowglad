@@ -117,30 +117,6 @@ export const releaseResourceClaim = async (
 }
 
 /**
- * Releases all active claims for a given subscriptionItemFeatureId.
- * Used when a subscription item feature is detached or expired.
- */
-export const releaseAllClaimsForSubscriptionItemFeature = async (
-  subscriptionItemFeatureId: string,
-  releaseReason: string,
-  transaction: DbTransaction
-): Promise<ResourceClaim.Record[]> => {
-  const activeClaims = await selectActiveResourceClaims(
-    { subscriptionItemFeatureId },
-    transaction
-  )
-
-  return Promise.all(
-    activeClaims.map((claim) =>
-      releaseResourceClaim(
-        { id: claim.id, releaseReason },
-        transaction
-      )
-    )
-  )
-}
-
-/**
  * Finds an active claim by externalId for a given resource and subscription.
  * Useful for idempotent claim operations.
  */

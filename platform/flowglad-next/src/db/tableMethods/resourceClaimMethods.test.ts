@@ -24,7 +24,6 @@ import { insertFeature } from './featureMethods'
 import {
   countActiveClaimsForSubscriptionItemFeature,
   insertResourceClaim,
-  releaseAllClaimsForSubscriptionItemFeature,
   releaseResourceClaim,
   selectActiveClaimByExternalId,
   selectActiveResourceClaims,
@@ -484,131 +483,6 @@ describe('resourceClaimMethods', () => {
 
       expect(releasedClaim.releasedAt).not.toBeNull()
       expect(releasedClaim.releaseReason).toBeNull()
-    })
-  })
-
-  describe('releaseAllClaimsForSubscriptionItemFeature', () => {
-    it('should release all active claims for a subscriptionItemFeatureId with provided reason', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Create 3 active claims
-        await insertResourceClaim(
-          createResourceClaimInsert({ externalId: 'bulk-release-1' }),
-          transaction
-        )
-        await insertResourceClaim(
-          createResourceClaimInsert({ externalId: 'bulk-release-2' }),
-          transaction
-        )
-        await insertResourceClaim(
-          createResourceClaimInsert({ externalId: 'bulk-release-3' }),
-          transaction
-        )
-
-        // Verify we have 3 active claims
-        const activeBeforeCount =
-          await countActiveClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            transaction
-          )
-        expect(activeBeforeCount).toBe(3)
-
-        const beforeRelease = Date.now()
-
-        // Release all claims
-        const releasedClaims =
-          await releaseAllClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            'Feature detached from subscription',
-            transaction
-          )
-
-        const afterRelease = Date.now()
-
-        // All claims should be released
-        expect(releasedClaims.length).toBe(3)
-        for (const claim of releasedClaims) {
-          expect(claim.releaseReason).toBe(
-            'Feature detached from subscription'
-          )
-          expect(claim.releasedAt).toBeGreaterThanOrEqual(
-            beforeRelease
-          )
-          expect(claim.releasedAt).toBeLessThanOrEqual(
-            afterRelease + 1000
-          )
-        }
-
-        // Verify no active claims remain
-        const activeAfterCount =
-          await countActiveClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            transaction
-          )
-        expect(activeAfterCount).toBe(0)
-      })
-    })
-
-    it('should return empty array when no active claims exist for the subscriptionItemFeatureId', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Don't create any claims
-
-        const releasedClaims =
-          await releaseAllClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            'Cleanup',
-            transaction
-          )
-
-        expect(releasedClaims.length).toBe(0)
-      })
-    })
-
-    it('should only release active claims and not affect already-released claims', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Create claims
-        const claim1 = await insertResourceClaim(
-          createResourceClaimInsert({ externalId: 'active-claim' }),
-          transaction
-        )
-        const claim2 = await insertResourceClaim(
-          createResourceClaimInsert({
-            externalId: 'already-released',
-          }),
-          transaction
-        )
-
-        // Release one claim manually first
-        const manuallyReleased = await releaseResourceClaim(
-          { id: claim2.id, releaseReason: 'Manually released' },
-          transaction
-        )
-        const manualReleaseTime = manuallyReleased.releasedAt
-
-        // Now bulk release - should only affect active claims
-        const releasedClaims =
-          await releaseAllClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            'Bulk release',
-            transaction
-          )
-
-        // Only the active claim should be in the result
-        expect(releasedClaims.length).toBe(1)
-        expect(releasedClaims[0].id).toBe(claim1.id)
-        expect(releasedClaims[0].releaseReason).toBe('Bulk release')
-
-        // Verify the manually released claim still has its original reason/timestamp
-        const manuallyReleasedAfter = await selectResourceClaimById(
-          claim2.id,
-          transaction
-        )
-        expect(manuallyReleasedAfter.releaseReason).toBe(
-          'Manually released'
-        )
-        expect(manuallyReleasedAfter.releasedAt).toBe(
-          manualReleaseTime
-        )
-      })
     })
   })
 })
