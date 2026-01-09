@@ -104,20 +104,6 @@ behaviorTest({
           contractTypeDep.contractType
         )
 
-        // Currency: MoR always USD, Platform uses country's currency
-        if (
-          contractTypeDep.contractType ===
-          StripeConnectContractType.MerchantOfRecord
-        ) {
-          expect(result.organization.defaultCurrency).toBe(
-            CurrencyCode.USD
-          )
-        } else {
-          expect(result.organization.defaultCurrency).toBe(
-            countryDep.expectedCurrency
-          )
-        }
-
         // Organization fee percentage has expected default value
         expect(result.organization.feePercentage).toBe('0.65')
 
@@ -293,6 +279,11 @@ behaviorTest({
         )
         const discountDep = DiscountDep.get(combination.DiscountDep)
 
+        // MoR invariant: Organization currency is always USD
+        expect(result.organization.defaultCurrency).toBe(
+          CurrencyCode.USD
+        )
+
         // MoR invariant: Fee calculation must exist
         expect(result.feeCalculation).not.toBeNull()
         const fc = result.feeCalculation!
@@ -394,8 +385,14 @@ behaviorTest({
     {
       behavior: provideBillingAddressBehavior,
       invariants: async (result, combination) => {
+        const countryDep = CountryDep.get(combination.CountryDep)
         const customerResidencyDep = CustomerResidencyDep.get(
           combination.CustomerResidencyDep
+        )
+
+        // Platform invariant: Currency matches country's expected currency
+        expect(result.organization.defaultCurrency).toBe(
+          countryDep.expectedCurrency
         )
 
         // Platform invariant: No fee calculation (no Flowglad tax handling)
