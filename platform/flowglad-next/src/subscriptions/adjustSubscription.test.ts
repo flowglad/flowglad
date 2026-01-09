@@ -3536,7 +3536,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        expect(result.subscription).toBeDefined()
+        expect(result.subscription.id).toBe(subscription.id)
         expect(result.isUpgrade).toBe(true)
       })
     })
