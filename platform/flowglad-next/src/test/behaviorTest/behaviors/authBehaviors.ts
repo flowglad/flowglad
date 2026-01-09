@@ -1,7 +1,20 @@
 /**
  * Authentication Behaviors
  *
- * Behaviors for user authentication in behavior tests.
+ * Behaviors representing user authentication in the Flowglad platform.
+ *
+ * ## Product Context
+ *
+ * Authentication is the entry point for all user journeys. Flowglad uses
+ * Better Auth for identity management, which creates user records via
+ * database hooks when users sign up or sign in.
+ *
+ * ## User Journey
+ *
+ * A user arrives at Flowglad (typically via a sign-up flow) and authenticates.
+ * At this point they exist in the system but have no organization memberships,
+ * products, or billing configuration. This is the "blank slate" state from
+ * which all other behaviors build.
  */
 
 import { adminTransaction } from '@/db/adminTransaction'
@@ -14,6 +27,12 @@ import { defineBehavior } from '../index'
 // Result Types
 // ============================================================================
 
+/**
+ * Result of authenticating a user.
+ *
+ * Contains the user record which is the foundation for all subsequent
+ * behaviors in a user's journey.
+ */
 export interface AuthenticateUserResult {
   user: User.Record
 }
@@ -25,12 +44,28 @@ export interface AuthenticateUserResult {
 /**
  * Authenticate User Behavior
  *
- * Creates a new user record. In the real app, this happens via Better Auth
- * with a database hook. For testing, we directly insert the user.
+ * Represents a user completing authentication (sign-up or sign-in).
  *
- * Postconditions:
- * - User record exists with valid id and betterAuthId
- * - User has zero organization memberships
+ * ## Real-World Flow
+ *
+ * In production, Better Auth handles OAuth/email authentication and triggers
+ * a database hook that creates the user record. The user record links the
+ * Better Auth identity (betterAuthId) to our internal user ID.
+ *
+ * ## Test Simulation
+ *
+ * For testing, we directly insert the user record to simulate successful
+ * authentication without involving the OAuth flow.
+ *
+ * ## Postconditions
+ *
+ * - User record exists with:
+ *   - `id`: Internal user ID (format: `usr_*`)
+ *   - `betterAuthId`: Link to Better Auth identity (format: `ba_*`)
+ *   - `email`: User's email address
+ *   - `name`: User's display name
+ * - User has zero organization memberships (they must create or join an org)
+ * - User has no billing configuration (requires organization context)
  */
 export const authenticateUserBehavior = defineBehavior({
   name: 'authenticate user',
