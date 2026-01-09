@@ -460,7 +460,9 @@ describe('resourceClaimHelpers', () => {
             transaction
           )
         })
-      ).rejects.toThrow('Only 2 anonymous claims exist')
+      ).rejects.toThrow(
+        'Cannot release 3 anonymous claims. Only 2 exist. Use claimIds to release specific claims regardless of type.'
+      )
     })
 
     it('when externalId is provided, releases the specific pet claim and sets releaseReason to released', async () => {
