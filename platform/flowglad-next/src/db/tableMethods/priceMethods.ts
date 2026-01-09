@@ -82,6 +82,45 @@ const config: ORMMethodCreatorConfig<
   tableName: 'prices',
 }
 
+/**
+ * Derives the pricingModelId for a price insert by looking up the associated
+ * product or usage meter.
+ *
+ * @param priceInsert - The price insert object
+ * @param transaction - Database transaction
+ * @returns The pricingModelId (either provided or derived)
+ * @throws Error if pricingModelId cannot be determined
+ */
+export const derivePricingModelIdForPrice = async (
+  priceInsert: Price.Insert,
+  transaction: DbTransaction
+): Promise<string> => {
+  let pricingModelId = priceInsert.pricingModelId
+
+  if (!pricingModelId) {
+    if (priceInsert.productId) {
+      pricingModelId = await derivePricingModelIdFromProduct(
+        priceInsert.productId,
+        transaction
+      )
+    } else if (priceInsert.usageMeterId) {
+      pricingModelId = await derivePricingModelIdFromUsageMeter(
+        priceInsert.usageMeterId,
+        transaction
+      )
+    }
+  }
+
+  if (!pricingModelId) {
+    throw new Error(
+      `Pricing model id must be provided or derivable from productId or usageMeterId. ` +
+        `Got productId: ${priceInsert.productId}, usageMeterId: ${priceInsert.usageMeterId}`
+    )
+  }
+
+  return pricingModelId
+}
+
 export const selectPriceById = createSelectById(prices, config)
 
 /**
@@ -155,8 +194,10 @@ const enrichPriceInsertsWithPricingModelIds = async (
       }
     }
     if (!pricingModelId) {
+      // Use the same error message format as derivePricingModelIdForPrice
       throw new Error(
-        `Pricing model id not found for price insert (productId: ${priceInsert.productId}, usageMeterId: ${priceInsert.usageMeterId})`
+        `Pricing model id must be provided or derivable from productId or usageMeterId. ` +
+          `Got productId: ${priceInsert.productId}, usageMeterId: ${priceInsert.usageMeterId}`
       )
     }
     return {
@@ -186,28 +227,10 @@ export const insertPrice = async (
   priceInsert: Price.Insert,
   transaction: DbTransaction
 ): Promise<Price.Record> => {
-  // Derive pricingModelId if not provided:
-  // - For product prices: derive from product
-  // - For usage prices: derive from usage meter
-  let pricingModelId = priceInsert.pricingModelId
-  if (!pricingModelId) {
-    if (priceInsert.productId) {
-      pricingModelId = await derivePricingModelIdFromProduct(
-        priceInsert.productId,
-        transaction
-      )
-    } else if (priceInsert.usageMeterId) {
-      pricingModelId = await derivePricingModelIdFromUsageMeter(
-        priceInsert.usageMeterId,
-        transaction
-      )
-    }
-  }
-  if (!pricingModelId) {
-    throw new Error(
-      `Pricing model id must be provided or derivable from productId or usageMeterId`
-    )
-  }
+  const pricingModelId = await derivePricingModelIdForPrice(
+    priceInsert,
+    transaction
+  )
   return baseInsertPrice(
     {
       ...priceInsert,
@@ -806,28 +829,10 @@ export const dangerouslyInsertPrice = async (
   priceInsert: Price.Insert,
   transaction: DbTransaction
 ): Promise<Price.Record> => {
-  // Derive pricingModelId if not provided:
-  // - For product prices: derive from product
-  // - For usage prices: derive from usage meter
-  let pricingModelId = priceInsert.pricingModelId
-  if (!pricingModelId) {
-    if (priceInsert.productId) {
-      pricingModelId = await derivePricingModelIdFromProduct(
-        priceInsert.productId,
-        transaction
-      )
-    } else if (priceInsert.usageMeterId) {
-      pricingModelId = await derivePricingModelIdFromUsageMeter(
-        priceInsert.usageMeterId,
-        transaction
-      )
-    }
-  }
-  if (!pricingModelId) {
-    throw new Error(
-      `Pricing model id must be provided or derivable from productId or usageMeterId`
-    )
-  }
+  const pricingModelId = await derivePricingModelIdForPrice(
+    priceInsert,
+    transaction
+  )
   return baseDangerouslyInsertPrice(
     {
       ...priceInsert,
