@@ -891,6 +891,7 @@ describe('usageEventHelpers', () => {
       const undefinedPropsInput: CreateUsageEventInput = {
         usageEvent: {
           usageMeterId: distinctMeter.id,
+          priceId: null,
           subscriptionId: distinctSubscription.id,
           transactionId: `txn_empty_props_undefined_${core.nanoid()}`,
           amount: 100,
@@ -911,6 +912,7 @@ describe('usageEventHelpers', () => {
       const emptyPropsInput: CreateUsageEventInput = {
         usageEvent: {
           usageMeterId: distinctMeter.id,
+          priceId: null,
           subscriptionId: distinctSubscription.id,
           transactionId: `txn_empty_props_object_${core.nanoid()}`,
           amount: 100,
