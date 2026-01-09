@@ -30,9 +30,37 @@ function getOrCreateImplMap(
 }
 
 /**
+ * Deep clone an object, preserving functions.
+ * Functions are shared (not cloned) since they should be stateless.
+ * Data (objects, arrays, primitives) is deep cloned for isolation.
+ */
+function deepCloneWithFunctions<T>(obj: T): T {
+  if (obj === null || typeof obj !== 'object') {
+    return obj
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => deepCloneWithFunctions(item)) as T
+  }
+
+  const cloned = {} as T
+  for (const key of Object.keys(obj) as (keyof T)[]) {
+    const value = obj[key]
+    if (typeof value === 'function') {
+      // Functions are shared - they should be stateless
+      cloned[key] = value
+    } else {
+      cloned[key] = deepCloneWithFunctions(value)
+    }
+  }
+  return cloned
+}
+
+/**
  * Register an implementation for a dependency class.
- * The implementation is shallow-cloned each time the factory is called
+ * The implementation is deep-cloned each time the factory is called
  * to ensure test isolation (mutations in one test don't leak to others).
+ * Functions are preserved (shared) since they should be stateless.
  */
 export function registerImplementation<T extends DependencyClass>(
   depClass: T,
@@ -41,9 +69,9 @@ export function registerImplementation<T extends DependencyClass>(
 ): void {
   const implMap = getOrCreateImplMap(depClass)
   const factory: DependencyFactory<InstanceType<T>> = () => {
-    // Shallow clone to ensure each test gets a fresh instance
-    // This prevents accidental state sharing between tests
-    return { ...implementation } as InstanceType<T>
+    // Deep clone data while preserving functions
+    // This prevents accidental state sharing between tests, including nested objects
+    return deepCloneWithFunctions(implementation)
   }
   implMap.set(name, factory)
 }
