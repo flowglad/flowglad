@@ -33,7 +33,7 @@ END $$;--> statement-breakpoint
 -- This entire block runs atomically - if any step fails, everything rolls back
 -- ============================================================================
 
-BEGIN;
+-- BEGIN;
 
 -- Step 5: Backfill payment_methods.pricing_model_id from customer
 UPDATE "payment_methods" SET "pricing_model_id" = (
@@ -254,9 +254,9 @@ WHERE cs.customer_id = ccm.original_customer_id
 -- Step 18: Update foreign key references - usage_events
 UPDATE usage_events ue
 SET customer_id = ccm.new_customer_id
-FROM customer_clone_mapping ccm
-JOIN usage_meters um ON ue.usage_meter_id = um.id
-WHERE ue.customer_id = ccm.original_customer_id
+FROM customer_clone_mapping ccm, usage_meters um
+WHERE ue.usage_meter_id = um.id
+  AND ue.customer_id = ccm.original_customer_id
   AND um.pricing_model_id = ccm.transaction_pricing_model_id;
 
 -- ============================================================================
@@ -357,7 +357,7 @@ END $$;
 DROP TABLE IF EXISTS customer_pricing_model_combinations;
 DROP TABLE IF EXISTS customer_clone_mapping;
 
-COMMIT;--> statement-breakpoint
+-- COMMIT;--> statement-breakpoint
 
 -- ============================================================================
 -- PHASE 3: FINAL DDL (separate statements)
