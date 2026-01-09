@@ -4,9 +4,13 @@ I need to update an existing gameplan and propagate changes to active patches.
 
 ## Input
 
-Provide ONE of:
-- **Notion URL**: Direct link to the gameplan page in the "Gameplans" DB
-- **Gameplan slug**: The kebab-case project name (e.g., `subscription-adjustments`)
+After this prompt, the user will provide two pieces of information:
+
+1. **Gameplan identifier** (one of):
+   - A Notion URL: Direct link to the gameplan page in the "Gameplans" DB
+   - A gameplan slug: The kebab-case project name (e.g., `subscription-adjustments`)
+
+2. **Description of changes needed**: What modifications to make to the gameplan (e.g., "Add error handling for expired subscriptions to Patch 3", "Move the database migration from Patch 2 to Patch 1", "Update design decision to use typed errors instead of strings")
 
 ## Your Task
 
@@ -15,9 +19,9 @@ Provide ONE of:
 If given a slug, search for it in Notion's "Gameplans" database.
 If given a URL, fetch the gameplan directly.
 
-### Step 2: Present Current State for Editing
+### Step 2: Apply the Requested Changes
 
-Display the current gameplan content and ask what changes need to be made. Common adjustment types:
+Review the current gameplan content and apply the changes described by the user. Common adjustment types include:
 - Modifying patch scope or instructions
 - Adding/removing patches
 - Changing acceptance criteria
@@ -26,7 +30,7 @@ Display the current gameplan content and ask what changes need to be made. Commo
 
 ### Step 3: Update the Gameplan in Notion
 
-After confirming the changes, update the Notion page with the revised gameplan content.
+Update the Notion page with the revised gameplan content.
 
 ### Step 4: Detect Patch Status
 
@@ -120,7 +124,9 @@ Files Created:
 
 ## Example
 
-**Input**: `subscription-adjustments`
+**Input**:
+- Gameplan: `subscription-adjustments`
+- Changes: "Add edge case handling for expired subscriptions to Patch 3. Also update the design decision about error handling to use typed errors instead of generic strings."
 
 **Step 4 results**:
 - Merged: [1, 2]
