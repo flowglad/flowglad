@@ -5,7 +5,7 @@ import { resourceClaimsClientSelectSchema } from '@/db/schema/resourceClaims'
 import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import { selectActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
-import { selectSubscriptionItemFeaturesBySubscriptionItemIds } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { metadataSchema } from '@/db/tableUtils'
@@ -302,11 +302,10 @@ const getUsageProcedure = devOnlyProcedure
         )
 
         // Batch fetch all subscription item features (fixes N+1)
-        const allFeatures =
-          await selectSubscriptionItemFeaturesBySubscriptionItemIds(
-            subscriptionItemIds,
-            transaction
-          )
+        const allFeatures = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: subscriptionItemIds },
+          transaction
+        )
 
         // Filter to resource features
         const allResourceFeatures: Array<{

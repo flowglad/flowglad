@@ -318,29 +318,3 @@ export const detachSubscriptionItemFeaturesFromProductFeature =
       subscriptionItemFeaturesSelectSchema.parse(row)
     )
   }
-
-/**
- * Batch select subscription item features by multiple subscription item IDs.
- * This avoids N+1 queries when fetching features for multiple subscription items.
- */
-export const selectSubscriptionItemFeaturesBySubscriptionItemIds =
-  async (
-    subscriptionItemIds: string[],
-    transaction: DbTransaction
-  ): Promise<SubscriptionItemFeature.Record[]> => {
-    if (subscriptionItemIds.length === 0) {
-      return []
-    }
-    const result = await transaction
-      .select()
-      .from(subscriptionItemFeatures)
-      .where(
-        inArray(
-          subscriptionItemFeatures.subscriptionItemId,
-          subscriptionItemIds
-        )
-      )
-    return result.map((row) =>
-      subscriptionItemFeaturesSelectSchema.parse(row)
-    )
-  }
