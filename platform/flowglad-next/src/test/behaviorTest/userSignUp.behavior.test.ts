@@ -22,6 +22,7 @@ import {
   CurrencyCode,
   StripeConnectContractType,
 } from '@/types'
+import core from '@/utils/core'
 import {
   type AuthenticateUserResult,
   authenticateUserBehavior,
@@ -70,7 +71,7 @@ const initiateStripeConnectBehavior = defineBehavior({
     prev: CreateOrganizationResult
   ): Promise<InitiateStripeConnectResult> => {
     // Simulate Stripe account creation
-    const stripeAccountId = `acct_test_${Date.now()}`
+    const stripeAccountId = `acct_test_${core.nanoid()}`
 
     await adminTransaction(
       async ({ transaction }) => {

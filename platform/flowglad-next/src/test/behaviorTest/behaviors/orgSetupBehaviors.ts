@@ -1,7 +1,26 @@
 /**
  * Organization Setup Behaviors
  *
- * Behaviors for creating and configuring organizations in behavior tests.
+ * Behaviors representing organization creation and initial configuration.
+ *
+ * ## Product Context
+ *
+ * Organizations are the core billing entity in Flowglad. Every product,
+ * price, customer, and transaction belongs to an organization. Before
+ * a user can sell anything, they must create an organization.
+ *
+ * ## User Journey
+ *
+ * After authenticating, a user creates their organization. This is typically
+ * the first action after sign-up, triggered via the onboarding flow or
+ * dashboard. The organization starts in an "Unauthorized" state, meaning
+ * they haven't yet connected their Stripe account for payouts.
+ *
+ * ## Dependency Configuration
+ *
+ * Organization creation depends on:
+ * - **CountryDep**: Determines default currency and tax jurisdiction
+ * - **ContractTypeDep**: Platform vs MoR affects fee structure and compliance
  */
 
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
@@ -23,10 +42,19 @@ import type { AuthenticateUserResult } from './authBehaviors'
 // Result Types
 // ============================================================================
 
+/**
+ * Result of creating an organization.
+ *
+ * Contains all entities created during organization setup, providing
+ * the foundation for product creation, customer management, and billing.
+ */
 export interface CreateOrganizationResult
   extends AuthenticateUserResult {
+  /** The created organization record */
   organization: Organization.Record
+  /** The membership linking the user to the organization */
   membership: Membership.Record
+  /** The country record determining tax and currency defaults */
   country: Country.Record
 }
 
@@ -37,19 +65,41 @@ export interface CreateOrganizationResult
 /**
  * Create Organization Behavior
  *
- * Creates an organization for the authenticated user. This includes:
- * - Organization record with Unauthorized status
- * - Membership linking user to organization
- * - Default pricing models (livemode + testmode)
- * - Default products and prices
- * - Testmode API key
- * - Svix webhook configuration
+ * Represents a user creating their organization after authentication.
  *
- * Postconditions:
- * - Organization exists with onboardingStatus = Unauthorized
- * - User has one membership (focused=true)
- * - Two pricing models exist (livemode + testmode)
- * - Default currency matches country configuration
+ * ## Real-World Flow
+ *
+ * In production, this happens when a user completes the organization creation
+ * form, providing their business name and country. The system creates all
+ * necessary infrastructure for billing operations.
+ *
+ * ## What Gets Created
+ *
+ * - **Organization**: Core entity with billing configuration
+ * - **Membership**: Links user to organization with admin role
+ * - **Pricing Models**: Default models for livemode and testmode
+ * - **Default Products**: Starter products for each mode
+ * - **API Key**: Testmode key for integration development
+ * - **Webhook Endpoint**: Svix-managed webhook configuration
+ *
+ * ## Currency Selection
+ *
+ * - **Platform** contracts: Currency matches the organization's country
+ * - **MoR** contracts: Always USD (Flowglad handles currency conversion)
+ *
+ * ## Postconditions
+ *
+ * - Organization exists with:
+ *   - `id`: Organization ID (format: `org_*`)
+ *   - `onboardingStatus`: Unauthorized (no Stripe connection yet)
+ *   - `payoutsEnabled`: false (requires Stripe onboarding)
+ *   - `defaultCurrency`: Based on country or USD for MoR
+ *   - `stripeConnectContractType`: Platform or MerchantOfRecord
+ * - User has exactly one membership:
+ *   - `focused`: true (this is their active organization)
+ *   - Linked to the organization
+ * - Two pricing models exist (one livemode, one testmode)
+ * - Default products and prices exist for each mode
  */
 export const createOrganizationBehavior = defineBehavior({
   name: 'create organization',
