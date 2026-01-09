@@ -1,7 +1,5 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
-import FlowgladLogo from '@/components/FlowgladLogo'
 import { cn } from '@/lib/utils'
 
 interface SignupSideBarProps {
@@ -11,28 +9,27 @@ interface SignupSideBarProps {
 export function SignupSideBar({
   className = '',
 }: SignupSideBarProps) {
-  const searchParams = useSearchParams()
-  const flow = searchParams.get('flow')
-  const tagline = 'Start Making Internet Money'
-  const taglineDescription =
-    'Make more sales, convert more customers, and grow faster.'
-
   return (
     <div
       className={cn(
-        'bg-card flex-1 h-full w-full max-w-[512px] flex flex-col justify-center items-center gap-[175px] px-10 pt-[100px] pb-[60px] border-r border-border',
+        'relative min-h-screen flex-col justify-center items-center overflow-hidden',
+        'border-l border-dashed border-primary-foreground/20',
+        'bg-primary',
         className
       )}
     >
-      <div className="w-full max-w-[372px] min-w-[328px] flex flex-col items-center gap-6 text-center">
-        <FlowgladLogo />
-        <div className="w-full flex flex-col gap-3">
-          <div className="text-5xl leading-[54px] font-semibold text-foreground w-full max-w-[372px]">
-            {tagline}
-          </div>
-          <div className="text-lg leading-6 text-muted-foreground w-full max-w-[372px]">
-            {taglineDescription}
-          </div>
+      {/* Placeholder for custom SVG - will be added later */}
+      {/* <YourCustomSvg className="absolute inset-0" /> */}
+
+      {/* Centered headline content */}
+      <div className="absolute inset-0 flex items-center justify-center p-8">
+        <div className="w-full max-w-xs text-center">
+          <h1 className="text-4xl lg:text-5xl font-semibold text-primary-foreground tracking-tight leading-tight">
+            Start Making Internet Money
+          </h1>
+          <p className="mt-4 text-lg text-primary-foreground/80 leading-relaxed">
+            Make more sales, convert more customers, and grow faster.
+          </p>
         </div>
       </div>
     </div>
