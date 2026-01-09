@@ -163,16 +163,17 @@ export const updatePricingModelTransaction = async (
   }
 
   // Step 7: Batch create new usage meters
+  // PR 5: Usage meter data is now nested under the usageMeter property
   if (diff.usageMeters.toCreate.length > 0) {
     const usageMeterInserts: UsageMeter.Insert[] =
       diff.usageMeters.toCreate.map((meter) => ({
-        slug: meter.slug,
-        name: meter.name,
+        slug: meter.usageMeter.slug,
+        name: meter.usageMeter.name,
         pricingModelId,
         organizationId: pricingModel.organizationId,
         livemode: pricingModel.livemode,
-        ...(meter.aggregationType && {
-          aggregationType: meter.aggregationType,
+        ...(meter.usageMeter.aggregationType && {
+          aggregationType: meter.usageMeter.aggregationType,
         }),
       }))
 
@@ -190,15 +191,20 @@ export const updatePricingModelTransaction = async (
   }
 
   // Step 8: Update existing usage meters (parallel)
+  // PR 5: Usage meter data is now nested under the usageMeter property
   const usageMeterUpdatePromises = diff.usageMeters.toUpdate
     .map(({ existing, proposed }) => {
-      const updateObj = computeUpdateObject(existing, proposed)
+      // PR 5: Compare the nested usageMeter objects
+      const updateObj = computeUpdateObject(
+        existing.usageMeter,
+        proposed.usageMeter
+      )
       if (Object.keys(updateObj).length === 0) return null
 
-      const meterId = idMaps.usageMeters.get(existing.slug)
+      const meterId = idMaps.usageMeters.get(existing.usageMeter.slug)
       if (!meterId) {
         throw new Error(
-          `Usage meter ${existing.slug} not found in ID map`
+          `Usage meter ${existing.usageMeter.slug} not found in ID map`
         )
       }
       return updateUsageMeter(
@@ -381,39 +387,10 @@ export const updatePricingModelTransaction = async (
           )
         }
 
+        // PR 5: Product prices can only be Subscription or SinglePayment.
+        // Usage prices belong to usage meters, not products.
         const price = productInput.price
         switch (price.type) {
-          case PriceType.Usage: {
-            const usageMeterId = idMaps.usageMeters.get(
-              price.usageMeterSlug
-            )
-            if (!usageMeterId) {
-              throw new Error(
-                `Usage meter ${price.usageMeterSlug} not found`
-              )
-            }
-            // Usage prices don't have productId (they belong to usage meters).
-            // We need to provide pricingModelId explicitly since it can't be derived from productId.
-            return {
-              type: PriceType.Usage,
-              name: price.name ?? null,
-              slug: price.slug ?? null,
-              unitPrice: price.unitPrice,
-              isDefault: price.isDefault,
-              active: price.active,
-              intervalCount: price.intervalCount,
-              intervalUnit: price.intervalUnit,
-              trialPeriodDays: null,
-              usageEventsPerUnit: price.usageEventsPerUnit,
-              currency: organization.defaultCurrency,
-              productId: null, // Usage prices don't have productId
-              pricingModelId: pricingModel.id, // Explicit for usage prices
-              livemode: pricingModel.livemode,
-              externalId: null,
-              usageMeterId,
-            }
-          }
-
           case PriceType.Subscription:
             return {
               type: PriceType.Subscription,
@@ -454,7 +431,7 @@ export const updatePricingModelTransaction = async (
 
           default:
             throw new Error(
-              `Unknown or unhandled price type: ${price}`
+              `Unknown or unhandled price type: ${(price as { type: string }).type}`
             )
         }
       }
@@ -561,42 +538,13 @@ export const updatePricingModelTransaction = async (
   }
 
   // Now create new prices for changed products
+  // PR 5: Product prices can only be Subscription or SinglePayment.
+  // Usage prices belong to usage meters, not products.
   if (priceChanges.length > 0) {
     const newPriceInserts: Price.Insert[] = priceChanges.map(
       (change) => {
         const price = change.proposedPrice
         switch (price.type) {
-          case PriceType.Usage: {
-            const usageMeterId = idMaps.usageMeters.get(
-              price.usageMeterSlug
-            )
-            if (!usageMeterId) {
-              throw new Error(
-                `Usage meter ${price.usageMeterSlug} not found`
-              )
-            }
-            // Usage prices don't have productId (they belong to usage meters).
-            // We need to provide pricingModelId explicitly since it can't be derived from productId.
-            return {
-              type: PriceType.Usage,
-              name: price.name ?? null,
-              slug: price.slug ?? null,
-              unitPrice: price.unitPrice,
-              isDefault: price.isDefault,
-              active: price.active,
-              intervalCount: price.intervalCount,
-              intervalUnit: price.intervalUnit,
-              trialPeriodDays: null,
-              usageEventsPerUnit: price.usageEventsPerUnit,
-              currency: organization.defaultCurrency,
-              productId: null, // Usage prices don't have productId
-              pricingModelId: pricingModel.id, // Explicit for usage prices
-              livemode: pricingModel.livemode,
-              externalId: null,
-              usageMeterId,
-            }
-          }
-
           case PriceType.Subscription:
             return {
               type: PriceType.Subscription,
@@ -637,7 +585,7 @@ export const updatePricingModelTransaction = async (
 
           default:
             throw new Error(
-              `Unknown or unhandled price type: ${price}`
+              `Unknown or unhandled price type: ${(price as { type: string }).type}`
             )
         }
       }

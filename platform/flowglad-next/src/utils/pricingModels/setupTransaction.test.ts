@@ -170,11 +170,31 @@ describe('setupPricingModelTransaction (integration)', () => {
     ).rejects.toThrow('Usage meter with slug missing does not exist')
   })
 
+  // PR 5: Updated to use nested usage meter structure with prices
   it('creates pricingModel, features, products, prices, and productFeatures on happy path', async () => {
     const input: SetupPricingModelInput = {
       name: 'MyPricingModel',
       isDefault: true,
-      usageMeters: [{ slug: 'um', name: 'UM' }],
+      // PR 5: Usage meters now have nested structure with prices
+      usageMeters: [
+        {
+          usageMeter: { slug: 'um', name: 'UM' },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'pu',
+              isDefault: true,
+              name: 'Test Price',
+              usageEventsPerUnit: 1,
+              active: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 5,
+              trialPeriodDays: null,
+            },
+          ],
+        },
+      ],
       features: [
         {
           type: FeatureType.UsageCreditGrant,
@@ -195,6 +215,7 @@ describe('setupPricingModelTransaction (integration)', () => {
           active: true,
         },
       ],
+      // PR 5: Products only have subscription/single payment prices now
       products: [
         {
           product: {
@@ -221,32 +242,6 @@ describe('setupPricingModelTransaction (integration)', () => {
             unitPrice: 100,
           },
           features: ['f1', 'f2'],
-        },
-        {
-          product: {
-            name: 'usage',
-            default: false,
-            description: 'd',
-            slug: 'p2',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'pu',
-            isDefault: true,
-            name: 'Test Price',
-            usageMeterSlug: 'um',
-            trialPeriodDays: null,
-            usageEventsPerUnit: 1,
-            active: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            unitPrice: 5,
-          },
-          features: [],
         },
       ],
     }
@@ -285,8 +280,13 @@ describe('setupPricingModelTransaction (integration)', () => {
       result.products.every((p) => typeof p.externalId === 'string')
     ).toBe(true)
 
-    // Prices - should have user prices + auto-generated default price
-    const allPriceSlugs = input.products.map((p) => p.price.slug!)
+    // Prices - should have product prices + usage prices + auto-generated default price
+    // PR 5: Usage prices now come from usage meters, not products
+    const productPriceSlugs = input.products.map((p) => p.price.slug!)
+    const usagePriceSlugs = input.usageMeters.flatMap(
+      (m) => m.prices?.map((p) => p.slug!) ?? []
+    )
+    const allPriceSlugs = [...productPriceSlugs, ...usagePriceSlugs]
     expect(result.prices).toHaveLength(allPriceSlugs.length + 1) // +1 for auto-generated default
     const resultPriceSlugs = result.prices.map((pr) => pr.slug)
     expect(resultPriceSlugs).toEqual(

@@ -38,14 +38,45 @@ describe('resolveExistingIds', () => {
     const input: SetupPricingModelInput = {
       name: 'Test Pricing Model',
       isDefault: false,
+      // PR 5: Usage meters now use nested structure with prices
       usageMeters: [
         {
-          slug: 'api-calls',
-          name: 'API Calls',
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'API Calls',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'api-usage-price',
+              unitPrice: 10,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageEventsPerUnit: 100,
+              trialPeriodDays: null,
+            },
+          ],
         },
         {
-          slug: 'storage',
-          name: 'Storage',
+          usageMeter: {
+            slug: 'storage',
+            name: 'Storage',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'storage-usage-price',
+              unitPrice: 5,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageEventsPerUnit: 50,
+              trialPeriodDays: null,
+            },
+          ],
         },
       ],
       features: [
@@ -109,48 +140,7 @@ describe('resolveExistingIds', () => {
           },
           features: ['feature-a', 'api-credits'],
         },
-        {
-          product: {
-            name: 'API Usage',
-            slug: 'api-usage',
-            default: false,
-            active: true,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'api-usage-price',
-            unitPrice: 10,
-            isDefault: true,
-            active: true,
-            intervalCount: 1,
-            intervalUnit: IntervalUnit.Month,
-            usageMeterSlug: 'api-calls',
-            usageEventsPerUnit: 100,
-            trialPeriodDays: null,
-          },
-          features: [],
-        },
-        {
-          product: {
-            name: 'Storage Usage',
-            slug: 'storage-usage',
-            default: false,
-            active: true,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'storage-usage-price',
-            unitPrice: 5,
-            isDefault: true,
-            active: true,
-            intervalCount: 1,
-            intervalUnit: IntervalUnit.Month,
-            usageMeterSlug: 'storage',
-            usageEventsPerUnit: 50,
-            trialPeriodDays: null,
-          },
-          features: [],
-        },
+        // PR 5: Removed usage price products - usage prices now belong to usage meters
       ],
     }
 

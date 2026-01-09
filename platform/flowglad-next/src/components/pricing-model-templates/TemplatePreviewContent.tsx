@@ -94,16 +94,12 @@ export function TemplatePreviewContent({
   }
 
   // Get the appropriate suffix for a price based on its type and product labels
+  // Note: Product prices are only subscription or single payment.
+  // Usage prices are now nested under usageMeters[].prices (PR 5).
   const getPriceSuffix = (
     price: (typeof template.input.products)[0]['price'],
-    product: (typeof template.input.products)[0]
+    _product: (typeof template.input.products)[0]
   ) => {
-    if (price.type === PriceType.Usage) {
-      // For usage-based pricing, use the product's quantity label
-      const label = product.product.singularQuantityLabel || 'unit'
-      return `/${label}`
-    }
-
     if (price.type === PriceType.SinglePayment) {
       return ''
     }

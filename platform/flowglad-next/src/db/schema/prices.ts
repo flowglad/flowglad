@@ -218,7 +218,7 @@ const basePriceColumns = {
   isDefault: z
     .boolean()
     .describe(
-      'Whether or not this price is the default price for the product.'
+      'Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.'
     ),
   unitPrice: core.safeZodPositiveIntegerOrZero.describe(
     'The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents.'
