@@ -29,7 +29,7 @@ export async function generateMetadata({
     )
 
     return {
-      title: `${organization.name} | ${product?.name ?? 'Checkout'}`,
+      title: `${organization.name} | ${product.name}`,
     }
   } catch (error) {
     return {

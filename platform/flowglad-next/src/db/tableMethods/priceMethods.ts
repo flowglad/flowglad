@@ -444,8 +444,8 @@ export const selectDefaultPriceAndProductByProductId = async (
 
 /**
  * Selects price, product, and organization by price where conditions.
- * Uses leftJoin for products to include usage prices that have productId: null.
- * Gets organization via pricingModel to ensure it works for both product and usage prices.
+ * Uses innerJoin for products: all callers either throw for usage prices or don't use product.
+ * Gets organization via pricingModel to ensure consistent organization lookup.
  */
 export const selectPriceProductAndOrganizationByPriceWhere = async (
   whereConditions: Price.Where,
@@ -453,7 +453,7 @@ export const selectPriceProductAndOrganizationByPriceWhere = async (
 ): Promise<
   {
     price: Price.Record
-    product: Product.Record | null
+    product: Product.Record
     organization: z.infer<typeof organizationsSelectSchema>
   }[]
 > => {
@@ -464,8 +464,8 @@ export const selectPriceProductAndOrganizationByPriceWhere = async (
       organization: organizations,
     })
     .from(prices)
-    // leftJoin: some callers handle null product gracefully (e.g. metadata generation)
-    .leftJoin(products, eq(products.id, prices.productId))
+    // innerJoin: all callers either throw for usage prices or don't use product
+    .innerJoin(products, eq(products.id, prices.productId))
     .innerJoin(
       pricingModels,
       eq(prices.pricingModelId, pricingModels.id)
@@ -484,9 +484,7 @@ export const selectPriceProductAndOrganizationByPriceWhere = async (
   const results = await query
   return results.map((result) => ({
     price: pricesSelectSchema.parse(result.price),
-    product: result.product
-      ? productsSelectSchema.parse(result.product)
-      : null,
+    product: productsSelectSchema.parse(result.product),
     organization: organizationsSelectSchema.parse(
       result.organization
     ),
