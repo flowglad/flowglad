@@ -74,6 +74,7 @@ const checkoutTeardown = async (results: unknown[]) => {
 // =============================================================================
 
 behaviorTest({
+  only: [{ ContractTypeDep: 'merchantOfRecord' }],
   chain: [
     { behavior: authenticateUserBehavior },
     {
@@ -142,7 +143,6 @@ behaviorTest({
       },
     },
   ],
-  only: [{ ContractTypeDep: 'merchantOfRecord' }],
   testOptions: { timeout: 60000 },
   teardown: checkoutTeardown,
 })
@@ -157,6 +157,7 @@ behaviorTest({
 // =============================================================================
 
 behaviorTest({
+  only: [{ ContractTypeDep: 'platform' }],
   chain: [
     { behavior: authenticateUserBehavior },
     {
@@ -208,7 +209,6 @@ behaviorTest({
       },
     },
   ],
-  only: [{ ContractTypeDep: 'platform' }],
   testOptions: { timeout: 60000 },
   teardown: checkoutTeardown,
 })
@@ -221,6 +221,22 @@ behaviorTest({
 // =============================================================================
 
 behaviorTest({
+  only: [
+    // VAT jurisdictions
+    {
+      ContractTypeDep: 'merchantOfRecord',
+      CustomerResidencyDep: 'uk-london',
+    },
+    {
+      ContractTypeDep: 'merchantOfRecord',
+      CustomerResidencyDep: 'de-berlin',
+    },
+    // US sales tax registered
+    {
+      ContractTypeDep: 'merchantOfRecord',
+      CustomerResidencyDep: 'us-nyc',
+    },
+  ],
   chain: [
     { behavior: authenticateUserBehavior },
     { behavior: createOrganizationBehavior },
@@ -255,22 +271,6 @@ behaviorTest({
       },
     },
   ],
-  only: [
-    // VAT jurisdictions
-    {
-      ContractTypeDep: 'merchantOfRecord',
-      CustomerResidencyDep: 'uk-london',
-    },
-    {
-      ContractTypeDep: 'merchantOfRecord',
-      CustomerResidencyDep: 'de-berlin',
-    },
-    // US sales tax registered
-    {
-      ContractTypeDep: 'merchantOfRecord',
-      CustomerResidencyDep: 'us-nyc',
-    },
-  ],
   testOptions: { timeout: 60000 },
   teardown: checkoutTeardown,
 })
@@ -283,6 +283,16 @@ behaviorTest({
 // =============================================================================
 
 behaviorTest({
+  only: [
+    {
+      ContractTypeDep: 'merchantOfRecord',
+      CustomerResidencyDep: 'us-oregon',
+    },
+    {
+      ContractTypeDep: 'merchantOfRecord',
+      CustomerResidencyDep: 'us-texas-unregistered',
+    },
+  ],
   chain: [
     { behavior: authenticateUserBehavior },
     { behavior: createOrganizationBehavior },
@@ -316,16 +326,6 @@ behaviorTest({
           customerResidencyDep.billingAddress
         )
       },
-    },
-  ],
-  only: [
-    {
-      ContractTypeDep: 'merchantOfRecord',
-      CustomerResidencyDep: 'us-oregon',
-    },
-    {
-      ContractTypeDep: 'merchantOfRecord',
-      CustomerResidencyDep: 'us-texas-unregistered',
     },
   ],
   testOptions: { timeout: 60000 },
