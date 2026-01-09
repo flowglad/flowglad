@@ -26,12 +26,6 @@ import {
 } from '../dependencies/organizationDependencies'
 import { defineBehavior } from '../index'
 
-// Re-export dependencies for convenience
-export {
-  ContractTypeDep,
-  CountryDep,
-} from '../dependencies/organizationDependencies'
-
 // ============================================================================
 // Result Types
 // ============================================================================
