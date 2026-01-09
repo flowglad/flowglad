@@ -125,7 +125,8 @@ const releaseResourceInputSchema = z
       .optional()
       .describe('Release multiple non-anonymous claims'),
     claimIds: z
-      .array(z.string()).max(100)
+      .array(z.string())
+      .max(100)
       .nonempty()
       .optional()
       .describe('Release specific claims by their claim IDs'),
