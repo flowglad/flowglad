@@ -80,7 +80,7 @@ CustomerResidencyDep.implement('us-nyc', {
 /**
  * UK Customer in London
  *
- * Tests UK address format (no state, different postal code format).
+ * Tests UK address format (different postal code format).
  * Subject to UK VAT rules.
  */
 CustomerResidencyDep.implement('uk-london', {
