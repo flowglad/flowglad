@@ -269,6 +269,12 @@ export const cancelSubscriptionImmediately = async (
   const customer =
     providedCustomer ??
     (await selectCustomerById(subscription.customerId, transaction))
+
+  // Cache invalidation for this customer's subscriptions (used in all return paths)
+  const cacheInvalidations = [
+    CacheDependency.customerSubscriptions(subscription.customerId),
+  ]
+
   if (isSubscriptionInTerminalState(subscription.status)) {
     return {
       result: subscription,
@@ -278,11 +284,7 @@ export const cancelSubscriptionImmediately = async (
           customer
         ),
       ],
-      cacheInvalidations: [
-        CacheDependency.customerSubscriptions(
-          subscription.customerId
-        ),
-      ],
+      cacheInvalidations,
     }
   }
   if (
@@ -302,11 +304,7 @@ export const cancelSubscriptionImmediately = async (
           customer
         ),
       ],
-      cacheInvalidations: [
-        CacheDependency.customerSubscriptions(
-          updatedSubscription.customerId
-        ),
-      ],
+      cacheInvalidations,
     }
   }
   const endDate = Date.now()
@@ -456,11 +454,7 @@ export const cancelSubscriptionImmediately = async (
         customer
       ),
     ],
-    cacheInvalidations: [
-      CacheDependency.customerSubscriptions(
-        updatedSubscription.customerId
-      ),
-    ],
+    cacheInvalidations,
   }
 }
 

@@ -386,14 +386,15 @@ export const selectRichSubscriptionsAndActiveItems = async (
   transaction: DbTransaction,
   livemode: boolean
 ): Promise<RichSubscription[]> => {
-  // Step 1: Fetch subscriptions - use cache if querying by single customerId string
+  // Step 1: Fetch subscriptions
+  // Use cached query when filtering by single customerId (hot path for customer billing)
   let subscriptionRecords: Subscription.Record[]
-
   const customerId = whereConditions.customerId
-  if (
+  const isSimpleCustomerIdQuery =
     typeof customerId === 'string' &&
     Object.keys(whereConditions).length === 1
-  ) {
+
+  if (isSimpleCustomerIdQuery) {
     subscriptionRecords = await selectSubscriptionsByCustomerId(
       customerId,
       transaction,

@@ -149,6 +149,8 @@ export const selectSubscriptionsByCustomerId = cached(
   async (
     customerId: string,
     transaction: DbTransaction,
+    // livemode is used by keyFn for cache key generation, not in the query itself
+    // (RLS filters by livemode context set on the transaction)
     _livemode: boolean
   ) => {
     return selectSubscriptions({ customerId }, transaction)
