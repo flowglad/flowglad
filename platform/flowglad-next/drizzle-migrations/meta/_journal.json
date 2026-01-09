@@ -1863,6 +1863,13 @@
       "when": 1767978055514,
       "tag": "0266_exotic_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 267,
+      "version": "7",
+      "when": 1767994434442,
+      "tag": "0267_striped_daimon_hellstrom",
+      "breakpoints": true
     }
   ]
 }
