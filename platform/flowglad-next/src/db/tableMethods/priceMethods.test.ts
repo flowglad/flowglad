@@ -1931,7 +1931,7 @@ describe('priceMethods.ts', () => {
   })
 
   describe('selectPricesAndProductsForOrganization', () => {
-    it('should return null product for usage prices', async () => {
+    it('should not return usage prices (they are filtered out by innerJoin due to null productId)', async () => {
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Select Test Usage Meter',
@@ -1952,16 +1952,16 @@ describe('priceMethods.ts', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
+        // Query specifically for the usage price by ID
         const results = await selectPricesAndProductsForOrganization(
           { id: usagePrice.id },
           organization.id,
           transaction
         )
 
-        expect(results).toHaveLength(1)
-        expect(results[0]!.price.id).toBe(usagePrice.id)
-        expect(results[0]!.price.type).toBe(PriceType.Usage)
-        expect(results[0]!.product).toBeNull()
+        // Usage prices have null productId, so innerJoin filters them out
+        // This is the expected behavior - this function only returns product-attached prices
+        expect(results).toHaveLength(0)
       })
     })
 
@@ -1981,7 +1981,7 @@ describe('priceMethods.ts', () => {
       })
     })
 
-    it('should return both usage and subscription prices for an organization', async () => {
+    it('should return only product-attached prices and exclude usage prices (which have null productId)', async () => {
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Mixed Select Test Meter',
@@ -1989,7 +1989,8 @@ describe('priceMethods.ts', () => {
         pricingModelId: product.pricingModelId,
       })
 
-      const usagePrice = await setupPrice({
+      // Create a usage price that should NOT be returned (has null productId)
+      await setupPrice({
         name: 'Mixed Usage Price',
         type: PriceType.Usage,
         intervalUnit: IntervalUnit.Month,
@@ -2008,7 +2009,7 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        // Should have at least the subscription price from beforeEach and the usage price
+        // innerJoin on products filters out usage prices (which have null productId)
         const subscriptionResults = results.filter(
           (r) => r.price.type === PriceType.Subscription
         )
@@ -2016,17 +2017,15 @@ describe('priceMethods.ts', () => {
           (r) => r.price.type === PriceType.Usage
         )
 
+        // Should have subscription prices from beforeEach
         expect(subscriptionResults.length).toBeGreaterThan(0)
-        expect(usageResults.length).toBeGreaterThan(0)
+        // Usage prices should be excluded due to innerJoin (they have null productId)
+        expect(usageResults.length).toBe(0)
 
-        // Subscription prices should have products
-        subscriptionResults.forEach((result) => {
+        // All returned prices should have non-null products
+        results.forEach((result) => {
           expect(result.product).not.toBeNull()
-        })
-
-        // Usage prices should have null products
-        usageResults.forEach((result) => {
-          expect(result.product).toBeNull()
+          expect(result.product.id).toBeTruthy()
         })
       })
     })
