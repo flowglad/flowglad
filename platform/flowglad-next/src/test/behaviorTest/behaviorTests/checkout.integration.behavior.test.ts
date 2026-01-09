@@ -191,28 +191,56 @@ const processPaymentSuccessBehavior = defineBehavior({
     const stripe = getStripeTestClient()
 
     // Confirm the payment intent (this charges the card)
+    // Use expand to include charges in response for more robust charge retrieval
     const confirmedPaymentIntent =
       await stripe.paymentIntents.confirm(
         prev.stripePaymentIntentId,
         {
           payment_method: prev.stripePaymentMethodId,
           off_session: true,
+          expand: ['charges'],
         }
       )
 
-    // Get the charge ID, handling null case explicitly
-    const { latest_charge } = confirmedPaymentIntent
-    if (!latest_charge) {
+    // Handle payment intent statuses that require additional action
+    if (confirmedPaymentIntent.status === 'requires_action') {
       throw new Error(
-        `No charge on payment intent ${prev.stripePaymentIntentId} after confirmation`
+        `Payment intent ${prev.stripePaymentIntentId} requires additional action (e.g., 3DS authentication). ` +
+          `This test uses off_session=true which should not trigger 3DS for test cards.`
       )
     }
-    const chargeId =
-      typeof latest_charge === 'string'
-        ? latest_charge
-        : latest_charge.id
+    if (confirmedPaymentIntent.status === 'requires_payment_method') {
+      throw new Error(
+        `Payment intent ${prev.stripePaymentIntentId} requires a new payment method. ` +
+          `The attached payment method may have been declined.`
+      )
+    }
 
-    const charge = await stripe.charges.retrieve(chargeId)
+    // Get the charge, preferring expanded charges data, falling back to latest_charge
+    // The `charges` field is typed as potentially undefined, but is populated when expanded
+    let charge: Stripe.Charge
+    const expandedCharges = (
+      confirmedPaymentIntent as unknown as {
+        charges?: Stripe.ApiList<Stripe.Charge>
+      }
+    ).charges
+    if (expandedCharges && expandedCharges.data.length > 0) {
+      // Use expanded charges data (most reliable)
+      charge = expandedCharges.data[0]
+    } else if (confirmedPaymentIntent.latest_charge) {
+      // Fallback to latest_charge
+      const { latest_charge } = confirmedPaymentIntent
+      const chargeId =
+        typeof latest_charge === 'string'
+          ? latest_charge
+          : latest_charge.id
+      charge = await stripe.charges.retrieve(chargeId)
+    } else {
+      throw new Error(
+        `No charge found on payment intent ${prev.stripePaymentIntentId} after confirmation. ` +
+          `Status: ${confirmedPaymentIntent.status}`
+      )
+    }
 
     // Process the charge through our bookkeeping
     const bookkeepingResult = await adminTransaction(
@@ -248,14 +276,15 @@ const processPaymentSuccessBehavior = defineBehavior({
           transaction
         )
 
-        if (!invoiceRecords || invoiceRecords.length === 0) {
+        // For a single payment checkout, there should be exactly one invoice and one payment
+        if (!invoiceRecords || invoiceRecords.length !== 1) {
           throw new Error(
-            `No invoice records found for purchase ${purchase.id}`
+            `Expected exactly 1 invoice for purchase ${purchase.id}, found ${invoiceRecords?.length ?? 0}`
           )
         }
-        if (!paymentRecords || paymentRecords.length === 0) {
+        if (!paymentRecords || paymentRecords.length !== 1) {
           throw new Error(
-            `No payment records found for purchase ${purchase.id}`
+            `Expected exactly 1 payment for purchase ${purchase.id}, found ${paymentRecords?.length ?? 0}`
           )
         }
 
@@ -354,8 +383,12 @@ behaviorTest({
         expect(result.stripeCharge.status).toBe('succeeded')
 
         // === MoR: Fee calculation exists ===
-        expect(result.finalFeeCalculation).not.toBeNull()
-        const fc = result.finalFeeCalculation!
+        const fc = result.finalFeeCalculation
+        if (!fc) {
+          throw new Error(
+            'Fee calculation should exist for MoR checkout but was null'
+          )
+        }
 
         expect(fc.type).toBe(
           FeeCalculationType.CheckoutSessionPayment
