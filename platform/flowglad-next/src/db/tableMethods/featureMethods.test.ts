@@ -6,14 +6,20 @@ import {
   setupPricingModel,
   setupProduct,
   setupProductFeature,
+  setupResource,
   setupSubscription,
   setupSubscriptionItem,
   setupToggleFeature,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Feature } from '@/db/schema/features'
+import {
+  resourceFeatureInsertSchema,
+  resourceFeatureSelectSchema,
+} from '@/db/schema/features'
 import type { Organization } from '@/db/schema/organizations'
 import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Resource } from '@/db/schema/resources'
 import {
   createSubscriptionFeatureItems,
   subscriptionItemFeatureInsertFromSubscriptionItemAndFeature,
@@ -21,6 +27,7 @@ import {
 import { FeatureType, SubscriptionItemType } from '@/types'
 import {
   insertFeature,
+  selectFeatureById,
   selectFeatures,
   selectFeaturesTableRowData,
   updateFeatureTransaction,
@@ -627,6 +634,218 @@ describe('selectFeaturesTableRowData search', () => {
 
       expect(resultEmpty.items.length).toBeGreaterThanOrEqual(1)
       expect(resultEmpty.total).toBe(resultUndefined.total)
+    })
+  })
+})
+
+describe('Resource Feature schema and methods', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let resource: Resource.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+
+    resource = await setupResource({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      slug: 'seats',
+      name: 'Seats',
+    })
+  })
+
+  const createResourceFeatureInsert = (params?: {
+    resourceId?: string
+    amount?: number
+    slug?: string
+  }): Feature.ResourceInsert => ({
+    organizationId: organization.id,
+    pricingModelId: pricingModel.id,
+    type: FeatureType.Resource,
+    name: 'Resource Feature',
+    slug: params?.slug ?? 'resource-feature-slug',
+    description: 'A resource feature for testing',
+    amount: params?.amount ?? 5,
+    resourceId: params?.resourceId ?? resource.id,
+    usageMeterId: null,
+    renewalFrequency: null,
+    livemode: true,
+    active: true,
+  })
+
+  describe('insertFeature for Resource type', () => {
+    it('should insert a resource feature with required fields: type=Resource, resourceId, and positive amount', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const inserted = await insertFeature(
+          createResourceFeatureInsert({
+            resourceId: resource.id,
+            amount: 10,
+          }),
+          transaction
+        )
+
+        expect(inserted.id).toMatch(/^feature_/)
+        expect(inserted.type).toBe(FeatureType.Resource)
+        expect(inserted.resourceId).toBe(resource.id)
+        expect(inserted.amount).toBe(10)
+        expect(inserted.usageMeterId).toBeNull()
+        expect(inserted.renewalFrequency).toBeNull()
+        expect(inserted.organizationId).toBe(organization.id)
+        expect(inserted.pricingModelId).toBe(pricingModel.id)
+      })
+    })
+
+    it('should select a resource feature by id and return the complete record', async () => {
+      const inserted = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeature(
+            createResourceFeatureInsert(),
+            transaction
+          )
+        }
+      )
+
+      await adminTransaction(async ({ transaction }) => {
+        const selected = await selectFeatureById(
+          inserted.id,
+          transaction
+        )
+
+        expect(selected.id).toBe(inserted.id)
+        expect(selected.type).toBe(FeatureType.Resource)
+        expect(selected.resourceId).toBe(resource.id)
+        expect(selected.amount).toBe(5)
+      })
+    })
+  })
+
+  describe('resourceFeatureInsertSchema validation', () => {
+    it('should reject resource feature without resourceId', () => {
+      const invalidFeature = {
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        type: FeatureType.Resource,
+        name: 'Invalid Resource Feature',
+        slug: 'invalid-resource-feature',
+        description: 'A resource feature without resourceId',
+        amount: 5,
+        resourceId: null, // Invalid: resourceId is required
+        usageMeterId: null,
+        renewalFrequency: null,
+        livemode: true,
+        active: true,
+      }
+
+      const result =
+        resourceFeatureInsertSchema.safeParse(invalidFeature)
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject resource feature with usageMeterId set (usageMeterId must be null)', () => {
+      const invalidFeature = {
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        type: FeatureType.Resource,
+        name: 'Invalid Resource Feature',
+        slug: 'invalid-resource-feature-with-usage-meter',
+        description: 'A resource feature with usageMeterId',
+        amount: 5,
+        resourceId: resource.id,
+        usageMeterId: 'some-usage-meter-id', // Invalid: must be null for Resource type
+        renewalFrequency: null,
+        livemode: true,
+        active: true,
+      }
+
+      const result =
+        resourceFeatureInsertSchema.safeParse(invalidFeature)
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject resource feature with renewalFrequency set (renewalFrequency must be null)', () => {
+      const invalidFeature = {
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        type: FeatureType.Resource,
+        name: 'Invalid Resource Feature',
+        slug: 'invalid-resource-feature-with-renewal',
+        description: 'A resource feature with renewalFrequency',
+        amount: 5,
+        resourceId: resource.id,
+        usageMeterId: null,
+        renewalFrequency: 'EveryBillingPeriod', // Invalid: must be null for Resource type
+        livemode: true,
+        active: true,
+      }
+
+      const result =
+        resourceFeatureInsertSchema.safeParse(invalidFeature)
+      expect(result.success).toBe(false)
+    })
+
+    it('should require a positive amount for resource features', () => {
+      const featureWithZeroAmount = {
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        type: FeatureType.Resource,
+        name: 'Resource Feature Zero Amount',
+        slug: 'resource-feature-zero',
+        description: 'A resource feature with zero amount',
+        amount: 0, // Invalid: should be positive
+        resourceId: resource.id,
+        usageMeterId: null,
+        renewalFrequency: null,
+        livemode: true,
+        active: true,
+      }
+
+      const result = resourceFeatureInsertSchema.safeParse(
+        featureWithZeroAmount
+      )
+      expect(result.success).toBe(false)
+    })
+
+    it('should validate a correct resource feature', () => {
+      const validFeature = {
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        type: FeatureType.Resource,
+        name: 'Valid Resource Feature',
+        slug: 'valid-resource-feature',
+        description: 'A valid resource feature',
+        amount: 5,
+        resourceId: resource.id,
+        usageMeterId: null,
+        renewalFrequency: null,
+        livemode: true,
+        active: true,
+      }
+
+      const result =
+        resourceFeatureInsertSchema.safeParse(validFeature)
+      expect(result.success).toBe(true)
+    })
+  })
+
+  describe('resourceFeatureSelectSchema validation', () => {
+    it('should validate a selected resource feature record with type=Resource', async () => {
+      const inserted = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeature(
+            createResourceFeatureInsert(),
+            transaction
+          )
+        }
+      )
+
+      const result = resourceFeatureSelectSchema.safeParse(inserted)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.type).toBe(FeatureType.Resource)
+        expect(result.data.resourceId).toBe(resource.id)
+      }
     })
   })
 })

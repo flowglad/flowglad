@@ -878,6 +878,7 @@ export enum LedgerTransactionInitiatingSourceType {
 export enum FeatureType {
   Toggle = 'toggle',
   UsageCreditGrant = 'usage_credit_grant',
+  Resource = 'resource',
 }
 
 export enum FeatureUsageGrantFrequency {
