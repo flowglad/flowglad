@@ -1,19 +1,19 @@
 'use client'
 
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import PageContainer from '@/components/PageContainer'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { SubscriptionsDataTable } from './data-table'
 
 function InnerSubscriptionsPage() {
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <PageHeaderNew
         title="Subscriptions"
         hideBorder
         className="pb-2"
       />
       <SubscriptionsDataTable hiddenColumns={['id']} />
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

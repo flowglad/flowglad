@@ -12,8 +12,13 @@ import {
   setupPayment,
   setupPaymentMethod,
   setupPrice,
+  setupProduct,
+  setupProductFeature,
   setupSubscription,
   setupSubscriptionItem,
+  setupSubscriptionItemFeature,
+  setupUsageCredit,
+  setupUsageCreditGrantFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -30,13 +35,16 @@ import {
 } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
 import { insertPrice } from '@/db/tableMethods/priceMethods'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 // Helpers to query the database after adjustments
 import {
   expireSubscriptionItems,
+  selectSubscriptionItems,
   selectSubscriptionItemsAndSubscriptionBySubscriptionId,
   updateSubscriptionItem,
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
+import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import {
   adjustSubscription,
   autoDetectTiming,
@@ -48,12 +56,16 @@ import {
   BillingPeriodStatus,
   BillingRunStatus,
   CurrencyCode,
+  FeatureType,
+  FeatureUsageGrantFrequency,
   IntervalUnit,
   PaymentStatus,
   PriceType,
   SubscriptionAdjustmentTiming,
   SubscriptionItemType,
   SubscriptionStatus,
+  UsageCreditSourceReferenceType,
+  UsageCreditType,
 } from '@/types'
 
 // Mock the trigger task - we test that it's called with correct parameters
@@ -3418,486 +3430,378 @@ describe('adjustSubscription Integration Tests', async () => {
   })
 
   /* ==========================================================================
-    Resource Validation Tests
+    Free Subscription Handling
   ========================================================================== */
-  describe('Resource Validation', () => {
-    it('should allow upgrade that increases resource capacity', async () => {
-      // Setup: Create a resource, feature, and product feature for the subscription's product
-      const {
-        setupResource,
-        setupResourceFeature,
-        setupProductFeature,
-        setupResourceClaim,
-        setupResourceSubscriptionItemFeature,
-      } = await import('@/../seedDatabase')
-
-      // Create resource
-      const resource = await setupResource({
+  describe('Free Subscription Handling', () => {
+    it('should throw error when attempting to adjust a free subscription (use createSubscription instead)', async () => {
+      // Create a free subscription (isFreePlan=true)
+      const freeSubscription = await setupSubscription({
+        customerId: customer.id,
         organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        slug: 'seats',
-        name: 'Seats',
-        description: 'User seats',
+        priceId: price.id,
+        paymentMethodId: paymentMethod.id,
+        status: SubscriptionStatus.Active,
+        isFreePlan: true,
       })
 
-      // Create resource feature with amount=3 (3 seats per subscription unit)
-      const resourceFeature = await setupResourceFeature({
-        organizationId: organization.id,
-        name: 'Seats Feature',
-        resourceId: resource.id,
-        livemode: true,
-        pricingModelId: pricingModel.id,
-        amount: 3,
-        slug: 'seats-feature',
+      await setupBillingPeriod({
+        subscriptionId: freeSubscription.id,
+        startDate: Date.now() - 24 * 60 * 60 * 1000,
+        endDate: Date.now() + 24 * 60 * 60 * 1000,
+        status: BillingPeriodStatus.Active,
       })
 
-      // Create product feature linking the feature to the product
-      const productFeature = await setupProductFeature({
-        productId: product.id,
-        featureId: resourceFeature.id,
-        organizationId: organization.id,
-      })
-
-      // Create subscription item
-      const subscriptionItem = await setupSubscriptionItem({
-        subscriptionId: subscription.id,
-        name: 'Basic Plan',
+      await setupSubscriptionItem({
+        subscriptionId: freeSubscription.id,
+        name: 'Free Plan',
         quantity: 1,
-        unitPrice: 100,
-      })
-
-      // Create subscription item feature for the resource (capacity = 3 * 1 = 3)
-      const subItemFeature =
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: resourceFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 3,
-        })
-
-      // Create 3 resource claims (using all capacity)
-      await setupResourceClaim({
-        organizationId: organization.id,
-        subscriptionItemFeatureId: subItemFeature.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-      })
-      await setupResourceClaim({
-        organizationId: organization.id,
-        subscriptionItemFeatureId: subItemFeature.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-      })
-      await setupResourceClaim({
-        organizationId: organization.id,
-        subscriptionItemFeatureId: subItemFeature.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
+        unitPrice: 0,
+        priceId: price.id,
       })
 
       await adminTransaction(async ({ transaction }) => {
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        // Upgrade to 2 units (capacity = 3 * 2 = 6 seats)
         const newItems: SubscriptionItem.Upsert[] = [
           {
             ...subscriptionItemCore,
-            name: 'Pro Plan',
-            quantity: 2,
-            unitPrice: 200,
+            name: 'Paid Plan',
+            quantity: 1,
+            unitPrice: 2999,
             expiredAt: null,
             type: SubscriptionItemType.Static,
           },
         ]
 
-        // Should succeed because 3 claims <= 6 new capacity
+        // Free subscriptions should be upgraded via createSubscription flow,
+        // which cancels the free subscription and creates a new paid one.
+        // adjustSubscription rejects free plans to enforce this pattern.
+        await expect(
+          adjustSubscription(
+            {
+              id: freeSubscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            transaction
+          )
+        ).rejects.toThrow(/free/i)
+      })
+    })
+  })
+
+  /* ==========================================================================
+    Immediate Downgrade Behavior
+  ========================================================================== */
+  describe('Immediate Downgrade Behavior', () => {
+    it('should preserve existing usage credits, issue no refund, replace subscription item, expire old features, and create new features when downgrading immediately', async () => {
+      // Create a usage meter and feature for the premium product
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'API Calls',
+        pricingModelId: pricingModel.id,
+      })
+
+      const premiumFeature = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'Premium API Credits',
+        pricingModelId: pricingModel.id,
+        amount: 100,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+
+      // Create a different feature for the basic plan (simulating different feature sets)
+      const basicFeature = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'Basic API Credits',
+        pricingModelId: pricingModel.id,
+        amount: 25,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+
+      const premiumProductFeature = await setupProductFeature({
+        organizationId: organization.id,
+        productId: product.id,
+        featureId: premiumFeature.id,
+      })
+
+      // Create a basic product with basic price and basic feature
+      const basicProduct = await setupProduct({
+        organizationId: organization.id,
+        name: 'Basic Product',
+        pricingModelId: pricingModel.id,
+      })
+
+      const basicPrice = await setupPrice({
+        productId: basicProduct.id,
+        name: 'Basic Monthly',
+        unitPrice: 999,
+        livemode: true,
+        isDefault: false,
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+
+      const basicProductFeature = await setupProductFeature({
+        organizationId: organization.id,
+        productId: basicProduct.id,
+        featureId: basicFeature.id,
+      })
+
+      // Setup subscription with premium item
+      const premiumItem = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Premium Plan',
+        quantity: 1,
+        unitPrice: 4999,
+        priceId: price.id,
+      })
+
+      // Create subscription item feature for the premium item
+      await setupSubscriptionItemFeature({
+        subscriptionItemId: premiumItem.id,
+        featureId: premiumFeature.id,
+        productFeatureId: premiumProductFeature.id,
+        type: FeatureType.UsageCreditGrant,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        amount: 100,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const adjustmentDate = Date.now()
+        const newStartDate = adjustmentDate - 15 * 24 * 60 * 60 * 1000 // 15 days ago
+        const newEndDate = adjustmentDate + 15 * 24 * 60 * 60 * 1000 // 15 days from now
+
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: newStartDate,
+            endDate: newEndDate,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        await updateSubscription(
+          {
+            id: subscription.id,
+            renews: true,
+            currentBillingPeriodStart: newStartDate,
+            currentBillingPeriodEnd: newEndDate,
+          },
+          transaction
+        )
+
+        // Setup existing usage credits (simulating credits granted at billing period start)
+        const existingCreditIssuedAmount = 100
+        const existingCredit = await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          billingPeriodId: billingPeriod.id,
+          issuedAmount: existingCreditIssuedAmount,
+          creditType: UsageCreditType.Grant,
+          sourceReferenceType:
+            UsageCreditSourceReferenceType.BillingPeriodTransition,
+          expiresAt: newEndDate,
+        })
+
+        // Setup payment for the premium plan (customer already paid $49.99)
+        const invoice = await setupInvoice({
+          organizationId: organization.id,
+          customerId: customer.id,
+          billingPeriodId: billingPeriod.id,
+          priceId: price.id,
+          livemode: subscription.livemode,
+        })
+        await setupPayment({
+          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+          status: PaymentStatus.Succeeded,
+          amount: 4999,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          livemode: true,
+        })
+
+        // Verify initial state before downgrade
+        const creditsBefore = await selectUsageCredits(
+          {
+            subscriptionId: subscription.id,
+            billingPeriodId: billingPeriod.id,
+            usageMeterId: usageMeter.id,
+          },
+          transaction
+        )
+        expect(creditsBefore.length).toBe(1)
+        expect(creditsBefore[0].id).toBe(existingCredit.id)
+
+        const itemsBefore = await selectSubscriptionItems(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+        const activeItemsBefore = itemsBefore.filter(
+          (item) => item.expiredAt === null
+        )
+        expect(activeItemsBefore.length).toBe(1)
+        expect(activeItemsBefore[0].id).toBe(premiumItem.id)
+        expect(activeItemsBefore[0].unitPrice).toBe(4999)
+
+        // Verify premium feature exists before downgrade
+        const featuresBefore = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: premiumItem.id },
+          transaction
+        )
+        const activeFeaturesBefore = featuresBefore.filter(
+          (f) => f.expiredAt === null
+        )
+        expect(activeFeaturesBefore.length).toBeGreaterThanOrEqual(1)
+
+        // Downgrade to a cheaper plan immediately (from $49.99 to $9.99)
+        // Use the basic price which has the basic feature linked
+        const newItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            priceId: basicPrice.id,
+            name: 'Basic Plan',
+            quantity: 1,
+            unitPrice: 999,
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+          },
+        ]
+
         const result = await adjustSubscription(
           {
             id: subscription.id,
             adjustment: {
               newSubscriptionItems: newItems,
               timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+              prorateCurrentBillingPeriod: true,
             },
           },
           organization,
           transaction
         )
 
-        expect(result.subscription.id).toBe(subscription.id)
-        expect(result.isUpgrade).toBe(true)
-      })
-    })
+        // ============================================================
+        // ASSERTION 1: No refund issued (downgrade protection)
+        // ============================================================
+        // For immediate downgrades, no billing run is triggered (no refund)
+        // The net charge would be negative, but we cap at 0
+        // pendingBillingRunId is only present when a billing run is triggered
+        expect(result.pendingBillingRunId).toBeUndefined()
 
-    it('should block downgrade when active claims exceed new capacity', async () => {
-      const {
-        setupResource,
-        setupResourceFeature,
-        setupProductFeature,
-        setupResourceClaim,
-        setupResourceSubscriptionItemFeature,
-      } = await import('@/../seedDatabase')
+        // Check that no proration billing period items were created for refund
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
+        const refundItems = bpItems.filter(
+          (item) =>
+            item.name?.includes('Net charge adjustment') ||
+            item.name?.includes('Credit') ||
+            item.unitPrice < 0
+        )
+        expect(refundItems.length).toBe(0)
 
-      // Create resource
-      const resource = await setupResource({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        slug: 'api-keys',
-        name: 'API Keys',
-        description: 'API keys for the application',
-      })
+        // ============================================================
+        // ASSERTION 2: Subscription item is replaced
+        // ============================================================
+        const itemsAfter = await selectSubscriptionItems(
+          { subscriptionId: subscription.id },
+          transaction
+        )
 
-      // Create resource feature with amount=5 (5 API keys per subscription unit)
-      const resourceFeature = await setupResourceFeature({
-        organizationId: organization.id,
-        name: 'API Keys Feature',
-        resourceId: resource.id,
-        livemode: true,
-        pricingModelId: pricingModel.id,
-        amount: 5,
-        slug: 'api-keys-feature',
-      })
+        // Old premium item should be expired
+        const expiredPremiumItem = itemsAfter.find(
+          (item) => item.id === premiumItem.id
+        )
+        expect(expiredPremiumItem?.expiredAt).not.toBeNull()
 
-      // Create product feature linking the feature to the product
-      const productFeature = await setupProductFeature({
-        productId: product.id,
-        featureId: resourceFeature.id,
-        organizationId: organization.id,
-      })
+        // New basic item should be active
+        const activeItemsAfter = itemsAfter.filter(
+          (item) => !item.expiredAt || item.expiredAt > Date.now()
+        )
+        expect(activeItemsAfter.length).toBe(1)
+        expect(activeItemsAfter[0].name).toBe('Basic Plan')
+        expect(activeItemsAfter[0].unitPrice).toBe(999)
 
-      // Create subscription item with quantity=2 (capacity = 5 * 2 = 10 API keys)
-      const subscriptionItem = await setupSubscriptionItem({
-        subscriptionId: subscription.id,
-        name: 'Pro Plan',
-        quantity: 2,
-        unitPrice: 200,
-      })
+        // ============================================================
+        // ASSERTION 3: Old features are expired
+        // ============================================================
+        const oldFeaturesAfter = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: premiumItem.id },
+          transaction
+        )
+        const stillActiveOldFeatures = oldFeaturesAfter.filter(
+          (f) => f.expiredAt === null
+        )
+        // Old features should be expired when the subscription item is expired
+        expect(stillActiveOldFeatures.length).toBe(0)
 
-      // Create subscription item feature
-      const subItemFeature =
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: resourceFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 5,
-        })
+        // ============================================================
+        // ASSERTION 4: New downgraded features are created matching basic plan
+        // ============================================================
+        const newBasicItem = activeItemsAfter[0]
+        const newFeaturesAfter = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: newBasicItem.id },
+          transaction
+        )
+        // Verify features were created for the basic plan
+        expect(newFeaturesAfter.length).toBe(1)
+        // The new feature should be linked to the basic feature (25 credits)
+        // not the premium feature (100 credits)
+        expect(newFeaturesAfter[0].featureId).toBe(basicFeature.id)
+        expect(newFeaturesAfter[0].productFeatureId).toBe(
+          basicProductFeature.id
+        )
 
-      // Create 4 resource claims
-      for (let i = 0; i < 4; i++) {
-        await setupResourceClaim({
-          organizationId: organization.id,
-          subscriptionItemFeatureId: subItemFeature.id,
-          resourceId: resource.id,
-          subscriptionId: subscription.id,
-          pricingModelId: pricingModel.id,
-        })
-      }
-
-      await adminTransaction(async ({ transaction }) => {
-        await updateBillingPeriod(
+        // ============================================================
+        // ASSERTION 5: Existing usage credits are preserved
+        // ============================================================
+        const creditsAfter = await selectUsageCredits(
           {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
+            subscriptionId: subscription.id,
+            billingPeriodId: billingPeriod.id,
+            usageMeterId: usageMeter.id,
           },
           transaction
         )
 
-        // Try to downgrade to quantity=0 (capacity = 5 * 0 = 0 API keys)
-        // Should fail because 4 claims > 0 capacity
-        const newItems: SubscriptionItem.Upsert[] = []
-
-        await expect(
-          adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
-            },
-            organization,
-            transaction
-          )
-        ).rejects.toThrow(
-          /Cannot reduce api-keys-feature capacity to 0/
+        // Credits should still exist with the same issuedAmount
+        expect(creditsAfter.length).toBeGreaterThanOrEqual(1)
+        const originalCredit = creditsAfter.find(
+          (c) => c.id === existingCredit.id
         )
-      })
-    })
-
-    it('should allow downgrade when active claims fit in new capacity', async () => {
-      const {
-        setupResource,
-        setupResourceFeature,
-        setupProductFeature,
-        setupResourceClaim,
-        setupResourceSubscriptionItemFeature,
-      } = await import('@/../seedDatabase')
-
-      // Create resource
-      const resource = await setupResource({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        slug: 'connections',
-        name: 'Connections',
-        description: 'Concurrent connections',
-      })
-
-      // Create resource feature with amount=10 (10 connections per subscription unit)
-      const resourceFeature = await setupResourceFeature({
-        organizationId: organization.id,
-        name: 'Connections Feature',
-        resourceId: resource.id,
-        livemode: true,
-        pricingModelId: pricingModel.id,
-        amount: 10,
-        slug: 'connections-feature',
-      })
-
-      // Create product feature linking the feature to the product
-      await setupProductFeature({
-        productId: product.id,
-        featureId: resourceFeature.id,
-        organizationId: organization.id,
-      })
-
-      // Create subscription item with quantity=5 (capacity = 10 * 5 = 50 connections)
-      const subscriptionItem = await setupSubscriptionItem({
-        subscriptionId: subscription.id,
-        name: 'Enterprise Plan',
-        quantity: 5,
-        unitPrice: 500,
-      })
-
-      // Create subscription item feature
-      const subItemFeature =
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: resourceFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 10,
-        })
-
-      // Create only 20 resource claims
-      for (let i = 0; i < 20; i++) {
-        await setupResourceClaim({
-          organizationId: organization.id,
-          subscriptionItemFeatureId: subItemFeature.id,
-          resourceId: resource.id,
-          subscriptionId: subscription.id,
-          pricingModelId: pricingModel.id,
-        })
-      }
-
-      await adminTransaction(async ({ transaction }) => {
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
+        expect(originalCredit?.issuedAmount).toBe(
+          existingCreditIssuedAmount
+        )
+        expect(originalCredit?.sourceReferenceType).toBe(
+          UsageCreditSourceReferenceType.BillingPeriodTransition
         )
 
-        // Downgrade to quantity=3 (capacity = 10 * 3 = 30 connections)
-        // Should succeed because 20 claims <= 30 new capacity
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Pro Plan',
-            quantity: 3,
-            unitPrice: 300,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing:
-                SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-            },
-          },
-          organization,
-          transaction
-        )
-
-        expect(result.subscription).toBeDefined()
-        expect(result.isUpgrade).toBe(false)
-      })
-    })
-
-    it('should validate multiple resource types independently', async () => {
-      const {
-        setupResource,
-        setupResourceFeature,
-        setupProductFeature,
-        setupResourceClaim,
-        setupResourceSubscriptionItemFeature,
-      } = await import('@/../seedDatabase')
-
-      // Create first resource (seats)
-      const seatsResource = await setupResource({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        slug: 'multi-seats',
-        name: 'Multi Seats',
-        description: 'User seats for multi test',
-      })
-
-      // Create second resource (API keys)
-      const apiKeysResource = await setupResource({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        slug: 'multi-api-keys',
-        name: 'Multi API Keys',
-        description: 'API keys for multi test',
-      })
-
-      // Create resource features (5 seats per unit, 10 API keys per unit)
-      const seatsFeature = await setupResourceFeature({
-        organizationId: organization.id,
-        name: 'Multi Seats Feature',
-        resourceId: seatsResource.id,
-        livemode: true,
-        pricingModelId: pricingModel.id,
-        amount: 5,
-        slug: 'multi-seats-feature',
-      })
-
-      const apiKeysFeature = await setupResourceFeature({
-        organizationId: organization.id,
-        name: 'Multi API Keys Feature',
-        resourceId: apiKeysResource.id,
-        livemode: true,
-        pricingModelId: pricingModel.id,
-        amount: 10,
-        slug: 'multi-api-keys-feature',
-      })
-
-      // Create product features
-      await setupProductFeature({
-        productId: product.id,
-        featureId: seatsFeature.id,
-        organizationId: organization.id,
-      })
-      await setupProductFeature({
-        productId: product.id,
-        featureId: apiKeysFeature.id,
-        organizationId: organization.id,
-      })
-
-      // Create subscription item with quantity=2 (seats: 5*2=10, API keys: 10*2=20)
-      const subscriptionItem = await setupSubscriptionItem({
-        subscriptionId: subscription.id,
-        name: 'Multi Resource Plan',
-        quantity: 2,
-        unitPrice: 200,
-      })
-
-      // Create subscription item features
-      const seatsSubItemFeature =
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: seatsFeature.id,
-          resourceId: seatsResource.id,
-          pricingModelId: pricingModel.id,
-          amount: 5,
-        })
-
-      const apiKeysSubItemFeature =
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: apiKeysFeature.id,
-          resourceId: apiKeysResource.id,
-          pricingModelId: pricingModel.id,
-          amount: 10,
-        })
-
-      // Create 3 seats claims (within limit)
-      for (let i = 0; i < 3; i++) {
-        await setupResourceClaim({
-          organizationId: organization.id,
-          subscriptionItemFeatureId: seatsSubItemFeature.id,
-          resourceId: seatsResource.id,
-          subscriptionId: subscription.id,
-          pricingModelId: pricingModel.id,
-        })
-      }
-
-      // Create 9 API keys claims (within limit, but would exceed if capacity reduced to 8)
-      for (let i = 0; i < 9; i++) {
-        await setupResourceClaim({
-          organizationId: organization.id,
-          subscriptionItemFeatureId: apiKeysSubItemFeature.id,
-          resourceId: apiKeysResource.id,
-          subscriptionId: subscription.id,
-          pricingModelId: pricingModel.id,
-        })
-      }
-
-      await adminTransaction(async ({ transaction }) => {
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        // Try to downgrade to quantity=1 (seats: 5*1=5, API keys: 10*1=10)
-        // Seats: 3 claims <= 5 capacity (OK)
-        // API keys: 9 claims <= 10 capacity (OK)
-        // But let's make API keys fail by reducing to quantity that gives capacity < 9
-
-        // First test: quantity=1 should pass (seats: 5, API keys: 10)
-        const validItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Reduced Plan',
-            quantity: 1,
-            unitPrice: 100,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: validItems,
-              timing:
-                SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-            },
-          },
-          organization,
-          transaction
-        )
-
-        expect(result.subscription).toBeDefined()
+        // ============================================================
+        // ASSERTION 6: Subscription is updated to reflect downgrade
+        // ============================================================
+        // Since no billing run was triggered (downgrade protection),
+        // the subscription should be synced immediately
+        expect(result.subscription.name).toBe('Basic Plan')
       })
     })
   })

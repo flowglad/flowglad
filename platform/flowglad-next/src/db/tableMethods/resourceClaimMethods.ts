@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, count, eq, isNull } from 'drizzle-orm'
 import {
   type ResourceClaim,
   resourceClaims,
@@ -60,28 +60,40 @@ export const selectResourceClaimsPaginated =
 /**
  * Selects only active (non-released) resource claims.
  * Active claims are those where releasedAt is null.
+ * Uses database-level filtering to leverage the partial index on releasedAt IS NULL.
  */
 export const selectActiveResourceClaims = async (
   where: Omit<ResourceClaim.Where, 'releasedAt'>,
   transaction: DbTransaction
 ): Promise<ResourceClaim.Record[]> => {
-  const allClaims = await selectResourceClaims(where, transaction)
-  return allClaims.filter((claim) => claim.releasedAt === null)
+  return selectResourceClaims(
+    { ...where, releasedAt: null } as ResourceClaim.Where,
+    transaction
+  )
 }
 
 /**
  * Counts active (non-released) claims for a given subscriptionItemFeatureId.
  * Useful for checking capacity against limits.
+ * Uses a database COUNT query for efficiency instead of fetching all records.
  */
 export const countActiveClaimsForSubscriptionItemFeature = async (
   subscriptionItemFeatureId: string,
   transaction: DbTransaction
 ): Promise<number> => {
-  const activeClaims = await selectActiveResourceClaims(
-    { subscriptionItemFeatureId },
-    transaction
-  )
-  return activeClaims.length
+  const result = await transaction
+    .select({ count: count() })
+    .from(resourceClaims)
+    .where(
+      and(
+        eq(
+          resourceClaims.subscriptionItemFeatureId,
+          subscriptionItemFeatureId
+        ),
+        isNull(resourceClaims.releasedAt)
+      )
+    )
+  return result[0]?.count ?? 0
 }
 
 /**
@@ -154,6 +166,7 @@ export const selectActiveClaimByExternalId = async (
 /**
  * Counts active (non-released) claims for a given subscription and resource.
  * Useful for validating downgrade capacity constraints.
+ * Uses a database COUNT query for efficiency instead of fetching all records.
  */
 export const countActiveResourceClaims = async (
   params: {
@@ -162,12 +175,15 @@ export const countActiveResourceClaims = async (
   },
   transaction: DbTransaction
 ): Promise<number> => {
-  const activeClaims = await selectActiveResourceClaims(
-    {
-      subscriptionId: params.subscriptionId,
-      resourceId: params.resourceId,
-    },
-    transaction
-  )
-  return activeClaims.length
+  const result = await transaction
+    .select({ count: count() })
+    .from(resourceClaims)
+    .where(
+      and(
+        eq(resourceClaims.subscriptionId, params.subscriptionId),
+        eq(resourceClaims.resourceId, params.resourceId),
+        isNull(resourceClaims.releasedAt)
+      )
+    )
+  return result[0]?.count ?? 0
 }

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import PageContainer from '@/components/PageContainer'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { CustomersDataTable } from './data-table'
@@ -29,7 +29,7 @@ function Internal() {
 
   return (
     <>
-      <InnerPageContainerNew>
+      <PageContainer>
         <PageHeaderNew
           title="Customers"
           hideBorder
@@ -40,7 +40,7 @@ function Internal() {
           onCreateCustomer={() => setIsCreateCustomerOpen(true)}
           hiddenColumns={['payments', 'createdAt', 'customerId']}
         />
-      </InnerPageContainerNew>
+      </PageContainer>
       <CreateCustomerFormModal
         isOpen={isCreateCustomerOpen}
         setIsOpen={setIsCreateCustomerOpen}

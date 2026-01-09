@@ -384,6 +384,11 @@ export const adjustSubscription = async (
       'Cannot adjust doNotCharge subscriptions. Cancel and create a new subscription instead.'
     )
   }
+  if (subscription.isFreePlan) {
+    throw new Error(
+      'Cannot adjust free plan subscriptions. Use createSubscription to upgrade from a free plan instead.'
+    )
+  }
 
   const currentBillingPeriodForSubscription =
     await selectCurrentBillingPeriodForSubscription(

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import CreateDiscountModal from '@/components/forms/CreateDiscountModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import PageContainer from '@/components/PageContainer'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import {
   DiscountsDataTable,
@@ -28,7 +28,7 @@ function InternalDiscountsPage() {
 
   return (
     <>
-      <InnerPageContainerNew>
+      <PageContainer>
         <PageHeaderNew
           title="Discounts"
           hideBorder
@@ -42,7 +42,7 @@ function InternalDiscountsPage() {
           filterValue={statusFilter}
           onFilterChange={setStatusFilter}
         />
-      </InnerPageContainerNew>
+      </PageContainer>
       <CreateDiscountModal
         isOpen={isCreateDiscountOpen}
         setIsOpen={setIsCreateDiscountOpen}

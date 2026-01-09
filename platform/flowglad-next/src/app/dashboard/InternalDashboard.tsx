@@ -2,7 +2,7 @@
 import { startOfDay, subMonths } from 'date-fns'
 import { useEffect, useState } from 'react'
 import { ActiveSubscribersChart } from '@/components/ActiveSubscribersChart'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import PageContainer from '@/components/PageContainer'
 import { RecurringRevenueChart } from '@/components/RecurringRevenueChart'
 import { RevenueChart } from '@/components/RevenueChart'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
@@ -65,7 +65,7 @@ function InternalDashboardPage({
   }, [range, interval])
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <PageHeaderNew
         title={greeting}
         className="pb-2"
@@ -115,7 +115,7 @@ function InternalDashboardPage({
           />
         </ChartContainer>
       </div>
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

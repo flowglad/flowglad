@@ -79,6 +79,8 @@ import {
 } from '@/db/tableMethods/productMethods'
 import { insertPurchase } from '@/db/tableMethods/purchaseMethods'
 import { insertRefund } from '@/db/tableMethods/refundMethods'
+import { insertResourceClaim } from '@/db/tableMethods/resourceClaimMethods'
+import { insertResource } from '@/db/tableMethods/resourceMethods'
 import { insertSubscriptionItemFeature } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { insertSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
 import {
@@ -2717,9 +2719,6 @@ export const setupResource = async (params: {
   active?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const { insertResource } = await import(
-      '@/db/tableMethods/resourceMethods'
-    )
     return insertResource(
       {
         organizationId: params.organizationId,
@@ -2746,9 +2745,6 @@ export const setupResourceClaim = async (params: {
   metadata?: Record<string, string | number | boolean> | null
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const { insertResourceClaim } = await import(
-      '@/db/tableMethods/resourceClaimMethods'
-    )
     return insertResourceClaim(
       {
         organizationId: params.organizationId,
@@ -2774,9 +2770,6 @@ export const setupResourceFeature = async (
   }
 ): Promise<Feature.ResourceRecord> => {
   return adminTransaction(async ({ transaction }) => {
-    const { selectDefaultPricingModel } = await import(
-      '@/db/tableMethods/pricingModelMethods'
-    )
     const pricingModelId =
       params.pricingModelId ??
       (

@@ -88,7 +88,7 @@ export const NavUser: React.FC<NavUserProps> = ({
           <button
             type="button"
             className={cn(
-              'flex w-full items-center gap-2 rounded p-2 text-left transition-colors',
+              'flex w-full items-center gap-2 rounded p-2 text-left transition-colors shadow-realistic-sm',
               'hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               isCollapsed
                 ? 'justify-center px-[7px] py-1.5'

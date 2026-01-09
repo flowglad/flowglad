@@ -1,5 +1,5 @@
 {
-  "id": "3f519f1a-b632-4419-8465-e0c4ff83b3c0",
+  "id": "218da931-d169-4d5f-bafc-c4fff0300cae",
   "prevId": "3efee5ee-d240-4310-873c-da42bad523ef",
   "version": "7",
   "dialect": "postgresql",
@@ -2919,6 +2919,21 @@
           "columns": [
             {
               "expression": "pricing_model_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "features_resource_id_idx": {
+          "name": "features_resource_id_idx",
+          "columns": [
+            {
+              "expression": "resource_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -8477,7 +8492,7 @@
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": ["customer"],
-          "using": "\"organization_id\" = current_organization_id() and \"active\" = true"
+          "using": "\"organization_id\" = current_organization_id() and \"active\" = true and \"pricing_model_id\" in (select \"pricing_model_id\" from \"customers\")"
         },
         "Check mode (resources)": {
           "name": "Check mode (resources)",
@@ -8686,6 +8701,21 @@
           "columns": [
             {
               "expression": "pricing_model_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "subscription_item_features_resource_id_idx": {
+          "name": "subscription_item_features_resource_id_idx",
+          "columns": [
+            {
+              "expression": "resource_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

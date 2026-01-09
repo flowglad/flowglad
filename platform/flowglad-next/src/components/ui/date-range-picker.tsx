@@ -33,17 +33,59 @@ export interface DateRangePreset {
 }
 
 /**
+ * Creates UTC midnight for the current day.
+ * Used for "Today" preset to ensure hourly charts show 00:00-23:00 UTC,
+ * matching the database's UTC-based date_trunc behavior.
+ */
+function getStartOfDayUTC(date: Date): Date {
+  return new Date(
+    Date.UTC(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate()
+    )
+  )
+}
+
+/**
+ * Creates UTC end of day (23:59:59.999) for the current day.
+ * Used for "Today" preset to ensure hourly charts show 00:00-23:00 UTC.
+ */
+function getEndOfDayUTC(date: Date): Date {
+  return new Date(
+    Date.UTC(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate(),
+      23,
+      59,
+      59,
+      999
+    )
+  )
+}
+
+/**
  * Creates default presets with dates calculated relative to the current day.
  * Called each time the popover opens to ensure "Today" and relative presets
  * remain accurate across midnight boundaries during long sessions.
+ *
+ * NOTE: The "Today" preset uses UTC dates to ensure hourly charts display
+ * 00:00-23:00 consistently, matching the backend's UTC-based processing.
+ * This is the same approach used by LemonSqueezy and other analytics platforms.
  */
 function createDefaultPresets(): DateRangePreset[] {
-  const today = startOfDay(new Date())
+  const now = new Date()
+  const today = startOfDay(now)
+
+  // Use UTC dates for "Today" to ensure hourly charts show 00:00-23:00 UTC
+  const todayUTC = getStartOfDayUTC(now)
+  const endOfTodayUTC = getEndOfDayUTC(now)
 
   return [
     {
       label: 'Today',
-      dateRange: { from: today, to: today },
+      dateRange: { from: todayUTC, to: endOfTodayUTC },
     },
     {
       label: 'Last 7 days',
@@ -259,7 +301,7 @@ export function DateRangePicker({
       return placeholder
     }
     if (fromDate && !toDate) {
-      return format(fromDate, 'LLL dd, y')
+      return format(fromDate, 'd LLL, y')
     }
     if (fromDate && toDate) {
       // First, check if user explicitly selected a preset that still matches
@@ -287,7 +329,7 @@ export function DateRangePicker({
       if (presetLabel) {
         return presetLabel
       }
-      return `${format(fromDate, 'LLL dd, y')} - ${format(toDate, 'LLL dd, y')}`
+      return `${format(fromDate, 'd LLL, y')} - ${format(toDate, 'd LLL, y')}`
     }
     return placeholder
   }
@@ -299,14 +341,14 @@ export function DateRangePicker({
     }
     // Show single date if no end date selected yet
     if (!internalRange.to) {
-      return format(internalRange.from, 'MMM d, yyyy')
+      return format(internalRange.from, 'd MMM, yyyy')
     }
     // Show single date if start and end are the same day
     // (selection in progress or intentional single-day range)
     if (isSameDay(internalRange.from, internalRange.to)) {
-      return format(internalRange.from, 'MMM d, yyyy')
+      return format(internalRange.from, 'd MMM, yyyy')
     }
-    return `${format(internalRange.from, 'MMM d, yyyy')} - ${format(internalRange.to, 'MMM d, yyyy')}`
+    return `${format(internalRange.from, 'd MMM, yyyy')} - ${format(internalRange.to, 'd MMM, yyyy')}`
   }
 
   // Check if a preset matches the current internal selection
@@ -459,9 +501,9 @@ export function DateRangePicker({
                 </div>
                 <div className="mt-2 flex items-center gap-2 sm:mt-0">
                   <Button
-                    variant="secondary"
+                    variant="outline"
                     size="sm"
-                    className="w-full sm:w-fit"
+                    className="w-full bg-popover sm:w-fit"
                     onClick={handleCancel}
                   >
                     Cancel
