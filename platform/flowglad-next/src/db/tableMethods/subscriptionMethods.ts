@@ -125,18 +125,29 @@ export const selectSubscriptions = createSelectFunction(
 /**
  * Cache-enabled version of selectSubscriptions for customerId lookups.
  * This cache entry depends on the customer - invalidate when customer's subscriptions change.
+ *
+ * Cache key includes livemode to prevent cross-mode data leakage, since RLS
+ * filters subscriptions by livemode and the same customer could have different
+ * subscriptions in live vs test mode.
  */
 export const selectSubscriptionsByCustomerIdCached = cached(
   {
     namespace: RedisKeyNamespace.SubscriptionsByCustomer,
-    keyFn: (customerId: string, _transaction: DbTransaction) =>
-      customerId,
+    keyFn: (
+      customerId: string,
+      _transaction: DbTransaction,
+      livemode: boolean
+    ) => `${customerId}:${livemode}`,
     schema: subscriptionsSelectSchema.array(),
     dependenciesFn: (customerId: string) => [
       CacheDependency.customer(customerId),
     ],
   },
-  async (customerId: string, transaction: DbTransaction) => {
+  async (
+    customerId: string,
+    transaction: DbTransaction,
+    _livemode: boolean
+  ) => {
     return selectSubscriptions({ customerId }, transaction)
   }
 )

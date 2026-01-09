@@ -378,22 +378,26 @@ const isSubscriptionItemActive = (item: {
  *
  * @param whereConditions - Conditions to filter the subscriptions
  * @param transaction - Database transaction to use for all queries
+ * @param livemode - Required for caching - must match the transaction's livemode context
  * @returns Array of rich subscriptions with their active items, features, and meter balances
  */
 export const selectRichSubscriptionsAndActiveItems = async (
   whereConditions: SelectConditions<typeof subscriptions>,
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  livemode: boolean
 ): Promise<RichSubscription[]> => {
-  // Step 1: Fetch subscriptions - use cache if querying by customerId only
+  // Step 1: Fetch subscriptions - use cache if querying by single customerId string
   let subscriptionRecords: Subscription.Record[]
 
+  const customerId = whereConditions.customerId
   if (
-    'customerId' in whereConditions &&
+    typeof customerId === 'string' &&
     Object.keys(whereConditions).length === 1
   ) {
     subscriptionRecords = await selectSubscriptionsByCustomerIdCached(
-      whereConditions.customerId as string,
-      transaction
+      customerId,
+      transaction,
+      livemode
     )
   } else {
     subscriptionRecords = await selectSubscriptions(

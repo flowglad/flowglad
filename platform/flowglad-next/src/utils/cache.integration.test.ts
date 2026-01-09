@@ -322,18 +322,19 @@ describeIfRedisKey(
         status: SubscriptionStatus.Active,
       })
 
-      // Track the cache key for cleanup
-      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}`
+      // Track the cache key for cleanup (livemode is true by default in admin transactions)
+      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
       const dependencyKey = CacheDependency.customer(customer.id)
       const registryKey = `cacheDeps:${dependencyKey}`
       keysToCleanup.push(cacheKey, registryKey)
 
       // First call - should cache the result
       const result1 = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerIdCached(
             customer.id,
-            transaction
+            transaction,
+            livemode
           )
         }
       )
@@ -348,10 +349,11 @@ describeIfRedisKey(
 
       // Second call - should return cached result
       const result2 = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerIdCached(
             customer.id,
-            transaction
+            transaction,
+            livemode
           )
         }
       )
@@ -369,8 +371,8 @@ describeIfRedisKey(
         organizationId: organization.id,
       })
 
-      // Track the cache key for cleanup
-      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customerWithNoSubs.id}`
+      // Track the cache key for cleanup (livemode is true by default in admin transactions)
+      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customerWithNoSubs.id}:true`
       const dependencyKey = CacheDependency.customer(
         customerWithNoSubs.id
       )
@@ -379,10 +381,11 @@ describeIfRedisKey(
 
       // First call - should cache the empty result
       const result = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerIdCached(
             customerWithNoSubs.id,
-            transaction
+            transaction,
+            livemode
           )
         }
       )
@@ -434,17 +437,18 @@ describeIfRedisKey(
         status: SubscriptionStatus.Active,
       })
 
-      // Track keys for cleanup
-      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}`
+      // Track keys for cleanup (livemode is true by default in admin transactions)
+      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
       const dependencyKey = CacheDependency.customer(customer.id)
       const registryKey = `cacheDeps:${dependencyKey}`
       keysToCleanup.push(cacheKey, registryKey)
 
       // Populate cache
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         return selectSubscriptionsByCustomerIdCached(
           customer.id,
-          transaction
+          transaction,
+          livemode
         )
       })
 
