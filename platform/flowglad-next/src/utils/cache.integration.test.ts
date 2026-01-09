@@ -338,7 +338,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
     expect(parsedAfter.value).toBe('first')
   })
 
-  it('ignoreCache option works correctly with multi-argument cached functions', async () => {
+  it('ignoreCache option bypasses cache when cached function accepts multiple arguments', async () => {
     const testKey = `${testKeyPrefix}_multi_arg:true`
     const fullCacheKey = `${TEST_NAMESPACE}:${testKey}`
     keysToCleanup.push(fullCacheKey)
