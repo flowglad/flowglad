@@ -49,7 +49,7 @@ function GoogleLogo() {
 /** "Or" divider component */
 function OrDivider() {
   return (
-    <div className="relative flex items-center justify-center h-5 my-2">
+    <div className="relative flex items-center justify-center h-5 my-4">
       <div className="absolute top-1/2 w-full border-t border-dashed border-border" />
       <span className="relative z-10 text-sm text-muted-foreground bg-background px-3">
         Or
