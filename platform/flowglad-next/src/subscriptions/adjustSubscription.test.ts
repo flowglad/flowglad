@@ -3736,7 +3736,6 @@ describe('adjustSubscription Integration Tests', async () => {
               newSubscriptionItems: newItems,
               timing:
                 SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-              prorateCurrentBillingPeriod: false,
             },
           },
           organization,
@@ -3892,7 +3891,6 @@ describe('adjustSubscription Integration Tests', async () => {
               newSubscriptionItems: validItems,
               timing:
                 SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-              prorateCurrentBillingPeriod: false,
             },
           },
           organization,
