@@ -322,15 +322,26 @@ export async function invalidateDependencies(
 /**
  * Helper to create standard dependency keys.
  * Ensures consistent naming across the codebase.
+ *
+ * Dependencies should be semantically precise - describing what data is being cached,
+ * not just what entity owns it. This allows for granular invalidation:
+ * - `customerSubscriptions:cust_123` invalidates when subscriptions for this customer change
+ * - `subscriptionItems:sub_456` invalidates when items for this subscription change
+ * - etc.
  */
 export const CacheDependency = {
-  customer: (customerId: string): CacheDependencyKey =>
-    `customer:${customerId}`,
-  subscription: (subscriptionId: string): CacheDependencyKey =>
-    `subscription:${subscriptionId}`,
-  subscriptionItem: (
+  /** Invalidate when subscriptions for this customer change (create/update/delete) */
+  customerSubscriptions: (customerId: string): CacheDependencyKey =>
+    `customerSubscriptions:${customerId}`,
+  /** Invalidate when items for this subscription change */
+  subscriptionItems: (subscriptionId: string): CacheDependencyKey =>
+    `subscriptionItems:${subscriptionId}`,
+  /** Invalidate when features for this subscription item change */
+  subscriptionItemFeatures: (
     subscriptionItemId: string
-  ): CacheDependencyKey => `subscriptionItem:${subscriptionItemId}`,
+  ): CacheDependencyKey =>
+    `subscriptionItemFeatures:${subscriptionItemId}`,
+  /** Invalidate when ledger entries for this subscription change */
   subscriptionLedger: (subscriptionId: string): CacheDependencyKey =>
-    `ledger:${subscriptionId}`,
+    `subscriptionLedger:${subscriptionId}`,
 } as const

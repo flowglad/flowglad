@@ -216,24 +216,24 @@ describeIfRedisKey('Cache Integration Tests', () => {
 
   it('CacheDependency helpers produce correctly formatted dependency keys', () => {
     // Verify the helper functions produce the expected key format
-    expect(CacheDependency.customer('cust_123')).toBe(
-      'customer:cust_123'
+    expect(CacheDependency.customerSubscriptions('cust_123')).toBe(
+      'customerSubscriptions:cust_123'
     )
-    expect(CacheDependency.subscription('sub_456')).toBe(
-      'subscription:sub_456'
+    expect(CacheDependency.subscriptionItems('sub_456')).toBe(
+      'subscriptionItems:sub_456'
     )
-    expect(CacheDependency.subscriptionItem('si_789')).toBe(
-      'subscriptionItem:si_789'
+    expect(CacheDependency.subscriptionItemFeatures('si_789')).toBe(
+      'subscriptionItemFeatures:si_789'
     )
     expect(CacheDependency.subscriptionLedger('sub_456')).toBe(
-      'ledger:sub_456'
+      'subscriptionLedger:sub_456'
     )
   })
 
   it('end-to-end: cached function returns fresh data after dependency invalidation', async () => {
     const customerId = `${testKeyPrefix}_e2e_customer`
     const fullCacheKey = `${TEST_NAMESPACE}:${customerId}`
-    const dependencyKey = `customer:${customerId}`
+    const dependencyKey = `customerSubscriptions:${customerId}`
     const registryKey = `cacheDeps:${dependencyKey}`
 
     keysToCleanup.push(fullCacheKey, registryKey)
@@ -251,7 +251,9 @@ describeIfRedisKey('Cache Integration Tests', () => {
           id: z.string(),
           version: z.number(),
         }),
-        dependenciesFn: (id: string) => [`customer:${id}`],
+        dependenciesFn: (id: string) => [
+          CacheDependency.customerSubscriptions(id),
+        ],
       },
       mockFn
     )
@@ -324,7 +326,9 @@ describeIfRedisKey(
 
       // Track the cache key for cleanup (livemode is true by default in admin transactions)
       const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
-      const dependencyKey = CacheDependency.customer(customer.id)
+      const dependencyKey = CacheDependency.customerSubscriptions(
+        customer.id
+      )
       const registryKey = `cacheDeps:${dependencyKey}`
       keysToCleanup.push(cacheKey, registryKey)
 
@@ -373,7 +377,7 @@ describeIfRedisKey(
 
       // Track the cache key for cleanup (livemode is true by default in admin transactions)
       const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customerWithNoSubs.id}:true`
-      const dependencyKey = CacheDependency.customer(
+      const dependencyKey = CacheDependency.customerSubscriptions(
         customerWithNoSubs.id
       )
       const registryKey = `cacheDeps:${dependencyKey}`
@@ -439,7 +443,9 @@ describeIfRedisKey(
 
       // Track keys for cleanup (livemode is true by default in admin transactions)
       const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
-      const dependencyKey = CacheDependency.customer(customer.id)
+      const dependencyKey = CacheDependency.customerSubscriptions(
+        customer.id
+      )
       const registryKey = `cacheDeps:${dependencyKey}`
       keysToCleanup.push(cacheKey, registryKey)
 

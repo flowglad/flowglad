@@ -126,7 +126,8 @@ export const selectSubscriptions = createSelectFunction(
  * Selects subscriptions by customer ID with caching enabled by default.
  * Pass { ignoreCache: true } as the last argument to bypass the cache.
  *
- * This cache entry depends on the customer - invalidate when customer's subscriptions change.
+ * This cache entry depends on customerSubscriptions - invalidate when
+ * subscriptions for this customer are created, updated, or deleted.
  *
  * Cache key includes livemode to prevent cross-mode data leakage, since RLS
  * filters subscriptions by livemode and the same customer could have different
@@ -142,7 +143,7 @@ export const selectSubscriptionsByCustomerId = cached(
     ) => `${customerId}:${livemode}`,
     schema: subscriptionsSelectSchema.array(),
     dependenciesFn: (customerId: string) => [
-      CacheDependency.customer(customerId),
+      CacheDependency.customerSubscriptions(customerId),
     ],
   },
   async (
