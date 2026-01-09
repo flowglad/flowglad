@@ -39,13 +39,13 @@ import {
 } from '@/types'
 import { editCheckoutSessionBillingAddress } from '@/utils/bookkeeping/checkoutSessions'
 import core from '@/utils/core'
+import { authenticateUserBehavior } from './behaviors/authBehaviors'
+import { createOrganizationBehavior } from './behaviors/orgSetupBehaviors'
 import {
-  authenticateUserBehavior,
   type CompleteStripeOnboardingResult,
   completeStripeOnboardingBehavior,
-  createOrganizationBehavior,
-} from './behaviors/organizationBehaviors'
-import { ContractTypeDep } from './dependencies/organizationDependencies'
+} from './behaviors/stripeOnboardingBehaviors'
+import { ContractTypeDep } from './dependencies/contractTypeDependencies'
 import { behaviorTest, Dependency, defineBehavior } from './index'
 
 // ============================================================================

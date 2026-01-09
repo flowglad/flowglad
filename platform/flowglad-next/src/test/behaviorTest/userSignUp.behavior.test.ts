@@ -25,13 +25,13 @@ import {
 import {
   type AuthenticateUserResult,
   authenticateUserBehavior,
+} from './behaviors/authBehaviors'
+import {
   type CreateOrganizationResult,
   createOrganizationBehavior,
-} from './behaviors/organizationBehaviors'
-import {
-  ContractTypeDep,
-  CountryDep,
-} from './dependencies/organizationDependencies'
+} from './behaviors/orgSetupBehaviors'
+import { ContractTypeDep } from './dependencies/contractTypeDependencies'
+import { CountryDep } from './dependencies/countryDependencies'
 import { behaviorTest, defineBehavior } from './index'
 
 // ============================================================================
