@@ -28,7 +28,6 @@ import {
   FeeCalculationType,
   PaymentMethodType,
   PriceType,
-  StripeConnectContractType,
 } from '@/types'
 import { teardownOrg } from '../../../../seedDatabase'
 import { authenticateUserBehavior } from '../behaviors/authBehaviors'
@@ -163,7 +162,11 @@ behaviorTest({
     },
     {
       behavior: createProductWithPriceBehavior,
-      invariants: async (result) => {
+      invariants: async (result, combination) => {
+        const contractTypeDep = ContractTypeDep.get(
+          combination.ContractTypeDep
+        )
+
         // Product assertions
         expect(result.product.id).toMatch(/^prod_/)
         expect(result.product.active).toBe(true)
@@ -178,7 +181,11 @@ behaviorTest({
         expect(result.price.productId).toBe(result.product.id)
         expect(result.price.unitPrice).toBe(5000) // Exact value: $50.00
         expect(result.price.type).toBe(PriceType.SinglePayment)
-        expect(result.price.currency).toBe(CurrencyCode.USD)
+        expect(result.price.currency).toBe(
+          contractTypeDep.getCurrency(
+            result.organization.defaultCurrency
+          )
+        )
         expect(result.price.active).toBe(true)
         expect(result.price.livemode).toBe(true)
       },
