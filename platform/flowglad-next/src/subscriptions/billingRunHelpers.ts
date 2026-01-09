@@ -466,6 +466,10 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       transaction
     )
 
+  // Calculate the actual amount to charge after accounting for existing payments
+  // This is the amount that will be sent to Stripe
+  const amountToCharge = Math.max(0, totalDueAmount - totalAmountPaid)
+
   let invoice: Invoice.Record | undefined
 
   // For adjustment billing runs, always create a new invoice for the proration charge
@@ -551,6 +555,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
         paymentMethod,
         totalDueAmount,
         totalAmountPaid,
+        amountToCharge,
         payments,
       }
     }
@@ -605,6 +610,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       paymentMethod,
       totalDueAmount,
       totalAmountPaid,
+      amountToCharge,
       payments,
     }
   }
@@ -625,7 +631,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   }
 
   const paymentInsert: Payment.Insert = {
-    amount: totalDueAmount,
+    amount: amountToCharge,
     currency: invoice.currency,
     status: PaymentStatus.Processing,
     organizationId: organization.id,
@@ -680,6 +686,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     paymentMethod,
     totalDueAmount,
     totalAmountPaid,
+    amountToCharge,
     payments,
   }
 }
@@ -696,6 +703,7 @@ type ExecuteBillingRunStepsResult = {
   paymentMethod: PaymentMethod.Record
   totalDueAmount: number
   totalAmountPaid: number
+  amountToCharge: number
   payments: Payment.Record[]
   paymentIntent?: Stripe.Response<Stripe.PaymentIntent> | null
 }
@@ -802,13 +810,9 @@ export const executeBillingRun = async (
           const currentBillingPeriodObject =
             resultFromSteps.billingPeriod
 
-          // Handle zero amount case within the transaction
-          // Calculate the actual amount to charge after accounting for existing payments
-          const amountToCharge = Math.max(
-            0,
-            resultFromSteps.totalDueAmount -
-              resultFromSteps.totalAmountPaid
-          )
+          // Use the pre-calculated amountToCharge from the billing run calculation step
+          // This is the actual amount that will be charged to Stripe
+          const { amountToCharge } = resultFromSteps
 
           if (amountToCharge <= 0) {
             await updateInvoice(
