@@ -1,34 +1,34 @@
--- Pricing Model Customer & Payment Method Migration
--- This migration makes customers and payment methods fully pricing-model-scoped by:
--- 1. Updating unique constraints from [organizationId, field, livemode] to [pricingModelId, field]
--- 2. Cloning customer records based on cross-pricing-model transactional history
--- 3. Cloning associated payment methods for each customer clone
--- 4. Updating all foreign key references to point to correctly scoped records
-
 -- Step 1: Make customers.pricing_model_id NOT NULL
-ALTER TABLE "customers" ALTER COLUMN "pricing_model_id" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "customers" ALTER COLUMN "pricing_model_id" SET NOT NULL;
+--> statement-breakpoint
 
 -- Step 2: Drop old unique constraints on customers
-DROP INDEX IF EXISTS "customers_organization_id_external_id_livemode_idx";--> statement-breakpoint
-DROP INDEX IF EXISTS "customers_organization_id_invoice_number_base_livemode_idx";--> statement-breakpoint
-DROP INDEX IF EXISTS "customers_stripe_customer_id_idx";--> statement-breakpoint
+DROP INDEX IF EXISTS "customers_organization_id_external_id_livemode_unique_idx";
+--> statement-breakpoint
+DROP INDEX IF EXISTS "customers_organization_id_invoice_number_base_livemode_unique_idx";
+--> statement-breakpoint
+DROP INDEX IF EXISTS "customers_stripe_customer_id_unique_idx";
+--> statement-breakpoint
 
 -- Step 3: Add payment_methods.pricing_model_id column (nullable for now)
-ALTER TABLE "payment_methods" ADD COLUMN "pricing_model_id" text;--> statement-breakpoint
+ALTER TABLE "payment_methods" ADD COLUMN "pricing_model_id" text;
+--> statement-breakpoint
 
 -- Step 4: Add foreign key for payment_methods.pricing_model_id
 DO $$ BEGIN
  ALTER TABLE "payment_methods" ADD CONSTRAINT "payment_methods_pricing_model_id_pricing_models_id_fk" FOREIGN KEY ("pricing_model_id") REFERENCES "public"."pricing_models"("id") ON DELETE no action ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
-END $$;--> statement-breakpoint
+END $$;
+--> statement-breakpoint
 
 -- Step 5: Backfill payment_methods.pricing_model_id from customer
 UPDATE "payment_methods" SET "pricing_model_id" = (
   SELECT "pricing_model_id"
   FROM "customers"
   WHERE "customers"."id" = "payment_methods"."customer_id"
-);--> statement-breakpoint
+);
+--> statement-breakpoint
 
 -- Step 6: Clone customers based on cross-pricing-model transactions
 -- Create temporary table to track which customers need cloning
@@ -83,7 +83,8 @@ SELECT DISTINCT
   s.pricing_model_id as transaction_pricing_model_id
 FROM customers c
 INNER JOIN subscriptions s ON c.id = s.customer_id
-WHERE c.pricing_model_id != s.pricing_model_id;--> statement-breakpoint
+WHERE c.pricing_model_id != s.pricing_model_id;
+--> statement-breakpoint
 
 -- Step 7: Insert cloned customers with new IDs
 INSERT INTO customers (
@@ -112,7 +113,8 @@ SELECT
   created_at,
   updated_at,
   stack_auth_hosted_billing_user_id
-FROM customer_pricing_model_combinations;--> statement-breakpoint
+FROM customer_pricing_model_combinations;
+--> statement-breakpoint
 
 -- Step 8: Create mapping table for old customer ID -> new customer IDs
 CREATE TEMPORARY TABLE customer_clone_mapping AS
@@ -123,7 +125,8 @@ SELECT
 FROM customer_pricing_model_combinations cpmc
 JOIN customers c ON
   c.external_id = cpmc.external_id
-  AND c.pricing_model_id = cpmc.transaction_pricing_model_id;--> statement-breakpoint
+  AND c.pricing_model_id = cpmc.transaction_pricing_model_id;
+--> statement-breakpoint
 
 -- Step 9: Clone payment methods for cloned customers
 INSERT INTO payment_methods (
@@ -150,21 +153,24 @@ SELECT
   pm.updated_at,
   ccm.transaction_pricing_model_id as pricing_model_id
 FROM payment_methods pm
-JOIN customer_clone_mapping ccm ON pm.customer_id = ccm.original_customer_id;--> statement-breakpoint
+JOIN customer_clone_mapping ccm ON pm.customer_id = ccm.original_customer_id;
+--> statement-breakpoint
 
 -- Step 10: Update foreign key references - purchases
 UPDATE purchases p
 SET customer_id = ccm.new_customer_id
 FROM customer_clone_mapping ccm
 WHERE p.customer_id = ccm.original_customer_id
-  AND p.pricing_model_id = ccm.transaction_pricing_model_id;--> statement-breakpoint
+  AND p.pricing_model_id = ccm.transaction_pricing_model_id;
+--> statement-breakpoint
 
 -- Step 11: Update foreign key references - subscriptions
 UPDATE subscriptions s
 SET customer_id = ccm.new_customer_id
 FROM customer_clone_mapping ccm
 WHERE s.customer_id = ccm.original_customer_id
-  AND s.pricing_model_id = ccm.transaction_pricing_model_id;--> statement-breakpoint
+  AND s.pricing_model_id = ccm.transaction_pricing_model_id;
+--> statement-breakpoint
 
 -- Step 12: Update subscription payment method references
 UPDATE subscriptions s
@@ -177,7 +183,8 @@ SET default_payment_method_id = (
   WHERE pm_orig.id = s.default_payment_method_id
   LIMIT 1
 )
-WHERE s.default_payment_method_id IS NOT NULL;--> statement-breakpoint
+WHERE s.default_payment_method_id IS NOT NULL;
+--> statement-breakpoint
 
 UPDATE subscriptions s
 SET backup_payment_method_id = (
@@ -189,21 +196,24 @@ SET backup_payment_method_id = (
   WHERE pm_orig.id = s.backup_payment_method_id
   LIMIT 1
 )
-WHERE s.backup_payment_method_id IS NOT NULL;--> statement-breakpoint
+WHERE s.backup_payment_method_id IS NOT NULL;
+--> statement-breakpoint
 
 -- Step 13: Update foreign key references - invoices
 UPDATE invoices i
 SET customer_id = ccm.new_customer_id
 FROM customer_clone_mapping ccm
 WHERE i.customer_id = ccm.original_customer_id
-  AND i.pricing_model_id = ccm.transaction_pricing_model_id;--> statement-breakpoint
+  AND i.pricing_model_id = ccm.transaction_pricing_model_id;
+--> statement-breakpoint
 
 -- Step 14: Update foreign key references - payments (customer)
 UPDATE payments p
 SET customer_id = ccm.new_customer_id
 FROM customer_clone_mapping ccm
 WHERE p.customer_id = ccm.original_customer_id
-  AND p.pricing_model_id = ccm.transaction_pricing_model_id;--> statement-breakpoint
+  AND p.pricing_model_id = ccm.transaction_pricing_model_id;
+--> statement-breakpoint
 
 -- Step 15: Update foreign key references - payments (payment_method)
 UPDATE payments p
@@ -216,7 +226,8 @@ SET payment_method_id = (
   WHERE pm_orig.id = p.payment_method_id
   LIMIT 1
 )
-WHERE p.payment_method_id IS NOT NULL;--> statement-breakpoint
+WHERE p.payment_method_id IS NOT NULL;
+--> statement-breakpoint
 
 -- Step 16: Update foreign key references - billing_runs
 UPDATE billing_runs br
@@ -229,14 +240,16 @@ SET payment_method_id = (
   WHERE pm_orig.id = br.payment_method_id
   LIMIT 1
 )
-WHERE br.payment_method_id IS NOT NULL;--> statement-breakpoint
+WHERE br.payment_method_id IS NOT NULL;
+--> statement-breakpoint
 
 -- Step 17: Update foreign key references - checkout_sessions
 UPDATE checkout_sessions cs
 SET customer_id = ccm.new_customer_id
 FROM customer_clone_mapping ccm
 WHERE cs.customer_id = ccm.original_customer_id
-  AND cs.pricing_model_id = ccm.transaction_pricing_model_id;--> statement-breakpoint
+  AND cs.pricing_model_id = ccm.transaction_pricing_model_id;
+--> statement-breakpoint
 
 -- Step 18: Update foreign key references - usage_events
 UPDATE usage_events ue
@@ -244,24 +257,32 @@ SET customer_id = ccm.new_customer_id
 FROM customer_clone_mapping ccm
 JOIN usage_meters um ON ue.usage_meter_id = um.id
 WHERE ue.customer_id = ccm.original_customer_id
-  AND um.pricing_model_id = ccm.transaction_pricing_model_id;--> statement-breakpoint
+  AND um.pricing_model_id = ccm.transaction_pricing_model_id;
+--> statement-breakpoint
 
 -- Step 19: Set payment_methods.pricing_model_id to NOT NULL
-ALTER TABLE "payment_methods" ALTER COLUMN "pricing_model_id" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "payment_methods" ALTER COLUMN "pricing_model_id" SET NOT NULL;
+--> statement-breakpoint
 
 -- Step 20: Drop old unique constraint on payment_methods
-DROP INDEX IF EXISTS "payment_methods_external_id_idx";--> statement-breakpoint
+DROP INDEX IF EXISTS "payment_methods_external_id_unique_idx";
+--> statement-breakpoint
 
 -- Step 21: Create new unique constraints on customers
-CREATE UNIQUE INDEX IF NOT EXISTS "customers_pricing_model_id_external_id_idx" ON "customers" USING btree ("pricing_model_id", "external_id");--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "customers_pricing_model_id_invoice_number_base_idx" ON "customers" USING btree ("pricing_model_id", "invoice_number_base");--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "customers_stripe_customer_id_pricing_model_id_idx" ON "customers" USING btree ("stripe_customer_id", "pricing_model_id");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "customers_pricing_model_id_external_id_unique_idx" ON "customers" USING btree ("pricing_model_id", "external_id");
+--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "customers_pricing_model_id_invoice_number_base_unique_idx" ON "customers" USING btree ("pricing_model_id", "invoice_number_base");
+--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "customers_stripe_customer_id_pricing_model_id_unique_idx" ON "customers" USING btree ("stripe_customer_id", "pricing_model_id");
+--> statement-breakpoint
 
 -- Step 22: Create new unique constraint on payment_methods
-CREATE UNIQUE INDEX IF NOT EXISTS "payment_methods_external_id_pricing_model_id_idx" ON "payment_methods" USING btree ("external_id", "pricing_model_id");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "payment_methods_external_id_pricing_model_id_unique_idx" ON "payment_methods" USING btree ("external_id", "pricing_model_id");
+--> statement-breakpoint
 
 -- Step 23: Create index on payment_methods.pricing_model_id
-CREATE INDEX IF NOT EXISTS "payment_methods_pricing_model_id_idx" ON "payment_methods" USING btree ("pricing_model_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "payment_methods_pricing_model_id_idx" ON "payment_methods" USING btree ("pricing_model_id");
+--> statement-breakpoint
 
 -- Cleanup temporary tables
 DROP TABLE IF EXISTS customer_pricing_model_combinations;
