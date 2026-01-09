@@ -1,8 +1,8 @@
 /**
- * MOR vs Platform Checkout Behavior Test
+ * Checkout Behavior Test
  *
- * Tests the checkout flow to verify that fee/tax calculation only occurs
- * for Merchant of Record (MOR) organizations, not Platform organizations.
+ * Tests the checkout flow across different billing modes (MOR vs Platform)
+ * and customer residencies.
  *
  * Chain:
  * 1. Create Organization (with Stripe onboarding complete)
