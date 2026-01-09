@@ -167,7 +167,7 @@ export const editCustomerInputSchema = z.object({
   customer: customerClientUpdateSchema.omit({
     externalId: true,
     id: true,
-    pricingModelId: true,
+    // pricingModelId is already omitted since it's in readOnlyColumns
   }),
   externalId: z.string(),
 })
