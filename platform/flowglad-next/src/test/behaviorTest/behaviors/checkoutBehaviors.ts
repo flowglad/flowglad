@@ -48,12 +48,12 @@ import { insertProduct } from '@/db/tableMethods/productMethods'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
-  CurrencyCode,
   PaymentMethodType,
   PriceType,
 } from '@/types'
 import { editCheckoutSessionBillingAddress } from '@/utils/bookkeeping/checkoutSessions'
 import core from '@/utils/core'
+import { ContractTypeDep } from '../dependencies/contractTypeDependencies'
 import { CustomerResidencyDep } from '../dependencies/customerResidencyDependencies'
 import { DiscountDep } from '../dependencies/discountDependencies'
 import { defineBehavior } from '../index'
@@ -151,14 +151,14 @@ export interface ProvideBillingAddressResult
  * - Price exists with:
  *   - `type`: SinglePayment (one-time purchase)
  *   - `unitPrice`: 5000 ($50.00)
- *   - `currency`: USD
+ *   - `currency`: USD (MoR) or organization's default currency (Platform)
  *   - `productId`: linked to the product
  */
 export const createProductWithPriceBehavior = defineBehavior({
   name: 'create product with price',
-  dependencies: [],
+  dependencies: [ContractTypeDep],
   run: async (
-    _deps,
+    { contractTypeDep },
     prev: CompleteStripeOnboardingResult
   ): Promise<CreateProductWithPriceResult> => {
     const result = await adminTransaction(async ({ transaction }) => {
@@ -199,7 +199,9 @@ export const createProductWithPriceBehavior = defineBehavior({
           livemode: true,
           active: true,
           isDefault: true,
-          currency: CurrencyCode.USD,
+          currency: contractTypeDep.getCurrency(
+            prev.organization.defaultCurrency
+          ),
           externalId: null,
           slug: `test-price-${core.nanoid()}`,
         },

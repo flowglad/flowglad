@@ -43,7 +43,7 @@
  * - No model-specific bugs slip through
  */
 
-import { StripeConnectContractType } from '@/types'
+import { CurrencyCode, StripeConnectContractType } from '@/types'
 import { Dependency } from '../index'
 
 /**
@@ -52,6 +52,15 @@ import { Dependency } from '../index'
 interface ContractTypeConfig {
   /** The Stripe Connect contract type */
   contractType: StripeConnectContractType
+  /**
+   * Returns the appropriate currency for this contract type.
+   *
+   * - MoR: Always USD (Flowglad handles conversion)
+   * - Platform: Uses the organization's default currency
+   */
+  getCurrency: (
+    organizationDefaultCurrency: CurrencyCode
+  ) => CurrencyCode
 }
 
 /**
@@ -62,6 +71,9 @@ interface ContractTypeConfig {
  */
 export abstract class ContractTypeDep extends Dependency<ContractTypeConfig>() {
   abstract contractType: StripeConnectContractType
+  abstract getCurrency: (
+    organizationDefaultCurrency: CurrencyCode
+  ) => CurrencyCode
 }
 
 // =============================================================================
@@ -79,6 +91,8 @@ export abstract class ContractTypeDep extends Dependency<ContractTypeConfig>() {
  */
 ContractTypeDep.implement('platform', {
   contractType: StripeConnectContractType.Platform,
+  getCurrency: (organizationDefaultCurrency) =>
+    organizationDefaultCurrency,
 })
 
 /**
@@ -92,4 +106,5 @@ ContractTypeDep.implement('platform', {
  */
 ContractTypeDep.implement('merchantOfRecord', {
   contractType: StripeConnectContractType.MerchantOfRecord,
+  getCurrency: () => CurrencyCode.USD,
 })
