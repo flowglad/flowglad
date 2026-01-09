@@ -123,14 +123,16 @@ export const selectSubscriptions = createSelectFunction(
 )
 
 /**
- * Cache-enabled version of selectSubscriptions for customerId lookups.
+ * Selects subscriptions by customer ID with caching enabled by default.
+ * Pass { ignoreCache: true } as the last argument to bypass the cache.
+ *
  * This cache entry depends on the customer - invalidate when customer's subscriptions change.
  *
  * Cache key includes livemode to prevent cross-mode data leakage, since RLS
  * filters subscriptions by livemode and the same customer could have different
  * subscriptions in live vs test mode.
  */
-export const selectSubscriptionsByCustomerIdCached = cached(
+export const selectSubscriptionsByCustomerId = cached(
   {
     namespace: RedisKeyNamespace.SubscriptionsByCustomer,
     keyFn: (

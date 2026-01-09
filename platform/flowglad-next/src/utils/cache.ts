@@ -100,6 +100,11 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
   dependenciesFn: (...args: TArgs) => CacheDependencyKey[]
 }
 
+export interface CacheOptions {
+  /** Skip cache lookup and always execute the underlying function. Defaults to false. */
+  ignoreCache?: boolean
+}
+
 /**
  * Combinator that adds caching to an async function.
  *
@@ -117,6 +122,7 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
  *   - cache.validation_failed: boolean (when cached data fails schema)
  *   - cache.error: string (when Redis operation fails)
  *   - cache.dependencies: string[] (dependency keys registered)
+ *   - cache.ignored: boolean (when cache was bypassed via options)
  * - Logging:
  *   - Debug: cache hit/miss with key
  *   - Warn: schema validation failure (includes key, indicates data corruption)
@@ -125,29 +131,53 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
  * Error handling:
  * - Fails open: Redis errors result in cache miss, not request failure
  * - Schema validation failures treated as cache miss
+ *
+ * @param config - Cache configuration (namespace, key function, schema, dependencies)
+ * @param fn - The underlying function to cache
+ * @returns A cached version of the function that accepts an optional CacheOptions as the last argument
  */
 export function cached<TArgs extends unknown[], TResult>(
   config: CacheConfig<TArgs, TResult>,
   fn: (...args: TArgs) => Promise<TResult>
-): (...args: TArgs) => Promise<TResult> {
+): (...args: [...TArgs, CacheOptions?]) => Promise<TResult> {
   return traced(
     {
-      options: (...args: TArgs) => ({
+      options: (...args: [...TArgs, CacheOptions?]) => ({
         spanName: `cache.${config.namespace}`,
         tracerName: 'cache',
         kind: SpanKind.CLIENT,
         attributes: {
           'cache.namespace': config.namespace,
-          'cache.key': config.keyFn(...args),
+          'cache.key': config.keyFn(...(args.slice(0, -1) as TArgs)),
         },
       }),
       extractResultAttributes: () => ({}),
     },
-    async (...args: TArgs): Promise<TResult> => {
-      const key = config.keyFn(...args)
+    async (...args: [...TArgs, CacheOptions?]): Promise<TResult> => {
+      // Extract options from the last argument if present
+      const lastArg = args[args.length - 1]
+      const hasOptions =
+        lastArg !== null &&
+        typeof lastArg === 'object' &&
+        'ignoreCache' in lastArg
+      const options: CacheOptions = hasOptions
+        ? (lastArg as CacheOptions)
+        : {}
+      const fnArgs = (hasOptions
+        ? args.slice(0, -1)
+        : args) as unknown as TArgs
+
+      const key = config.keyFn(...fnArgs)
       const fullKey = `${config.namespace}:${key}`
-      const dependencies = config.dependenciesFn(...args)
+      const dependencies = config.dependenciesFn(...fnArgs)
       const span = trace.getActiveSpan()
+
+      // If ignoreCache is set, skip cache lookup entirely
+      if (options.ignoreCache) {
+        span?.setAttribute('cache.ignored', true)
+        logger.debug('Cache ignored', { key: fullKey })
+        return fn(...fnArgs)
+      }
 
       // Try to get from cache
       try {
@@ -203,7 +233,7 @@ export function cached<TArgs extends unknown[], TResult>(
       }
 
       // Cache miss - call wrapped function
-      const result = await fn(...args)
+      const result = await fn(...fnArgs)
 
       // Store in cache and register dependencies (fire-and-forget)
       try {

@@ -47,7 +47,7 @@ import {
   isSubscriptionCurrent,
   pricingModelIdsForSubscriptions,
   selectSubscriptions,
-  selectSubscriptionsByCustomerIdCached,
+  selectSubscriptionsByCustomerId,
 } from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -394,7 +394,7 @@ export const selectRichSubscriptionsAndActiveItems = async (
     typeof customerId === 'string' &&
     Object.keys(whereConditions).length === 1
   ) {
-    subscriptionRecords = await selectSubscriptionsByCustomerIdCached(
+    subscriptionRecords = await selectSubscriptionsByCustomerId(
       customerId,
       transaction,
       livemode

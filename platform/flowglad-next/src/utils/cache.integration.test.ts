@@ -9,7 +9,7 @@ import {
   setupSubscription,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectSubscriptionsByCustomerIdCached } from '@/db/tableMethods/subscriptionMethods'
+import { selectSubscriptionsByCustomerId } from '@/db/tableMethods/subscriptionMethods'
 import {
   cleanupRedisTestKeys,
   describeIfRedisKey,
@@ -277,7 +277,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
 })
 
 describeIfRedisKey(
-  'selectSubscriptionsByCustomerIdCached Integration Tests',
+  'selectSubscriptionsByCustomerId Integration Tests',
   () => {
     let keysToCleanup: string[] = []
 
@@ -331,7 +331,7 @@ describeIfRedisKey(
       // First call - should cache the result
       const result1 = await adminTransaction(
         async ({ transaction, livemode }) => {
-          return selectSubscriptionsByCustomerIdCached(
+          return selectSubscriptionsByCustomerId(
             customer.id,
             transaction,
             livemode
@@ -350,7 +350,7 @@ describeIfRedisKey(
       // Second call - should return cached result
       const result2 = await adminTransaction(
         async ({ transaction, livemode }) => {
-          return selectSubscriptionsByCustomerIdCached(
+          return selectSubscriptionsByCustomerId(
             customer.id,
             transaction,
             livemode
@@ -382,7 +382,7 @@ describeIfRedisKey(
       // First call - should cache the empty result
       const result = await adminTransaction(
         async ({ transaction, livemode }) => {
-          return selectSubscriptionsByCustomerIdCached(
+          return selectSubscriptionsByCustomerId(
             customerWithNoSubs.id,
             transaction,
             livemode
@@ -445,7 +445,7 @@ describeIfRedisKey(
 
       // Populate cache
       await adminTransaction(async ({ transaction, livemode }) => {
-        return selectSubscriptionsByCustomerIdCached(
+        return selectSubscriptionsByCustomerId(
           customer.id,
           transaction,
           livemode
