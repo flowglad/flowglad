@@ -2518,11 +2518,10 @@ describe('subscriptionItemHelpers', () => {
           })
         })
 
-        it('grants delta credits when upgrading to a plan with more credits than existing', async () => {
+        it('grants no additional credits when prorated new amount equals existing credits (zero delta)', async () => {
           // Scenario: Customer has 50 credits from billing period start
-          // Upgrades to plan with 200 credits at 50% through period
-          // New prorated = 200 * 0.5 = 100
-          // Delta = 100 - 50 = 50 credits should be granted
+          // New plan also prorates to 50 credits at 50% through period
+          // Delta = 50 - 50 = 0 (no credits should be granted)
 
           const existingCreditAmount = 50
           await setupUsageCredit({
@@ -2544,9 +2543,6 @@ describe('subscriptionItemHelpers', () => {
 
             // feature.amount is 100, prorated = 100 * 0.5 = 50
             // existing = 50, delta = 50 - 50 = 0 (no credits)
-            // To test positive delta, we need a larger feature amount
-            // But we're using the existing feature with amount=100
-            // So this test verifies delta = 0 case (same amount)
             const result = await handleSubscriptionItemAdjustment({
               subscriptionId: subscription.id,
               newSubscriptionItems: [
@@ -2579,6 +2575,75 @@ describe('subscriptionItemHelpers', () => {
               transaction
             )
             expect(allCredits.length).toBe(1)
+          })
+        })
+
+        it('grants positive delta credits when upgrading to plan with more credits', async () => {
+          // Scenario: Customer has 20 credits from billing period start (small plan)
+          // Upgrades to plan with 100 credits at 50% through period
+          // New prorated = 100 * 0.5 = 50
+          // Delta = 50 - 20 = 30 credits should be granted
+
+          const existingCreditAmount = 20
+          await setupUsageCredit({
+            organizationId: orgData.organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            billingPeriodId: billingPeriod.id,
+            issuedAmount: existingCreditAmount,
+            creditType: UsageCreditType.Grant,
+            // NO sourceReferenceId - matches real BillingPeriodTransition credits
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.BillingPeriodTransition,
+            status: UsageCreditStatus.Posted,
+          })
+
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriodDate =
+              billingPeriodStartDate + 15 * oneDayInMs
+
+            // feature.amount is 100, prorated = 100 * 0.5 = 50
+            // existing = 20, delta = 50 - 20 = 30 credits
+            const result = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Upgrade Adjustment',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriodDate,
+              transaction,
+            })
+
+            // Should grant exactly 30 delta credits (50 prorated - 20 existing)
+            expect(result.usageCredits.length).toBe(1)
+            expect(result.usageCredits[0].issuedAmount).toBe(30)
+            expect(result.usageCredits[0].sourceReferenceType).toBe(
+              UsageCreditSourceReferenceType.ManualAdjustment
+            )
+
+            // Total credits should be 20 (original) + 30 (delta) = 50
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+              },
+              transaction
+            )
+            expect(allCredits.length).toBe(2)
+
+            const totalCredits = allCredits.reduce(
+              (sum, c) => sum + c.issuedAmount,
+              0
+            )
+            expect(totalCredits).toBe(50) // 20 + 30 = 50, which is the prorated amount
           })
         })
 

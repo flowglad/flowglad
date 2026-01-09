@@ -2073,13 +2073,12 @@ describe('billingRunHelpers', async () => {
       // 1. Stripe will only charge amountToCharge
       // 2. Refund logic uses payment.amount to validate max refundable
       // 3. Revenue reporting sums payment.amount
-      if (result.payment) {
-        expect(result.payment.amount).toBe(result.amountToCharge)
-        expect(result.payment.amount).not.toBe(result.totalDueAmount)
-        expect(result.payment.amount).toBeLessThan(
-          result.totalDueAmount
-        )
-      }
+      expect(result.payment).not.toBeNull()
+      expect(result.payment!.amount).toBe(result.amountToCharge)
+      expect(result.payment!.amount).not.toBe(result.totalDueAmount)
+      expect(result.payment!.amount).toBeLessThan(
+        result.totalDueAmount
+      )
     })
 
     it('should throw an error if customer has no stripe customer ID', async () => {
