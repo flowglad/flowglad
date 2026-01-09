@@ -55,7 +55,7 @@ export const resources = pgTable(
     enableCustomerReadPolicy(
       `Enable read for customers (${TABLE_NAME})`,
       {
-        using: sql`"organization_id" = current_organization_id() and "active" = true`,
+        using: sql`"organization_id" = current_organization_id() and "active" = true and "pricing_model_id" in (select "pricing_model_id" from "customers")`,
       }
     ),
     livemodePolicy(TABLE_NAME),
