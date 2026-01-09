@@ -230,6 +230,162 @@ describeIfRedisKey('Cache Integration Tests', () => {
     )
   })
 
+  it('ignoreCache option bypasses cache and always executes the underlying function', async () => {
+    const testKey = `${testKeyPrefix}_ignore_cache_test`
+    const fullCacheKey = `${TEST_NAMESPACE}:${testKey}`
+    keysToCleanup.push(fullCacheKey)
+
+    let callCount = 0
+    let currentValue = 'initial'
+    const mockFn = async (id: string) => {
+      callCount++
+      return { id, value: currentValue }
+    }
+
+    const cachedFn = cached(
+      {
+        namespace: TEST_NAMESPACE,
+        keyFn: (id: string) => `${testKeyPrefix}_${id}`,
+        schema: z.object({
+          id: z.string(),
+          value: z.string(),
+        }),
+        dependenciesFn: () => [],
+      },
+      mockFn
+    )
+
+    // First call without ignoreCache - should cache the result
+    const result1 = await cachedFn('ignore_cache_test')
+    expect(result1).toEqual({
+      id: 'ignore_cache_test',
+      value: 'initial',
+    })
+    expect(callCount).toBe(1)
+
+    // Update the underlying data
+    currentValue = 'updated'
+
+    // Second call without ignoreCache - should return cached result
+    const result2 = await cachedFn('ignore_cache_test')
+    expect(result2).toEqual({
+      id: 'ignore_cache_test',
+      value: 'initial',
+    })
+    expect(callCount).toBe(1) // Function not called again
+
+    // Third call with ignoreCache: true - should execute the function
+    const result3 = await cachedFn('ignore_cache_test', {
+      ignoreCache: true,
+    })
+    expect(result3).toEqual({
+      id: 'ignore_cache_test',
+      value: 'updated',
+    })
+    expect(callCount).toBe(2) // Function called again
+  })
+
+  it('ignoreCache option does not update the cache when bypassing', async () => {
+    const client = getRedisTestClient()
+    const testKey = `${testKeyPrefix}_ignore_no_write`
+    const fullCacheKey = `${TEST_NAMESPACE}:${testKey}`
+    keysToCleanup.push(fullCacheKey)
+
+    let currentValue = 'first'
+    const mockFn = async (id: string) => {
+      return { id, value: currentValue }
+    }
+
+    const cachedFn = cached(
+      {
+        namespace: TEST_NAMESPACE,
+        keyFn: (id: string) => `${testKeyPrefix}_${id}`,
+        schema: z.object({
+          id: z.string(),
+          value: z.string(),
+        }),
+        dependenciesFn: () => [],
+      },
+      mockFn
+    )
+
+    // First call - caches 'first'
+    await cachedFn('ignore_no_write')
+
+    // Verify cache has 'first'
+    const cachedBefore = await client.get(fullCacheKey)
+    const parsedBefore =
+      typeof cachedBefore === 'string'
+        ? JSON.parse(cachedBefore)
+        : cachedBefore
+    expect(parsedBefore.value).toBe('first')
+
+    // Update underlying data
+    currentValue = 'second'
+
+    // Call with ignoreCache - should return 'second' but NOT update cache
+    const result = await cachedFn('ignore_no_write', {
+      ignoreCache: true,
+    })
+    expect(result.value).toBe('second')
+
+    // Verify cache still has 'first'
+    const cachedAfter = await client.get(fullCacheKey)
+    const parsedAfter =
+      typeof cachedAfter === 'string'
+        ? JSON.parse(cachedAfter)
+        : cachedAfter
+    expect(parsedAfter.value).toBe('first')
+  })
+
+  it('ignoreCache option works correctly with multi-argument cached functions', async () => {
+    const testKey = `${testKeyPrefix}_multi_arg:true`
+    const fullCacheKey = `${TEST_NAMESPACE}:${testKey}`
+    keysToCleanup.push(fullCacheKey)
+
+    let callCount = 0
+    const mockFn = async (id: string, livemode: boolean) => {
+      callCount++
+      return { id, livemode, callNumber: callCount }
+    }
+
+    const cachedFn = cached(
+      {
+        namespace: TEST_NAMESPACE,
+        keyFn: (id: string, livemode: boolean) =>
+          `${testKeyPrefix}_${id}:${livemode}`,
+        schema: z.object({
+          id: z.string(),
+          livemode: z.boolean(),
+          callNumber: z.number(),
+        }),
+        dependenciesFn: () => [],
+      },
+      mockFn
+    )
+
+    // First call - should cache
+    const result1 = await cachedFn('multi_arg', true)
+    expect(result1).toEqual({
+      id: 'multi_arg',
+      livemode: true,
+      callNumber: 1,
+    })
+    expect(callCount).toBe(1)
+
+    // Second call without options - should return cached
+    const result2 = await cachedFn('multi_arg', true)
+    expect(result2.callNumber).toBe(1)
+    expect(callCount).toBe(1)
+
+    // Third call with ignoreCache - should execute function
+    const result3 = await cachedFn('multi_arg', true, {
+      ignoreCache: true,
+    })
+    expect(result3.callNumber).toBe(2)
+    expect(callCount).toBe(2)
+  })
+
   it('end-to-end: cached function returns fresh data after dependency invalidation', async () => {
     const customerId = `${testKeyPrefix}_e2e_customer`
     const fullCacheKey = `${TEST_NAMESPACE}:${customerId}`
