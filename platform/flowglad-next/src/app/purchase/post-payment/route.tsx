@@ -317,14 +317,13 @@ export const GET = async (request: NextRequest) => {
 
       /**
        * As the purchase session cookie is no longer needed, delete it.
-       * Only delete if there's a product (product prices, not usage prices)
+       * For usage prices, product is null so only purchase cookie gets deleted.
+       * The deleteCheckoutSessionCookie helper handles undefined productId.
        */
-      if (product) {
-        await deleteCheckoutSessionCookie({
-          purchaseId: purchase.id,
-          productId: product.id,
-        })
-      }
+      await deleteCheckoutSessionCookie({
+        purchaseId: purchase.id,
+        productId: product?.id,
+      })
     }
 
     return Response.redirect(url, 303)

@@ -31,11 +31,12 @@ export const validatePriceTypeProductIdConsistency = (
     })
   }
 
-  // For subscription/single payment prices, productId must be a valid string.
+  // For subscription/single payment prices, productId must be a non-empty string.
   // We check the raw value since Zod transforms might not have run yet.
+  // Empty strings are caught explicitly as they would bypass null/undefined checks.
   if (
     price.type !== PriceType.Usage &&
-    (rawPrice.productId === null || rawPrice.productId === undefined)
+    (!rawPrice.productId || rawPrice.productId.trim() === '')
   ) {
     throw new TRPCError({
       code: 'BAD_REQUEST',

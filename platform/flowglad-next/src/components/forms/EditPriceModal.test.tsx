@@ -7,17 +7,30 @@ import { type CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { parseEditPriceDefaultValues } from './EditPriceModal'
 
 describe('parseEditPriceDefaultValues', () => {
-  const basePrice: Partial<Price.ClientRecord> = {
+  // Base fields shared by all price types (excluding productId which varies by type)
+  const basePriceWithoutProductId = {
     id: 'price_test123',
     name: 'Test Price',
     slug: 'test-price',
-    productId: 'product_test123',
     livemode: false,
     currency: 'USD' as CurrencyCode,
     isDefault: true,
     active: true,
     createdAt: Date.parse('2024-01-01'),
     updatedAt: Date.parse('2024-01-01'),
+  }
+
+  // For subscription/single-payment prices that require productId
+  const basePrice: Partial<Price.ClientRecord> = {
+    ...basePriceWithoutProductId,
+    productId: 'product_test123',
+  }
+
+  // For usage prices where productId is null
+  const baseUsagePrice = {
+    ...basePriceWithoutProductId,
+    productId: null,
+    pricingModelId: 'pm_test123',
   }
 
   describe('Valid Inputs - Should NOT Throw', () => {
@@ -208,10 +221,8 @@ describe('parseEditPriceDefaultValues', () => {
 
     describe('Usage Price Type', () => {
       it('should accept valid usage-based price', () => {
-        // Usage prices have productId: null
-        const validUsage: Price.ClientRecord = {
-          ...basePrice,
-          productId: null, // Usage prices don't have productId
+        const validUsage = {
+          ...baseUsagePrice,
           type: PriceType.Usage,
           unitPrice: 50,
           intervalCount: 1,
@@ -219,7 +230,7 @@ describe('parseEditPriceDefaultValues', () => {
           trialPeriodDays: null,
           usageEventsPerUnit: 100,
           usageMeterId: 'meter_test123',
-        } as unknown as Price.ClientRecord
+        } as Price.ClientRecord
 
         expect(() =>
           parseEditPriceDefaultValues(validUsage)
@@ -238,10 +249,8 @@ describe('parseEditPriceDefaultValues', () => {
       })
 
       it('should accept usage price with different usage events per unit', () => {
-        // Usage prices have productId: null
-        const usagePrice: Price.ClientRecord = {
-          ...basePrice,
-          productId: null, // Usage prices don't have productId
+        const usagePrice = {
+          ...baseUsagePrice,
           type: PriceType.Usage,
           unitPrice: 1000,
           intervalCount: 1,
@@ -249,7 +258,7 @@ describe('parseEditPriceDefaultValues', () => {
           trialPeriodDays: null,
           usageEventsPerUnit: 1000,
           usageMeterId: 'meter_api_calls',
-        } as unknown as Price.ClientRecord
+        } as Price.ClientRecord
 
         expect(() =>
           parseEditPriceDefaultValues(usagePrice)
@@ -337,17 +346,17 @@ describe('parseEditPriceDefaultValues', () => {
     })
 
     it('should throw for Usage type without usageMeterId', () => {
-      // Usage prices have productId: null
+      // Deliberately invalid: usageMeterId is null (should be string)
+      // Double assertion needed to test invalid input
       const usageWithoutMeter = {
-        ...basePrice,
-        productId: null,
+        ...baseUsagePrice,
         type: PriceType.Usage,
         unitPrice: 100,
         intervalCount: 1,
         intervalUnit: IntervalUnit.Month,
         trialPeriodDays: null,
         usageEventsPerUnit: 100,
-        usageMeterId: null as any,
+        usageMeterId: null,
       } as unknown as Price.ClientRecord
 
       expect(() =>
@@ -356,16 +365,16 @@ describe('parseEditPriceDefaultValues', () => {
     })
 
     it('should throw for Usage type without usageEventsPerUnit', () => {
-      // Usage prices have productId: null
+      // Deliberately invalid: usageEventsPerUnit is null (should be number)
+      // Double assertion needed to test invalid input
       const usageWithoutEvents = {
-        ...basePrice,
-        productId: null,
+        ...baseUsagePrice,
         type: PriceType.Usage,
         unitPrice: 100,
         intervalCount: 1,
         intervalUnit: IntervalUnit.Month,
         trialPeriodDays: null,
-        usageEventsPerUnit: null as any,
+        usageEventsPerUnit: null,
         usageMeterId: 'meter_test123',
       } as unknown as Price.ClientRecord
 
