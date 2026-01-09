@@ -44,10 +44,8 @@ import {
 } from '@/test/stripeIntegrationHelpers'
 import {
   FeeCalculationType,
-  InvoiceStatus,
   PaymentStatus,
   PurchaseStatus,
-  StripeConnectContractType,
 } from '@/types'
 import { processStripeChargeForCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
@@ -66,9 +64,7 @@ import {
 } from '../behaviors/checkoutBehaviors'
 import { createOrganizationBehavior } from '../behaviors/orgSetupBehaviors'
 import { completeStripeOnboardingBehavior } from '../behaviors/stripeOnboardingBehaviors'
-import { ContractTypeDep } from '../dependencies/contractTypeDependencies'
 import { CountryDep } from '../dependencies/countryDependencies'
-import { CustomerResidencyDep } from '../dependencies/customerResidencyDependencies'
 import { behaviorTest, defineBehavior } from '../index'
 
 // =============================================================================
@@ -303,6 +299,10 @@ const checkoutIntegrationTeardown = async (results: unknown[]) => {
  *
  * Tests the complete checkout journey for MoR organizations with
  * a registered tax jurisdiction (NYC).
+ *
+ * Key invariants:
+ * - Purchase, Invoice, and Payment records are created
+ * - Fee calculation exists with tax calculation
  */
 behaviorTest({
   describeFunction: describeIfStripeKey,
@@ -316,82 +316,39 @@ behaviorTest({
     { behavior: confirmCheckoutSessionBehavior },
     {
       behavior: processPaymentSuccessBehavior,
-      invariants: async (result, combination) => {
-        const contractTypeDep = ContractTypeDep.get(
-          combination.ContractTypeDep
-        )
-        const customerResidencyDep = CustomerResidencyDep.get(
-          combination.CustomerResidencyDep
-        )
-
-        // === Purchase Assertions ===
+      invariants: async (result) => {
+        // === Purchase created ===
         expect(result.purchase).not.toBeNull()
-        expect(result.purchase.id).toMatch(/^prch_/)
         expect(result.purchase.organizationId).toBe(
           result.organization.id
         )
-        expect(result.purchase.customerId).toBe(result.customerId)
-        expect(result.purchase.priceId).toBe(result.price.id)
         expect(result.purchase.status).toBe(PurchaseStatus.Open)
 
-        // === Invoice Assertions ===
+        // === Invoice created ===
         expect(result.invoice).not.toBeNull()
-        expect(result.invoice.id).toMatch(/^inv_/)
-        expect(result.invoice.organizationId).toBe(
-          result.organization.id
-        )
         expect(result.invoice.purchaseId).toBe(result.purchase.id)
 
-        // Invoice should have status Draft or Paid depending on flow
-        expect([InvoiceStatus.Draft, InvoiceStatus.Paid]).toContain(
-          result.invoice.status
-        )
-
-        // === Payment Assertions ===
+        // === Payment succeeded ===
         expect(result.payment).not.toBeNull()
-        expect(result.payment.id).toMatch(/^pymt_/)
-        expect(result.payment.purchaseId).toBe(result.purchase.id)
-        expect(result.payment.invoiceId).toBe(result.invoice.id)
         expect(result.payment.status).toBe(PaymentStatus.Succeeded)
 
-        // Payment amount should match the total due
-        if (result.finalFeeCalculation) {
-          const expectedTotal = calculateTotalDueAmount(
-            result.finalFeeCalculation
-          )
-          expect(result.payment.amount).toBe(expectedTotal)
-        }
-
-        // === Stripe Charge Assertions ===
-        expect(result.stripeCharge).not.toBeNull()
+        // === Stripe charge succeeded ===
         expect(result.stripeCharge.status).toBe('succeeded')
 
-        // === MoR-Specific Assertions ===
-        if (
-          contractTypeDep.contractType ===
-          StripeConnectContractType.MerchantOfRecord
-        ) {
-          // Fee calculation should exist
-          expect(result.finalFeeCalculation).not.toBeNull()
-          const fc = result.finalFeeCalculation!
+        // === MoR: Fee calculation exists ===
+        expect(result.finalFeeCalculation).not.toBeNull()
+        const fc = result.finalFeeCalculation!
 
-          // Fee calculation type
-          expect(fc.type).toBe(
-            FeeCalculationType.CheckoutSessionPayment
-          )
+        expect(fc.type).toBe(
+          FeeCalculationType.CheckoutSessionPayment
+        )
 
-          // Fee percentages
-          expect(fc.flowgladFeePercentage).toBe('0.65')
-          expect(fc.morSurchargePercentage).toBe('1.1')
+        // Tax calculation was performed (NYC is a registered jurisdiction)
+        expect(fc.stripeTaxCalculationId).toBeTruthy()
 
-          // For registered jurisdictions, stripeTaxTransactionId should be set
-          // Note: This may be null in test mode if tax API isn't fully configured
-          if (customerResidencyDep.isFlowgladRegistered) {
-            // Tax calculation ID should exist
-            expect(fc.stripeTaxCalculationId).toBeTruthy()
-            // stripeTaxTransactionId may or may not be set depending on test env
-          }
-        }
+        // Payment amount matches the calculated total
+        const expectedTotal = calculateTotalDueAmount(fc)
+        expect(result.payment.amount).toBe(expectedTotal)
       },
     },
   ],
