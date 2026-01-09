@@ -1,7 +1,7 @@
 /**
  * Checkout Behavior Test
  *
- * Tests the checkout flow across different billing modes (MOR vs Platform)
+ * Tests the checkout flow across different contract types (MOR vs Platform)
  * and customer residencies.
  *
  * Chain:
@@ -43,7 +43,6 @@ import {
   authenticateUserBehavior,
   type CompleteStripeOnboardingResult,
   ContractTypeDep,
-  CountryDep,
   completeStripeOnboardingBehavior,
   createOrganizationBehavior,
 } from './behaviors/organizationBehaviors'
@@ -77,20 +76,6 @@ interface ProvideBillingAddressResult
 // ============================================================================
 
 /**
- * BillingModeDep - Determines whether the organization is MOR or Platform.
- * This is the key differentiator for tax/fee calculation behavior.
- */
-interface BillingModeConfig {
-  contractType: StripeConnectContractType
-  expectsFeeCalculation: boolean
-}
-
-abstract class BillingModeDep extends Dependency<BillingModeConfig>() {
-  abstract contractType: StripeConnectContractType
-  abstract expectsFeeCalculation: boolean
-}
-
-/**
  * CustomerResidencyDep - Defines where the customer is located.
  * Different residencies have different tax implications (for MOR orgs).
  */
@@ -107,17 +92,6 @@ abstract class CustomerResidencyDep extends Dependency<CustomerResidencyConfig>(
 // ============================================================================
 // Dependency Implementations
 // ============================================================================
-
-// Billing mode implementations
-BillingModeDep.implement('mor', {
-  contractType: StripeConnectContractType.MerchantOfRecord,
-  expectsFeeCalculation: true,
-})
-
-BillingModeDep.implement('platform', {
-  contractType: StripeConnectContractType.Platform,
-  expectsFeeCalculation: false,
-})
 
 // Customer residency implementations
 CustomerResidencyDep.implement('us-nyc', {
@@ -353,38 +327,15 @@ behaviorTest({
       },
     },
     {
-      // Use BillingModeDep to control contract type instead of ContractTypeDep
-      behavior: defineBehavior({
-        name: 'create organization for billing test',
-        dependencies: [CountryDep, BillingModeDep],
-        run: async ({ countryDep, billingModeDep }, prev) => {
-          // Override ContractTypeDep with BillingModeDep's contract type
-          ContractTypeDep.implement('_billing_test_override', {
-            contractType: billingModeDep.contractType,
-          })
-
-          // Run the original behavior
-          const result = await createOrganizationBehavior.run(
-            {
-              countryDep,
-              contractTypeDep: ContractTypeDep.get(
-                '_billing_test_override'
-              ),
-            },
-            prev
-          )
-
-          return result
-        },
-      }),
+      behavior: createOrganizationBehavior,
       invariants: async (result, combination) => {
-        const billingModeDep = BillingModeDep.get(
-          combination.BillingModeDep
+        const contractTypeDep = ContractTypeDep.get(
+          combination.ContractTypeDep
         )
 
         expect(result.organization.id).toMatch(/^org_/)
         expect(result.organization.stripeConnectContractType).toBe(
-          billingModeDep.contractType
+          contractTypeDep.contractType
         )
       },
     },
@@ -432,8 +383,8 @@ behaviorTest({
     {
       behavior: provideBillingAddressBehavior,
       invariants: async (result, combination) => {
-        const billingModeDep = BillingModeDep.get(
-          combination.BillingModeDep
+        const contractTypeDep = ContractTypeDep.get(
+          combination.ContractTypeDep
         )
         const customerResidencyDep = CustomerResidencyDep.get(
           combination.CustomerResidencyDep
@@ -446,7 +397,10 @@ behaviorTest({
 
         // **THE KEY INVARIANT**
         // MOR orgs get fee calculation with tax; Platform orgs get null
-        if (billingModeDep.expectsFeeCalculation) {
+        if (
+          contractTypeDep.contractType ===
+          StripeConnectContractType.MerchantOfRecord
+        ) {
           // MOR: Fee calculation should exist
           expect(result.feeCalculation).not.toBeNull()
           expect(result.feeCalculation!.checkoutSessionId).toBe(
