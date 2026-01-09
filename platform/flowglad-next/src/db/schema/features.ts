@@ -67,6 +67,7 @@ export const features = pgTable(
       table.pricingModelId,
     ]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
+    constructIndex(TABLE_NAME, [table.resourceId]),
     merchantPolicy(
       `Enable read for own organizations (${TABLE_NAME})`,
       {
