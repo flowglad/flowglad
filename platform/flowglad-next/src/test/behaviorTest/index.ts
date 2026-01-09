@@ -90,6 +90,7 @@ export type {
   DependencyCombination,
   DependencyFactory,
   DescribeFunction,
+  GetDepFn,
   ResolvedDependencies,
   TeardownFn,
 } from './types'

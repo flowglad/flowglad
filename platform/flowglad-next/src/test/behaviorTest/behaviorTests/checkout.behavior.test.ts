@@ -102,11 +102,9 @@ behaviorTest({
     { behavior: applyDiscountBehavior },
     {
       behavior: provideBillingAddressBehavior,
-      invariants: async (result, combination) => {
-        const customerResidencyDep = CustomerResidencyDep.get(
-          combination.CustomerResidencyDep
-        )
-        const discountDep = DiscountDep.get(combination.DiscountDep)
+      invariants: async (result, getDep) => {
+        const customerResidencyDep = getDep(CustomerResidencyDep)
+        const discountDep = getDep(DiscountDep)
 
         // Billing address saved on checkout session
         expect(result.updatedCheckoutSession.billingAddress).toEqual(
@@ -162,8 +160,8 @@ behaviorTest({
     { behavior: authenticateUserBehavior },
     {
       behavior: createOrganizationBehavior,
-      invariants: async (result, combination) => {
-        const countryDep = CountryDep.get(combination.CountryDep)
+      invariants: async (result, getDep) => {
+        const countryDep = getDep(CountryDep)
 
         // Platform organizations use their country's currency
         expect(result.organization.defaultCurrency).toBe(
@@ -177,8 +175,8 @@ behaviorTest({
     { behavior: completeStripeOnboardingBehavior },
     {
       behavior: createProductWithPriceBehavior,
-      invariants: async (result, combination) => {
-        const countryDep = CountryDep.get(combination.CountryDep)
+      invariants: async (result, getDep) => {
+        const countryDep = getDep(CountryDep)
 
         // Platform prices use the organization's currency
         expect(result.price.currency).toBe(
@@ -191,10 +189,8 @@ behaviorTest({
     { behavior: applyDiscountBehavior },
     {
       behavior: provideBillingAddressBehavior,
-      invariants: async (result, combination) => {
-        const customerResidencyDep = CustomerResidencyDep.get(
-          combination.CustomerResidencyDep
-        )
+      invariants: async (result, getDep) => {
+        const customerResidencyDep = getDep(CustomerResidencyDep)
 
         // Billing address saved on checkout session
         expect(result.updatedCheckoutSession.billingAddress).toEqual(
@@ -251,10 +247,8 @@ behaviorTest({
     { behavior: applyDiscountBehavior },
     {
       behavior: provideBillingAddressBehavior,
-      invariants: async (result, combination) => {
-        const customerResidencyDep = CustomerResidencyDep.get(
-          combination.CustomerResidencyDep
-        )
+      invariants: async (result, getDep) => {
+        const customerResidencyDep = getDep(CustomerResidencyDep)
 
         // Fee calculation exists for MoR
         expect(result.feeCalculation).not.toBeNull()
@@ -312,10 +306,8 @@ behaviorTest({
     { behavior: applyDiscountBehavior },
     {
       behavior: provideBillingAddressBehavior,
-      invariants: async (result, combination) => {
-        const customerResidencyDep = CustomerResidencyDep.get(
-          combination.CustomerResidencyDep
-        )
+      invariants: async (result, getDep) => {
+        const customerResidencyDep = getDep(CustomerResidencyDep)
 
         // Fee calculation exists for MoR
         expect(result.feeCalculation).not.toBeNull()
