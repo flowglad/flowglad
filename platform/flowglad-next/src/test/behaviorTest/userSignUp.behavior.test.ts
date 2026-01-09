@@ -11,44 +11,30 @@
  */
 
 import { expect } from 'vitest'
-import { setupOrg, teardownOrg } from '@/../seedDatabase'
+import { teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Country } from '@/db/schema/countries'
-import type { Membership } from '@/db/schema/memberships'
-import type { Organization } from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
-import { selectCountries } from '@/db/tableMethods/countryMethods'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
-import {
-  selectOrganizationById,
-  updateOrganization,
-} from '@/db/tableMethods/organizationMethods'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
-import { insertUser } from '@/db/tableMethods/userMethods'
 import {
   BusinessOnboardingStatus,
-  CountryCode,
   CurrencyCode,
   StripeConnectContractType,
 } from '@/types'
-import core from '@/utils/core'
-import { createOrganizationTransaction } from '@/utils/organizationHelpers'
-import { behaviorTest, Dependency, defineBehavior } from './index'
+import {
+  type AuthenticateUserResult,
+  authenticateUserBehavior,
+  ContractTypeDep,
+  CountryDep,
+  type CreateOrganizationResult,
+  createOrganizationBehavior,
+} from './behaviors/organizationBehaviors'
+import { behaviorTest, defineBehavior } from './index'
 
 // ============================================================================
-// Result Types
+// Result Types (specific to this test's extended flow)
 // ============================================================================
-
-interface AuthenticateUserResult {
-  user: User.Record
-}
-
-interface CreateOrganizationResult extends AuthenticateUserResult {
-  organization: Organization.Record
-  membership: Membership.Record
-  country: Country.Record
-}
 
 interface InitiateStripeConnectResult
   extends CreateOrganizationResult {
@@ -59,200 +45,11 @@ interface CompleteStripeOnboardingResult
   extends InitiateStripeConnectResult {}
 
 // ============================================================================
-// Dependency Definitions
+// Behavior Definitions (specific to the sign-up flow)
 // ============================================================================
 
 /**
- * CountryDep - Defines which country the organization is based in.
- * Different countries have different currency defaults and payment eligibility.
- */
-interface CountryConfig {
-  countryCode: CountryCode
-  expectedCurrency: CurrencyCode
-}
-
-abstract class CountryDep extends Dependency<CountryConfig>() {
-  abstract countryCode: CountryCode
-  abstract expectedCurrency: CurrencyCode
-}
-
-/**
- * ContractTypeDep - Defines the Stripe Connect contract type.
- * Platform vs Merchant-of-Record affects fee structures and payment flows.
- */
-interface ContractTypeConfig {
-  contractType: StripeConnectContractType
-}
-
-abstract class ContractTypeDep extends Dependency<ContractTypeConfig>() {
-  abstract contractType: StripeConnectContractType
-}
-
-// ============================================================================
-// Dependency Implementations
-// ============================================================================
-
-// Country implementations
-CountryDep.implement('us', {
-  countryCode: CountryCode.US,
-  expectedCurrency: CurrencyCode.USD,
-})
-
-CountryDep.implement('de', {
-  countryCode: CountryCode.DE,
-  expectedCurrency: CurrencyCode.EUR,
-})
-
-CountryDep.implement('gb', {
-  countryCode: CountryCode.GB,
-  expectedCurrency: CurrencyCode.GBP,
-})
-
-CountryDep.implement('au', {
-  countryCode: CountryCode.AU,
-  expectedCurrency: CurrencyCode.AUD,
-})
-
-// Contract type implementations
-ContractTypeDep.implement('platform', {
-  contractType: StripeConnectContractType.Platform,
-})
-
-ContractTypeDep.implement('merchantOfRecord', {
-  contractType: StripeConnectContractType.MerchantOfRecord,
-})
-
-// ============================================================================
-// Behavior Definitions
-// ============================================================================
-
-/**
- * Step 1: Authenticate User
- *
- * Creates a new user record. In the real app, this happens via Better Auth
- * with a database hook. For testing, we directly insert the user.
- *
- * Postconditions:
- * - User record exists with valid id and betterAuthId
- * - User has zero organization memberships
- */
-const authenticateUserBehavior = defineBehavior({
-  name: 'authenticate user',
-  dependencies: [],
-  run: async (
-    _deps,
-    _prev: undefined
-  ): Promise<AuthenticateUserResult> => {
-    const nanoid = core.nanoid()
-    const betterAuthId = `ba_${nanoid}`
-
-    const user = await adminTransaction(async ({ transaction }) => {
-      return insertUser(
-        {
-          id: `usr_${nanoid}`,
-          email: `test+${nanoid}@flowglad.com`,
-          name: `Test User ${nanoid}`,
-          betterAuthId,
-        },
-        transaction
-      )
-    })
-
-    return { user }
-  },
-})
-
-/**
- * Step 2: Create Organization
- *
- * Creates an organization for the authenticated user. This includes:
- * - Organization record with Unauthorized status
- * - Membership linking user to organization
- * - Default pricing models (livemode + testmode)
- * - Default products and prices
- * - Testmode API key
- * - Svix webhook configuration
- *
- * Postconditions:
- * - Organization exists with onboardingStatus = Unauthorized
- * - User has one membership (focused=true)
- * - Two pricing models exist (livemode + testmode)
- * - Default currency matches country configuration
- */
-const createOrganizationBehavior = defineBehavior({
-  name: 'create organization',
-  dependencies: [CountryDep, ContractTypeDep],
-  run: async (
-    { countryDep, contractTypeDep },
-    prev: AuthenticateUserResult
-  ): Promise<CreateOrganizationResult> => {
-    // setupOrg seeds countries internally, so we call it first to ensure countries exist
-    // Then we use createOrganizationTransaction with the correct country
-    // This is a workaround since insertCountries is not exported
-    const seedResult = await setupOrg({
-      countryCode: countryDep.countryCode,
-      stripeConnectContractType: contractTypeDep.contractType,
-    })
-    // Teardown the temp org - we only needed it to seed countries
-    await teardownOrg({ organizationId: seedResult.organization.id })
-
-    const result = await adminTransaction(async ({ transaction }) => {
-      // Get the country record
-      const [country] = await selectCountries(
-        { code: countryDep.countryCode },
-        transaction
-      )
-
-      if (!country) {
-        throw new Error(`Country ${countryDep.countryCode} not found`)
-      }
-
-      // Create organization using the production helper
-      const { organization: clientOrg } =
-        await createOrganizationTransaction(
-          {
-            organization: {
-              name: `Test Org ${Date.now()}`,
-              countryId: country.id,
-              stripeConnectContractType: contractTypeDep.contractType,
-            },
-          },
-          {
-            id: prev.user.id,
-            fullName: prev.user.name ?? undefined,
-            email: prev.user.email,
-          },
-          transaction
-        )
-
-      // Get the full organization record (including stripeAccountId)
-      const organization = await selectOrganizationById(
-        clientOrg.id,
-        transaction
-      )
-
-      // Get the membership that was created
-      const [membership] = await selectMemberships(
-        { userId: prev.user.id, organizationId: organization.id },
-        transaction
-      )
-
-      return {
-        organization,
-        membership,
-        country,
-      }
-    })
-
-    return {
-      ...prev,
-      ...result,
-    }
-  },
-})
-
-/**
- * Step 3: Initiate Stripe Connect
+ * Initiate Stripe Connect
  *
  * Simulates the user clicking "Connect" to start Stripe onboarding.
  * In the real app, this creates a Stripe Connect account and generates
@@ -301,7 +98,7 @@ const initiateStripeConnectBehavior = defineBehavior({
 })
 
 /**
- * Step 4: Complete Stripe Onboarding
+ * Complete Stripe Onboarding
  *
  * Simulates Stripe sending an account.updated webhook indicating
  * that onboarding is complete. The organization is marked as FullyOnboarded.
