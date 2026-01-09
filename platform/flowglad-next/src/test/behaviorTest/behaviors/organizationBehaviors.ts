@@ -17,15 +17,20 @@ import {
   updateOrganization,
 } from '@/db/tableMethods/organizationMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
-import {
-  BusinessOnboardingStatus,
-  CountryCode,
-  CurrencyCode,
-  StripeConnectContractType,
-} from '@/types'
+import { BusinessOnboardingStatus } from '@/types'
 import core from '@/utils/core'
 import { createOrganizationTransaction } from '@/utils/organizationHelpers'
-import { Dependency, defineBehavior } from '../index'
+import {
+  ContractTypeDep,
+  CountryDep,
+} from '../dependencies/organizationDependencies'
+import { defineBehavior } from '../index'
+
+// Re-export dependencies for convenience
+export {
+  ContractTypeDep,
+  CountryDep,
+} from '../dependencies/organizationDependencies'
 
 // ============================================================================
 // Result Types
@@ -46,70 +51,6 @@ export interface CompleteStripeOnboardingResult
   extends CreateOrganizationResult {
   stripeAccountId: string
 }
-
-// ============================================================================
-// Dependency Definitions
-// ============================================================================
-
-/**
- * CountryDep - Defines which country the organization is based in.
- * Different countries have different currency defaults and payment eligibility.
- */
-interface CountryConfig {
-  countryCode: CountryCode
-  expectedCurrency: CurrencyCode
-}
-
-export abstract class CountryDep extends Dependency<CountryConfig>() {
-  abstract countryCode: CountryCode
-  abstract expectedCurrency: CurrencyCode
-}
-
-/**
- * ContractTypeDep - Defines the Stripe Connect contract type.
- * Platform vs Merchant-of-Record affects fee structures and payment flows.
- */
-interface ContractTypeConfig {
-  contractType: StripeConnectContractType
-}
-
-export abstract class ContractTypeDep extends Dependency<ContractTypeConfig>() {
-  abstract contractType: StripeConnectContractType
-}
-
-// ============================================================================
-// Default Dependency Implementations
-// ============================================================================
-
-// Country implementations
-CountryDep.implement('us', {
-  countryCode: CountryCode.US,
-  expectedCurrency: CurrencyCode.USD,
-})
-
-CountryDep.implement('de', {
-  countryCode: CountryCode.DE,
-  expectedCurrency: CurrencyCode.EUR,
-})
-
-CountryDep.implement('gb', {
-  countryCode: CountryCode.GB,
-  expectedCurrency: CurrencyCode.GBP,
-})
-
-CountryDep.implement('au', {
-  countryCode: CountryCode.AU,
-  expectedCurrency: CurrencyCode.AUD,
-})
-
-// Contract type implementations
-ContractTypeDep.implement('platform', {
-  contractType: StripeConnectContractType.Platform,
-})
-
-ContractTypeDep.implement('merchantOfRecord', {
-  contractType: StripeConnectContractType.MerchantOfRecord,
-})
 
 // ============================================================================
 // Behavior Definitions
