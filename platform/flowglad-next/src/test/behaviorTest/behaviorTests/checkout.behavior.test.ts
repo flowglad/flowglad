@@ -17,24 +17,24 @@
  */
 
 import { expect } from 'vitest'
-import { teardownOrg } from '@/../seedDatabase'
 import {
   CheckoutSessionStatus,
   PriceType,
   StripeConnectContractType,
 } from '@/types'
-import { authenticateUserBehavior } from './behaviors/authBehaviors'
+import { teardownOrg } from '../../../../seedDatabase'
+import { authenticateUserBehavior } from '../behaviors/authBehaviors'
 import {
   createProductWithPriceBehavior,
   initiateCheckoutSessionBehavior,
   type ProvideBillingAddressResult,
   provideBillingAddressBehavior,
-} from './behaviors/checkoutBehaviors'
-import { createOrganizationBehavior } from './behaviors/orgSetupBehaviors'
-import { completeStripeOnboardingBehavior } from './behaviors/stripeOnboardingBehaviors'
-import { ContractTypeDep } from './dependencies/contractTypeDependencies'
-import { CustomerResidencyDep } from './dependencies/customerResidencyDependencies'
-import { behaviorTest } from './index'
+} from '../behaviors/checkoutBehaviors'
+import { createOrganizationBehavior } from '../behaviors/orgSetupBehaviors'
+import { completeStripeOnboardingBehavior } from '../behaviors/stripeOnboardingBehaviors'
+import { ContractTypeDep } from '../dependencies/contractTypeDependencies'
+import { CustomerResidencyDep } from '../dependencies/customerResidencyDependencies'
+import { behaviorTest } from '../index'
 
 // =============================================================================
 // Behavior Test
