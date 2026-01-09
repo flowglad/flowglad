@@ -148,15 +148,26 @@ export function cached<TArgs extends unknown[], TResult>(
 ): (...args: [...TArgs, CacheOptions?]) => Promise<TResult> {
   return traced(
     {
-      options: (...args: [...TArgs, CacheOptions?]) => ({
-        spanName: `cache.${config.namespace}`,
-        tracerName: 'cache',
-        kind: SpanKind.CLIENT,
-        attributes: {
-          'cache.namespace': config.namespace,
-          'cache.key': config.keyFn(...(args.slice(0, -1) as TArgs)),
-        },
-      }),
+      options: (...args: [...TArgs, CacheOptions?]) => {
+        // Check if last argument is CacheOptions to correctly extract fnArgs for keyFn
+        const lastArg = args[args.length - 1]
+        const hasOptions =
+          lastArg !== null &&
+          typeof lastArg === 'object' &&
+          'ignoreCache' in lastArg
+        const fnArgs = (hasOptions
+          ? args.slice(0, -1)
+          : args) as unknown as TArgs
+        return {
+          spanName: `cache.${config.namespace}`,
+          tracerName: 'cache',
+          kind: SpanKind.CLIENT,
+          attributes: {
+            'cache.namespace': config.namespace,
+            'cache.key': config.keyFn(...fnArgs),
+          },
+        }
+      },
       extractResultAttributes: () => ({}),
     },
     async (...args: [...TArgs, CacheOptions?]): Promise<TResult> => {
