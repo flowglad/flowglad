@@ -259,7 +259,7 @@ behaviorTest({
         // Fee calculation exists for MoR
         expect(result.feeCalculation).not.toBeNull()
         const fc = result.feeCalculation
-        if (!fc) return
+        if (!fc) throw new Error('feeCalculation is null')
 
         // Tax-registered jurisdiction: Flowglad is registered here
         expect(customerResidencyDep.isFlowgladRegistered).toBe(true)
@@ -320,7 +320,7 @@ behaviorTest({
         // Fee calculation exists for MoR
         expect(result.feeCalculation).not.toBeNull()
         const fc = result.feeCalculation
-        if (!fc) return
+        if (!fc) throw new Error('feeCalculation is null')
 
         // Tax-unregistered jurisdiction: Flowglad is NOT registered here
         expect(customerResidencyDep.isFlowgladRegistered).toBe(false)
