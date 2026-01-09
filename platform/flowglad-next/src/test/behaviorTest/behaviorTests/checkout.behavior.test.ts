@@ -136,7 +136,6 @@ behaviorTest({
         const defaultPricingModel = pricingModels.find(
           (pm) => pm.isDefault
         )
-        expect(defaultPricingModel).toBeDefined()
         expect(defaultPricingModel!.isDefault).toBe(true)
         expect(defaultPricingModel!.organizationId).toBe(
           result.organization.id
