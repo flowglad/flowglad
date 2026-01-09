@@ -346,6 +346,113 @@ invariants: async (result, combination) => {
 }
 ```
 
+## Filtered Behavior Tests vs Integration Tests
+
+**Critical principle**: For any assertion that's not universal over every variant:
+- Create a **filtered behavior test** for a subset of the cartesian product
+- Or create a **single integration test** for a single combination
+
+### When to Use Filtered Behavior Tests
+
+Use the `only` parameter to run a behavior test against a subset of combinations:
+
+```typescript
+// Test MoR-specific behavior across all countries and residencies
+behaviorTest({
+  chain: [
+    { behavior: authenticateUserBehavior },
+    { behavior: createOrganizationBehavior },
+    { behavior: provideBillingAddressBehavior,
+      invariants: async (result) => {
+        // These assertions only make sense for MoR
+        expect(result.feeCalculation).not.toBeNull()
+        expect(result.feeCalculation!.flowgladFeePercentage).toBe('0.65')
+      },
+    },
+  ],
+  // Only run for MoR contract type
+  only: [{ ContractTypeDep: 'merchantOfRecord' }],
+})
+
+// Test VAT jurisdictions specifically
+behaviorTest({
+  chain: [...],
+  only: [
+    { ContractTypeDep: 'merchantOfRecord', CustomerResidencyDep: 'uk-london' },
+    { ContractTypeDep: 'merchantOfRecord', CustomerResidencyDep: 'de-berlin' },
+  ],
+})
+```
+
+### When to Use Integration Tests Instead
+
+Use a regular integration test when:
+- Testing a very specific combination that doesn't generalize
+- The assertion is highly specific to one exact configuration
+- You need to test edge cases not covered by the dependency matrix
+
+```typescript
+// integration test for a specific scenario
+it('should calculate NYC tax correctly for MoR US org', async () => {
+  // Set up specific combination manually
+  const org = await setupOrg({ country: 'US', contractType: 'MoR' })
+  const result = await checkout({ billingAddress: NYC_ADDRESS })
+
+  // Very specific assertion
+  expect(result.feeCalculation.taxAmountFixed).toBe(444) // Exact cents
+})
+```
+
+### Decision Guide
+
+| Scenario | Test Type |
+|----------|-----------|
+| Assertion true for ALL combinations | Universal invariant in main behaviorTest |
+| Assertion true for a subset (e.g., all MoR) | Filtered behaviorTest with `only` |
+| Assertion true for multiple specific combos | Filtered behaviorTest listing combos in `only` |
+| Assertion for ONE specific combo with exact values | Integration test |
+| Testing edge cases or error paths | Integration test |
+
+## Integration Behavior Tests
+
+For behaviors that require external APIs (like Stripe), use the `describeFunction` option
+to conditionally run tests based on available credentials.
+
+```typescript
+import { describeIfStripeKey } from '@/test/stripeIntegrationHelpers'
+
+behaviorTest({
+  describeFunction: describeIfStripeKey,
+  chain: [
+    { behavior: authenticateUserBehavior },
+    { behavior: createOrganizationBehavior },
+    { behavior: confirmCheckoutWithRealStripe },
+    {
+      behavior: processPaymentSuccessBehavior,
+      invariants: async (result) => {
+        expect(result.purchase).not.toBeNull()
+        expect(result.payment.status).toBe(PaymentStatus.Succeeded)
+      },
+    },
+  ],
+  only: [{ ContractTypeDep: 'merchantOfRecord', CountryDep: 'us' }],
+  testOptions: { timeout: 120000 },
+  teardown: integrationTeardown,
+})
+```
+
+The `describeFunction` option accepts any function with the signature `(name: string, fn: () => void) => void`.
+Common use cases:
+
+- `describeIfStripeKey`: Skip tests when `STRIPE_TEST_MODE_SECRET_KEY` is not set
+- Custom wrappers for other external service credentials
+- `describe.skip`: Always skip (useful during development)
+
+When using integration behaviors:
+- Put them in a separate file (e.g., `*.integration.behavior.test.ts`)
+- Use longer timeouts (real API calls take time)
+- Always clean up external resources in teardown
+
 ## Common Pitfalls
 
 1. **Too many dependencies**: Start with 2-3. Each dependency multiplies test count.
@@ -353,6 +460,7 @@ invariants: async (result, combination) => {
 3. **Missing teardown**: Always clean up created resources.
 4. **Hardcoded waits**: Use proper async patterns, not `setTimeout`.
 5. **Non-unique test data**: Use `core.nanoid()` for names to avoid collisions.
+6. **Conditional assertions in universal tests**: If you find yourself writing `if (combination.X === 'foo')`, consider a filtered behavior test instead.
 
 ## Questions to Answer Before Writing
 

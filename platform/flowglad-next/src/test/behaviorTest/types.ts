@@ -83,6 +83,12 @@ export interface ChainStep<
 }
 
 /**
+ * Type for the describe function used in behavior tests.
+ * Compatible with Vitest's describe function or custom wrappers like describeIfStripeKey.
+ */
+export type DescribeFunction = (name: string, fn: () => void) => void
+
+/**
  * Configuration for running a behavior test.
  */
 export interface BehaviorTestConfig {
@@ -98,6 +104,24 @@ export interface BehaviorTestConfig {
 
   /** Optional: Skip specific combinations */
   skip?: DependencyCombination[]
+
+  /**
+   * Optional: Custom describe function for conditional test execution.
+   * Use this with helpers like `describeIfStripeKey` to skip tests when
+   * external dependencies (like Stripe credentials) are unavailable.
+   *
+   * @default vitest's describe
+   * @example
+   * ```typescript
+   * import { describeIfStripeKey } from '@/test/stripeIntegrationHelpers'
+   *
+   * behaviorTest({
+   *   chain: [...],
+   *   describeFunction: describeIfStripeKey,
+   * })
+   * ```
+   */
+  describeFunction?: DescribeFunction
 
   /**
    * Optional: Teardown function called after all tests complete.
