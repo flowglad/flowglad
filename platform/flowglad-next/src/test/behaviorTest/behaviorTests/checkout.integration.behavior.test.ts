@@ -248,6 +248,17 @@ const processPaymentSuccessBehavior = defineBehavior({
           transaction
         )
 
+        if (!invoiceRecords || invoiceRecords.length === 0) {
+          throw new Error(
+            `No invoice records found for purchase ${purchase.id}`
+          )
+        }
+        if (!paymentRecords || paymentRecords.length === 0) {
+          throw new Error(
+            `No payment records found for purchase ${purchase.id}`
+          )
+        }
+
         return {
           invoice: invoiceRecords[0],
           payment: paymentRecords[0],
