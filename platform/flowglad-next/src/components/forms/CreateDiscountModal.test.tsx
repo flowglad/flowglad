@@ -38,7 +38,9 @@ vi.mock('@/utils/stripe', () => ({
 
 // Mock the form modal and provide FormProvider context so inner fields can use useFormContext
 vi.mock('@/components/forms/FormModal', async () => {
+  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const React = await import('react')
+  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const { useForm, FormProvider } = await import('react-hook-form')
   function FormModalMock({ children, onSubmit, defaultValues }: any) {
     const form = useForm({ defaultValues })
@@ -169,6 +171,7 @@ describe('CreateDiscountModal', () => {
   describe('Form Submission - Fixed Amount', () => {
     it('should calculate amount correctly for fixed discount type', async () => {
       const { rawStringAmountToCountableCurrencyAmount } =
+        // biome-ignore lint/plugin: dynamic import required to access mocked module
         await import('@/utils/stripe')
 
       render(
