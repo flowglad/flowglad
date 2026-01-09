@@ -104,7 +104,7 @@ const createUsagePriceInsert = (
   overrides?: Partial<Price.ClientUsageInsert>
 ): Price.ClientUsageInsert => {
   return {
-    // FIXME: PR 2 - Usage prices don't have productId
+    // Usage prices don't have productId
     productId: null,
     type: PriceType.Usage,
     unitPrice: 100,
@@ -127,7 +127,7 @@ const createUsagePriceRecord = (
 ): Price.ClientUsageRecord => {
   return {
     id: 'price-1',
-    // FIXME: PR 2 - Usage prices don't have productId
+    // Usage prices don't have productId
     productId: null,
     pricingModelId: 'test',
     type: PriceType.Usage,

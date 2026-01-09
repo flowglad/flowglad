@@ -83,7 +83,7 @@ const getFeaturesByPriceId = async (
     result.set(price.id, [])
   })
 
-  // FIXME: PR 3 - Filter to only product prices (subscription and single_payment).
+  // Filter to only product prices (subscription and single_payment).
   // Usage prices don't have productId, so they can't have features.
   const productPrices = pricesToFetchFeaturesFor.filter(
     Price.hasProductId

@@ -208,7 +208,7 @@ describe('parseEditPriceDefaultValues', () => {
 
     describe('Usage Price Type', () => {
       it('should accept valid usage-based price', () => {
-        // FIXME: PR 2 - Usage prices should have productId: null
+        // Usage prices have productId: null
         const validUsage: Price.ClientRecord = {
           ...basePrice,
           productId: null, // Usage prices don't have productId
@@ -238,7 +238,7 @@ describe('parseEditPriceDefaultValues', () => {
       })
 
       it('should accept usage price with different usage events per unit', () => {
-        // FIXME: PR 2 - Usage prices should have productId: null
+        // Usage prices have productId: null
         const usagePrice: Price.ClientRecord = {
           ...basePrice,
           productId: null, // Usage prices don't have productId
@@ -337,7 +337,7 @@ describe('parseEditPriceDefaultValues', () => {
     })
 
     it('should throw for Usage type without usageMeterId', () => {
-      // FIXME: PR 2 - Usage prices should have productId: null
+      // Usage prices have productId: null
       const usageWithoutMeter = {
         ...basePrice,
         productId: null,
@@ -356,7 +356,7 @@ describe('parseEditPriceDefaultValues', () => {
     })
 
     it('should throw for Usage type without usageEventsPerUnit', () => {
-      // FIXME: PR 2 - Usage prices should have productId: null
+      // Usage prices have productId: null
       const usageWithoutEvents = {
         ...basePrice,
         productId: null,

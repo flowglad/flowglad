@@ -212,7 +212,7 @@ export const createNonInvoiceCheckoutSession = async (
     }
   }
 
-  // FIXME: PR 3 - Product lookup and validation only applies to non-usage prices.
+  // Product lookup and validation only applies to non-usage prices.
   // Usage prices don't have productId. Product is needed for:
   // 1. Validating not a default product
   // 2. Creating payment intents for single payment prices

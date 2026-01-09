@@ -176,7 +176,7 @@ export const createAndFinalizeSubscriptionFeeCalculation = async (
     subscription.priceId,
     transaction
   )
-  // FIXME: PR 3 - Product lookup only applies to non-usage prices.
+  // Product lookup only applies to non-usage prices.
   // Usage prices don't have productId. For now, throw an error if this is called
   // for a usage price since we don't have a product to associate with fee calculation.
   if (!Price.hasProductId(price)) {

@@ -53,6 +53,10 @@ import type {
 } from '@/db/types'
 import { DestinationEnvironment, PriceType } from '@/types'
 import { validateDefaultProductUpdate } from '@/utils/defaultProductValidation'
+import {
+  validatePriceTypeProductIdConsistency,
+  validateProductPriceConstraints,
+} from '@/utils/priceValidation'
 
 export const isPriceChanged = (
   newPrice: Price.ClientInsert,
@@ -141,78 +145,26 @@ export const createPriceTransaction = async (
     })
   }
 
-  // Validate price type and productId consistency
-  // For usage prices, productId must be null or undefined (not a valid string)
-  // Cast to unknown first to avoid TypeScript narrowing issues
-  const rawPrice = price as unknown as { productId?: string | null }
-  if (
-    price.type === PriceType.Usage &&
-    rawPrice.productId !== null &&
-    rawPrice.productId !== undefined
-  ) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message:
-        'Usage prices cannot have a productId. They belong to usage meters.',
-    })
-  }
-  if (
-    price.type !== PriceType.Usage &&
-    !Price.clientInsertHasProductId(price)
-  ) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message:
-        'Subscription and single payment prices require a productId.',
-    })
-  }
+  // Validate price type and productId consistency (pure validation, no DB needed)
+  validatePriceTypeProductIdConsistency(price)
 
   // Product validation only applies to non-usage prices.
   // Usage prices don't have productId, so skip product-related validation.
   if (Price.clientInsertHasProductId(price)) {
-    // Get product to check if it's a default product
     const product = await selectProductById(
       price.productId,
       transaction
     )
-
-    // Get all prices for this product to validate constraints
     const existingPrices = await selectPrices(
       { productId: price.productId },
       transaction
     )
 
-    // Forbid creating additional prices for default products
-    if (product.default && existingPrices.length > 0) {
-      throw new TRPCError({
-        code: 'FORBIDDEN',
-        message:
-          'Cannot create additional prices for the default plan',
-      })
-    }
-
-    // Validate that default prices on default products must have unitPrice = 0
-    if (price.isDefault && product.default && price.unitPrice !== 0) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message:
-          'Default prices on default products must have unitPrice = 0',
-      })
-    }
-
-    // Forbid creating price of a different type
-    if (
-      existingPrices.length > 0 &&
-      existingPrices.some(
-        (existingPrice) => existingPrice.type !== price.type
-      )
-    ) {
-      throw new TRPCError({
-        code: 'FORBIDDEN',
-        message:
-          'Cannot create price of a different type than the existing prices for the product',
-      })
-    }
+    validateProductPriceConstraints({
+      price,
+      product,
+      existingPrices,
+    })
   }
 
   const organization = await selectOrganizationById(

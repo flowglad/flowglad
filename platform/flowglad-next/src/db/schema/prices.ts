@@ -580,9 +580,9 @@ export namespace Price {
 
   /**
    * Type alias for prices that belong to usage meters (usage prices).
-   * These prices have productId = null and meter consumption.
+   * These prices have productId = null and usageMeterId set.
    */
-  export type MeterPrice = UsageRecord
+  export type UsageMeterPrice = UsageRecord
 
   /**
    * Type guard to check if a price has a productId.

@@ -275,7 +275,7 @@ export const selectSubscriptionsTableRowData =
           )
         }
 
-        // FIXME: PR 2 - Parse price early so Price.hasProductId type guard works.
+        // Parse price early so Price.hasProductId type guard works.
         // This is needed because raw DB rows have type: string, but the type guard
         // expects the parsed Price.Record with narrowed type.
         const parsedPrice = pricesClientSelectSchema.parse(rawPrice)

@@ -309,8 +309,8 @@ export const setupPricingModelTransaction = async (
       defaultProduct
     )
 
-    // Create the default price
-    // FIXME: PR 2 - Type assertion needed because defaultPlanConfig.price.type is not
+    // Create the default price.
+    // Type assertion needed because defaultPlanConfig.price.type is not
     // narrowed to a specific PriceType, but default products always use subscription prices.
     const defaultPriceInsert: Price.SubscriptionInsert = {
       type: PriceType.Subscription,

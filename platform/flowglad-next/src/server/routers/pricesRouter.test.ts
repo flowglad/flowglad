@@ -859,8 +859,8 @@ describe('prices.getTableRows (usage-meter filters)', () => {
         transaction
       )
 
-      // Create inactive usage price for meter A
-      // FIXME: PR 2 - Usage prices don't have productId (they belong to usage meters)
+      // Create inactive usage price for meter A.
+      // Usage prices don't have productId (they belong to usage meters).
       const inactiveUsagePrice = await insertPrice(
         {
           productId: null,

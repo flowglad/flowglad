@@ -599,7 +599,7 @@ describe('selectSubscriptionsTableRowData', () => {
         expect(resultBasic.items[0].subscription.id).toBe(
           subscription3.id
         )
-        // FIXME: PR 2 - Product may be null for usage prices, but this test uses subscription prices
+        // Product may be null for usage prices, but this test uses subscription prices
         expect(resultBasic.items[0].product!.name).toBe('Basic Plan')
 
         // Test whitespace trimming
@@ -683,7 +683,7 @@ describe('selectSubscriptionsTableRowData', () => {
           expect(item.subscription.organizationId).toBe(
             organization.id
           )
-          // FIXME: PR 2 - Product may be null for usage prices, but this test uses subscription prices
+          // Product may be null for usage prices, but this test uses subscription prices
           expect(item.product!.name).toBe('Premium Plan')
         })
         expect(result.total).toBe(2)
@@ -730,7 +730,7 @@ describe('selectSubscriptionsTableRowData', () => {
         expect(result.items.length).toBe(1)
         expect(result.items[0].subscription.id).toBe(subscription1.id)
         expect(result.items[0].customer.name).toBe('Alice Smith')
-        // FIXME: PR 2 - Product may be null for usage prices, but this test uses subscription prices
+        // Product may be null for usage prices, but this test uses subscription prices
         expect(result.items[0].product!.name).toBe('Premium Plan')
         expect(result.total).toBe(1)
 
@@ -776,7 +776,7 @@ describe('selectSubscriptionsTableRowData', () => {
         expect(customerNames).toContain('Bob Jones')
         expect(customerNames).toContain('Bobby Johnson')
         allItems.forEach((item) => {
-          // FIXME: PR 2 - Product may be null for usage prices, but this test uses subscription prices
+          // Product may be null for usage prices, but this test uses subscription prices
           expect(item.product!.name).toBe('Premium Plan')
         })
       })
@@ -1133,7 +1133,7 @@ describe('selectSubscriptionsTableRowData', () => {
         expect(subscriptionIds).toContain(subscription2.id)
         result.items.forEach((item) => {
           expect(item.subscription.isFreePlan).toBe(false)
-          // FIXME: PR 2 - Product may be null for usage prices, but this test uses subscription prices
+          // Product may be null for usage prices, but this test uses subscription prices
           expect(item.product!.name).toBe('Premium Plan')
         })
         expect(result.total).toBe(5)

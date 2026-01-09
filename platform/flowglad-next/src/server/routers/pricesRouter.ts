@@ -110,7 +110,7 @@ export const updatePrice = protectedProcedure
           })
         }
 
-        // FIXME: PR 3 - Product validation only applies to non-usage prices.
+        // Product validation only applies to non-usage prices.
         // Usage prices don't have productId, so skip product-related validation.
         let product = null
         if (Price.hasProductId(existingPrice)) {
