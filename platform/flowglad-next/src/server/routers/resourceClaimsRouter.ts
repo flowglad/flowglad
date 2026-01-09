@@ -65,20 +65,20 @@ const claimResourceInputSchema = z
       .int()
       .positive()
       .optional()
-      .describe('Create N anonymous (cattle-style) claims'),
+      .describe('Create N anonymous claims'),
     externalId: z
       .string()
       .max(255)
       .optional()
       .describe(
-        'Create a single pet-style claim with this external identifier'
+        'Create a single non-anonymous claim with this external identifier'
       ),
     externalIds: z
       .array(z.string().max(255))
       .nonempty()
       .optional()
       .describe(
-        'Create multiple pet-style claims with these external identifiers'
+        'Create multiple non-anonymous claims with these external identifiers'
       ),
   })
   .refine(
@@ -113,17 +113,17 @@ const releaseResourceInputSchema = z
       .int()
       .positive()
       .optional()
-      .describe('Release N anonymous (cattle-style) claims'),
+      .describe('Release N anonymous claims'),
     externalId: z
       .string()
       .max(255)
       .optional()
-      .describe('Release a specific pet-style claim'),
+      .describe('Release a specific non-anonymous claim'),
     externalIds: z
       .array(z.string().max(255))
       .nonempty()
       .optional()
-      .describe('Release multiple pet-style claims'),
+      .describe('Release multiple non-anonymous claims'),
     claimIds: z
       .array(z.string())
       .nonempty()

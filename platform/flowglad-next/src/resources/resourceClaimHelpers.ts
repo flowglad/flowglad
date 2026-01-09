@@ -58,21 +58,21 @@ export const claimResourceInputSchema = z
       .positive()
       .optional()
       .describe(
-        'Create N anonymous (cattle-style) claims. Each claim will have externalId = null.'
+        'Create N anonymous claims. Each claim will have externalId = null.'
       ),
     externalId: z
       .string()
       .max(255)
       .optional()
       .describe(
-        'Create a single pet-style claim with this external identifier.'
+        'Create a single non-anonymous claim with this external identifier.'
       ),
     externalIds: z
       .array(z.string().max(255))
       .nonempty()
       .optional()
       .describe(
-        'Create multiple pet-style claims with these external identifiers.'
+        'Create multiple non-anonymous claims with these external identifiers.'
       ),
   })
   .refine(
@@ -116,28 +116,28 @@ export const releaseResourceInputSchema = z
       .positive()
       .optional()
       .describe(
-        'Release N anonymous (cattle-style) claims. Only releases claims where externalId IS NULL. Will not release pet-style claims with externalIds.'
+        'Release N anonymous claims. Only releases claims where externalId IS NULL. Will not release non-anonymous claims with externalIds.'
       ),
     externalId: z
       .string()
       .max(255)
       .optional()
       .describe(
-        'Release a specific pet-style claim by its externalId'
+        'Release a specific non-anonymous claim by its externalId'
       ),
     externalIds: z
       .array(z.string().max(255))
       .nonempty()
       .optional()
       .describe(
-        'Release multiple pet-style claims by their externalIds'
+        'Release multiple non-anonymous claims by their externalIds'
       ),
     claimIds: z
       .array(z.string())
       .nonempty()
       .optional()
       .describe(
-        'Release specific claims by their claim IDs (works for both cattle and pet claims)'
+        'Release specific claims by their claim IDs (works for both anonymous and non-anonymous claims)'
       ),
   })
   .refine(
@@ -330,9 +330,9 @@ export interface ClaimResourceResult {
  * Claims resources for a subscription.
  *
  * Modes:
- * - quantity: Creates N anonymous "cattle" claims (externalId = null)
- * - externalId: Creates a single "pet" claim with the given externalId (idempotent)
- * - externalIds: Creates multiple "pet" claims with the given externalIds (idempotent per ID)
+ * - quantity: Creates N anonymous claims (externalId = null)
+ * - externalId: Creates a single non-anonymous claim with the given externalId (idempotent)
+ * - externalIds: Creates multiple non-anonymous claims with the given externalIds (idempotent per ID)
  *
  * @throws Error if subscription is in a terminal state
  * @throws Error if capacity is exhausted
@@ -390,13 +390,13 @@ export async function claimResourceTransaction(
   }> = []
 
   if (input.quantity !== undefined) {
-    // Cattle mode: create N anonymous claims
+    // Anonymous mode: create N anonymous claims
     claimsToCreate = Array.from({ length: input.quantity }, () => ({
       externalId: null,
       metadata: input.metadata ?? null,
     }))
   } else if (input.externalId !== undefined) {
-    // Pet mode (single): check idempotency
+    // Non-anonymous mode (single): check idempotency
     const existing = await selectActiveClaimByExternalId(
       {
         resourceId: resource.id,
@@ -423,7 +423,7 @@ export async function claimResourceTransaction(
       },
     ]
   } else if (input.externalIds !== undefined) {
-    // Pet mode (multiple): check idempotency for each
+    // Non-anonymous mode (multiple): check idempotency for each
     const existingClaims: ResourceClaim.Record[] = []
     const newExternalIds: string[] = []
 
@@ -554,12 +554,12 @@ export interface ReleaseResourceResult {
  * Releases resource claims for a subscription.
  *
  * Modes:
- * - quantity: Releases N anonymous "cattle" claims (FIFO, only where externalId IS NULL)
- * - externalId: Releases a specific "pet" claim by its externalId
- * - externalIds: Releases multiple "pet" claims by their externalIds
- * - claimIds: Releases specific claims by their IDs (works for both cattle and pet)
+ * - quantity: Releases N anonymous claims (FIFO, only where externalId IS NULL)
+ * - externalId: Releases a specific non-anonymous claim by its externalId
+ * - externalIds: Releases multiple non-anonymous claims by their externalIds
+ * - claimIds: Releases specific claims by their IDs (works for both anonymous and non-anonymous)
  *
- * @throws Error if trying to release more cattle claims than exist
+ * @throws Error if trying to release more anonymous claims than exist
  * @throws Error if claim(s) not found
  */
 export async function releaseResourceTransaction(
@@ -602,27 +602,27 @@ export async function releaseResourceTransaction(
   let claimsToRelease: ResourceClaim.Record[] = []
 
   if (input.quantity !== undefined) {
-    // Release cattle claims only (externalId IS NULL), FIFO order
+    // Release anonymous claims only (externalId IS NULL), FIFO order
     const activeClaims = await selectActiveResourceClaims(
       { subscriptionItemFeatureId: subscriptionItemFeature.id },
       transaction
     )
 
-    // Filter to only cattle claims (externalId is null)
-    const cattleClaims = activeClaims
+    // Filter to only anonymous claims (externalId is null)
+    const anonymousClaims = activeClaims
       .filter((c) => c.externalId === null)
       .sort((a, b) => a.claimedAt - b.claimedAt) // FIFO order
 
-    if (cattleClaims.length < input.quantity) {
+    if (anonymousClaims.length < input.quantity) {
       throw new Error(
-        `Cannot release ${input.quantity} cattle claims. Only ${cattleClaims.length} anonymous claims exist. ` +
+        `Cannot release ${input.quantity} anonymous claims. Only ${anonymousClaims.length} anonymous claims exist. ` +
           `Use claimIds to release specific claims regardless of type.`
       )
     }
 
-    claimsToRelease = cattleClaims.slice(0, input.quantity)
+    claimsToRelease = anonymousClaims.slice(0, input.quantity)
   } else if (input.externalId !== undefined) {
-    // Release specific pet claim
+    // Release specific non-anonymous claim
     const claim = await selectActiveClaimByExternalId(
       {
         resourceId: resource.id,
@@ -640,7 +640,7 @@ export async function releaseResourceTransaction(
 
     claimsToRelease = [claim]
   } else if (input.externalIds !== undefined) {
-    // Release multiple pet claims
+    // Release multiple non-anonymous claims
     for (const externalId of input.externalIds) {
       const claim = await selectActiveClaimByExternalId(
         {

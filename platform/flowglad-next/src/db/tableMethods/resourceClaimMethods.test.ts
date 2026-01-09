@@ -149,7 +149,7 @@ describe('resourceClaimMethods', () => {
       await adminTransaction(async ({ transaction }) => {
         const beforeInsert = Date.now()
         const inserted = await insertResourceClaim(
-          createResourceClaimInsert({ externalId: 'pet-1' }),
+          createResourceClaimInsert({ externalId: 'named-claim-1' }),
           transaction
         )
         const afterInsert = Date.now()
@@ -162,7 +162,7 @@ describe('resourceClaimMethods', () => {
         expect(inserted.resourceId).toBe(resource.id)
         expect(inserted.subscriptionId).toBe(subscription.id)
         expect(inserted.pricingModelId).toBe(pricingModel.id)
-        expect(inserted.externalId).toBe('pet-1')
+        expect(inserted.externalId).toBe('named-claim-1')
         expect(inserted.livemode).toBe(true)
         expect(inserted.releasedAt).toBeNull()
         expect(inserted.releaseReason).toBeNull()
@@ -180,7 +180,9 @@ describe('resourceClaimMethods', () => {
       const inserted = await adminTransaction(
         async ({ transaction }) => {
           return insertResourceClaim(
-            createResourceClaimInsert({ externalId: 'pet-2' }),
+            createResourceClaimInsert({
+              externalId: 'named-claim-2',
+            }),
             transaction
           )
         }
@@ -193,7 +195,7 @@ describe('resourceClaimMethods', () => {
         )
 
         expect(selected.id).toBe(inserted.id)
-        expect(selected.externalId).toBe('pet-2')
+        expect(selected.externalId).toBe('named-claim-2')
         expect(selected.resourceId).toBe(resource.id)
       })
     })
