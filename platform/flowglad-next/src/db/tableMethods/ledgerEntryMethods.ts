@@ -319,18 +319,27 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
   return parseInt(`${result[0]?.balance ?? 0}`, 10)
 }
 
+/** Schema for the cached usage meter balance result */
+const usageMeterBalanceWithSubscriptionIdSchema = z.object({
+  usageMeterBalance: usageMeterBalanceClientSelectSchema,
+  subscriptionId: z.string(),
+})
+
 /**
  * Aggregates usage meter balances for subscriptions directly in SQL.
  * The query filters ledger entries by subscription/account scope, enforces the
  * "available" balance rules, and joins the usage meter metadata so that the
  * database returns one summarized row per meter rather than every individual entry.
  *
+ * This is the internal uncached implementation. Use selectUsageMeterBalancesForSubscription
+ * for the cached version (recommended for most use cases).
+ *
  * @param scopedWhere - Subscription and ledger account filters to apply
  * @param transaction - Database transaction used to execute the aggregation
  * @param calculationDate - Anchor date for discard filtering (defaults to now)
  * @returns Usage meters with their computed available balances per subscription
  */
-export const selectUsageMeterBalancesForSubscriptions = async (
+const selectUsageMeterBalancesForSubscriptionsUncached = async (
   scopedWhere: Pick<
     LedgerEntry.Where,
     'subscriptionId' | 'ledgerAccountId'
@@ -421,20 +430,19 @@ export const selectUsageMeterBalancesForSubscriptions = async (
     })
 }
 
-/** Schema for the cached usage meter balance result */
-const usageMeterBalanceWithSubscriptionIdSchema = z.object({
-  usageMeterBalance: usageMeterBalanceClientSelectSchema,
-  subscriptionId: z.string(),
-})
-
 /**
- * Cache-enabled version of selectUsageMeterBalancesForSubscriptions for single subscription lookup.
+ * Fetches usage meter balances for a single subscription with Redis caching.
  * This function caches meter balances per subscription and depends on the subscription's ledger entries.
  *
  * The cache is invalidated when ledger entries for the subscription are modified
  * (e.g., usage events processed, credit grants recognized, credits expired).
+ *
+ * @param subscriptionId - The subscription ID to fetch meter balances for
+ * @param transaction - Database transaction used to execute the query
+ * @param options - Optional cache options. Pass { ignoreCache: true } to bypass the cache.
+ * @returns Usage meters with their computed available balances for this subscription
  */
-export const selectUsageMeterBalancesForSubscriptionCached = cached(
+export const selectUsageMeterBalancesForSubscription = cached(
   {
     namespace: RedisKeyNamespace.MeterBalancesBySubscription,
     keyFn: (subscriptionId: string, _transaction: DbTransaction) =>
@@ -446,7 +454,7 @@ export const selectUsageMeterBalancesForSubscriptionCached = cached(
     ],
   },
   async (subscriptionId: string, transaction: DbTransaction) => {
-    return selectUsageMeterBalancesForSubscriptions(
+    return selectUsageMeterBalancesForSubscriptionsUncached(
       { subscriptionId },
       transaction
     )

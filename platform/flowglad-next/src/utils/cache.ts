@@ -100,6 +100,15 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
   dependenciesFn: (...args: TArgs) => CacheDependencyKey[]
 }
 
+export interface CacheOptions {
+  /**
+   * When true, bypasses the cache and always calls the underlying function.
+   * The result is still cached for future calls.
+   * @default false
+   */
+  ignoreCache?: boolean
+}
+
 /**
  * Combinator that adds caching to an async function.
  *
@@ -117,6 +126,7 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
  *   - cache.validation_failed: boolean (when cached data fails schema)
  *   - cache.error: string (when Redis operation fails)
  *   - cache.dependencies: string[] (dependency keys registered)
+ *   - cache.ignored: boolean (when ignoreCache option is true)
  * - Logging:
  *   - Debug: cache hit/miss with key
  *   - Warn: schema validation failure (includes key, indicates data corruption)
@@ -125,84 +135,110 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
  * Error handling:
  * - Fails open: Redis errors result in cache miss, not request failure
  * - Schema validation failures treated as cache miss
+ *
+ * The returned function accepts an optional CacheOptions object as its last argument.
+ * Use { ignoreCache: true } to bypass the cache for a specific call.
  */
 export function cached<TArgs extends unknown[], TResult>(
   config: CacheConfig<TArgs, TResult>,
   fn: (...args: TArgs) => Promise<TResult>
-): (...args: TArgs) => Promise<TResult> {
+): (...args: [...TArgs, CacheOptions?]) => Promise<TResult> {
   return traced(
     {
-      options: (...args: TArgs) => ({
+      options: (...args: [...TArgs, CacheOptions?]) => ({
         spanName: `cache.${config.namespace}`,
         tracerName: 'cache',
         kind: SpanKind.CLIENT,
         attributes: {
           'cache.namespace': config.namespace,
-          'cache.key': config.keyFn(...args),
+          'cache.key': config.keyFn(...(args.slice(0, -1) as TArgs)),
         },
       }),
       extractResultAttributes: () => ({}),
     },
-    async (...args: TArgs): Promise<TResult> => {
+    async (
+      ...argsWithOptions: [...TArgs, CacheOptions?]
+    ): Promise<TResult> => {
+      // Extract options from the last argument if it's a CacheOptions object
+      const lastArg = argsWithOptions[argsWithOptions.length - 1]
+      const hasOptions =
+        lastArg !== null &&
+        typeof lastArg === 'object' &&
+        'ignoreCache' in lastArg
+      const options: CacheOptions = hasOptions
+        ? (lastArg as CacheOptions)
+        : {}
+      const args = (
+        hasOptions ? argsWithOptions.slice(0, -1) : argsWithOptions
+      ) as TArgs
+
       const key = config.keyFn(...args)
       const fullKey = `${config.namespace}:${key}`
       const dependencies = config.dependenciesFn(...args)
       const span = trace.getActiveSpan()
 
-      // Try to get from cache
-      try {
-        const redisClient = redis()
-        const startTime = Date.now()
-        const cachedValue = await redisClient.get(fullKey)
-        const latencyMs = Date.now() - startTime
+      const ignoreCache = options.ignoreCache ?? false
 
-        span?.setAttribute('cache.latency_ms', latencyMs)
+      // Skip cache read if ignoreCache is true
+      if (!ignoreCache) {
+        // Try to get from cache
+        try {
+          const redisClient = redis()
+          const startTime = Date.now()
+          const cachedValue = await redisClient.get(fullKey)
+          const latencyMs = Date.now() - startTime
 
-        if (cachedValue !== null) {
-          // Parse the cached value
-          const jsonValue =
-            typeof cachedValue === 'string'
-              ? JSON.parse(cachedValue)
-              : cachedValue
+          span?.setAttribute('cache.latency_ms', latencyMs)
 
-          // Validate with schema
-          const parsed = config.schema.safeParse(jsonValue)
-          if (parsed.success) {
-            span?.setAttribute('cache.hit', true)
-            logger.debug('Cache hit', {
+          if (cachedValue !== null) {
+            // Parse the cached value
+            const jsonValue =
+              typeof cachedValue === 'string'
+                ? JSON.parse(cachedValue)
+                : cachedValue
+
+            // Validate with schema
+            const parsed = config.schema.safeParse(jsonValue)
+            if (parsed.success) {
+              span?.setAttribute('cache.hit', true)
+              logger.debug('Cache hit', {
+                key: fullKey,
+                latency_ms: latencyMs,
+              })
+              return parsed.data
+            } else {
+              // Schema validation failed - treat as cache miss
+              span?.setAttribute('cache.hit', false)
+              span?.setAttribute('cache.validation_failed', true)
+              logger.warn('Cache schema validation failed', {
+                key: fullKey,
+                error: parsed.error.message,
+              })
+            }
+          } else {
+            span?.setAttribute('cache.hit', false)
+            logger.debug('Cache miss', {
               key: fullKey,
               latency_ms: latencyMs,
             })
-            return parsed.data
-          } else {
-            // Schema validation failed - treat as cache miss
-            span?.setAttribute('cache.hit', false)
-            span?.setAttribute('cache.validation_failed', true)
-            logger.warn('Cache schema validation failed', {
-              key: fullKey,
-              error: parsed.error.message,
-            })
           }
-        } else {
+        } catch (error) {
+          // Fail open - log error and continue to wrapped function
+          const errorMessage =
+            error instanceof Error ? error.message : String(error)
           span?.setAttribute('cache.hit', false)
-          logger.debug('Cache miss', {
+          span?.setAttribute('cache.error', errorMessage)
+          logger.error('Cache read error', {
             key: fullKey,
-            latency_ms: latencyMs,
+            error: errorMessage,
           })
         }
-      } catch (error) {
-        // Fail open - log error and continue to wrapped function
-        const errorMessage =
-          error instanceof Error ? error.message : String(error)
-        span?.setAttribute('cache.hit', false)
-        span?.setAttribute('cache.error', errorMessage)
-        logger.error('Cache read error', {
-          key: fullKey,
-          error: errorMessage,
-        })
+      } else {
+        span?.setAttribute('cache.ignored', true)
+        logger.debug('Cache bypassed', { key: fullKey })
       }
 
-      // Cache miss - call wrapped function
+      // Cache miss or ignoreCache - call wrapped function
       const result = await fn(...args)
 
       // Store in cache and register dependencies (fire-and-forget)

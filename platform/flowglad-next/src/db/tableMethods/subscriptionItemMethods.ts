@@ -37,7 +37,7 @@ import {
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
 import { createDateNotPassedFilter } from '../tableUtils'
-import { selectUsageMeterBalancesForSubscriptionCached } from './ledgerEntryMethods'
+import { selectUsageMeterBalancesForSubscription } from './ledgerEntryMethods'
 import {
   expireSubscriptionItemFeaturesForSubscriptionItems,
   selectSubscriptionItemFeaturesWithFeatureSlug,
@@ -431,7 +431,7 @@ export const selectRichSubscriptionsAndActiveItems = async (
   const usageMeterBalances = (
     await Promise.all(
       subscriptionIds.map((id) =>
-        selectUsageMeterBalancesForSubscriptionCached(id, transaction)
+        selectUsageMeterBalancesForSubscription(id, transaction)
       )
     )
   ).flat()

@@ -3983,10 +3983,10 @@ describe('ledgerEntryMethods', () => {
     })
   })
 
-  describe('selectUsageMeterBalancesForSubscriptions', () => {
+  describe('selectUsageMeterBalancesForSubscription', () => {
     it('returns aggregated balances for a subscription with usage - credits minus debits equals availableBalance', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const { selectUsageMeterBalancesForSubscriptions } =
+        const { selectUsageMeterBalancesForSubscription } =
           await import('./ledgerEntryMethods')
         const testLedgerTransaction = await setupLedgerTransaction({
           organizationId: organization.id,
@@ -4060,9 +4060,10 @@ describe('ledgerEntryMethods', () => {
           transaction
         )
 
-        const result = await selectUsageMeterBalancesForSubscriptions(
-          { subscriptionId: subscription.id },
-          transaction
+        const result = await selectUsageMeterBalancesForSubscription(
+          subscription.id,
+          transaction,
+          { ignoreCache: true }
         )
 
         expect(result).toHaveLength(1)
@@ -4074,7 +4075,7 @@ describe('ledgerEntryMethods', () => {
 
     it('returns empty array for subscription with no ledger entries', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const { selectUsageMeterBalancesForSubscriptions } =
+        const { selectUsageMeterBalancesForSubscription } =
           await import('./ledgerEntryMethods')
         // Create a new subscription without any ledger entries
         const newCustomer = await setupCustomer({
@@ -4095,9 +4096,10 @@ describe('ledgerEntryMethods', () => {
           livemode: true,
         })
 
-        const result = await selectUsageMeterBalancesForSubscriptions(
-          { subscriptionId: newSubscription.id },
-          transaction
+        const result = await selectUsageMeterBalancesForSubscription(
+          newSubscription.id,
+          transaction,
+          { ignoreCache: true }
         )
 
         expect(result).toEqual([])
@@ -4106,7 +4108,7 @@ describe('ledgerEntryMethods', () => {
 
     it('excludes pending credit entries from available balance - only includes posted credits', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const { selectUsageMeterBalancesForSubscriptions } =
+        const { selectUsageMeterBalancesForSubscription } =
           await import('./ledgerEntryMethods')
         const testLedgerTransaction = await setupLedgerTransaction({
           organizationId: organization.id,
@@ -4148,9 +4150,10 @@ describe('ledgerEntryMethods', () => {
           transaction
         )
 
-        const result = await selectUsageMeterBalancesForSubscriptions(
-          { subscriptionId: subscription.id },
-          transaction
+        const result = await selectUsageMeterBalancesForSubscription(
+          subscription.id,
+          transaction,
+          { ignoreCache: true }
         )
 
         // Pending credits are excluded from available balance
@@ -4160,7 +4163,7 @@ describe('ledgerEntryMethods', () => {
 
     it('includes pending debit entries in available balance - subtracts pending debits', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const { selectUsageMeterBalancesForSubscriptions } =
+        const { selectUsageMeterBalancesForSubscription } =
           await import('./ledgerEntryMethods')
         const testLedgerTransaction = await setupLedgerTransaction({
           organizationId: organization.id,
@@ -4232,9 +4235,10 @@ describe('ledgerEntryMethods', () => {
           transaction
         )
 
-        const result = await selectUsageMeterBalancesForSubscriptions(
-          { subscriptionId: subscription.id },
-          transaction
+        const result = await selectUsageMeterBalancesForSubscription(
+          subscription.id,
+          transaction,
+          { ignoreCache: true }
         )
 
         expect(result).toHaveLength(1)
