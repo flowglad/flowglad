@@ -18,14 +18,7 @@ const SubscriptionPage = async ({
   params: Promise<{ id: string }>
 }) => {
   const { id } = await params
-  const {
-    subscription,
-    defaultPaymentMethod,
-    customer,
-    product,
-    pricingModel,
-    productNames,
-  } = await authenticatedTransaction(
+  const result = await authenticatedTransaction(
     async ({ transaction, livemode }) => {
       const [subscription] =
         await selectRichSubscriptionsAndActiveItems(
@@ -35,7 +28,7 @@ const SubscriptionPage = async ({
         )
 
       if (!subscription) {
-        notFound()
+        return null
       }
 
       const defaultPaymentMethod = subscription.defaultPaymentMethodId
@@ -108,6 +101,19 @@ const SubscriptionPage = async ({
       }
     }
   )
+
+  if (!result) {
+    notFound()
+  }
+
+  const {
+    subscription,
+    defaultPaymentMethod,
+    customer,
+    product,
+    pricingModel,
+    productNames,
+  } = result
   return (
     <InnerSubscriptionPage
       subscription={subscriptionWithCurrent(subscription)}

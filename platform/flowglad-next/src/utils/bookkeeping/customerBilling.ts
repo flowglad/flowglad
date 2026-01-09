@@ -34,14 +34,13 @@ export const customerBillingTransaction = async (
     externalId: string
     organizationId: string
   },
-  transaction: DbTransaction,
-  livemode: boolean = true
+  transaction: DbTransaction
 ) => {
   const [customer] = await selectCustomers(params, transaction)
   const subscriptions = await selectRichSubscriptionsAndActiveItems(
     { customerId: customer.id },
     transaction,
-    livemode
+    customer.livemode
   )
   const pricingModel = await selectPricingModelForCustomer(
     customer,
