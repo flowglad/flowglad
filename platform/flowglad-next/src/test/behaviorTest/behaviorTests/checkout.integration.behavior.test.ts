@@ -306,6 +306,13 @@ const checkoutIntegrationTeardown = async (results: unknown[]) => {
  */
 behaviorTest({
   describeFunction: describeIfStripeKey,
+  only: [
+    {
+      ContractTypeDep: 'merchantOfRecord',
+      CountryDep: 'us',
+      CustomerResidencyDep: 'us-nyc',
+    },
+  ],
   chain: [
     { behavior: authenticateUserBehavior },
     { behavior: createOrganizationBehavior },
@@ -352,13 +359,6 @@ behaviorTest({
       },
     },
   ],
-  only: [
-    {
-      ContractTypeDep: 'merchantOfRecord',
-      CountryDep: 'us',
-      CustomerResidencyDep: 'us-nyc',
-    },
-  ],
   testOptions: { timeout: 120000 },
   teardown: checkoutIntegrationTeardown,
 })
@@ -373,6 +373,13 @@ behaviorTest({
  */
 behaviorTest({
   describeFunction: describeIfStripeKey,
+  only: [
+    {
+      ContractTypeDep: 'platform',
+      CountryDep: 'us',
+      CustomerResidencyDep: 'us-nyc',
+    },
+  ],
   chain: [
     { behavior: authenticateUserBehavior },
     { behavior: createOrganizationBehavior },
@@ -398,13 +405,6 @@ behaviorTest({
         // === Platform-Specific: No fee calculation ===
         expect(result.finalFeeCalculation).toBeNull()
       },
-    },
-  ],
-  only: [
-    {
-      ContractTypeDep: 'platform',
-      CountryDep: 'us',
-      CustomerResidencyDep: 'us-nyc',
     },
   ],
   testOptions: { timeout: 120000 },
