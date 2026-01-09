@@ -1,4 +1,4 @@
-import { and, count, eq, isNull } from 'drizzle-orm'
+import { and, count, eq, inArray, isNull } from 'drizzle-orm'
 import {
   type ResourceClaim,
   resourceClaims,
@@ -161,4 +161,61 @@ export const selectActiveClaimByExternalId = async (
     transaction
   )
   return claims[0] ?? null
+}
+
+/**
+ * Finds active claims by multiple externalIds for a given resource and subscription.
+ * Useful for batch idempotent claim operations.
+ */
+export const selectActiveClaimsByExternalIds = async (
+  params: {
+    resourceId: string
+    subscriptionId: string
+    externalIds: string[]
+  },
+  transaction: DbTransaction
+): Promise<ResourceClaim.Record[]> => {
+  if (params.externalIds.length === 0) {
+    return []
+  }
+  const result = await transaction
+    .select()
+    .from(resourceClaims)
+    .where(
+      and(
+        eq(resourceClaims.resourceId, params.resourceId),
+        eq(resourceClaims.subscriptionId, params.subscriptionId),
+        inArray(resourceClaims.externalId, params.externalIds),
+        isNull(resourceClaims.releasedAt)
+      )
+    )
+  return resourceClaimsSelectSchema.array().parse(result)
+}
+
+/**
+ * Bulk releases multiple resource claims by their IDs in a single query.
+ * Sets releasedAt timestamp and release reason for all claims.
+ */
+export const bulkReleaseResourceClaims = async (
+  claimIds: string[],
+  releaseReason: string,
+  transaction: DbTransaction
+): Promise<ResourceClaim.Record[]> => {
+  if (claimIds.length === 0) {
+    return []
+  }
+  const result = await transaction
+    .update(resourceClaims)
+    .set({
+      releasedAt: Date.now(),
+      releaseReason,
+    })
+    .where(
+      and(
+        inArray(resourceClaims.id, claimIds),
+        isNull(resourceClaims.releasedAt)
+      )
+    )
+    .returning()
+  return resourceClaimsSelectSchema.array().parse(result)
 }

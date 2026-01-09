@@ -1,24 +1,21 @@
-import { and, eq, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { ResourceClaim } from '@/db/schema/resourceClaims'
-import { resourceClaims } from '@/db/schema/resourceClaims'
 import type { Resource } from '@/db/schema/resources'
-import {
-  type SubscriptionItemFeature,
-  subscriptionItemFeatures,
-} from '@/db/schema/subscriptionItemFeatures'
-import { subscriptionItems } from '@/db/schema/subscriptionItems'
-import { subscriptions } from '@/db/schema/subscriptions'
+import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import {
   bulkInsertResourceClaims,
+  bulkReleaseResourceClaims,
   countActiveClaimsForSubscriptionItemFeature,
   insertResourceClaim,
-  releaseResourceClaim,
   selectActiveClaimByExternalId,
+  selectActiveClaimsByExternalIds,
   selectActiveResourceClaims,
 } from '@/db/tableMethods/resourceClaimMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
-import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import {
+  selectSubscriptionItemFeatures,
+  selectSubscriptionItemFeaturesBySubscriptionItemIds,
+} from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   isSubscriptionInTerminalState,
@@ -281,15 +278,12 @@ const findSubscriptionItemFeatureForResource = async (
   // Find subscription item features of type Resource with matching resourceId
   const subscriptionItemIds = items.map((item) => item.id)
 
-  // Get all subscription item features for these subscription items
-  const allFeatures: SubscriptionItemFeature.Record[] = []
-  for (const itemId of subscriptionItemIds) {
-    const features = await selectSubscriptionItemFeatures(
-      { subscriptionItemId: itemId },
+  // Get all subscription item features for these subscription items in a single query
+  const allFeatures =
+    await selectSubscriptionItemFeaturesBySubscriptionItemIds(
+      subscriptionItemIds,
       transaction
     )
-    allFeatures.push(...features)
-  }
 
   // Find the one matching our resource
   const resourceFeature = allFeatures.find(
@@ -423,26 +417,21 @@ export async function claimResourceTransaction(
       },
     ]
   } else if (input.externalIds !== undefined) {
-    // Pet mode (multiple): check idempotency for each
-    const existingClaims: ResourceClaim.Record[] = []
-    const newExternalIds: string[] = []
-
-    for (const externalId of input.externalIds) {
-      const existing = await selectActiveClaimByExternalId(
-        {
-          resourceId: resource.id,
-          subscriptionId: subscription.id,
-          externalId,
-        },
-        transaction
-      )
-
-      if (existing) {
-        existingClaims.push(existing)
-      } else {
-        newExternalIds.push(externalId)
-      }
-    }
+    // Pet mode (multiple): check idempotency for each in a single query
+    const existingClaims = await selectActiveClaimsByExternalIds(
+      {
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        externalIds: input.externalIds,
+      },
+      transaction
+    )
+    const existingExternalIds = new Set(
+      existingClaims.map((c) => c.externalId)
+    )
+    const newExternalIds = input.externalIds.filter(
+      (id) => !existingExternalIds.has(id)
+    )
 
     // Only create claims for new externalIds
     claimsToCreate = newExternalIds.map((externalId) => ({
@@ -615,7 +604,7 @@ export async function releaseResourceTransaction(
 
     if (cattleClaims.length < input.quantity) {
       throw new Error(
-        `Cannot release ${input.quantity} cattle claims. Only ${cattleClaims.length} anonymous claims exist. ` +
+        `Cannot release ${input.quantity} anonymous claims. Only ${cattleClaims.length} exist. ` +
           `Use claimIds to release specific claims regardless of type.`
       )
     }
@@ -640,25 +629,28 @@ export async function releaseResourceTransaction(
 
     claimsToRelease = [claim]
   } else if (input.externalIds !== undefined) {
-    // Release multiple pet claims
-    for (const externalId of input.externalIds) {
-      const claim = await selectActiveClaimByExternalId(
-        {
-          resourceId: resource.id,
-          subscriptionId: subscription.id,
-          externalId,
-        },
-        transaction
+    // Release multiple pet claims in a single query
+    const claims = await selectActiveClaimsByExternalIds(
+      {
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        externalIds: input.externalIds,
+      },
+      transaction
+    )
+
+    // Validate all were found
+    if (claims.length !== input.externalIds.length) {
+      const foundIds = new Set(claims.map((c) => c.externalId))
+      const missing = input.externalIds.find(
+        (id) => !foundIds.has(id)
       )
-
-      if (!claim) {
-        throw new Error(
-          `No active claim found with externalId "${externalId}"`
-        )
-      }
-
-      claimsToRelease.push(claim)
+      throw new Error(
+        `No active claim found with externalId "${missing}"`
+      )
     }
+
+    claimsToRelease = claims
   } else if (input.claimIds !== undefined) {
     // Release by claim IDs
     const activeClaims = await selectActiveResourceClaims(
@@ -679,15 +671,12 @@ export async function releaseResourceTransaction(
     }
   }
 
-  // 5. Release the claims
-  const releasedClaims: ResourceClaim.Record[] = []
-  for (const claim of claimsToRelease) {
-    const released = await releaseResourceClaim(
-      { id: claim.id, releaseReason: 'released' },
-      transaction
-    )
-    releasedClaims.push(released)
-  }
+  // 5. Release the claims in bulk
+  const releasedClaims = await bulkReleaseResourceClaims(
+    claimsToRelease.map((c) => c.id),
+    'released',
+    transaction
+  )
 
   // 6. Get updated usage
   const usage = await getResourceUsage(
@@ -804,15 +793,18 @@ export async function releaseAllResourceClaimsForSubscription(
     transaction
   )
 
-  // Release each claim
-  for (const claim of activeClaims) {
-    await releaseResourceClaim(
-      { id: claim.id, releaseReason: reason },
-      transaction
-    )
+  if (activeClaims.length === 0) {
+    return { releasedCount: 0 }
   }
 
-  return { releasedCount: activeClaims.length }
+  // Release all claims in bulk
+  const releasedClaims = await bulkReleaseResourceClaims(
+    activeClaims.map((c) => c.id),
+    reason,
+    transaction
+  )
+
+  return { releasedCount: releasedClaims.length }
 }
 
 /**
@@ -834,12 +826,16 @@ export async function releaseAllResourceClaimsForSubscriptionItemFeature(
     transaction
   )
 
-  for (const claim of activeClaims) {
-    await releaseResourceClaim(
-      { id: claim.id, releaseReason: reason },
-      transaction
-    )
+  if (activeClaims.length === 0) {
+    return { releasedCount: 0 }
   }
 
-  return { releasedCount: activeClaims.length }
+  // Release all claims in bulk
+  const releasedClaims = await bulkReleaseResourceClaims(
+    activeClaims.map((c) => c.id),
+    reason,
+    transaction
+  )
+
+  return { releasedCount: releasedClaims.length }
 }

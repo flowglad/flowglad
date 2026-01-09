@@ -32,6 +32,7 @@ import {
   claimResourceTransaction,
   getResourceUsage,
   releaseAllResourceClaimsForSubscription,
+  releaseAllResourceClaimsForSubscriptionItemFeature,
   releaseResourceTransaction,
   validateResourceCapacityForDowngrade,
 } from './resourceClaimHelpers'
@@ -722,6 +723,81 @@ describe('resourceClaimHelpers', () => {
           return releaseAllResourceClaimsForSubscription(
             subscription.id,
             'subscription_canceled',
+            transaction
+          )
+        }
+      )
+
+      expect(result.releasedCount).toBe(0)
+    })
+  })
+
+  describe('releaseAllResourceClaimsForSubscriptionItemFeature', () => {
+    it('releases all active claims for a subscription item feature with the given reason and returns accurate count', async () => {
+      // Create mixed claims: 2 cattle + 2 pet = 4 total
+      await adminTransaction(async ({ transaction }) => {
+        return claimResourceTransaction(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            input: {
+              resourceSlug: 'seats',
+              subscriptionId: subscription.id,
+              quantity: 2,
+            },
+          },
+          transaction
+        )
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        return claimResourceTransaction(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            input: {
+              resourceSlug: 'seats',
+              subscriptionId: subscription.id,
+              externalIds: ['feature_user_1', 'feature_user_2'],
+            },
+          },
+          transaction
+        )
+      })
+
+      // Release all claims for the subscription item feature
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return releaseAllResourceClaimsForSubscriptionItemFeature(
+            subscriptionItemFeature.id,
+            'feature_removed',
+            transaction
+          )
+        }
+      )
+
+      expect(result.releasedCount).toBe(4)
+
+      // Verify all claims are released
+      const activeClaims = await adminTransaction(
+        async ({ transaction }) => {
+          return selectActiveResourceClaims(
+            {
+              subscriptionItemFeatureId: subscriptionItemFeature.id,
+            },
+            transaction
+          )
+        }
+      )
+      expect(activeClaims.length).toBe(0)
+    })
+
+    it('when there are no active claims, returns releasedCount of 0', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return releaseAllResourceClaimsForSubscriptionItemFeature(
+            subscriptionItemFeature.id,
+            'feature_removed',
             transaction
           )
         }
