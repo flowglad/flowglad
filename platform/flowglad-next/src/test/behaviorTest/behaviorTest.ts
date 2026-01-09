@@ -17,6 +17,7 @@ import type {
   ChainStep,
   DependencyClass,
   DependencyCombination,
+  GetDepFn,
 } from './types'
 
 /**
@@ -175,6 +176,22 @@ export function behaviorTest(config: BehaviorTestConfig): void {
             combination
           )
 
+          // Create getDep function for invariants
+          // This provides access to dependency instances without exposing variant names,
+          // preventing conditional assertions like `if (combination.CountryDep === 'us')`
+          const getDep: GetDepFn = <T extends DependencyClass>(
+            depClass: T
+          ): InstanceType<T> => {
+            const implName = combination[depClass.name]
+            if (!implName) {
+              throw new Error(
+                `Dependency ${depClass.name} not found in this behavior chain. ` +
+                  `Available: ${Object.keys(combination).join(', ')}`
+              )
+            }
+            return getImplementation(depClass, implName)
+          }
+
           // Run through the chain
           let prev: unknown = undefined
           let hasResult = false
@@ -193,7 +210,7 @@ export function behaviorTest(config: BehaviorTestConfig): void {
 
               // Assert invariants if provided
               if (step.invariants) {
-                await step.invariants(result, combination)
+                await step.invariants(result, getDep)
               }
             }
           } finally {

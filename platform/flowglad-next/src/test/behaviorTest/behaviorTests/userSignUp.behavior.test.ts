@@ -236,11 +236,11 @@ behaviorTest({
       behavior: createOrganizationBehavior,
       invariants: async (
         result: CreateOrganizationResult,
-        combination
+        getDep
       ) => {
         await commonOrgInvariants(result)
 
-        const countryDep = CountryDep.get(combination.CountryDep)
+        const countryDep = getDep(CountryDep)
 
         // Platform organizations use their country's currency
         expect(result.organization.defaultCurrency).toBe(

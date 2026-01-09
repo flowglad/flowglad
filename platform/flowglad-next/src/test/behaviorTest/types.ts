@@ -31,8 +31,27 @@ export type DependencyClass<T = any> = abstract new (
  * A combination represents one specific set of implementation choices.
  * Maps dependency class names to implementation names.
  * Example: { ResidencyDep: 'us', OrgTypeDep: 'standard' }
+ *
+ * Note: This type is internal to the framework. Invariants receive a
+ * GetDepFn instead to prevent conditional assertions based on variant names.
  */
 export type DependencyCombination = Record<string, string>
+
+/**
+ * Function to retrieve a dependency instance by its class.
+ * Used in invariants to access dependency data without exposing variant names.
+ *
+ * @example
+ * ```typescript
+ * invariants: async (result, getDep) => {
+ *   const countryDep = getDep(CountryDep)
+ *   expect(result.currency).toBe(countryDep.expectedCurrency)
+ * }
+ * ```
+ */
+export type GetDepFn = <T extends DependencyClass>(
+  depClass: T
+) => InstanceType<T>
 
 /**
  * Resolved dependencies passed to behavior run function.
@@ -75,10 +94,24 @@ export interface ChainStep<
   /** The behavior to run */
   behavior: BehaviorDefinition<TDeps, TResult, TPrev>
 
-  /** Universal invariants that must hold for ALL dependency combinations */
+  /**
+   * Universal invariants that must hold for ALL dependency combinations.
+   *
+   * @param result - The result returned by the behavior's run function
+   * @param getDep - Function to retrieve dependency instances by class.
+   *                 Use this to access dependency data for assertions.
+   *
+   * @example
+   * ```typescript
+   * invariants: async (result, getDep) => {
+   *   const countryDep = getDep(CountryDep)
+   *   expect(result.currency).toBe(countryDep.expectedCurrency)
+   * }
+   * ```
+   */
   invariants?: (
     result: TResult,
-    combination: DependencyCombination
+    getDep: GetDepFn
   ) => void | Promise<void>
 }
 
