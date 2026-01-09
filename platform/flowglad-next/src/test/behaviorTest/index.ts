@@ -89,6 +89,7 @@ export type {
   DependencyClass,
   DependencyCombination,
   DependencyFactory,
+  DescribeFunction,
   ResolvedDependencies,
   TeardownFn,
 } from './types'

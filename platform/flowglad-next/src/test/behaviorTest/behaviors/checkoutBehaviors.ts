@@ -30,13 +30,18 @@
 
 import { adminTransaction } from '@/db/adminTransaction'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { Discount } from '@/db/schema/discounts'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import type { BillingAddress } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import { nulledPriceColumns } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
-import { insertCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import {
+  insertCheckoutSession,
+  updateCheckoutSession,
+} from '@/db/tableMethods/checkoutSessionMethods'
 import { insertCustomer } from '@/db/tableMethods/customerMethods'
+import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { insertPrice } from '@/db/tableMethods/priceMethods'
 import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
@@ -50,6 +55,7 @@ import {
 import { editCheckoutSessionBillingAddress } from '@/utils/bookkeeping/checkoutSessions'
 import core from '@/utils/core'
 import { CustomerResidencyDep } from '../dependencies/customerResidencyDependencies'
+import { DiscountDep } from '../dependencies/discountDependencies'
 import { defineBehavior } from '../index'
 import type { CompleteStripeOnboardingResult } from './stripeOnboardingBehaviors'
 
@@ -85,6 +91,20 @@ export interface InitiateCheckoutSessionResult
 }
 
 /**
+ * Result of applying a discount to checkout.
+ *
+ * Extends initiated checkout session with an optional discount.
+ * If DiscountDep is 'none', discount will be null.
+ */
+export interface ApplyDiscountResult
+  extends InitiateCheckoutSessionResult {
+  /** The discount that was applied, or null if no discount */
+  discount: Discount.Record | null
+  /** The checkout session with discount linked */
+  checkoutSessionWithDiscount: CheckoutSession.Record
+}
+
+/**
  * Result of providing a billing address.
  *
  * This is the key result that differs between MoR and Platform:
@@ -92,7 +112,7 @@ export interface InitiateCheckoutSessionResult
  * - Platform: feeCalculation is null
  */
 export interface ProvideBillingAddressResult
-  extends InitiateCheckoutSessionResult {
+  extends ApplyDiscountResult {
   /** The checkout session with billing address set */
   updatedCheckoutSession: CheckoutSession.Record
   /** Fee calculation (MoR only, null for Platform) */
@@ -282,6 +302,85 @@ export const initiateCheckoutSessionBehavior = defineBehavior({
 })
 
 /**
+ * Apply Discount Behavior
+ *
+ * Represents the customer entering a discount code during checkout.
+ *
+ * ## Real-World Flow
+ *
+ * In production, this happens when the customer enters a promo code
+ * in the checkout UI. The code is validated and the discount is linked
+ * to the checkout session.
+ *
+ * ## Impact on Fee Calculation
+ *
+ * The discount affects fee calculation for MoR organizations:
+ * - `discountAmountFixed` is set based on discount type and amount
+ * - `pretaxTotal` = baseAmount - discountAmountFixed
+ * - Tax is calculated on the pretaxTotal (post-discount amount)
+ *
+ * ## Postconditions
+ *
+ * - If DiscountDep has a discount:
+ *   - Discount record is created for the organization
+ *   - Checkout session `discountId` is set
+ * - If DiscountDep is 'none':
+ *   - No discount record is created
+ *   - Checkout session `discountId` remains null
+ */
+export const applyDiscountBehavior = defineBehavior({
+  name: 'apply discount',
+  dependencies: [DiscountDep],
+  run: async (
+    { discountDep },
+    prev: InitiateCheckoutSessionResult
+  ): Promise<ApplyDiscountResult> => {
+    const { discountInsert } = discountDep
+
+    // If no discount, just pass through
+    if (!discountInsert) {
+      return {
+        ...prev,
+        discount: null,
+        checkoutSessionWithDiscount: prev.checkoutSession,
+      }
+    }
+
+    // Create the discount and link it to the checkout session
+    const result = await adminTransaction(async ({ transaction }) => {
+      // Create discount for this organization
+      const discount = await insertDiscount(
+        {
+          ...discountInsert,
+          organizationId: prev.organization.id,
+          livemode: true,
+        },
+        transaction
+      )
+
+      // Update checkout session with discount
+      const checkoutSessionWithDiscount = await updateCheckoutSession(
+        {
+          ...prev.checkoutSession,
+          discountId: discount.id,
+        },
+        transaction
+      )
+
+      return {
+        discount,
+        checkoutSessionWithDiscount,
+      }
+    })
+
+    return {
+      ...prev,
+      ...result,
+    }
+  },
+})
+
+/**
  * Provide Billing Address Behavior
  *
  * Represents the customer entering their billing address during checkout.
@@ -320,9 +419,12 @@ export const provideBillingAddressBehavior = defineBehavior({
   dependencies: [CustomerResidencyDep],
   run: async (
     { customerResidencyDep },
-    prev: InitiateCheckoutSessionResult
+    prev: ApplyDiscountResult
   ): Promise<ProvideBillingAddressResult> => {
     const billingAddress = customerResidencyDep.billingAddress
+
+    // Use the checkout session with discount (if any)
+    const checkoutSessionId = prev.checkoutSessionWithDiscount.id
 
     const result = await adminTransaction(async ({ transaction }) => {
       const {
@@ -330,7 +432,7 @@ export const provideBillingAddressBehavior = defineBehavior({
         feeCalculation,
       } = await editCheckoutSessionBillingAddress(
         {
-          checkoutSessionId: prev.checkoutSession.id,
+          checkoutSessionId,
           billingAddress,
         },
         transaction

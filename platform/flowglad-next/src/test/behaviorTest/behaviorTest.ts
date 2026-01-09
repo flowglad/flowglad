@@ -102,7 +102,15 @@ function instantiateDependencies(
  * ```
  */
 export function behaviorTest(config: BehaviorTestConfig): void {
-  const { chain, testOptions, only, skip, teardown } = config
+  const {
+    chain,
+    testOptions,
+    only,
+    skip,
+    teardown,
+    describeFunction,
+  } = config
+  const describeBlock = describeFunction ?? describe
 
   if (chain.length === 0) {
     throw new Error(
@@ -147,7 +155,7 @@ export function behaviorTest(config: BehaviorTestConfig): void {
   // Track final results from each test for teardown
   const finalResults: unknown[] = []
 
-  describe(`Behavior: ${behaviorNames}`, () => {
+  describeBlock(`Behavior: ${behaviorNames}`, () => {
     // Register teardown hook if provided
     if (teardown) {
       afterAll(async () => {
