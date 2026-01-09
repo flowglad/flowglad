@@ -17,6 +17,10 @@ import {
   onConflictDoUpdateSetValues,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '../types'
+import {
+  derivePricingModelIdFromCustomer,
+  pricingModelIdsForCustomers,
+} from './customerMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof paymentMethods,
@@ -35,10 +39,30 @@ export const selectPaymentMethodById = createSelectById(
   config
 )
 
-export const dangerouslyInsertPaymentMethod = createInsertFunction(
+const baseDangerouslyInsertPaymentMethod = createInsertFunction(
   paymentMethods,
   config
 )
+
+export const dangerouslyInsertPaymentMethod = async (
+  insertData: PaymentMethod.Insert,
+  transaction: DbTransaction
+): Promise<PaymentMethod.Record> => {
+  // Honor provided pricingModelId, otherwise derive from customer
+  const pricingModelId =
+    insertData.pricingModelId ??
+    (await derivePricingModelIdFromCustomer(
+      insertData.customerId,
+      transaction
+    ))
+  return baseDangerouslyInsertPaymentMethod(
+    {
+      ...insertData,
+      pricingModelId,
+    },
+    transaction
+  )
+}
 
 export const updatePaymentMethod = createUpdateFunction(
   paymentMethods,
@@ -103,9 +127,40 @@ export const bulkInsertOrDoNothingPaymentMethodsByExternalId = async (
   inserts: PaymentMethod.Insert[],
   transaction: DbTransaction
 ) => {
+  // Collect unique customerIds that need pricingModelId derivation
+  const customerIdsNeedingDerivation = Array.from(
+    new Set(
+      inserts
+        .filter((insert) => !insert.pricingModelId)
+        .map((insert) => insert.customerId)
+    )
+  )
+
+  // Batch fetch pricing model IDs for customers that need it
+  const pricingModelIdMap = await pricingModelIdsForCustomers(
+    customerIdsNeedingDerivation,
+    transaction
+  )
+
+  const insertsWithPricingModelId = inserts.map((insert) => {
+    // Honor provided pricingModelId, otherwise get from batch-fetched map
+    const pricingModelId =
+      insert.pricingModelId ??
+      pricingModelIdMap.get(insert.customerId)
+    if (!pricingModelId) {
+      throw new Error(
+        `Customer ${insert.customerId} does not have a pricingModelId`
+      )
+    }
+    return {
+      ...insert,
+      pricingModelId,
+    }
+  })
+
   return bulkInsertOrDoNothingPaymentMethods(
-    inserts,
-    [paymentMethods.externalId],
+    insertsWithPricingModelId,
+    [paymentMethods.externalId, paymentMethods.pricingModelId],
     transaction
   )
 }
@@ -114,18 +169,53 @@ export const bulkUpsertPaymentMethodsByExternalId = async (
   inserts: PaymentMethod.Insert[],
   transaction: DbTransaction
 ) => {
-  const parsedData = inserts.map((insert) => {
+  // Collect unique customerIds that need pricingModelId derivation
+  const customerIdsNeedingDerivation = Array.from(
+    new Set(
+      inserts
+        .filter((insert) => !insert.pricingModelId)
+        .map((insert) => insert.customerId)
+    )
+  )
+
+  // Batch fetch pricing model IDs for customers that need it
+  const pricingModelIdMap = await pricingModelIdsForCustomers(
+    customerIdsNeedingDerivation,
+    transaction
+  )
+
+  const insertsWithPricingModelId = inserts.map((insert) => {
+    // Honor provided pricingModelId, otherwise get from batch-fetched map
+    const pricingModelId =
+      insert.pricingModelId ??
+      pricingModelIdMap.get(insert.customerId)
+    if (!pricingModelId) {
+      throw new Error(
+        `Customer ${insert.customerId} does not have a pricingModelId`
+      )
+    }
+    return {
+      ...insert,
+      pricingModelId,
+    }
+  })
+
+  const parsedData = insertsWithPricingModelId.map((insert) => {
     const result = config.insertSchema.safeParse(insert)
     if (!result.success) {
       throw new Error(result.error.message)
     }
     return result.data
   })
+
   await transaction
     .insert(paymentMethods)
     .values(parsedData)
     .onConflictDoUpdate({
-      target: [paymentMethods.externalId],
+      target: [
+        paymentMethods.externalId,
+        paymentMethods.pricingModelId,
+      ],
       set: onConflictDoUpdateSetValues(paymentMethods, [
         'billing_details',
       ]),
