@@ -21,7 +21,6 @@
     "clean": "bunx turbo run clean",
     "changeset:empty": "bunx changeset --empty",
     "prebuild": "bun run build:declarations",
-    "preinstall": "bunx --bun only-allow bun",
     "build": "bunx turbo run build --filter=!@flowglad/playground-*",
     "build:declarations": "bunx turbo run build:declarations",
     "packages:changeset": "changeset",
