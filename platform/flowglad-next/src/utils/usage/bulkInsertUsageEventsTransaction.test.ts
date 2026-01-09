@@ -432,7 +432,9 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Create a billing period for the subscription
       const now = new Date()
       const billingPeriodEndDate = new Date(now)
-      billingPeriodEndDate.setDate(billingPeriodEndDate.getDate() + 30)
+      billingPeriodEndDate.setDate(
+        billingPeriodEndDate.getDate() + 30
+      )
       await adminTransaction(async ({ transaction }) =>
         setupBillingPeriod({
           subscriptionId: subWithBillingPeriod.id,
