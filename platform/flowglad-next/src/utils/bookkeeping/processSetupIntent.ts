@@ -391,7 +391,12 @@ interface ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult {
 interface SetupIntentSucceededBookkeepingResult {
   checkoutSession: CheckoutSession.Record
   price: Price.Record
-  product: Product.Record
+  /**
+   * Product may be null for usage prices, but checkout sessions
+   * for subscription creation always require a product.
+   * The null case should be validated at runtime.
+   */
+  product: Product.Record | null
   purchase: Purchase.Record
   organization: Organization.Record
   customer: Customer.Record
@@ -769,6 +774,13 @@ export const processSetupIntentSucceeded = async (
     if (!priceResult[0]) {
       throw new Error(
         `processSetupIntentSucceeded: Price not found for subscription (price id: ${subscription.priceId}, checkout session id: ${checkoutSession.id})`
+      )
+    }
+
+    // Validate that product exists - subscription creation requires a product
+    if (!priceResult[0].product) {
+      throw new Error(
+        `processSetupIntentSucceeded: Product not found for subscription (price id: ${subscription.priceId}, checkout session id: ${checkoutSession.id}). Usage prices are not supported for subscription checkout sessions.`
       )
     }
 

@@ -236,6 +236,13 @@ export const createCheckoutSessionTransaction = async (
     product = result.product
     organization = result.organization
 
+    // Product checkout requires a product - usage prices (with null product) are not supported here
+    if (!product) {
+      throw new Error(
+        'Checkout sessions are only supported for product prices (subscription/single payment), not usage prices'
+      )
+    }
+
     if (product.default) {
       throw new Error(
         'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'

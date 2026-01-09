@@ -411,6 +411,8 @@ describe('confirmCheckoutSessionTransaction', () => {
             throw new Error(
               'No default price found for pricing model'
             )
+          if (!match.product)
+            throw new Error('Product not found for default price')
           return match.product.id
         }
       )

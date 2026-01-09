@@ -15,6 +15,7 @@ import {
   pricesClientSelectSchema,
   pricesInsertSchema,
   pricesSelectSchema,
+  pricesTableRowDataSchema,
   pricesUpdateSchema,
 } from '@/db/schema/prices'
 import {
@@ -218,22 +219,32 @@ export const insertPrice = async (
 
 export const updatePrice = createUpdateFunction(prices, config)
 
+/**
+ * Selects prices and products for an organization.
+ * Uses innerJoin to only include prices that have an associated product.
+ * Filters by pricingModel's organizationId.
+ */
 export const selectPricesAndProductsForOrganization = async (
   whereConditions: Partial<Price.Record>,
   organizationId: string,
   transaction: DbTransaction
-) => {
+): Promise<{ price: Price.Record; product: Product.Record }[]> => {
   let query = transaction
     .select({
       price: prices,
       product: products,
     })
     .from(prices)
+    // innerJoin: all callers only want product-attached prices
     .innerJoin(products, eq(products.id, prices.productId))
+    .innerJoin(
+      pricingModels,
+      eq(prices.pricingModelId, pricingModels.id)
+    )
     .$dynamic()
 
   const whereClauses: SQLWrapper[] = [
-    eq(products.organizationId, organizationId),
+    eq(pricingModels.organizationId, organizationId),
   ]
   if (Object.keys(whereConditions).length > 0) {
     const whereClause = whereClauseFromObject(prices, whereConditions)
@@ -250,12 +261,23 @@ export const selectPricesAndProductsForOrganization = async (
   }))
 }
 
+/**
+ * Selects prices, products, and pricing models for an organization.
+ * Uses innerJoin for products to only include prices that have an associated product.
+ * Filters by pricingModel's organizationId.
+ */
 export const selectPricesProductsAndPricingModelsForOrganization =
   async (
     whereConditions: Partial<Price.Record>,
     organizationId: string,
     transaction: DbTransaction
-  ) => {
+  ): Promise<
+    {
+      price: Price.Record
+      product: Product.Record
+      pricingModel: z.infer<typeof pricingModelsSelectSchema>
+    }[]
+  > => {
     let query = transaction
       .select({
         price: prices,
@@ -263,15 +285,16 @@ export const selectPricesProductsAndPricingModelsForOrganization =
         pricingModel: pricingModels,
       })
       .from(prices)
+      // innerJoin: all callers only want product-attached prices
       .innerJoin(products, eq(products.id, prices.productId))
-      .leftJoin(
+      .innerJoin(
         pricingModels,
-        eq(products.pricingModelId, pricingModels.id)
+        eq(prices.pricingModelId, pricingModels.id)
       )
       .$dynamic()
 
     const whereClauses: SQLWrapper[] = [
-      eq(products.organizationId, organizationId),
+      eq(pricingModels.organizationId, organizationId),
     ]
     if (Object.keys(whereConditions).length > 0) {
       const whereClause = whereClauseFromObject(
@@ -413,7 +436,10 @@ export const selectPricesAndProductByProductId = async (
 export const selectDefaultPriceAndProductByProductId = async (
   productId: string,
   transaction: DbTransaction
-) => {
+): Promise<{
+  defaultPrice: Price.ClientRecord
+  product: Omit<ProductWithPrices, 'prices'>
+}> => {
   const { prices, ...product } =
     await selectPricesAndProductByProductId(productId, transaction)
 
@@ -429,10 +455,21 @@ export const selectDefaultPriceAndProductByProductId = async (
   }
 }
 
+/**
+ * Selects price, product, and organization by price where conditions.
+ * Uses innerJoin for products: all callers either throw for usage prices or don't use product.
+ * Gets organization via pricingModel to ensure consistent organization lookup.
+ */
 export const selectPriceProductAndOrganizationByPriceWhere = async (
   whereConditions: Price.Where,
   transaction: DbTransaction
-) => {
+): Promise<
+  {
+    price: Price.Record
+    product: Product.Record
+    organization: z.infer<typeof organizationsSelectSchema>
+  }[]
+> => {
   let query = transaction
     .select({
       price: prices,
@@ -440,10 +477,15 @@ export const selectPriceProductAndOrganizationByPriceWhere = async (
       organization: organizations,
     })
     .from(prices)
+    // innerJoin: all callers either throw for usage prices or don't use product
     .innerJoin(products, eq(products.id, prices.productId))
     .innerJoin(
+      pricingModels,
+      eq(prices.pricingModelId, pricingModels.id)
+    )
+    .innerJoin(
       organizations,
-      eq(products.organizationId, organizations.id)
+      eq(pricingModels.organizationId, organizations.id)
     )
     .$dynamic()
 
@@ -608,21 +650,17 @@ export const selectPricesPaginated = createPaginatedSelectFunction(
   config
 )
 
-export const pricesTableRowOutputSchema = z.object({
-  price: pricesClientSelectSchema,
-  product: z
-    .object({
-      id: z.string(),
-      name: z.string(),
-    })
-    .nullable(),
-})
+/**
+ * Re-export pricesTableRowDataSchema for backwards compatibility.
+ * The canonical schema is defined in @/db/schema/prices.
+ */
+export const pricesTableRowOutputSchema = pricesTableRowDataSchema
 
 export const selectPricesTableRowData =
   createCursorPaginatedSelectFunction(
     prices,
     config,
-    pricesTableRowOutputSchema,
+    pricesTableRowDataSchema,
     async (
       priceRecords: Price.Record[],
       transaction: DbTransaction
@@ -642,27 +680,16 @@ export const selectPricesTableRowData =
         ])
       )
 
-      return priceRecords.map((price) => {
-        if (Price.hasProductId(price)) {
-          const product = productsById.get(price.productId)
-          if (!product) {
-            throw new Error(
-              `Product not found for price ${price.id} (productId: ${price.productId})`
-            )
-          }
-          return {
-            price,
-            product: {
-              id: product.id,
-              name: product.name,
-            },
-          }
-        }
-        return {
-          price,
-          product: null,
-        }
-      })
+      return priceRecords.map((price) => ({
+        price,
+        // Return null for usage prices that don't have a productId
+        product: Price.hasProductId(price)
+          ? {
+              id: productsById.get(price.productId)!.id,
+              name: productsById.get(price.productId)!.name,
+            }
+          : null,
+      }))
     },
     // Searchable columns for ILIKE search on name and slug
     [prices.name, prices.slug],
