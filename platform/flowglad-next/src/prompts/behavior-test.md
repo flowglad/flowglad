@@ -372,11 +372,8 @@ Before implementing, clarify:
 
 ## Your Task
 
-I need you to create a behavior test for the following user experience area:
+The user will describe a user experience area or flow immediately after this prompt. Based on their description:
 
-**[DESCRIBE THE USER FLOW/FEATURE AREA HERE]**
-
-Please:
 1. Ask clarifying questions if any part of the flow is unclear
 2. Identify the behaviors (steps) in the chain
 3. Identify dependencies (what configurations should be tested)
