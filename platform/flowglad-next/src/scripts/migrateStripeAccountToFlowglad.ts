@@ -82,6 +82,7 @@ interface CoreStripeMigrationParams {
   stripeAccountId: string
   stripeClient: Stripe
   db: PostgresJsDatabase
+  pricingModelId: string
 }
 
 /**
@@ -98,6 +99,7 @@ const migrateStripeCustomerDataToFlowglad = async (
     stripeAccountId,
     stripeClient,
     db,
+    pricingModelId,
   } = migrationParams
   const stripeCustomers: Stripe.Customer[] =
     await getAllStripeRecords((params) =>
@@ -113,6 +115,7 @@ const migrateStripeCustomerDataToFlowglad = async (
           stripeCustomerToCustomerInsert(customer, {
             livemode: true,
             organizationId: flowgladOrganizationId,
+            pricingModelId,
           })
       )
 
@@ -173,6 +176,7 @@ const migrateStripeCustomerDataToFlowglad = async (
             {
               livemode: true,
               organizationId: flowgladOrganizationId,
+              pricingModelId,
             }
           )
         )
@@ -217,6 +221,7 @@ const migrateStripeSubscriptionDataToFlowglad = async (
     stripeAccountId,
     stripeClient,
     db,
+    pricingModelId,
   } = migrationParams
   const stripeSubscriptions: Stripe.Subscription[] =
     await getAllStripeRecords((params) =>
@@ -295,6 +300,7 @@ const migrateStripeSubscriptionDataToFlowglad = async (
             {
               livemode: true,
               organizationId: flowgladOrganizationId,
+              pricingModelId,
             },
             stripeClient
           )
@@ -365,6 +371,7 @@ const migrateStripeSubscriptionDataToFlowglad = async (
             {
               livemode: true,
               organizationId: flowgladOrganizationId,
+              pricingModelId,
             }
           )
         })
@@ -470,6 +477,7 @@ const migrateStripeCatalogDataToFlowglad = async (
       stripeProductToProductInsert(product, defaultCatalog, {
         livemode: true,
         organizationId: migrationParams.flowgladOrganizationId,
+        pricingModelId: defaultCatalog.id,
       })
     )
     await bulkInsertOrDoNothingProductsByExternalId(
@@ -497,6 +505,7 @@ const migrateStripeCatalogDataToFlowglad = async (
         {
           livemode: true,
           organizationId: migrationParams.flowgladOrganizationId,
+          pricingModelId: defaultCatalog.id,
         }
       )
     )
@@ -535,8 +544,8 @@ async function migrateStripeAccountToFlowglad(
   const stripeAccountId = connectedAccountIdArg.split('=')[1]
   const stripeClient = stripe(true)
 
-  const { flowgladOrganizationId } = await db.transaction(
-    async (transaction) => {
+  const { flowgladOrganizationId, pricingModelId } =
+    await db.transaction(async (transaction) => {
       const [organization] = await selectOrganizations(
         {
           stripeAccountId,
@@ -547,16 +556,28 @@ async function migrateStripeAccountToFlowglad(
         console.error('Error: organization not found')
         process.exit(1)
       }
+      const defaultPricingModel = await selectDefaultPricingModel(
+        {
+          organizationId: organization.id,
+          livemode: true,
+        },
+        transaction
+      )
+      if (!defaultPricingModel) {
+        console.error('Error: default pricingModel not found')
+        process.exit(1)
+      }
       return {
         flowgladOrganizationId: organization.id,
+        pricingModelId: defaultPricingModel.id,
       }
-    }
-  )
+    })
   const migrationParams = {
     db,
     stripeClient,
     flowgladOrganizationId,
     stripeAccountId,
+    pricingModelId,
   }
   // await migrateStripeCatalogDataToFlowglad(migrationParams)
   // await migrateStripeCustomerDataToFlowglad(migrationParams)

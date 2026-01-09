@@ -23,6 +23,7 @@ import {
 interface CoreMigrationParams {
   organizationId: string
   livemode: boolean
+  pricingModelId: string
 }
 
 export const stripeCustomerToCustomerInsert = (
@@ -36,6 +37,7 @@ export const stripeCustomerToCustomerInsert = (
     livemode: stripeCustomer.livemode,
     email: stripeCustomer.email!,
     externalId: stripeCustomer.id,
+    pricingModelId: params.pricingModelId,
     billingAddress: stripeCustomer.address
       ? ({
           name: stripeCustomer.name ?? stripeCustomer.email ?? '',

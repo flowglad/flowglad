@@ -236,7 +236,9 @@ export const createFreePlanPriceInsert = (
 }
 export const createCustomerBookkeeping = async (
   payload: {
-    customer: Omit<Customer.Insert, 'livemode'>
+    customer: Omit<Customer.Insert, 'livemode' | 'pricingModelId'> & {
+      pricingModelId?: string
+    }
   },
   {
     transaction,

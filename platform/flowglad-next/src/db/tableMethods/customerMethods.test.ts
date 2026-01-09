@@ -553,14 +553,18 @@ describe('setUserIdForCustomerRecords', () => {
 describe('Customer uniqueness constraints', () => {
   let organization1: Organization.Record
   let organization2: Organization.Record
+  let pricingModel1Id: string
+  let pricingModel2Id: string
 
   beforeEach(async () => {
     // Set up two organizations for testing cross-org scenarios
     const org1Data = await setupOrg()
     organization1 = org1Data.organization
+    pricingModel1Id = org1Data.pricingModel.id
 
     const org2Data = await setupOrg()
     organization2 = org2Data.organization
+    pricingModel2Id = org2Data.pricingModel.id
   })
 
   describe('organizationId/externalId/livemode uniqueness constraint', () => {
@@ -646,6 +650,7 @@ describe('Customer uniqueness constraints', () => {
               email: `customer2_${core.nanoid()}@test.com`,
               name: 'Duplicate Customer',
               livemode: true,
+              pricingModelId: pricingModel1Id,
             },
             transaction
           )
@@ -786,6 +791,7 @@ describe('Customer uniqueness constraints', () => {
               email: `customer1_${core.nanoid()}@test.com`,
               name: 'Customer 1',
               livemode: true,
+              pricingModelId: pricingModel1Id,
             },
             transaction
           )
@@ -825,6 +831,7 @@ describe('Customer uniqueness constraints', () => {
               email: `customer_${core.nanoid()}@test.com`,
               name: 'Customer without externalId',
               livemode: true,
+              pricingModelId: pricingModel1Id,
             },
             transaction
           )
@@ -866,6 +873,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer 1',
               invoiceNumberBase: sharedInvoiceBase,
               livemode: true,
+              pricingModelId: pricingModel1Id,
             },
             transaction
           )
@@ -883,6 +891,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer 2',
               invoiceNumberBase: sharedInvoiceBase,
               livemode: true,
+              pricingModelId: pricingModel2Id,
             },
             transaction
           )
@@ -901,6 +910,8 @@ describe('Customer uniqueness constraints', () => {
 
     it('should allow customers with the same invoiceNumberBase in same organization but different livemode', async () => {
       const sharedInvoiceBase = `INV${core.nanoid().slice(0, 6)}`
+      // Get testmode pricing model for this test
+      const { testmodePricingModel } = await setupOrg()
 
       // Create customer with livemode=true
       const customerLive = await adminTransaction(
@@ -913,6 +924,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer Live',
               invoiceNumberBase: sharedInvoiceBase,
               livemode: true,
+              pricingModelId: pricingModel1Id,
             },
             transaction
           )
@@ -930,6 +942,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer Test',
               invoiceNumberBase: sharedInvoiceBase,
               livemode: false,
+              pricingModelId: testmodePricingModel.id,
             },
             transaction
           )
@@ -959,6 +972,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer 1',
               invoiceNumberBase: duplicateInvoiceBase,
               livemode: true,
+              pricingModelId: pricingModel1Id,
             },
             transaction
           )
@@ -979,6 +993,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer 2',
               invoiceNumberBase: duplicateInvoiceBase,
               livemode: true,
+              pricingModelId: pricingModel1Id,
             },
             transaction
           )
@@ -1040,6 +1055,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer 1',
               stripeCustomerId: stripeCustomerId,
               livemode: true,
+              pricingModelId: pricingModel1Id,
             },
             transaction
           )
@@ -1060,6 +1076,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer 2',
               stripeCustomerId: stripeCustomerId, // Same Stripe ID
               livemode: true,
+              pricingModelId: pricingModel2Id,
             },
             transaction
           )
@@ -1069,6 +1086,8 @@ describe('Customer uniqueness constraints', () => {
 
     it('should enforce global uniqueness for stripeCustomerId across livemode values', async () => {
       const stripeCustomerId = `cus_${core.nanoid()}`
+      // Get testmode pricing model for this test
+      const { testmodePricingModel } = await setupOrg()
 
       // Create customer with stripeCustomerId with livemode=true
       const customer1 = await adminTransaction(
@@ -1081,6 +1100,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer 1',
               stripeCustomerId: stripeCustomerId,
               livemode: true,
+              pricingModelId: pricingModel1Id,
             },
             transaction
           )
@@ -1101,6 +1121,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer 2',
               stripeCustomerId: stripeCustomerId, // Same Stripe ID
               livemode: false, // Different livemode
+              pricingModelId: testmodePricingModel.id,
             },
             transaction
           )
@@ -1109,6 +1130,8 @@ describe('Customer uniqueness constraints', () => {
     })
 
     it('should allow multiple customers with different stripeCustomerIds', async () => {
+      // Get testmode pricing model for this test
+      const { testmodePricingModel } = await setupOrg()
       // Create three customers with different stripeCustomerIds
       const customer1 = await adminTransaction(
         async ({ transaction }) => {
@@ -1120,6 +1143,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer 1',
               stripeCustomerId: `cus_${core.nanoid()}`,
               livemode: true,
+              pricingModelId: pricingModel1Id,
             },
             transaction
           )
@@ -1136,6 +1160,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer 2',
               stripeCustomerId: `cus_${core.nanoid()}`,
               livemode: false,
+              pricingModelId: testmodePricingModel.id,
             },
             transaction
           )
@@ -1152,6 +1177,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer 3',
               stripeCustomerId: `cus_${core.nanoid()}`,
               livemode: true,
+              pricingModelId: pricingModel1Id,
             },
             transaction
           )
@@ -1176,6 +1202,8 @@ describe('Customer uniqueness constraints', () => {
     })
 
     it('should allow null stripeCustomerId values', async () => {
+      // Get testmode pricing model for this test
+      const { testmodePricingModel } = await setupOrg()
       // Create multiple customers without stripeCustomerId - use insertCustomer directly
       const customer1 = await adminTransaction(
         async ({ transaction }) => {
@@ -1186,6 +1214,7 @@ describe('Customer uniqueness constraints', () => {
               email: `customer1_${core.nanoid()}@test.com`,
               name: 'Customer 1',
               livemode: true,
+              pricingModelId: pricingModel1Id,
               // Explicitly not including stripeCustomerId to get null
             },
             transaction
@@ -1202,6 +1231,7 @@ describe('Customer uniqueness constraints', () => {
               email: `customer2_${core.nanoid()}@test.com`,
               name: 'Customer 2',
               livemode: true,
+              pricingModelId: pricingModel1Id,
               // Explicitly not including stripeCustomerId to get null
             },
             transaction
@@ -1218,6 +1248,7 @@ describe('Customer uniqueness constraints', () => {
               email: `customer3_${core.nanoid()}@test.com`,
               name: 'Customer 3',
               livemode: false,
+              pricingModelId: testmodePricingModel.id,
               // Explicitly not including stripeCustomerId to get null
             },
             transaction
@@ -1249,6 +1280,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer 1',
               stripeCustomerId: stripeId1,
               livemode: true,
+              pricingModelId: pricingModel1Id,
             },
             transaction
           )
@@ -1265,6 +1297,7 @@ describe('Customer uniqueness constraints', () => {
               name: 'Customer 2',
               stripeCustomerId: stripeId2,
               livemode: true,
+              pricingModelId: pricingModel2Id,
             },
             transaction
           )

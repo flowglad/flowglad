@@ -205,7 +205,10 @@ export const bulkUpsertPaymentMethodsByExternalId = async (
     if (!result.success) {
       throw new Error(result.error.message)
     }
-    return result.data
+    // pricingModelId is guaranteed to be set from insertsWithPricingModelId
+    return result.data as PaymentMethod.Insert & {
+      pricingModelId: string
+    }
   })
 
   await transaction

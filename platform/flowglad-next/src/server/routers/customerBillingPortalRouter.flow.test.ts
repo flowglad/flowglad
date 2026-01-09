@@ -740,6 +740,7 @@ describe('Customer Billing Portal Router', () => {
             stripeCustomerId: null, // No Stripe customer ID
             invoiceNumberBase: core.nanoid(),
             userId: userWithoutStripeCustomer.id,
+            pricingModelId: pricingModel.id,
           },
           transaction
         )

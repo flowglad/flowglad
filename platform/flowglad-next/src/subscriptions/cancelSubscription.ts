@@ -18,7 +18,6 @@ import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
-import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import {
   expireSubscriptionItems,
   selectSubscriptionItems,
@@ -101,26 +100,7 @@ export const reassignDefaultSubscription = async (
       transaction
     )
 
-    let pricingModelId = customer.pricingModelId
-
-    if (!pricingModelId) {
-      const defaultPricingModel = await selectDefaultPricingModel(
-        {
-          organizationId: organization.id,
-          livemode: canceledSubscription.livemode,
-        },
-        transaction
-      )
-
-      pricingModelId = defaultPricingModel?.id ?? null
-    }
-
-    if (!pricingModelId) {
-      console.warn(
-        `reassignDefaultSubscription: no pricing model found for customer ${customer.id}`
-      )
-      return
-    }
+    const pricingModelId = customer.pricingModelId
 
     const [defaultProduct] =
       await selectPricesAndProductsByProductWhere(

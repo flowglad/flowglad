@@ -279,7 +279,7 @@ const createTestCustomerRecord = (
     billingAddress: null,
     externalId: `ext_${core.nanoid()}`,
     userId: null,
-    pricingModelId: null,
+    pricingModelId: `pricing_model_${core.nanoid()}`,
     stackAuthHostedBillingUserId: null,
     livemode: false,
     ...overrides,
@@ -470,7 +470,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         billingAddress: null,
         externalId: `ext_${core.nanoid()}`,
         userId: null,
-        pricingModelId: null,
+        pricingModelId: `pricing_model_${core.nanoid()}`,
         stackAuthHostedBillingUserId: null,
         livemode: false,
       }
@@ -504,7 +504,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         billingAddress: null,
         externalId: `ext_${core.nanoid()}`,
         userId: null,
-        pricingModelId: null,
+        pricingModelId: `pricing_model_${core.nanoid()}`,
         stackAuthHostedBillingUserId: null,
         livemode: false,
       }
