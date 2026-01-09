@@ -86,7 +86,13 @@ export function getTtlForNamespace(
 
 export interface CacheConfig<TArgs extends unknown[], TResult> {
   namespace: RedisKeyNamespace
-  /** Extract cache key from function arguments */
+  /**
+   * Extract a unique identifier suffix from function arguments.
+   * This is combined with namespace to form the full cache key: `${namespace}:${keyFn(args)}`
+   *
+   * The namespace provides semantic context (e.g., "subscriptionsByCustomer"),
+   * while keyFn provides the unique identifier (e.g., "cust_123:true").
+   */
   keyFn: (...args: TArgs) => string
   /** Zod schema for validating cached data */
   schema: z.ZodType<TResult>
