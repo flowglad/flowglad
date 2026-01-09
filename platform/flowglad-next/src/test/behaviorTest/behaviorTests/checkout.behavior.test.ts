@@ -1,7 +1,7 @@
 /**
  * Checkout Behavior Test
  *
- * Tests the checkout flow across different contract types (MOR vs Platform)
+ * Tests universal invariants of the checkout flow across all contract types
  * and customer residencies.
  *
  * Chain:
@@ -12,16 +12,16 @@
  * 5. Initiate Checkout Session
  * 6. Provide Billing Address
  *
- * Key invariant: Fee calculation (including tax) is only performed for MOR
- * orgs when billing address is provided. Platform orgs get null fee calculation.
+ * Universal invariants tested:
+ * - Billing address is correctly saved to checkout session
+ * - Checkout session remains in Open status
+ *
+ * For contract-type-specific behavior (MoR fee calculation vs Platform null),
+ * see the dedicated integration tests or filtered behavior tests.
  */
 
 import { expect } from 'vitest'
-import {
-  CheckoutSessionStatus,
-  PriceType,
-  StripeConnectContractType,
-} from '@/types'
+import { CheckoutSessionStatus, PriceType } from '@/types'
 import { teardownOrg } from '../../../../seedDatabase'
 import { authenticateUserBehavior } from '../behaviors/authBehaviors'
 import {
@@ -32,7 +32,6 @@ import {
 } from '../behaviors/checkoutBehaviors'
 import { createOrganizationBehavior } from '../behaviors/orgSetupBehaviors'
 import { completeStripeOnboardingBehavior } from '../behaviors/stripeOnboardingBehaviors'
-import { ContractTypeDep } from '../dependencies/contractTypeDependencies'
 import { CustomerResidencyDep } from '../dependencies/customerResidencyDependencies'
 import { behaviorTest } from '../index'
 
@@ -51,15 +50,10 @@ behaviorTest({
     },
     {
       behavior: createOrganizationBehavior,
-      invariants: async (result, combination) => {
-        const contractTypeDep = ContractTypeDep.get(
-          combination.ContractTypeDep
-        )
-
+      invariants: async (result) => {
+        // Universal invariant: Organization is created with valid ID
         expect(result.organization.id).toMatch(/^org_/)
-        expect(result.organization.stripeConnectContractType).toBe(
-          contractTypeDep.contractType
-        )
+        expect(result.organization.name).toBeTruthy()
       },
     },
     {
@@ -106,40 +100,19 @@ behaviorTest({
     {
       behavior: provideBillingAddressBehavior,
       invariants: async (result, combination) => {
-        const contractTypeDep = ContractTypeDep.get(
-          combination.ContractTypeDep
-        )
         const customerResidencyDep = CustomerResidencyDep.get(
           combination.CustomerResidencyDep
         )
 
-        // Billing address was set
+        // Universal invariant: Billing address is correctly saved
         expect(result.updatedCheckoutSession.billingAddress).toEqual(
           customerResidencyDep.billingAddress
         )
 
-        // **THE KEY INVARIANT**
-        // MOR orgs get fee calculation with tax; Platform orgs get null
-        if (
-          contractTypeDep.contractType ===
-          StripeConnectContractType.MerchantOfRecord
-        ) {
-          // MOR: Fee calculation should exist
-          expect(result.feeCalculation).not.toBeNull()
-          expect(result.feeCalculation!.checkoutSessionId).toBe(
-            result.checkoutSession.id
-          )
-          expect(result.feeCalculation!.organizationId).toBe(
-            result.organization.id
-          )
-          // MOR includes MoR surcharge percentage
-          expect(
-            parseFloat(result.feeCalculation!.morSurchargePercentage)
-          ).toBeGreaterThan(0)
-        } else {
-          // Platform: Fee calculation should be null
-          expect(result.feeCalculation).toBeNull()
-        }
+        // Universal invariant: Checkout session remains open
+        expect(result.updatedCheckoutSession.status).toBe(
+          CheckoutSessionStatus.Open
+        )
       },
     },
   ],
