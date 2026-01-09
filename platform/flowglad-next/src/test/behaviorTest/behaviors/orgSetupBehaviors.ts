@@ -1,7 +1,7 @@
 /**
- * Shared Organization Behaviors
+ * Organization Setup Behaviors
  *
- * Reusable behaviors for setting up organizations in behavior tests.
+ * Behaviors for creating and configuring organizations in behavior tests.
  */
 
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
@@ -9,30 +9,19 @@ import { adminTransaction } from '@/db/adminTransaction'
 import type { Country } from '@/db/schema/countries'
 import type { Membership } from '@/db/schema/memberships'
 import type { Organization } from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
-import {
-  selectOrganizationById,
-  updateOrganization,
-} from '@/db/tableMethods/organizationMethods'
-import { insertUser } from '@/db/tableMethods/userMethods'
-import { BusinessOnboardingStatus } from '@/types'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import core from '@/utils/core'
 import { createOrganizationTransaction } from '@/utils/organizationHelpers'
-import {
-  ContractTypeDep,
-  CountryDep,
-} from '../dependencies/organizationDependencies'
+import { ContractTypeDep } from '../dependencies/contractTypeDependencies'
+import { CountryDep } from '../dependencies/countryDependencies'
 import { defineBehavior } from '../index'
+import type { AuthenticateUserResult } from './authBehaviors'
 
 // ============================================================================
 // Result Types
 // ============================================================================
-
-export interface AuthenticateUserResult {
-  user: User.Record
-}
 
 export interface CreateOrganizationResult
   extends AuthenticateUserResult {
@@ -41,50 +30,9 @@ export interface CreateOrganizationResult
   country: Country.Record
 }
 
-export interface CompleteStripeOnboardingResult
-  extends CreateOrganizationResult {
-  stripeAccountId: string
-}
-
 // ============================================================================
-// Behavior Definitions
+// Behaviors
 // ============================================================================
-
-/**
- * Authenticate User Behavior
- *
- * Creates a new user record. In the real app, this happens via Better Auth
- * with a database hook. For testing, we directly insert the user.
- *
- * Postconditions:
- * - User record exists with valid id and betterAuthId
- * - User has zero organization memberships
- */
-export const authenticateUserBehavior = defineBehavior({
-  name: 'authenticate user',
-  dependencies: [],
-  run: async (
-    _deps,
-    _prev: undefined
-  ): Promise<AuthenticateUserResult> => {
-    const nanoid = core.nanoid()
-    const betterAuthId = `ba_${nanoid}`
-
-    const user = await adminTransaction(async ({ transaction }) => {
-      return insertUser(
-        {
-          id: `usr_${nanoid}`,
-          email: `test+${nanoid}@flowglad.com`,
-          name: `Test User ${nanoid}`,
-          betterAuthId,
-        },
-        transaction
-      )
-    })
-
-    return { user }
-  },
-})
 
 /**
  * Create Organization Behavior
@@ -171,57 +119,6 @@ export const createOrganizationBehavior = defineBehavior({
     return {
       ...prev,
       ...result,
-    }
-  },
-})
-
-/**
- * Complete Stripe Onboarding Behavior
- *
- * Simulates the full Stripe Connect onboarding flow:
- * 1. Creates a Stripe Connect account
- * 2. Marks onboarding as PartiallyOnboarded
- * 3. Marks onboarding as FullyOnboarded
- *
- * This is a simplified version that combines the initiate and complete steps
- * for tests that don't need to test the intermediate states.
- *
- * Postconditions:
- * - Organization has stripeAccountId
- * - Organization status is FullyOnboarded
- * - payoutsEnabled remains false (requires manual approval)
- */
-export const completeStripeOnboardingBehavior = defineBehavior({
-  name: 'complete stripe onboarding',
-  dependencies: [],
-  run: async (
-    _deps,
-    prev: CreateOrganizationResult
-  ): Promise<CompleteStripeOnboardingResult> => {
-    const stripeAccountId = `acct_test_${Date.now()}`
-
-    await adminTransaction(
-      async ({ transaction }) => {
-        await updateOrganization(
-          {
-            id: prev.organization.id,
-            stripeAccountId,
-            onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
-          },
-          transaction
-        )
-      },
-      { livemode: true }
-    )
-
-    return {
-      ...prev,
-      organization: {
-        ...prev.organization,
-        stripeAccountId,
-        onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
-      },
-      stripeAccountId,
     }
   },
 })
