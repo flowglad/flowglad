@@ -3533,6 +3533,30 @@ describe('adjustSubscription Integration Tests', async () => {
         featureId: premiumFeature.id,
       })
 
+      // Create a basic product with basic price and basic feature
+      const basicProduct = await setupProduct({
+        organizationId: organization.id,
+        name: 'Basic Product',
+        pricingModelId: pricingModel.id,
+      })
+
+      const basicPrice = await setupPrice({
+        productId: basicProduct.id,
+        name: 'Basic Monthly',
+        unitPrice: 999,
+        livemode: true,
+        isDefault: false,
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+
+      const basicProductFeature = await setupProductFeature({
+        organizationId: organization.id,
+        productId: basicProduct.id,
+        featureId: basicFeature.id,
+      })
+
       // Setup subscription with premium item
       const premiumItem = await setupSubscriptionItem({
         subscriptionId: subscription.id,
@@ -3649,9 +3673,11 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(activeFeaturesBefore.length).toBeGreaterThanOrEqual(1)
 
         // Downgrade to a cheaper plan immediately (from $49.99 to $9.99)
+        // Use the basic price which has the basic feature linked
         const newItems: SubscriptionItem.Upsert[] = [
           {
             ...subscriptionItemCore,
+            priceId: basicPrice.id,
             name: 'Basic Plan',
             quantity: 1,
             unitPrice: 999,
@@ -3730,16 +3756,21 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(stillActiveOldFeatures.length).toBe(0)
 
         // ============================================================
-        // ASSERTION 4: New downgraded features are created
+        // ASSERTION 4: New downgraded features are created matching basic plan
         // ============================================================
         const newBasicItem = activeItemsAfter[0]
         const newFeaturesAfter = await selectSubscriptionItemFeatures(
           { subscriptionItemId: newBasicItem.id },
           transaction
         )
-        // Note: Features are created based on product features linked to the price
-        // The test verifies that new subscription item features were created
-        expect(Array.isArray(newFeaturesAfter)).toBe(true)
+        // Verify features were created for the basic plan
+        expect(newFeaturesAfter.length).toBe(1)
+        // The new feature should be linked to the basic feature (25 credits)
+        // not the premium feature (100 credits)
+        expect(newFeaturesAfter[0].featureId).toBe(basicFeature.id)
+        expect(newFeaturesAfter[0].productFeatureId).toBe(
+          basicProductFeature.id
+        )
 
         // ============================================================
         // ASSERTION 5: Existing usage credits are preserved
