@@ -172,30 +172,25 @@ export const prices = pgTable(
           withCheck: usageMeterBelongsToSameOrganization,
         }
       ),
-      // Product FK integrity for non-usage prices
-      // For usage prices (type='usage'), this policy passes via the type check.
-      // For non-usage prices, productId must exist in products table.
+      // Merchant access policy for prices.
+      // Prices don't have an organization_id column - they're scoped to orgs
+      // through their productId (for subscription/single_payment) or usageMeterId (for usage).
+      // For usage prices: must have a visible usage_meter (RLS-scoped by org)
+      // For non-usage prices: must have a visible product (RLS-scoped by org)
       merchantPolicy(
-        'Ensure product FK integrity for non-usage prices',
+        'Merchant access via product or usage meter FK',
         {
           as: 'permissive',
           to: 'merchant',
           for: 'all',
-          using: sql`"type" = 'usage' OR "product_id" IN (SELECT "id" FROM "products")`,
-          withCheck: sql`"type" = 'usage' OR "product_id" IN (SELECT "id" FROM "products")`,
-        }
-      ),
-      // Usage meter FK integrity for usage prices
-      // For non-usage prices (type!='usage'), this policy passes via the type check.
-      // For usage prices, usageMeterId must exist in usage_meters table.
-      merchantPolicy(
-        'Ensure usage meter FK integrity for usage prices',
-        {
-          as: 'permissive',
-          to: 'merchant',
-          for: 'all',
-          using: sql`"type" != 'usage' OR "usage_meter_id" IN (SELECT "id" FROM "usage_meters")`,
-          withCheck: sql`"type" != 'usage' OR "usage_meter_id" IN (SELECT "id" FROM "usage_meters")`,
+          using: sql`(
+            ("type" = 'usage' AND "usage_meter_id" IN (SELECT "id" FROM "usage_meters"))
+            OR ("type" != 'usage' AND "product_id" IN (SELECT "id" FROM "products"))
+          )`,
+          withCheck: sql`(
+            ("type" = 'usage' AND "usage_meter_id" IN (SELECT "id" FROM "usage_meters"))
+            OR ("type" != 'usage' AND "product_id" IN (SELECT "id" FROM "products"))
+          )`,
         }
       ),
       livemodePolicy(TABLE_NAME),

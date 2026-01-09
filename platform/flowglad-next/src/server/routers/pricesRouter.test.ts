@@ -927,11 +927,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
     inactiveUsagePriceId = result.inactiveUsagePriceId
   })
 
-  // TODO: PR 2 - These tests fail because usage prices now have productId: null
-  // and RLS FK integrity checks require usage_meters to be visible.
-  // The test setup creates data via adminTransaction which bypasses RLS,
-  // but the API queries enforce RLS. Need to investigate RLS policy interaction.
-  it.skip('returns only usage prices for a given usageMeterId', async () => {
+  it('returns only usage prices for a given usageMeterId', async () => {
     const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
@@ -977,7 +973,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
     expect(resultB.items[0].price.id).toBe(usagePriceBId)
   })
 
-  it.skip('respects active filter when provided', async () => {
+  it('respects active filter when provided', async () => {
     const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
@@ -1170,12 +1166,7 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
       ).rejects.toThrow() // Schema rejects with "expected null, received string"
     })
 
-    // TODO: PR 2/4 - These tests fail due to RLS policy violations.
-    // Usage prices with productId: null fail RLS FK integrity checks because
-    // usage_meters created via adminTransaction aren't visible through RLS.
-    // The actual API functionality works - the validation and derivation logic
-    // is correct - but the test setup bypasses RLS while the API enforces it.
-    it.skip('creates usage price with null productId successfully (pricingModelId derived from usageMeterId)', async () => {
+    it('creates usage price with null productId successfully (pricingModelId derived from usageMeterId)', async () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
@@ -1212,8 +1203,7 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
       expect(result.price.usageMeterId).toBe(usageMeterId)
     })
 
-    // TODO: PR 2/4 - Same RLS issue as above
-    it.skip('creates usage price when productId is omitted (pricingModelId derived from usageMeterId)', async () => {
+    it('creates usage price when productId is omitted (pricingModelId derived from usageMeterId)', async () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
