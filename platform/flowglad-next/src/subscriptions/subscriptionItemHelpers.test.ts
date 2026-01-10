@@ -2718,6 +2718,140 @@ describe('subscriptionItemHelpers', () => {
             expect(allCredits[0].issuedAmount).toBe(50) // Original amount unchanged
           })
         })
+
+        it('calculates delta correctly when multiple features share the same usageMeterId (no double-subtraction)', async () => {
+          // This test verifies the fix for the bug where existing credits were subtracted
+          // from each feature individually when multiple features share the same meter.
+          //
+          // Bug scenario (BEFORE fix):
+          // - Feature A grants 300 prorated to meter M, Feature B grants 200 prorated to meter M
+          // - Existing credits for meter M: 100
+          // - Feature A delta: 300 - 100 = 200
+          // - Feature B delta: 200 - 100 = 100
+          // - Total granted: 300 (WRONG - existing credits subtracted twice!)
+          //
+          // Correct behavior (AFTER fix):
+          // - Total new prorated for meter M: 300 + 200 = 500
+          // - Delta for meter M: 500 - 100 = 400
+          // - Total granted: 400 (correct - existing credits subtracted once per meter)
+
+          // Create a second feature that uses the SAME usage meter
+          const feature2 = await setupUsageCreditGrantFeature({
+            organizationId: orgData.organization.id,
+            name: 'Second Feature Same Meter',
+            usageMeterId: usageMeter.id, // Same meter as the first feature
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+            livemode: true,
+            amount: 200, // First feature has 100, this one has 200
+            pricingModelId: orgData.pricingModel.id,
+          })
+
+          // Link second feature to the same product
+          await setupProductFeature({
+            organizationId: orgData.organization.id,
+            productId: product.id,
+            featureId: feature2.id,
+          })
+
+          // Setup existing credits from BillingPeriodTransition (50 credits)
+          const existingCreditAmount = 50
+          await setupUsageCredit({
+            organizationId: orgData.organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            billingPeriodId: billingPeriod.id,
+            issuedAmount: existingCreditAmount,
+            creditType: UsageCreditType.Grant,
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.BillingPeriodTransition,
+            status: UsageCreditStatus.Posted,
+          })
+
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriodDate =
+              billingPeriodStartDate + 15 * oneDayInMs // 50% through
+
+            // Feature 1: 100 credits * 0.5 = 50 prorated
+            // Feature 2: 200 credits * 0.5 = 100 prorated
+            // Total new prorated for meter: 50 + 100 = 150
+            // Existing credits: 50
+            // Correct delta: 150 - 50 = 100 credits total
+            //
+            // BUG would have calculated:
+            // Feature 1: 50 - 50 = 0 (filtered out)
+            // Feature 2: 100 - 50 = 50
+            // Total: 50 (wrong!)
+
+            const result = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Adjustment With Both Features',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriodDate,
+              transaction,
+            })
+
+            // Should create 2 features (one for each feature definition)
+            const usageCreditGrantFeatures =
+              result.createdFeatures.filter(
+                (f) => f.type === FeatureType.UsageCreditGrant
+              )
+            expect(usageCreditGrantFeatures.length).toBe(2)
+
+            // Both features should grant credits (delta is distributed across features)
+            // Total delta = 100 credits, distributed as:
+            // - First feature gets min(50, 100) = 50 credits
+            // - Second feature gets min(100, 50) = 50 credits (remaining delta)
+            const totalGrantedCredits = result.usageCredits.reduce(
+              (sum, c) => sum + c.issuedAmount,
+              0
+            )
+            expect(totalGrantedCredits).toBe(100) // Correct delta
+
+            // Verify the total credits in the database
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+                usageMeterId: usageMeter.id,
+              },
+              transaction
+            )
+
+            // Should have 3 credits: 1 BillingPeriodTransition + 2 ManualAdjustment
+            // (or fewer ManualAdjustment if some features got 0 credits)
+            const totalCreditAmount = allCredits.reduce(
+              (sum, c) => sum + c.issuedAmount,
+              0
+            )
+            // Total should be: 50 (existing) + 100 (delta) = 150 (the prorated amount)
+            expect(totalCreditAmount).toBe(150)
+
+            // Verify we didn't over-grant (the bug would have granted only 50 due to double-subtraction)
+            // And we didn't under-grant either
+            const manualAdjustmentCredits = allCredits.filter(
+              (c) =>
+                c.sourceReferenceType ===
+                UsageCreditSourceReferenceType.ManualAdjustment
+            )
+            const manualAdjustmentTotal =
+              manualAdjustmentCredits.reduce(
+                (sum, c) => sum + c.issuedAmount,
+                0
+              )
+            expect(manualAdjustmentTotal).toBe(100) // Exactly the delta amount
+          })
+        })
       })
 
       describe('tenant isolation (multiple subscriptions)', () => {
