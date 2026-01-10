@@ -117,6 +117,35 @@ export const releaseResourceClaim = async (
 }
 
 /**
+ * Releases all active claims for a given subscriptionItemFeatureId.
+ * Used when a subscription item feature is detached or expired.
+ * Uses a single atomic UPDATE to avoid TOCTOU race conditions.
+ */
+export const releaseAllClaimsForSubscriptionItemFeature = async (
+  subscriptionItemFeatureId: string,
+  releaseReason: string,
+  transaction: DbTransaction
+): Promise<ResourceClaim.Record[]> => {
+  const result = await transaction
+    .update(resourceClaims)
+    .set({
+      releasedAt: Date.now(),
+      releaseReason,
+    })
+    .where(
+      and(
+        eq(
+          resourceClaims.subscriptionItemFeatureId,
+          subscriptionItemFeatureId
+        ),
+        isNull(resourceClaims.releasedAt)
+      )
+    )
+    .returning()
+  return resourceClaimsSelectSchema.array().parse(result)
+}
+
+/**
  * Finds an active claim by externalId for a given resource and subscription.
  * Useful for idempotent claim operations.
  */
@@ -137,6 +166,78 @@ export const selectActiveClaimByExternalId = async (
     transaction
   )
   return claims[0] ?? null
+}
+
+/**
+ * Counts active (non-released) claims for a given subscription and resource.
+ * Useful for validating downgrade capacity constraints.
+ * Uses a database COUNT query for efficiency instead of fetching all records.
+ */
+export const countActiveResourceClaims = async (
+  params: {
+    subscriptionId: string
+    resourceId: string
+  },
+  transaction: DbTransaction
+): Promise<number> => {
+  const result = await transaction
+    .select({ count: count() })
+    .from(resourceClaims)
+    .where(
+      and(
+        eq(resourceClaims.subscriptionId, params.subscriptionId),
+        eq(resourceClaims.resourceId, params.resourceId),
+        isNull(resourceClaims.releasedAt)
+      )
+    )
+  return result[0]?.count ?? 0
+}
+
+/**
+ * Batch counts active (non-released) claims for a subscription across multiple resources.
+ * More efficient than calling countActiveResourceClaims for each resource individually.
+ * Uses a single GROUP BY query to count claims per resource.
+ *
+ * @param params - subscriptionId and array of resourceIds to count
+ * @param transaction - Database transaction
+ * @returns Map of resourceId to count of active claims
+ */
+export const countActiveResourceClaimsBatch = async (
+  params: {
+    subscriptionId: string
+    resourceIds: string[]
+  },
+  transaction: DbTransaction
+): Promise<Map<string, number>> => {
+  if (params.resourceIds.length === 0) {
+    return new Map()
+  }
+
+  const result = await transaction
+    .select({
+      resourceId: resourceClaims.resourceId,
+      count: count(),
+    })
+    .from(resourceClaims)
+    .where(
+      and(
+        eq(resourceClaims.subscriptionId, params.subscriptionId),
+        inArray(resourceClaims.resourceId, params.resourceIds),
+        isNull(resourceClaims.releasedAt)
+      )
+    )
+    .groupBy(resourceClaims.resourceId)
+
+  // Build map with counts, defaulting to 0 for resources with no claims
+  const countMap = new Map<string, number>()
+  for (const resourceId of params.resourceIds) {
+    countMap.set(resourceId, 0)
+  }
+  for (const row of result) {
+    countMap.set(row.resourceId, row.count)
+  }
+
+  return countMap
 }
 
 /**
