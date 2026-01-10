@@ -597,7 +597,12 @@ export const adjustSubscription = async (
           )
         : new Map<string, number>()
 
-    // Validate capacity for each item's resource features
+    // Aggregate capacity by resourceId across all subscription items
+    // Multiple items may provide capacity for the same resource
+    const resourceCapacityMap = new Map<
+      string,
+      { totalCapacity: number; featureSlug: string }
+    >()
     for (const newItem of nonManualSubscriptionItems) {
       if (!newItem.priceId) continue
 
@@ -605,18 +610,33 @@ export const adjustSubscription = async (
         priceToResourceFeatures.get(newItem.priceId) ?? []
 
       for (const feature of resourceFeatures) {
-        // Calculate new capacity: feature.amount (per unit) * item quantity
-        const newCapacity = feature.amount * newItem.quantity
-        const activeClaims =
-          resourceClaimCounts.get(feature.resourceId) ?? 0
-
-        if (activeClaims > newCapacity) {
-          throw new Error(
-            `Cannot reduce ${feature.slug} capacity to ${newCapacity}. ` +
-              `${activeClaims} resources are currently claimed. ` +
-              `Release ${activeClaims - newCapacity} claims before downgrading.`
-          )
+        // Calculate capacity contribution: feature.amount (per unit) * item quantity
+        const capacityContribution = feature.amount * newItem.quantity
+        const existing = resourceCapacityMap.get(feature.resourceId)
+        if (existing) {
+          existing.totalCapacity += capacityContribution
+        } else {
+          resourceCapacityMap.set(feature.resourceId, {
+            totalCapacity: capacityContribution,
+            featureSlug: feature.slug,
+          })
         }
+      }
+    }
+
+    // Validate aggregated capacity against active claims
+    for (const [
+      resourceId,
+      { totalCapacity, featureSlug },
+    ] of resourceCapacityMap) {
+      const activeClaims = resourceClaimCounts.get(resourceId) ?? 0
+
+      if (activeClaims > totalCapacity) {
+        throw new Error(
+          `Cannot reduce ${featureSlug} capacity to ${totalCapacity}. ` +
+            `${activeClaims} resources are currently claimed. ` +
+            `Release ${activeClaims - totalCapacity} claims before downgrading.`
+        )
       }
     }
   }

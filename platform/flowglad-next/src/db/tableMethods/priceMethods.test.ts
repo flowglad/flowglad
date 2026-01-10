@@ -2144,7 +2144,7 @@ describe('priceMethods.ts', () => {
       })
     })
 
-    it('handles prices sharing the same product correctly', async () => {
+    it('returns identical resource features for multiple prices of the same product', async () => {
       const setup = await setupOrg()
       const organization = setup.organization
 

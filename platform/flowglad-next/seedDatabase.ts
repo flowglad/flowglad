@@ -2770,7 +2770,7 @@ export const setupResourceFeature = async (
   }
 ): Promise<Feature.ResourceRecord> => {
   return adminTransaction(async ({ transaction }) => {
-    const pricingModelId =
+    const resolvedPricingModelId =
       params.pricingModelId ??
       (
         await selectDefaultPricingModel(
@@ -2781,17 +2781,22 @@ export const setupResourceFeature = async (
           transaction
         )
       )?.id
-    const { resourceId, ...restParams } = params
+    if (!resolvedPricingModelId) {
+      throw new Error(
+        'setupResourceFeature: No pricingModelId provided and no default pricing model found'
+      )
+    }
+    const { resourceId, pricingModelId: _, ...restParams } = params
     const insert: Feature.ResourceInsert = {
+      ...restParams,
       type: FeatureType.Resource,
       description: params.description ?? '',
       slug: params.slug ?? `resource-feature-${core.nanoid()}`,
       amount: params.amount ?? 5,
       usageMeterId: null,
       renewalFrequency: null,
-      pricingModelId: pricingModelId ?? '',
+      pricingModelId: resolvedPricingModelId,
       resourceId,
-      ...restParams,
     }
     return insertFeature(
       insert,

@@ -119,26 +119,30 @@ export const releaseResourceClaim = async (
 /**
  * Releases all active claims for a given subscriptionItemFeatureId.
  * Used when a subscription item feature is detached or expired.
+ * Uses a single atomic UPDATE to avoid TOCTOU race conditions.
  */
 export const releaseAllClaimsForSubscriptionItemFeature = async (
   subscriptionItemFeatureId: string,
   releaseReason: string,
   transaction: DbTransaction
 ): Promise<ResourceClaim.Record[]> => {
-  const activeClaims = await selectActiveResourceClaims(
-    { subscriptionItemFeatureId },
-    transaction
-  )
-
-  if (activeClaims.length === 0) {
-    return []
-  }
-
-  return bulkReleaseResourceClaims(
-    activeClaims.map((c) => c.id),
-    releaseReason,
-    transaction
-  )
+  const result = await transaction
+    .update(resourceClaims)
+    .set({
+      releasedAt: Date.now(),
+      releaseReason,
+    })
+    .where(
+      and(
+        eq(
+          resourceClaims.subscriptionItemFeatureId,
+          subscriptionItemFeatureId
+        ),
+        isNull(resourceClaims.releasedAt)
+      )
+    )
+    .returning()
+  return resourceClaimsSelectSchema.array().parse(result)
 }
 
 /**

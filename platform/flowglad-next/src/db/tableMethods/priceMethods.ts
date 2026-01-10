@@ -877,6 +877,8 @@ export const selectResourceFeaturesForPrices = async (
   }
 
   // Map priceIds back to their features via productId
+  // Spread arrays to create independent copies - prices sharing the same productId
+  // should not share array references to prevent mutation side effects
   const priceIdToFeatures = new Map<
     string,
     Feature.ResourceRecord[]
@@ -884,10 +886,9 @@ export const selectResourceFeaturesForPrices = async (
   for (const priceId of priceIds) {
     const productId = priceIdToProductId.get(priceId)
     if (productId) {
-      priceIdToFeatures.set(
-        priceId,
-        productIdToFeatures.get(productId) ?? []
-      )
+      priceIdToFeatures.set(priceId, [
+        ...(productIdToFeatures.get(productId) ?? []),
+      ])
     } else {
       priceIdToFeatures.set(priceId, [])
     }
