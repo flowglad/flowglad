@@ -2721,19 +2721,24 @@ describe('subscriptionItemHelpers', () => {
 
         it('calculates delta correctly when multiple features share the same usageMeterId (no double-subtraction)', async () => {
           // This test verifies the fix for the bug where existing credits were subtracted
-          // from each feature individually when multiple features share the same meter.
+          // from each feature individually when multiple features share the same meter,
+          // causing UNDER-granting of credits.
           //
-          // Bug scenario (BEFORE fix):
-          // - Feature A grants 300 prorated to meter M, Feature B grants 200 prorated to meter M
-          // - Existing credits for meter M: 100
-          // - Feature A delta: 300 - 100 = 200
-          // - Feature B delta: 200 - 100 = 100
-          // - Total granted: 300 (WRONG - existing credits subtracted twice!)
+          // Bug scenario (BEFORE fix) - double subtraction caused under-granting:
+          // - Feature A prorates to 50 credits for meter M, Feature B prorates to 100 for meter M
+          // - Existing credits for meter M: 50
+          // - Feature A delta: 50 - 50 = 0 (filtered out)
+          // - Feature B delta: 100 - 50 = 50
+          // - Total granted: 50 (WRONG - should be 100, under-granted by 50!)
           //
           // Correct behavior (AFTER fix):
-          // - Total new prorated for meter M: 300 + 200 = 500
-          // - Delta for meter M: 500 - 100 = 400
-          // - Total granted: 400 (correct - existing credits subtracted once per meter)
+          // - Total new prorated for meter M: 50 + 100 = 150
+          // - Delta for meter M: 150 - 50 = 100
+          // - Total granted: 100 (correct - existing credits subtracted once per meter)
+          //
+          // Note: When multiple features share a usageMeterId, the allocation logic may
+          // produce 1 or 2 ManualAdjustment credits depending on feature iteration order.
+          // The assertions below validate totals rather than exact credit count.
 
           // Create a second feature that uses the SAME usage meter
           const feature2 = await setupUsageCreditGrantFeature({
@@ -2808,10 +2813,9 @@ describe('subscriptionItemHelpers', () => {
               )
             expect(usageCreditGrantFeatures.length).toBe(2)
 
-            // Both features should grant credits (delta is distributed across features)
-            // Total delta = 100 credits, distributed as:
-            // - First feature gets min(50, 100) = 50 credits
-            // - Second feature gets min(100, 50) = 50 credits (remaining delta)
+            // Total delta of 100 credits is distributed across features.
+            // Depending on iteration order, this may result in 1 or 2 ManualAdjustment credits.
+            // We validate the total granted amount rather than the exact credit count.
             const totalGrantedCredits = result.usageCredits.reduce(
               (sum, c) => sum + c.issuedAmount,
               0
@@ -2828,8 +2832,8 @@ describe('subscriptionItemHelpers', () => {
               transaction
             )
 
-            // Should have 3 credits: 1 BillingPeriodTransition + 2 ManualAdjustment
-            // (or fewer ManualAdjustment if some features got 0 credits)
+            // Should have 2-3 credits total: 1 BillingPeriodTransition + 1 or 2 ManualAdjustment
+            // (allocation may produce 1 or 2 ManualAdjustment credits depending on iteration order)
             const totalCreditAmount = allCredits.reduce(
               (sum, c) => sum + c.issuedAmount,
               0
@@ -2837,8 +2841,8 @@ describe('subscriptionItemHelpers', () => {
             // Total should be: 50 (existing) + 100 (delta) = 150 (the prorated amount)
             expect(totalCreditAmount).toBe(150)
 
-            // Verify we didn't over-grant (the bug would have granted only 50 due to double-subtraction)
-            // And we didn't under-grant either
+            // Verify we granted the correct delta (the bug would have under-granted,
+            // granting only 50 instead of 100 due to double-subtraction of existing credits)
             const manualAdjustmentCredits = allCredits.filter(
               (c) =>
                 c.sourceReferenceType ===
