@@ -91,7 +91,9 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
       deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
     )
 
-    expect(deleted.find((s) => s.id === old.id)).toBeDefined()
+    expect(deleted.find((s) => s.id === old.id)).toMatchObject({
+      id: old.id,
+    })
     expect(deleted.find((s) => s.id === recent.id)).toBeUndefined()
     await expect(
       adminTransaction(async ({ transaction }) =>
@@ -204,7 +206,9 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     const deleted = await adminTransaction(async ({ transaction }) =>
       deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
     )
-    expect(deleted.find((s) => s.id === old.id)).toBeDefined()
+    expect(deleted.find((s) => s.id === old.id)).toMatchObject({
+      id: old.id,
+    })
     // Verify feeCalculation for old is gone by attempting to re-delete returns empty
     const secondRun = await adminTransaction(
       async ({ transaction }) =>
@@ -329,7 +333,9 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     const first = await adminTransaction(async ({ transaction }) =>
       deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
     )
-    expect(first.find((s) => s.id === old.id)).toBeDefined()
+    expect(first.find((s) => s.id === old.id)).toMatchObject({
+      id: old.id,
+    })
     const second = await adminTransaction(async ({ transaction }) =>
       deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
     )

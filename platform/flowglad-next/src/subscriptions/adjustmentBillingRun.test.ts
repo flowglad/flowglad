@@ -161,7 +161,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
         selectBillingRunById(adjustmentBillingRun.id, transaction)
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-    expect(updatedBillingRun.errorDetails).toBeDefined()
+    expect(typeof updatedBillingRun.errorDetails).toBe('object')
     expect(updatedBillingRun.errorDetails?.message).toContain(
       `executeBillingRun: Adjustment billing run ${adjustmentBillingRun.id} requires adjustmentParams`
     )

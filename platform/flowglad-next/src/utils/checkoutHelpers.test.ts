@@ -321,7 +321,7 @@ describe('checkoutHelpers', () => {
           session.id,
           transaction
         )
-        expect(result.feeCalculation).not.toBeNull()
+        expect(result.feeCalculation).toMatchObject({ id: second.id })
         expect(result.feeCalculation?.id).toBe(second.id)
         expect(result.feeCalculation?.id).not.toBe(first.id)
       })

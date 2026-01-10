@@ -46,8 +46,8 @@ describe('beforeEach setup', () => {
   })
 
   it('sets up org and api key', () => {
-    expect(organizationId).toBeDefined()
-    expect(apiKeyToken).toBeDefined()
+    expect(typeof organizationId).toBe('string')
+    expect(typeof apiKeyToken).toBe('string')
     expect(context.organizationId).toBe(organizationId)
     expect(context.apiKey).toBe(apiKeyToken)
   })
@@ -77,7 +77,7 @@ describe('pricingModelsRouter.create', () => {
         defaultPlanIntervalUnit: IntervalUnit.Month,
       })
 
-    expect(pricingModel).toBeDefined()
+    expect(pricingModel).toMatchObject({})
     expect(pricingModel.name).toBe('PM Subscription')
 
     const productAndPrices = await adminTransaction(

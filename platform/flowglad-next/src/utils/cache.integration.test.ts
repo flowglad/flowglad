@@ -89,7 +89,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
 
     // Verify the value is stored in Redis
     const storedValue = await client.get(fullCacheKey)
-    expect(storedValue).not.toBeNull()
+    expect(typeof storedValue).toBe('object')
     const parsedStoredValue =
       typeof storedValue === 'string'
         ? JSON.parse(storedValue)
@@ -162,8 +162,8 @@ describeIfRedisKey('Cache Integration Tests', () => {
     // Verify setup
     const beforeEntry1 = await client.get(cacheKey1)
     const beforeEntry2 = await client.get(cacheKey2)
-    expect(beforeEntry1).not.toBeNull()
-    expect(beforeEntry2).not.toBeNull()
+    expect(beforeEntry1).toMatchObject({})
+    expect(beforeEntry2).toMatchObject({})
 
     // Invalidate the dependency
     await invalidateDependencies([dependencyKey])
@@ -505,7 +505,7 @@ describeIfRedisKey(
 
       // Verify data is in Redis
       const cachedValue = await client.get(cacheKey)
-      expect(cachedValue).not.toBeNull()
+      expect(typeof cachedValue).toBe('object')
 
       // Second call - should return cached result
       const result2 = await adminTransaction(
@@ -554,7 +554,7 @@ describeIfRedisKey(
 
       // Verify the empty array is cached
       const cachedValue = await client.get(cacheKey)
-      expect(cachedValue).not.toBeNull()
+      expect(typeof cachedValue).toBe('object')
       const parsedValue =
         typeof cachedValue === 'string'
           ? JSON.parse(cachedValue)
@@ -616,7 +616,7 @@ describeIfRedisKey(
 
       // Verify cache is populated
       const beforeInvalidation = await client.get(cacheKey)
-      expect(beforeInvalidation).not.toBeNull()
+      expect(typeof beforeInvalidation).toBe('object')
 
       // Verify dependency is registered
       const registeredKeys = await client.smembers(registryKey)

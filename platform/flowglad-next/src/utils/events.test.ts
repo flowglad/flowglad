@@ -62,7 +62,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     )
 
     // Verify the real payload includes externalId
-    expect(customerCreatedEvent).toBeDefined()
+    expect(typeof customerCreatedEvent).toBe('object')
     expect(customerCreatedEvent!.payload).toEqual({
       id: customer.id,
       object: EventNoun.Customer,
@@ -96,7 +96,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       (e) => e.type === FlowgladEventType.CustomerUpdated
     )
 
-    expect(customerUpdatedEvent).toBeDefined()
+    expect(typeof customerUpdatedEvent).toBe('object')
     expect(customerUpdatedEvent!.payload).toEqual({
       id: customer.id,
       object: EventNoun.Customer,
@@ -184,7 +184,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       (e) => e.type === FlowgladEventType.PaymentSucceeded
     )
 
-    expect(paymentSucceededEvent).toBeDefined()
+    expect(typeof paymentSucceededEvent).toBe('object')
     expect(paymentSucceededEvent!.payload).toEqual({
       id: payment.id,
       object: EventNoun.Payment,
@@ -272,7 +272,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       (e) => e.type === FlowgladEventType.PaymentFailed
     )
 
-    expect(paymentFailedEvent).toBeDefined()
+    expect(typeof paymentFailedEvent).toBe('object')
     expect(paymentFailedEvent!.payload).toEqual({
       id: payment.id,
       object: EventNoun.Payment,
@@ -333,7 +333,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       (e) => e.type === FlowgladEventType.PurchaseCompleted
     )
 
-    expect(purchaseCompletedEvent).toBeDefined()
+    expect(typeof purchaseCompletedEvent).toBe('object')
     expect(purchaseCompletedEvent!.payload).toEqual({
       id: purchase.id,
       object: EventNoun.Purchase,
@@ -400,7 +400,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       (e) => e.type === FlowgladEventType.SubscriptionCreated
     )
 
-    expect(subscriptionCreatedEvent).toBeDefined()
+    expect(typeof subscriptionCreatedEvent).toBe('object')
     expect(subscriptionCreatedEvent!.payload).toEqual({
       id: subscription.id,
       object: EventNoun.Subscription,
@@ -467,7 +467,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       (e) => e.type === FlowgladEventType.SubscriptionUpdated
     )
 
-    expect(subscriptionUpdatedEvent).toBeDefined()
+    expect(typeof subscriptionUpdatedEvent).toBe('object')
     expect(subscriptionUpdatedEvent!.payload).toEqual({
       id: subscription.id,
       object: EventNoun.Subscription,
@@ -534,7 +534,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       (e) => e.type === FlowgladEventType.SubscriptionCanceled
     )
 
-    expect(subscriptionCancelledEvent).toBeDefined()
+    expect(typeof subscriptionCancelledEvent).toBe('object')
     expect(subscriptionCancelledEvent!.payload).toEqual({
       id: subscription.id,
       object: EventNoun.Subscription,

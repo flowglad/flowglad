@@ -761,7 +761,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Canceled
         )
-        expect(updatedSubscription.canceledAt).toBeDefined()
+        expect(typeof updatedSubscription.canceledAt).toBe('number')
+        expect(updatedSubscription.canceledAt).toBeGreaterThan(0)
         expect(updatedSubscription.cancelScheduledAt).toEqual(
           updatedSubscription.canceledAt
         )
@@ -872,7 +873,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
         // Verify subscription was canceled immediately
         expect(result.status).toBe(SubscriptionStatus.Canceled)
-        expect(result.canceledAt).toBeDefined()
+        expect(result.canceledAt).toMatchObject({})
         expect(eventsToInsert).toHaveLength(1)
         if (!eventsToInsert) {
           throw new Error('No events to insert')
@@ -926,7 +927,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
           // Verify subscription was canceled regardless of initial status
           expect(result.status).toBe(SubscriptionStatus.Canceled)
-          expect(result.canceledAt).toBeDefined()
+          expect(result.canceledAt).toMatchObject({})
           expect(eventsToInsert).toHaveLength(1)
           if (!eventsToInsert) {
             throw new Error('No events to insert')
@@ -995,7 +996,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         } catch (error) {
           result = null
         }
-        expect(result).toBeDefined()
+        expect(result).toMatchObject({})
       })
     })
 
@@ -1614,7 +1615,12 @@ describe('Subscription Cancellation Test Suite', async () => {
           SubscriptionStatus.CancellationScheduled
         )
         // For immediate timing, cancelScheduledAt is set to the current time
-        expect(updatedSubscription.cancelScheduledAt).not.toBeNull()
+        expect(typeof updatedSubscription.cancelScheduledAt).toBe(
+          'number'
+        )
+        expect(updatedSubscription.cancelScheduledAt).toBeGreaterThan(
+          0
+        )
 
         const updatedFuturePeriod = await selectBillingPeriodById(
           futurePeriod.id,
@@ -1785,7 +1791,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         } catch (error) {
           result = null
         }
-        expect(result).toBeDefined()
+        expect(result).toMatchObject({})
       })
     })
 
@@ -2828,8 +2834,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         expect(billingRuns.length).toBe(1)
         expect(billingRuns[0].status).toBe(BillingRunStatus.Aborted)
         expect(
-          billingRuns[0].lastPaymentIntentEventTimestamp
-        ).not.toBeNull()
+          typeof billingRuns[0].lastPaymentIntentEventTimestamp
+        ).toBe('number')
       })
     })
 
@@ -3738,7 +3744,8 @@ describe('cancelSubscription with resources', async () => {
     // Verify all released claims have the correct releaseReason
     for (const claim of releasedClaims) {
       expect(claim.releaseReason).toBe('subscription_canceled')
-      expect(claim.releasedAt).not.toBeNull()
+      expect(typeof claim.releasedAt).toBe('number')
+      expect(claim.releasedAt).toBeGreaterThan(0)
     }
 
     // Verify both cattle and pet claims were released

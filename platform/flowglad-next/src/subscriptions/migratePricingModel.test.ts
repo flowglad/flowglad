@@ -165,7 +165,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       ).toBe(CancellationReason.PricingModelMigration)
 
       // Verify new subscription was created
-      expect(result.result.newSubscription).toBeDefined()
+      expect(result.result.newSubscription).toMatchObject({})
       expect(result.result.newSubscription.customerId).toBe(
         customer.id
       )
@@ -371,7 +371,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       }
 
       // Verify only one new subscription was created
-      expect(result.result.newSubscription).toBeDefined()
+      expect(result.result.newSubscription).toMatchObject({})
       expect(result.result.newSubscription.priceId).toBe(price2.id)
     })
 
@@ -399,7 +399,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       expect(result.result.canceledSubscriptions).toHaveLength(0)
 
       // Verify new subscription was created
-      expect(result.result.newSubscription).toBeDefined()
+      expect(result.result.newSubscription).toMatchObject({})
       expect(result.result.newSubscription.priceId).toBe(price2.id)
       expect(result.result.newSubscription.status).toBe(
         SubscriptionStatus.Active
@@ -597,7 +597,7 @@ describe('Pricing Model Migration Test Suite', async () => {
         (s) => s.id === paidSubscription.id
       )
 
-      expect(oldFreeSubscription).toBeDefined()
+      expect(typeof oldFreeSubscription).toBe('object')
       expect(oldFreeSubscription!.status).toBe(
         SubscriptionStatus.Canceled
       )
@@ -605,7 +605,7 @@ describe('Pricing Model Migration Test Suite', async () => {
         CancellationReason.PricingModelMigration
       )
 
-      expect(oldPaidSubscription).toBeDefined()
+      expect(typeof oldPaidSubscription).toBe('object')
       expect(oldPaidSubscription!.status).toBe(
         SubscriptionStatus.Canceled
       )
@@ -801,7 +801,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       const newProduct = billingState.pricingModel.products.find(
         (p) => p.id === product2.id
       )
-      expect(newProduct).toBeDefined()
+      expect(typeof newProduct).toBe('object')
       expect(newProduct!.features).toHaveLength(1)
       expect(newProduct!.features[0].id).toBe(feature2.id)
 
@@ -924,7 +924,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       expect(currentSub.priceId).toBe(price2.id)
 
       // Verify experimental field exists and contains the right structure
-      expect(currentSub.experimental).toBeDefined()
+      expect(typeof currentSub.experimental).toBe('object')
 
       // Verify experimental.featureItems only contains features from new pricing model
       if (
@@ -956,7 +956,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       const oldSubInHistory = billingState.subscriptions.find(
         (s) => s.id === oldSubscription.id
       )
-      expect(oldSubInHistory).toBeDefined()
+      expect(typeof oldSubInHistory).toBe('object')
       expect(oldSubInHistory!.status).toBe(
         SubscriptionStatus.Canceled
       )
@@ -1500,7 +1500,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       const canceledSubscription = allSubscriptions.find(
         (s) => s.id === subscription.id
       )
-      expect(canceledSubscription).toBeDefined()
+      expect(typeof canceledSubscription).toBe('object')
       expect(canceledSubscription!.status).toBe(
         SubscriptionStatus.Canceled
       )

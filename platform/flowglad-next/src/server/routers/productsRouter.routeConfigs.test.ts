@@ -21,7 +21,9 @@ describe('productsRouteConfigs', () => {
     it('should map POST /products to products.create procedure', () => {
       const routeConfig = findRouteConfig('POST /products')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'products.create',
+      })
       expect(routeConfig!.procedure).toBe('products.create')
       expect(routeConfig!.pattern.test('products')).toBe(true)
 
@@ -43,7 +45,9 @@ describe('productsRouteConfigs', () => {
     it('should map PUT /products/:id to products.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /products/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'products.update',
+      })
       expect(routeConfig!.procedure).toBe('products.update')
       expect(routeConfig!.pattern.test('products/test-id')).toBe(true)
 
@@ -64,7 +68,7 @@ describe('productsRouteConfigs', () => {
     it('should map GET /products/:id to products.get procedure', () => {
       const routeConfig = findRouteConfig('GET /products/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({ procedure: 'products.get' })
       expect(routeConfig!.procedure).toBe('products.get')
       expect(routeConfig!.pattern.test('products/test-id')).toBe(true)
 
@@ -76,7 +80,9 @@ describe('productsRouteConfigs', () => {
     it('should map GET /products to products.list procedure', () => {
       const routeConfig = findRouteConfig('GET /products')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'products.list',
+      })
       expect(routeConfig!.procedure).toBe('products.list')
       expect(routeConfig!.pattern.test('products')).toBe(true)
 
@@ -120,7 +126,7 @@ describe('productsRouteConfigs', () => {
       // Test Products get pattern extraction
       const getConfig = findRouteConfig('GET /products/:id')
       const getMatches = getConfig!.pattern.exec('products/test-id')
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test Products update pattern extraction
@@ -128,19 +134,19 @@ describe('productsRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'products/test-id'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test Products list pattern (no captures)
       const listConfig = findRouteConfig('GET /products')
       const listMatches = listConfig!.pattern.exec('products')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test Products create pattern (no captures)
       const createConfig = findRouteConfig('POST /products')
       const createMatches = createConfig!.pattern.exec('products')
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })
@@ -305,7 +311,7 @@ describe('productsRouteConfigs', () => {
       // Verify the routes are created using the trpcToRest pattern
       routeKeys.forEach((routeKey) => {
         const config = findRouteConfig(routeKey)
-        expect(config).toBeDefined()
+        expect(typeof config).toBe('object')
         expect(config).toHaveProperty('procedure')
         expect(config).toHaveProperty('pattern')
         expect(config).toHaveProperty('mapParams')

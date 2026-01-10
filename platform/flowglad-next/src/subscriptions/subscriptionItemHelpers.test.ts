@@ -426,7 +426,7 @@ describe('subscriptionItemHelpers', () => {
           const expiredItem = allItems.find(
             (item) => item.id === subscriptionItem.id
           )
-          expect(expiredItem).toBeDefined()
+          expect(expiredItem).toMatchObject({ expiredAt: now })
           expect(expiredItem!.expiredAt).toBe(now)
 
           // Check that new item was created
@@ -580,7 +580,9 @@ describe('subscriptionItemHelpers', () => {
           const stillActiveManualItem = activeItems.find(
             (item) => item.id === manualItem.id
           )
-          expect(stillActiveManualItem).toBeDefined()
+          expect(stillActiveManualItem).toMatchObject({
+            manuallyCreated: true,
+          })
           expect(stillActiveManualItem!.manuallyCreated).toBe(true)
           expect(stillActiveManualItem!.expiredAt).toBeNull()
         })
@@ -618,7 +620,7 @@ describe('subscriptionItemHelpers', () => {
           const expiredItem = allItems.find(
             (item) => item.id === subscriptionItem.id
           )
-          expect(expiredItem).toBeDefined()
+          expect(expiredItem).toMatchObject({ expiredAt: now })
           expect(expiredItem!.expiredAt).toBe(now)
           expect(expiredItem!.id).toBe(subscriptionItem.id)
 
@@ -777,7 +779,9 @@ describe('subscriptionItemHelpers', () => {
           const planItem = activeItems.find(
             (item) => item.priceId === price.id
           )
-          expect(planItem).not.toBeNull()
+          expect(planItem).toMatchObject({
+            name: 'Plan Item With Feature',
+          })
           expect(planItem!.name).toBe('Plan Item With Feature')
           expect(planItem!.quantity).toBe(1)
 
@@ -803,7 +807,9 @@ describe('subscriptionItemHelpers', () => {
           const expiredManualFeature = allManualFeatures.find(
             (f) => f.id === manualFeature.id
           )
-          expect(expiredManualFeature).not.toBeNull()
+          expect(expiredManualFeature).toMatchObject({
+            expiredAt: now,
+          })
           expect(expiredManualFeature!.expiredAt).toBe(now)
           expect(expiredManualFeature!.featureId).toBe(feature.id)
 
@@ -971,7 +977,7 @@ describe('subscriptionItemHelpers', () => {
           const usageCreditFeature = result.createdFeatures.find(
             (f) => f.type === FeatureType.UsageCreditGrant
           )
-          expect(usageCreditFeature).toBeDefined()
+          expect(usageCreditFeature).toMatchObject({})
 
           // Verify original item was expired (no id passed = new item, old expired)
           const itemsAfter =
@@ -1143,7 +1149,7 @@ describe('subscriptionItemHelpers', () => {
               f.featureId === onceFeature.id &&
               f.renewalFrequency === FeatureUsageGrantFrequency.Once
           )
-          expect(onceFeatureCreated).toBeDefined()
+          expect(typeof onceFeatureCreated).toBe('object')
 
           // Check for credits from the Once feature
           const onceCredits = await selectUsageCredits(
@@ -1315,7 +1321,7 @@ describe('subscriptionItemHelpers', () => {
           const expiredItem = allItems.find(
             (item) => item.id === subscriptionItem.id
           )
-          expect(expiredItem).toBeDefined()
+          expect(expiredItem).toMatchObject({ expiredAt: now })
           expect(expiredItem!.expiredAt).toBe(now)
         })
       })
@@ -1427,7 +1433,7 @@ describe('subscriptionItemHelpers', () => {
           const preservedItem = activeItems.find(
             (item) => item.id === item2.id
           )
-          expect(preservedItem).toBeDefined()
+          expect(typeof preservedItem).toBe('object')
 
           // item1 and item3 should be expired (their ids were not in newSubscriptionItems)
           const allItems = await selectSubscriptionItems(
@@ -1671,7 +1677,8 @@ describe('subscriptionItemHelpers', () => {
               result2.createdFeatures.find(
                 (f) => f.featureId === feature.id
               )?.id
-            expect(secondSubItemFeatureId).toBeDefined()
+            expect(typeof secondSubItemFeatureId).toBe('string')
+            expect(secondSubItemFeatureId!.length).toBeGreaterThan(0)
             expect(secondSubItemFeatureId).not.toBe(
               firstSubItemFeatureId
             )
@@ -1822,7 +1829,8 @@ describe('subscriptionItemHelpers', () => {
               originalCredit.sourceReferenceId
 
             // Verify the original credit is linked to a subscription_item_feature
-            expect(originalSourceRefId).toBeDefined()
+            expect(typeof originalSourceRefId).toBe('string')
+            expect(originalSourceRefId!.length).toBeGreaterThan(0)
 
             // Second adjustment creates sub_feature_BBB (different ID)
             const secondAdjustmentItems: SubscriptionItem.Insert[] = [
@@ -1852,7 +1860,7 @@ describe('subscriptionItemHelpers', () => {
             const newFeature = result2.createdFeatures.find(
               (f) => f.featureId === feature.id
             )
-            expect(newFeature).toBeDefined()
+            expect(typeof newFeature).toBe('object')
             expect(newFeature!.id).not.toBe(originalSourceRefId)
 
             // Verify the only credit still references the original subscription_item_feature

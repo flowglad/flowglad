@@ -1502,7 +1502,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1540,7 +1540,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1589,7 +1589,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1629,7 +1629,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1699,7 +1699,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1737,7 +1737,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1802,7 +1802,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1839,7 +1839,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1902,7 +1902,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -2069,7 +2069,7 @@ describe('Customer Role RLS Policies', () => {
       }
 
       // Customer creation should have failed (RLS prevents inserts for customer role)
-      expect(newCustomerError).toBeTruthy()
+      expect(typeof newCustomerError).toBe('string')
       expect(newCustomerError).toMatch(
         /Failed to insert|row-level security|violates/
       )
@@ -2145,7 +2145,6 @@ describe('Customer Role RLS Policies', () => {
         }
       )
 
-      expect(result).toBeDefined()
       expect(result.id).toBe(defaultPricingModel.id)
       expect(result.isDefault).toBe(true)
     })

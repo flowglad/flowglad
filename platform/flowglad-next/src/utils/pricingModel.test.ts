@@ -109,7 +109,7 @@ describe('clonePricingModelTransaction', () => {
         }
       )
 
-      expect(clonedPricingModel).toBeDefined()
+      expect(clonedPricingModel).toMatchObject({})
       expect(clonedPricingModel.products).toHaveLength(1)
       expect(clonedPricingModel.products[0].prices).toHaveLength(1)
     })
@@ -514,7 +514,7 @@ describe('clonePricingModelTransaction', () => {
           )
         }
       )
-      expect(clonedPricingModel).toBeDefined()
+      expect(clonedPricingModel).toMatchObject({})
       const clonedProducts = await adminTransaction(
         async ({ transaction }) => {
           return selectPricesAndProductsByProductWhere(
@@ -688,7 +688,7 @@ describe('clonePricingModelTransaction', () => {
       const clonedToggle = newFeatures.find(
         (f) => f.slug === 'premium-support'
       )
-      expect(clonedToggle).toBeDefined()
+      expect(clonedToggle).toMatchObject({ type: FeatureType.Toggle })
       expect(clonedToggle?.type).toBe(FeatureType.Toggle)
       expect(clonedToggle?.name).toBe('Premium Support')
       expect(clonedToggle?.id).not.toBe(toggleFeature.id)
@@ -697,7 +697,9 @@ describe('clonePricingModelTransaction', () => {
       const clonedUsage = newFeatures.find(
         (f) => f.slug === 'api-requests'
       )
-      expect(clonedUsage).toBeDefined()
+      expect(clonedUsage).toMatchObject({
+        type: FeatureType.UsageCreditGrant,
+      })
       expect(clonedUsage?.type).toBe(FeatureType.UsageCreditGrant)
       expect(clonedUsage?.amount).toBe(1000)
       expect(clonedUsage?.renewalFrequency).toBe(
@@ -774,7 +776,7 @@ describe('clonePricingModelTransaction', () => {
       const clonedMeter = clonedUsageMeters.find(
         (m) => m.slug === 'data-transfer'
       )
-      expect(clonedMeter).toBeDefined()
+      expect(typeof clonedMeter).toBe('object')
 
       // Get cloned features
       const clonedFeatures = await adminTransaction(
@@ -788,7 +790,9 @@ describe('clonePricingModelTransaction', () => {
       const clonedFeature = clonedFeatures.find(
         (f) => f.slug === 'bandwidth-usage'
       )
-      expect(clonedFeature).toBeDefined()
+      expect(clonedFeature).toMatchObject({
+        usageMeterId: clonedMeter?.id,
+      })
 
       // Verify that usageMeterId is correctly remapped to the new usage meter
       expect(clonedFeature?.usageMeterId).not.toBe(usageMeter.id)
@@ -1064,8 +1068,8 @@ describe('clonePricingModelTransaction', () => {
       const proProduct = clonedPricingModel.products.find(
         (p) => p.name === 'Pro Plan'
       )
-      expect(basicProduct).toBeDefined()
-      expect(proProduct).toBeDefined()
+      expect(typeof basicProduct).toBe('object')
+      expect(typeof proProduct).toBe('object')
       expect(basicProduct?.prices).toHaveLength(1)
       expect(proProduct?.prices).toHaveLength(1)
 
@@ -1769,8 +1773,8 @@ describe('clonePricingModelTransaction', () => {
         (f) => f.slug === 'usage-feature-validation'
       )
 
-      expect(clonedToggleFeature).toBeDefined()
-      expect(clonedUsageFeature).toBeDefined()
+      expect(typeof clonedToggleFeature).toBe('object')
+      expect(typeof clonedUsageFeature).toBe('object')
 
       // Validate toggle feature associations
       expect(clonedToggleFeature!.pricingModelId).toBe(
@@ -1792,7 +1796,7 @@ describe('clonePricingModelTransaction', () => {
       expect(clonedUsageFeature!.id).not.toBe(sourceUsageFeature.id)
 
       // CRITICAL: usageMeterId should reference the NEW usage meter, not the old one
-      expect(clonedUsageFeature!.usageMeterId).not.toBeNull()
+      expect(typeof clonedUsageFeature!.usageMeterId).toBe('string')
       expect(clonedUsageFeature!.usageMeterId).not.toBe(
         sourceUsageMeter1.id
       )
@@ -1801,7 +1805,7 @@ describe('clonePricingModelTransaction', () => {
       const correspondingNewMeter = clonedUsageMeters.find(
         (m) => m.slug === 'api-calls-meter-validation'
       )
-      expect(correspondingNewMeter).toBeDefined()
+      expect(typeof correspondingNewMeter).toBe('object')
       expect(clonedUsageFeature!.usageMeterId).toBe(
         correspondingNewMeter!.id
       )
@@ -2003,11 +2007,11 @@ describe('clonePricingModelTransaction', () => {
         (f) => f.slug === 'feature-no-meter'
       )
 
-      expect(newMeter1).toBeDefined()
-      expect(newMeter2).toBeDefined()
-      expect(newFeature1).toBeDefined()
-      expect(newFeature2).toBeDefined()
-      expect(newFeature3).toBeDefined()
+      expect(newMeter1).toMatchObject({})
+      expect(newMeter2).toMatchObject({})
+      expect(newFeature1).toMatchObject({})
+      expect(newFeature2).toMatchObject({})
+      expect(newFeature3).toMatchObject({})
 
       // Validate correct meter remapping
       expect(newFeature1!.usageMeterId).toBe(newMeter1!.id)
@@ -2775,7 +2779,9 @@ describe('editProductTransaction - Feature Updates', () => {
     expect(
       productFeatures.find((pf) => !pf.expiredAt)?.featureId
     ).toBe(features[0].id)
-    expect(productFeatures.find((pf) => pf.expiredAt)).toBeDefined()
+    expect(productFeatures.find((pf) => pf.expiredAt)).toMatchObject(
+      {}
+    )
   })
 
   it('should not change features if featureIds is not provided', async () => {
@@ -2983,7 +2989,7 @@ describe('editProductTransaction - Price Updates', () => {
       { apiKey: apiKeyToken }
     )
 
-    expect(result).toBeDefined()
+    expect(result).toMatchObject({})
     expect(result.name).toBe('Updated Base Plan Name')
     expect(result.description).toBe('Updated description')
     expect(result.default).toBe(true)
@@ -3710,7 +3716,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       const newPrice = finalPrices.find(
         (p) => p.unitPrice === modifiedPrice.unitPrice
       )
-      expect(newPrice).toBeDefined()
+      expect(newPrice).toMatchObject({ slug: 'new-slug' })
       expect(newPrice?.slug).toBe('new-slug')
     })
 

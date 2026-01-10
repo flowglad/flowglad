@@ -24,7 +24,9 @@ describe('webhooksRouteConfigs', () => {
     it('should map POST /webhooks to webhooks.create procedure', () => {
       const routeConfig = findRouteConfig('POST /webhooks')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'webhooks.create',
+      })
       expect(routeConfig!.procedure).toBe('webhooks.create')
       expect(routeConfig!.pattern.test('webhooks')).toBe(true)
 
@@ -42,7 +44,9 @@ describe('webhooksRouteConfigs', () => {
     it('should map PUT /webhooks/:id to webhooks.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /webhooks/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'webhooks.update',
+      })
       expect(routeConfig!.procedure).toBe('webhooks.update')
       expect(routeConfig!.pattern.test('webhooks/test-id')).toBe(true)
 
@@ -63,7 +67,7 @@ describe('webhooksRouteConfigs', () => {
     it('should map GET /webhooks/:id to webhooks.get procedure', () => {
       const routeConfig = findRouteConfig('GET /webhooks/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({ procedure: 'webhooks.get' })
       expect(routeConfig!.procedure).toBe('webhooks.get')
       expect(routeConfig!.pattern.test('webhooks/test-id')).toBe(true)
 
@@ -75,7 +79,9 @@ describe('webhooksRouteConfigs', () => {
     it('should map GET /webhooks to webhooks.list procedure', () => {
       const routeConfig = findRouteConfig('GET /webhooks')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'webhooks.list',
+      })
       expect(routeConfig!.procedure).toBe('webhooks.list')
       expect(routeConfig!.pattern.test('webhooks')).toBe(true)
 
@@ -87,7 +93,9 @@ describe('webhooksRouteConfigs', () => {
     it('should map DELETE /webhooks/:id to webhooks.delete procedure', () => {
       const routeConfig = findRouteConfig('DELETE /webhooks/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'webhooks.delete',
+      })
       expect(routeConfig!.procedure).toBe('webhooks.delete')
       expect(routeConfig!.pattern.test('webhooks/test-id')).toBe(true)
 
@@ -132,7 +140,7 @@ describe('webhooksRouteConfigs', () => {
       // Test Webhooks get pattern extraction
       const getConfig = findRouteConfig('GET /webhooks/:id')
       const getMatches = getConfig!.pattern.exec('webhooks/test-id')
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test Webhooks update pattern extraction
@@ -140,7 +148,7 @@ describe('webhooksRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'webhooks/test-id'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test Webhooks delete pattern extraction
@@ -148,19 +156,19 @@ describe('webhooksRouteConfigs', () => {
       const deleteMatches = deleteConfig!.pattern.exec(
         'webhooks/test-id'
       )
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test Webhooks list pattern (no captures)
       const listConfig = findRouteConfig('GET /webhooks')
       const listMatches = listConfig!.pattern.exec('webhooks')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test Webhooks create pattern (no captures)
       const createConfig = findRouteConfig('POST /webhooks')
       const createMatches = createConfig!.pattern.exec('webhooks')
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })

@@ -884,7 +884,11 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         )
 
         // Verify latest_charge is present (charge was created)
-        expect(paymentIntent.latest_charge).not.toBeNull()
+        // latest_charge is a string (charge ID) unless expanded
+        expect(typeof paymentIntent.latest_charge).toBe('string')
+        expect(
+          (paymentIntent.latest_charge as string).startsWith('ch_')
+        ).toBe(true)
 
         // Verify billing run metadata
         expect(paymentIntent.metadata?.billingRunId).toBe(
@@ -969,8 +973,15 @@ describeIfStripeKey('Stripe Integration Tests', () => {
           confirmedPaymentIntent.status
         )
 
-        // Verify latest_charge is present
-        expect(confirmedPaymentIntent.latest_charge).not.toBeNull()
+        // Verify latest_charge is present (charge ID string unless expanded)
+        expect(typeof confirmedPaymentIntent.latest_charge).toBe(
+          'string'
+        )
+        expect(
+          (confirmedPaymentIntent.latest_charge as string).startsWith(
+            'ch_'
+          )
+        ).toBe(true)
       })
 
       it('fails when payment intent is already confirmed', async () => {
@@ -1063,7 +1074,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         )
 
         // Verify charge is present
-        expect(charge).not.toBeNull()
+        expect(typeof charge).toBe('object')
 
         // Verify charge ID format
         expect(charge!.id).toMatch(/^ch_/)
@@ -1075,7 +1086,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         expect(charge!.status).toBe('succeeded')
 
         // Verify payment_method_details is present
-        expect(charge!.payment_method_details).not.toBeNull()
+        expect(typeof charge!.payment_method_details).toBe('object')
       })
 
       it('returns null when payment intent has no charge', async () => {
@@ -1174,12 +1185,12 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         )
 
         // Verify we got a full Charge object
-        expect(charge).not.toBeNull()
+        expect(typeof charge).toBe('object')
         expect(typeof charge).toBe('object')
         expect(charge!.id).toMatch(/^ch_/)
 
         // Verify payment_method_details is present (proves it's a full object)
-        expect(charge!.payment_method_details).not.toBeNull()
+        expect(typeof charge!.payment_method_details).toBe('object')
       })
     })
   })
@@ -1689,7 +1700,7 @@ describeIfStripeKey('Tax Calculations', () => {
       })
 
       // Verify we got a real tax transaction
-      expect(result).not.toBeNull()
+      expect(result).toMatchObject({ reference: reference })
       expect(result!.id).toMatch(/^tax_/)
       expect(result!.reference).toBe(reference)
     })
@@ -1798,7 +1809,7 @@ describeIfStripeKey('Tax Calculations', () => {
       })
 
       // Verify we got a reversal transaction
-      expect(result).not.toBeNull()
+      expect(result).toMatchObject({ reference: reversalReference })
       expect(result!.id).toMatch(/^tax_/)
       expect(result!.reference).toBe(reversalReference)
       expect(result!.type).toBe('reversal')
@@ -1845,7 +1856,7 @@ describeIfStripeKey('Tax Calculations', () => {
       })
 
       // Verify we got a reversal transaction
-      expect(result).not.toBeNull()
+      expect(result).toMatchObject({ reference: reversalReference })
       expect(result!.id).toMatch(/^tax_/)
       expect(result!.reference).toBe(reversalReference)
       expect(result!.type).toBe('reversal')

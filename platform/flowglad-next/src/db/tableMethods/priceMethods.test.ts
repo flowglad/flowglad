@@ -672,7 +672,6 @@ describe('priceMethods.ts', () => {
           },
           transaction
         )
-        expect(insertedPrice).toBeDefined()
         expect(insertedPrice.slug).toBe(slug2)
         expect(insertedPrice.active).toBe(true)
       })
@@ -739,7 +738,6 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        expect(updateResult).toBeDefined()
         expect(updateResult.slug).toBe(updatedSlug)
         // Ensure no collision or constraint thrown, and price2 untouched
         expect(updateResult.id).toBe(price1.id)
@@ -1153,7 +1151,7 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        expect(result).not.toBeNull()
+        expect(result).toMatchObject({ id: price.id })
         expect(result?.id).toBe(price.id)
         expect(result?.slug).toBe('test-price-slug')
         expect(result?.name).toBe('Test Price')
@@ -1247,7 +1245,7 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        expect(result).not.toBeNull()
+        expect(result).toMatchObject({ id: customPrice.id })
         expect(result?.id).toBe(customPrice.id)
         expect(result?.slug).toBe('custom-price-slug')
 
@@ -1314,7 +1312,7 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        expect(result).not.toBeNull()
+        expect(result).toMatchObject({ id: activePrice.id })
         expect(result?.id).toBe(activePrice.id)
         expect(result?.active).toBe(true)
       })
@@ -1367,7 +1365,7 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        expect(result).not.toBeNull()
+        expect(result).toMatchObject({ id: price.id })
         expect(result?.id).toBe(price.id)
         expect(result?.slug).toBe('test-price-slug')
         expect(result?.name).toBe('Test Price')
@@ -1427,7 +1425,7 @@ describe('priceMethods.ts', () => {
             transaction
           )
 
-        expect(livemodeResult).not.toBeNull()
+        expect(livemodeResult).toMatchObject({ id: price.id })
         expect(livemodeResult?.id).toBe(price.id)
 
         // Should return null when searching in test mode (livemode: false)
@@ -1553,7 +1551,7 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        expect(result).not.toBeNull()
+        expect(result).toMatchObject({ id: activePrice.id })
         expect(result?.id).toBe(activePrice.id)
         expect(result?.active).toBe(true)
       })

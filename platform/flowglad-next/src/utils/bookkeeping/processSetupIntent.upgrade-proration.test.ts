@@ -223,7 +223,7 @@ describe('Subscription Upgrade with Proration', () => {
         (s) => s.status === SubscriptionStatus.Active && !s.isFreePlan
       )
 
-      expect(paidSubscription).toBeDefined()
+      expect(typeof paidSubscription).toBe('object')
       // The billing cycle anchor should be the upgrade date (current date)
       const upgradeDate = new Date()
       expect(
@@ -592,7 +592,7 @@ describe('Subscription Upgrade with Proration', () => {
       const proratedItem = billingPeriodItems.find((item) =>
         item.name?.includes('Prorated')
       )
-      expect(proratedItem).toBeDefined()
+      expect(typeof proratedItem).toBe('object')
 
       // Calculate expected minimal proration (about 1 second out of ~30 days)
       const split =
@@ -808,7 +808,7 @@ describe('Subscription Upgrade with Proration', () => {
       const proratedItem = billingPeriodItems.find((item) =>
         item.name?.includes('Prorated')
       )
-      expect(proratedItem).toBeDefined()
+      expect(typeof proratedItem).toBe('object')
 
       // Calculate the exact expected proration
       const split =
@@ -909,7 +909,7 @@ describe('Subscription Upgrade with Proration', () => {
       const proratedItem = billingPeriodItems.find((item) =>
         item.name?.includes('Prorated')
       )
-      expect(proratedItem).toBeDefined()
+      expect(proratedItem).toMatchObject({ quantity: 3 })
 
       // Verify quantity is propagated correctly
       expect(proratedItem!.quantity).toBe(3)

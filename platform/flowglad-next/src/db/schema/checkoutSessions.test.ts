@@ -20,7 +20,9 @@ describe('createCheckoutSessionInputSchema – product anonymous discriminator',
       customerExternalId: 'cust_ext_1',
     })
     const result = createCheckoutSessionInputSchema.parse(input)
-    expect(result.checkoutSession).toBeDefined()
+    expect(result.checkoutSession.type).toBe(
+      CheckoutSessionType.Product
+    )
   })
 
   it('parses known when anonymous=false and customerExternalId is provided', () => {
@@ -33,7 +35,9 @@ describe('createCheckoutSessionInputSchema – product anonymous discriminator',
       customerExternalId: 'cust_ext_1',
     })
     const result = createCheckoutSessionInputSchema.parse(input)
-    expect(result.checkoutSession).toBeDefined()
+    expect(result.checkoutSession.type).toBe(
+      CheckoutSessionType.Product
+    )
   })
 
   it('fails when anonymous omitted/false and customerExternalId is missing', () => {
@@ -69,7 +73,9 @@ describe('createCheckoutSessionInputSchema – product anonymous discriminator',
       // no customerExternalId provided
     })
     const result = createCheckoutSessionInputSchema.parse(input)
-    expect(result.checkoutSession).toBeDefined()
+    expect(result.checkoutSession.type).toBe(
+      CheckoutSessionType.Product
+    )
   })
 
   it('parses anonymous when anonymous=true and customerExternalId=null', () => {
@@ -82,7 +88,9 @@ describe('createCheckoutSessionInputSchema – product anonymous discriminator',
       customerExternalId: null,
     })
     const result = createCheckoutSessionInputSchema.parse(input)
-    expect(result.checkoutSession).toBeDefined()
+    expect(result.checkoutSession.type).toBe(
+      CheckoutSessionType.Product
+    )
   })
 
   it('fails when anonymous=true and customerExternalId is a string', () => {
@@ -114,7 +122,9 @@ describe('createCheckoutSessionInputSchema – product anonymous discriminator',
     ]
     for (const input of inputs) {
       const result = createCheckoutSessionInputSchema.parse(input)
-      expect(result.checkoutSession).toBeDefined()
+      expect(result.checkoutSession.type).toBe(
+        CheckoutSessionType.Product
+      )
     }
   })
 })
@@ -129,7 +139,9 @@ describe('createCheckoutSessionInputSchema – non-product shapes ignore anonymo
       anonymous: true, // extra field; should be ignored by this shape
     })
     const result = createCheckoutSessionInputSchema.parse(input)
-    expect(result.checkoutSession).toBeDefined()
+    expect(result.checkoutSession.type).toBe(
+      CheckoutSessionType.AddPaymentMethod
+    )
   })
 
   it('activate_subscription parses even if anonymous=true is present', () => {
@@ -142,7 +154,9 @@ describe('createCheckoutSessionInputSchema – non-product shapes ignore anonymo
       anonymous: true, // extra field; should be ignored by this shape
     })
     const result = createCheckoutSessionInputSchema.parse(input)
-    expect(result.checkoutSession).toBeDefined()
+    expect(result.checkoutSession.type).toBe(
+      CheckoutSessionType.ActivateSubscription
+    )
   })
 
   it('activate_subscription allows priceId to be omitted', () => {
@@ -172,7 +186,9 @@ describe('createCheckoutSessionInputSchema – price slug support', () => {
         anonymous: false,
       })
       const result = createCheckoutSessionInputSchema.parse(input)
-      expect(result.checkoutSession).toBeDefined()
+      expect(result.checkoutSession.type).toBe(
+        CheckoutSessionType.Product
+      )
       if (
         result.checkoutSession.type === CheckoutSessionType.Product
       ) {
@@ -191,7 +207,9 @@ describe('createCheckoutSessionInputSchema – price slug support', () => {
         anonymous: false,
       })
       const result = createCheckoutSessionInputSchema.parse(input)
-      expect(result.checkoutSession).toBeDefined()
+      expect(result.checkoutSession.type).toBe(
+        CheckoutSessionType.Product
+      )
       if (
         result.checkoutSession.type === CheckoutSessionType.Product
       ) {
@@ -243,7 +261,9 @@ describe('createCheckoutSessionInputSchema – price slug support', () => {
         anonymous: true,
       })
       const result = createCheckoutSessionInputSchema.parse(input)
-      expect(result.checkoutSession).toBeDefined()
+      expect(result.checkoutSession.type).toBe(
+        CheckoutSessionType.Product
+      )
       if (
         result.checkoutSession.type === CheckoutSessionType.Product
       ) {
@@ -261,7 +281,9 @@ describe('createCheckoutSessionInputSchema – price slug support', () => {
         anonymous: true,
       })
       const result = createCheckoutSessionInputSchema.parse(input)
-      expect(result.checkoutSession).toBeDefined()
+      expect(result.checkoutSession.type).toBe(
+        CheckoutSessionType.Product
+      )
       if (
         result.checkoutSession.type === CheckoutSessionType.Product
       ) {

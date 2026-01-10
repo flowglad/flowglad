@@ -25,7 +25,9 @@ describe('usageEventsRouteConfigs', () => {
     it('should map POST /usage-events to usageEvents.create procedure', () => {
       const routeConfig = findRouteConfig('POST /usage-events')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'usageEvents.create',
+      })
       expect(routeConfig!.procedure).toBe('usageEvents.create')
       expect(routeConfig!.pattern.test('usage-events')).toBe(true)
 
@@ -40,7 +42,9 @@ describe('usageEventsRouteConfigs', () => {
     it('should map PUT /usage-events/:id to usageEvents.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /usage-events/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'usageEvents.update',
+      })
       expect(routeConfig!.procedure).toBe('usageEvents.update')
       expect(routeConfig!.pattern.test('usage-events/test-id')).toBe(
         true
@@ -60,7 +64,9 @@ describe('usageEventsRouteConfigs', () => {
     it('should map GET /usage-events/:id to usageEvents.get procedure', () => {
       const routeConfig = findRouteConfig('GET /usage-events/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'usageEvents.get',
+      })
       expect(routeConfig!.procedure).toBe('usageEvents.get')
       expect(routeConfig!.pattern.test('usage-events/test-id')).toBe(
         true
@@ -74,7 +80,9 @@ describe('usageEventsRouteConfigs', () => {
     it('should map GET /usage-events to usageEvents.list procedure', () => {
       const routeConfig = findRouteConfig('GET /usage-events')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'usageEvents.list',
+      })
       expect(routeConfig!.procedure).toBe('usageEvents.list')
       expect(routeConfig!.pattern.test('usage-events')).toBe(true)
 
@@ -86,7 +94,9 @@ describe('usageEventsRouteConfigs', () => {
     it('should map DELETE /usage-events/:id to usageEvents.delete procedure', () => {
       const routeConfig = findRouteConfig('DELETE /usage-events/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'usageEvents.delete',
+      })
       expect(routeConfig!.procedure).toBe('usageEvents.delete')
       expect(routeConfig!.pattern.test('usage-events/test-id')).toBe(
         true
@@ -101,7 +111,7 @@ describe('usageEventsRouteConfigs', () => {
       const routeConfig =
         usageEventsBulkRouteConfig['POST /usage-events/bulk']
 
-      expect(routeConfig).toBeDefined()
+      expect(typeof routeConfig).toBe('object')
       expect(routeConfig.procedure).toBe('usageEvents.bulkInsert')
 
       // Test pattern matching
@@ -171,7 +181,7 @@ describe('usageEventsRouteConfigs', () => {
       const getMatches = getConfig!.pattern.exec(
         'usage-events/test-id'
       )
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test Usage Events update pattern extraction
@@ -179,7 +189,7 @@ describe('usageEventsRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'usage-events/test-id'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test Usage Events delete pattern extraction
@@ -187,19 +197,19 @@ describe('usageEventsRouteConfigs', () => {
       const deleteMatches = deleteConfig!.pattern.exec(
         'usage-events/test-id'
       )
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test Usage Events list pattern (no captures)
       const listConfig = findRouteConfig('GET /usage-events')
       const listMatches = listConfig!.pattern.exec('usage-events')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test Usage Events create pattern (no captures)
       const createConfig = findRouteConfig('POST /usage-events')
       const createMatches = createConfig!.pattern.exec('usage-events')
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })

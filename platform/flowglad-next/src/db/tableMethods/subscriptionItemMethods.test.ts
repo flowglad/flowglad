@@ -103,7 +103,7 @@ describe('subscriptionItemMethods', async () => {
           subscriptionItem.id,
           transaction
         )
-        expect(result).toBeDefined()
+        expect(result).toMatchObject({ id: subscriptionItem.id })
         expect(result?.id).toBe(subscriptionItem.id)
       })
     })
@@ -140,7 +140,6 @@ describe('subscriptionItemMethods', async () => {
           newItemData,
           transaction
         )
-        expect(result).toBeDefined()
         expect(result.name).toBe(newItemData.name)
         expect(result.quantity).toBe(newItemData.quantity)
 
@@ -184,7 +183,7 @@ describe('subscriptionItemMethods', async () => {
           },
           transaction
         )
-        expect(result).toBeDefined()
+        expect(result).toMatchObject({ name: updates.name })
         expect(result?.name).toBe(updates.name)
         expect(result?.quantity).toBe(updates.quantity)
 
@@ -279,7 +278,6 @@ describe('subscriptionItemMethods', async () => {
           const original = itemsToInsert.find(
             (p) => p.externalId === insertedItem.externalId
           )
-          expect(original).toBeDefined()
           expect(insertedItem.name).toBe(original?.name)
         }
       })
@@ -293,7 +291,6 @@ describe('subscriptionItemMethods', async () => {
           { id: subscription.id },
           transaction
         )
-        expect(result).toBeDefined()
         expect(result?.subscription.id).toBe(subscription.id)
         expect(result?.subscriptionItems.length).toBeGreaterThan(0)
         expect(
@@ -323,7 +320,7 @@ describe('subscriptionItemMethods', async () => {
             subscription.id,
             transaction
           )
-        expect(result).toBeDefined()
+        expect(result).toMatchObject({})
         expect(result?.subscription.id).toBe(subscription.id)
         expect(result?.subscriptionItems.length).toBeGreaterThan(0)
       })
@@ -384,7 +381,7 @@ describe('subscriptionItemMethods', async () => {
         const updatedItem = results.find(
           (r) => r.id === subscriptionItem.id
         )
-        expect(updatedItem).toBeDefined()
+        expect(updatedItem).toMatchObject({ quantity: 10 })
         expect(updatedItem?.name).toBe(
           'Updated Existing Item via Bulk'
         )
@@ -393,7 +390,7 @@ describe('subscriptionItemMethods', async () => {
         const newItem = results.find(
           (r) => r.externalId === newItemExternalId
         )
-        expect(newItem).toBeDefined()
+        expect(newItem).toMatchObject({ name: 'New Item via Bulk' })
         expect(newItem?.name).toBe('New Item via Bulk')
 
         const count = await transaction
@@ -652,7 +649,7 @@ describe('subscriptionItemMethods', async () => {
         expect(results[0].subscriptionItem.subscriptionId).toBe(
           subscription.id
         )
-        expect(results[0].price).not.toBeNull()
+        expect(results[0].price).toMatchObject({ id: price.id })
         expect(results[0].price?.id).toBe(price.id)
       })
     })
@@ -794,12 +791,12 @@ describe('subscriptionItemMethods', async () => {
           subWithItems.subscriptionItems.find(
             (si) => si.id === item1.id
           )
-        ).toBeDefined()
+        ).toMatchObject({ id: item1.id })
         expect(
           subWithItems.subscriptionItems.find(
             (si) => si.id === item2.id
           )
-        ).toBeDefined()
+        ).toMatchObject({ id: item2.id })
 
         // These should not be present
         expect(
@@ -1136,9 +1133,13 @@ describe('subscriptionItemMethods', async () => {
           (b) => b.id === secondUsageMeter.id
         )
 
-        expect(associatedMeterBalance).toBeDefined()
+        expect(associatedMeterBalance).toMatchObject({
+          availableBalance: -300,
+        })
         expect(associatedMeterBalance?.availableBalance).toBe(-300)
-        expect(unassociatedMeterBalance).toBeDefined()
+        expect(unassociatedMeterBalance).toMatchObject({
+          availableBalance: -200,
+        })
         expect(unassociatedMeterBalance?.availableBalance).toBe(-200)
       })
     })
@@ -1175,7 +1176,7 @@ describe('subscriptionItemMethods', async () => {
         const emptySub = richSubscriptions.find(
           (s) => s.id === emptySubscription.id
         )
-        expect(emptySub).toBeDefined()
+        expect(emptySub).toMatchObject({ id: emptySubscription.id })
         expect(emptySub?.subscriptionItems).toEqual([])
         expect(emptySub?.experimental?.featureItems).toEqual([])
         expect(emptySub?.experimental?.usageMeterBalances).toEqual([])
@@ -1348,10 +1349,10 @@ describe('subscriptionItemMethods', async () => {
         expect(results.length).toBe(2)
         expect(
           results.find((item) => item.id === futureExpiringItem.id)
-        ).toBeDefined()
+        ).toMatchObject({ id: futureExpiringItem.id })
         expect(
           results.find((item) => item.id === noExpiryItem.id)
-        ).toBeDefined()
+        ).toMatchObject({ id: noExpiryItem.id })
         expect(
           results.find((item) => item.id === subscriptionItem.id)
         ).toBeUndefined()

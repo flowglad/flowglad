@@ -53,7 +53,7 @@ describe('Template Integration Tests', () => {
             )
         )
 
-        expect(result.pricingModel.id).toBeDefined()
+        expect(typeof result.pricingModel.id).toBe('string')
         expect(result.pricingModel.name).toBe(expectedName)
         expect(result.products.length).toBeGreaterThan(0)
       }
