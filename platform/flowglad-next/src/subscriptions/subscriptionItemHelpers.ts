@@ -219,50 +219,98 @@ const grantProratedCreditsForFeatures = async (params: {
   // Build usage credit inserts using delta calculation
   // If existing credits exist for this usage meter, only grant the difference (new - existing)
   // This handles upgrades correctly: Pro (360) -> Mega (900) grants delta of 540, not full 900
-  const usageCreditInserts: UsageCredit.Insert[] = creditGrantFeatures
-    .filter((feature) => feature.usageMeterId !== null)
-    .map((feature) => {
-      const isEveryBillingPeriod =
-        feature.renewalFrequency ===
-        FeatureUsageGrantFrequency.EveryBillingPeriod
+  //
+  // IMPORTANT: When multiple features share the same usageMeterId, we must:
+  // 1. Calculate the total new prorated amount per meter (sum of all features)
+  // 2. Calculate ONE delta per meter (total new - existing)
+  // 3. Distribute that delta across features, granting each feature up to its prorated amount
+  //
+  // Without this, existing credits would be subtracted from each feature individually,
+  // causing double-subtraction and under-granting credits.
 
-      // Calculate the new prorated amount for this feature
-      const newProratedAmount = isEveryBillingPeriod
-        ? Math.round(feature.amount * split.afterPercentage)
-        : feature.amount // Once features get full amount
+  // Filter features with valid meter IDs
+  const featuresWithMeter = creditGrantFeatures.filter(
+    (feature) => feature.usageMeterId !== null
+  )
 
-      // Get existing credits for this usage meter in this billing period
-      // This includes BillingPeriodTransition + any previous ManualAdjustment credits
-      const existingCreditsForMeter =
-        existingCreditsByUsageMeterId.get(feature.usageMeterId!) ?? 0
+  // Step 1: Calculate prorated amounts and aggregate totals per meter
+  const featureProratedAmounts = new Map<string, number>()
+  const totalNewAmountsByMeter = new Map<string, number>()
 
-      // Calculate delta: only grant the difference if upgrading to more credits
-      // If downgrading or staying same, delta will be 0 or negative (filtered out below)
-      const deltaAmount = newProratedAmount - existingCreditsForMeter
+  for (const feature of featuresWithMeter) {
+    const isEveryBillingPeriod =
+      feature.renewalFrequency ===
+      FeatureUsageGrantFrequency.EveryBillingPeriod
+    const proratedAmount = isEveryBillingPeriod
+      ? Math.round(feature.amount * split.afterPercentage)
+      : feature.amount // Once features get full amount
 
-      return {
-        subscriptionId: subscription.id,
-        organizationId: subscription.organizationId,
-        livemode: subscription.livemode,
-        creditType: UsageCreditType.Grant,
-        sourceReferenceId: feature.id,
-        sourceReferenceType:
-          UsageCreditSourceReferenceType.ManualAdjustment,
-        billingPeriodId: currentBillingPeriod.id,
-        usageMeterId: feature.usageMeterId!,
-        paymentId: null,
-        issuedAmount: deltaAmount,
-        issuedAt: Date.now(),
-        // EveryBillingPeriod credits expire at period end, Once credits don't expire
-        expiresAt: isEveryBillingPeriod
-          ? currentBillingPeriod.endDate
-          : null,
-        status: UsageCreditStatus.Posted,
-        notes: null,
-        metadata: null,
-      }
+    featureProratedAmounts.set(feature.id, proratedAmount)
+
+    const meterId = feature.usageMeterId!
+    const currentTotal = totalNewAmountsByMeter.get(meterId) ?? 0
+    totalNewAmountsByMeter.set(meterId, currentTotal + proratedAmount)
+  }
+
+  // Step 2: Calculate delta per meter and track remaining allocation
+  const remainingDeltaByMeter = new Map<string, number>()
+  for (const [meterId, totalNew] of totalNewAmountsByMeter) {
+    const existingCredits =
+      existingCreditsByUsageMeterId.get(meterId) ?? 0
+    const delta = totalNew - existingCredits
+    if (delta > 0) {
+      remainingDeltaByMeter.set(meterId, delta)
+    }
+  }
+
+  // Step 3: Create credit inserts, distributing delta across features
+  // Each feature gets up to its prorated amount, but only if delta remains
+  const usageCreditInserts: UsageCredit.Insert[] = []
+  for (const feature of featuresWithMeter) {
+    const meterId = feature.usageMeterId!
+    const remainingDelta = remainingDeltaByMeter.get(meterId) ?? 0
+
+    if (remainingDelta <= 0) {
+      continue // No delta left for this meter
+    }
+
+    const featureProrated = featureProratedAmounts.get(feature.id)!
+    // Grant up to the feature's prorated amount, but no more than remaining delta
+    const amountToGrant = Math.min(featureProrated, remainingDelta)
+
+    if (amountToGrant <= 0) {
+      continue
+    }
+
+    // Subtract from remaining delta for this meter
+    remainingDeltaByMeter.set(meterId, remainingDelta - amountToGrant)
+
+    const isEveryBillingPeriod =
+      feature.renewalFrequency ===
+      FeatureUsageGrantFrequency.EveryBillingPeriod
+
+    usageCreditInserts.push({
+      subscriptionId: subscription.id,
+      organizationId: subscription.organizationId,
+      livemode: subscription.livemode,
+      creditType: UsageCreditType.Grant,
+      sourceReferenceId: feature.id,
+      sourceReferenceType:
+        UsageCreditSourceReferenceType.ManualAdjustment,
+      billingPeriodId: currentBillingPeriod.id,
+      usageMeterId: meterId,
+      paymentId: null,
+      issuedAmount: amountToGrant,
+      issuedAt: Date.now(),
+      // EveryBillingPeriod credits expire at period end, Once credits don't expire
+      expiresAt: isEveryBillingPeriod
+        ? currentBillingPeriod.endDate
+        : null,
+      status: UsageCreditStatus.Posted,
+      notes: null,
+      metadata: null,
     })
-    .filter((insert) => insert.issuedAmount > 0) // Skip zero or negative delta credits
+  }
 
   if (R.isEmpty(usageCreditInserts)) {
     return { usageCredits: [], ledgerEntries: [] }
