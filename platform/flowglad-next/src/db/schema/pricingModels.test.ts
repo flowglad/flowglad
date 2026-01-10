@@ -122,10 +122,9 @@ describe('Pricing Models RLS - Organization Policy', async () => {
         { apiKey: org1ApiKeyToken }
       )
 
-      expect(fetchedPricingModel1).toMatchObject({})
-      expect(fetchedPricingModel1!.id).toBe(
-        org1DefaultPricingModel.id
-      )
+      expect(fetchedPricingModel1).toMatchObject({
+        id: org1DefaultPricingModel.id,
+      })
       expect(fetchedPricingModel2).toMatchObject({
         id: org1ExtraPricingModel.id,
       })

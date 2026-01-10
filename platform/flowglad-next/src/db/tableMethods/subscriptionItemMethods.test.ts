@@ -140,7 +140,6 @@ describe('subscriptionItemMethods', async () => {
           newItemData,
           transaction
         )
-        expect(result).toMatchObject({})
         expect(result.name).toBe(newItemData.name)
         expect(result.quantity).toBe(newItemData.quantity)
 
@@ -279,7 +278,6 @@ describe('subscriptionItemMethods', async () => {
           const original = itemsToInsert.find(
             (p) => p.externalId === insertedItem.externalId
           )
-          expect(typeof original).toBe('object')
           expect(insertedItem.name).toBe(original?.name)
         }
       })
@@ -293,7 +291,6 @@ describe('subscriptionItemMethods', async () => {
           { id: subscription.id },
           transaction
         )
-        expect(result).toMatchObject({})
         expect(result?.subscription.id).toBe(subscription.id)
         expect(result?.subscriptionItems.length).toBeGreaterThan(0)
         expect(
@@ -1179,7 +1176,7 @@ describe('subscriptionItemMethods', async () => {
         const emptySub = richSubscriptions.find(
           (s) => s.id === emptySubscription.id
         )
-        expect(typeof emptySub).toBe('object')
+        expect(emptySub).toMatchObject({ id: emptySubscription.id })
         expect(emptySub?.subscriptionItems).toEqual([])
         expect(emptySub?.experimental?.featureItems).toEqual([])
         expect(emptySub?.experimental?.usageMeterBalances).toEqual([])

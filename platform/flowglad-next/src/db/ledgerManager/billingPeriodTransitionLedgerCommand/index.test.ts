@@ -256,7 +256,9 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           )
           expect(creditEntry.amount).toBe(feature.amount)
           expect(creditEntry.ledgerAccountId).toBe(ledgerAccount.id)
-          expect(creditEntry.sourceUsageCreditId).toMatchObject({})
+          expect(typeof creditEntry.sourceUsageCreditId).toBe(
+            'string'
+          )
 
           // 3. Verify the usage credit record was created
           const usageCredit = await selectUsageCreditById(
@@ -264,7 +266,10 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             transaction
           )
 
-          expect(usageCredit).toMatchObject({})
+          expect(usageCredit).toMatchObject({
+            issuedAmount: feature.amount,
+            status: UsageCreditStatus.Posted,
+          })
           if (!usageCredit) {
             throw new Error('Usage credit not found')
           }

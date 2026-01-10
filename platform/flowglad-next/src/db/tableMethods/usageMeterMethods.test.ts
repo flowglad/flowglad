@@ -184,7 +184,7 @@ describe('usageMeterMethods', () => {
         )
         expect(result.data.length).toBe(2)
         expect(result.hasMore).toBe(true)
-        expect(result.nextCursor).toMatchObject({})
+        expect(typeof result.nextCursor).toBe('string')
       })
     })
   })

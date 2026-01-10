@@ -81,7 +81,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     expect(result.items.length).toBe(5)
     expect(result.hasNextPage).toBe(true)
-    expect(result.endCursor).toMatchObject({})
+    expect(typeof result.endCursor).toBe('string')
   })
 
   it('should return correct pagination metadata when there are no more results', async () => {
@@ -99,7 +99,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     expect(result.items.length).toBe(15)
 
     expect(result.hasNextPage).toBe(false)
-    expect(result.endCursor).toMatchObject({})
+    expect(typeof result.endCursor).toBe('string')
   })
 
   it('should handle different page sizes correctly', async () => {
@@ -430,8 +430,8 @@ describe('createCursorPaginatedSelectFunction', () => {
     expect(result.items.length).toBe(5)
     expect(result.hasPreviousPage).toBe(false)
     expect(result.hasNextPage).toBe(true)
-    expect(result.startCursor).toMatchObject({})
-    expect(result.endCursor).toMatchObject({})
+    expect(typeof result.startCursor).toBe('string')
+    expect(typeof result.endCursor).toBe('string')
     expect(result.total).toBe(15)
   })
 
@@ -1345,7 +1345,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toMatchObject({})
+      expect(result).toEqual(expect.anything())
     })
 
     it('should handle single boolean condition', () => {
@@ -1354,7 +1354,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toMatchObject({})
+      expect(result).toEqual(expect.anything())
     })
 
     it('should handle single number condition', () => {
@@ -1363,7 +1363,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toMatchObject({})
+      expect(result).toEqual(expect.anything())
     })
 
     it('should handle single null condition', () => {
@@ -1372,7 +1372,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toMatchObject({})
+      expect(result).toEqual(expect.anything())
     })
   })
 
@@ -1778,7 +1778,7 @@ describe('createPaginatedSelectFunction', () => {
 
     expect(result.data.length).toBe(10)
     expect(result.hasMore).toBe(true)
-    expect(result.nextCursor).toMatchObject({})
+    expect(typeof result.nextCursor).toBe('string')
     expect(result.currentCursor).toBeUndefined()
     expect(result.total).toBeGreaterThanOrEqual(25)
   })

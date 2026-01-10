@@ -285,7 +285,6 @@ describe('subscriptionItemFeatureMethods', () => {
           { ...inserted, expiredAt: now.getTime() },
           transaction
         )
-        expect(typeof updated.expiredAt).toBe('number')
         expect(updated.expiredAt).toBe(now.getTime())
       })
     })
@@ -328,7 +327,6 @@ describe('subscriptionItemFeatureMethods', () => {
           )
         expect(updated.length).toBe(2)
         updated.forEach((u: SubscriptionItemFeature.Record) => {
-          expect(typeof u.expiredAt).toBe('number')
           expect(u.expiredAt).toBe(date.getTime())
         })
       })

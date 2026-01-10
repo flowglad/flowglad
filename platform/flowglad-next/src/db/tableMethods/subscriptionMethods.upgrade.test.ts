@@ -651,12 +651,9 @@ describe('Subscription Upgrade Selection Logic', () => {
         expect(endTime - startTime).toBeLessThan(1000)
 
         // Should return the last subscription in the chain
-        expect(typeof currentSub).toBe('object')
-        if (currentSub) {
-          expect(subscriptions.map((s) => s.id)).toContain(
-            currentSub.id
-          )
-        }
+        expect(subscriptions.map((s) => s.id)).toContain(
+          currentSub!.id
+        )
       })
     })
 

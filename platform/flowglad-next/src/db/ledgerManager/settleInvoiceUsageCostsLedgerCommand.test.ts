@@ -254,8 +254,8 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       expect(creditAppEntry.sourceUsageCreditId).toBe(
         creditGrantEntry.sourceUsageCreditId
       )
-      expect(debitAppEntry.sourceCreditApplicationId).toMatchObject(
-        {}
+      expect(typeof debitAppEntry.sourceCreditApplicationId).toBe(
+        'string'
       )
       expect(creditAppEntry.sourceCreditApplicationId).toBe(
         debitAppEntry.sourceCreditApplicationId

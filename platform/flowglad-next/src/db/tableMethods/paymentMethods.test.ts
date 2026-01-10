@@ -2106,7 +2106,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
         expect(result.items.length).toBe(3)
         expect(result.total).toBeGreaterThanOrEqual(3)
-        expect(result.endCursor).toMatchObject({})
+        expect(typeof result.endCursor).toBe('string')
       })
     })
 
@@ -2123,8 +2123,6 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
           })
 
         expect(result.items.length).toBe(1)
-        expect(result.items[0].payment).toMatchObject({})
-        expect(result.items[0].customer).toMatchObject({})
         expect(result.items[0].payment.id).toBe(payment1.id)
         expect(result.items[0].customer.id).toBe(customer1.id)
         expect(result.items[0].customer.name).toBe('Alice Smith')

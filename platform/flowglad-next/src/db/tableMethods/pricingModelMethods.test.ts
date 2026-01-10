@@ -478,7 +478,6 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     const product1Result = pricingModelResult.products.find(
       (p) => p.id === product1.id
     )
-    expect(typeof product1Result).toBe('object')
     expect(product1Result?.features).toHaveLength(2)
     expect(product1Result?.features.map((f) => f.id)).toContain(
       feature1.id
@@ -491,7 +490,6 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     const product2Result = pricingModelResult.products.find(
       (p) => p.id === product2.id
     )
-    expect(typeof product2Result).toBe('object')
     expect(product2Result?.features).toHaveLength(1)
     expect(product2Result?.features[0].id).toBe(feature3.id)
   })
@@ -534,8 +532,6 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     )
 
     // Verify it has an empty features array, not null or undefined
-    expect(typeof productResult).toBe('object')
-    expect(typeof productResult?.features).toBe('object')
     expect(Array.isArray(productResult?.features)).toBe(true)
     expect(productResult?.features).toHaveLength(0)
   })
@@ -1107,7 +1103,6 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
     // Verify default price relationship
     const defaultPrice = returnedPrices.find((p) => p.isDefault)
     expect(defaultPrice).toMatchObject({ id: activePrice2.id })
-    expect(defaultPrice?.id).toBe(activePrice2.id)
   })
 
   it('should filter out products with only inactive prices', async () => {

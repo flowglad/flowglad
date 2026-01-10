@@ -186,7 +186,7 @@ describe('unexpireProductFeatures', () => {
     const featureBModel = allFeatures.find(
       (pf) => pf.featureId === featureB.id
     )
-    expect(featureBModel?.expiredAt).toMatchObject({})
+    expect(typeof featureBModel?.expiredAt).toBe('number')
   })
 
   it('should return an empty array when an empty featureIds list is provided', async () => {

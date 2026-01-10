@@ -385,7 +385,6 @@ describe('grantEntitlementUsageCredits', () => {
     expect(usageCredit1).toMatchObject({
       organizationId: organization.id,
     })
-    expect(usageCredit2).toMatchObject({})
 
     // Assertions for the first usage credit (linked to usageMeter1)
     expect(usageCredit1!.organizationId).toBe(organization.id)
@@ -429,9 +428,6 @@ describe('grantEntitlementUsageCredits', () => {
     const ledgerEntry2 = sortedLedgerEntries.find(
       (le) => le.ledgerAccountId === ledgerAccount2.id
     )
-
-    expect(ledgerEntry1).toMatchObject({})
-    expect(ledgerEntry2).toMatchObject({})
 
     // Assertions for the first ledger entry (linked to ledgerAccount1)
     expect(ledgerEntry1!.ledgerTransactionId).toBe(

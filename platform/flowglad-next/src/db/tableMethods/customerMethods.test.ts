@@ -584,8 +584,6 @@ describe('Customer uniqueness constraints', () => {
       })
 
       // Verify both customers were created successfully
-      expect(customer1).toMatchObject({})
-      expect(customer2).toMatchObject({})
       expect(customer1.externalId).toBe(sharedExternalId)
       expect(customer2.externalId).toBe(sharedExternalId)
       expect(customer1.organizationId).toBe(organization1.id)

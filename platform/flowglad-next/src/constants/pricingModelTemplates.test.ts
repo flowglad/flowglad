@@ -13,7 +13,9 @@ describe('Pricing Model Templates', () => {
         const validated = validateSetupPricingModelInput(
           template.input
         )
-        expect(typeof validated).toBe('object')
+        expect(validated).toMatchObject({
+          products: expect.any(Array),
+        })
       })
     })
   })
@@ -31,7 +33,6 @@ describe('Pricing Model Templates', () => {
 
       templateIds.forEach((id) => {
         const template = getTemplateById(id)
-        expect(template).toMatchObject({})
         expect(template?.metadata.id).toBe(id)
       })
     })

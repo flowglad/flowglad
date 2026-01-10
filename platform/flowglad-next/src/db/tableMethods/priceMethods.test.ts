@@ -672,7 +672,6 @@ describe('priceMethods.ts', () => {
           },
           transaction
         )
-        expect(typeof insertedPrice).toBe('object')
         expect(insertedPrice.slug).toBe(slug2)
         expect(insertedPrice.active).toBe(true)
       })
@@ -739,7 +738,6 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        expect(typeof updateResult).toBe('object')
         expect(updateResult.slug).toBe(updatedSlug)
         // Ensure no collision or constraint thrown, and price2 untouched
         expect(updateResult.id).toBe(price1.id)
