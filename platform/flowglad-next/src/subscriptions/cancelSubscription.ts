@@ -53,6 +53,7 @@ import {
   SubscriptionCancellationArrangement,
   SubscriptionStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import { constructSubscriptionCanceledEventHash } from '@/utils/eventHelpers'
 
 // Abort all scheduled billing runs for a subscription
@@ -269,6 +270,12 @@ export const cancelSubscriptionImmediately = async (
   const customer =
     providedCustomer ??
     (await selectCustomerById(subscription.customerId, transaction))
+
+  // Cache invalidation for this customer's subscriptions (used in all return paths)
+  const cacheInvalidations = [
+    CacheDependency.customerSubscriptions(subscription.customerId),
+  ]
+
   if (isSubscriptionInTerminalState(subscription.status)) {
     return {
       result: subscription,
@@ -278,6 +285,7 @@ export const cancelSubscriptionImmediately = async (
           customer
         ),
       ],
+      cacheInvalidations,
     }
   }
   if (
@@ -297,6 +305,7 @@ export const cancelSubscriptionImmediately = async (
           customer
         ),
       ],
+      cacheInvalidations,
     }
   }
   const endDate = Date.now()
@@ -454,6 +463,7 @@ export const cancelSubscriptionImmediately = async (
         customer
       ),
     ],
+    cacheInvalidations,
   }
 }
 
@@ -654,13 +664,16 @@ export const cancelSubscriptionProcedureTransaction = async ({
     SubscriptionCancellationArrangement.Immediately
   ) {
     // Note: subscription is already fetched above, can reuse it
-    const { result: updatedSubscription, eventsToInsert } =
-      await cancelSubscriptionImmediately(
-        {
-          subscription,
-        },
-        transaction
-      )
+    const {
+      result: updatedSubscription,
+      eventsToInsert,
+      cacheInvalidations,
+    } = await cancelSubscriptionImmediately(
+      {
+        subscription,
+      },
+      transaction
+    )
     return {
       result: {
         subscription: {
@@ -672,6 +685,7 @@ export const cancelSubscriptionProcedureTransaction = async ({
         },
       },
       eventsToInsert,
+      cacheInvalidations,
     }
   }
   const updatedSubscription = await scheduleSubscriptionCancellation(
@@ -689,6 +703,11 @@ export const cancelSubscriptionProcedureTransaction = async ({
       },
     },
     eventsToInsert: [],
+    cacheInvalidations: [
+      CacheDependency.customerSubscriptions(
+        updatedSubscription.customerId
+      ),
+    ],
   }
 }
 
@@ -838,6 +857,11 @@ export const uncancelSubscription = async (
     return {
       result: subscription,
       eventsToInsert: [],
+      cacheInvalidations: [
+        CacheDependency.customerSubscriptions(
+          subscription.customerId
+        ),
+      ],
     }
   }
 
@@ -848,6 +872,11 @@ export const uncancelSubscription = async (
     return {
       result: subscription,
       eventsToInsert: [],
+      cacheInvalidations: [
+        CacheDependency.customerSubscriptions(
+          subscription.customerId
+        ),
+      ],
     }
   }
 
@@ -868,6 +897,11 @@ export const uncancelSubscription = async (
     return {
       result: subscription,
       eventsToInsert: [],
+      cacheInvalidations: [
+        CacheDependency.customerSubscriptions(
+          subscription.customerId
+        ),
+      ],
     }
   }
 
@@ -914,6 +948,11 @@ export const uncancelSubscription = async (
   return {
     result: updatedSubscription,
     eventsToInsert: [],
+    cacheInvalidations: [
+      CacheDependency.customerSubscriptions(
+        updatedSubscription.customerId
+      ),
+    ],
   }
 }
 
@@ -944,10 +983,8 @@ export const uncancelSubscriptionProcedureTransaction = async ({
     transaction
   )
 
-  const { result: updatedSubscription } = await uncancelSubscription(
-    subscription,
-    transaction
-  )
+  const { result: updatedSubscription, cacheInvalidations } =
+    await uncancelSubscription(subscription, transaction)
 
   return {
     result: {
@@ -960,5 +997,6 @@ export const uncancelSubscriptionProcedureTransaction = async ({
       },
     },
     eventsToInsert: [],
+    cacheInvalidations,
   }
 }

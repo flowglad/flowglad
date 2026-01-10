@@ -14,8 +14,8 @@ export interface TransactionOutput<T> {
    *
    * Example:
    * cacheInvalidations: [
-   *   CacheDependency.customer(customerId),
-   *   CacheDependency.subscription(subscriptionId),
+   *   CacheDependency.customerSubscriptions(customerId),
+   *   CacheDependency.subscriptionItems(subscriptionId),
    * ]
    */
   cacheInvalidations?: CacheDependencyKey[]

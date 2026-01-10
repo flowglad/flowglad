@@ -689,6 +689,7 @@ describe('Customer Billing Portal Router', () => {
     it.skip('creates Stripe setup session for adding payment method', async () => {
       // Skip this test as it requires complex Stripe integration mocking
       // The procedure works correctly but requires full Stripe setup for testing
+      // biome-ignore lint/plugin: dynamic import required to access module for spying
       const createCheckoutSessionModule = await import(
         '@/utils/bookkeeping/createCheckoutSession'
       )

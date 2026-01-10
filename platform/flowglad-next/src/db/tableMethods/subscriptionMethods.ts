@@ -37,6 +37,8 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { CancellationReason, SubscriptionStatus } from '@/types'
+import { CacheDependency, cached } from '@/utils/cache'
+import { RedisKeyNamespace } from '@/utils/redis'
 import {
   customerClientSelectSchema,
   customers,
@@ -118,6 +120,41 @@ export const updateSubscription = createUpdateFunction(
 export const selectSubscriptions = createSelectFunction(
   subscriptions,
   config
+)
+
+/**
+ * Selects subscriptions by customer ID with caching enabled by default.
+ * Pass { ignoreCache: true } as the last argument to bypass the cache.
+ *
+ * This cache entry depends on customerSubscriptions - invalidate when
+ * subscriptions for this customer are created, updated, or deleted.
+ *
+ * Cache key includes livemode to prevent cross-mode data leakage, since RLS
+ * filters subscriptions by livemode and the same customer could have different
+ * subscriptions in live vs test mode.
+ */
+export const selectSubscriptionsByCustomerId = cached(
+  {
+    namespace: RedisKeyNamespace.SubscriptionsByCustomer,
+    keyFn: (
+      customerId: string,
+      _transaction: DbTransaction,
+      livemode: boolean
+    ) => `${customerId}:${livemode}`,
+    schema: subscriptionsSelectSchema.array(),
+    dependenciesFn: (customerId: string) => [
+      CacheDependency.customerSubscriptions(customerId),
+    ],
+  },
+  async (
+    customerId: string,
+    transaction: DbTransaction,
+    // livemode is used by keyFn for cache key generation, not in the query itself
+    // (RLS filters by livemode context set on the transaction)
+    _livemode: boolean
+  ) => {
+    return selectSubscriptions({ customerId }, transaction)
+  }
 )
 
 export const isSubscriptionInTerminalState = (

@@ -32,6 +32,7 @@ import {
   claimResourceTransaction,
   getResourceUsage,
   releaseAllResourceClaimsForSubscription,
+  releaseAllResourceClaimsForSubscriptionItemFeature,
   releaseResourceTransaction,
   validateResourceCapacityForDowngrade,
 } from './resourceClaimHelpers'
@@ -459,7 +460,9 @@ describe('resourceClaimHelpers', () => {
             transaction
           )
         })
-      ).rejects.toThrow('Only 2 anonymous claims exist')
+      ).rejects.toThrow(
+        'Cannot release 3 anonymous claims. Only 2 exist. Use claimIds to release specific claims regardless of type.'
+      )
     })
 
     it('when externalId is provided, releases the specific pet claim and sets releaseReason to released', async () => {
@@ -731,6 +734,81 @@ describe('resourceClaimHelpers', () => {
     })
   })
 
+  describe('releaseAllResourceClaimsForSubscriptionItemFeature', () => {
+    it('releases all active claims for a subscription item feature with the given reason and returns accurate count', async () => {
+      // Create mixed claims: 2 cattle + 2 pet = 4 total
+      await adminTransaction(async ({ transaction }) => {
+        return claimResourceTransaction(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            input: {
+              resourceSlug: 'seats',
+              subscriptionId: subscription.id,
+              quantity: 2,
+            },
+          },
+          transaction
+        )
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        return claimResourceTransaction(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            input: {
+              resourceSlug: 'seats',
+              subscriptionId: subscription.id,
+              externalIds: ['feature_user_1', 'feature_user_2'],
+            },
+          },
+          transaction
+        )
+      })
+
+      // Release all claims for the subscription item feature
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return releaseAllResourceClaimsForSubscriptionItemFeature(
+            subscriptionItemFeature.id,
+            'feature_removed',
+            transaction
+          )
+        }
+      )
+
+      expect(result.releasedCount).toBe(4)
+
+      // Verify all claims are released
+      const activeClaims = await adminTransaction(
+        async ({ transaction }) => {
+          return selectActiveResourceClaims(
+            {
+              subscriptionItemFeatureId: subscriptionItemFeature.id,
+            },
+            transaction
+          )
+        }
+      )
+      expect(activeClaims.length).toBe(0)
+    })
+
+    it('when there are no active claims, returns releasedCount of 0', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return releaseAllResourceClaimsForSubscriptionItemFeature(
+            subscriptionItemFeature.id,
+            'feature_removed',
+            transaction
+          )
+        }
+      )
+
+      expect(result.releasedCount).toBe(0)
+    })
+  })
+
   describe('getResourceUsage', () => {
     it('returns accurate capacity, claimed count, and available slots', async () => {
       // Create 3 claims
@@ -782,6 +860,181 @@ describe('resourceClaimHelpers', () => {
         claimed: 0,
         available: 5,
       })
+    })
+  })
+
+  describe('claimResourceTransaction - additional coverage', () => {
+    it('when metadata is provided, persists metadata to the created claims', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalId: 'user_with_metadata',
+                metadata: { team: 'engineering', role: 'admin' },
+              },
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(result.claims.length).toBe(1)
+      expect(result.claims[0].metadata).toEqual({
+        team: 'engineering',
+        role: 'admin',
+      })
+    })
+
+    it('when subscriptionId is omitted, automatically uses the first active subscription for the customer', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                // subscriptionId intentionally omitted
+                quantity: 1,
+              },
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(result.claims.length).toBe(1)
+      expect(result.claims[0].subscriptionId).toBe(subscription.id)
+    })
+
+    it('when subscriptionId is omitted and no active subscription exists, throws an error', async () => {
+      // Cancel the subscription
+      await adminTransaction(async ({ transaction }) => {
+        await updateSubscription(
+          {
+            id: subscription.id,
+            status: SubscriptionStatus.Canceled,
+            canceledAt: Date.now(),
+            renews: true,
+          },
+          transaction
+        )
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                // subscriptionId intentionally omitted
+                quantity: 1,
+              },
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow('No active subscription found')
+    })
+  })
+
+  describe('releaseResourceTransaction - additional coverage', () => {
+    it('when externalIds array is provided, releases all matching pet claims and returns accurate usage', async () => {
+      // Create 3 pet claims
+      await adminTransaction(async ({ transaction }) => {
+        return claimResourceTransaction(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            input: {
+              resourceSlug: 'seats',
+              subscriptionId: subscription.id,
+              externalIds: ['user_1', 'user_2', 'user_3'],
+            },
+          },
+          transaction
+        )
+      })
+
+      // Release 2 of the 3 claims
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return releaseResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalIds: ['user_1', 'user_3'],
+              },
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(result.releasedClaims.length).toBe(2)
+      expect(
+        result.releasedClaims.map((c) => c.externalId).sort()
+      ).toEqual(['user_1', 'user_3'].sort())
+      expect(result.usage.claimed).toBe(1)
+      expect(result.usage.available).toBe(4)
+
+      // Verify user_2 is still active
+      const activeClaims = await adminTransaction(
+        async ({ transaction }) => {
+          return selectActiveResourceClaims(
+            { subscriptionItemFeatureId: subscriptionItemFeature.id },
+            transaction
+          )
+        }
+      )
+      expect(activeClaims.length).toBe(1)
+      expect(activeClaims[0].externalId).toBe('user_2')
+    })
+
+    it('when releasing with externalIds array and one externalId is not found, throws an error', async () => {
+      // Create only 2 pet claims
+      await adminTransaction(async ({ transaction }) => {
+        return claimResourceTransaction(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            input: {
+              resourceSlug: 'seats',
+              subscriptionId: subscription.id,
+              externalIds: ['user_1', 'user_2'],
+            },
+          },
+          transaction
+        )
+      })
+
+      // Try to release 3 claims, including one that doesn't exist
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return releaseResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalIds: ['user_1', 'user_2', 'nonexistent_user'],
+              },
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow('No active claim found with externalId')
     })
   })
 })

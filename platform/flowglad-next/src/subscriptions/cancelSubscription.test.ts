@@ -72,6 +72,7 @@ import {
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 
 describe('Subscription Cancellation Test Suite', async () => {
   const { organization, price } = await setupOrg()
@@ -3923,5 +3924,188 @@ describe('cancelSubscription with resources', async () => {
     )
     // No claims should be released yet
     expect(releasedClaims.length).toBe(0)
+  })
+})
+
+describe('Subscription cancellation cache invalidations', async () => {
+  describe('cancelSubscriptionImmediately', () => {
+    it('returns customerSubscriptions cache invalidation for the customer', async () => {
+      const { organization, price } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return cancelSubscriptionImmediately(
+            {
+              subscription,
+              customer,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(result.cacheInvalidations).toContain(
+        CacheDependency.customerSubscriptions(customer.id)
+      )
+    })
+
+    it('returns cache invalidation for the correct customer when canceling', async () => {
+      const { organization, price } = await setupOrg()
+      const customer1 = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const customer2 = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer1.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return cancelSubscriptionImmediately(
+            {
+              subscription,
+              customer: customer1,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(result.cacheInvalidations).toContain(
+        CacheDependency.customerSubscriptions(customer1.id)
+      )
+      expect(result.cacheInvalidations).not.toContain(
+        CacheDependency.customerSubscriptions(customer2.id)
+      )
+    })
+  })
+
+  describe('cancelSubscriptionProcedureTransaction', () => {
+    it('returns customerSubscriptions cache invalidation when scheduling cancellation', async () => {
+      const { organization, price } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        paymentMethodId: paymentMethod.id,
+        status: SubscriptionStatus.Active,
+      })
+      await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: subscription.currentBillingPeriodStart!,
+        endDate: subscription.currentBillingPeriodEnd!,
+        status: BillingPeriodStatus.Active,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return cancelSubscriptionProcedureTransaction({
+            input: {
+              id: subscription.id,
+              cancellation: {
+                timing:
+                  SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
+              },
+            },
+            transaction,
+            ctx: { apiKey: undefined },
+            livemode: false,
+            userId: 'test-user-id',
+            organizationId: organization.id,
+          })
+        }
+      )
+
+      expect(result.cacheInvalidations).toContain(
+        CacheDependency.customerSubscriptions(subscription.customerId)
+      )
+    })
+  })
+
+  describe('uncancelSubscription', () => {
+    it('returns customerSubscriptions cache invalidation for the customer', async () => {
+      const { organization, price } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        paymentMethodId: paymentMethod.id,
+        status: SubscriptionStatus.Active,
+        cancelScheduledAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return uncancelSubscription(subscription, transaction)
+        }
+      )
+
+      expect(result.cacheInvalidations).toContain(
+        CacheDependency.customerSubscriptions(customer.id)
+      )
+    })
+
+    it('returns cache invalidation for the correct customer when uncanceling', async () => {
+      const { organization, price } = await setupOrg()
+      const customer1 = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const customer2 = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer1.id,
+      })
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer1.id,
+        priceId: price.id,
+        paymentMethodId: paymentMethod.id,
+        status: SubscriptionStatus.Active,
+        cancelScheduledAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return uncancelSubscription(subscription, transaction)
+        }
+      )
+
+      expect(result.cacheInvalidations).toContain(
+        CacheDependency.customerSubscriptions(customer1.id)
+      )
+      expect(result.cacheInvalidations).not.toContain(
+        CacheDependency.customerSubscriptions(customer2.id)
+      )
+    })
   })
 })
