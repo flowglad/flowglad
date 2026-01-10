@@ -3744,7 +3744,8 @@ describe('cancelSubscription with resources', async () => {
     // Verify all released claims have the correct releaseReason
     for (const claim of releasedClaims) {
       expect(claim.releaseReason).toBe('subscription_canceled')
-      expect(claim.releasedAt).not.toBeNull()
+      expect(typeof claim.releasedAt).toBe('number')
+      expect(claim.releasedAt).toBeGreaterThan(0)
     }
 
     // Verify both cattle and pet claims were released
