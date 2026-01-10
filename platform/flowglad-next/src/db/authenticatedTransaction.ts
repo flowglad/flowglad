@@ -162,7 +162,9 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
   // Transaction committed successfully - now invalidate caches
   // Fire-and-forget; errors are logged but don't fail the request
   if (cacheInvalidations.length > 0) {
-    void invalidateDependencies(cacheInvalidations)
+    // Deduplicate cache invalidation keys to reduce unnecessary Redis operations
+    const uniqueInvalidations = [...new Set(cacheInvalidations)]
+    void invalidateDependencies(uniqueInvalidations)
   }
 
   return {

@@ -86,7 +86,13 @@ export function getTtlForNamespace(
 
 export interface CacheConfig<TArgs extends unknown[], TResult> {
   namespace: RedisKeyNamespace
-  /** Extract cache key from function arguments */
+  /**
+   * Extract a unique identifier suffix from function arguments.
+   * This is combined with namespace to form the full cache key: `${namespace}:${keyFn(args)}`
+   *
+   * The namespace provides semantic context (e.g., "subscriptionsByCustomer"),
+   * while keyFn provides the unique identifier (e.g., "cust_123:true").
+   */
   keyFn: (...args: TArgs) => string
   /** Zod schema for validating cached data */
   schema: z.ZodType<TResult>
@@ -98,6 +104,33 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
    * declare dependencies: ["subscription:sub_123", "subscriptionItems:sub_123"]
    */
   dependenciesFn: (...args: TArgs) => CacheDependencyKey[]
+}
+
+export interface CacheOptions {
+  /** Skip cache lookup and always execute the underlying function. Defaults to false. */
+  ignoreCache?: boolean
+}
+
+/**
+ * Extract CacheOptions and function arguments from a combined args array.
+ * The cached combinator accepts an optional CacheOptions as the last argument,
+ * so we need to detect and separate it from the actual function arguments.
+ */
+function extractCacheArgs<TArgs extends unknown[]>(
+  args: [...TArgs, CacheOptions?]
+): { fnArgs: TArgs; options: CacheOptions } {
+  const lastArg = args[args.length - 1]
+  const hasOptions =
+    lastArg !== null &&
+    typeof lastArg === 'object' &&
+    'ignoreCache' in lastArg
+  const fnArgs = (hasOptions
+    ? args.slice(0, -1)
+    : args) as unknown as TArgs
+  const options: CacheOptions = hasOptions
+    ? (lastArg as CacheOptions)
+    : {}
+  return { fnArgs, options }
 }
 
 /**
@@ -117,6 +150,7 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
  *   - cache.validation_failed: boolean (when cached data fails schema)
  *   - cache.error: string (when Redis operation fails)
  *   - cache.dependencies: string[] (dependency keys registered)
+ *   - cache.ignored: boolean (when cache was bypassed via options)
  * - Logging:
  *   - Debug: cache hit/miss with key
  *   - Warn: schema validation failure (includes key, indicates data corruption)
@@ -125,29 +159,45 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
  * Error handling:
  * - Fails open: Redis errors result in cache miss, not request failure
  * - Schema validation failures treated as cache miss
+ *
+ * @param config - Cache configuration (namespace, key function, schema, dependencies)
+ * @param fn - The underlying function to cache
+ * @returns A cached version of the function that accepts an optional CacheOptions as the last argument
  */
 export function cached<TArgs extends unknown[], TResult>(
   config: CacheConfig<TArgs, TResult>,
   fn: (...args: TArgs) => Promise<TResult>
-): (...args: TArgs) => Promise<TResult> {
+): (...args: [...TArgs, CacheOptions?]) => Promise<TResult> {
   return traced(
     {
-      options: (...args: TArgs) => ({
-        spanName: `cache.${config.namespace}`,
-        tracerName: 'cache',
-        kind: SpanKind.CLIENT,
-        attributes: {
-          'cache.namespace': config.namespace,
-          'cache.key': config.keyFn(...args),
-        },
-      }),
+      options: (...args: [...TArgs, CacheOptions?]) => {
+        const { fnArgs } = extractCacheArgs<TArgs>(args)
+        return {
+          spanName: `cache.${config.namespace}`,
+          tracerName: 'cache',
+          kind: SpanKind.CLIENT,
+          attributes: {
+            'cache.namespace': config.namespace,
+            'cache.key': config.keyFn(...fnArgs),
+          },
+        }
+      },
       extractResultAttributes: () => ({}),
     },
-    async (...args: TArgs): Promise<TResult> => {
-      const key = config.keyFn(...args)
+    async (...args: [...TArgs, CacheOptions?]): Promise<TResult> => {
+      const { fnArgs, options } = extractCacheArgs<TArgs>(args)
+
+      const key = config.keyFn(...fnArgs)
       const fullKey = `${config.namespace}:${key}`
-      const dependencies = config.dependenciesFn(...args)
+      const dependencies = config.dependenciesFn(...fnArgs)
       const span = trace.getActiveSpan()
+
+      // If ignoreCache is set, skip cache lookup entirely
+      if (options.ignoreCache) {
+        span?.setAttribute('cache.ignored', true)
+        logger.debug('Cache ignored', { key: fullKey })
+        return fn(...fnArgs)
+      }
 
       // Try to get from cache
       try {
@@ -203,7 +253,7 @@ export function cached<TArgs extends unknown[], TResult>(
       }
 
       // Cache miss - call wrapped function
-      const result = await fn(...args)
+      const result = await fn(...fnArgs)
 
       // Store in cache and register dependencies (fire-and-forget)
       try {
@@ -292,15 +342,26 @@ export async function invalidateDependencies(
 /**
  * Helper to create standard dependency keys.
  * Ensures consistent naming across the codebase.
+ *
+ * Dependencies should be semantically precise - describing what data is being cached,
+ * not just what entity owns it. This allows for granular invalidation:
+ * - `customerSubscriptions:cust_123` invalidates when subscriptions for this customer change
+ * - `subscriptionItems:sub_456` invalidates when items for this subscription change
+ * - etc.
  */
 export const CacheDependency = {
-  customer: (customerId: string): CacheDependencyKey =>
-    `customer:${customerId}`,
-  subscription: (subscriptionId: string): CacheDependencyKey =>
-    `subscription:${subscriptionId}`,
-  subscriptionItem: (
+  /** Invalidate when subscriptions for this customer change (create/update/delete) */
+  customerSubscriptions: (customerId: string): CacheDependencyKey =>
+    `customerSubscriptions:${customerId}`,
+  /** Invalidate when items for this subscription change */
+  subscriptionItems: (subscriptionId: string): CacheDependencyKey =>
+    `subscriptionItems:${subscriptionId}`,
+  /** Invalidate when features for this subscription item change */
+  subscriptionItemFeatures: (
     subscriptionItemId: string
-  ): CacheDependencyKey => `subscriptionItem:${subscriptionItemId}`,
+  ): CacheDependencyKey =>
+    `subscriptionItemFeatures:${subscriptionItemId}`,
+  /** Invalidate when ledger entries for this subscription change */
   subscriptionLedger: (subscriptionId: string): CacheDependencyKey =>
-    `ledger:${subscriptionId}`,
+    `subscriptionLedger:${subscriptionId}`,
 } as const

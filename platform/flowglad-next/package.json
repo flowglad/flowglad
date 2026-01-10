@@ -236,11 +236,7 @@
     "esbuild": "0.25.0",
     "chromium-bidi": "2.1.2",
     "@react-email/render": "0.0.17",
-    "zod": "4.1.5",
-    "@modelcontextprotocol/sdk": "1.23.0-beta.0",
-    "mcp-handler": {
-      "zod": "4.1.5"
-    }
+    "@modelcontextprotocol/sdk": "1.23.0-beta.0"
   },
   "packageManager": "bun@1.3.1"
 }
