@@ -34,6 +34,7 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { DbTransaction } from '@/db/types'
+import { releaseAllResourceClaimsForSubscription } from '@/resources/resourceClaimHelpers'
 import { createBillingRun } from '@/subscriptions/billingRunHelpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import {
@@ -406,6 +407,14 @@ export const cancelSubscriptionImmediately = async (
     endDate,
     transaction
   )
+
+  // Release all active resource claims for this subscription
+  await releaseAllResourceClaimsForSubscription(
+    subscription.id,
+    'subscription_canceled',
+    transaction
+  )
+
   if (result) {
     updatedSubscription = result
   }

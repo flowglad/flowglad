@@ -10,6 +10,10 @@ import {
   setupPrice,
   setupProduct,
   setupProductFeature,
+  setupResource,
+  setupResourceClaim,
+  setupResourceFeature,
+  setupResourceSubscriptionItemFeature,
   setupSubscription,
   setupSubscriptionItem,
   setupSubscriptionItemFeature,
@@ -35,6 +39,7 @@ import {
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { updateProduct } from '@/db/tableMethods/productMethods'
+import { selectResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
@@ -3562,6 +3567,347 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
       })
     })
+  })
+})
+
+/* ===========================================================================
+   cancelSubscription with resources
+=========================================================================== */
+describe('cancelSubscription with resources', async () => {
+  it('when a subscription is canceled immediately with active resource claims (both cattle and pet), releases all claims with releaseReason set to subscription_canceled', async () => {
+    const { organization, pricingModel, price } = await setupOrg()
+
+    const resource = await setupResource({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      slug: 'seats',
+      name: 'Seats',
+    })
+
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test-cancel@test.com',
+      livemode: true,
+    })
+
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    const product = await setupProduct({
+      organizationId: organization.id,
+      name: 'Test Product with Resources',
+      pricingModelId: pricingModel.id,
+      livemode: true,
+    })
+
+    const resourcePrice = await setupPrice({
+      productId: product.id,
+      name: 'Resource Price',
+      unitPrice: 1000,
+      livemode: true,
+      isDefault: true,
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+    })
+
+    const subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: resourcePrice.id,
+      interval: IntervalUnit.Month,
+      intervalCount: 1,
+      isFreePlan: false,
+    })
+
+    const subscriptionItem = await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      name: 'Resource Subscription Item',
+      quantity: 1,
+      unitPrice: 1000,
+    })
+
+    // Create a Resource feature
+    const resourceFeature = await setupResourceFeature({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Seats Feature',
+      slug: 'seats-feature',
+      description: 'Resource feature for seats',
+      amount: 10,
+      resourceId: resource.id,
+      livemode: true,
+    })
+
+    const subscriptionItemFeature =
+      await setupResourceSubscriptionItemFeature({
+        subscriptionItemId: subscriptionItem.id,
+        featureId: resourceFeature.id,
+        resourceId: resource.id,
+        pricingModelId: pricingModel.id,
+        amount: 10,
+      })
+
+    // Create 3 cattle claims (no externalId)
+    const cattleClaim1 = await setupResourceClaim({
+      organizationId: organization.id,
+      subscriptionItemFeatureId: subscriptionItemFeature.id,
+      resourceId: resource.id,
+      subscriptionId: subscription.id,
+      pricingModelId: pricingModel.id,
+      externalId: null,
+    })
+
+    const cattleClaim2 = await setupResourceClaim({
+      organizationId: organization.id,
+      subscriptionItemFeatureId: subscriptionItemFeature.id,
+      resourceId: resource.id,
+      subscriptionId: subscription.id,
+      pricingModelId: pricingModel.id,
+      externalId: null,
+    })
+
+    const cattleClaim3 = await setupResourceClaim({
+      organizationId: organization.id,
+      subscriptionItemFeatureId: subscriptionItemFeature.id,
+      resourceId: resource.id,
+      subscriptionId: subscription.id,
+      pricingModelId: pricingModel.id,
+      externalId: null,
+    })
+
+    // Create 2 pet claims (with externalId)
+    const petClaim1 = await setupResourceClaim({
+      organizationId: organization.id,
+      subscriptionItemFeatureId: subscriptionItemFeature.id,
+      resourceId: resource.id,
+      subscriptionId: subscription.id,
+      pricingModelId: pricingModel.id,
+      externalId: 'user_1',
+    })
+
+    const petClaim2 = await setupResourceClaim({
+      organizationId: organization.id,
+      subscriptionItemFeatureId: subscriptionItemFeature.id,
+      resourceId: resource.id,
+      subscriptionId: subscription.id,
+      pricingModelId: pricingModel.id,
+      externalId: 'user_2',
+    })
+
+    // Verify we have 5 active claims before cancellation
+    const claimsBefore = await adminTransaction(
+      async ({ transaction }) => {
+        return selectResourceClaims(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+      }
+    )
+    const activeClaimsBefore = claimsBefore.filter(
+      (c) => c.releasedAt === null
+    )
+    expect(activeClaimsBefore.length).toBe(5)
+
+    // Cancel the subscription immediately
+    await adminTransaction(async ({ transaction }) => {
+      await cancelSubscriptionImmediately(
+        { subscription, customer, skipNotifications: true },
+        transaction
+      )
+    })
+
+    // Verify all claims are now released with subscription_canceled reason
+    const claimsAfter = await adminTransaction(
+      async ({ transaction }) => {
+        return selectResourceClaims(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+      }
+    )
+
+    const activeClaimsAfter = claimsAfter.filter(
+      (c) => c.releasedAt === null
+    )
+    expect(activeClaimsAfter.length).toBe(0)
+
+    const releasedClaims = claimsAfter.filter(
+      (c) => c.releasedAt !== null
+    )
+    expect(releasedClaims.length).toBe(5)
+
+    // Verify all released claims have the correct releaseReason
+    for (const claim of releasedClaims) {
+      expect(claim.releaseReason).toBe('subscription_canceled')
+      expect(claim.releasedAt).not.toBeNull()
+    }
+
+    // Verify both cattle and pet claims were released
+    const releasedCattleClaims = releasedClaims.filter(
+      (c) => c.externalId === null
+    )
+    const releasedPetClaims = releasedClaims.filter(
+      (c) => c.externalId !== null
+    )
+    expect(releasedCattleClaims.length).toBe(3)
+    expect(releasedPetClaims.length).toBe(2)
+  })
+
+  it('when a subscription cancellation is scheduled for end of billing period, claims remain active until cancellation executes', async () => {
+    const { organization, pricingModel, price } = await setupOrg()
+
+    const resource = await setupResource({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      slug: 'api-keys',
+      name: 'API Keys',
+    })
+
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test-scheduled-cancel@test.com',
+      livemode: true,
+    })
+
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    const product = await setupProduct({
+      organizationId: organization.id,
+      name: 'Test Product with API Keys',
+      pricingModelId: pricingModel.id,
+      livemode: true,
+    })
+
+    const resourcePrice = await setupPrice({
+      productId: product.id,
+      name: 'API Key Price',
+      unitPrice: 2000,
+      livemode: true,
+      isDefault: true,
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+    })
+
+    const now = Date.now()
+    const subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: resourcePrice.id,
+      interval: IntervalUnit.Month,
+      intervalCount: 1,
+      isFreePlan: false,
+      currentBillingPeriodStart: now - 15 * 24 * 60 * 60 * 1000, // 15 days ago
+      currentBillingPeriodEnd: now + 15 * 24 * 60 * 60 * 1000, // 15 days from now
+    })
+
+    // Create billing period for the subscription
+    await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate: subscription.currentBillingPeriodStart!,
+      endDate: subscription.currentBillingPeriodEnd!,
+      status: BillingPeriodStatus.Active,
+    })
+
+    const subscriptionItem = await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      name: 'API Key Subscription Item',
+      quantity: 1,
+      unitPrice: 2000,
+    })
+
+    // Create a Resource feature
+    const resourceFeature = await setupResourceFeature({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'API Keys Feature',
+      slug: 'api-keys-feature',
+      description: 'Resource feature for API keys',
+      amount: 5,
+      resourceId: resource.id,
+      livemode: true,
+    })
+
+    const subscriptionItemFeature =
+      await setupResourceSubscriptionItemFeature({
+        subscriptionItemId: subscriptionItem.id,
+        featureId: resourceFeature.id,
+        resourceId: resource.id,
+        pricingModelId: pricingModel.id,
+        amount: 5,
+      })
+
+    // Create 5 claims
+    for (let i = 0; i < 5; i++) {
+      await setupResourceClaim({
+        organizationId: organization.id,
+        subscriptionItemFeatureId: subscriptionItemFeature.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: i < 3 ? null : `api-key-${i}`, // 3 cattle, 2 pet
+      })
+    }
+
+    // Verify we have 5 active claims before scheduling cancellation
+    const claimsBefore = await adminTransaction(
+      async ({ transaction }) => {
+        return selectResourceClaims(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+      }
+    )
+    const activeClaimsBefore = claimsBefore.filter(
+      (c) => c.releasedAt === null
+    )
+    expect(activeClaimsBefore.length).toBe(5)
+
+    // Schedule the subscription cancellation for end of billing period
+    await adminTransaction(async ({ transaction }) => {
+      await scheduleSubscriptionCancellation(
+        {
+          id: subscription.id,
+          cancellation: {
+            timing:
+              SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
+          },
+        },
+        transaction
+      )
+    })
+
+    // Verify claims remain active (should NOT be released)
+    const claimsAfter = await adminTransaction(
+      async ({ transaction }) => {
+        return selectResourceClaims(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+      }
+    )
+
+    const activeClaimsAfter = claimsAfter.filter(
+      (c) => c.releasedAt === null
+    )
+    // All 5 claims should still be active
+    expect(activeClaimsAfter.length).toBe(5)
+
+    const releasedClaims = claimsAfter.filter(
+      (c) => c.releasedAt !== null
+    )
+    // No claims should be released yet
+    expect(releasedClaims.length).toBe(0)
   })
 })
 
