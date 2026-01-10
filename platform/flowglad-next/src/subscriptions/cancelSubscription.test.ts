@@ -12,6 +12,7 @@ import {
   setupProductFeature,
   setupResource,
   setupResourceClaim,
+  setupResourceFeature,
   setupResourceSubscriptionItemFeature,
   setupSubscription,
   setupSubscriptionItem,
@@ -35,7 +36,6 @@ import {
   selectBillingRunById,
   selectBillingRuns,
 } from '@/db/tableMethods/billingRunMethods'
-import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { updateProduct } from '@/db/tableMethods/productMethods'
@@ -3626,27 +3626,16 @@ describe('cancelSubscription with resources', async () => {
     })
 
     // Create a Resource feature
-    const resourceFeature = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeature(
-          {
-            organizationId: organization.id,
-            pricingModelId: pricingModel.id,
-            type: FeatureType.Resource,
-            name: 'Seats Feature',
-            slug: 'seats-feature',
-            description: 'Resource feature for seats',
-            amount: 10,
-            usageMeterId: null,
-            renewalFrequency: null,
-            resourceId: resource.id,
-            livemode: true,
-            active: true,
-          },
-          transaction
-        )
-      }
-    )
+    const resourceFeature = await setupResourceFeature({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Seats Feature',
+      slug: 'seats-feature',
+      description: 'Resource feature for seats',
+      amount: 10,
+      resourceId: resource.id,
+      livemode: true,
+    })
 
     const subscriptionItemFeature =
       await setupResourceSubscriptionItemFeature({
@@ -3832,27 +3821,16 @@ describe('cancelSubscription with resources', async () => {
     })
 
     // Create a Resource feature
-    const resourceFeature = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeature(
-          {
-            organizationId: organization.id,
-            pricingModelId: pricingModel.id,
-            type: FeatureType.Resource,
-            name: 'API Keys Feature',
-            slug: 'api-keys-feature',
-            description: 'Resource feature for API keys',
-            amount: 5,
-            usageMeterId: null,
-            renewalFrequency: null,
-            resourceId: resource.id,
-            livemode: true,
-            active: true,
-          },
-          transaction
-        )
-      }
-    )
+    const resourceFeature = await setupResourceFeature({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'API Keys Feature',
+      slug: 'api-keys-feature',
+      description: 'Resource feature for API keys',
+      amount: 5,
+      resourceId: resource.id,
+      livemode: true,
+    })
 
     const subscriptionItemFeature =
       await setupResourceSubscriptionItemFeature({
