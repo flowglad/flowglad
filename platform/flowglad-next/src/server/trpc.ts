@@ -152,15 +152,17 @@ const isCustomerAuthed = t.middleware(
 // Protected procedure with tracing
 export const protectedProcedure = baseProcedure.use(isAuthed)
 
-export const devOnlyProcedure = baseProcedure.use(({ next, ctx }) => {
-  if (!IS_DEV) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'Procedure unavailable',
-    })
-  }
-  return next({ ctx })
-})
+export const devOnlyProcedure = baseProcedure
+  .use(isAuthed)
+  .use(({ next, ctx }) => {
+    if (!IS_DEV) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Procedure unavailable',
+      })
+    }
+    return next({ ctx })
+  })
 
 export const customerProtectedProcedure =
   baseProcedure.use(isCustomerAuthed)

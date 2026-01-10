@@ -1,7 +1,11 @@
+import { eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { ResourceClaim } from '@/db/schema/resourceClaims'
 import type { Resource } from '@/db/schema/resources'
-import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
+import {
+  type SubscriptionItemFeature,
+  subscriptionItemFeatures,
+} from '@/db/schema/subscriptionItemFeatures'
 import {
   bulkInsertResourceClaims,
   bulkReleaseResourceClaims,
@@ -182,8 +186,19 @@ export type GetResourceUsageInput = z.infer<
 // ============================================================================
 
 /**
- * Resolves a subscription ID. If not provided, finds the first active subscription
+ * Resolves a subscription ID. If not provided, finds the active subscription
  * for the customer (based on organization context).
+ *
+ * When subscriptionId is provided:
+ * - Fetches the subscription and validates ownership (organizationId and customerId must match)
+ * - Throws if subscription not found or ownership doesn't match
+ *
+ * When subscriptionId is omitted:
+ * - Finds all subscriptions for the customer/organization
+ * - Filters to active (non-terminal) subscriptions
+ * - Returns the subscription if exactly one exists
+ * - Throws ambiguity error if multiple active subscriptions exist
+ * - Throws not found error if no active subscriptions exist
  */
 const resolveSubscription = async (
   params: {
@@ -198,10 +213,30 @@ const resolveSubscription = async (
       params.subscriptionId,
       transaction
     )
+
+    if (!subscription) {
+      throw new Error(
+        `Subscription with id "${params.subscriptionId}" not found`
+      )
+    }
+
+    // Validate ownership - subscription must belong to the specified organization and customer
+    if (subscription.organizationId !== params.organizationId) {
+      throw new Error(
+        `Subscription "${params.subscriptionId}" does not belong to organization "${params.organizationId}"`
+      )
+    }
+
+    if (subscription.customerId !== params.customerId) {
+      throw new Error(
+        `Subscription "${params.subscriptionId}" does not belong to customer "${params.customerId}"`
+      )
+    }
+
     return subscription
   }
 
-  // Find the first active subscription for the customer
+  // Find all subscriptions for the customer in this organization
   const subscriptionsResult = await selectSubscriptions(
     {
       customerId: params.customerId,
@@ -210,17 +245,25 @@ const resolveSubscription = async (
     transaction
   )
 
-  const activeSubscription = subscriptionsResult.find(
+  // Filter to only active (non-terminal) subscriptions
+  const activeSubscriptions = subscriptionsResult.filter(
     (s) => !isSubscriptionInTerminalState(s.status)
   )
 
-  if (!activeSubscription) {
+  if (activeSubscriptions.length === 0) {
     throw new Error(
       'No active subscription found. Please provide a subscriptionId.'
     )
   }
 
-  return activeSubscription
+  if (activeSubscriptions.length > 1) {
+    throw new Error(
+      `Multiple active subscriptions found (${activeSubscriptions.length}). ` +
+        'Please provide a subscriptionId to specify which subscription to use.'
+    )
+  }
+
+  return activeSubscriptions[0]
 }
 
 /**
@@ -301,6 +344,47 @@ const findSubscriptionItemFeatureForResource = async (
   return resourceFeature
 }
 
+/**
+ * Acquires a row-level lock on a subscription item feature for atomic capacity checking.
+ *
+ * This uses SELECT ... FOR UPDATE to acquire an exclusive lock on the row,
+ * preventing concurrent transactions from reading/modifying the same row until
+ * this transaction completes. This ensures that capacity checks and claim
+ * creation are atomic and race-free.
+ *
+ * @param subscriptionItemFeatureId - The ID of the subscription item feature to lock
+ * @param transaction - The database transaction
+ * @returns The locked subscription item feature record
+ * @throws Error if the subscription item feature is not found
+ */
+const acquireSubscriptionItemFeatureLock = async (
+  subscriptionItemFeatureId: string,
+  transaction: DbTransaction
+): Promise<SubscriptionItemFeature.ResourceRecord> => {
+  // Use raw SQL to perform SELECT ... FOR UPDATE for row-level locking
+  const result = await transaction
+    .select()
+    .from(subscriptionItemFeatures)
+    .where(eq(subscriptionItemFeatures.id, subscriptionItemFeatureId))
+    .for('update')
+
+  const feature = result[0]
+
+  if (!feature) {
+    throw new Error(
+      `SubscriptionItemFeature ${subscriptionItemFeatureId} not found`
+    )
+  }
+
+  if (feature.type !== FeatureType.Resource) {
+    throw new Error(
+      `SubscriptionItemFeature ${subscriptionItemFeatureId} is not a Resource type`
+    )
+  }
+
+  return feature as SubscriptionItemFeature.ResourceRecord
+}
+
 // ============================================================================
 // Core Transaction Functions
 // ============================================================================
@@ -365,8 +449,8 @@ export async function claimResourceTransaction(
     transaction
   )
 
-  // 4. Find the subscription item feature for this resource
-  const subscriptionItemFeature =
+  // 4. Find the subscription item feature for this resource (without lock first)
+  const subscriptionItemFeatureUnlocked =
     await findSubscriptionItemFeatureForResource(
       {
         subscriptionId: subscription.id,
@@ -375,9 +459,8 @@ export async function claimResourceTransaction(
       transaction
     )
 
-  const capacity = subscriptionItemFeature.amount
-
-  // 5. Determine how many claims we need to create
+  // 5. Determine how many claims we need to create (before acquiring lock)
+  // This allows idempotent operations to return early without acquiring the lock
   let claimsToCreate: Array<{
     externalId: string | null
     metadata: Record<string, string | number | boolean> | null
@@ -401,10 +484,10 @@ export async function claimResourceTransaction(
     )
 
     if (existing) {
-      // Idempotent: return existing claim
+      // Idempotent: return existing claim (no lock needed)
       const usage = await getResourceUsage(
         subscription.id,
-        subscriptionItemFeature.id,
+        subscriptionItemFeatureUnlocked.id,
         transaction
       )
       return { claims: [existing], usage }
@@ -439,18 +522,30 @@ export async function claimResourceTransaction(
       metadata: input.metadata ?? null,
     }))
 
-    // If all claims already exist, return them
+    // If all claims already exist, return them (no lock needed)
     if (claimsToCreate.length === 0) {
       const usage = await getResourceUsage(
         subscription.id,
-        subscriptionItemFeature.id,
+        subscriptionItemFeatureUnlocked.id,
         transaction
       )
       return { claims: existingClaims, usage }
     }
   }
 
-  // 6. Validate capacity
+  // 6. Acquire exclusive lock on subscription item feature row
+  // This prevents race conditions where concurrent transactions could both
+  // pass the capacity check and exceed the limit. The lock is held until
+  // the transaction commits, ensuring atomic capacity validation and claim creation.
+  const subscriptionItemFeature =
+    await acquireSubscriptionItemFeatureLock(
+      subscriptionItemFeatureUnlocked.id,
+      transaction
+    )
+
+  const capacity = subscriptionItemFeature.amount
+
+  // 7. Validate capacity (while holding the lock)
   const currentClaimedCount =
     await countActiveClaimsForSubscriptionItemFeature(
       subscriptionItemFeature.id,
@@ -466,7 +561,7 @@ export async function claimResourceTransaction(
     )
   }
 
-  // 7. Create the claims
+  // 8. Create the claims (while holding the lock)
   const claimInserts: ResourceClaim.Insert[] = claimsToCreate.map(
     (claim) => ({
       organizationId,
@@ -494,7 +589,7 @@ export async function claimResourceTransaction(
     )
   }
 
-  // 8. Get updated usage
+  // 9. Get updated usage
   const usage = await getResourceUsage(
     subscription.id,
     subscriptionItemFeature.id,

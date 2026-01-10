@@ -241,6 +241,53 @@ export const countActiveResourceClaimsBatch = async (
 }
 
 /**
+ * Batch counts active (non-released) claims for multiple subscription item features.
+ * More efficient than calling countActiveClaimsForSubscriptionItemFeature for each feature individually.
+ * Uses a single GROUP BY query to count claims per subscriptionItemFeatureId.
+ *
+ * @param subscriptionItemFeatureIds - Array of subscriptionItemFeatureIds to count
+ * @param transaction - Database transaction
+ * @returns Map of subscriptionItemFeatureId to count of active claims
+ */
+export const countActiveClaimsForSubscriptionItemFeatures = async (
+  subscriptionItemFeatureIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, number>> => {
+  if (subscriptionItemFeatureIds.length === 0) {
+    return new Map()
+  }
+
+  const result = await transaction
+    .select({
+      subscriptionItemFeatureId:
+        resourceClaims.subscriptionItemFeatureId,
+      count: count(),
+    })
+    .from(resourceClaims)
+    .where(
+      and(
+        inArray(
+          resourceClaims.subscriptionItemFeatureId,
+          subscriptionItemFeatureIds
+        ),
+        isNull(resourceClaims.releasedAt)
+      )
+    )
+    .groupBy(resourceClaims.subscriptionItemFeatureId)
+
+  // Build map with counts, defaulting to 0 for features with no claims
+  const countMap = new Map<string, number>()
+  for (const featureId of subscriptionItemFeatureIds) {
+    countMap.set(featureId, 0)
+  }
+  for (const row of result) {
+    countMap.set(row.subscriptionItemFeatureId, row.count)
+  }
+
+  return countMap
+}
+
+/**
  * Finds active claims by multiple externalIds for a given resource and subscription.
  * Useful for batch idempotent claim operations.
  */
