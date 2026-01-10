@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: flowglad-postgres
+    environment:
+      POSTGRES_USER: flowglad
+      POSTGRES_PASSWORD: flowglad_dev_password
+      POSTGRES_DB: flowglad_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U flowglad']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Next.js Application
+  app:
+    build:
+      context: ../..
+      dockerfile: platform/flowglad-next/Dockerfile
+    container_name: flowglad-app
+    ports:
+      - '3000:3000'
+    environment:
+      - DATABASE_URL=postgresql://flowglad:flowglad_dev_password@postgres:5432/flowglad_db
+      - NODE_ENV=production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env.local
+
+volumes:
+  postgres_data:
