@@ -278,6 +278,10 @@ const grantProratedCreditsForFeatures = async (params: {
     // Grant up to the feature's prorated amount, but no more than remaining delta
     const amountToGrant = Math.min(featureProrated, remainingDelta)
 
+    if (amountToGrant <= 0) {
+      continue
+    }
+
     // Subtract from remaining delta for this meter
     remainingDeltaByMeter.set(meterId, remainingDelta - amountToGrant)
 
