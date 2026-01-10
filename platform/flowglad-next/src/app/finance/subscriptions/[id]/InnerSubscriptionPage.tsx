@@ -7,8 +7,8 @@ import { useState } from 'react'
 import { CustomerCardNew } from '@/components/CustomerCardNew'
 import { ExpandSection } from '@/components/ExpandSection'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import { ItemFeature } from '@/components/ItemFeature'
+import PageContainer from '@/components/PageContainer'
 import { ProductCard } from '@/components/ProductCard'
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
@@ -118,7 +118,7 @@ const InnerSubscriptionPage = ({
   const statusBadge = getSubscriptionStatusBadge(subscription.status)
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title="Subscription Details"
@@ -298,7 +298,7 @@ const InnerSubscriptionPage = ({
         setIsOpen={setIsCancelModalOpen}
         subscriptionId={subscription.id}
       />
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

@@ -13,7 +13,7 @@ Flowglad tracks feature entitlements and consumption so you can gate premium fun
 - For `createUsageEvent` (server only): provide `{amount: number, subscriptionId: string, transactionId: string, properties?: Record<string, unknown>, usageDate?: number}` along with exactly one of:
   - `priceSlug` or `priceId` (for tracking usage with billing)
   - `usageMeterSlug` or `usageMeterId` (for tracking usage without billing)
-  The optional `properties` field is for usage meter of count distinct properties aggregation type. See [here](/api-reference/usage-events/create-usage-event#body-usage-event) for more details on the parameters.
+  The `properties` field is **required** for usage meters with `count_distinct_properties` aggregation type - it must be a non-empty object identifying the distinct combination being counted. For other aggregation types, `properties` is optional. See [here](/api-reference/usage-events/create-usage-event#body-usage-event) for more details on the parameters.
 
 ### What you can do
 

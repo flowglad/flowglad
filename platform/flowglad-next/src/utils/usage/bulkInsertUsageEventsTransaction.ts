@@ -547,7 +547,21 @@ export const bulkInsertUsageEventsTransaction = async (
         })
       }
 
-      // Check if usage meter requires billing period (CountDistinctProperties)
+      /**
+       * Validation for CountDistinctProperties aggregation type.
+       *
+       * This aggregation type counts unique property combinations within a billing period.
+       * For example, if tracking unique users who performed an action, each event must include
+       * a properties object like `{ user_id: '123' }` to identify the distinct entity.
+       *
+       * Requirements:
+       * 1. A billing period must exist - deduplication is scoped to billing periods
+       * 2. Properties must be non-empty - without properties, all events would be treated as
+       *    having the same "empty" combination, causing incorrect deduplication where only
+       *    the first event generates a ledger transaction (leading to underbilling)
+       *
+       * @see https://docs.flowglad.com/usage-based-billing/aggregation-types
+       */
       const usageMeter = usageMetersMap.get(finalUsageMeterId)
       if (
         usageMeter?.aggregationType ===
@@ -557,6 +571,17 @@ export const bulkInsertUsageEventsTransaction = async (
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message: `Billing period is required for usage meter "${usageMeter.name}" at index ${index} because it uses "count_distinct_properties" aggregation. This aggregation type requires a billing period for deduplication.`,
+          })
+        }
+
+        // Validate that properties are provided and non-empty for count_distinct_properties meters
+        if (
+          !usageEvent.properties ||
+          Object.keys(usageEvent.properties).length === 0
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Properties are required for usage meter "${usageMeter.name}" at index ${index} because it uses "count_distinct_properties" aggregation. Each usage event must have a non-empty properties object to identify the distinct combination being counted.`,
           })
         }
       }
