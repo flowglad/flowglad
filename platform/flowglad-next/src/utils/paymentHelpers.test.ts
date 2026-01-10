@@ -11,7 +11,11 @@ import type { Customer } from '@/db/schema/customers'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Organization } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
-import { PaymentMethodType, PaymentStatus } from '@/types'
+import {
+  PaymentMethodType,
+  PaymentStatus,
+  StripeConnectContractType,
+} from '@/types'
 import { nanoid } from '@/utils/core'
 import {
   refundPaymentTransaction,
@@ -59,6 +63,7 @@ vi.mock('./stripe', async () => {
     getPaymentIntent: vi.fn(),
     getStripeCharge: vi.fn(),
     listRefundsForCharge: vi.fn(),
+    reverseStripeTaxTransaction: vi.fn(),
   }
 })
 
@@ -262,7 +267,7 @@ describe('refundPaymentTransaction', () => {
         expect(updatedPayment.refundedAmount).toBe(
           partialRefundAmount
         )
-        expect(updatedPayment.refundedAt).not.toBeNull()
+        expect(typeof updatedPayment.refundedAt).toBe('number')
       })
 
       expect(stripeUtils.refundPayment).toHaveBeenCalledWith(
@@ -293,7 +298,7 @@ describe('refundPaymentTransaction', () => {
         expect(updatedPayment.status).toBe(PaymentStatus.Refunded)
         expect(updatedPayment.refunded).toBe(true)
         expect(updatedPayment.refundedAmount).toBe(fullRefundAmount)
-        expect(updatedPayment.refundedAt).not.toBeNull()
+        expect(typeof updatedPayment.refundedAt).toBe('number')
       })
     })
 
@@ -477,6 +482,220 @@ describe('refundPaymentTransaction', () => {
           )
         ).rejects.toThrow('Partial amount must be greater than 0')
       })
+    })
+  })
+
+  describe('tax reversal for MOR organizations', () => {
+    let morOrganization: Organization.Record
+    let morCustomer: Customer.Record
+    let morInvoice: Invoice.Record
+    let morPaymentWithTax: Payment.Record
+
+    beforeEach(async () => {
+      const setup = await setupOrg({
+        stripeConnectContractType:
+          StripeConnectContractType.MerchantOfRecord,
+      })
+      morOrganization = setup.organization
+
+      morCustomer = await setupCustomer({
+        organizationId: morOrganization.id,
+        livemode: true,
+      })
+
+      morInvoice = await setupInvoice({
+        customerId: morCustomer.id,
+        organizationId: morOrganization.id,
+        priceId: setup.price.id,
+        livemode: true,
+      })
+
+      morPaymentWithTax = await setupPayment({
+        stripeChargeId: `ch_${nanoid()}`,
+        stripePaymentIntentId: `pi_${nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 10800, // $100.00 + $8.00 tax
+        livemode: true,
+        customerId: morCustomer.id,
+        organizationId: morOrganization.id,
+        invoiceId: morInvoice.id,
+        paymentMethod: PaymentMethodType.Card,
+        stripeTaxTransactionId: `tax_txn_${nanoid()}`,
+        taxAmount: 800,
+      })
+
+      vi.mocked(
+        stripeUtils.reverseStripeTaxTransaction
+      ).mockResolvedValue(null)
+    })
+
+    it('calls reverseStripeTaxTransaction with mode: full on full refund for MOR organization', async () => {
+      const fullRefundAmount = 10800
+      const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
+
+      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+        makeStripeRefundResponse({
+          amount: fullRefundAmount,
+          created: refundCreatedTimestamp,
+        })
+      )
+
+      await adminTransaction(async ({ transaction }) => {
+        await refundPaymentTransaction(
+          { id: morPaymentWithTax.id, partialAmount: null },
+          transaction
+        )
+      })
+
+      expect(
+        stripeUtils.reverseStripeTaxTransaction
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stripeTaxTransactionId:
+            morPaymentWithTax.stripeTaxTransactionId,
+          mode: 'full',
+          livemode: morPaymentWithTax.livemode,
+        })
+      )
+    })
+
+    it('calls reverseStripeTaxTransaction with mode: partial and flatAmount on partial refund for MOR organization', async () => {
+      const partialRefundAmount = 5000
+      const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
+
+      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+        makeStripeRefundResponse({
+          amount: partialRefundAmount,
+          created: refundCreatedTimestamp,
+        })
+      )
+
+      await adminTransaction(async ({ transaction }) => {
+        await refundPaymentTransaction(
+          {
+            id: morPaymentWithTax.id,
+            partialAmount: partialRefundAmount,
+          },
+          transaction
+        )
+      })
+
+      expect(
+        stripeUtils.reverseStripeTaxTransaction
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stripeTaxTransactionId:
+            morPaymentWithTax.stripeTaxTransactionId,
+          mode: 'partial',
+          flatAmount: partialRefundAmount,
+          livemode: morPaymentWithTax.livemode,
+        })
+      )
+    })
+
+    it('succeeds with refund even if tax reversal throws an error (best-effort)', async () => {
+      const fullRefundAmount = 10800
+      const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
+
+      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+        makeStripeRefundResponse({
+          amount: fullRefundAmount,
+          created: refundCreatedTimestamp,
+        })
+      )
+
+      vi.mocked(
+        stripeUtils.reverseStripeTaxTransaction
+      ).mockRejectedValue(new Error('Stripe API error'))
+
+      await adminTransaction(async ({ transaction }) => {
+        const updatedPayment = await refundPaymentTransaction(
+          { id: morPaymentWithTax.id, partialAmount: null },
+          transaction
+        )
+
+        // Refund should still succeed despite tax reversal failure
+        expect(updatedPayment.status).toBe(PaymentStatus.Refunded)
+        expect(updatedPayment.refunded).toBe(true)
+        expect(updatedPayment.refundedAmount).toBe(fullRefundAmount)
+      })
+    })
+
+    it('does not call reverseStripeTaxTransaction when stripeTaxTransactionId is null', async () => {
+      const paymentWithoutTax = await setupPayment({
+        stripeChargeId: `ch_${nanoid()}`,
+        stripePaymentIntentId: `pi_${nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 10000, // $100.00 no tax
+        livemode: true,
+        customerId: morCustomer.id,
+        organizationId: morOrganization.id,
+        invoiceId: morInvoice.id,
+        paymentMethod: PaymentMethodType.Card,
+        stripeTaxTransactionId: null,
+        taxAmount: 0,
+      })
+
+      const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
+
+      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+        makeStripeRefundResponse({
+          amount: 10000,
+          created: refundCreatedTimestamp,
+        })
+      )
+
+      await adminTransaction(async ({ transaction }) => {
+        await refundPaymentTransaction(
+          { id: paymentWithoutTax.id, partialAmount: null },
+          transaction
+        )
+      })
+
+      expect(
+        stripeUtils.reverseStripeTaxTransaction
+      ).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('tax reversal skipped for Platform organizations', () => {
+    it('does not call reverseStripeTaxTransaction for Platform organization refunds', async () => {
+      // The default organization from setupOrg is Platform
+      const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
+
+      // Create payment with a tax transaction ID (even though Platform orgs
+      // wouldn't normally have this, we want to verify it's still skipped)
+      const platformPaymentWithTaxId = await setupPayment({
+        stripeChargeId: `ch_${nanoid()}`,
+        stripePaymentIntentId: `pi_${nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 10000,
+        livemode: true,
+        customerId: customer.id,
+        organizationId: organization.id,
+        invoiceId: invoice.id,
+        paymentMethod: PaymentMethodType.Card,
+        stripeTaxTransactionId: `tax_txn_${nanoid()}`,
+      })
+
+      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+        makeStripeRefundResponse({
+          amount: 10000,
+          created: refundCreatedTimestamp,
+        })
+      )
+
+      await adminTransaction(async ({ transaction }) => {
+        await refundPaymentTransaction(
+          { id: platformPaymentWithTaxId.id, partialAmount: null },
+          transaction
+        )
+      })
+
+      // Should NOT be called because the org is Platform, not MOR
+      expect(
+        stripeUtils.reverseStripeTaxTransaction
+      ).not.toHaveBeenCalled()
     })
   })
 })

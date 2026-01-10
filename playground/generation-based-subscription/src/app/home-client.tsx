@@ -1,13 +1,11 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { authClient } from '@/lib/auth-client'
 import { useBilling } from '@flowglad/nextjs'
-import { computeUsageTotal } from '@/lib/billing-helpers'
+import { CheckCircle2 } from 'lucide-react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 import { DashboardSkeleton } from '@/components/dashboard-skeleton'
-import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -15,12 +13,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { CheckCircle2 } from 'lucide-react'
+import { authClient } from '@/lib/auth-client'
+import { computeUsageTotal } from '@/lib/billing-helpers'
 
 // Mock images to cycle through
 const mockImages = [
@@ -169,10 +169,16 @@ export function HomeClient() {
   // Compute plan totals dynamically from current subscription's feature items
   // This calculates how many usage credits (e.g., "360 fast generations")
   // are included in the current subscription plan
-  const fastGenerationsTotal = computeUsageTotal(
+  const fastGenerationsPlanTotal = computeUsageTotal(
     'fast_generations',
     currentSubscription,
     billing.pricingModel
+  )
+  // Use the higher of plan total or remaining balance as the display total
+  // This handles cases where top-ups increase balance beyond plan allocation
+  const fastGenerationsTotal = Math.max(
+    fastGenerationsPlanTotal,
+    fastGenerationsRemaining
   )
   const fastGenerationsProgress =
     fastGenerationsTotal > 0
@@ -184,10 +190,16 @@ export function HomeClient() {
 
   const hdVideoMinutesRemaining =
     hdVideoMinutesBalance?.availableBalance ?? 0
-  const hdVideoMinutesTotal = computeUsageTotal(
+  const hdVideoMinutesPlanTotal = computeUsageTotal(
     'hd_video_minutes',
     currentSubscription,
     billing.pricingModel
+  )
+  // Use the higher of plan total or remaining balance as the display total
+  // This handles cases where top-ups increase balance beyond plan allocation
+  const hdVideoMinutesTotal = Math.max(
+    hdVideoMinutesPlanTotal,
+    hdVideoMinutesRemaining
   )
   const hdVideoMinutesProgress =
     hdVideoMinutesTotal > 0

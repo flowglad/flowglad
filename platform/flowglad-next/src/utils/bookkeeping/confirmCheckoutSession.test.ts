@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupCheckoutSession,
   setupCustomer,
+  setupDiscount,
   setupOrg,
   setupPaymentMethod,
   setupPrice,
@@ -20,7 +21,10 @@ import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Purchase } from '@/db/schema/purchases'
-import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import {
+  selectCheckoutSessionById,
+  updateCheckoutSession,
+} from '@/db/tableMethods/checkoutSessionMethods'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
 import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'
@@ -30,6 +34,7 @@ import { createMockCustomer } from '@/test/helpers/stripeMocks'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
+  DiscountAmountType,
   FlowgladEventType,
   IntervalUnit,
   PaymentMethodType,
@@ -39,6 +44,7 @@ import {
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import core from '@/utils/core'
 import {
+  cancelPaymentIntent,
   createStripeCustomer,
   getSetupIntent,
   updatePaymentIntent,
@@ -48,6 +54,7 @@ import { createFeeCalculationForCheckoutSession } from './checkoutSessions'
 
 // Mock Stripe functions
 vi.mock('@/utils/stripe', () => ({
+  cancelPaymentIntent: vi.fn(),
   createStripeCustomer: vi.fn(),
   getPaymentIntent: vi.fn(async () => ({
     id: 'pi_test',
@@ -217,7 +224,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.confirmResult.result.customer).toBeDefined()
+      expect(result.confirmResult.result.customer).toMatchObject({})
       // Verify that createFeeCalculationForCheckoutSession was not called
       expect(result.feeCalculations.length).toBe(0)
     })
@@ -253,7 +260,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer?.id).toEqual(customer.id)
     })
 
@@ -280,7 +287,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer?.id).toEqual(customer.id)
     })
 
@@ -316,7 +323,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer?.email).toEqual(
         'newcustomer@example.com'
       )
@@ -372,7 +379,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       )
 
       // Verify customer was created with proper attributes
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer.email).toEqual('newcustomer@example.com')
       expect(result.customer.name).toEqual('Test Customer')
       expect(result.customer.stripeCustomerId).toEqual(
@@ -390,7 +397,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       })
 
       // Verify pricing model was associated with the correct default pricing model
-      expect(result.customer.pricingModelId).toBeDefined()
+      expect(result.customer.pricingModelId).toMatchObject({})
       expect(result.customer.pricingModelId).toEqual(pricingModel.id)
     })
 
@@ -461,7 +468,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       )
 
       // Verify customer was created
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer.email).toEqual('newcustomer@example.com')
 
       // Check for events in the database
@@ -479,9 +486,11 @@ describe('confirmCheckoutSessionTransaction', () => {
       const customerCreatedEvent = dbEvents.find(
         (e) => e.type === FlowgladEventType.CustomerCreated
       )
-      expect(customerCreatedEvent).toBeDefined()
+      expect(typeof customerCreatedEvent).toBe('object')
       expect(customerCreatedEvent!.payload.object).toEqual('customer')
-      expect(customerCreatedEvent!.payload.customer).toBeDefined()
+      expect(typeof customerCreatedEvent!.payload.customer).toBe(
+        'object'
+      )
 
       // Assert customer payload details
       const customerPayload = customerCreatedEvent!.payload.customer!
@@ -494,7 +503,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       const subscriptionCreatedEvent = dbEvents.find(
         (e) => e.type === FlowgladEventType.SubscriptionCreated
       )
-      expect(subscriptionCreatedEvent).toBeDefined()
+      expect(typeof subscriptionCreatedEvent).toBe('object')
       expect(subscriptionCreatedEvent?.payload.object).toEqual(
         'subscription'
       )
@@ -552,7 +561,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       )
 
       // Verify customer was created with Stripe customer ID
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer.stripeCustomerId).toEqual(
         mockStripeCustomer.id
       )
@@ -616,7 +625,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       )
 
       // Verify customer was created with correct billing address
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer.billingAddress).toEqual(
         testBillingAddress
       )
@@ -674,7 +683,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.confirmResult.result.customer).toBeDefined()
+      expect(result.confirmResult.result.customer).toMatchObject({})
       expect(
         result.confirmResult.result.customer?.stripeCustomerId
       ).toEqual(result.updatedCustomer.stripeCustomerId)
@@ -710,7 +719,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer?.stripeCustomerId).toEqual(
         mockStripeCustomer.id
       )
@@ -812,7 +821,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       // Verify that updateSetupIntent was called
       expect(updateSetupIntent).toHaveBeenCalledWith(
         updatedCheckoutSession.stripeSetupIntentId,
@@ -884,7 +893,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       // Verify that updateSetupIntent was not called
       expect(updateSetupIntent).not.toHaveBeenCalled()
     })
@@ -920,7 +929,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent was called with the correct parameters
       // Application fee includes payment method fee (59 cents) + Flowglad fee (0.65% of $10 = 7 cents) = 66 cents
       expect(updatePaymentIntent).toHaveBeenCalledWith(
@@ -963,7 +972,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent was called with the correct parameters
       // Application fee includes payment method fee (59 cents) + Flowglad fee (0.65% of $10 = 7 cents) = 66 cents
       expect(updatePaymentIntent).toHaveBeenCalledWith(
@@ -1005,9 +1014,83 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent was not called
       expect(updatePaymentIntent).not.toHaveBeenCalled()
+    })
+
+    it('should cancel payment intent and clear stripePaymentIntentId when total due is zero from 100% discount', async () => {
+      // Create a 100% off discount that equals the full price amount
+      const fullDiscount = await setupDiscount({
+        organizationId: organization.id,
+        name: 'FULL100',
+        code: core.nanoid().slice(0, 10),
+        amount: price.unitPrice, // Full price coverage
+        amountType: DiscountAmountType.Fixed,
+        livemode: true,
+      })
+
+      const paymentIntentId = `pi_${core.nanoid()}`
+
+      // Update checkout session to have stripePaymentIntentId and the 100% discount
+      const updatedCheckoutSession =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            const result = await updateCheckoutSession(
+              {
+                ...checkoutSession,
+                stripePaymentIntentId: paymentIntentId,
+                discountId: fullDiscount.id,
+                type: CheckoutSessionType.Product,
+              } as CheckoutSession.Update,
+              transaction
+            )
+            return { result }
+          }
+        )
+
+      // Create fee calculation with the discount applied
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
+        const result = await createFeeCalculationForCheckoutSession(
+          updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
+          transaction
+        )
+        return { result }
+      })
+
+      const result = await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return confirmCheckoutSessionTransaction(
+            { id: updatedCheckoutSession.id },
+            transaction
+          )
+        }
+      )
+
+      // Verify the customer is returned correctly
+      expect(result.customer.id).toEqual(customer.id)
+
+      // Verify that cancelPaymentIntent was called instead of updatePaymentIntent
+      expect(cancelPaymentIntent).toHaveBeenCalledWith(
+        paymentIntentId,
+        updatedCheckoutSession.livemode
+      )
+      expect(updatePaymentIntent).not.toHaveBeenCalled()
+
+      // Verify that stripePaymentIntentId was cleared from the checkout session
+      const refetchedCheckoutSession =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            const result = await selectCheckoutSessionById(
+              updatedCheckoutSession.id,
+              transaction
+            )
+            return { result }
+          }
+        )
+      expect(
+        refetchedCheckoutSession.stripePaymentIntentId
+      ).toBeNull()
     })
   })
 
@@ -1038,7 +1121,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer?.id).toEqual(customer.id)
     })
 
@@ -1068,7 +1151,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent and updateSetupIntent were not called
       expect(updatePaymentIntent).not.toHaveBeenCalled()
       expect(updateSetupIntent).not.toHaveBeenCalled()
@@ -1086,7 +1169,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer?.id).toEqual(customer.id)
       expect(result.customer?.email).toEqual(customer.email)
       expect(result.customer?.stripeCustomerId).toEqual(

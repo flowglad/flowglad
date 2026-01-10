@@ -15,7 +15,9 @@ import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   selectPriceById,
   selectPrices,
+  selectResourceFeaturesForPrices,
 } from '@/db/tableMethods/priceMethods'
+import { countActiveResourceClaimsBatch } from '@/db/tableMethods/resourceClaimMethods'
 import {
   bulkCreateOrUpdateSubscriptionItems,
   expireSubscriptionItems,
@@ -315,6 +317,12 @@ export interface AdjustSubscriptionResult {
    * An upgrade means the new plan total is greater than the old plan total.
    */
   isUpgrade: boolean
+  /**
+   * The trigger.dev run ID for the billing run task, if one was triggered.
+   * Only present when an immediate adjustment with proration triggers a billing run.
+   * The caller should wait for this run to complete before considering the adjustment done.
+   */
+  pendingBillingRunId?: string
 }
 
 /**
@@ -359,7 +367,6 @@ export const adjustSubscription = async (
     'prorateCurrentBillingPeriod' in adjustment
       ? adjustment.prorateCurrentBillingPeriod
       : true
-
   const subscription = await selectSubscriptionById(id, transaction)
   if (isSubscriptionInTerminalState(subscription.status)) {
     throw new Error('Subscription is in terminal state')
@@ -375,6 +382,11 @@ export const adjustSubscription = async (
   if (subscription.doNotCharge) {
     throw new Error(
       'Cannot adjust doNotCharge subscriptions. Cancel and create a new subscription instead.'
+    )
+  }
+  if (subscription.isFreePlan) {
+    throw new Error(
+      'Cannot adjust free plan subscriptions. Use createSubscription to upgrade from a free plan instead.'
     )
   }
 
@@ -554,6 +566,81 @@ export const adjustSubscription = async (
     0
   )
 
+  // Validate resource capacity for downgrades
+  // Batch fetch all resource features and claim counts to avoid N+1 queries
+  const itemPriceIds = nonManualSubscriptionItems
+    .map((item) => item.priceId)
+    .filter((id): id is string => id != null)
+
+  if (itemPriceIds.length > 0) {
+    // Batch fetch resource features for all prices
+    const priceToResourceFeatures =
+      await selectResourceFeaturesForPrices(itemPriceIds, transaction)
+
+    // Collect all unique resourceIds across all features
+    const allResourceIds = new Set<string>()
+    for (const features of priceToResourceFeatures.values()) {
+      for (const feature of features) {
+        allResourceIds.add(feature.resourceId)
+      }
+    }
+
+    // Batch fetch claim counts for all resources
+    const resourceClaimCounts =
+      allResourceIds.size > 0
+        ? await countActiveResourceClaimsBatch(
+            {
+              subscriptionId: subscription.id,
+              resourceIds: [...allResourceIds],
+            },
+            transaction
+          )
+        : new Map<string, number>()
+
+    // Aggregate capacity by resourceId across all subscription items
+    // Multiple items may provide capacity for the same resource
+    const resourceCapacityMap = new Map<
+      string,
+      { totalCapacity: number; featureSlug: string }
+    >()
+    for (const newItem of nonManualSubscriptionItems) {
+      if (!newItem.priceId) continue
+
+      const resourceFeatures =
+        priceToResourceFeatures.get(newItem.priceId) ?? []
+
+      for (const feature of resourceFeatures) {
+        // Calculate capacity contribution: feature.amount (per unit) * item quantity
+        const capacityContribution = feature.amount * newItem.quantity
+        const existing = resourceCapacityMap.get(feature.resourceId)
+        if (existing) {
+          existing.totalCapacity += capacityContribution
+        } else {
+          resourceCapacityMap.set(feature.resourceId, {
+            totalCapacity: capacityContribution,
+            featureSlug: feature.slug,
+          })
+        }
+      }
+    }
+
+    // Validate aggregated capacity against active claims
+    for (const [
+      resourceId,
+      { totalCapacity, featureSlug },
+    ] of resourceCapacityMap) {
+      const activeClaims = resourceClaimCounts.get(resourceId) ?? 0
+
+      if (activeClaims > totalCapacity) {
+        throw new Error(
+          `Cannot reduce ${featureSlug} capacity to ${totalCapacity}. ` +
+            `${activeClaims} resources are currently claimed. ` +
+            `Release ${activeClaims - totalCapacity} claims before downgrading.`
+        )
+      }
+    }
+  }
+
   const isUpgrade = newPlanTotalPrice > oldPlanTotalPrice
 
   // Resolve 'auto' timing to actual timing based on upgrade vs downgrade
@@ -598,6 +685,9 @@ export const adjustSubscription = async (
 
   // Create proration adjustments when there's a net charge AND proration is enabled
   const prorationAdjustments: BillingPeriodItem.Insert[] = []
+
+  // Track pending billing run ID for immediate adjustments with proration
+  let pendingBillingRunId: string | undefined
 
   if (netChargeAmount > 0 && shouldProrate) {
     // Format description similar to createSubscription pattern: single-line with key info
@@ -658,14 +748,22 @@ export const adjustSubscription = async (
     // Execute billing run immediately after creation
     // executeBillingRun uses its own transactions internally
     // handleSubscriptionItemAdjustment will handle creating/updating subscription items in processOutcomeForBillingRun
-    await attemptBillingRunTask.trigger({
+    // Prepare items with required fields (livemode) before passing to handleSubscriptionItemAdjustment
+    const preparedItemsForBillingRun = nonManualSubscriptionItems.map(
+      (item) => ({
+        ...item,
+        livemode: subscription.livemode,
+      })
+    )
+    const billingRunHandle = await attemptBillingRunTask.trigger({
       billingRun,
       adjustmentParams: {
-        newSubscriptionItems:
-          nonManualSubscriptionItems as SubscriptionItem.Record[],
+        newSubscriptionItems: preparedItemsForBillingRun,
         adjustmentDate,
       },
     })
+    // Store the run ID so the caller can wait for the billing run to complete
+    pendingBillingRunId = billingRunHandle.id
   } else {
     // Either:
     // - Zero-amount adjustment (downgrade with no refund)
@@ -773,5 +871,6 @@ export const adjustSubscription = async (
     subscriptionItems: currentSubscriptionItems,
     resolvedTiming,
     isUpgrade,
+    pendingBillingRunId,
   }
 }

@@ -284,7 +284,7 @@ describe('usageEventsRouter', () => {
       // Should return exactly 3 usage events (limited by parameter)
       expect(result.total).toBe(10)
       expect(result.hasMore).toBe(true)
-      expect(result.nextCursor).toBeDefined()
+      expect(result.nextCursor).toMatchObject({})
 
       // Verify returned events are from our created events
       const returnedEventIds = result.items.map((event) => event.id)
@@ -340,11 +340,11 @@ describe('usageEventsRouter', () => {
 
       // Each event should have customer, subscription, usageMeter, price data
       result.items.forEach((enrichedEvent) => {
-        expect(enrichedEvent.usageEvent).toBeDefined()
-        expect(enrichedEvent.customer).toBeDefined()
-        expect(enrichedEvent.subscription).toBeDefined()
-        expect(enrichedEvent.usageMeter).toBeDefined()
-        expect(enrichedEvent.price).toBeDefined()
+        expect(typeof enrichedEvent.usageEvent).toBe('object')
+        expect(typeof enrichedEvent.customer).toBe('object')
+        expect(typeof enrichedEvent.subscription).toBe('object')
+        expect(typeof enrichedEvent.usageMeter).toBe('object')
+        expect(typeof enrichedEvent.price).toBe('object')
 
         // Verify the data matches our setup
         expect(enrichedEvent.customer.id).toBe(customer1.id)
@@ -403,7 +403,8 @@ describe('usageEventsRouter', () => {
 
       // First call should return first 3 events
       expect(firstResult.hasNextPage).toBe(true)
-      expect(firstResult.endCursor).toBeDefined()
+      expect(typeof firstResult.endCursor).toBe('string')
+      expect(firstResult.endCursor!.length).toBeGreaterThan(0)
 
       // Second call should return next 3 events
       expect(secondResult.hasNextPage).toBe(true)
@@ -443,7 +444,7 @@ describe('usageEventsRouter', () => {
         },
       })
 
-      expect(result.usageEvent).toBeDefined()
+      expect(result.usageEvent).toMatchObject({})
       expect(result.usageEvent.priceId).toBe(price1.id)
       expect(result.usageEvent.amount).toBe(150)
       expect(result.usageEvent.subscriptionId).toBe(subscription1.id)
@@ -503,7 +504,7 @@ describe('usageEventsRouter', () => {
         },
       })
 
-      expect(result.usageEvent).toBeDefined()
+      expect(result.usageEvent).toMatchObject({})
       expect(result.usageEvent.priceId).toBe(price1.id)
       expect(result.usageEvent.amount).toBe(200)
       expect(result.usageEvent.subscriptionId).toBe(subscription1.id)

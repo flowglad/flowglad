@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { ClientAuthGuard } from '@/components/ClientAuthGuard'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import PageContainer from '@/components/PageContainer'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import type { ApiKey } from '@/db/schema/apiKeys'
@@ -161,7 +161,7 @@ const OnboardingPage = async () => {
       requireOrganization={true}
       redirectTo="/onboarding/business-details"
     >
-      <InnerPageContainerNew>
+      <PageContainer>
         <div className="flex flex-col gap-4 p-4 w-full justify-center items-start m-auto max-w-[416px] min-h-svh">
           <div className="flex flex-col items-start justify-center w-full gap-4">
             <div className="flex flex-col items-start justify-center gap-1 p-2">
@@ -179,7 +179,7 @@ const OnboardingPage = async () => {
             />
           </div>
         </div>
-      </InnerPageContainerNew>
+      </PageContainer>
     </ClientAuthGuard>
   )
 }

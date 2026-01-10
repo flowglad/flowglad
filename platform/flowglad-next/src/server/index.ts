@@ -27,6 +27,8 @@ import { pricingModelsRouter } from './routers/pricingModelsRouter'
 import { productFeaturesRouter } from './routers/productFeaturesRouter'
 import { productsRouter } from './routers/productsRouter'
 import { purchasesRouter } from './routers/purchasesRouter'
+import { resourceClaimsRouter } from './routers/resourceClaimsRouter'
+import { resourcesRouter } from './routers/resourcesRouter'
 import { subscriptionItemFeaturesRouter } from './routers/subscriptionItemFeaturesRouter'
 import { subscriptionsRouter } from './routers/subscriptionsRouter'
 import { usageEventsRouter } from './routers/usageEventsRouter'
@@ -73,6 +75,8 @@ export const appRouter = router({
   subscriptionItemFeatures: subscriptionItemFeaturesRouter,
   customerBillingPortal: customerBillingPortalRouter,
   docsSearch: docsSearchRouter,
+  resources: resourcesRouter,
+  resourceClaims: resourceClaimsRouter,
 })
 
 // This would map to REST endpoints like:

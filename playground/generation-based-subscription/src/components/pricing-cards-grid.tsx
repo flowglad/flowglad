@@ -1,9 +1,16 @@
 'use client'
 
-import { useRef, useMemo } from 'react'
+import { useBilling } from '@flowglad/nextjs'
 import Autoplay from 'embla-carousel-autoplay'
-import { PricingCard } from '@/components/pricing-card'
+import { useMemo, useRef } from 'react'
 import type { PricingPlan } from '@/components/pricing-card'
+import { PricingCard } from '@/components/pricing-card'
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from '@/components/ui/card'
 import {
   Carousel,
   CarouselContent,
@@ -11,15 +18,8 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel'
-import { useMobile } from '@/hooks/use-mobile'
-import { useBilling } from '@flowglad/nextjs'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from '@/components/ui/card'
+import { useMobile } from '@/hooks/use-mobile'
 
 /**
  * PricingCardsGrid component displays all pricing plans in a responsive grid or carousel

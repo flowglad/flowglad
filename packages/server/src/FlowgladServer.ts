@@ -1,6 +1,7 @@
 import { Flowglad as FlowgladNode } from '@flowglad/node'
 import {
-  type AdjustSubscriptionOptions,
+  type AdjustSubscriptionParams,
+  adjustSubscriptionParamsSchema,
   type BillingWithChecks,
   type BulkCreateUsageEventsParams,
   bulkCreateUsageEventsSchema,
@@ -329,38 +330,60 @@ export class FlowgladServer {
    * Adjust a subscription to a different price.
    *
    * @example
-   * // TERSEST form: adjust current subscription (auto-resolves if customer has 1 subscription)
-   * await flowglad.adjustSubscription('pro-monthly')
+   * // Simplest: adjust by price slug (quantity defaults to 1)
+   * await flowglad.adjustSubscription({ priceSlug: 'pro-monthly' })
    *
-   * // With quantity (for multi-seat plans)
-   * await flowglad.adjustSubscription('pro-monthly', { quantity: 5 })
+   * // With quantity
+   * await flowglad.adjustSubscription({ priceSlug: 'pro-monthly', quantity: 5 })
    *
-   * // With explicit timing override
-   * await flowglad.adjustSubscription('pro-monthly', { timing: 'at_end_of_period' })
+   * // Using price ID
+   * await flowglad.adjustSubscription({ priceId: 'price_abc123', quantity: 3 })
    *
-   * // Explicit subscription ID (required for multi-subscription customers)
-   * await flowglad.adjustSubscription('pro-monthly', { subscriptionId: 'sub_123' })
+   * // With timing override
+   * await flowglad.adjustSubscription({
+   *   priceSlug: 'pro-monthly',
+   *   timing: 'at_end_of_period'
+   * })
    *
-   * @param priceIdOrSlug - The price ID or price slug to adjust to
-   * @param options - Optional adjustment options
-   * @param options.subscriptionId - Subscription ID (auto-resolves if customer has exactly 1 subscription)
-   * @param options.quantity - Number of units (default: 1)
-   * @param options.timing - 'immediately' | 'at_end_of_period' | 'auto' (default: 'auto')
+   * // Explicit subscription ID (for multi-subscription customers)
+   * await flowglad.adjustSubscription({
+   *   priceSlug: 'pro-monthly',
+   *   subscriptionId: 'sub_123'
+   * })
+   *
+   * // Complex adjustment with multiple items
+   * await flowglad.adjustSubscription({
+   *   subscriptionItems: [
+   *     { priceSlug: 'base-plan', quantity: 1 },
+   *     { priceSlug: 'addon-storage', quantity: 3 },
+   *   ],
+   *   timing: 'immediately',
+   *   prorate: true,
+   * })
+   *
+   * @param params - Adjustment parameters (one of three forms)
+   * @param params.priceSlug - Adjust to a price by slug (mutually exclusive with priceId and subscriptionItems)
+   * @param params.priceId - Adjust to a price by ID (mutually exclusive with priceSlug and subscriptionItems)
+   * @param params.subscriptionItems - Array of items for multi-item adjustments (mutually exclusive with priceSlug and priceId)
+   * @param params.quantity - Number of units for single-price adjustments (default: 1)
+   * @param params.subscriptionId - Subscription ID (auto-resolves if customer has exactly 1 subscription)
+   * @param params.timing - 'immediately' | 'at_end_of_period' | 'auto' (default: 'auto')
    *   - 'auto': Upgrades happen immediately, downgrades at end of period
    *   - 'immediately': Apply change now with proration
    *   - 'at_end_of_period': Apply change at next billing period
-   * @param options.prorate - Whether to prorate (default: true for immediate, false for end-of-period)
+   * @param params.prorate - Whether to prorate (default: true for immediate, false for end-of-period)
    * @returns The adjusted subscription and its items
    * @throws {Error} If customer has no active subscriptions
    * @throws {Error} If customer has multiple subscriptions and subscriptionId not provided
    * @throws {Error} If the subscription is not owned by the authenticated customer
    */
   public adjustSubscription = async (
-    priceIdOrSlug: string,
-    options?: AdjustSubscriptionOptions
+    params: AdjustSubscriptionParams
   ): Promise<FlowgladNode.Subscriptions.SubscriptionAdjustResponse> => {
+    const parsedParams = adjustSubscriptionParamsSchema.parse(params)
+
     // Auto-resolve subscriptionId if not provided
-    let subscriptionId = options?.subscriptionId
+    let subscriptionId = parsedParams.subscriptionId
 
     if (!subscriptionId) {
       const billing = await this.getBilling()
@@ -373,7 +396,7 @@ export class FlowgladServer {
       }
       if (currentSubscriptions.length > 1) {
         throw new Error(
-          'Customer has multiple active subscriptions. Please specify subscriptionId in options.'
+          'Customer has multiple active subscriptions. Please specify subscriptionId in params.'
         )
       }
       subscriptionId = currentSubscriptions[0].id
@@ -388,10 +411,9 @@ export class FlowgladServer {
       throw new Error('Subscription is not owned by the current user')
     }
 
-    const quantity = options?.quantity ?? 1
     const timing =
-      options?.timing ?? subscriptionAdjustmentTiming.Auto
-    const prorate = options?.prorate
+      parsedParams.timing ?? subscriptionAdjustmentTiming.Auto
+    const prorate = parsedParams.prorate
 
     const serverTiming =
       timing === subscriptionAdjustmentTiming.Immediately
@@ -401,19 +423,58 @@ export class FlowgladServer {
           ? 'at_end_of_current_billing_period'
           : 'auto'
 
+    // Build newSubscriptionItems based on the params form
+    let newSubscriptionItems: Array<{
+      priceId?: string
+      priceSlug?: string
+      quantity: number
+    }>
+
+    if (
+      'subscriptionItems' in parsedParams &&
+      parsedParams.subscriptionItems
+    ) {
+      // Multi-item adjustment
+      newSubscriptionItems = parsedParams.subscriptionItems.map(
+        (item) => ({
+          ...item,
+          quantity: item.quantity ?? 1,
+        })
+      )
+    } else if (
+      'priceSlug' in parsedParams &&
+      parsedParams.priceSlug
+    ) {
+      // Single price by slug
+      newSubscriptionItems = [
+        {
+          priceSlug: parsedParams.priceSlug,
+          quantity: parsedParams.quantity ?? 1,
+        },
+      ]
+    } else if ('priceId' in parsedParams && parsedParams.priceId) {
+      // Single price by ID
+      newSubscriptionItems = [
+        {
+          priceId: parsedParams.priceId,
+          quantity: parsedParams.quantity ?? 1,
+        },
+      ]
+    } else {
+      throw new Error(
+        'Invalid params: must provide priceSlug, priceId, or subscriptionItems'
+      )
+    }
+
     const adjustment =
       serverTiming === 'at_end_of_current_billing_period'
         ? {
             timing: serverTiming,
-            newSubscriptionItems: [
-              { priceSlug: priceIdOrSlug, quantity },
-            ],
+            newSubscriptionItems,
           }
         : {
             timing: serverTiming,
-            newSubscriptionItems: [
-              { priceSlug: priceIdOrSlug, quantity },
-            ],
+            newSubscriptionItems,
             prorateCurrentBillingPeriod: prorate ?? true,
           }
 

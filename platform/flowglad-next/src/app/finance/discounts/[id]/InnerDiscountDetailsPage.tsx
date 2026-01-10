@@ -4,7 +4,7 @@ import { Check, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import EditDiscountModal from '@/components/forms/EditDiscountModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import PageContainer from '@/components/PageContainer'
 import { CopyableField } from '@/components/ui/copyable-field'
 import {
   ContentSection,
@@ -155,7 +155,7 @@ function InnerDiscountDetailsPage({
   }
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <div className="w-full relative flex flex-col justify-center gap-0 pb-32">
         <PageHeaderNew
           title={discount.name}
@@ -250,7 +250,7 @@ function InnerDiscountDetailsPage({
         setIsOpen={setIsToggleModalOpen}
         discount={discount}
       />
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

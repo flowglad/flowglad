@@ -147,7 +147,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
     const ci1: any = infoByProduct.checkoutInfo
     expect(ci1.product.id).toBe(product.id)
     expect(ci1.price.id).toBe(price.id)
-    expect(ci1.checkoutSession.id).toBeDefined()
+    expect(typeof ci1.checkoutSession.id).toBe('string')
 
     // Intermediary: check checkout info by price ID
     const infoByPrice = await checkoutInfoForPriceWhere({
@@ -233,7 +233,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
       expect(sessionInfo.checkoutSession.id).toBe(checkoutSession.id)
       expect(sessionInfo.product.id).toBe(product.id)
       expect(sessionInfo.price.id).toBe(price.id)
-      expect(sessionInfo.feeCalculation).not.toBeNull()
+      expect(typeof sessionInfo.feeCalculation).toBe('object')
       return { result: null }
     })
 
@@ -260,7 +260,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
       )
       const sub = billingState.subscriptions[0]
       expect(sub.status).toBe(SubscriptionStatus.Trialing)
-      expect(sub.trialEnd).toBeDefined()
+      expect(typeof sub.trialEnd).toBe('number')
       const diff = sub.trialEnd! - Date.now()
       expect(diff).toBeGreaterThanOrEqual(
         trialPeriodDays * 24 * 60 * 60 * 1000 - 1000
@@ -273,7 +273,8 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
           (fi) => fi.featureId === toggleFeature.id
         )
       ).toBe(true)
-      expect(sub.defaultPaymentMethodId).toBeDefined()
+      expect(typeof sub.defaultPaymentMethodId).toBe('string')
+      expect(sub.defaultPaymentMethodId!.length).toBeGreaterThan(0)
 
       // After processing setup intent, verify checkoutSession status
       const finalSession = await selectCheckoutSessionById(

@@ -6,10 +6,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import {
   BookOpen,
-  ChevronsUpDown,
   ExternalLink,
-  FinishSetupIcon,
-  Flag,
   LogOut,
   RiDiscordFill,
   SettingsIcon,
@@ -33,10 +30,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useSidebar } from '@/components/ui/sidebar'
-import { Switch } from '@/components/ui/switch'
 import { useOrganizationList } from '@/hooks/useOrganizationList'
 import { cn } from '@/lib/utils'
-import { BusinessOnboardingStatus } from '@/types'
 import CreateOrganizationModal from '../forms/CreateOrganizationModal'
 
 export type NavUserProps = {
@@ -48,11 +43,8 @@ export type NavUserProps = {
   organization: {
     id: string
     name: string
-    onboardingStatus: BusinessOnboardingStatus
   }
   onSignOut: () => void
-  onTestModeToggle: (enabled: boolean) => void
-  testModeEnabled: boolean
 }
 
 /**
@@ -71,15 +63,10 @@ export const NavUser: React.FC<NavUserProps> = ({
   user,
   organization,
   onSignOut,
-  onTestModeToggle,
-  testModeEnabled,
 }) => {
   const { state } = useSidebar()
   const isCollapsed = state === 'collapsed'
   const initials = getUserInitials(user.name)
-  const showFinishSetup =
-    organization.onboardingStatus !==
-    BusinessOnboardingStatus.FullyOnboarded
 
   const [isCreateOrgModalOpen, setIsCreateOrgModalOpen] =
     useState(false)
@@ -101,7 +88,7 @@ export const NavUser: React.FC<NavUserProps> = ({
           <button
             type="button"
             className={cn(
-              'flex w-full items-center gap-2 rounded p-2 text-left transition-colors',
+              'flex w-full items-center gap-2 rounded p-2 text-left transition-colors shadow-realistic-sm',
               'hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               isCollapsed
                 ? 'justify-center px-[7px] py-1.5'
@@ -125,23 +112,20 @@ export const NavUser: React.FC<NavUserProps> = ({
               </AvatarFallback>
             </Avatar>
             {!isCollapsed && (
-              <>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span
-                    className="truncate text-sm font-semibold text-sidebar-accent-foreground"
-                    data-testid="nav-user-name"
-                  >
-                    {user.name}
-                  </span>
-                  <span
-                    className="truncate text-xs font-medium text-muted-foreground"
-                    data-testid="nav-user-org"
-                  >
-                    {organization.name}
-                  </span>
-                </div>
-                <ChevronsUpDown className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
-              </>
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span
+                  className="truncate text-sm font-semibold text-sidebar-accent-foreground"
+                  data-testid="nav-user-name"
+                >
+                  {user.name}
+                </span>
+                <span
+                  className="truncate text-xs font-medium text-muted-foreground"
+                  data-testid="nav-user-org"
+                >
+                  {organization.name}
+                </span>
+              </div>
             )}
           </button>
         </DropdownMenuTrigger>
@@ -152,18 +136,6 @@ export const NavUser: React.FC<NavUserProps> = ({
           sideOffset={8}
         >
           <DropdownMenuGroup>
-            {showFinishSetup && (
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/onboarding"
-                  className="flex items-center gap-2"
-                  data-testid="nav-user-finish-setup"
-                >
-                  <FinishSetupIcon className="h-4 w-4 text-yellow-500" />
-                  <span>Finish Setup</span>
-                </Link>
-              </DropdownMenuItem>
-            )}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger
                 className="flex items-center gap-2"
@@ -227,25 +199,6 @@ export const NavUser: React.FC<NavUserProps> = ({
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault()
-              }}
-              className="flex items-center justify-between"
-              data-testid="nav-user-test-mode"
-            >
-              <div className="flex items-center gap-2">
-                <Flag className="h-4 w-4" />
-                <span>Test Mode</span>
-              </div>
-              <Switch
-                checked={testModeEnabled}
-                onCheckedChange={onTestModeToggle}
-                aria-label="Toggle test mode"
-                data-testid="nav-user-test-mode-switch"
-                className="scale-75"
-              />
-            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link
                 href="/settings"

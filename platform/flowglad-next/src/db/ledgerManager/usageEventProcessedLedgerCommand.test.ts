@@ -255,7 +255,6 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
       const application1 = applications.find(
         (app) => app.usageCreditId === usageCredit1.id
       )!
-      expect(application1).toBeDefined()
       expect(application1.amountApplied).toBe(30)
       expect(application1.usageEventId).toBe(sampleUsageEvent.id)
       expect(application1.status).toBe(
@@ -265,7 +264,6 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
       const application2 = applications.find(
         (app) => app.usageCreditId === usageCredit2.id
       )!
-      expect(application2).toBeDefined()
       expect(application2.amountApplied).toBe(70) // 100 (usage) - 30 (from credit1)
       expect(application2.usageEventId).toBe(sampleUsageEvent.id)
       expect(application2.status).toBe(
@@ -314,13 +312,11 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
       const application1 = applications.find(
         (app) => app.usageCreditId === usageCredit1.id
       )!
-      expect(application1).toBeDefined()
       expect(application1.amountApplied).toBe(30)
 
       const application2 = applications.find(
         (app) => app.usageCreditId === usageCredit2.id
       )!
-      expect(application2).toBeDefined()
       expect(application2.amountApplied).toBe(40)
     })
   })
@@ -495,7 +491,6 @@ describe('createLedgerEntryInsertsForUsageCreditApplications', () => {
       const debitEntry = inserts.find(
         (i) => i.direction === LedgerEntryDirection.Debit
       )!
-      expect(debitEntry).toBeDefined()
       expect(debitEntry.ledgerAccountId).toBe(ledgerAccount.id)
       expect(debitEntry.ledgerTransactionId).toBe(
         defaultLedgerTransaction.id
@@ -518,7 +513,6 @@ describe('createLedgerEntryInsertsForUsageCreditApplications', () => {
       const creditEntry = inserts.find(
         (i) => i.direction === LedgerEntryDirection.Credit
       )!
-      expect(creditEntry).toBeDefined()
       expect(creditEntry.ledgerAccountId).toBe(ledgerAccount.id)
       expect(creditEntry.ledgerTransactionId).toBe(
         defaultLedgerTransaction.id
@@ -693,7 +687,6 @@ describe('processUsageEventProcessedLedgerCommand', () => {
 
       // Verify: LedgerTransaction created
 
-      expect(ledgerTransaction).toBeDefined()
       expect(ledgerTransaction.description).toBe(commandDescription)
       expect(ledgerTransaction.metadata).toEqual({
         scenario: 'no_credits_applied',
@@ -709,7 +702,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         (le) => le.entryType === LedgerEntryType.UsageCost
       )
 
-      expect(usageCostEntry).toBeDefined()
+      expect(usageCostEntry).toMatchObject({})
       if (usageCostEntry) {
         expect(usageCostEntry.ledgerAccountId).toBe(ledgerAccount.id)
         expect(usageCostEntry.direction).toBe(
@@ -809,7 +802,6 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       )
 
       // Verify: Processed LedgerTransaction
-      expect(processedTx).toBeDefined()
       expect(processedTx.description).toBe(commandDescription)
       expect(processedTx.type).toBe(
         LedgerTransactionType.UsageEventProcessed
@@ -845,7 +837,6 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       const usageCostEntry = processedEntries.find(
         (le) => le.entryType === LedgerEntryType.UsageCost
       )!
-      expect(usageCostEntry).toBeDefined()
       expect(usageCostEntry.ledgerAccountId).toBe(ledgerAccount.id)
       expect(usageCostEntry.direction).toBe(
         LedgerEntryDirection.Debit
@@ -864,7 +855,6 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           le.entryType ===
           LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
       )!
-      expect(debitFromCreditBalanceEntry).toBeDefined()
       expect(debitFromCreditBalanceEntry.ledgerAccountId).toBe(
         ledgerAccount.id
       )
@@ -891,7 +881,6 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           le.entryType ===
           LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
       )!
-      expect(creditTowardsUsageCostEntry).toBeDefined()
       expect(creditTowardsUsageCostEntry.ledgerAccountId).toBe(
         ledgerAccount.id
       )
@@ -983,7 +972,6 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       )
 
       // Verify: Processed LedgerTransaction
-      expect(processedTx).toBeDefined()
       expect(processedTx.description).toBe(commandDescription)
       expect(processedTx.type).toBe(
         LedgerTransactionType.UsageEventProcessed
@@ -1019,7 +1007,6 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       const usageCostEntry = processedEntries.find(
         (le) => le.entryType === LedgerEntryType.UsageCost
       )!
-      expect(usageCostEntry).toBeDefined()
       expect(usageCostEntry.ledgerAccountId).toBe(ledgerAccount.id)
       expect(usageCostEntry.direction).toBe(
         LedgerEntryDirection.Debit
@@ -1038,7 +1025,6 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           le.entryType ===
           LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
       )!
-      expect(debitFromCreditBalanceEntry).toBeDefined()
       expect(debitFromCreditBalanceEntry.ledgerAccountId).toBe(
         ledgerAccount.id
       )
@@ -1068,7 +1054,6 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           le.entryType ===
           LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
       )!
-      expect(creditTowardsUsageCostEntry).toBeDefined()
       expect(creditTowardsUsageCostEntry.ledgerAccountId).toBe(
         ledgerAccount.id
       )
@@ -1203,7 +1188,6 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         )
 
       // 6. VERIFY: LedgerTransaction created
-      expect(ledgerTransaction).toBeDefined()
       expect(ledgerTransaction.subscriptionId).toBe(subscription.id)
       expect(ledgerTransaction.initiatingSourceId).toBe(
         newUsageEvent.id
@@ -1225,7 +1209,6 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         )
       expect(ledgerAccountsAfter.length).toBe(1)
       const createdLedgerAccount = ledgerAccountsAfter[0]
-      expect(createdLedgerAccount).toBeDefined()
       expect(createdLedgerAccount.subscriptionId).toBe(
         subscription.id
       )
@@ -1242,7 +1225,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       const usageCostEntry = ledgerEntries.find(
         (le) => le.entryType === LedgerEntryType.UsageCost
       )
-      expect(usageCostEntry).toBeDefined()
+      expect(usageCostEntry).toMatchObject({})
       if (usageCostEntry) {
         expect(usageCostEntry.ledgerAccountId).toBe(
           createdLedgerAccount.id
@@ -1325,7 +1308,6 @@ describe('processUsageEventProcessedLedgerCommand', () => {
 
       // Verify: LedgerTransaction created
 
-      expect(ledgerTransaction).toBeDefined()
       expect(ledgerTransaction.description).toBe(commandDescription)
       expect(ledgerTransaction.metadata).toEqual({
         scenario: 'no_credits_applied',
@@ -1341,7 +1323,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         (le) => le.entryType === LedgerEntryType.UsageCost
       )
 
-      expect(usageCostEntry).toBeDefined()
+      expect(usageCostEntry).toMatchObject({})
       if (usageCostEntry) {
         expect(usageCostEntry.ledgerAccountId).toBe(ledgerAccount.id)
         expect(usageCostEntry.direction).toBe(

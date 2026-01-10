@@ -2,8 +2,6 @@ import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Country } from '@/db/schema/countries'
 import type { Discount } from '@/db/schema/discounts'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import type { Invoice } from '@/db/schema/invoices'
 import type {
   BillingAddress,
   Organization,
@@ -14,12 +12,9 @@ import type { Purchase } from '@/db/schema/purchases'
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
-import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import type { DbTransaction } from '@/db/types'
 import {
-  CheckoutSessionType,
   type CountryCode,
   type CurrencyCode,
   FeeCalculationType,
@@ -30,7 +25,6 @@ import {
   calculateDiscountAmount,
   calculateFlowgladFeePercentage,
   calculateInternationalFeePercentage,
-  calculateInvoiceBaseAmount,
   calculateMoRSurchargePercentage,
   calculatePaymentMethodFeeAmount,
   calculatePriceBaseAmount,
@@ -94,48 +88,6 @@ const createBaseFeeCalculationInsert = ({
     taxAmountFixed: 0,
   }
 }
-
-export const createCheckoutSessionFeeCalculationInsertForInvoice =
-  async (params: {
-    organization: Organization.Record
-    invoice: Invoice.Record
-    invoiceLineItems: InvoiceLineItem.ClientRecord[]
-    billingAddress: BillingAddress
-    paymentMethodType: PaymentMethodType
-    checkoutSessionId: string
-    organizationCountry: Country.Record
-  }): Promise<FeeCalculation.Insert> => {
-    const {
-      organization,
-      invoice,
-      invoiceLineItems,
-      billingAddress,
-      paymentMethodType,
-      checkoutSessionId,
-      organizationCountry,
-    } = params
-    const base = calculateInvoiceBaseAmount({ invoiceLineItems })
-    const insert = createBaseFeeCalculationInsert({
-      organization,
-      billingAddress,
-      paymentMethodType,
-      baseAmount: base,
-      currency: invoice.currency,
-      livemode: invoice.livemode,
-      checkoutSessionId,
-      organizationCountry,
-    })
-    return {
-      ...insert,
-      priceId: null,
-      discountId: null,
-      billingPeriodId: null,
-      taxAmountFixed: 0,
-      stripeTaxCalculationId: null,
-      stripeTaxTransactionId: null,
-      purchaseId: null,
-    }
-  }
 
 export const createCheckoutSessionFeeCalculationInsertForPrice =
   async (params: {
@@ -206,15 +158,6 @@ export const createCheckoutSessionFeeCalculationInsertForPrice =
     }
   }
 
-export const createInvoiceFeeCalculationForCheckoutSession = async (
-  params: any,
-  transaction: DbTransaction
-): Promise<FeeCalculation.Record> => {
-  const insert =
-    await createCheckoutSessionFeeCalculationInsertForInvoice(params)
-  return insertFeeCalculation(insert, transaction)
-}
-
 export const createCheckoutSessionFeeCalculation = async (
   params: any,
   transaction: DbTransaction
@@ -234,33 +177,6 @@ export const createFeeCalculationForCheckoutSession = async (
         transaction
       )
     : undefined
-  if (checkoutSession.type === CheckoutSessionType.Invoice) {
-    const organization = await selectOrganizationById(
-      checkoutSession.organizationId,
-      transaction
-    )
-    const organizationCountry = await selectCountryById(
-      organization.countryId,
-      transaction
-    )
-    const [{ invoice, invoiceLineItems }] =
-      await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-        { id: checkoutSession.invoiceId },
-        transaction
-      )
-    return createInvoiceFeeCalculationForCheckoutSession(
-      {
-        organization,
-        organizationCountry,
-        invoice,
-        checkoutSessionId: checkoutSession.id,
-        invoiceLineItems,
-        billingAddress: checkoutSession.billingAddress,
-        paymentMethodType: checkoutSession.paymentMethodType,
-      },
-      transaction
-    )
-  }
 
   const [{ price, product, organization }] =
     await selectPriceProductAndOrganizationByPriceWhere(

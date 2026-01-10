@@ -252,7 +252,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       expect(result?.billingRun.id).toBe(billingRun.id)
       expect(result?.invoice.id).toBe(invoice.id)
 
-      expect(ledgerCommands).toBeDefined()
+      expect(typeof ledgerCommands).toBe('object')
       expect(ledgerCommands?.length).toBeGreaterThan(0)
       const invoiceLedgerCommand =
         settleInvoiceUsageCostsLedgerCommandSchema.parse(
@@ -267,8 +267,8 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       expect(invoiceLedgerCommand.payload.invoice.id).toBe(invoice.id)
       expect(
-        invoiceLedgerCommand.payload.invoiceLineItems
-      ).toBeDefined()
+        Array.isArray(invoiceLedgerCommand.payload.invoiceLineItems)
+      ).toBe(true)
     })
   })
 
@@ -329,7 +329,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
           transaction
         )
 
-      expect(firstLedgerCommands).toBeDefined()
+      expect(typeof firstLedgerCommands).toBe('object')
       expect(firstLedgerCommands?.length).toBeGreaterThan(0)
 
       const { ledgerCommands: secondLedgerCommands } =
@@ -404,8 +404,8 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-      expect(updatedInvoice).toBeDefined()
-      expect(ledgerCommands).toBeDefined()
+      expect(typeof updatedInvoice).toBe('object')
+      expect(ledgerCommands).toMatchObject({ length: 0 })
       expect(ledgerCommands?.length).toBe(0)
     })
   })
@@ -499,7 +499,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       expect(updatedSubscription.status).toBe(
         SubscriptionStatus.PastDue
       )
-      expect(ledgerCommands).toBeDefined()
+      expect(ledgerCommands).toMatchObject({ length: 0 })
       expect(ledgerCommands?.length).toBe(0)
     })
   })
@@ -575,7 +575,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         InvoiceStatus.AwaitingPaymentConfirmation
       )
       expect(updatedPayment.status).toBe(PaymentStatus.Processing)
-      expect(ledgerCommands).toBeDefined()
+      expect(ledgerCommands).toMatchObject({ length: 0 })
       expect(ledgerCommands?.length).toBe(0)
     })
   })
@@ -662,7 +662,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       expect(updatedInvoice.status).toBe(InvoiceStatus.Open)
       expect(updatedPayment.status).toBe(PaymentStatus.Processing)
-      expect(ledgerCommands).toBeDefined()
+      expect(ledgerCommands).toMatchObject({ length: 0 })
       expect(ledgerCommands?.length).toBe(0)
     })
   })
@@ -907,7 +907,8 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     expect(canceledSubscription.status).toBe(
       SubscriptionStatus.Canceled
     )
-    expect(canceledSubscription.canceledAt).not.toBeNull()
+    expect(typeof canceledSubscription.canceledAt).toBe('number')
+    expect(canceledSubscription.canceledAt).toBeGreaterThan(0)
 
     // Verify no retry was scheduled (cancellation should abort scheduled runs)
     const scheduledBillingRuns = await adminTransaction(

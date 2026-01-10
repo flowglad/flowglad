@@ -1086,8 +1086,9 @@ describe('Scoped FlowgladServer variant', () => {
 
       // expects:
       const session = await server.getSession()
-      expect(session).toBeTruthy()
-      expect(session!.externalId).toBe('org_123')
+      expect(session).toEqual(
+        expect.objectContaining({ externalId: 'org_123' })
+      )
     })
 
     it('skips all auth logic when scoped', async () => {
@@ -1104,8 +1105,9 @@ describe('Scoped FlowgladServer variant', () => {
 
       // expects: should not throw, even though no auth is configured
       const session = await server.getSession()
-      expect(session).toBeTruthy()
-      expect(session!.externalId).toBe('user_456')
+      expect(session).toEqual(
+        expect.objectContaining({ externalId: 'user_456' })
+      )
     })
 
     it('throws error if customerExternalId is empty string', async () => {
@@ -1179,8 +1181,9 @@ describe('Scoped FlowgladServer variant', () => {
 
       // expects:
       const session = await server.getSession()
-      expect(session).toBeTruthy()
-      expect(session!.externalId).toBe('org_789')
+      expect(session).toEqual(
+        expect.objectContaining({ externalId: 'org_789' })
+      )
     })
 
     it('getRequestingCustomerId works with scoped ID', async () => {
@@ -1217,7 +1220,12 @@ describe('Scoped FlowgladServer variant', () => {
       }
 
       // TypeScript should enforce this at compile time
-      expect(scopedParams).toBeTruthy()
+      expect(scopedParams).toEqual(
+        expect.objectContaining({
+          apiKey: 'test',
+          customerExternalId: 'org_123',
+        })
+      )
       expect('customerExternalId' in scopedParams).toBe(true)
       expect('nextAuth' in scopedParams).toBe(false)
       expect('supabaseAuth' in scopedParams).toBe(false)

@@ -239,7 +239,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       )
 
       // Verify the result is defined
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
 
       // Query for the new subscription
       const allSubscriptions = await adminTransaction(
@@ -273,7 +273,9 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(
           canceledFreeSubscription.replacedBySubscriptionId
         ).toBe(newSubscriptionId)
-        expect(canceledFreeSubscription.canceledAt).toBeDefined()
+        expect(typeof canceledFreeSubscription.canceledAt).toBe(
+          'number'
+        )
 
         // Check that the new paid subscription was created correctly
         const newPaidSubscription = await selectSubscriptionById(
@@ -337,7 +339,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         }
       )
-      expect(newSubscriptionId).toBeDefined()
+      expect(typeof newSubscriptionId).toBe('string')
 
       // Verify customer data preservation
       await adminTransaction(async ({ transaction }) => {
@@ -351,7 +353,12 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(newSubscription.organizationId).toBe(organization.id)
 
         // Payment method should be associated
-        expect(newSubscription.defaultPaymentMethodId).toBeDefined()
+        expect(typeof newSubscription.defaultPaymentMethodId).toBe(
+          'string'
+        )
+        expect(
+          newSubscription.defaultPaymentMethodId!.length
+        ).toBeGreaterThan(0)
 
         // The new subscription should be properly configured
         expect(newSubscription.status).toBe(SubscriptionStatus.Active)
@@ -404,7 +411,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         }
       )
-      expect(newSubscriptionId).toBeDefined()
+      expect(typeof newSubscriptionId).toBe('string')
 
       await adminTransaction(async ({ transaction }) => {
         const newSubscription = await selectSubscriptionById(
@@ -485,7 +492,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         }
       )
-      expect(newSubscriptionId).toBeDefined()
+      expect(typeof newSubscriptionId).toBe('string')
 
       await adminTransaction(async ({ transaction }) => {
         // The second free subscription should be canceled with upgrade reason
@@ -548,7 +555,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         }
       )
-      expect(firstPaidSubscriptionId).toBeDefined()
+      expect(typeof firstPaidSubscriptionId).toBe('string')
 
       // Create a new checkout session for another paid product
       const secondCheckoutSession = await setupCheckoutSession({
@@ -791,7 +798,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         }
       )
-      expect(firstSubscriptionId).toBeDefined()
+      expect(typeof firstSubscriptionId).toBe('string')
 
       // Process the same setup intent again (idempotency check)
       const secondResult = await adminTransaction(
@@ -888,7 +895,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         }
       )
-      expect(firstSubscriptionId).toBeDefined()
+      expect(typeof firstSubscriptionId).toBe('string')
 
       // Attempt to process the second setup intent (should fail)
       await expect(
@@ -964,7 +971,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         }
       )
-      expect(newSubscriptionId).toBeDefined()
+      expect(typeof newSubscriptionId).toBe('string')
 
       await adminTransaction(async ({ transaction }) => {
         // Free trial subscription should be canceled
@@ -1034,7 +1041,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         }
       )
-      expect(newSubscriptionId).toBeDefined()
+      expect(typeof newSubscriptionId).toBe('string')
 
       await adminTransaction(async ({ transaction }) => {
         // Free subscription should remain canceled with original reason
@@ -1105,7 +1112,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         }
       )
-      expect(newSubscriptionId).toBeDefined()
+      expect(typeof newSubscriptionId).toBe('string')
 
       await adminTransaction(async ({ transaction }) => {
         // New subscription should have proper billing period dates
@@ -1113,10 +1120,15 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           newSubscriptionId!,
           transaction
         )
+        expect(typeof newSubscription.currentBillingPeriodStart).toBe(
+          'number'
+        )
+        expect(typeof newSubscription.currentBillingPeriodEnd).toBe(
+          'number'
+        )
         expect(
-          newSubscription.currentBillingPeriodStart
-        ).toBeDefined()
-        expect(newSubscription.currentBillingPeriodEnd).toBeDefined()
+          newSubscription.currentBillingPeriodEnd
+        ).toBeGreaterThan(Date.now())
 
         // Billing period end should be in the future
         expect(
@@ -1172,7 +1184,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         }
       )
-      expect(newSubscriptionId).toBeDefined()
+      expect(typeof newSubscriptionId).toBe('string')
 
       await adminTransaction(async ({ transaction }) => {
         const newSubscription = await selectSubscriptionById(
@@ -1180,7 +1192,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           transaction
         )
         // Verify the new subscription was created
-        expect(newSubscription).toBeDefined()
+        expect(typeof newSubscription).toBe('object')
         expect(newSubscription.customerId).toBe(customer.id)
         expect(newSubscription.isFreePlan).toBe(false)
 
@@ -1220,7 +1232,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         }
       )
-      expect(newSubscriptionId).toBeDefined()
+      expect(typeof newSubscriptionId).toBe('string')
 
       await adminTransaction(async ({ transaction }) => {
         // Query active subscriptions using the helper function
@@ -1272,7 +1284,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         }
       )
-      expect(paidSubscriptionId).toBeDefined()
+      expect(typeof paidSubscriptionId).toBe('string')
 
       await adminTransaction(async ({ transaction }) => {
         // Query current subscription - should return the latest in the chain
@@ -1283,7 +1295,9 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
 
         // Should return the paid subscription, not the canceled free one
-        expect(currentSubscription).toBeDefined()
+        expect(currentSubscription).toMatchObject({
+          id: paidSubscriptionId,
+        })
         expect(currentSubscription!.id).toBe(paidSubscriptionId)
         expect(currentSubscription!.isFreePlan).toBe(false)
 
@@ -1556,8 +1570,8 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
         const newSubscription = subscriptions[0]
         // Should have trial end date set
-        expect(newSubscription.trialEnd).toBeDefined()
-        expect(newSubscription.trialEnd).toBeDefined()
+        expect(typeof newSubscription.trialEnd).toBe('number')
+        expect(typeof newSubscription.trialEnd).toBe('number')
 
         // Trial should be approximately 14 days from now
         const daysDiff = Math.round(
@@ -1954,7 +1968,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
 
         // Check eventsToInsert structure
-        expect(result.eventsToInsert).toBeDefined()
+        expect(result.eventsToInsert).toMatchObject({})
         expect(Array.isArray(result.eventsToInsert)).toBe(true)
 
         const events = result.eventsToInsert ?? []

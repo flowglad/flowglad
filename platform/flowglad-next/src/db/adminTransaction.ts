@@ -1,6 +1,12 @@
+import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
 import type { AdminTransactionParams } from '@/db/types'
+import {
+  type CacheDependencyKey,
+  invalidateDependencies,
+} from '@/utils/cache'
 import { isNil } from '@/utils/core'
+import { traced } from '@/utils/tracing'
 import db from './client'
 import { processLedgerCommand } from './ledgerManager/ledgerManager'
 import type { Event } from './schema/events'
@@ -17,63 +23,33 @@ interface AdminTransactionOptions {
 // only works in the context of a nextjs sessionful runtime.
 
 /**
- * Original adminTransaction. Consider deprecating or refactoring to use comprehensiveAdminTransaction.
+ * Executes a function within an admin database transaction.
+ * Delegates to comprehensiveAdminTransaction by wrapping the result.
  */
 export async function adminTransaction<T>(
   fn: (params: AdminTransactionParams) => Promise<T>,
   options: AdminTransactionOptions = {}
-) {
-  const { livemode = true } = options
-  return db.transaction(async (transaction) => {
-    /**
-     * Reseting the role and request.jwt.claims here,
-     * becuase the auth state seems to be returned to the client "dirty",
-     * with the role from the previous session still applied.
-     */
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', NULL, true);`
-    )
-
-    const resp = await fn({
-      transaction, // Cast to DrizzleTransaction
-      userId: 'ADMIN',
-      livemode: isNil(livemode) ? true : livemode,
-    })
-    await transaction.execute(sql`RESET ROLE;`)
-    return resp
-  })
+): Promise<T> {
+  return comprehensiveAdminTransaction(async (params) => {
+    const result = await fn(params)
+    return { result }
+  }, options)
 }
 
 /**
- * Executes a function within an admin database transaction and automatically processes
- * events and ledger commands from the transaction output.
- *
- * @param fn - Function that receives admin transaction parameters and returns a TransactionOutput
- *   containing the result, optional events to insert, and optional ledger commands to process
- * @param options - Transaction options including livemode flag
- * @returns Promise resolving to the result value from the transaction function
- *
- * @example
- * ```ts
- * const result = await comprehensiveAdminTransaction(async (params) => {
- *   // ... perform operations ...
- *   return {
- *     result: someValue,
- *     eventsToInsert: [event1, event2],
- *     ledgerCommand: { type: 'credit', amount: 100 }
- *   }
- * })
- * ```
+ * Core comprehensive admin transaction logic without tracing.
+ * Returns the full TransactionOutput so the traced wrapper can extract metrics.
  */
-export async function comprehensiveAdminTransaction<T>(
+const executeComprehensiveAdminTransaction = async <T>(
   fn: (
     params: AdminTransactionParams
   ) => Promise<TransactionOutput<T>>,
-  options: AdminTransactionOptions = {}
-): Promise<T> {
-  const { livemode = true } = options
+  effectiveLivemode: boolean
+): Promise<TransactionOutput<T>> => {
+  // Collect cache invalidations to process after commit
+  let cacheInvalidations: CacheDependencyKey[] = []
 
-  return db.transaction(async (transaction) => {
+  const output = await db.transaction(async (transaction) => {
     // Set up transaction context (e.g., clearing previous JWT claims)
     await transaction.execute(
       sql`SELECT set_config('request.jwt.claims', NULL, true);`
@@ -82,8 +58,8 @@ export async function comprehensiveAdminTransaction<T>(
 
     const paramsForFn: AdminTransactionParams = {
       transaction,
-      userId: 'ADMIN', // Or appropriate admin identifier
-      livemode: isNil(livemode) ? true : livemode,
+      userId: 'ADMIN',
+      livemode: effectiveLivemode,
     }
 
     const output = await fn(paramsForFn)
@@ -119,24 +95,94 @@ export async function comprehensiveAdminTransaction<T>(
       }
     }
 
-    // No RESET ROLE typically needed here as admin role wasn't set via session context
+    // Collect cache invalidations (don't process yet - wait for commit)
+    if (
+      output.cacheInvalidations &&
+      output.cacheInvalidations.length > 0
+    ) {
+      cacheInvalidations = output.cacheInvalidations
+    }
 
-    return output.result
+    // Return the full output so tracing can extract metrics
+    return output
   })
+
+  // Transaction committed successfully - now invalidate caches
+  // Fire-and-forget; errors are logged but don't fail the request
+  if (cacheInvalidations.length > 0) {
+    // Deduplicate cache invalidation keys to reduce unnecessary Redis operations
+    const uniqueInvalidations = [...new Set(cacheInvalidations)]
+    void invalidateDependencies(uniqueInvalidations)
+  }
+
+  return output
 }
 
 /**
- * Original eventfulAdminTransaction.
- * Consider deprecating or refactoring to use comprehensiveAdminTransaction.
- * If kept, it could be a wrapper that adapts the old fn signature to TransactionOutput.
+ * Executes a function within an admin database transaction and automatically processes
+ * events and ledger commands from the transaction output.
+ *
+ * @param fn - Function that receives admin transaction parameters and returns a TransactionOutput
+ *   containing the result, optional events to insert, and optional ledger commands to process
+ * @param options - Transaction options including livemode flag
+ * @returns Promise resolving to the result value from the transaction function
+ *
+ * @example
+ * ```ts
+ * const result = await comprehensiveAdminTransaction(async (params) => {
+ *   // ... perform operations ...
+ *   return {
+ *     result: someValue,
+ *     eventsToInsert: [event1, event2],
+ *     ledgerCommand: { type: 'credit', amount: 100 }
+ *   }
+ * })
+ * ```
+ */
+export async function comprehensiveAdminTransaction<T>(
+  fn: (
+    params: AdminTransactionParams
+  ) => Promise<TransactionOutput<T>>,
+  options: AdminTransactionOptions = {}
+): Promise<T> {
+  const { livemode = true } = options
+  const effectiveLivemode = isNil(livemode) ? true : livemode
+
+  const output = await traced(
+    {
+      options: {
+        spanName: 'db.comprehensiveAdminTransaction',
+        tracerName: 'db.transaction',
+        kind: SpanKind.CLIENT,
+        attributes: {
+          'db.transaction.type': 'admin',
+          'db.user_id': 'ADMIN',
+          'db.livemode': effectiveLivemode,
+        },
+      },
+      extractResultAttributes: (output: TransactionOutput<T>) => ({
+        'db.events_count': output.eventsToInsert?.length ?? 0,
+        'db.ledger_commands_count': output.ledgerCommand
+          ? 1
+          : (output.ledgerCommands?.length ?? 0),
+      }),
+    },
+    () => executeComprehensiveAdminTransaction(fn, effectiveLivemode)
+  )()
+
+  return output.result
+}
+
+/**
+ * Wrapper around comprehensiveAdminTransaction for functions that return
+ * a tuple of [result, events]. Adapts the old signature to TransactionOutput.
  */
 export async function eventfulAdminTransaction<T>(
   fn: (
     params: AdminTransactionParams
   ) => Promise<[T, Event.Insert[]]>,
-  options: AdminTransactionOptions
-) {
-  // This is now a simple wrapper around comprehensiveAdminTransaction
+  options: AdminTransactionOptions = {}
+): Promise<T> {
   return comprehensiveAdminTransaction(async (params) => {
     const [result, eventInserts] = await fn(params)
     return {

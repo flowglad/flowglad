@@ -27,7 +27,9 @@ describe('productFeaturesRouteConfigs', () => {
     it('should map POST /product-features to productFeatures.create procedure', () => {
       const routeConfig = findRouteConfig('POST /product-features')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'productFeatures.create',
+      })
       expect(routeConfig!.procedure).toBe('productFeatures.create')
       expect(routeConfig!.pattern.test('product-features')).toBe(true)
 
@@ -45,7 +47,9 @@ describe('productFeaturesRouteConfigs', () => {
     it('should map PUT /product-features/:id to productFeatures.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /product-features/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'productFeatures.update',
+      })
       expect(routeConfig!.procedure).toBe('productFeatures.update')
       expect(
         routeConfig!.pattern.test('product-features/test-id')
@@ -68,7 +72,9 @@ describe('productFeaturesRouteConfigs', () => {
     it('should map GET /product-features/:id to productFeatures.get procedure', () => {
       const routeConfig = findRouteConfig('GET /product-features/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'productFeatures.get',
+      })
       expect(routeConfig!.procedure).toBe('productFeatures.get')
       expect(
         routeConfig!.pattern.test('product-features/test-id')
@@ -82,7 +88,9 @@ describe('productFeaturesRouteConfigs', () => {
     it('should map GET /product-features to productFeatures.list procedure', () => {
       const routeConfig = findRouteConfig('GET /product-features')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'productFeatures.list',
+      })
       expect(routeConfig!.procedure).toBe('productFeatures.list')
       expect(routeConfig!.pattern.test('product-features')).toBe(true)
 
@@ -96,7 +104,9 @@ describe('productFeaturesRouteConfigs', () => {
         'DELETE /product-features/:id'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'productFeatures.delete',
+      })
       expect(routeConfig!.procedure).toBe('productFeatures.delete')
       expect(
         routeConfig!.pattern.test('product-features/test-id')
@@ -165,7 +175,7 @@ describe('productFeaturesRouteConfigs', () => {
       const getMatches = getConfig!.pattern.exec(
         'product-features/test-id'
       )
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test Product Features update pattern extraction
@@ -175,7 +185,7 @@ describe('productFeaturesRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'product-features/test-id'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test Product Features delete pattern extraction
@@ -185,13 +195,13 @@ describe('productFeaturesRouteConfigs', () => {
       const deleteMatches = deleteConfig!.pattern.exec(
         'product-features/test-id'
       )
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test Product Features list pattern (no captures)
       const listConfig = findRouteConfig('GET /product-features')
       const listMatches = listConfig!.pattern.exec('product-features')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test Product Features create pattern (no captures)
@@ -199,7 +209,7 @@ describe('productFeaturesRouteConfigs', () => {
       const createMatches = createConfig!.pattern.exec(
         'product-features'
       )
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })

@@ -27,7 +27,9 @@ describe('paymentsRouteConfigs', () => {
     it('should map POST /payments to payments.create procedure', () => {
       const routeConfig = findRouteConfig('POST /payments')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'payments.create',
+      })
       expect(routeConfig!.procedure).toBe('payments.create')
       expect(routeConfig!.pattern.test('payments')).toBe(true)
 
@@ -40,7 +42,9 @@ describe('paymentsRouteConfigs', () => {
     it('should map PUT /payments/:id to payments.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /payments/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'payments.update',
+      })
       expect(routeConfig!.procedure).toBe('payments.update')
       expect(routeConfig!.pattern.test('payments/test-id')).toBe(true)
 
@@ -56,7 +60,7 @@ describe('paymentsRouteConfigs', () => {
     it('should map GET /payments/:id to payments.get procedure', () => {
       const routeConfig = findRouteConfig('GET /payments/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({ procedure: 'payments.get' })
       expect(routeConfig!.procedure).toBe('payments.get')
       expect(routeConfig!.pattern.test('payments/test-id')).toBe(true)
 
@@ -68,7 +72,9 @@ describe('paymentsRouteConfigs', () => {
     it('should map GET /payments to payments.list procedure', () => {
       const routeConfig = findRouteConfig('GET /payments')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'payments.list',
+      })
       expect(routeConfig!.procedure).toBe('payments.list')
       expect(routeConfig!.pattern.test('payments')).toBe(true)
 
@@ -80,7 +86,9 @@ describe('paymentsRouteConfigs', () => {
     it('should map DELETE /payments/:id to payments.delete procedure', () => {
       const routeConfig = findRouteConfig('DELETE /payments/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'payments.delete',
+      })
       expect(routeConfig!.procedure).toBe('payments.delete')
       expect(routeConfig!.pattern.test('payments/test-id')).toBe(true)
 
@@ -93,7 +101,9 @@ describe('paymentsRouteConfigs', () => {
       const routeConfig =
         refundPaymentRouteConfig['POST /payments/:id/refund']
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'payments.refund',
+      })
       expect(routeConfig!.procedure).toBe('payments.refund')
       expect(
         routeConfig!.pattern.test('payments/test-id/refund')
@@ -154,7 +164,7 @@ describe('paymentsRouteConfigs', () => {
       // Test Payments get pattern extraction
       const getConfig = findRouteConfig('GET /payments/:id')
       const getMatches = getConfig!.pattern.exec('payments/test-id')
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test Payments update pattern extraction
@@ -162,7 +172,7 @@ describe('paymentsRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'payments/test-id'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test Payments delete pattern extraction
@@ -170,19 +180,19 @@ describe('paymentsRouteConfigs', () => {
       const deleteMatches = deleteConfig!.pattern.exec(
         'payments/test-id'
       )
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test Payments list pattern (no captures)
       const listConfig = findRouteConfig('GET /payments')
       const listMatches = listConfig!.pattern.exec('payments')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test Payments create pattern (no captures)
       const createConfig = findRouteConfig('POST /payments')
       const createMatches = createConfig!.pattern.exec('payments')
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test Refund pattern extraction
@@ -191,7 +201,7 @@ describe('paymentsRouteConfigs', () => {
       const refundMatches = refundConfig!.pattern.exec(
         'payments/test-id/refund'
       )
-      expect(refundMatches).not.toBeNull()
+      expect(typeof refundMatches).toBe('object')
       expect(refundMatches![1]).toBe('test-id') // First capture group
     })
   })

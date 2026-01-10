@@ -1,4 +1,4 @@
-# This workflow runs the unit tests 
+# This workflow runs the unit tests
 # for flowglad-next in a sharded manner.
 # It runs the bun test command across 4 shards,
 # and then merges the reports together.
@@ -21,13 +21,32 @@ jobs:
         shardIndex: [1, 2, 3, 4]  # Individual shard identifier
         shardTotal: [4]           # Total number of shards
       fail-fast: false            # Don't stop other shards if one fails
+
+    # PostgreSQL service container - replaces docker-compose for reliability
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        # Health check ensures postgres is ready before steps run
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
+
     defaults:
       run:
         working-directory: platform/flowglad-next
     steps:
       # Standard setup steps for each shard
       - name: Checkout repository
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           # Use branch from input if provided, otherwise use current ref
           ref: ${{ github.event.inputs.branch || github.ref }}
@@ -36,27 +55,16 @@ jobs:
         with:
           node-version: '18'
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.2.14'
       - name: Install dependencies
         run: bun run install-packages --no-progress
-      # Docker setup for test dependencies (databases, etc.)
-      - name: Set up Docker Build
-        uses: docker/setup-buildx-action@dc7b9719a96d48369863986a06765841d7ea23f6 # v2
-      - name: Set up Docker Compose
-        uses: ndeloof/install-compose-action@v0.0.1
-      - name: Setup Docker for tests
-        run: |
-          set -euo pipefail
-          # Clean up any existing containers and volumes
-          docker-compose -f docker-compose.test.yml down --volumes || true
-          # Start test services in detached mode
-          docker-compose -f docker-compose.test.yml up --build -d
-          # Verify services are running
-          docker-compose -f docker-compose.test.yml ps
-      - name: Run test setup
-        run: bun run test:setup
+      # Run database migrations (service container is already healthy)
+      - name: Run database migrations
+        run: bun run migrations:push
+        env:
+          NODE_ENV: test
       - name: Create vitest reports directory
         run: mkdir -p .vitest-reports
       # Run tests for this specific shard
@@ -64,6 +72,8 @@ jobs:
       # Verbose output will show detailed test results in the CI logs
       - name: Run sharded tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
         run: bunx vitest run --reporter=verbose --reporter=blob --outputFile=.vitest-reports/blob-${{ matrix.shardIndex }}.json --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --no-silent
+        env:
+          NODE_ENV: test
       # Upload test results as artifacts for later merging
       - name: Upload blob report to GitHub Actions Artifacts
         if: ${{ !cancelled() }}
@@ -73,11 +83,7 @@ jobs:
           path: platform/flowglad-next/.vitest-reports/blob-${{ matrix.shardIndex }}.json
           include-hidden-files: true
           retention-days: 1  # Short retention since we merge immediately
-      # Clean up Docker containers after tests complete
-      - name: Run test teardown
-        if: always()  # Run even if tests fail
-        run: bun run test:teardown
-  
+
   # Merges the reports from the sharded tests into a single report.
   # This job runs after all shards complete and combines their results
   merge-reports:
@@ -90,7 +96,7 @@ jobs:
     steps:
       # Setup steps for merge job (similar to shard setup)
       - name: Checkout repository
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           ref: ${{ github.event.inputs.branch || github.ref }}
       - name: Setup Node.js
@@ -98,7 +104,7 @@ jobs:
         with:
           node-version: '18'
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.2.14'
       - name: Install dependencies
