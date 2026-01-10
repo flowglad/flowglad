@@ -110,10 +110,8 @@ export const adjustSubscription: SubRouteHandler<
     }
   }
   try {
-    const { priceIdOrSlug, options } = params.data
     const result = await flowgladServer.adjustSubscription(
-      priceIdOrSlug,
-      options
+      params.data
     )
     return {
       data: result,
