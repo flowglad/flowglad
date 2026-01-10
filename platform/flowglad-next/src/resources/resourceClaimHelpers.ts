@@ -798,21 +798,22 @@ export async function releaseAllResourceClaimsForSubscription(
   reason: string,
   transaction: DbTransaction
 ): Promise<{ releasedCount: number }> {
-  // Find all active claims for this subscription
-  const activeClaims = await selectActiveResourceClaims(
-    { subscriptionId },
-    transaction
-  )
-
-  // Release each claim
-  for (const claim of activeClaims) {
-    await releaseResourceClaim(
-      { id: claim.id, releaseReason: reason },
-      transaction
+  // Batch update all active claims for this subscription in a single query
+  const result = await transaction
+    .update(resourceClaims)
+    .set({
+      releasedAt: Date.now(),
+      releaseReason: reason,
+    })
+    .where(
+      and(
+        eq(resourceClaims.subscriptionId, subscriptionId),
+        isNull(resourceClaims.releasedAt)
+      )
     )
-  }
+    .returning({ id: resourceClaims.id })
 
-  return { releasedCount: activeClaims.length }
+  return { releasedCount: result.length }
 }
 
 /**
@@ -829,17 +830,23 @@ export async function releaseAllResourceClaimsForSubscriptionItemFeature(
   reason: string,
   transaction: DbTransaction
 ): Promise<{ releasedCount: number }> {
-  const activeClaims = await selectActiveResourceClaims(
-    { subscriptionItemFeatureId },
-    transaction
-  )
-
-  for (const claim of activeClaims) {
-    await releaseResourceClaim(
-      { id: claim.id, releaseReason: reason },
-      transaction
+  // Batch update all active claims for this subscription item feature in a single query
+  const result = await transaction
+    .update(resourceClaims)
+    .set({
+      releasedAt: Date.now(),
+      releaseReason: reason,
+    })
+    .where(
+      and(
+        eq(
+          resourceClaims.subscriptionItemFeatureId,
+          subscriptionItemFeatureId
+        ),
+        isNull(resourceClaims.releasedAt)
+      )
     )
-  }
+    .returning({ id: resourceClaims.id })
 
-  return { releasedCount: activeClaims.length }
+  return { releasedCount: result.length }
 }
