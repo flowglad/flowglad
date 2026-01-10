@@ -1,12 +1,12 @@
+import {
+  type FlowgladBetterAuthPluginOptions,
+  flowgladPlugin,
+} from '@flowglad/nextjs/better-auth'
 import { betterAuth } from 'better-auth'
-import { organization } from 'better-auth/plugins'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { organization } from 'better-auth/plugins'
 import { db } from '@/server/db/client'
 import { betterAuthSchema } from '@/server/db/schema'
-import {
-  flowgladPlugin,
-  type FlowgladBetterAuthPluginOptions,
-} from '@flowglad/nextjs/better-auth'
 
 const betterAuthSecret = process.env.BETTER_AUTH_SECRET
 if (!betterAuthSecret) {

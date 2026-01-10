@@ -15,7 +15,9 @@ import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   selectPriceById,
   selectPrices,
+  selectResourceFeaturesForPrices,
 } from '@/db/tableMethods/priceMethods'
+import { countActiveResourceClaimsBatch } from '@/db/tableMethods/resourceClaimMethods'
 import {
   bulkCreateOrUpdateSubscriptionItems,
   expireSubscriptionItems,
@@ -315,6 +317,12 @@ export interface AdjustSubscriptionResult {
    * An upgrade means the new plan total is greater than the old plan total.
    */
   isUpgrade: boolean
+  /**
+   * The trigger.dev run ID for the billing run task, if one was triggered.
+   * Only present when an immediate adjustment with proration triggers a billing run.
+   * The caller should wait for this run to complete before considering the adjustment done.
+   */
+  pendingBillingRunId?: string
 }
 
 /**
@@ -359,7 +367,6 @@ export const adjustSubscription = async (
     'prorateCurrentBillingPeriod' in adjustment
       ? adjustment.prorateCurrentBillingPeriod
       : true
-
   const subscription = await selectSubscriptionById(id, transaction)
   if (isSubscriptionInTerminalState(subscription.status)) {
     throw new Error('Subscription is in terminal state')
@@ -377,6 +384,11 @@ export const adjustSubscription = async (
       'Cannot adjust doNotCharge subscriptions. Cancel and create a new subscription instead.'
     )
   }
+  if (subscription.isFreePlan) {
+    throw new Error(
+      'Cannot adjust free plan subscriptions. Use createSubscription to upgrade from a free plan instead.'
+    )
+  }
 
   const currentBillingPeriodForSubscription =
     await selectCurrentBillingPeriodForSubscription(
@@ -390,11 +402,11 @@ export const adjustSubscription = async (
   // Get the subscription's pricing model for resolving priceSlug
   const pricingModelId = subscription.pricingModelId
 
-  // Batch fetch prices for better performance
-  // Collect all slugs and priceIds that need resolution
+  // Collect all slugs and price IDs that need resolution
   const slugsToResolve = newSubscriptionItems
     .filter(hasSlug)
     .map((item) => item.priceSlug)
+
   const priceIdsToResolve = newSubscriptionItems
     .filter((item) => isTerseSubscriptionItem(item) && !hasSlug(item))
     .map((item) => (item as TerseSubscriptionItem).priceId)
@@ -418,11 +430,20 @@ export const adjustSubscription = async (
     }
   }
 
-  // Batch fetch prices by id
+  // Batch fetch prices by ID (includes slugs not found above - they may be UUIDs)
+  const slugsNotFoundAsSlug = slugsToResolve.filter(
+    (s) => !pricesBySlug.has(s)
+  )
+  const allIdsToFetch = [...priceIdsToResolve, ...slugsNotFoundAsSlug]
+
   const pricesById = new Map<string, Price.Record>()
-  if (priceIdsToResolve.length > 0) {
+  if (allIdsToFetch.length > 0) {
     const idPrices = await selectPrices(
-      { id: priceIdsToResolve },
+      {
+        id: allIdsToFetch,
+        pricingModelId,
+        active: true,
+      },
       transaction
     )
     for (const price of idPrices) {
@@ -430,16 +451,19 @@ export const adjustSubscription = async (
     }
   }
 
-  // Resolve priceSlug to priceId and expand terse items to full subscription items
+  // Expand terse items to full subscription items
   const resolvedSubscriptionItems: SubscriptionItem.ClientInsert[] =
     []
   for (const item of newSubscriptionItems) {
-    // Check if item has priceSlug that needs resolution
     if (hasSlug(item)) {
-      const resolvedPrice = pricesBySlug.get(item.priceSlug)
+      // Try slug first, then fall back to ID lookup
+      let resolvedPrice =
+        pricesBySlug.get(item.priceSlug) ??
+        pricesById.get(item.priceSlug)
+
       if (!resolvedPrice) {
         throw new Error(
-          `Price with slug "${item.priceSlug}" not found in the subscription's pricing model`
+          `Price "${item.priceSlug}" not found. Ensure the price exists, is active, and belongs to the subscription's pricing model.`
         )
       }
 
@@ -467,7 +491,9 @@ export const adjustSubscription = async (
       // Terse item with priceId: expand to full subscription item
       const price = pricesById.get(item.priceId)
       if (!price) {
-        throw new Error(`Price with id ${item.priceId} not found`)
+        throw new Error(
+          `Price "${item.priceId}" not found. Ensure the price exists, is active, and belongs to the subscription's pricing model.`
+        )
       }
       resolvedSubscriptionItems.push({
         name: price.name,
@@ -540,6 +566,81 @@ export const adjustSubscription = async (
     0
   )
 
+  // Validate resource capacity for downgrades
+  // Batch fetch all resource features and claim counts to avoid N+1 queries
+  const itemPriceIds = nonManualSubscriptionItems
+    .map((item) => item.priceId)
+    .filter((id): id is string => id != null)
+
+  if (itemPriceIds.length > 0) {
+    // Batch fetch resource features for all prices
+    const priceToResourceFeatures =
+      await selectResourceFeaturesForPrices(itemPriceIds, transaction)
+
+    // Collect all unique resourceIds across all features
+    const allResourceIds = new Set<string>()
+    for (const features of priceToResourceFeatures.values()) {
+      for (const feature of features) {
+        allResourceIds.add(feature.resourceId)
+      }
+    }
+
+    // Batch fetch claim counts for all resources
+    const resourceClaimCounts =
+      allResourceIds.size > 0
+        ? await countActiveResourceClaimsBatch(
+            {
+              subscriptionId: subscription.id,
+              resourceIds: [...allResourceIds],
+            },
+            transaction
+          )
+        : new Map<string, number>()
+
+    // Aggregate capacity by resourceId across all subscription items
+    // Multiple items may provide capacity for the same resource
+    const resourceCapacityMap = new Map<
+      string,
+      { totalCapacity: number; featureSlug: string }
+    >()
+    for (const newItem of nonManualSubscriptionItems) {
+      if (!newItem.priceId) continue
+
+      const resourceFeatures =
+        priceToResourceFeatures.get(newItem.priceId) ?? []
+
+      for (const feature of resourceFeatures) {
+        // Calculate capacity contribution: feature.amount (per unit) * item quantity
+        const capacityContribution = feature.amount * newItem.quantity
+        const existing = resourceCapacityMap.get(feature.resourceId)
+        if (existing) {
+          existing.totalCapacity += capacityContribution
+        } else {
+          resourceCapacityMap.set(feature.resourceId, {
+            totalCapacity: capacityContribution,
+            featureSlug: feature.slug,
+          })
+        }
+      }
+    }
+
+    // Validate aggregated capacity against active claims
+    for (const [
+      resourceId,
+      { totalCapacity, featureSlug },
+    ] of resourceCapacityMap) {
+      const activeClaims = resourceClaimCounts.get(resourceId) ?? 0
+
+      if (activeClaims > totalCapacity) {
+        throw new Error(
+          `Cannot reduce ${featureSlug} capacity to ${totalCapacity}. ` +
+            `${activeClaims} resources are currently claimed. ` +
+            `Release ${activeClaims - totalCapacity} claims before downgrading.`
+        )
+      }
+    }
+  }
+
   const isUpgrade = newPlanTotalPrice > oldPlanTotalPrice
 
   // Resolve 'auto' timing to actual timing based on upgrade vs downgrade
@@ -584,6 +685,9 @@ export const adjustSubscription = async (
 
   // Create proration adjustments when there's a net charge AND proration is enabled
   const prorationAdjustments: BillingPeriodItem.Insert[] = []
+
+  // Track pending billing run ID for immediate adjustments with proration
+  let pendingBillingRunId: string | undefined
 
   if (netChargeAmount > 0 && shouldProrate) {
     // Format description similar to createSubscription pattern: single-line with key info
@@ -644,14 +748,22 @@ export const adjustSubscription = async (
     // Execute billing run immediately after creation
     // executeBillingRun uses its own transactions internally
     // handleSubscriptionItemAdjustment will handle creating/updating subscription items in processOutcomeForBillingRun
-    await attemptBillingRunTask.trigger({
+    // Prepare items with required fields (livemode) before passing to handleSubscriptionItemAdjustment
+    const preparedItemsForBillingRun = nonManualSubscriptionItems.map(
+      (item) => ({
+        ...item,
+        livemode: subscription.livemode,
+      })
+    )
+    const billingRunHandle = await attemptBillingRunTask.trigger({
       billingRun,
       adjustmentParams: {
-        newSubscriptionItems:
-          nonManualSubscriptionItems as SubscriptionItem.Record[],
+        newSubscriptionItems: preparedItemsForBillingRun,
         adjustmentDate,
       },
     })
+    // Store the run ID so the caller can wait for the billing run to complete
+    pendingBillingRunId = billingRunHandle.id
   } else {
     // Either:
     // - Zero-amount adjustment (downgrade with no refund)
@@ -759,5 +871,6 @@ export const adjustSubscription = async (
     subscriptionItems: currentSubscriptionItems,
     resolvedTiming,
     isUpgrade,
+    pendingBillingRunId,
   }
 }

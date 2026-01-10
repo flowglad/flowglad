@@ -25,7 +25,9 @@ describe('pricingModelsRouteConfigs', () => {
     it('should map POST /pricing-models to pricingModels.create procedure', () => {
       const routeConfig = findRouteConfig('POST /pricing-models')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'pricingModels.create',
+      })
       expect(routeConfig!.procedure).toBe('pricingModels.create')
       expect(routeConfig!.pattern.test('pricing-models')).toBe(true)
 
@@ -43,7 +45,9 @@ describe('pricingModelsRouteConfigs', () => {
     it('should map PUT /pricing-models/:id to pricingModels.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /pricing-models/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'pricingModels.update',
+      })
       expect(routeConfig!.procedure).toBe('pricingModels.update')
       expect(
         routeConfig!.pattern.test('pricing-models/test-id')
@@ -66,7 +70,9 @@ describe('pricingModelsRouteConfigs', () => {
     it('should map GET /pricing-models/:id to pricingModels.get procedure', () => {
       const routeConfig = findRouteConfig('GET /pricing-models/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'pricingModels.get',
+      })
       expect(routeConfig!.procedure).toBe('pricingModels.get')
       expect(
         routeConfig!.pattern.test('pricing-models/test-id')
@@ -80,7 +86,9 @@ describe('pricingModelsRouteConfigs', () => {
     it('should map GET /pricing-models to pricingModels.list procedure', () => {
       const routeConfig = findRouteConfig('GET /pricing-models')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'pricingModels.list',
+      })
       expect(routeConfig!.procedure).toBe('pricingModels.list')
       expect(routeConfig!.pattern.test('pricing-models')).toBe(true)
 
@@ -94,7 +102,9 @@ describe('pricingModelsRouteConfigs', () => {
         'DELETE /pricing-models/:id'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'pricingModels.delete',
+      })
       expect(routeConfig!.procedure).toBe('pricingModels.delete')
       expect(
         routeConfig!.pattern.test('pricing-models/test-id')
@@ -113,7 +123,9 @@ describe('pricingModelsRouteConfigs', () => {
           'GET /pricing-models/default'
         ]
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'pricingModels.getDefault',
+      })
       expect(routeConfig!.procedure).toBe('pricingModels.getDefault')
       expect(
         routeConfig!.pattern.test('pricing-models/default')
@@ -206,7 +218,7 @@ describe('pricingModelsRouteConfigs', () => {
       const getMatches = getConfig!.pattern.exec(
         'pricing-models/test-id'
       )
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test Pricing Models update pattern extraction
@@ -214,7 +226,7 @@ describe('pricingModelsRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'pricing-models/test-id'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test Pricing Models delete pattern extraction
@@ -224,20 +236,20 @@ describe('pricingModelsRouteConfigs', () => {
       const deleteMatches = deleteConfig!.pattern.exec(
         'pricing-models/test-id'
       )
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test Pricing Models list pattern (no captures)
       const listConfig = findRouteConfig('GET /pricing-models')
       const listMatches = listConfig!.pattern.exec('pricing-models')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test Pricing Models create pattern (no captures)
       const createConfig = findRouteConfig('POST /pricing-models')
       const createMatches =
         createConfig!.pattern.exec('pricing-models')
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test default pricing models pattern (no captures - this reveals the bug)
@@ -248,7 +260,7 @@ describe('pricingModelsRouteConfigs', () => {
       const defaultMatches = defaultConfig!.pattern.exec(
         'pricing-models/default'
       )
-      expect(defaultMatches).not.toBeNull()
+      expect(defaultMatches).toMatchObject({ length: 1 })
       expect(defaultMatches!.length).toBe(1) // Only the full match, no capture groups - this is the bug!
     })
   })

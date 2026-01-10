@@ -25,7 +25,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
     it('should map POST /invoice-line-items to invoiceLineItems.create procedure', () => {
       const routeConfig = findRouteConfig('POST /invoice-line-items')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'invoiceLineItems.create',
+      })
       expect(routeConfig!.procedure).toBe('invoiceLineItems.create')
       expect(routeConfig!.pattern.test('invoice-line-items')).toBe(
         true
@@ -44,7 +46,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
         'PUT /invoice-line-items/:id'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'invoiceLineItems.update',
+      })
       expect(routeConfig!.procedure).toBe('invoiceLineItems.update')
       expect(
         routeConfig!.pattern.test('invoice-line-items/test-id')
@@ -64,7 +68,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
         'GET /invoice-line-items/:id'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'invoiceLineItems.get',
+      })
       expect(routeConfig!.procedure).toBe('invoiceLineItems.get')
       expect(
         routeConfig!.pattern.test('invoice-line-items/test-id')
@@ -78,7 +84,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
     it('should map GET /invoice-line-items to invoiceLineItems.list procedure', () => {
       const routeConfig = findRouteConfig('GET /invoice-line-items')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'invoiceLineItems.list',
+      })
       expect(routeConfig!.procedure).toBe('invoiceLineItems.list')
       expect(routeConfig!.pattern.test('invoice-line-items')).toBe(
         true
@@ -94,7 +102,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
         'DELETE /invoice-line-items/:id'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'invoiceLineItems.delete',
+      })
       expect(routeConfig!.procedure).toBe('invoiceLineItems.delete')
       expect(
         routeConfig!.pattern.test('invoice-line-items/test-id')
@@ -167,7 +177,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
       const getMatches = getConfig!.pattern.exec(
         'invoice-line-items/test-id'
       )
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test invoice line item update pattern extraction
@@ -177,7 +187,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'invoice-line-items/test-id'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test invoice line item delete pattern extraction
@@ -187,7 +197,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
       const deleteMatches = deleteConfig!.pattern.exec(
         'invoice-line-items/test-id'
       )
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test invoice line item list pattern (no captures)
@@ -195,7 +205,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
       const listMatches = listConfig!.pattern.exec(
         'invoice-line-items'
       )
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test invoice line item create pattern (no captures)
@@ -203,7 +213,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
       const createMatches = createConfig!.pattern.exec(
         'invoice-line-items'
       )
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })

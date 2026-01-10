@@ -2,7 +2,7 @@
 import type { LucideIcon } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import {
   ChevronDown,
@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/sidebar'
 import { SIDEBAR_BANNER_SLIDES } from '@/config/sidebarBannerConfig'
 import { useAuthContext } from '@/contexts/authContext'
+import { useClickOutside } from '@/hooks/use-click-outside'
 import { cn } from '@/lib/utils'
 import { BusinessOnboardingStatus } from '@/types'
 import { signOut, useSession } from '@/utils/authClient'
@@ -91,6 +92,11 @@ export const SideNavigation = () => {
 
   const [isLogoHovered, setIsLogoHovered] = useState(false)
   const [showMore, setShowMore] = useState(false)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close the "More" menu when clicking outside
+  const handleCloseMore = useCallback(() => setShowMore(false), [])
+  useClickOutside(moreMenuRef, handleCloseMore, showMore)
 
   const logoSize = 24
   const orgLogoSize = 32
@@ -193,12 +199,8 @@ export const SideNavigation = () => {
     <>
       <SidebarHeader
         className={cn(
-          'w-full flex flex-row items-center justify-start bg-sidebar transition-all duration-300 py-2',
-          isCollapsed
-            ? organization?.logoURL
-              ? 'px-[3px]'
-              : 'px-[5px]'
-            : 'px-1'
+          'w-full flex flex-row items-center justify-start bg-sidebar transition-all duration-300 py-8',
+          isCollapsed ? 'px-2.5' : 'px-2'
         )}
       >
         <TooltipProvider delayDuration={0}>
@@ -261,7 +263,7 @@ export const SideNavigation = () => {
         </TooltipProvider>
       </SidebarHeader>
 
-      <SidebarContent className="pt-3 bg-sidebar">
+      <SidebarContent className="bg-sidebar">
         <div className="px-0 bg-sidebar">
           {/* Finish Setup and Primary navigation items - dimmed when showMore is true */}
           <div
@@ -279,26 +281,28 @@ export const SideNavigation = () => {
             <NavStandalone items={primaryItems} />
           </div>
 
-          {/* More/Less toggle button */}
-          <SidebarGroup>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setShowMore(!showMore)}
-                  tooltip={showMore ? 'Less' : 'More'}
-                  data-testid="more-less-toggle"
-                >
-                  {showMore ? <ChevronUp /> : <ChevronDown />}
-                  <span>{showMore ? 'Less' : 'More'}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
+          {/* More/Less toggle button and secondary items - wrapped for click-outside detection */}
+          <div ref={moreMenuRef}>
+            <SidebarGroup>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setShowMore(!showMore)}
+                    tooltip={showMore ? 'Less' : 'More'}
+                    data-testid="more-less-toggle"
+                  >
+                    {showMore ? <ChevronUp /> : <ChevronDown />}
+                    <span>{showMore ? 'Less' : 'More'}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroup>
 
-          {/* Secondary navigation items - visible when showMore is true */}
-          {showMore && (
-            <NavStandalone items={secondaryItems} indented />
-          )}
+            {/* Secondary navigation items - visible when showMore is true */}
+            {showMore && (
+              <NavStandalone items={secondaryItems} indented />
+            )}
+          </div>
         </div>
         <div className="flex-1" />
       </SidebarContent>
@@ -342,9 +346,9 @@ export const SideNavigation = () => {
                             focusedMembership.isPending
                           }
                           className={cn(
-                            'flex w-full items-center justify-center rounded-md transition-colors',
+                            'flex w-full items-center justify-center rounded transition-colors',
                             'hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                            'px-[7px] py-1.5 disabled:opacity-50'
+                            'p-3 disabled:opacity-50'
                           )}
                           aria-label="Toggle test mode"
                           data-testid="test-mode-toggle-collapsed"
@@ -425,15 +429,16 @@ export const SideNavigation = () => {
               organization={{
                 id: organization.id,
                 name: organization.name,
-                onboardingStatus: organization.onboardingStatus,
               }}
-              onSignOut={() => signOut()}
-              onTestModeToggle={async (enabled) => {
-                await toggleTestMode.mutateAsync({
-                  livemode: !enabled,
+              onSignOut={() =>
+                signOut({
+                  fetchOptions: {
+                    onSuccess: () => {
+                      router.push('/sign-in')
+                    },
+                  },
                 })
-              }}
-              testModeEnabled={!livemode}
+              }
             />
           )}
         </div>

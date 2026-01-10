@@ -228,7 +228,8 @@ describe('Swagger Configuration', () => {
 
   describe('OpenAPI Document Structure', () => {
     it('should have the correct base configuration', () => {
-      expect(openApiDoc.openapi).toBeDefined()
+      expect(typeof openApiDoc.openapi).toBe('string')
+      expect(openApiDoc.openapi).toMatch(/^\d+\.\d+\.\d+$/)
       expect(openApiDoc.info.title).toBe('Flowglad API')
       expect(openApiDoc.info.version).toBe('0.0.1')
       //   expect(openApiDoc.servers?.[0]?.url).toBe(
@@ -286,7 +287,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         // payments only supports GET for now
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
@@ -295,7 +296,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
         )
@@ -303,7 +304,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct refund route methods', () => {
         const route = paths?.[`${basePath}/{id}/refund`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['post'].sort()
         )
@@ -315,7 +316,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
         )
@@ -323,7 +324,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
         )
@@ -335,7 +336,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
         )
@@ -343,7 +344,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'put'].sort()
         )
@@ -355,7 +356,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
         )
@@ -363,7 +364,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'put'].sort()
         )
@@ -375,7 +376,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
         )
@@ -383,7 +384,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'put'].sort()
         )
@@ -395,7 +396,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
         )
@@ -403,7 +404,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
         )
@@ -415,7 +416,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
         )
@@ -423,7 +424,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
         )
@@ -435,7 +436,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
         )
@@ -443,7 +444,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'put'].sort()
         )
@@ -451,7 +452,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct default route methods', () => {
         const route = paths?.[`${basePath}/default`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
         )
@@ -459,7 +460,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct clone route methods', () => {
         const route = paths?.[`${basePath}/{id}/clone`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['post'].sort()
         )
@@ -471,7 +472,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
         )
@@ -483,7 +484,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
         )
@@ -491,7 +492,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
         )
@@ -499,7 +500,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct adjust route methods', () => {
         const route = paths?.[`${basePath}/{id}/adjust`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['post'].sort()
         )
@@ -507,7 +508,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct cancel route methods', () => {
         const route = paths?.[`${basePath}/{id}/cancel`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['post'].sort()
         )
@@ -519,7 +520,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
         )
@@ -527,7 +528,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
         )
@@ -539,7 +540,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
         )
@@ -547,7 +548,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'put'].sort()
         )
@@ -559,7 +560,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
         )
@@ -567,7 +568,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
         )
@@ -579,7 +580,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         // Assuming GET (list) and POST (create)
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
@@ -588,7 +589,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         // Assuming GET (by id) and PUT (update)
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'put'].sort()
@@ -601,7 +602,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         // GET (list), POST (create)
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
@@ -610,7 +611,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         // GET (by id),  No PUT or DELETE for product-features as per our router
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
@@ -623,7 +624,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           /**
            * No list method for this resource
@@ -634,7 +635,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'put'].sort()
         )
@@ -645,7 +646,7 @@ describe('Swagger Configuration', () => {
           key.startsWith(basePath)
         )
         const route = paths?.[`${basePath}/{id}/expire`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         expect(Object.keys(route || {}).sort()).toEqual(
           ['post'].sort()
         )
@@ -657,7 +658,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct base route methods', () => {
         const route = paths?.[basePath]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         // Assuming GET (list) and POST (create)
         expect(Object.keys(route || {}).sort()).toEqual(
           // FIXME: standardize list methods / procedures
@@ -667,7 +668,7 @@ describe('Swagger Configuration', () => {
 
       it('should have correct {id} route methods', () => {
         const route = paths?.[`${basePath}/{id}`]
-        expect(route).toBeDefined()
+        expect(typeof route).toBe('object')
         // Assuming GET (by id), PUT (update), and DELETE (by id)
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'put'].sort()
@@ -961,8 +962,8 @@ describe('Swagger Configuration', () => {
             ? rawSchema
             : undefined
 
-        expect(schemaObject).toBeDefined()
-        expect(schemaObject?.properties).toBeDefined()
+        expect(typeof schemaObject).toBe('object')
+        expect(typeof schemaObject?.properties).toBe('object')
       })
 
       it('should include customerId as optional with description', () => {
@@ -1011,7 +1012,7 @@ describe('Swagger Configuration', () => {
             ? rawSchema
             : undefined
 
-        expect(schemaObject?.properties).toBeDefined()
+        expect(typeof schemaObject?.properties).toBe('object')
       })
 
       it('should include priceId as optional with description', () => {
@@ -1053,14 +1054,14 @@ describe('Swagger Configuration', () => {
             ? rawSchema
             : undefined
 
-        expect(schemaObject?.properties).toBeDefined()
+        expect(typeof schemaObject?.properties).toBe('object')
       })
 
       it('should include priceId as optional with description in usageEvent', () => {
         // Navigate to usageEvent.properties
         const usageEventSchema = schemaObject?.properties
           ?.usageEvent as SchemaObjectWithProperties
-        expect(usageEventSchema?.properties).toBeDefined()
+        expect(typeof usageEventSchema?.properties).toBe('object')
 
         // Verify it's not in required array (it's optional)
         const required = usageEventSchema?.required || []
@@ -1078,7 +1079,7 @@ describe('Swagger Configuration', () => {
         // Navigate to usageEvent.properties
         const usageEventSchema = schemaObject?.properties
           ?.usageEvent as SchemaObjectWithProperties
-        expect(usageEventSchema?.properties).toBeDefined()
+        expect(typeof usageEventSchema?.properties).toBe('object')
 
         // Verify it's not in required array (it's optional)
         const required = usageEventSchema?.required || []
@@ -1112,14 +1113,14 @@ describe('Swagger Configuration', () => {
             ? rawSchema
             : undefined
 
-        expect(schemaObject?.properties).toBeDefined()
+        expect(typeof schemaObject?.properties).toBe('object')
 
         // Navigate to usageEvents array items
         const usageEventsProperty = schemaObject?.properties
           ?.usageEvents as any
-        expect(usageEventsProperty).toBeDefined()
+        expect(typeof usageEventsProperty).toBe('object')
         expect(usageEventsProperty.type).toBe('array')
-        expect(usageEventsProperty.items).toBeDefined()
+        expect(typeof usageEventsProperty.items).toBe('object')
 
         // Get the items schema for the array
         usageEventsArrayItems = isSchemaObject(
@@ -1128,7 +1129,9 @@ describe('Swagger Configuration', () => {
           ? usageEventsProperty.items
           : undefined
 
-        expect(usageEventsArrayItems?.properties).toBeDefined()
+        expect(typeof usageEventsArrayItems?.properties).toBe(
+          'object'
+        )
       })
 
       it('should include priceId as optional with description in array items', () => {

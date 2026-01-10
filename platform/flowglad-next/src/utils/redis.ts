@@ -80,18 +80,64 @@ type ApiKeyVerificationResult = z.infer<
   typeof apiKeyVerificationResultSchema
 >
 
+/**
+ * No-op stub client used in unit tests by default.
+ *
+ * IMPORTANT: This stub does NOT store or retrieve any data. All operations
+ * are no-ops that return empty/null values. This means:
+ *
+ * - Caching behavior is NOT tested in unit tests using this stub
+ * - Cache invalidation has no observable effect
+ * - Any code that relies on cached data will always get cache misses
+ *
+ * If you need to test actual caching behavior, use one of these approaches:
+ *
+ * 1. Integration tests: Set REDIS_INTEGRATION_TEST_MODE=true to use real Redis
+ *    (see cache.integration.test.ts for examples)
+ *
+ * 2. Stateful mock: Use _setTestRedisClient() to inject a mock that stores data
+ *    (useful if you need to test cache hits/misses in unit tests)
+ */
+const testStubClient = {
+  get: () => null,
+  getdel: () => null,
+  set: () => null,
+  del: () => null,
+  sadd: () => 0,
+  smembers: () => [] as string[],
+  expire: () => null,
+  exists: () => 0,
+}
+
+/**
+ * Allows tests to inject a custom Redis client.
+ * Use this to provide a stateful mock if you need to test cache behavior
+ * in unit tests without hitting real Redis.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _testRedisClient: any = null
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const _setTestRedisClient = (client: any) => {
+  _testRedisClient = client
+}
+
+/**
+ * Returns a Redis client.
+ *
+ * In unit tests (NODE_ENV=test), returns either:
+ * - A custom client set via _setTestRedisClient(), or
+ * - The default testStubClient (no-op stub)
+ *
+ * In integration tests (REDIS_INTEGRATION_TEST_MODE=true), returns real Redis.
+ * In production, returns real Redis.
+ */
 export const redis = () => {
-  if (core.IS_TEST) {
-    return {
-      get: () => null,
-      getdel: () => null,
-      set: () => null,
-      del: () => null,
-      sadd: () => 0,
-      smembers: () => [] as string[],
-      expire: () => null,
-      exists: () => 0,
-    }
+  if (
+    core.IS_TEST &&
+    process.env.REDIS_INTEGRATION_TEST_MODE !== 'true'
+  ) {
+    return _testRedisClient ?? testStubClient
   }
   return new Redis({
     url: core.envVariable('UPSTASH_REDIS_REST_URL'),
@@ -105,6 +151,11 @@ export enum RedisKeyNamespace {
   Telemetry = 'telemetry',
   BannerDismissals = 'bannerDismissals',
   StripeOAuthCsrfToken = 'stripeOAuthCsrfToken',
+  SubscriptionsByCustomer = 'subscriptionsByCustomer',
+  ItemsBySubscription = 'itemsBySubscription',
+  FeaturesBySubscriptionItem = 'featuresBySubscriptionItem',
+  MeterBalancesBySubscription = 'meterBalancesBySubscription',
+  CacheDependencyRegistry = 'cacheDeps',
 }
 
 const evictionPolicy: Record<
@@ -117,6 +168,7 @@ const evictionPolicy: Record<
   },
   [RedisKeyNamespace.ReferralSelection]: {
     max: 200000, // up to 200k selections across tenants
+    ttl: 60 * 60 * 24 * 30, // 30 days - allows time for later processing
   },
   [RedisKeyNamespace.Telemetry]: {
     max: 500000, // up to 500k telemetry records
@@ -124,11 +176,26 @@ const evictionPolicy: Record<
   },
   [RedisKeyNamespace.BannerDismissals]: {
     max: 100000, // up to 100k users
-    ttl: 60 * 60 * 24 * 2, // 2 days - banners reappear after this period
+    // No TTL - dismissals are permanent until manually reset
   },
   [RedisKeyNamespace.StripeOAuthCsrfToken]: {
     max: 10000, // up to 10k concurrent OAuth flows
     ttl: 60 * 15, // 15 minutes - OAuth flow timeout
+  },
+  [RedisKeyNamespace.SubscriptionsByCustomer]: {
+    max: 50000,
+  },
+  [RedisKeyNamespace.ItemsBySubscription]: {
+    max: 100000,
+  },
+  [RedisKeyNamespace.FeaturesBySubscriptionItem]: {
+    max: 200000,
+  },
+  [RedisKeyNamespace.MeterBalancesBySubscription]: {
+    max: 100000,
+  },
+  [RedisKeyNamespace.CacheDependencyRegistry]: {
+    max: 500000, // Higher limit - these are small Sets mapping deps to cache keys
   },
 }
 
@@ -251,10 +318,7 @@ export const storeTelemetry = async (
 /**
  * Store a dismissed banner ID for a user.
  * Uses Redis Set to allow per-banner dismissal tracking.
- * Dismissal expires after 2 days, after which banners will reappear.
- *
- * Note: TTL is only set when the key is new to avoid extending the
- * expiration indefinitely with each new dismissal.
+ * Dismissals are permanent until manually reset via resetDismissedBanners.
  */
 export const dismissBanner = async (
   userId: string,
@@ -263,18 +327,7 @@ export const dismissBanner = async (
   try {
     const redisClient = redis()
     const key = `${RedisKeyNamespace.BannerDismissals}:${userId}`
-
-    // Check if key exists before adding - only set TTL on new keys
-    const keyExists = await redisClient.exists(key)
     await redisClient.sadd(key, bannerId)
-
-    // Only set TTL if this is a new key (first dismissal)
-    if (!keyExists) {
-      await redisClient.expire(
-        key,
-        evictionPolicy[RedisKeyNamespace.BannerDismissals].ttl
-      )
-    }
   } catch (error) {
     logger.error('Error dismissing banner', {
       error: error instanceof Error ? error.message : String(error),
@@ -288,10 +341,7 @@ export const dismissBanner = async (
 /**
  * Store multiple dismissed banner IDs for a user in a single operation.
  * More efficient than calling dismissBanner multiple times.
- * Dismissal expires after 2 days, after which banners will reappear.
- *
- * Note: TTL is only set when the key is new to avoid extending the
- * expiration indefinitely with each new dismissal.
+ * Dismissals are permanent until manually reset via resetDismissedBanners.
  */
 export const dismissBanners = async (
   userId: string,
@@ -303,22 +353,11 @@ export const dismissBanners = async (
     const redisClient = redis()
     const key = `${RedisKeyNamespace.BannerDismissals}:${userId}`
 
-    // Check if key exists before adding - only set TTL on new keys
-    const keyExists = await redisClient.exists(key)
-
     // Redis SADD accepts multiple members - cast to satisfy Upstash's tuple types
     await redisClient.sadd(
       key,
       ...(bannerIds as [string, ...string[]])
     )
-
-    // Only set TTL if this is a new key (first dismissal)
-    if (!keyExists) {
-      await redisClient.expire(
-        key,
-        evictionPolicy[RedisKeyNamespace.BannerDismissals].ttl
-      )
-    }
   } catch (error) {
     logger.error('Error dismissing banners', {
       error: error instanceof Error ? error.message : String(error),

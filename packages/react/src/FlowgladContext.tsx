@@ -1,6 +1,7 @@
 'use client'
 import type { Flowglad } from '@flowglad/node'
 import {
+  type AdjustSubscriptionParams,
   type BillingWithChecks,
   type CancelSubscriptionParams,
   type ClientCreateUsageEventParams,
@@ -61,6 +62,53 @@ export type LoadedFlowgladContextValues = BillingWithChecks & {
   ) => Promise<{
     subscription: Flowglad.Subscriptions.SubscriptionUncancelResponse
   }>
+  /**
+   * Adjust a subscription to a different price.
+   *
+   * @example
+   * // Simplest: adjust by price slug (quantity defaults to 1)
+   * await adjustSubscription({ priceSlug: 'pro-monthly' })
+   *
+   * // With quantity
+   * await adjustSubscription({ priceSlug: 'pro-monthly', quantity: 5 })
+   *
+   * // Using price ID
+   * await adjustSubscription({ priceId: 'price_abc123', quantity: 3 })
+   *
+   * // With timing override
+   * await adjustSubscription({
+   *   priceSlug: 'pro-monthly',
+   *   timing: 'at_end_of_period'
+   * })
+   *
+   * // Explicit subscription ID (for multi-subscription customers)
+   * await adjustSubscription({
+   *   priceSlug: 'pro-monthly',
+   *   subscriptionId: 'sub_123'
+   * })
+   *
+   * // Complex adjustment with multiple items
+   * await adjustSubscription({
+   *   subscriptionItems: [
+   *     { priceSlug: 'base-plan', quantity: 1 },
+   *     { priceSlug: 'addon-storage', quantity: 3 },
+   *   ],
+   *   timing: 'immediately',
+   *   prorate: true,
+   * })
+   *
+   * @param params - Adjustment parameters (one of three forms)
+   * @param params.priceSlug - Adjust to a price by slug
+   * @param params.priceId - Adjust to a price by ID
+   * @param params.subscriptionItems - Array of items for multi-item adjustments
+   * @param params.quantity - Number of units (default: 1)
+   * @param params.subscriptionId - Subscription ID (auto-resolves if customer has exactly 1 subscription)
+   * @param params.timing - 'immediately' | 'at_end_of_period' | 'auto' (default: 'auto')
+   * @param params.prorate - Whether to prorate (default: true for immediate, false for end-of-period)
+   */
+  adjustSubscription: (params: AdjustSubscriptionParams) => Promise<{
+    subscription: Flowglad.Subscriptions.SubscriptionAdjustResponse
+  }>
   createCheckoutSession: (
     params: FrontendProductCreateCheckoutSessionParams
   ) => Promise<CreateCheckoutSessionResponse>
@@ -98,6 +146,7 @@ export interface NonPresentContextValues {
   purchases: []
   cancelSubscription: null
   uncancelSubscription: null
+  adjustSubscription: null
   currentSubscriptions: []
   currentSubscription: null
 }
@@ -148,6 +197,7 @@ const notPresentContextValues: NonPresentContextValues = {
   purchases: [],
   cancelSubscription: null,
   uncancelSubscription: null,
+  adjustSubscription: null,
   currentSubscriptions: [],
   currentSubscription: null,
 }
@@ -312,6 +362,102 @@ const constructUncancelSubscription =
     }
     return {
       subscription: data,
+    }
+  }
+
+interface ConstructAdjustSubscriptionParams {
+  baseURL: string | undefined
+  requestConfig?: RequestConfig
+  queryClient: ReturnType<typeof useQueryClient>
+  currentSubscriptions:
+    | CustomerBillingDetails['currentSubscriptions']
+    | null
+}
+
+const constructAdjustSubscription =
+  (constructParams: ConstructAdjustSubscriptionParams) =>
+  async (
+    params: AdjustSubscriptionParams
+  ): Promise<{
+    subscription: Flowglad.Subscriptions.SubscriptionAdjustResponse
+  }> => {
+    const {
+      baseURL,
+      requestConfig,
+      queryClient,
+      currentSubscriptions,
+    } = constructParams
+    const headers = requestConfig?.headers
+    const flowgladRoute = getFlowgladRoute(baseURL)
+
+    // Auto-resolve subscriptionId if not provided
+    let subscriptionId = params.subscriptionId
+    if (!subscriptionId) {
+      if (
+        !currentSubscriptions ||
+        currentSubscriptions.length === 0
+      ) {
+        throw new Error(
+          'No active subscription found for this customer'
+        )
+      }
+      if (currentSubscriptions.length > 1) {
+        throw new Error(
+          'Customer has multiple active subscriptions. Please specify subscriptionId in params.'
+        )
+      }
+      subscriptionId = currentSubscriptions[0].id
+    }
+
+    const response = await fetch(
+      `${flowgladRoute}/${FlowgladActionKey.AdjustSubscription}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify({
+          ...params,
+          subscriptionId,
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(
+        `Subscription adjustment failed: ${response.status} ${response.statusText}`
+      )
+    }
+
+    const json: {
+      data?: Flowglad.Subscriptions.SubscriptionAdjustResponse
+      error?: { code: string; json: Record<string, unknown> }
+    } = await response.json()
+
+    if (json.error) {
+      console.error(
+        'FlowgladContext: Subscription adjustment failed',
+        json
+      )
+      throw new Error(
+        json.error.code ?? 'Subscription adjustment failed'
+      )
+    }
+
+    if (!json.data) {
+      throw new Error(
+        'Subscription adjustment failed: no data returned'
+      )
+    }
+
+    // Refetch customer billing after successful adjustment
+    await queryClient.invalidateQueries({
+      queryKey: [FlowgladActionKey.GetCustomerBilling],
+    })
+
+    return {
+      subscription: json.data,
     }
   }
 
@@ -582,6 +728,58 @@ export const FlowgladContextProvider = (
               },
             })
           },
+          adjustSubscription: (params: AdjustSubscriptionParams) => {
+            // In dev mode, auto-resolve subscriptionId
+            let subscriptionId = params.subscriptionId
+            if (!subscriptionId) {
+              const currentSubs =
+                billingData.currentSubscriptions ?? []
+              if (currentSubs.length === 0) {
+                return Promise.reject(
+                  new Error(
+                    'Dev mode: no active subscription found for this customer'
+                  )
+                )
+              }
+              if (currentSubs.length > 1) {
+                return Promise.reject(
+                  new Error(
+                    'Dev mode: customer has multiple active subscriptions. Please specify subscriptionId in params.'
+                  )
+                )
+              }
+              subscriptionId = currentSubs[0].id
+            }
+
+            const subscription =
+              billingData.currentSubscriptions?.find(
+                (sub) => sub.id === subscriptionId
+              ) ??
+              billingData.currentSubscription ??
+              billingData.subscriptions?.find(
+                (sub) => sub.id === subscriptionId
+              )
+            if (!subscription) {
+              return Promise.reject(
+                new Error(
+                  `Dev mode: no subscription found for id "${subscriptionId}"`
+                )
+              )
+            }
+
+            const now = Date.now()
+            // Note: In dev mode, subscriptionItems returns an empty array.
+            // The real API returns the updated subscription items after adjustment.
+            return Promise.resolve({
+              subscription: {
+                subscription: {
+                  ...subscription,
+                  updatedAt: now,
+                },
+                subscriptionItems: [],
+              },
+            })
+          },
           createUsageEvent: () =>
             Promise.resolve({
               usageEvent: { id: 'dev-usage-event-id' },
@@ -693,6 +891,13 @@ export const FlowgladContextProvider = (
         billingData.catalog,
         billingData.purchases
       )
+      const adjustSubscription = constructAdjustSubscription({
+        baseURL,
+        requestConfig,
+        queryClient,
+        currentSubscriptions:
+          billingData.currentSubscriptions ?? null,
+      })
       value = {
         loaded: true,
         loadBilling,
@@ -701,6 +906,7 @@ export const FlowgladContextProvider = (
         createAddPaymentMethodCheckoutSession,
         cancelSubscription,
         uncancelSubscription,
+        adjustSubscription,
         createActivateSubscriptionCheckoutSession,
         createUsageEvent,
         getProduct,

@@ -7,6 +7,7 @@ import {
   setupProduct,
   setupProductFeature,
   setupToggleFeature,
+  setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
@@ -15,11 +16,13 @@ import type { Product } from '@/db/schema/products'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { safelyUpdatePrice } from './priceMethods'
 import {
+  countNonUsageProductsByPricingModelIds,
   safelyInsertPricingModel,
   safelyUpdatePricingModel,
   selectPricingModelById,
   selectPricingModelForCustomer,
   selectPricingModels,
+  selectPricingModelsTableRows,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
 } from './pricingModelMethods'
 
@@ -475,7 +478,6 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     const product1Result = pricingModelResult.products.find(
       (p) => p.id === product1.id
     )
-    expect(product1Result).toBeDefined()
     expect(product1Result?.features).toHaveLength(2)
     expect(product1Result?.features.map((f) => f.id)).toContain(
       feature1.id
@@ -488,7 +490,6 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     const product2Result = pricingModelResult.products.find(
       (p) => p.id === product2.id
     )
-    expect(product2Result).toBeDefined()
     expect(product2Result?.features).toHaveLength(1)
     expect(product2Result?.features[0].id).toBe(feature3.id)
   })
@@ -531,8 +532,6 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     )
 
     // Verify it has an empty features array, not null or undefined
-    expect(productResult).toBeDefined()
-    expect(productResult?.features).toBeDefined()
     expect(Array.isArray(productResult?.features)).toBe(true)
     expect(productResult?.features).toHaveLength(0)
   })
@@ -840,7 +839,7 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
       (p) => p.id === product.id
     )
 
-    expect(productResult).toBeDefined()
+    expect(typeof productResult).toBe('object')
     expect(productResult?.features).toHaveLength(2) // Only active and future-expired
 
     const featureIds = productResult?.features.map((f) => f.id) || []
@@ -883,7 +882,7 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
       (p) => p.id === product.id
     )
 
-    expect(productResult).toBeDefined()
+    expect(typeof productResult).toBe('object')
     expect(productResult?.features).toHaveLength(0) // All features expired
     expect(Array.isArray(productResult?.features)).toBe(true) // Should be empty array, not null
   })
@@ -906,7 +905,7 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
       (p) => p.id === product.id
     )
 
-    expect(productResult).toBeDefined()
+    expect(typeof productResult).toBe('object')
     expect(productResult?.features).toHaveLength(0)
     expect(Array.isArray(productResult?.features)).toBe(true)
   })
@@ -937,7 +936,7 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
       (p) => p.id === product.id
     )
 
-    expect(productResult).toBeDefined()
+    expect(typeof productResult).toBe('object')
     expect(productResult?.features).toHaveLength(0) // Feature expired exactly now should be filtered out
   })
 
@@ -1086,7 +1085,7 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
     const testProduct = result.products.find(
       (p) => p.id === product.id
     )
-    expect(testProduct).toBeDefined()
+    expect(typeof testProduct).toBe('object')
     expect(testProduct!.prices).toHaveLength(1) // Only the latest active price should remain
 
     const returnedPrices = testProduct!.prices
@@ -1094,7 +1093,7 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
     // Verify only the latest active price is preserved
     expect(
       returnedPrices.find((p) => p.id === activePrice2.id)
-    ).toBeDefined()
+    ).toMatchObject({ id: activePrice2.id })
 
     // Verify all returned prices are active
     returnedPrices.forEach((price) => {
@@ -1103,8 +1102,7 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
 
     // Verify default price relationship
     const defaultPrice = returnedPrices.find((p) => p.isDefault)
-    expect(defaultPrice).toBeDefined()
-    expect(defaultPrice?.id).toBe(activePrice2.id)
+    expect(defaultPrice).toMatchObject({ id: activePrice2.id })
   })
 
   it('should filter out products with only inactive prices', async () => {
@@ -1242,17 +1240,235 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
     const testProduct = result.products.find(
       (p) => p.id === product.id
     )
-    expect(testProduct).toBeDefined()
+    expect(typeof testProduct).toBe('object')
     expect(testProduct!.prices).toHaveLength(1)
 
     const returnedPrices = testProduct!.prices
     expect(
       returnedPrices.find((p) => p.id === activePrice2.id)
-    ).toBeDefined()
+    ).toMatchObject({ id: activePrice2.id })
 
     // Verify all returned prices are active
     returnedPrices.forEach((price) => {
       expect(price.active).toBe(true)
     })
+  })
+})
+
+describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+  })
+
+  it('countNonUsageProductsByPricingModelIds excludes usage products from count', async () => {
+    // Create subscription products
+    const subscriptionProduct1 = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Subscription Product 1',
+    })
+
+    await setupPrice({
+      productId: subscriptionProduct1.id,
+      name: 'Subscription Price 1',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+    })
+
+    const subscriptionProduct2 = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Subscription Product 2',
+    })
+
+    await setupPrice({
+      productId: subscriptionProduct2.id,
+      name: 'Subscription Price 2',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 2000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+    })
+
+    // Create a usage meter and usage product
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'API Calls Meter',
+    })
+
+    const usageProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Usage Product',
+    })
+
+    await setupPrice({
+      productId: usageProduct.id,
+      name: 'Usage Price',
+      type: PriceType.Usage,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 10,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: usageMeter.id,
+    })
+
+    // Query the count
+    const countMap = await adminTransaction(
+      async ({ transaction }) => {
+        return countNonUsageProductsByPricingModelIds(
+          [pricingModel.id],
+          transaction
+        )
+      }
+    )
+
+    // Should count subscription products + default product, but NOT usage product
+    // Total: 2 subscription products + 1 default product = 3
+    const count = countMap.get(pricingModel.id) ?? 0
+    expect(count).toBe(3)
+  })
+
+  it('selectPricingModelsTableRows returns non-usage product count', async () => {
+    // Create subscription product
+    const subscriptionProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Subscription Product',
+    })
+
+    await setupPrice({
+      productId: subscriptionProduct.id,
+      name: 'Subscription Price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+    })
+
+    // Create a usage meter and usage product
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'API Calls Meter',
+    })
+
+    const usageProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Usage Product',
+    })
+
+    await setupPrice({
+      productId: usageProduct.id,
+      name: 'Usage Price',
+      type: PriceType.Usage,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 10,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: usageMeter.id,
+    })
+
+    // Query pricing models table rows
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsTableRows({
+        input: {
+          filters: {
+            id: pricingModel.id,
+          },
+        },
+        transaction,
+      })
+    })
+
+    // Find our pricing model
+    const pricingModelRow = result.items.find(
+      (row) => row.pricingModel.id === pricingModel.id
+    )
+
+    // Should count subscription product + default product, but NOT usage product
+    // Total: 1 subscription product + 1 default product = 2
+    expect(pricingModelRow!.productsCount).toBe(2)
+  })
+
+  it('returns productsCount of 0 when pricing model contains only usage products', async () => {
+    // Create a new pricing model
+    const emptyPricingModel = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Usage Only Pricing Model',
+      isDefault: false,
+    })
+
+    // Create a usage meter and usage product
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: emptyPricingModel.id,
+      name: 'API Calls Meter 2',
+    })
+
+    const usageProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: emptyPricingModel.id,
+      name: 'Only Usage Product',
+    })
+
+    await setupPrice({
+      productId: usageProduct.id,
+      name: 'Usage Price',
+      type: PriceType.Usage,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 10,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: usageMeter.id,
+    })
+
+    // Query pricing models table rows
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsTableRows({
+        input: {
+          filters: {
+            id: emptyPricingModel.id,
+          },
+        },
+        transaction,
+      })
+    })
+
+    // Find our pricing model
+    const pricingModelRow = result.items.find(
+      (row) => row.pricingModel.id === emptyPricingModel.id
+    )
+
+    // Should be 0 since setupPricingModel doesn't create a default product,
+    // and the only product created has a usage price (which is excluded)
+    expect(pricingModelRow!.productsCount).toBe(0)
   })
 })

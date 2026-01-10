@@ -1,10 +1,18 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useQueryClient } from '@tanstack/react-query'
-import { authClient } from '@/lib/auth-client'
 import { useBilling } from '@flowglad/nextjs'
+import { useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { AdjustSubscriptionGrid } from '@/components/adjust-subscription-grid'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +26,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Button } from '@/components/ui/button'
+import { authClient } from '@/lib/auth-client'
 
 export function Navbar() {
   const router = useRouter()
@@ -31,6 +39,7 @@ export function Navbar() {
   const [uncancelError, setUncancelError] = useState<string | null>(
     null
   )
+  const [isChangePlanOpen, setIsChangePlanOpen] = useState(false)
 
   if (!billing.loaded || !billing.loadBilling) {
     return null // or loading skeleton
@@ -166,96 +175,122 @@ export function Navbar() {
     currentSubscription.cancelScheduledAt > Date.now()
 
   return (
-    <nav className="absolute top-0 right-0 flex justify-end items-center gap-4 p-4 z-50">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm">
-            {accountName}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Account Actions</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={handleSignOut}>
-            Log out
-          </DropdownMenuItem>
-          {!currentSubscription?.isFreePlan && (
-            <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="w-full">
-                    <DropdownMenuItem
-                      onSelect={handleCancelSubscription}
-                      disabled={Boolean(
-                        isCancelling ||
-                          !currentSubscription ||
-                          isCancelled
-                      )}
-                      variant="destructive"
-                      className={
-                        isCancelled
-                          ? 'opacity-60 text-destructive/70'
-                          : ''
-                      }
-                    >
-                      {isCancelling
-                        ? 'Cancelling...'
-                        : 'Cancel Subscription'}
-                    </DropdownMenuItem>
-                  </span>
-                </TooltipTrigger>
-                {isCancelled && cancellationDate && (
-                  <TooltipContent>
-                    <p>
-                      Subscription is scheduled for cancellation on{' '}
-                      {cancellationDate}
-                    </p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-              {isScheduledForCancellation && (
+    <>
+      <nav className="absolute top-0 right-0 flex justify-end items-center gap-4 p-4 z-50">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              {accountName}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Account Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={handleSignOut}>
+              Log out
+            </DropdownMenuItem>
+            {!currentSubscription?.isFreePlan && (
+              <>
+                <DropdownMenuItem
+                  onSelect={() => setIsChangePlanOpen(true)}
+                >
+                  Change Plan
+                </DropdownMenuItem>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="w-full">
                       <DropdownMenuItem
-                        onSelect={handleUncancelSubscription}
-                        disabled={isUncancelling}
-                        className="text-green-600 hover:text-green-700"
+                        onSelect={handleCancelSubscription}
+                        disabled={Boolean(
+                          isCancelling ||
+                            !currentSubscription ||
+                            isCancelled
+                        )}
+                        variant="destructive"
+                        className={
+                          isCancelled
+                            ? 'opacity-60 text-destructive/70'
+                            : ''
+                        }
                       >
-                        {isUncancelling
-                          ? 'Uncancelling...'
-                          : 'Uncancel Subscription'}
+                        {isCancelling
+                          ? 'Cancelling...'
+                          : 'Cancel Subscription'}
                       </DropdownMenuItem>
                     </span>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      Reverse the scheduled cancellation on{' '}
-                      {cancellationDate}
-                    </p>
-                  </TooltipContent>
+                  {isCancelled && cancellationDate && (
+                    <TooltipContent>
+                      <p>
+                        Subscription is scheduled for cancellation on{' '}
+                        {cancellationDate}
+                      </p>
+                    </TooltipContent>
+                  )}
                 </Tooltip>
-              )}
-              {cancelError && (
-                <DropdownMenuItem
-                  disabled
-                  className="text-destructive text-xs"
-                >
-                  {cancelError}
-                </DropdownMenuItem>
-              )}
-              {uncancelError && (
-                <DropdownMenuItem
-                  disabled
-                  className="text-destructive text-xs"
-                >
-                  {uncancelError}
-                </DropdownMenuItem>
-              )}
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </nav>
+                {isScheduledForCancellation && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="w-full">
+                        <DropdownMenuItem
+                          onSelect={handleUncancelSubscription}
+                          disabled={isUncancelling}
+                          className="text-green-600 hover:text-green-700"
+                        >
+                          {isUncancelling
+                            ? 'Uncancelling...'
+                            : 'Uncancel Subscription'}
+                        </DropdownMenuItem>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Reverse the scheduled cancellation on{' '}
+                        {cancellationDate}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                {cancelError && (
+                  <DropdownMenuItem
+                    disabled
+                    className="text-destructive text-xs"
+                  >
+                    {cancelError}
+                  </DropdownMenuItem>
+                )}
+                {uncancelError && (
+                  <DropdownMenuItem
+                    disabled
+                    className="text-destructive text-xs"
+                  >
+                    {uncancelError}
+                  </DropdownMenuItem>
+                )}
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </nav>
+
+      <Dialog
+        open={isChangePlanOpen}
+        onOpenChange={setIsChangePlanOpen}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Change Your Plan</DialogTitle>
+            <DialogDescription>
+              Select a new plan to switch to. Upgrades take effect
+              immediately with prorated billing. Downgrades take
+              effect at the end of your current billing period.
+            </DialogDescription>
+          </DialogHeader>
+          <AdjustSubscriptionGrid
+            onSuccess={() => setIsChangePlanOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

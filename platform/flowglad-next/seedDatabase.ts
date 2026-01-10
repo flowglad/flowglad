@@ -79,6 +79,8 @@ import {
 } from '@/db/tableMethods/productMethods'
 import { insertPurchase } from '@/db/tableMethods/purchaseMethods'
 import { insertRefund } from '@/db/tableMethods/refundMethods'
+import { insertResourceClaim } from '@/db/tableMethods/resourceClaimMethods'
+import { insertResource } from '@/db/tableMethods/resourceMethods'
 import { insertSubscriptionItemFeature } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { insertSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
 import {
@@ -1042,6 +1044,10 @@ export const setupPayment = async ({
   chargeDate,
   purchaseId,
   paymentMethodId,
+  stripeTaxTransactionId,
+  stripeTaxCalculationId,
+  taxAmount,
+  subtotal,
 }: {
   stripeChargeId: string
   status: PaymentStatus
@@ -1060,6 +1066,10 @@ export const setupPayment = async ({
   chargeDate?: number
   purchaseId?: string
   paymentMethodId?: string
+  stripeTaxTransactionId?: string | null
+  stripeTaxCalculationId?: string | null
+  taxAmount?: number
+  subtotal?: number
 }): Promise<Payment.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const payment = await insertPayment(
@@ -1083,6 +1093,10 @@ export const setupPayment = async ({
         refundedAmount,
         refundedAt,
         paymentMethodId,
+        stripeTaxTransactionId: stripeTaxTransactionId ?? null,
+        stripeTaxCalculationId: stripeTaxCalculationId ?? null,
+        taxAmount: taxAmount ?? 0,
+        subtotal: subtotal ?? amount,
       },
       transaction
     )
@@ -1319,33 +1333,6 @@ export const setupCheckoutSession = async ({
     insert = productCheckoutSessionInsert
   } else if (type === CheckoutSessionType.Purchase) {
     insert = purchaseCheckoutSessionInsert
-  } else if (type === CheckoutSessionType.Invoice) {
-    let invoiceIdToUse: string
-    if (invoiceId) {
-      invoiceIdToUse = invoiceId
-    } else {
-      const invoice = await setupInvoice({
-        customerId: customerId,
-        organizationId: organizationId,
-        priceId: priceId,
-      })
-      invoiceIdToUse = invoice.id
-    }
-
-    insert = {
-      ...coreFields,
-      priceId: null,
-      status: status,
-      type: CheckoutSessionType.Invoice,
-      preserveBillingCycleAnchor: false,
-      quantity,
-      livemode,
-      targetSubscriptionId: null,
-      outputName: outputName ?? null,
-      invoiceId: invoiceIdToUse,
-      purchaseId: null,
-      outputMetadata: null,
-    }
   } else if (type === CheckoutSessionType.ActivateSubscription) {
     insert = activateSubscriptionCheckoutSessionInsert
   }
@@ -2461,6 +2448,34 @@ export const setupSubscriptionItemFeatureUsageCreditGrant = async (
   })
 }
 
+export const setupResourceSubscriptionItemFeature = async (
+  params: Partial<SubscriptionItemFeature.ResourceInsert> & {
+    subscriptionItemId: string
+    featureId: string
+    resourceId: string
+    pricingModelId: string
+  }
+): Promise<SubscriptionItemFeature.ResourceRecord> => {
+  return adminTransaction(async ({ transaction }) => {
+    const result = await insertSubscriptionItemFeature(
+      {
+        livemode: true,
+        type: FeatureType.Resource,
+        amount: params.amount ?? 5,
+        renewalFrequency: null,
+        usageMeterId: null,
+        productFeatureId: params.productFeatureId ?? null,
+        ...params,
+      },
+      transaction
+    )
+    if (result.type !== FeatureType.Resource) {
+      throw new Error('Expected Resource feature')
+    }
+    return result
+  })
+}
+
 /**
  * @description A comprehensive test setup utility for creating a complete usage-based
  * billing and ledger scenario. It programmatically creates and links all necessary
@@ -2692,5 +2707,100 @@ export const setupDiscountRedemption = async (params: {
     } else {
       throw new Error('Invalid discount duration')
     }
+  })
+}
+
+export const setupResource = async (params: {
+  organizationId: string
+  pricingModelId: string
+  slug?: string
+  name?: string
+  description?: string
+  active?: boolean
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertResource(
+      {
+        organizationId: params.organizationId,
+        pricingModelId: params.pricingModelId,
+        slug: params.slug ?? 'seats',
+        name: params.name ?? 'Seats',
+        description:
+          params.description ?? 'Resource seats for the application',
+        livemode: true,
+        active: params.active ?? true,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupResourceClaim = async (params: {
+  organizationId: string
+  subscriptionItemFeatureId: string
+  resourceId: string
+  subscriptionId: string
+  pricingModelId: string
+  externalId?: string | null
+  metadata?: Record<string, string | number | boolean> | null
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertResourceClaim(
+      {
+        organizationId: params.organizationId,
+        subscriptionItemFeatureId: params.subscriptionItemFeatureId,
+        resourceId: params.resourceId,
+        subscriptionId: params.subscriptionId,
+        pricingModelId: params.pricingModelId,
+        externalId: params.externalId ?? null,
+        metadata: params.metadata ?? null,
+        livemode: true,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupResourceFeature = async (
+  params: Partial<Omit<Feature.ResourceInsert, 'type'>> & {
+    organizationId: string
+    name: string
+    resourceId: string
+    livemode: boolean
+  }
+): Promise<Feature.ResourceRecord> => {
+  return adminTransaction(async ({ transaction }) => {
+    const resolvedPricingModelId =
+      params.pricingModelId ??
+      (
+        await selectDefaultPricingModel(
+          {
+            organizationId: params.organizationId,
+            livemode: params.livemode,
+          },
+          transaction
+        )
+      )?.id
+    if (!resolvedPricingModelId) {
+      throw new Error(
+        'setupResourceFeature: No pricingModelId provided and no default pricing model found'
+      )
+    }
+    const { resourceId, pricingModelId: _, ...restParams } = params
+    const insert: Feature.ResourceInsert = {
+      ...restParams,
+      type: FeatureType.Resource,
+      description: params.description ?? '',
+      slug: params.slug ?? `resource-feature-${core.nanoid()}`,
+      amount: params.amount ?? 5,
+      usageMeterId: null,
+      renewalFrequency: null,
+      pricingModelId: resolvedPricingModelId,
+      resourceId,
+    }
+    return insertFeature(
+      insert,
+      transaction
+    ) as Promise<Feature.ResourceRecord>
   })
 }

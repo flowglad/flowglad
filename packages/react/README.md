@@ -64,7 +64,7 @@ export default function Billing() {
 
 - Type-safe hooks for accessing billing data
 - Integration with Flowglad's server SDK
-- Support for subscriptions, payment methods, and invoices
+- Support for subscriptions, payment methods, invoices, and usage event tracking
 
 ## API Reference
 
@@ -106,6 +106,18 @@ function MyComponent() {
       cancelUrl: window.location.href,
       autoRedirect: true
     });
+  };
+
+  // Track usage events
+  const handleUsage = async () => {
+    const result = await billing.createUsageEvent({
+      usageMeterSlug: 'api_calls',
+      amount: 1
+    });
+    
+    if ('error' in result) {
+      console.error('Failed to record usage:', result.error);
+    }
   };
 }
 ```

@@ -1,3 +1,4 @@
+import { useBilling } from '@flowglad/react'
 import {
   Button,
   ScrollView,
@@ -5,7 +6,6 @@ import {
   Text,
   View,
 } from 'react-native'
-import { useBilling } from '@flowglad/react'
 import { authClient } from '@/lib/auth-client'
 
 export default function TabOneScreen() {

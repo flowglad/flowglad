@@ -28,7 +28,7 @@ describe('subscriptionItemFeaturesRouteConfigs', () => {
         'POST /subscription-item-features'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(typeof routeConfig).toBe('object')
       expect(routeConfig!.procedure).toBe(
         'subscriptionItemFeatures.create'
       )
@@ -53,7 +53,7 @@ describe('subscriptionItemFeaturesRouteConfigs', () => {
         'PUT /subscription-item-features/:id'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(typeof routeConfig).toBe('object')
       expect(routeConfig!.procedure).toBe(
         'subscriptionItemFeatures.update'
       )
@@ -82,7 +82,7 @@ describe('subscriptionItemFeaturesRouteConfigs', () => {
         'GET /subscription-item-features/:id'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(typeof routeConfig).toBe('object')
       expect(routeConfig!.procedure).toBe(
         'subscriptionItemFeatures.get'
       )
@@ -102,7 +102,7 @@ describe('subscriptionItemFeaturesRouteConfigs', () => {
         'GET /subscription-item-features'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(typeof routeConfig).toBe('object')
       expect(routeConfig!.procedure).toBe(
         'subscriptionItemFeatures.list'
       )
@@ -120,7 +120,7 @@ describe('subscriptionItemFeaturesRouteConfigs', () => {
         'DELETE /subscription-item-features/:id'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(typeof routeConfig).toBe('object')
       expect(routeConfig!.procedure).toBe(
         'subscriptionItemFeatures.delete'
       )
@@ -142,7 +142,7 @@ describe('subscriptionItemFeaturesRouteConfigs', () => {
         'POST /subscription-item-features/:id/expire'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(typeof routeConfig).toBe('object')
       expect(routeConfig!.procedure).toBe(
         'subscriptionItemFeatures.expire'
       )
@@ -263,7 +263,7 @@ describe('subscriptionItemFeaturesRouteConfigs', () => {
       const getMatches = getConfig!.pattern.exec(
         'subscription-item-features/test-id'
       )
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test SubscriptionItemFeatures update pattern extraction
@@ -273,7 +273,7 @@ describe('subscriptionItemFeaturesRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'subscription-item-features/test-id'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test SubscriptionItemFeatures delete pattern extraction
@@ -283,7 +283,7 @@ describe('subscriptionItemFeaturesRouteConfigs', () => {
       const deleteMatches = deleteConfig!.pattern.exec(
         'subscription-item-features/test-id'
       )
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test SubscriptionItemFeatures expire pattern extraction
@@ -293,7 +293,7 @@ describe('subscriptionItemFeaturesRouteConfigs', () => {
       const expireMatches = expireConfig!.pattern.exec(
         'subscription-item-features/test-id/expire'
       )
-      expect(expireMatches).not.toBeNull()
+      expect(typeof expireMatches).toBe('object')
       expect(expireMatches![1]).toBe('test-id') // First capture group
 
       // Test SubscriptionItemFeatures list pattern (no captures)
@@ -303,7 +303,7 @@ describe('subscriptionItemFeaturesRouteConfigs', () => {
       const listMatches = listConfig!.pattern.exec(
         'subscription-item-features'
       )
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test SubscriptionItemFeatures create pattern (no captures)
@@ -313,7 +313,7 @@ describe('subscriptionItemFeaturesRouteConfigs', () => {
       const createMatches = createConfig!.pattern.exec(
         'subscription-item-features'
       )
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })

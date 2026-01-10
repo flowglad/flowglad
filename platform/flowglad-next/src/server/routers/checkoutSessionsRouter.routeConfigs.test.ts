@@ -25,7 +25,9 @@ describe('checkoutSessionsRouteConfigs', () => {
     it('should map POST /checkout-sessions to checkoutSessions.create procedure', () => {
       const routeConfig = findRouteConfig('POST /checkout-sessions')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'checkoutSessions.create',
+      })
       expect(routeConfig!.procedure).toBe('checkoutSessions.create')
       expect(routeConfig!.pattern.test('checkout-sessions')).toBe(
         true
@@ -47,7 +49,9 @@ describe('checkoutSessionsRouteConfigs', () => {
         'PUT /checkout-sessions/:id'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'checkoutSessions.update',
+      })
       expect(routeConfig!.procedure).toBe('checkoutSessions.update')
       expect(
         routeConfig!.pattern.test('checkout-sessions/test-id')
@@ -71,7 +75,9 @@ describe('checkoutSessionsRouteConfigs', () => {
         'GET /checkout-sessions/:id'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'checkoutSessions.get',
+      })
       expect(routeConfig!.procedure).toBe('checkoutSessions.get')
       expect(
         routeConfig!.pattern.test('checkout-sessions/test-id')
@@ -85,7 +91,9 @@ describe('checkoutSessionsRouteConfigs', () => {
     it('should map GET /checkout-sessions to checkoutSessions.list procedure', () => {
       const routeConfig = findRouteConfig('GET /checkout-sessions')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'checkoutSessions.list',
+      })
       expect(routeConfig!.procedure).toBe('checkoutSessions.list')
       expect(routeConfig!.pattern.test('checkout-sessions')).toBe(
         true
@@ -101,7 +109,9 @@ describe('checkoutSessionsRouteConfigs', () => {
         'DELETE /checkout-sessions/:id'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'checkoutSessions.delete',
+      })
       expect(routeConfig!.procedure).toBe('checkoutSessions.delete')
       expect(
         routeConfig!.pattern.test('checkout-sessions/test-id')
@@ -170,7 +180,7 @@ describe('checkoutSessionsRouteConfigs', () => {
       const getMatches = getConfig!.pattern.exec(
         'checkout-sessions/test-id'
       )
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test Checkout Sessions update pattern extraction
@@ -180,7 +190,7 @@ describe('checkoutSessionsRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'checkout-sessions/test-id'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test Checkout Sessions delete pattern extraction
@@ -190,7 +200,7 @@ describe('checkoutSessionsRouteConfigs', () => {
       const deleteMatches = deleteConfig!.pattern.exec(
         'checkout-sessions/test-id'
       )
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test Checkout Sessions list pattern (no captures)
@@ -198,7 +208,7 @@ describe('checkoutSessionsRouteConfigs', () => {
       const listMatches = listConfig!.pattern.exec(
         'checkout-sessions'
       )
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test Checkout Sessions create pattern (no captures)
@@ -206,7 +216,7 @@ describe('checkoutSessionsRouteConfigs', () => {
       const createMatches = createConfig!.pattern.exec(
         'checkout-sessions'
       )
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })
@@ -312,7 +322,7 @@ describe('checkoutSessionsRouteConfigs', () => {
     it('should accept priceSlug in POST /checkout-sessions request body', () => {
       const routeConfig = findRouteConfig('POST /checkout-sessions')
 
-      expect(routeConfig).toBeDefined()
+      expect(typeof routeConfig).toBe('object')
 
       // Test with priceSlug instead of priceId
       const testBodyWithPriceSlug = {
@@ -331,7 +341,7 @@ describe('checkoutSessionsRouteConfigs', () => {
     it('should accept priceSlug in anonymous checkout request body', () => {
       const routeConfig = findRouteConfig('POST /checkout-sessions')
 
-      expect(routeConfig).toBeDefined()
+      expect(typeof routeConfig).toBe('object')
 
       // Test anonymous checkout with priceSlug
       const testBodyWithPriceSlug = {

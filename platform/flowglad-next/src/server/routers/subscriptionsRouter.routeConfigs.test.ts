@@ -298,7 +298,7 @@ describe('subscriptionsRouteConfigs', () => {
       const getMatches = getConfig!.pattern.exec(
         'subscriptions/test-id'
       )
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test Subscriptions update pattern extraction
@@ -306,7 +306,7 @@ describe('subscriptionsRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'subscriptions/test-id'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test Subscriptions delete pattern extraction
@@ -316,7 +316,7 @@ describe('subscriptionsRouteConfigs', () => {
       const deleteMatches = deleteConfig!.pattern.exec(
         'subscriptions/test-id'
       )
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test Subscriptions adjust pattern extraction
@@ -326,7 +326,7 @@ describe('subscriptionsRouteConfigs', () => {
       const adjustMatches = adjustConfig!.pattern.exec(
         'subscriptions/test-id/adjust'
       )
-      expect(adjustMatches).not.toBeNull()
+      expect(typeof adjustMatches).toBe('object')
       expect(adjustMatches![1]).toBe('test-id') // First capture group
 
       // Test Subscriptions cancel pattern extraction
@@ -336,7 +336,7 @@ describe('subscriptionsRouteConfigs', () => {
       const cancelMatches = cancelConfig!.pattern.exec(
         'subscriptions/test-id/cancel'
       )
-      expect(cancelMatches).not.toBeNull()
+      expect(typeof cancelMatches).toBe('object')
       expect(cancelMatches![1]).toBe('test-id') // First capture group
 
       // Test Subscriptions uncancel pattern extraction
@@ -346,20 +346,20 @@ describe('subscriptionsRouteConfigs', () => {
       const uncancelMatches = uncancelConfig!.pattern.exec(
         'subscriptions/test-id/uncancel'
       )
-      expect(uncancelMatches).not.toBeNull()
+      expect(typeof uncancelMatches).toBe('object')
       expect(uncancelMatches![1]).toBe('test-id') // First capture group
 
       // Test Subscriptions list pattern (no captures)
       const listConfig = findRouteConfig('GET /subscriptions')
       const listMatches = listConfig!.pattern.exec('subscriptions')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test Subscriptions create pattern (no captures)
       const createConfig = findRouteConfig('POST /subscriptions')
       const createMatches =
         createConfig!.pattern.exec('subscriptions')
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })
@@ -600,7 +600,7 @@ describe('subscriptionsRouteConfigs', () => {
       // Each item in the array should be an object with route configs
       subscriptionsRouteConfigs.forEach((item) => {
         expect(typeof item).toBe('object')
-        expect(item).not.toBeNull()
+        expect(typeof item).toBe('object')
 
         // Each object should have at least one route config
         const keys = Object.keys(item)

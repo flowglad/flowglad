@@ -2,7 +2,6 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { CheckoutSessionType } from '@/types'
 import AddPaymentCheckoutSuccessPage from './AddPaymentCheckoutSuccessPage'
-import InvoiceCheckoutSuccessPage from './InvoiceCheckoutSuccessPage'
 import ProductCheckoutSuccessPage from './ProductCheckoutSuccessPage'
 import PurchaseCheckoutSuccessPage from './PurchaseCheckoutSuccessPage'
 
@@ -13,9 +12,8 @@ async function CheckoutSuccessPage({
 }) {
   // Cases based on CheckoutSession.type
   // 1. Purchase
-  // 2. Invoice
-  // 3. AddPaymentMethod
-  // 4. Product
+  // 2. AddPaymentMethod
+  // 3. Product
   const { id } = await params
   const checkoutSession = await adminTransaction(
     async ({ transaction }) => {
@@ -33,8 +31,6 @@ async function CheckoutSuccessPage({
           checkoutSession={checkoutSession}
         />
       )
-    case CheckoutSessionType.Invoice:
-      return <InvoiceCheckoutSuccessPage invoice={checkoutSession} />
     case CheckoutSessionType.AddPaymentMethod:
       return (
         <AddPaymentCheckoutSuccessPage

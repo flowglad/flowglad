@@ -90,6 +90,113 @@ export const uncancelSubscriptionSchema = z.object({
   id: z.string(),
 })
 
+/**
+ * Subscription adjustment timing options for the terse SDK API.
+ * - 'immediately': Apply change now with proration
+ * - 'at_end_of_period': Apply change at next billing period
+ * - 'auto': Upgrades happen immediately, downgrades at end of period
+ */
+export const subscriptionAdjustmentTiming = {
+  Immediately: 'immediately',
+  AtEndOfCurrentBillingPeriod: 'at_end_of_period',
+  Auto: 'auto',
+} as const
+
+export type SubscriptionAdjustmentTiming =
+  (typeof subscriptionAdjustmentTiming)[keyof typeof subscriptionAdjustmentTiming]
+
+/**
+ * Terse subscription item for multi-item adjustments.
+ * Must provide exactly one of priceId or priceSlug.
+ */
+const terseSubscriptionItemWithPriceId = z.object({
+  priceId: z.string(),
+  priceSlug: z.never().optional(),
+  quantity: z.number().int().positive().optional().default(1),
+})
+
+const terseSubscriptionItemWithPriceSlug = z.object({
+  priceSlug: z.string(),
+  priceId: z.never().optional(),
+  quantity: z.number().int().positive().optional().default(1),
+})
+
+export const terseSubscriptionItemSchema = z.union([
+  terseSubscriptionItemWithPriceId,
+  terseSubscriptionItemWithPriceSlug,
+])
+
+export type TerseSubscriptionItem = z.input<
+  typeof terseSubscriptionItemSchema
+>
+
+/**
+ * Common options for all adjustment types.
+ */
+const adjustmentCommonOptions = {
+  subscriptionId: z.string().optional(),
+  timing: z
+    .enum([
+      subscriptionAdjustmentTiming.Immediately,
+      subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+      subscriptionAdjustmentTiming.Auto,
+    ])
+    .optional()
+    .default(subscriptionAdjustmentTiming.Auto),
+  prorate: z.boolean().optional(),
+}
+
+/**
+ * Adjust to a specific price by slug (simplest form).
+ */
+const adjustSubscriptionByPriceSlugSchema = z.object({
+  priceSlug: z.string(),
+  priceId: z.never().optional(),
+  subscriptionItems: z.never().optional(),
+  quantity: z.number().int().positive().optional().default(1),
+  ...adjustmentCommonOptions,
+})
+
+/**
+ * Adjust to a specific price by ID.
+ */
+const adjustSubscriptionByPriceIdSchema = z.object({
+  priceId: z.string(),
+  priceSlug: z.never().optional(),
+  subscriptionItems: z.never().optional(),
+  quantity: z.number().int().positive().optional().default(1),
+  ...adjustmentCommonOptions,
+})
+
+/**
+ * Complex adjustment with explicit subscription items.
+ */
+const adjustSubscriptionByItemsSchema = z.object({
+  subscriptionItems: z.array(terseSubscriptionItemSchema).min(1),
+  priceId: z.never().optional(),
+  priceSlug: z.never().optional(),
+  quantity: z.never().optional(),
+  ...adjustmentCommonOptions,
+})
+
+/**
+ * Schema for the adjustSubscription SDK method input.
+ *
+ * Three mutually exclusive forms:
+ * 1. { priceSlug, quantity?, ... } - Adjust to a price by slug
+ * 2. { priceId, quantity?, ... } - Adjust to a price by ID
+ * 3. { subscriptionItems, ... } - Complex multi-item adjustment
+ */
+export const adjustSubscriptionParamsSchema = z.union([
+  adjustSubscriptionByPriceSlugSchema,
+  adjustSubscriptionByPriceIdSchema,
+  adjustSubscriptionByItemsSchema,
+])
+
+export type AdjustSubscriptionParams = z.input<
+  typeof adjustSubscriptionParamsSchema
+>
+
 const baseUsageEventFields = z.object({
   amount: z.number(),
   subscriptionId: z.string(),
@@ -341,6 +448,10 @@ export const flowgladActionValidators = {
   [FlowgladActionKey.UncancelSubscription]: {
     method: HTTPMethod.POST,
     inputValidator: uncancelSubscriptionSchema,
+  },
+  [FlowgladActionKey.AdjustSubscription]: {
+    method: HTTPMethod.POST,
+    inputValidator: adjustSubscriptionParamsSchema,
   },
   [FlowgladActionKey.CreateSubscription]: {
     method: HTTPMethod.POST,

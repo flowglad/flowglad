@@ -147,6 +147,29 @@ export const resolveUsageEventInput = async (
         message: `Price ${price.id} does not have a usage meter associated with it.`,
       })
     }
+
+    // Validate that the price belongs to the customer's pricing model
+    const subscription = await selectSubscriptionById(
+      input.usageEvent.subscriptionId,
+      transaction
+    )
+    const customer = await selectCustomerById(
+      subscription.customerId,
+      transaction
+    )
+    if (!customer.pricingModelId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Customer ${customer.id} does not have a pricing model associated`,
+      })
+    }
+    if (price.pricingModelId !== customer.pricingModelId) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `Price ${price.id} not found for this customer's pricing model`,
+      })
+    }
+
     const usageMeterId = price.usageMeterId
     return {
       usageEvent: {
@@ -593,6 +616,12 @@ export const ingestAndProcessUsageEvent = async (
       transaction
     )
 
+  // Fetch subscription - needed for validation and for insert
+  const subscription = await selectSubscriptionById(
+    usageEventInput.subscriptionId,
+    transaction
+  )
+
   // Determine usageMeterId based on whether priceId is provided or not
   let usageMeterId: string
 
@@ -614,6 +643,25 @@ export const ingestAndProcessUsageEvent = async (
         message: `Price ${price.id} does not have a usage meter associated with it.`,
       })
     }
+
+    // Validate that the price belongs to the customer's pricing model
+    const customer = await selectCustomerById(
+      subscription.customerId,
+      transaction
+    )
+    if (!customer.pricingModelId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Customer ${customer.id} does not have a pricing model associated`,
+      })
+    }
+    if (price.pricingModelId !== customer.pricingModelId) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `Price ${price.id} not found for this customer's pricing model`,
+      })
+    }
+
     usageMeterId = price.usageMeterId
   } else {
     // When priceId is null, usageMeterId must be provided in the input
@@ -626,12 +674,6 @@ export const ingestAndProcessUsageEvent = async (
     }
     usageMeterId = usageEventInput.usageMeterId
   }
-
-  // Fetch subscription - needed for validation (if usageMeterId path) and for insert
-  const subscription = await selectSubscriptionById(
-    usageEventInput.subscriptionId,
-    transaction
-  )
 
   // If usageMeterId was provided directly, validate it belongs to customer's pricing model
   if (!usageEventInput.priceId) {
@@ -695,6 +737,49 @@ export const ingestAndProcessUsageEvent = async (
     return { result: { usageEvent: existingUsageEvent } }
   }
 
+  // Fetch the usage meter to validate count_distinct_properties requirements before insert
+  const usageMeter = await selectUsageMeterById(
+    usageMeterId,
+    transaction
+  )
+
+  /**
+   * Validation for CountDistinctProperties aggregation type.
+   *
+   * This aggregation type counts unique property combinations within a billing period.
+   * For example, if tracking unique users who performed an action, each event must include
+   * a properties object like `{ user_id: '123' }` to identify the distinct entity.
+   *
+   * Requirements:
+   * 1. A billing period must exist - deduplication is scoped to billing periods
+   * 2. Properties must be non-empty - without properties, all events would be treated as
+   *    having the same "empty" combination, causing incorrect deduplication where only
+   *    the first event generates a ledger transaction (leading to underbilling)
+   *
+   * @see https://docs.flowglad.com/usage-based-billing/aggregation-types
+   */
+  if (
+    usageMeter.aggregationType ===
+    UsageMeterAggregationType.CountDistinctProperties
+  ) {
+    if (!billingPeriod) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Billing period is required for usage meter "${usageMeter.name}" because it uses "count_distinct_properties" aggregation.`,
+      })
+    }
+
+    if (
+      !usageEventInput.properties ||
+      Object.keys(usageEventInput.properties).length === 0
+    ) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Properties are required for usage meter "${usageMeter.name}" because it uses "count_distinct_properties" aggregation. Each usage event must have a non-empty properties object to identify the distinct combination being counted.`,
+      })
+    }
+  }
+
   // Insert the new usage event
   const usageEvent = await insertUsageEvent(
     {
@@ -711,31 +796,18 @@ export const ingestAndProcessUsageEvent = async (
     transaction
   )
 
-  // Check if UsageMeter is of type count_distinct_properties
-  // If so, only return a ledgerCommand if there isn't already a usageEvent
-  // for the current billing period with the same properties object
-  const usageMeter = await selectUsageMeterById(
-    usageEvent.usageMeterId,
-    transaction
-  )
-
   // For CountDistinctProperties meters, check for duplicates in the same billing period
+  // (billingPeriod and properties were already validated before insert)
   if (
     usageMeter.aggregationType ===
     UsageMeterAggregationType.CountDistinctProperties
   ) {
-    if (!billingPeriod) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Billing period is required for usage meter of type "count_distinct_properties".`,
-      })
-    }
-
     // Fetch all events in the same billing period for this usage meter
+    // billingPeriod is guaranteed to exist here due to pre-insert validation
     const eventsInPeriod = await selectUsageEvents(
       {
         usageMeterId: usageEvent.usageMeterId,
-        billingPeriodId: billingPeriod.id,
+        billingPeriodId: billingPeriod!.id,
       },
       transaction
     )

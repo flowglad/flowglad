@@ -44,7 +44,9 @@ vi.mock('@/utils/stripe', () => ({
 
 // Mock the form modal and wrap children with FormProvider
 vi.mock('@/components/forms/FormModal', async () => {
+  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const React = await import('react')
+  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const { useForm, FormProvider } = await import('react-hook-form')
   function FormModalMock({
     children,
@@ -227,6 +229,7 @@ describe('EditDiscountModal', () => {
   describe('Form Submission - Fixed Amount', () => {
     it('should calculate amount correctly for fixed discount type', async () => {
       const { rawStringAmountToCountableCurrencyAmount } =
+        // biome-ignore lint/plugin: dynamic import required to access mocked module
         await import('@/utils/stripe')
 
       render(
@@ -301,6 +304,7 @@ describe('EditDiscountModal', () => {
   describe('Default Values Conversion', () => {
     it('should convert countable amount to raw string for display', async () => {
       const { countableCurrencyAmountToRawStringAmount } =
+        // biome-ignore lint/plugin: dynamic import required to access mocked module
         await import('@/utils/stripe')
 
       render(

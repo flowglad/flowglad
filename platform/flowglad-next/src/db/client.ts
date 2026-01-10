@@ -4,9 +4,8 @@ import postgres from 'postgres'
 import { format } from 'sql-formatter'
 import core from '@/utils/core'
 
-const TEST_DB_URL = 'postgresql://test:test@localhost:5432/test_db'
 const dbUrl = core.IS_TEST
-  ? TEST_DB_URL
+  ? core.TEST_DB_URL
   : core.envVariable('DATABASE_URL')
 /**
  * Very important to set prepare to false when connecting to a Supabase DB

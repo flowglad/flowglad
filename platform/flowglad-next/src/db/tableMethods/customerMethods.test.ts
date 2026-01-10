@@ -584,8 +584,6 @@ describe('Customer uniqueness constraints', () => {
       })
 
       // Verify both customers were created successfully
-      expect(customer1).toBeDefined()
-      expect(customer2).toBeDefined()
       expect(customer1.externalId).toBe(sharedExternalId)
       expect(customer2.externalId).toBe(sharedExternalId)
       expect(customer1.organizationId).toBe(organization1.id)
@@ -612,8 +610,8 @@ describe('Customer uniqueness constraints', () => {
       })
 
       // Verify both customers were created successfully
-      expect(customerLive).toBeDefined()
-      expect(customerTest).toBeDefined()
+      expect(typeof customerLive).toBe('object')
+      expect(typeof customerTest).toBe('object')
       expect(customerLive.externalId).toBe(sharedExternalId)
       expect(customerTest.externalId).toBe(sharedExternalId)
       expect(customerLive.organizationId).toBe(organization1.id)
@@ -633,7 +631,7 @@ describe('Customer uniqueness constraints', () => {
         livemode: true,
       })
 
-      expect(customer1).toBeDefined()
+      expect(customer1).toMatchObject({})
       expect(customer1.externalId).toBe(duplicateExternalId)
 
       // Attempt to create duplicate customer
@@ -754,9 +752,9 @@ describe('Customer uniqueness constraints', () => {
       })
 
       // Verify all customers were created successfully
-      expect(customer1).toBeDefined()
-      expect(customer2).toBeDefined()
-      expect(customer3).toBeDefined()
+      expect(customer1).toMatchObject({})
+      expect(customer2).toMatchObject({})
+      expect(customer3).toMatchObject({})
 
       // Verify all belong to the same organization with same livemode
       expect(customer1.organizationId).toBe(organization1.id)
@@ -792,7 +790,7 @@ describe('Customer uniqueness constraints', () => {
         }
       )
 
-      expect(customer1).toBeDefined()
+      expect(customer1).toMatchObject({})
       expect(customer1.externalId).toBe(sharedExternalId)
 
       // Attempt to create duplicate using raw insert
@@ -890,8 +888,8 @@ describe('Customer uniqueness constraints', () => {
       )
 
       // Verify both customers were created successfully
-      expect(customer1).toBeDefined()
-      expect(customer2).toBeDefined()
+      expect(customer1).toMatchObject({})
+      expect(customer2).toMatchObject({})
       expect(customer1.invoiceNumberBase).toBe(sharedInvoiceBase)
       expect(customer2.invoiceNumberBase).toBe(sharedInvoiceBase)
       expect(customer1.organizationId).not.toBe(
@@ -937,8 +935,8 @@ describe('Customer uniqueness constraints', () => {
       )
 
       // Verify both customers were created successfully
-      expect(customerLive).toBeDefined()
-      expect(customerTest).toBeDefined()
+      expect(typeof customerLive).toBe('object')
+      expect(typeof customerTest).toBe('object')
       expect(customerLive.invoiceNumberBase).toBe(sharedInvoiceBase)
       expect(customerTest.invoiceNumberBase).toBe(sharedInvoiceBase)
       expect(customerLive.livemode).toBe(true)
@@ -965,7 +963,7 @@ describe('Customer uniqueness constraints', () => {
         }
       )
 
-      expect(customer1).toBeDefined()
+      expect(customer1).toMatchObject({})
       expect(customer1.invoiceNumberBase).toBe(duplicateInvoiceBase)
 
       // Attempt to create duplicate customer
@@ -1010,9 +1008,9 @@ describe('Customer uniqueness constraints', () => {
       })
 
       // Verify all customers have unique invoiceNumberBase values
-      expect(customer1.invoiceNumberBase).toBeDefined()
-      expect(customer2.invoiceNumberBase).toBeDefined()
-      expect(customer3.invoiceNumberBase).toBeDefined()
+      expect(typeof customer1.invoiceNumberBase).toBe('string')
+      expect(typeof customer2.invoiceNumberBase).toBe('string')
+      expect(typeof customer3.invoiceNumberBase).toBe('string')
       expect(customer1.invoiceNumberBase).not.toBe(
         customer2.invoiceNumberBase
       )
@@ -1046,7 +1044,7 @@ describe('Customer uniqueness constraints', () => {
         }
       )
 
-      expect(customer1).toBeDefined()
+      expect(customer1).toMatchObject({})
       expect(customer1.stripeCustomerId).toBe(stripeCustomerId)
 
       // Attempt to create customer with same stripeCustomerId in different organization
@@ -1087,7 +1085,7 @@ describe('Customer uniqueness constraints', () => {
         }
       )
 
-      expect(customer1).toBeDefined()
+      expect(customer1).toMatchObject({})
       expect(customer1.stripeCustomerId).toBe(stripeCustomerId)
 
       // Attempt to create customer with same stripeCustomerId with livemode=false
@@ -1159,9 +1157,9 @@ describe('Customer uniqueness constraints', () => {
       )
 
       // Verify all customers were created successfully
-      expect(customer1).toBeDefined()
-      expect(customer2).toBeDefined()
-      expect(customer3).toBeDefined()
+      expect(customer1).toMatchObject({})
+      expect(customer2).toMatchObject({})
+      expect(customer3).toMatchObject({})
 
       // Verify each has a unique stripeCustomerId
       expect(customer1.stripeCustomerId).not.toBe(
@@ -1226,9 +1224,9 @@ describe('Customer uniqueness constraints', () => {
       )
 
       // Verify all customers were created successfully with null stripeCustomerId
-      expect(customer1).toBeDefined()
-      expect(customer2).toBeDefined()
-      expect(customer3).toBeDefined()
+      expect(customer1).toMatchObject({})
+      expect(customer2).toMatchObject({})
+      expect(customer3).toMatchObject({})
       expect(customer1.stripeCustomerId).toBeNull()
       expect(customer2.stripeCustomerId).toBeNull()
       expect(customer3.stripeCustomerId).toBeNull()

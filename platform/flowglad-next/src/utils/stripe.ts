@@ -4,8 +4,6 @@ import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Country } from '@/db/schema/countries'
 import type { Customer } from '@/db/schema/customers'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import type { Invoice } from '@/db/schema/invoices'
 import type {
   BillingAddress,
   Organization,
@@ -25,6 +23,7 @@ import {
   calculateTotalDueAmount,
   calculateTotalFeeAmount,
 } from '@/utils/bookkeeping/fees/common'
+import { stripeCall } from '@/utils/tracing'
 import core from './core'
 
 const DIGITAL_TAX_CODE = 'txcd_10000000'
@@ -402,6 +401,18 @@ export const rawStringAmountToCountableCurrencyAmount = (
 }
 
 const stripeApiKey = (livemode: boolean) => {
+  // Allow integration tests to use real Stripe API key
+  // This env var is only set when running integration tests
+  if (process.env.STRIPE_INTEGRATION_TEST_MODE === 'true') {
+    const key = process.env.STRIPE_TEST_MODE_SECRET_KEY
+    if (!key) {
+      throw new Error(
+        'STRIPE_INTEGRATION_TEST_MODE is enabled but STRIPE_TEST_MODE_SECRET_KEY is not set. ' +
+          'Integration tests require a valid Stripe test mode secret key.'
+      )
+    }
+    return key
+  }
   if (core.IS_TEST) {
     return 'sk_test_fake_key_1234567890abcdef'
   }
@@ -479,58 +490,60 @@ export const createConnectedAccount = async ({
             requested: true,
           },
         }
-  const stripeAccount = await stripe(livemode).accounts.create({
-    country: countryCode,
-    capabilities,
-    settings,
-    controller: {
-      stripe_dashboard: {
-        type: 'express',
-      },
-      fees: {
-        payer: 'application',
-      },
-      losses: {
-        payments: 'application',
-      },
-      requirement_collection: 'stripe',
+  return stripeCall(
+    'accounts.create',
+    {
+      'stripe.country': countryCode,
+      'stripe.livemode': livemode,
     },
-    tos_acceptance,
-  })
-  return stripeAccount
+    () =>
+      stripe(livemode).accounts.create({
+        country: countryCode,
+        capabilities,
+        settings,
+        controller: {
+          stripe_dashboard: {
+            type: 'express',
+          },
+          fees: {
+            payer: 'application',
+          },
+          losses: {
+            payments: 'application',
+          },
+          requirement_collection: 'stripe',
+        },
+        tos_acceptance,
+      })
+  )
 }
 export const createAccountOnboardingLink = async (
   account: string,
   livemode: boolean
 ) => {
-  const accountLink = await stripe(livemode).accountLinks.create({
-    account,
-    /**
-     * This is the "it failed" url
-     */
-    refresh_url: core.safeUrl(
-      `/onboarding`,
-      core.envVariable('NEXT_PUBLIC_APP_URL')
-    ),
-    /**
-     * This is the "it's done" url
-     */
-    return_url: core.safeUrl(
-      `/onboarding`,
-      core.envVariable('NEXT_PUBLIC_APP_URL')
-    ),
-    type: 'account_onboarding',
-    /**
-     * Pre-emptively collect future_requirements
-     * so that we don't have to collect them later.
-     * In the future we should collect currently_due requirements
-     * and do eventually_due requirements later. But that will
-     * require us to track onboarding state which we don't need right now.
-     */
-    collection_options: {
-      fields: 'eventually_due',
+  const accountLink = await stripeCall(
+    'accountLinks.create',
+    {
+      'stripe.account_id': account,
+      'stripe.livemode': livemode,
     },
-  })
+    () =>
+      stripe(livemode).accountLinks.create({
+        account,
+        refresh_url: core.safeUrl(
+          `/onboarding`,
+          core.envVariable('NEXT_PUBLIC_APP_URL')
+        ),
+        return_url: core.safeUrl(
+          `/onboarding`,
+          core.envVariable('NEXT_PUBLIC_APP_URL')
+        ),
+        type: 'account_onboarding',
+        collection_options: {
+          fields: 'eventually_due',
+        },
+      })
+  )
   return accountLink.url
 }
 
@@ -567,7 +580,14 @@ export const getConnectedAccount = async (
   accountId: string,
   livemode: boolean
 ) => {
-  return stripe(livemode).accounts.retrieve(accountId)
+  return stripeCall(
+    'accounts.retrieve',
+    {
+      'stripe.account_id': accountId,
+      'stripe.livemode': livemode,
+    },
+    () => stripe(livemode).accounts.retrieve(accountId)
+  )
 }
 
 export const unitedStatesBankAccountPaymentMethodOptions = (
@@ -602,11 +622,23 @@ export const unitedStatesBankAccountPaymentMethodOptions = (
 export const getPaymentIntent = async (paymentIntentId: string) => {
   let paymentIntent: Stripe.PaymentIntent
   try {
-    paymentIntent =
-      await stripe(true).paymentIntents.retrieve(paymentIntentId)
+    paymentIntent = await stripeCall(
+      'paymentIntents.retrieve',
+      {
+        'stripe.payment_intent_id': paymentIntentId,
+        'stripe.livemode': true,
+      },
+      () => stripe(true).paymentIntents.retrieve(paymentIntentId)
+    )
   } catch (err) {
-    paymentIntent =
-      await stripe(false).paymentIntents.retrieve(paymentIntentId)
+    paymentIntent = await stripeCall(
+      'paymentIntents.retrieve',
+      {
+        'stripe.payment_intent_id': paymentIntentId,
+        'stripe.livemode': false,
+      },
+      () => stripe(false).paymentIntents.retrieve(paymentIntentId)
+    )
   }
   return paymentIntent
 }
@@ -616,6 +648,41 @@ export type StripeIntent = Stripe.PaymentIntent | Stripe.SetupIntent
 export enum IntentMetadataType {
   CheckoutSession = 'checkout_session',
   BillingRun = 'billing_run',
+}
+
+/**
+ * Fee breakdown metadata schema for Stripe Payment Intents.
+ * Included for MoR transactions to provide visibility in Stripe dashboard.
+ */
+export const feeMetadataSchema = z.object({
+  flowglad_fee_percentage: z.string().optional(),
+  mor_surcharge_percentage: z.string().optional(),
+  international_fee_percentage: z.string().optional(),
+  tax_amount: z.string().optional(),
+  stripe_tax_calculation_id: z.string().optional(),
+})
+
+export type FeeMetadata = z.infer<typeof feeMetadataSchema>
+
+/**
+ * Builds fee breakdown metadata from a FeeCalculation record for
+ * inclusion in Stripe Payment Intent metadata.
+ */
+export const buildFeeMetadata = (
+  feeCalculation: FeeCalculation.Record | undefined
+): FeeMetadata => {
+  if (!feeCalculation) {
+    return {}
+  }
+  return {
+    flowglad_fee_percentage: feeCalculation.flowgladFeePercentage,
+    mor_surcharge_percentage: feeCalculation.morSurchargePercentage,
+    international_fee_percentage:
+      feeCalculation.internationalFeePercentage,
+    tax_amount: feeCalculation.taxAmountFixed.toString(),
+    stripe_tax_calculation_id:
+      feeCalculation.stripeTaxCalculationId ?? undefined,
+  }
 }
 
 export const checkoutSessionIntentMetadataSchema = z.object({
@@ -741,14 +808,22 @@ export const createStripeCustomer = async (params: {
   livemode: boolean
   createdBy: 'createCustomerBookkeeping' | 'confirmCheckoutSession'
 }) => {
-  return stripe(params.livemode).customers.create({
-    email: params.email,
-    name: params.name,
-    metadata: {
-      organizationId: params.organizationId,
-      createdBy: params.createdBy,
+  return stripeCall(
+    'customers.create',
+    {
+      'stripe.org_id': params.organizationId,
+      'stripe.livemode': params.livemode,
     },
-  })
+    () =>
+      stripe(params.livemode).customers.create({
+        email: params.email,
+        name: params.name,
+        metadata: {
+          organizationId: params.organizationId,
+          createdBy: params.createdBy,
+        },
+      })
+  )
 }
 
 /**
@@ -780,19 +855,25 @@ export const createCustomerSessionForCheckout = async (
       'Missing stripeCustomerId for customer session creation'
     )
   }
-  const customerSession = await stripe(
-    customer.livemode
-  ).customerSessions.create({
-    customer: customer.stripeCustomerId,
-    components: {
-      payment_element: {
-        enabled: true,
-        features: {
-          payment_method_redisplay: 'enabled',
-        },
-      },
+  const customerSession = await stripeCall(
+    'customerSessions.create',
+    {
+      'stripe.customer_id': customer.stripeCustomerId,
+      'stripe.livemode': customer.livemode,
     },
-  })
+    () =>
+      stripe(customer.livemode).customerSessions.create({
+        customer: customer.stripeCustomerId!,
+        components: {
+          payment_element: {
+            enabled: true,
+            features: {
+              payment_method_redisplay: 'enabled',
+            },
+          },
+        },
+      })
+  )
   return customerSession.client_secret
 }
 
@@ -811,7 +892,11 @@ export const createStripeTaxCalculationByPrice = async ({
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
-  if (core.IS_TEST) {
+  // Allow integration tests to use real Stripe Tax API
+  if (
+    core.IS_TEST &&
+    process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true'
+  ) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
       tax_amount_exclusive: 0,
@@ -826,14 +911,24 @@ export const createStripeTaxCalculationByPrice = async ({
     },
   ]
 
-  return stripe(livemode).tax.calculations.create({
-    customer_details: {
-      address: billingAddress.address,
-      address_source: 'billing',
+  // Strip the 'name' field from address as Stripe Tax API doesn't accept it
+  const { name: _name, ...stripeAddress } = billingAddress.address
+  return stripeCall(
+    'tax.calculations.create',
+    {
+      'stripe.currency': price.currency,
+      'stripe.livemode': livemode,
     },
-    currency: price.currency,
-    line_items: lineItems,
-  })
+    () =>
+      stripe(livemode).tax.calculations.create({
+        customer_details: {
+          address: stripeAddress,
+          address_source: 'billing',
+        },
+        currency: price.currency,
+        line_items: lineItems,
+      })
+  )
 }
 
 export const createStripeTaxCalculationByPurchase = async ({
@@ -852,7 +947,11 @@ export const createStripeTaxCalculationByPurchase = async ({
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
-  if (core.IS_TEST) {
+  // Allow integration tests to use real Stripe Tax API
+  if (
+    core.IS_TEST &&
+    process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true'
+  ) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
       tax_amount_exclusive: 0,
@@ -866,21 +965,38 @@ export const createStripeTaxCalculationByPurchase = async ({
       tax_code: DIGITAL_TAX_CODE,
     },
   ]
-  return stripe(livemode).tax.calculations.create({
-    customer_details: {
-      address: billingAddress.address,
-      address_source: 'billing',
+  // Strip the 'name' field from address as Stripe Tax API doesn't accept it
+  const { name: _name, ...stripeAddress } = billingAddress.address
+  return stripeCall(
+    'tax.calculations.create',
+    {
+      'stripe.currency': price.currency,
+      'stripe.livemode': livemode,
     },
-    currency: price.currency,
-    line_items: lineItems,
-  })
+    () =>
+      stripe(livemode).tax.calculations.create({
+        customer_details: {
+          address: stripeAddress,
+          address_source: 'billing',
+        },
+        currency: price.currency,
+        line_items: lineItems,
+      })
+  )
 }
 
 export const getStripeTaxCalculation = async (
   id: string,
   livemode: boolean
 ) => {
-  return stripe(livemode).tax.calculations.retrieve(id)
+  return stripeCall(
+    'tax.calculations.retrieve',
+    {
+      'stripe.calculation_id': id,
+      'stripe.livemode': livemode,
+    },
+    () => stripe(livemode).tax.calculations.retrieve(id)
+  )
 }
 
 export const createStripeTaxTransactionFromCalculation = async ({
@@ -898,14 +1014,72 @@ export const createStripeTaxTransactionFromCalculation = async ({
   ) {
     return null
   }
-  return stripe(livemode).tax.transactions.createFromCalculation(
+  return stripeCall(
+    'tax.transactions.createFromCalculation',
     {
-      calculation: stripeTaxCalculationId,
-      reference,
+      'stripe.calculation_id': stripeTaxCalculationId,
+      'stripe.livemode': livemode,
     },
+    () =>
+      stripe(livemode).tax.transactions.createFromCalculation(
+        {
+          calculation: stripeTaxCalculationId,
+          reference,
+        },
+        {
+          idempotencyKey: `tax_txn_from_calc_${reference}`,
+        }
+      )
+  )
+}
+
+/**
+ * Reverses a Stripe Tax Transaction when a refund occurs.
+ * This is required for MOR to properly report tax reversals.
+ *
+ * @see https://docs.stripe.com/tax/custom#record-tax-reversals
+ */
+export const reverseStripeTaxTransaction = async ({
+  stripeTaxTransactionId,
+  reference,
+  livemode,
+  mode,
+  flatAmount,
+}: {
+  stripeTaxTransactionId: string
+  reference: string
+  livemode: boolean
+  mode: 'full' | 'partial'
+  flatAmount?: number
+}): Promise<Stripe.Tax.Transaction | null> => {
+  // Skip reversal for test tax transactions or missing IDs
+  if (
+    !stripeTaxTransactionId ||
+    stripeTaxTransactionId.startsWith('notaxoverride_') ||
+    stripeTaxTransactionId.startsWith('testtaxcalc_')
+  ) {
+    return null
+  }
+
+  const params: Stripe.Tax.TransactionCreateReversalParams = {
+    original_transaction: stripeTaxTransactionId,
+    reference,
+    mode,
+    ...(mode === 'partial' && flatAmount
+      ? { flat_amount: flatAmount }
+      : {}),
+  }
+
+  return stripeCall(
+    'tax.transactions.createReversal',
     {
-      idempotencyKey: `tax_txn_from_calc_${reference}`,
-    }
+      'stripe.tax_transaction_id': stripeTaxTransactionId,
+      'stripe.livemode': livemode,
+    },
+    () =>
+      stripe(livemode).tax.transactions.createReversal(params, {
+        idempotencyKey: `tax_reversal_${reference}`,
+      })
   )
 }
 
@@ -941,7 +1115,14 @@ export const getConnectedAccountOnboardingStatus = async (
   accountId: string,
   livemode: boolean
 ) => {
-  const account = await stripe(livemode).accounts.retrieve(accountId)
+  const account = await stripeCall(
+    'accounts.retrieve',
+    {
+      'stripe.account_id': accountId,
+      'stripe.livemode': livemode,
+    },
+    () => stripe(livemode).accounts.retrieve(accountId)
+  )
 
   const requirements = account.requirements
   const remainingFields = requirements?.currently_due || []
@@ -973,60 +1154,6 @@ export type StripeAccountOnboardingStatus = Awaited<
   ReturnType<typeof getConnectedAccountOnboardingStatus>
 > | null
 
-export const createPaymentIntentForInvoiceCheckoutSession =
-  async (params: {
-    invoice: Invoice.Record
-    invoiceLineItems: InvoiceLineItem.Record[]
-    organization: Organization.Record
-    stripeCustomerId: string
-    checkoutSession: CheckoutSession.Record
-    feeCalculation?: FeeCalculation.Record
-  }) => {
-    const {
-      invoice,
-      organization,
-      stripeCustomerId,
-      checkoutSession,
-      invoiceLineItems,
-      feeCalculation,
-    } = params
-    const livemode = invoice.livemode
-    const achOnlyParams = unitedStatesBankAccountPaymentMethodOptions(
-      invoice.bankPaymentOnly
-    ) as Partial<Stripe.PaymentIntentCreateParams>
-    const transferData = stripeConnectTransferDataForOrganization({
-      organization,
-      livemode,
-    })
-    const metadata: CheckoutSessionStripeIntentMetadata = {
-      checkoutSessionId: checkoutSession.id,
-      type: IntentMetadataType.CheckoutSession,
-    }
-    const totalDue = feeCalculation
-      ? await calculateTotalDueAmount(feeCalculation)
-      : invoiceLineItems.reduce(
-          (acc, item) => acc + item.price * item.quantity,
-          0
-        )
-    const totalFeeAmount = feeCalculation
-      ? calculateTotalFeeAmount(feeCalculation)
-      : calculatePlatformApplicationFee({
-          organization,
-          subtotal: totalDue,
-          currency: invoice.currency,
-        })
-
-    return stripe(livemode).paymentIntents.create({
-      amount: totalDue,
-      currency: invoice.currency,
-      application_fee_amount: livemode ? totalFeeAmount : undefined,
-      ...transferData,
-      metadata,
-      customer: stripeCustomerId,
-      ...achOnlyParams,
-    })
-  }
-
 export const createPaymentIntentForCheckoutSession = async (params: {
   price: Price.Record
   organization: Organization.Record
@@ -1048,10 +1175,13 @@ export const createPaymentIntentForCheckoutSession = async (params: {
     organization,
     livemode,
   })
-  const metadata: CheckoutSessionStripeIntentMetadata = {
-    checkoutSessionId: checkoutSession.id,
-    type: IntentMetadataType.CheckoutSession,
-  }
+  const feeMetadata = buildFeeMetadata(feeCalculation)
+  const metadata: CheckoutSessionStripeIntentMetadata & FeeMetadata =
+    {
+      checkoutSessionId: checkoutSession.id,
+      type: IntentMetadataType.CheckoutSession,
+      ...feeMetadata,
+    }
   const totalDue = feeCalculation
     ? await calculateTotalDueAmount(feeCalculation)
     : price.unitPrice * checkoutSession.quantity
@@ -1063,14 +1193,23 @@ export const createPaymentIntentForCheckoutSession = async (params: {
         currency: price.currency,
       })
 
-  return stripe(livemode).paymentIntents.create({
-    amount: totalDue,
-    currency: price.currency,
-    application_fee_amount: livemode ? totalFeeAmount : undefined,
-    ...transferData,
-    metadata,
-    customer: customer?.stripeCustomerId ?? undefined,
-  })
+  return stripeCall(
+    'paymentIntents.create',
+    {
+      'stripe.amount': totalDue,
+      'stripe.currency': price.currency,
+      'stripe.livemode': livemode,
+    },
+    () =>
+      stripe(livemode).paymentIntents.create({
+        amount: totalDue,
+        currency: price.currency,
+        application_fee_amount: livemode ? totalFeeAmount : undefined,
+        ...transferData,
+        metadata,
+        customer: customer?.stripeCustomerId ?? undefined,
+      })
+  )
 }
 
 export const getLatestChargeForPaymentIntent = async (
@@ -1082,7 +1221,14 @@ export const getLatestChargeForPaymentIntent = async (
     return null
   }
   if (typeof latest_charge === 'string') {
-    return stripe(livemode).charges.retrieve(latest_charge)
+    return stripeCall(
+      'charges.retrieve',
+      {
+        'stripe.charge_id': latest_charge,
+        'stripe.livemode': livemode,
+      },
+      () => stripe(livemode).charges.retrieve(latest_charge)
+    )
   }
   return latest_charge
 }
@@ -1127,11 +1273,23 @@ export const paymentMethodFromStripeCharge = (
 export const getSetupIntent = async (setupIntentId: string) => {
   let setupIntent: Stripe.SetupIntent
   try {
-    setupIntent =
-      await stripe(true).setupIntents.retrieve(setupIntentId)
+    setupIntent = await stripeCall(
+      'setupIntents.retrieve',
+      {
+        'stripe.setup_intent_id': setupIntentId,
+        'stripe.livemode': true,
+      },
+      () => stripe(true).setupIntents.retrieve(setupIntentId)
+    )
   } catch (err) {
-    setupIntent =
-      await stripe(false).setupIntents.retrieve(setupIntentId)
+    setupIntent = await stripeCall(
+      'setupIntents.retrieve',
+      {
+        'stripe.setup_intent_id': setupIntentId,
+        'stripe.livemode': false,
+      },
+      () => stripe(false).setupIntents.retrieve(setupIntentId)
+    )
   }
   return setupIntent
 }
@@ -1141,7 +1299,14 @@ export const updateSetupIntent = async (
   params: Pick<Stripe.SetupIntentUpdateParams, 'customer'>,
   livemode: boolean
 ) => {
-  return stripe(livemode).setupIntents.update(setupIntentId, params)
+  return stripeCall(
+    'setupIntents.update',
+    {
+      'stripe.setup_intent_id': setupIntentId,
+      'stripe.livemode': livemode,
+    },
+    () => stripe(livemode).setupIntents.update(setupIntentId, params)
+  )
 }
 
 export const updatePaymentIntent = async (
@@ -1159,25 +1324,68 @@ export const updatePaymentIntent = async (
   const applicationFeeAmount = livemode
     ? params.application_fee_amount
     : undefined
-  return stripe(livemode).paymentIntents.update(paymentIntentId, {
-    ...params,
-    application_fee_amount: applicationFeeAmount,
-  })
+  return stripeCall(
+    'paymentIntents.update',
+    {
+      'stripe.payment_intent_id': paymentIntentId,
+      'stripe.livemode': livemode,
+    },
+    () =>
+      stripe(livemode).paymentIntents.update(paymentIntentId, {
+        ...params,
+        application_fee_amount: applicationFeeAmount,
+      })
+  )
 }
 
 export const confirmPaymentIntent = async (
   paymentIntentId: string,
   livemode: boolean
 ) => {
-  return stripe(livemode).paymentIntents.confirm(paymentIntentId)
+  return stripeCall(
+    'paymentIntents.confirm',
+    {
+      'stripe.payment_intent_id': paymentIntentId,
+      'stripe.livemode': livemode,
+    },
+    () => stripe(livemode).paymentIntents.confirm(paymentIntentId)
+  )
+}
+
+export const cancelPaymentIntent = async (
+  paymentIntentId: string,
+  livemode: boolean
+) => {
+  return stripeCall(
+    'paymentIntents.cancel',
+    {
+      'stripe.payment_intent_id': paymentIntentId,
+      'stripe.livemode': livemode,
+    },
+    () => stripe(livemode).paymentIntents.cancel(paymentIntentId)
+  )
 }
 
 export const getStripeCharge = async (chargeId: string) => {
   let charge: Stripe.Charge
   try {
-    charge = await stripe(true).charges.retrieve(chargeId)
+    charge = await stripeCall(
+      'charges.retrieve',
+      {
+        'stripe.charge_id': chargeId,
+        'stripe.livemode': true,
+      },
+      () => stripe(true).charges.retrieve(chargeId)
+    )
   } catch (err) {
-    charge = await stripe(false).charges.retrieve(chargeId)
+    charge = await stripeCall(
+      'charges.retrieve',
+      {
+        'stripe.charge_id': chargeId,
+        'stripe.livemode': false,
+      },
+      () => stripe(false).charges.retrieve(chargeId)
+    )
   }
   return charge
 }
@@ -1186,7 +1394,14 @@ export const getStripeSubscription = async (
   subscriptionId: string,
   livemode: boolean
 ) => {
-  return stripe(livemode).subscriptions.retrieve(subscriptionId)
+  return stripeCall(
+    'subscriptions.retrieve',
+    {
+      'stripe.subscription_id': subscriptionId,
+      'stripe.livemode': livemode,
+    },
+    () => stripe(livemode).subscriptions.retrieve(subscriptionId)
+  )
 }
 
 export const refundPayment = async (
@@ -1194,9 +1409,15 @@ export const refundPayment = async (
   partialAmount: number | null,
   livemode: boolean
 ) => {
-  const paymentIntent = await stripe(
-    livemode
-  ).paymentIntents.retrieve(stripePaymentIntentId)
+  const paymentIntent = await stripeCall(
+    'paymentIntents.retrieve',
+    {
+      'stripe.payment_intent_id': stripePaymentIntentId,
+      'stripe.livemode': livemode,
+    },
+    () =>
+      stripe(livemode).paymentIntents.retrieve(stripePaymentIntentId)
+  )
   if (!paymentIntent.latest_charge) {
     throw new Error('No charge found for payment intent')
   }
@@ -1206,23 +1427,51 @@ export const refundPayment = async (
       ? paymentIntent.latest_charge
       : paymentIntent.latest_charge.id
 
-  return stripe(livemode).refunds.create({
-    charge: chargeId,
-    amount: partialAmount ?? undefined,
-    /**
-     * Always attempt to reverse the transfer associated with the payment to be refunded
-     */
-    reverse_transfer: true,
-  })
+  // Retrieve the charge to check if it has an associated transfer
+  const charge = await stripeCall(
+    'charges.retrieve',
+    {
+      'stripe.charge_id': chargeId,
+      'stripe.livemode': livemode,
+    },
+    () => stripe(livemode).charges.retrieve(chargeId)
+  )
+  const hasTransfer = Boolean(charge.transfer)
+
+  return stripeCall(
+    'refunds.create',
+    {
+      'stripe.payment_intent_id': stripePaymentIntentId,
+      'stripe.livemode': livemode,
+    },
+    () =>
+      stripe(livemode).refunds.create({
+        charge: chargeId,
+        amount: partialAmount ?? undefined,
+        /**
+         * Only reverse the transfer if one exists.
+         * In MoR test mode, payments may not have transfers.
+         */
+        reverse_transfer: hasTransfer ? true : undefined,
+      })
+  )
 }
 
 export const listRefundsForCharge = async (
   chargeId: string,
   livemode: boolean
 ) => {
-  return stripe(livemode).refunds.list({
-    charge: chargeId,
-  })
+  return stripeCall(
+    'refunds.list',
+    {
+      'stripe.charge_id': chargeId,
+      'stripe.livemode': livemode,
+    },
+    () =>
+      stripe(livemode).refunds.list({
+        charge: chargeId,
+      })
+  )
 }
 
 // export const createPaymentIntentForBillingRun = async (params: {
@@ -1283,10 +1532,12 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
     )
   }
   const totalFeeAmount = calculateTotalFeeAmount(feeCalculation)
-  const metadata: BillingRunStripeIntentMetadata = {
+  const feeMetadata = buildFeeMetadata(feeCalculation)
+  const metadata: BillingRunStripeIntentMetadata & FeeMetadata = {
     billingRunId,
     type: IntentMetadataType.BillingRun,
     billingPeriodId,
+    ...feeMetadata,
   }
   const transferData = stripeConnectTransferDataForOrganization({
     organization,
@@ -1294,22 +1545,32 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
   })
 
   const applicationFeeAmount = livemode ? totalFeeAmount : undefined
-  return stripe(livemode).paymentIntents.create({
-    amount,
-    currency,
-    customer: stripeCustomerId,
-    payment_method: stripePaymentMethodId,
-    // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
-    // result in 400 errors). Keep this in mind when changing this code.
-    confirm: true,
-    off_session: true,
-    application_fee_amount: applicationFeeAmount,
-    metadata,
-    automatic_payment_methods: {
-      enabled: true,
+  return stripeCall(
+    'paymentIntents.create',
+    {
+      'stripe.amount': amount,
+      'stripe.currency': currency,
+      'stripe.livemode': livemode,
+      'stripe.confirm': true,
     },
-    ...transferData,
-  })
+    () =>
+      stripe(livemode).paymentIntents.create({
+        amount,
+        currency,
+        customer: stripeCustomerId,
+        payment_method: stripePaymentMethodId,
+        // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
+        // result in 400 errors). Keep this in mind when changing this code.
+        confirm: true,
+        off_session: true,
+        application_fee_amount: applicationFeeAmount,
+        metadata,
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        ...transferData,
+      })
+  )
 }
 
 export const createPaymentIntentForBillingRun = async ({
@@ -1339,10 +1600,12 @@ export const createPaymentIntentForBillingRun = async ({
     )
   }
   const totalFeeAmount = calculateTotalFeeAmount(feeCalculation)
-  const metadata: BillingRunStripeIntentMetadata = {
+  const feeMetadata = buildFeeMetadata(feeCalculation)
+  const metadata: BillingRunStripeIntentMetadata & FeeMetadata = {
     billingRunId,
     type: IntentMetadataType.BillingRun,
     billingPeriodId,
+    ...feeMetadata,
   }
   const transferData = stripeConnectTransferDataForOrganization({
     organization,
@@ -1352,21 +1615,30 @@ export const createPaymentIntentForBillingRun = async ({
   const applicationFeeAmount = livemode ? totalFeeAmount : undefined
 
   // Create payment intent WITHOUT confirming
-  return stripe(livemode).paymentIntents.create({
-    amount,
-    currency,
-    customer: stripeCustomerId,
-    payment_method: stripePaymentMethodId,
-    // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
-    // result in 400 errors). Keep this in mind when changing this code.
-    confirm: false, // Don't confirm yet
-    application_fee_amount: applicationFeeAmount,
-    metadata,
-    automatic_payment_methods: {
-      enabled: true,
+  return stripeCall(
+    'paymentIntents.create',
+    {
+      'stripe.amount': amount,
+      'stripe.currency': currency,
+      'stripe.livemode': livemode,
     },
-    ...transferData,
-  })
+    () =>
+      stripe(livemode).paymentIntents.create({
+        amount,
+        currency,
+        customer: stripeCustomerId,
+        payment_method: stripePaymentMethodId,
+        // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
+        // result in 400 errors). Keep this in mind when changing this code.
+        confirm: false, // Don't confirm yet
+        application_fee_amount: applicationFeeAmount,
+        metadata,
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        ...transferData,
+      })
+  )
 }
 
 export const confirmPaymentIntentForBillingRun = async (
@@ -1374,32 +1646,61 @@ export const confirmPaymentIntentForBillingRun = async (
   livemode: boolean
 ) => {
   // Confirm the payment intent with Stripe
-  return stripe(livemode).paymentIntents.confirm(paymentIntentId, {
-    // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
-    // result in 400 errors). Keep this in mind when changing this code.
-    off_session: true,
-  })
+  return stripeCall(
+    'paymentIntents.confirm',
+    {
+      'stripe.payment_intent_id': paymentIntentId,
+      'stripe.livemode': livemode,
+    },
+    () =>
+      stripe(livemode).paymentIntents.confirm(paymentIntentId, {
+        // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
+        // result in 400 errors). Keep this in mind when changing this code.
+        off_session: true,
+      })
+  )
 }
 
 export const getStripePaymentMethod = async (
   paymentMethodId: string,
   livemode: boolean
 ) => {
-  return stripe(livemode).paymentMethods.retrieve(paymentMethodId)
+  return stripeCall(
+    'paymentMethods.retrieve',
+    {
+      'stripe.payment_method_id': paymentMethodId,
+      'stripe.livemode': livemode,
+    },
+    () => stripe(livemode).paymentMethods.retrieve(paymentMethodId)
+  )
 }
 
 export const getStripeProduct = async (
   productId: string,
   livemode: boolean
 ) => {
-  return stripe(livemode).products.retrieve(productId)
+  return stripeCall(
+    'products.retrieve',
+    {
+      'stripe.product_id': productId,
+      'stripe.livemode': livemode,
+    },
+    () => stripe(livemode).products.retrieve(productId)
+  )
 }
 
 export const getStripePrice = async (
   priceId: string,
   livemode: boolean
 ) => {
-  return stripe(livemode).prices.retrieve(priceId)
+  return stripeCall(
+    'prices.retrieve',
+    {
+      'stripe.price_id': priceId,
+      'stripe.livemode': livemode,
+    },
+    () => stripe(livemode).prices.retrieve(priceId)
+  )
 }
 
 /**
@@ -1452,12 +1753,20 @@ export const createSetupIntentForCheckoutSession = async (params: {
       ? organization.stripeAccountId!
       : undefined
 
-  return stripe(checkoutSession.livemode).setupIntents.create({
-    ...bankPaymentOnlyParams,
-    customer: customer?.stripeCustomerId ?? undefined,
-    metadata,
-    on_behalf_of: onBehalfOf,
-  })
+  return stripeCall(
+    'setupIntents.create',
+    {
+      'stripe.customer_id': customer?.stripeCustomerId ?? undefined,
+      'stripe.livemode': checkoutSession.livemode,
+    },
+    () =>
+      stripe(checkoutSession.livemode).setupIntents.create({
+        ...bankPaymentOnlyParams,
+        customer: customer?.stripeCustomerId ?? undefined,
+        metadata,
+        on_behalf_of: onBehalfOf,
+      })
+  )
 }
 
 export const defaultCurrencyForCountry = (
@@ -1756,8 +2065,15 @@ export const getStripeOAuthUrl = (state: string) => {
 export const completeStripeOAuthFlow = async (params: {
   code: string
 }) => {
-  return stripe(true).oauth.token({
-    grant_type: 'authorization_code',
-    code: params.code,
-  })
+  return stripeCall(
+    'oauth.token',
+    {
+      'stripe.livemode': true,
+    },
+    () =>
+      stripe(true).oauth.token({
+        grant_type: 'authorization_code',
+        code: params.code,
+      })
+  )
 }

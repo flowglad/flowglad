@@ -98,32 +98,34 @@ export function PageHeaderNew({
       className={cn(
         'flex flex-col items-start justify-center w-full',
         !hideBorder && 'border-b border-dashed border-border',
-        'px-4 pt-20 pb-1',
+        'px-6 pt-20 pb-2',
         className
       )}
     >
       {/* Headline wrapper */}
       <div className="flex flex-col gap-1 items-start w-full">
-        {/* Breadcrumb navigation */}
-        {breadcrumb && onBreadcrumbClick ? (
-          <button
-            onClick={onBreadcrumbClick}
-            className="flex items-center gap-1 h-5 hover:opacity-70 transition-opacity cursor-pointer"
-            type="button"
-          >
-            <ChevronLeft size={14} />
-            <span className="font-mono font-medium text-sm text-muted-foreground leading-[1.2]">
-              {breadcrumb}
-            </span>
-          </button>
-        ) : breadcrumb ? (
-          <div className="flex items-center gap-1 h-5">
-            <ChevronLeft size={14} />
-            <span className="font-mono font-medium text-sm text-muted-foreground leading-[1.2]">
-              {breadcrumb}
-            </span>
-          </div>
-        ) : null}
+        {/* Breadcrumb navigation - always render container to prevent layout shift */}
+        <div className="flex items-center gap-1 min-h-5">
+          {breadcrumb && onBreadcrumbClick ? (
+            <button
+              onClick={onBreadcrumbClick}
+              className="flex items-center gap-1 hover:opacity-70 transition-opacity cursor-pointer"
+              type="button"
+            >
+              <ChevronLeft size={14} />
+              <span className="font-mono font-medium text-sm text-muted-foreground leading-[1.2]">
+                {breadcrumb}
+              </span>
+            </button>
+          ) : breadcrumb ? (
+            <>
+              <ChevronLeft size={14} />
+              <span className="font-mono font-medium text-sm text-muted-foreground leading-[1.2]">
+                {breadcrumb}
+              </span>
+            </>
+          ) : null}
+        </div>
 
         {/* Page title */}
         <h1 className="text-2xl text-foreground leading-[1.35] w-full">

@@ -12,14 +12,20 @@ import {
   setupPayment,
   setupPaymentMethod,
   setupPrice,
+  setupProduct,
+  setupProductFeature,
   setupSubscription,
   setupSubscriptionItem,
+  setupSubscriptionItemFeature,
+  setupUsageCredit,
+  setupUsageCreditGrantFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import { nulledPriceColumns } from '@/db/schema/prices'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
@@ -28,13 +34,17 @@ import {
   updateBillingPeriod,
 } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
+import { insertPrice } from '@/db/tableMethods/priceMethods'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 // Helpers to query the database after adjustments
 import {
   expireSubscriptionItems,
+  selectSubscriptionItems,
   selectSubscriptionItemsAndSubscriptionBySubscriptionId,
   updateSubscriptionItem,
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
+import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import {
   adjustSubscription,
   autoDetectTiming,
@@ -46,19 +56,25 @@ import {
   BillingPeriodStatus,
   BillingRunStatus,
   CurrencyCode,
+  FeatureType,
+  FeatureUsageGrantFrequency,
   IntervalUnit,
   PaymentStatus,
   PriceType,
   SubscriptionAdjustmentTiming,
   SubscriptionItemType,
   SubscriptionStatus,
+  UsageCreditSourceReferenceType,
+  UsageCreditType,
 } from '@/types'
 
 // Mock the trigger task - we test that it's called with correct parameters
 // The actual billing run execution is tested in billingRunHelpers.test.ts
 // Create the mock function inside the factory to avoid hoisting issues
 vi.mock('@/trigger/attempt-billing-run', () => {
-  const mockTriggerFn = vi.fn().mockResolvedValue(undefined)
+  const mockTriggerFn = vi
+    .fn()
+    .mockResolvedValue({ id: 'mock-billing-run-handle-id' })
   // Store reference so we can access it in tests
   ;(globalThis as any).__mockAttemptBillingRunTrigger = mockTriggerFn
   return {
@@ -127,7 +143,7 @@ function expectSubscriptionItemsToMatch(
         ? resultItem.id === newItem.id
         : resultItem.name === newItem.name
     })
-    expect(matchingResultItem).toBeDefined()
+    expect(typeof matchingResultItem).toBe('object')
 
     if (matchingResultItem) {
       // Verify common fields match (excluding dates and system-generated fields)
@@ -180,7 +196,9 @@ describe('adjustSubscription Integration Tests', async () => {
     // Reset the trigger mock before each test
     const mockTrigger = getMockTrigger()
     mockTrigger.mockClear()
-    mockTrigger.mockResolvedValue(undefined)
+    mockTrigger.mockResolvedValue({
+      id: 'mock-billing-run-handle-id',
+    })
 
     // Reset notification mocks
     const mockCustomerNotification = getMockCustomerNotification()
@@ -938,7 +956,7 @@ describe('adjustSubscription Integration Tests', async () => {
         const item3Result = result.subscriptionItems.find(
           (item) => item.name === 'Item 3'
         )
-        expect(item3Result).toBeDefined()
+        expect(typeof item3Result).toBe('object')
       })
     })
 
@@ -1573,12 +1591,12 @@ describe('adjustSubscription Integration Tests', async () => {
             subscription.id,
             transaction
           )
-        expect(result).not.toBeNull()
+        expect(result).toMatchObject({})
         if (!result) throw new Error('Result is null')
         const futureItem = result.subscriptionItems.find(
           (item) => item.name === 'Future Item'
         )
-        expect(futureItem).toBeDefined()
+        expect(typeof futureItem).toBe('object')
         expect(toMs(futureItem!.addedDate)!).toBe(newEndDate)
       })
     })
@@ -1752,13 +1770,13 @@ describe('adjustSubscription Integration Tests', async () => {
             subscription.id,
             transaction
           )
-        expect(updatedItems).not.toBeNull()
+        expect(typeof updatedItems).toBe('object')
         if (!updatedItems) throw new Error('Result is null')
 
         const expiredItem = updatedItems.subscriptionItems.find(
           (item) => item.id === expensiveItem.id
         )
-        expect(expiredItem).toBeDefined()
+        expect(typeof expiredItem).toBe('object')
         expect(toMs(expiredItem!.expiredAt)!).toEqual(
           toMs(currentBillingPeriod!.endDate)!
         )
@@ -1766,7 +1784,7 @@ describe('adjustSubscription Integration Tests', async () => {
         const newItem = updatedItems.subscriptionItems.find(
           (item) => item.name === 'Basic Plan'
         )
-        expect(newItem).toBeDefined()
+        expect(typeof newItem).toBe('object')
         expect(toMs(newItem!.addedDate)!).toEqual(
           toMs(currentBillingPeriod!.endDate)!
         )
@@ -1831,7 +1849,7 @@ describe('adjustSubscription Integration Tests', async () => {
               subscription.id,
               transaction
             )
-          expect(result).not.toBeNull()
+          expect(result).toMatchObject({})
           if (!result) throw new Error('Result is null')
           expect(result.subscriptionItems.length).toBe(
             newItems.length
@@ -2596,7 +2614,8 @@ describe('adjustSubscription Integration Tests', async () => {
         // Verify organization notification payload
         const orgPayload = mockOrgNotification.mock.calls[0][0]
         expect(orgPayload.adjustmentType).toBe('downgrade')
-        expect(orgPayload.currency).toBeDefined()
+        expect(typeof orgPayload.currency).toBe('string')
+        expect(orgPayload.currency.length).toBeGreaterThan(0)
       })
     })
 
@@ -2899,8 +2918,6 @@ describe('adjustSubscription Integration Tests', async () => {
   ========================================================================== */
   describe('Price Slug Resolution', () => {
     it('should resolve priceSlug to priceId using subscription pricing model', async () => {
-      // Create a price with a slug
-      // Note: pricingModelId is derived from product.pricingModelId automatically
       const slugPrice = await setupPrice({
         productId: product.id,
         name: 'Premium via Slug',
@@ -3011,13 +3028,24 @@ describe('adjustSubscription Integration Tests', async () => {
             organization,
             transaction
           )
-        ).rejects.toThrow(
-          /Price with slug "nonexistent-slug" not found/
-        )
+        ).rejects.toThrow(/Price "nonexistent-slug" not found/)
       })
     })
 
     it('should expand terse subscription item with priceId to full item', async () => {
+      // Create a price with a known ID for this test
+      const testPrice = await setupPrice({
+        productId: product.id,
+        name: 'Test Price for ID Resolution',
+        type: PriceType.Subscription,
+        unitPrice: 2000,
+        currency: CurrencyCode.USD,
+        isDefault: false,
+        livemode: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+
       await setupSubscriptionItem({
         subscriptionId: subscription.id,
         name: 'Basic Plan',
@@ -3039,7 +3067,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Use terse format with priceId
         const newItems: TerseSubscriptionItem[] = [
           {
-            priceId: price.id,
+            priceId: testPrice.id,
             quantity: 3,
           },
         ]
@@ -3057,7 +3085,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        // Should trigger billing run for upgrade (3 * price.unitPrice > 100)
+        // Should trigger billing run for upgrade (3 * testPrice.unitPrice > 100)
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
         const triggerCall = mockTrigger.mock.calls[0][0]
@@ -3065,7 +3093,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // The expanded item should have all the correct fields from the price
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0].priceId
-        ).toBe(price.id)
+        ).toBe(testPrice.id)
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0]
             .quantity
@@ -3073,28 +3101,14 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0]
             .unitPrice
-        ).toBe(price.unitPrice)
+        ).toBe(testPrice.unitPrice)
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0].name
-        ).toBe(price.name)
+        ).toBe(testPrice.name)
       })
     })
 
     it('should handle mixed item types (priceSlug + priceId) in the same request', async () => {
-      // Create a price with a slug
-      const slugPrice = await setupPrice({
-        productId: product.id,
-        name: 'Premium via Slug',
-        type: PriceType.Subscription,
-        unitPrice: 2999,
-        currency: CurrencyCode.USD,
-        isDefault: false,
-        livemode: false,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        slug: 'premium-mixed-test',
-      })
-
       await setupSubscriptionItem({
         subscriptionId: subscription.id,
         name: 'Basic Plan',
@@ -3102,13 +3116,42 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
+      const uniqueSlug = `premium-mixed-${Date.now()}`
+
       await adminTransaction(async ({ transaction }) => {
-        // Set pricingModelId on the subscription to match the price's pricing model
-        await updateSubscription(
+        const slugPrice = await insertPrice(
           {
-            id: subscription.id,
-            pricingModelId: slugPrice.pricingModelId,
-            renews: true,
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'Premium via Slug',
+            type: PriceType.Subscription,
+            unitPrice: 2999,
+            currency: CurrencyCode.USD,
+            isDefault: false,
+            livemode: true,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            active: true,
+            trialPeriodDays: 0,
+            slug: uniqueSlug,
+          },
+          transaction
+        )
+
+        const idPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'Standard Price',
+            type: PriceType.Subscription,
+            unitPrice: 1500,
+            currency: CurrencyCode.USD,
+            isDefault: false,
+            livemode: true,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            active: true,
+            trialPeriodDays: 0,
           },
           transaction
         )
@@ -3126,11 +3169,11 @@ describe('adjustSubscription Integration Tests', async () => {
         // Mix priceSlug and priceId items in the same request
         const newItems: TerseSubscriptionItem[] = [
           {
-            priceSlug: 'premium-mixed-test',
+            priceSlug: uniqueSlug,
             quantity: 1,
           },
           {
-            priceId: price.id,
+            priceId: idPrice.id,
             quantity: 2,
           },
         ]
@@ -3163,7 +3206,9 @@ describe('adjustSubscription Integration Tests', async () => {
           triggerCall.adjustmentParams
             .newSubscriptionItems as SubscriptionItem.Record[]
         ).find((i) => i.priceId === slugPrice.id)
-        expect(slugItem).toBeDefined()
+        expect(slugItem).toMatchObject({
+          unitPrice: slugPrice.unitPrice,
+        })
         expect(slugItem!.unitPrice).toBe(slugPrice.unitPrice)
         expect(slugItem!.name).toBe(slugPrice.name)
 
@@ -3171,9 +3216,84 @@ describe('adjustSubscription Integration Tests', async () => {
         const idItem = (
           triggerCall.adjustmentParams
             .newSubscriptionItems as SubscriptionItem.Record[]
-        ).find((i) => i.priceId === price.id)
-        expect(idItem).toBeDefined()
+        ).find((i) => i.priceId === idPrice.id)
+        expect(idItem).toMatchObject({ quantity: 2 })
         expect(idItem!.quantity).toBe(2)
+      })
+    })
+
+    it('should resolve UUID passed as priceSlug (SDK convenience)', async () => {
+      // This tests the fallback behavior where priceSlug can accept a UUID (price ID)
+      // The SDK passes price identifiers via priceSlug to avoid format detection
+
+      // Create a price for this test
+      const uuidPrice = await setupPrice({
+        productId: product.id,
+        name: 'UUID Test Price',
+        type: PriceType.Subscription,
+        unitPrice: 2500,
+        currency: CurrencyCode.USD,
+        isDefault: false,
+        livemode: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+
+      await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Existing Plan',
+        quantity: 1,
+        unitPrice: 100,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        // Use a UUID (uuidPrice.id) in the priceSlug field - this is the SDK's approach
+        const newItems: TerseSubscriptionItem[] = [
+          {
+            priceSlug: uuidPrice.id, // UUID passed as priceSlug
+            quantity: 1,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
+          },
+          organization,
+          transaction
+        )
+
+        // Should trigger billing run for upgrade
+        const mockTrigger = getMockTrigger()
+        expect(mockTrigger).toHaveBeenCalledTimes(1)
+        const triggerCall = mockTrigger.mock.calls[0][0]
+
+        // The item should be resolved correctly from the UUID
+        expect(
+          triggerCall.adjustmentParams.newSubscriptionItems[0].priceId
+        ).toBe(uuidPrice.id)
+        expect(
+          triggerCall.adjustmentParams.newSubscriptionItems[0]
+            .unitPrice
+        ).toBe(uuidPrice.unitPrice)
+        expect(
+          triggerCall.adjustmentParams.newSubscriptionItems[0].name
+        ).toBe(uuidPrice.name)
       })
     })
   })
@@ -3308,6 +3428,386 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(result.resolvedTiming).toBe(
           SubscriptionAdjustmentTiming.Immediately
         )
+      })
+    })
+  })
+
+  /* ==========================================================================
+    Free Subscription Handling
+  ========================================================================== */
+  describe('Free Subscription Handling', () => {
+    it('should throw error when attempting to adjust a free subscription (use createSubscription instead)', async () => {
+      // Create a free subscription (isFreePlan=true)
+      const freeSubscription = await setupSubscription({
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: price.id,
+        paymentMethodId: paymentMethod.id,
+        status: SubscriptionStatus.Active,
+        isFreePlan: true,
+      })
+
+      await setupBillingPeriod({
+        subscriptionId: freeSubscription.id,
+        startDate: Date.now() - 24 * 60 * 60 * 1000,
+        endDate: Date.now() + 24 * 60 * 60 * 1000,
+        status: BillingPeriodStatus.Active,
+      })
+
+      await setupSubscriptionItem({
+        subscriptionId: freeSubscription.id,
+        name: 'Free Plan',
+        quantity: 1,
+        unitPrice: 0,
+        priceId: price.id,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const newItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            name: 'Paid Plan',
+            quantity: 1,
+            unitPrice: 2999,
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+          },
+        ]
+
+        // Free subscriptions should be upgraded via createSubscription flow,
+        // which cancels the free subscription and creates a new paid one.
+        // adjustSubscription rejects free plans to enforce this pattern.
+        await expect(
+          adjustSubscription(
+            {
+              id: freeSubscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            transaction
+          )
+        ).rejects.toThrow(/free/i)
+      })
+    })
+  })
+
+  /* ==========================================================================
+    Immediate Downgrade Behavior
+  ========================================================================== */
+  describe('Immediate Downgrade Behavior', () => {
+    it('should preserve existing usage credits, issue no refund, replace subscription item, expire old features, and create new features when downgrading immediately', async () => {
+      // Create a usage meter and feature for the premium product
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'API Calls',
+        pricingModelId: pricingModel.id,
+      })
+
+      const premiumFeature = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'Premium API Credits',
+        pricingModelId: pricingModel.id,
+        amount: 100,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+
+      // Create a different feature for the basic plan (simulating different feature sets)
+      const basicFeature = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'Basic API Credits',
+        pricingModelId: pricingModel.id,
+        amount: 25,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+
+      const premiumProductFeature = await setupProductFeature({
+        organizationId: organization.id,
+        productId: product.id,
+        featureId: premiumFeature.id,
+      })
+
+      // Create a basic product with basic price and basic feature
+      const basicProduct = await setupProduct({
+        organizationId: organization.id,
+        name: 'Basic Product',
+        pricingModelId: pricingModel.id,
+      })
+
+      const basicPrice = await setupPrice({
+        productId: basicProduct.id,
+        name: 'Basic Monthly',
+        unitPrice: 999,
+        livemode: true,
+        isDefault: false,
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+
+      const basicProductFeature = await setupProductFeature({
+        organizationId: organization.id,
+        productId: basicProduct.id,
+        featureId: basicFeature.id,
+      })
+
+      // Setup subscription with premium item
+      const premiumItem = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Premium Plan',
+        quantity: 1,
+        unitPrice: 4999,
+        priceId: price.id,
+      })
+
+      // Create subscription item feature for the premium item
+      await setupSubscriptionItemFeature({
+        subscriptionItemId: premiumItem.id,
+        featureId: premiumFeature.id,
+        productFeatureId: premiumProductFeature.id,
+        type: FeatureType.UsageCreditGrant,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        amount: 100,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const adjustmentDate = Date.now()
+        const newStartDate = adjustmentDate - 15 * 24 * 60 * 60 * 1000 // 15 days ago
+        const newEndDate = adjustmentDate + 15 * 24 * 60 * 60 * 1000 // 15 days from now
+
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: newStartDate,
+            endDate: newEndDate,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        await updateSubscription(
+          {
+            id: subscription.id,
+            renews: true,
+            currentBillingPeriodStart: newStartDate,
+            currentBillingPeriodEnd: newEndDate,
+          },
+          transaction
+        )
+
+        // Setup existing usage credits (simulating credits granted at billing period start)
+        const existingCreditIssuedAmount = 100
+        const existingCredit = await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          billingPeriodId: billingPeriod.id,
+          issuedAmount: existingCreditIssuedAmount,
+          creditType: UsageCreditType.Grant,
+          sourceReferenceType:
+            UsageCreditSourceReferenceType.BillingPeriodTransition,
+          expiresAt: newEndDate,
+        })
+
+        // Setup payment for the premium plan (customer already paid $49.99)
+        const invoice = await setupInvoice({
+          organizationId: organization.id,
+          customerId: customer.id,
+          billingPeriodId: billingPeriod.id,
+          priceId: price.id,
+          livemode: subscription.livemode,
+        })
+        await setupPayment({
+          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+          status: PaymentStatus.Succeeded,
+          amount: 4999,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          livemode: true,
+        })
+
+        // Verify initial state before downgrade
+        const creditsBefore = await selectUsageCredits(
+          {
+            subscriptionId: subscription.id,
+            billingPeriodId: billingPeriod.id,
+            usageMeterId: usageMeter.id,
+          },
+          transaction
+        )
+        expect(creditsBefore.length).toBe(1)
+        expect(creditsBefore[0].id).toBe(existingCredit.id)
+
+        const itemsBefore = await selectSubscriptionItems(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+        const activeItemsBefore = itemsBefore.filter(
+          (item) => item.expiredAt === null
+        )
+        expect(activeItemsBefore.length).toBe(1)
+        expect(activeItemsBefore[0].id).toBe(premiumItem.id)
+        expect(activeItemsBefore[0].unitPrice).toBe(4999)
+
+        // Verify premium feature exists before downgrade
+        const featuresBefore = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: premiumItem.id },
+          transaction
+        )
+        const activeFeaturesBefore = featuresBefore.filter(
+          (f) => f.expiredAt === null
+        )
+        expect(activeFeaturesBefore.length).toBeGreaterThanOrEqual(1)
+
+        // Downgrade to a cheaper plan immediately (from $49.99 to $9.99)
+        // Use the basic price which has the basic feature linked
+        const newItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            priceId: basicPrice.id,
+            name: 'Basic Plan',
+            quantity: 1,
+            unitPrice: 999,
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
+          },
+          organization,
+          transaction
+        )
+
+        // ============================================================
+        // ASSERTION 1: No refund issued (downgrade protection)
+        // ============================================================
+        // For immediate downgrades, no billing run is triggered (no refund)
+        // The net charge would be negative, but we cap at 0
+        // pendingBillingRunId is only present when a billing run is triggered
+        expect(result.pendingBillingRunId).toBeUndefined()
+
+        // Check that no proration billing period items were created for refund
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
+        const refundItems = bpItems.filter(
+          (item) =>
+            item.name?.includes('Net charge adjustment') ||
+            item.name?.includes('Credit') ||
+            item.unitPrice < 0
+        )
+        expect(refundItems.length).toBe(0)
+
+        // ============================================================
+        // ASSERTION 2: Subscription item is replaced
+        // ============================================================
+        const itemsAfter = await selectSubscriptionItems(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+
+        // Old premium item should be expired
+        const expiredPremiumItem = itemsAfter.find(
+          (item) => item.id === premiumItem.id
+        )
+        expect(typeof expiredPremiumItem?.expiredAt).toBe('number')
+        expect(expiredPremiumItem?.expiredAt).toBeLessThanOrEqual(
+          Date.now()
+        )
+
+        // New basic item should be active
+        const activeItemsAfter = itemsAfter.filter(
+          (item) => !item.expiredAt || item.expiredAt > Date.now()
+        )
+        expect(activeItemsAfter.length).toBe(1)
+        expect(activeItemsAfter[0].name).toBe('Basic Plan')
+        expect(activeItemsAfter[0].unitPrice).toBe(999)
+
+        // ============================================================
+        // ASSERTION 3: Old features are expired
+        // ============================================================
+        const oldFeaturesAfter = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: premiumItem.id },
+          transaction
+        )
+        const stillActiveOldFeatures = oldFeaturesAfter.filter(
+          (f) => f.expiredAt === null
+        )
+        // Old features should be expired when the subscription item is expired
+        expect(stillActiveOldFeatures.length).toBe(0)
+
+        // ============================================================
+        // ASSERTION 4: New downgraded features are created matching basic plan
+        // ============================================================
+        const newBasicItem = activeItemsAfter[0]
+        const newFeaturesAfter = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: newBasicItem.id },
+          transaction
+        )
+        // Verify features were created for the basic plan
+        expect(newFeaturesAfter.length).toBe(1)
+        // The new feature should be linked to the basic feature (25 credits)
+        // not the premium feature (100 credits)
+        expect(newFeaturesAfter[0].featureId).toBe(basicFeature.id)
+        expect(newFeaturesAfter[0].productFeatureId).toBe(
+          basicProductFeature.id
+        )
+
+        // ============================================================
+        // ASSERTION 5: Existing usage credits are preserved
+        // ============================================================
+        const creditsAfter = await selectUsageCredits(
+          {
+            subscriptionId: subscription.id,
+            billingPeriodId: billingPeriod.id,
+            usageMeterId: usageMeter.id,
+          },
+          transaction
+        )
+
+        // Credits should still exist with the same issuedAmount
+        expect(creditsAfter.length).toBeGreaterThanOrEqual(1)
+        const originalCredit = creditsAfter.find(
+          (c) => c.id === existingCredit.id
+        )
+        expect(originalCredit?.issuedAmount).toBe(
+          existingCreditIssuedAmount
+        )
+        expect(originalCredit?.sourceReferenceType).toBe(
+          UsageCreditSourceReferenceType.BillingPeriodTransition
+        )
+
+        // ============================================================
+        // ASSERTION 6: Subscription is updated to reflect downgrade
+        // ============================================================
+        // Since no billing run was triggered (downgrade protection),
+        // the subscription should be synced immediately
+        expect(result.subscription.name).toBe('Basic Plan')
       })
     })
   })

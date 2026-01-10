@@ -73,6 +73,7 @@ import {
   createPaymentIntentForBillingRun,
   stripeIdFromObjectOrId,
 } from '@/utils/stripe'
+import { tracedTrigger } from '@/utils/triggerTracing'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
@@ -434,6 +435,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     billingRun.paymentMethodId,
     transaction
   )
+
   // For doNotCharge subscriptions, skip usage overages - they're recorded but not charged
   const { rawOutstandingUsageCosts } =
     await tabulateOutstandingUsageCosts(
@@ -444,6 +446,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   const usageOverages = subscription.doNotCharge
     ? []
     : rawOutstandingUsageCosts
+
   const { feeCalculation, totalDueAmount } =
     await calculateFeeAndTotalAmountDueForBillingPeriod(
       {
@@ -456,23 +459,22 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       },
       transaction
     )
+
   const { total: totalAmountPaid, payments } =
     await sumNetTotalSettledPaymentsForBillingPeriod(
       billingPeriod.id,
       transaction
     )
 
+  // Calculate the actual amount to charge after accounting for existing payments
+  // This is the amount that will be sent to Stripe
+  const amountToCharge = Math.max(0, totalDueAmount - totalAmountPaid)
+
   let invoice: Invoice.Record | undefined
-  const [invoiceForBillingPeriod] = await selectInvoices(
-    {
-      billingPeriodId: billingPeriod.id,
-    },
-    transaction
-  )
 
-  invoice = invoiceForBillingPeriod
-
-  if (!invoice) {
+  // For adjustment billing runs, always create a new invoice for the proration charge
+  // The existing invoice (if any) is for the original subscription payment
+  if (billingRun.isAdjustment) {
     const invoiceInsert = await createInvoiceInsertForBillingRun(
       {
         billingPeriod,
@@ -483,54 +485,79 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       transaction
     )
     invoice = await insertInvoice(invoiceInsert, transaction)
-  }
-
-  /**
-   * If the invoice is in a terminal state, we can skip the rest of the steps
-   */
-  if (invoiceIsInTerminalState(invoice)) {
-    await updateBillingRun(
+  } else {
+    // For regular billing runs, check for existing invoice on the billing period
+    const [invoiceForBillingPeriod] = await selectInvoices(
       {
-        id: billingRun.id,
-        status: BillingRunStatus.Succeeded,
+        billingPeriodId: billingPeriod.id,
       },
       transaction
     )
-    /**
-     * Infer the billing period status from the billing period
-     */
-    let billingPeriodStatus: BillingPeriodStatus
-    if (invoice.status === InvoiceStatus.Uncollectible) {
-      billingPeriodStatus = BillingPeriodStatus.Canceled
-    } else if (invoice.status === InvoiceStatus.Void) {
-      billingPeriodStatus = BillingPeriodStatus.Canceled
-    } else {
-      billingPeriodStatus = billingPeriod.status
-    }
-    /**
-     * If the billing period status has changed, update it in the DB.
-     */
-    let updatedBillingPeriod = billingPeriod
-    if (billingPeriodStatus !== billingPeriod.status) {
-      updatedBillingPeriod = await updateBillingPeriod(
+
+    invoice = invoiceForBillingPeriod
+
+    if (!invoice) {
+      const invoiceInsert = await createInvoiceInsertForBillingRun(
         {
-          id: billingPeriod.id,
-          status: billingPeriodStatus,
+          billingPeriod,
+          organization,
+          customer,
+          currency: feeCalculation.currency,
         },
         transaction
       )
+      invoice = await insertInvoice(invoiceInsert, transaction)
     }
-    return {
-      invoice,
-      feeCalculation,
-      customer,
-      organization,
-      billingPeriod: updatedBillingPeriod,
-      subscription,
-      paymentMethod,
-      totalDueAmount,
-      totalAmountPaid,
-      payments,
+
+    /**
+     * If the invoice is in a terminal state, we can skip the rest of the steps
+     * Note: This only applies to regular billing runs, not adjustment runs
+     */
+    if (invoiceIsInTerminalState(invoice)) {
+      await updateBillingRun(
+        {
+          id: billingRun.id,
+          status: BillingRunStatus.Succeeded,
+        },
+        transaction
+      )
+      /**
+       * Infer the billing period status from the billing period
+       */
+      let billingPeriodStatus: BillingPeriodStatus
+      if (invoice.status === InvoiceStatus.Uncollectible) {
+        billingPeriodStatus = BillingPeriodStatus.Canceled
+      } else if (invoice.status === InvoiceStatus.Void) {
+        billingPeriodStatus = BillingPeriodStatus.Canceled
+      } else {
+        billingPeriodStatus = billingPeriod.status
+      }
+      /**
+       * If the billing period status has changed, update it in the DB.
+       */
+      let updatedBillingPeriod = billingPeriod
+      if (billingPeriodStatus !== billingPeriod.status) {
+        updatedBillingPeriod = await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            status: billingPeriodStatus,
+          },
+          transaction
+        )
+      }
+      return {
+        invoice,
+        feeCalculation,
+        customer,
+        organization,
+        billingPeriod: updatedBillingPeriod,
+        subscription,
+        paymentMethod,
+        totalDueAmount,
+        totalAmountPaid,
+        amountToCharge,
+        payments,
+      }
     }
   }
 
@@ -583,9 +610,11 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       paymentMethod,
       totalDueAmount,
       totalAmountPaid,
+      amountToCharge,
       payments,
     }
   }
+
   const stripeCustomerId = customer.stripeCustomerId
   const stripePaymentMethodId = paymentMethod.stripePaymentMethodId
   if (!stripeCustomerId) {
@@ -602,7 +631,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   }
 
   const paymentInsert: Payment.Insert = {
-    amount: totalDueAmount,
+    amount: amountToCharge,
     currency: invoice.currency,
     status: PaymentStatus.Processing,
     organizationId: organization.id,
@@ -633,6 +662,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   }
 
   const payment = await insertPayment(paymentInsert, transaction)
+
   /**
    * Eagerly update the billing run status to AwaitingPaymentConfirmation
    * to ensure that the billing run is in the correct state.
@@ -656,6 +686,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     paymentMethod,
     totalDueAmount,
     totalAmountPaid,
+    amountToCharge,
     payments,
   }
 }
@@ -672,6 +703,7 @@ type ExecuteBillingRunStepsResult = {
   paymentMethod: PaymentMethod.Record
   totalDueAmount: number
   totalAmountPaid: number
+  amountToCharge: number
   payments: Payment.Record[]
   paymentIntent?: Stripe.Response<Stripe.PaymentIntent> | null
 }
@@ -706,13 +738,17 @@ export const isFirstPayment = async (
 export const executeBillingRun = async (
   billingRunId: string,
   adjustmentParams?: {
-    newSubscriptionItems: SubscriptionItem.Record[]
+    newSubscriptionItems: (
+      | SubscriptionItem.Insert
+      | SubscriptionItem.Record
+    )[]
     adjustmentDate: Date | number
   }
 ) => {
   const billingRun = await adminTransaction(({ transaction }) => {
     return selectBillingRunById(billingRunId, transaction)
   })
+
   if (billingRun.status !== BillingRunStatus.Scheduled) {
     return
   }
@@ -722,6 +758,7 @@ export const executeBillingRun = async (
         `executeBillingRun: Adjustment billing run ${billingRunId} requires adjustmentParams`
       )
     }
+
     const {
       invoice,
       payment,
@@ -742,6 +779,7 @@ export const executeBillingRun = async (
               billingRun,
               transaction
             )
+
           const subscriptionItems =
             await selectCurrentlyActiveSubscriptionItems(
               {
@@ -750,6 +788,7 @@ export const executeBillingRun = async (
               new Date(),
               transaction
             )
+
           const subscriptionItemFeatures: SubscriptionItemFeature.Record[] =
             await selectSubscriptionItemFeatures(
               {
@@ -771,13 +810,9 @@ export const executeBillingRun = async (
           const currentBillingPeriodObject =
             resultFromSteps.billingPeriod
 
-          // Handle zero amount case within the transaction
-          // Calculate the actual amount to charge after accounting for existing payments
-          const amountToCharge = Math.max(
-            0,
-            resultFromSteps.totalDueAmount -
-              resultFromSteps.totalAmountPaid
-          )
+          // Use the pre-calculated amountToCharge from the billing run calculation step
+          // This is the actual amount that will be charged to Stripe
+          const { amountToCharge } = resultFromSteps
 
           if (amountToCharge <= 0) {
             await updateInvoice(
@@ -887,9 +922,14 @@ export const executeBillingRun = async (
 
     // Trigger PDF generation as a non-failing side effect
     if (!core.IS_TEST) {
-      await generateInvoicePdfTask.trigger({
-        invoiceId: invoice.id,
-      })
+      await tracedTrigger(
+        'generateInvoicePdf',
+        () =>
+          generateInvoicePdfTask.trigger({
+            invoiceId: invoice.id,
+          }),
+        { 'trigger.invoice_id': invoice.id }
+      )
     }
 
     // Only proceed with payment confirmation if there is a payment intent

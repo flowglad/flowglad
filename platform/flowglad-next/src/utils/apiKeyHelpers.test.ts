@@ -64,11 +64,11 @@ describe('apiKeyHelpers', () => {
         }
       )
 
-      expect(result).toBeDefined()
-      expect(result.apiKey).toBeDefined()
+      expect(result).toMatchObject({})
+      expect(result.apiKey).toMatchObject({})
       expect(result.apiKey.name).toBe('Test API Key')
       expect(result.apiKey.type).toBe(FlowgladApiKeyType.Secret)
-      expect(result.shownOnlyOnceKey).toBeDefined()
+      expect(result.shownOnlyOnceKey).toMatchObject({})
     })
 
     it('should throw an error if no focused membership is found', async () => {
@@ -166,8 +166,8 @@ describe('apiKeyHelpers', () => {
         }
       )
 
-      expect(result).toBeDefined()
-      expect(result.apiKey).toBeDefined()
+      expect(result).toMatchObject({})
+      expect(result.apiKey).toMatchObject({})
       expect(result.apiKey.name).toBe('Test API Key')
     })
 

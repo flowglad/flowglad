@@ -133,7 +133,6 @@ describe('usageEventHelpers', () => {
           }
         )
 
-      expect(createdUsageEvent).toBeDefined()
       if (!createdUsageEvent)
         throw new Error(
           'Test setup failed: createdUsageEvent is null'
@@ -431,7 +430,7 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      expect(resultWithoutDate.usageDate).toBeDefined()
+      expect(typeof resultWithoutDate.usageDate).toBe('number')
     })
 
     it('should handle livemode input correctly (true and false)', async () => {
@@ -617,7 +616,6 @@ describe('usageEventHelpers', () => {
         )
 
       // Verify first usage event was inserted with correct properties
-      expect(firstUsageEvent).toBeDefined()
       expect(firstUsageEvent.properties).toEqual(testProperties)
       expect(firstUsageEvent.billingPeriodId).toBe(
         distinctBillingPeriod.id
@@ -670,7 +668,6 @@ describe('usageEventHelpers', () => {
         )
 
       // Verify second usage event was inserted with correct properties
-      expect(secondUsageEvent).toBeDefined()
       expect(secondUsageEvent.properties).toEqual(testProperties)
       expect(secondUsageEvent.billingPeriodId).toBe(
         distinctBillingPeriod.id
@@ -723,7 +720,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      expect(thirdUsageEvent).toBeDefined()
       expect(thirdUsageEvent.properties).toEqual({
         ...testProperties,
         feature: 'import',
@@ -732,7 +728,7 @@ describe('usageEventHelpers', () => {
         distinctBillingPeriod.id
       )
       expect(thirdUsageEvent.usageMeterId).toBe(usageMeter.id)
-      expect(thirdUsageEvent.usageDate).toBeDefined()
+      expect(typeof thirdUsageEvent.usageDate).toBe('number')
 
       // Verify ledger command was emitted (ledger transaction created)
       const thirdLedgerTransactions = await adminTransaction(
@@ -787,6 +783,55 @@ describe('usageEventHelpers', () => {
       )
     })
 
+    it('should throw error when priceId from different pricing model is provided directly', async () => {
+      // Create a usage price in a different organization/pricing model
+      const otherOrgPrice = await adminTransaction(
+        async ({ transaction }) => {
+          const otherOrgSetup = await setupOrg()
+          const otherUsageMeter = await setupUsageMeter({
+            organizationId: otherOrgSetup.organization.id,
+            name: 'Other Org Usage Meter',
+            livemode: true,
+            pricingModelId: otherOrgSetup.pricingModel.id,
+          })
+          const otherPrice = await setupPrice({
+            productId: otherOrgSetup.product.id,
+            name: 'Other Org Usage Price',
+            type: PriceType.Usage,
+            unitPrice: 10,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            currency: CurrencyCode.USD,
+            usageMeterId: otherUsageMeter.id,
+          })
+          return otherPrice
+        }
+      )
+
+      const input: CreateUsageEventInput = {
+        usageEvent: {
+          subscriptionId: mainSubscription.id, // Belongs to original org
+          priceId: otherOrgPrice.id, // Belongs to different org
+          usageMeterId: otherOrgPrice.usageMeterId!,
+          amount: 100,
+          transactionId: `txn_wrong_pricing_model_price_${core.nanoid()}`,
+        },
+      }
+
+      await expect(
+        comprehensiveAdminTransaction(async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input, livemode: true },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        `Price ${otherOrgPrice.id} not found for this customer's pricing model`
+      )
+    })
+
     it('should successfully create usage event when priceId is null and valid usageMeterId is provided directly', async () => {
       const input: CreateUsageEventInput = {
         usageEvent: {
@@ -826,6 +871,59 @@ describe('usageEventHelpers', () => {
       expect(createdUsageEvent.transactionId).toBe(
         input.usageEvent.transactionId
       )
+    })
+
+    it('should throw error when CountDistinctProperties meter is used with empty properties', async () => {
+      const { distinctMeter, distinctSubscription } =
+        await setupCountDistinctPropertiesMeter({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          pricingModelId: orgSetup.pricingModel.id,
+          productId: orgSetup.product.id,
+        })
+
+      // Test with undefined properties
+      const undefinedPropsInput: CreateUsageEventInput = {
+        usageEvent: {
+          usageMeterId: distinctMeter.id,
+          priceId: null,
+          subscriptionId: distinctSubscription.id,
+          transactionId: `txn_empty_props_undefined_${core.nanoid()}`,
+          amount: 100,
+          // properties intentionally omitted (undefined)
+        },
+      }
+
+      await expect(
+        comprehensiveAdminTransaction(async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input: undefinedPropsInput, livemode: true },
+            transaction
+          )
+        })
+      ).rejects.toThrow('Properties are required')
+
+      // Test with empty object properties
+      const emptyPropsInput: CreateUsageEventInput = {
+        usageEvent: {
+          usageMeterId: distinctMeter.id,
+          priceId: null,
+          subscriptionId: distinctSubscription.id,
+          transactionId: `txn_empty_props_object_${core.nanoid()}`,
+          amount: 100,
+          properties: {},
+        },
+      }
+
+      await expect(
+        comprehensiveAdminTransaction(async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input: emptyPropsInput, livemode: true },
+            transaction
+          )
+        })
+      ).rejects.toThrow('Properties are required')
     })
   })
 

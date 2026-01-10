@@ -1,9 +1,9 @@
 import { FlowgladServer } from '@flowglad/nextjs/server'
-import { auth } from '@/lib/auth'
+import { eq } from 'drizzle-orm'
 import { headers } from 'next/headers'
+import { auth } from '@/lib/auth'
 import { db } from '@/server/db/client'
 import { betterAuthSchema } from '@/server/db/schema'
-import { eq } from 'drizzle-orm'
 
 const { users } = betterAuthSchema
 

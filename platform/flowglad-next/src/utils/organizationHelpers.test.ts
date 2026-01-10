@@ -138,7 +138,7 @@ describe('createOrganizationTransaction', () => {
         },
         transaction
       )
-      expect(organization).toBeDefined()
+      expect(typeof organization).toBe('object')
 
       const testmodeKeys = await selectApiKeys(
         {
@@ -206,7 +206,7 @@ describe('createOrganizationTransaction', () => {
         { name: organizationName },
         transaction
       )
-      expect(organization).toBeDefined()
+      expect(typeof organization).toBe('object')
 
       // Live default pricing model and Free Plan
       const [liveDefaultPricingModel] = await selectPricingModels(
@@ -217,7 +217,7 @@ describe('createOrganizationTransaction', () => {
         },
         transaction
       )
-      expect(liveDefaultPricingModel?.id).toBeDefined()
+      expect(liveDefaultPricingModel?.id).toMatchObject({})
 
       const [liveDefaultProduct] = await selectProducts(
         {
@@ -226,7 +226,7 @@ describe('createOrganizationTransaction', () => {
         },
         transaction
       )
-      expect(liveDefaultProduct?.id).toBeDefined()
+      expect(typeof liveDefaultProduct?.id).toBe('string')
       expect(liveDefaultProduct.name).toBe('Free Plan')
       expect(liveDefaultProduct.organizationId).toBe(organization.id)
       expect(liveDefaultProduct.livemode).toBe(true)
@@ -236,7 +236,12 @@ describe('createOrganizationTransaction', () => {
           liveDefaultProduct.id,
           transaction
         )
-      expect(liveProductWithPrices.defaultPrice?.id).toBeDefined()
+      expect(typeof liveProductWithPrices.defaultPrice?.id).toBe(
+        'string'
+      )
+      expect(
+        liveProductWithPrices.defaultPrice?.id.length
+      ).toBeGreaterThan(0)
       expect(liveProductWithPrices.defaultPrice.name).toBe(
         'Free Plan'
       )
@@ -255,7 +260,7 @@ describe('createOrganizationTransaction', () => {
         },
         transaction
       )
-      expect(testDefaultPricingModel?.id).toBeDefined()
+      expect(testDefaultPricingModel?.id).toMatchObject({})
 
       const [testDefaultProduct] = await selectProducts(
         {
@@ -264,7 +269,8 @@ describe('createOrganizationTransaction', () => {
         },
         transaction
       )
-      expect(testDefaultProduct?.id).toBeDefined()
+      expect(typeof testDefaultProduct?.id).toBe('string')
+      expect(testDefaultProduct?.id.length).toBeGreaterThan(0)
       expect(testDefaultProduct.name).toBe('Free Plan')
       expect(testDefaultProduct.organizationId).toBe(organization.id)
       expect(testDefaultProduct.livemode).toBe(false)
@@ -274,7 +280,12 @@ describe('createOrganizationTransaction', () => {
           testDefaultProduct.id,
           transaction
         )
-      expect(testProductWithPrices.defaultPrice?.id).toBeDefined()
+      expect(typeof testProductWithPrices.defaultPrice?.id).toBe(
+        'string'
+      )
+      expect(
+        testProductWithPrices.defaultPrice?.id.length
+      ).toBeGreaterThan(0)
       expect(testProductWithPrices.defaultPrice.name).toBe(
         'Free Plan'
       )

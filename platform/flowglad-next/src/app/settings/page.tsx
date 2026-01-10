@@ -13,8 +13,8 @@ import { ExpandSection } from '@/components/ExpandSection'
 import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
 import CreateWebhookModal from '@/components/forms/CreateWebhookModal'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import OrganizationLogoInput from '@/components/OrganizationLogoInput'
+import PageContainer from '@/components/PageContainer'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
@@ -97,7 +97,7 @@ const SettingsPage = () => {
 
   if (!organization) {
     return (
-      <InnerPageContainerNew>
+      <PageContainer>
         <div className="w-full relative flex flex-col justify-center pb-6">
           <PageHeaderNew
             title="Settings"
@@ -108,12 +108,12 @@ const SettingsPage = () => {
             <div>Loading...</div>
           </div>
         </div>
-      </InnerPageContainerNew>
+      </PageContainer>
     )
   }
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew title="Settings" className="pb-4" hideBorder />
         <div className="w-full flex flex-col">
@@ -306,7 +306,7 @@ const SettingsPage = () => {
         isOpen={isCreateWebhookModalOpen}
         setIsOpen={setIsCreateWebhookModalOpen}
       />
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

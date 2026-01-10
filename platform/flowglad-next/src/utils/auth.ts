@@ -1,6 +1,11 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { admin, customSession, magicLink } from 'better-auth/plugins'
+import {
+  admin,
+  customSession,
+  emailOTP,
+  magicLink,
+} from 'better-auth/plugins'
 import { headers } from 'next/headers'
 import { adminTransaction } from '@/db/adminTransaction'
 import { db } from '@/db/client'
@@ -16,6 +21,7 @@ import { betterAuthUserToApplicationUser } from './authHelpers'
 import { getCustomerBillingPortalOrganizationId } from './customerBillingPortalState'
 import {
   sendCustomerBillingPortalMagicLink,
+  sendCustomerBillingPortalOTP,
   sendForgotPasswordEmail,
 } from './email'
 
@@ -69,6 +75,49 @@ const handleMerchantEmailOTP = async ({}: {
   throw new Error('Not implemented')
 }
 
+const handleSendVerificationOTP = async (params: {
+  email: string
+  otp: string
+  organizationId: string
+}) => {
+  const { email, otp, organizationId } = params
+
+  // Get organization and customer info for the email
+  const { organization, customer } = await adminTransaction(
+    async ({ transaction }) => {
+      const org = await selectOrganizationById(
+        organizationId,
+        transaction
+      )
+      // Only look for live mode customers - billing portals are not supported for test mode customers
+      const customers = await selectCustomers(
+        { email, organizationId, livemode: true },
+        transaction
+      )
+      return {
+        organization: org,
+        customer: customers[0] || null,
+      }
+    }
+  )
+
+  if (!organization) {
+    throw new Error(
+      `Organization not found for id: ${organizationId}`
+    )
+  }
+
+  // Send OTP email using the proper email template
+  await sendCustomerBillingPortalOTP({
+    to: [email],
+    otp,
+    customerName: customer?.name || undefined,
+    organizationName: organization.name,
+    livemode: customer?.livemode ?? false,
+  })
+}
+
+// For now, we rely on better-auth's native rate limiting
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
@@ -90,6 +139,28 @@ export const auth = betterAuth({
         session,
       }
     }),
+    // OTP plugin - primary authentication method
+    // Configured with 6-digit OTP, 10-minute expiry, and 3 allowed attempts
+    emailOTP({
+      async sendVerificationOTP({ email, otp }) {
+        const customerBillingPortalOrganizationId =
+          await getCustomerBillingPortalOrganizationId()
+        if (customerBillingPortalOrganizationId) {
+          await handleSendVerificationOTP({
+            email,
+            otp,
+            organizationId: customerBillingPortalOrganizationId,
+          })
+        } else {
+          // For merchant emails (not implemented yet)
+          throw new Error('Merchant OTP emails not implemented')
+        }
+      },
+      otpLength: 6, // 6-digit OTP code
+      expiresIn: 600, // 10 minutes in seconds (600 seconds)
+      allowedAttempts: 3, // Maximum 3 attempts before OTP becomes invalid
+    }),
+    // Magic link plugin - fallback authentication method
     magicLink({
       async sendMagicLink({ email, url, token }) {
         const customerBillingPortalOrganizationId =

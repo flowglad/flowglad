@@ -51,6 +51,22 @@ export const createUsageEvent: SubRouteHandler<
       }
     }
 
+    // Validate subscription ownership (align with bulkCreateUsageEvents)
+    const customerSubscriptionIds =
+      billing.currentSubscriptions?.map((sub) => sub.id) ?? []
+    if (!customerSubscriptionIds.includes(subscriptionId)) {
+      return {
+        data: {},
+        status: 403,
+        error: {
+          code: 'forbidden',
+          json: {
+            message: `Subscription ${subscriptionId} is not found among the customer's current subscriptions`,
+          },
+        },
+      }
+    }
+
     const resolvedParams = {
       ...params.data,
       subscriptionId,

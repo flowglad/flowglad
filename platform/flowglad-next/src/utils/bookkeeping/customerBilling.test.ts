@@ -686,14 +686,14 @@ describe('setDefaultPaymentMethodForCustomer', () => {
         }
       )
 
-      expect(billingState.pricingModel).toBeDefined()
+      expect(billingState.pricingModel).toMatchObject({})
       expect(billingState.pricingModel.products).toHaveLength(2) // setupOrg + our test product
 
       // Find our test product
       const testProduct = billingState.pricingModel.products.find(
         (p) => p.id === productWithMixedPrices.id
       )
-      expect(testProduct).toBeDefined()
+      expect(typeof testProduct).toBe('object')
       expect(testProduct!.prices).toHaveLength(1) // Only active price should be returned
 
       const returnedPrice = testProduct!.prices[0]
@@ -720,7 +720,7 @@ describe('setDefaultPaymentMethodForCustomer', () => {
         }
       )
 
-      expect(billingState.subscriptions).toBeDefined()
+      expect(typeof billingState.subscriptions).toBe('object')
       expect(
         billingState.subscriptions.length
       ).toBeGreaterThanOrEqual(2)
@@ -730,7 +730,7 @@ describe('setDefaultPaymentMethodForCustomer', () => {
         billingState.subscriptions.find(
           (sub) => sub.priceId === activePrice.id
         )
-      expect(subscriptionWithActivePrice).toBeDefined()
+      expect(typeof subscriptionWithActivePrice).toBe('object')
       expect(subscriptionWithActivePrice?.priceId).toBe(
         activePrice.id
       )
@@ -740,7 +740,7 @@ describe('setDefaultPaymentMethodForCustomer', () => {
         billingState.subscriptions.find(
           (sub) => sub.priceId === inactivePrice.id
         )
-      expect(subscriptionWithInactivePrice).toBeDefined()
+      expect(typeof subscriptionWithInactivePrice).toBe('object')
       expect(subscriptionWithInactivePrice?.priceId).toBe(
         inactivePrice.id
       )
@@ -763,24 +763,24 @@ describe('setDefaultPaymentMethodForCustomer', () => {
         }
       )
 
-      expect(billingState.customer).toBeDefined()
+      expect(typeof billingState.customer).toBe('object')
       expect(billingState.customer.id).toBe(customer.id)
 
-      expect(billingState.purchases).toBeDefined()
-      expect(billingState.invoices).toBeDefined()
-      expect(billingState.paymentMethods).toBeDefined()
-      expect(billingState.subscriptions).toBeDefined()
-      expect(billingState.currentSubscriptions).toBeDefined()
+      expect(typeof billingState.purchases).toBe('object')
+      expect(typeof billingState.invoices).toBe('object')
+      expect(typeof billingState.paymentMethods).toBe('object')
+      expect(typeof billingState.subscriptions).toBe('object')
+      expect(typeof billingState.currentSubscriptions).toBe('object')
 
       // Only pricingModel.products[].prices[] should be filtered
-      expect(billingState.pricingModel).toBeDefined()
+      expect(billingState.pricingModel).toMatchObject({})
       expect(billingState.pricingModel.products).toHaveLength(2) // setupOrg + our test product
 
       // Find our test product
       const testProduct = billingState.pricingModel.products.find(
         (p) => p.id === productWithMixedPrices.id
       )
-      expect(testProduct).toBeDefined()
+      expect(typeof testProduct).toBe('object')
       expect(testProduct!.prices).toHaveLength(1) // Only active price
       expect(testProduct!.prices[0].active).toBe(true)
 
@@ -908,7 +908,7 @@ describe('setDefaultPaymentMethodForCustomer', () => {
         billingState.pricingModel.products.find(
           (p) => p.id === productWithMixedPrices.id
         )
-      expect(productWithMixed1).toBeDefined()
+      expect(productWithMixed1).toMatchObject({})
       expect(productWithMixed1?.prices).toHaveLength(1) // Only active price
       expect(productWithMixed1?.prices[0].id).toBe(activePrice.id)
 
@@ -916,7 +916,7 @@ describe('setDefaultPaymentMethodForCustomer', () => {
         billingState.pricingModel.products.find(
           (p) => p.id === productWithMixedPrices2.id
         )
-      expect(productWithMixed2).toBeDefined()
+      expect(productWithMixed2).toMatchObject({})
       expect(productWithMixed2?.prices).toHaveLength(1) // Only active price
       expect(productWithMixed2?.prices[0].id).toBe(activePrice2.id)
     })
@@ -1131,8 +1131,8 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
       customer,
     })
 
-    expect(result).toBeDefined()
-    expect(result.checkoutSession).toBeDefined()
+    expect(result).toMatchObject({})
+    expect(result.checkoutSession).toMatchObject({})
     expect(result.checkoutSession.priceId).toBe(
       created.nonDefaultPrice.id
     )
@@ -1210,8 +1210,8 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
       customer,
     })
 
-    expect(result).toBeDefined()
-    expect(result.checkoutSession).toBeDefined()
+    expect(result).toMatchObject({})
+    expect(result.checkoutSession).toMatchObject({})
     expect(result.checkoutSession.type).toBe(
       CheckoutSessionType.ActivateSubscription
     )
@@ -1372,7 +1372,7 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       }
     )
 
-    expect(billingState.currentSubscription).toBeDefined()
+    expect(typeof billingState.currentSubscription).toBe('object')
     expect(billingState.currentSubscription.id).toBe(sub3.id)
     expect(billingState.currentSubscriptions).toContainEqual(
       expect.objectContaining({ id: sub3.id })
@@ -1400,7 +1400,7 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       }
     )
 
-    expect(billingState.currentSubscription).toBeDefined()
+    expect(typeof billingState.currentSubscription).toBe('object')
     expect(billingState.currentSubscription.id).toBe(sub.id)
     expect(billingState.currentSubscriptions).toHaveLength(1)
     expect(billingState.currentSubscriptions[0].id).toBe(sub.id)
@@ -1439,7 +1439,7 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       }
     )
 
-    expect(billingState.currentSubscription).toBeDefined()
+    expect(typeof billingState.currentSubscription).toBe('object')
     expect(billingState.currentSubscription.id).toBe(activeSub.id)
     expect(billingState.currentSubscription.id).not.toBe(
       canceledSub.id
@@ -1499,7 +1499,7 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       }
     )
 
-    expect(billingState.currentSubscription).toBeDefined()
+    expect(typeof billingState.currentSubscription).toBe('object')
     // The most recently created/updated subscription should be selected
     expect([sub1.id, sub2.id]).toContain(
       billingState.currentSubscription.id
@@ -1533,7 +1533,7 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       }
     )
 
-    expect(billingState.currentSubscription).toBeDefined()
+    expect(typeof billingState.currentSubscription).toBe('object')
     // Should be the last created subscription
     expect(billingState.currentSubscription.id).toBe(
       subscriptions[subscriptions.length - 1].id
