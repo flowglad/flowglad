@@ -1,18 +1,14 @@
+import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import { resourceClaimsClientSelectSchema } from '@/db/schema/resourceClaims'
 import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
-import { selectCustomers } from '@/db/tableMethods/customerMethods'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
-import {
-  isSubscriptionInTerminalState,
-  selectSubscriptionById,
-  selectSubscriptions,
-} from '@/db/tableMethods/subscriptionMethods'
+import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
+import type { DbTransaction } from '@/db/types'
 import {
   claimResourceInputSchema,
   claimResourceTransaction,
@@ -53,7 +49,7 @@ const getUsageOutputSchema = z.object({
 })
 
 const listClaimsInputSchema = z.object({
-  subscriptionId: z.string().optional(),
+  subscriptionId: z.string(),
   resourceSlug: z.string().optional(),
 })
 
@@ -61,68 +57,64 @@ const listClaimsOutputSchema = z.object({
   claims: z.array(resourceClaimsClientSelectSchema),
 })
 
-const claimProcedure = devOnlyProcedure
-  .input(claimResourceInputSchema)
-  .output(claimOutputSchema)
-  .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction, userId }) => {
-        // Get organization from user's focused membership
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
-            {
-              userId,
-              focused: true,
-            },
-            transaction
-          )
+// Override the input schemas to make subscriptionId required for router endpoints
+const claimInputSchemaWithRequiredSubscription =
+  claimResourceInputSchema.innerType().extend({
+    subscriptionId: z.string(),
+  })
 
-        // Find customer - for API access we need to determine the customer from context
-        // For now, we'll use the first customer for the organization (merchant-side operation)
-        const customers = await selectCustomers(
-          { organizationId: organization.id },
+const releaseInputSchemaWithRequiredSubscription =
+  releaseResourceInputSchema.innerType().extend({
+    subscriptionId: z.string(),
+  })
+
+const getUsageInputSchemaWithRequiredSubscription =
+  getResourceUsageInputSchema.extend({
+    subscriptionId: z.string(),
+  })
+
+/**
+ * Validates that a subscription belongs to the authenticated organization.
+ * Returns the subscription and its customerId if valid.
+ */
+async function validateSubscriptionOwnership(
+  subscriptionId: string,
+  organizationId: string,
+  transaction: DbTransaction
+): Promise<{
+  subscription: Awaited<ReturnType<typeof selectSubscriptionById>>
+  customerId: string
+}> {
+  const subscription = await selectSubscriptionById(
+    subscriptionId,
+    transaction
+  )
+
+  if (subscription.organizationId !== organizationId) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Subscription not found',
+    })
+  }
+
+  return { subscription, customerId: subscription.customerId }
+}
+
+const claimProcedure = devOnlyProcedure
+  .input(claimInputSchemaWithRequiredSubscription)
+  .output(claimOutputSchema)
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction, organizationId }) => {
+        const { customerId } = await validateSubscriptionOwnership(
+          input.subscriptionId,
+          organizationId,
           transaction
         )
-
-        if (customers.length === 0) {
-          throw new Error(
-            'No customers found for organization. Cannot claim resources without a customer context.'
-          )
-        }
-
-        // If subscriptionId is provided, use that subscription's customer
-        // Otherwise, use the first customer (this is a merchant operation)
-        let customerId: string
-        if (input.subscriptionId) {
-          const subscription = await selectSubscriptionById(
-            input.subscriptionId,
-            transaction
-          )
-          customerId = subscription.customerId
-        } else {
-          // For merchant operations without a specific subscription,
-          // we need to find an active subscription to work with
-          const activeSubscriptions = await selectSubscriptions(
-            { organizationId: organization.id },
-            transaction
-          )
-
-          const nonTerminalSubscription = activeSubscriptions.find(
-            (s) => !isSubscriptionInTerminalState(s.status)
-          )
-
-          if (!nonTerminalSubscription) {
-            throw new Error(
-              'No active subscription found. Please provide a subscriptionId.'
-            )
-          }
-
-          customerId = nonTerminalSubscription.customerId
-        }
 
         const result = await claimResourceTransaction(
           {
-            organizationId: organization.id,
+            organizationId,
             customerId,
             input,
           },
@@ -130,61 +122,25 @@ const claimProcedure = devOnlyProcedure
         )
 
         return result
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 const releaseProcedure = devOnlyProcedure
-  .input(releaseResourceInputSchema)
+  .input(releaseInputSchemaWithRequiredSubscription)
   .output(releaseOutputSchema)
-  .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction, userId }) => {
-        // Get organization from user's focused membership
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
-            {
-              userId,
-              focused: true,
-            },
-            transaction
-          )
-
-        // If subscriptionId is provided, use that subscription's customer
-        let customerId: string
-        if (input.subscriptionId) {
-          const subscription = await selectSubscriptionById(
-            input.subscriptionId,
-            transaction
-          )
-          customerId = subscription.customerId
-        } else {
-          // For merchant operations without a specific subscription,
-          // we need to find an active subscription to work with
-          const activeSubscriptions = await selectSubscriptions(
-            { organizationId: organization.id },
-            transaction
-          )
-
-          const nonTerminalSubscription = activeSubscriptions.find(
-            (s) => !isSubscriptionInTerminalState(s.status)
-          )
-
-          if (!nonTerminalSubscription) {
-            throw new Error(
-              'No active subscription found. Please provide a subscriptionId.'
-            )
-          }
-
-          customerId = nonTerminalSubscription.customerId
-        }
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction, organizationId }) => {
+        const { customerId } = await validateSubscriptionOwnership(
+          input.subscriptionId,
+          organizationId,
+          transaction
+        )
 
         const result = await releaseResourceTransaction(
           {
-            organizationId: organization.id,
+            organizationId,
             customerId,
             input,
           },
@@ -192,114 +148,91 @@ const releaseProcedure = devOnlyProcedure
         )
 
         return result
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 const getUsageProcedure = devOnlyProcedure
-  .input(getResourceUsageInputSchema)
+  .input(getUsageInputSchemaWithRequiredSubscription)
   .output(getUsageOutputSchema)
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction, userId }) => {
-        // Get organization from user's focused membership
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
-            {
-              userId,
-              focused: true,
-            },
-            transaction
-          )
-
-        // Resolve subscription
-        let subscriptionId: string
-        if (input.subscriptionId) {
-          subscriptionId = input.subscriptionId
-        } else {
-          const activeSubscriptions = await selectSubscriptions(
-            { organizationId: organization.id },
-            transaction
-          )
-
-          const nonTerminalSubscription = activeSubscriptions.find(
-            (s) => !isSubscriptionInTerminalState(s.status)
-          )
-
-          if (!nonTerminalSubscription) {
-            throw new Error(
-              'No active subscription found. Please provide a subscriptionId.'
-            )
-          }
-
-          subscriptionId = nonTerminalSubscription.id
-        }
-
-        const subscription = await selectSubscriptionById(
-          subscriptionId,
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction, organizationId }) => {
+        const { subscription } = await validateSubscriptionOwnership(
+          input.subscriptionId,
+          organizationId,
           transaction
         )
 
         // Get all subscription items for this subscription
         const subscriptionItemsList = await selectSubscriptionItems(
-          { subscriptionId },
+          { subscriptionId: input.subscriptionId },
           transaction
         )
 
-        // Get all subscription item features of type Resource
-        const allResourceFeatures: Array<{
-          feature: SubscriptionItemFeature.ResourceRecord
-          resourceId: string
-        }> = []
-
-        for (const item of subscriptionItemsList) {
-          const features = await selectSubscriptionItemFeatures(
-            { subscriptionItemId: item.id },
-            transaction
-          )
-
-          for (const feature of features) {
-            if (
-              feature.type === FeatureType.Resource &&
-              feature.resourceId
-            ) {
-              allResourceFeatures.push({
-                feature:
-                  feature as SubscriptionItemFeature.ResourceRecord,
-                resourceId: feature.resourceId,
-              })
-            }
-          }
+        if (subscriptionItemsList.length === 0) {
+          return { usage: [] }
         }
+
+        // Batch fetch all subscription item features for all items at once
+        const subscriptionItemIds = subscriptionItemsList.map(
+          (item) => item.id
+        )
+        const allFeatures = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: subscriptionItemIds },
+          transaction
+        )
+
+        // Filter to only resource features
+        const resourceFeatures = allFeatures.filter(
+          (
+            feature
+          ): feature is SubscriptionItemFeature.ResourceRecord =>
+            feature.type === FeatureType.Resource &&
+            feature.resourceId !== null
+        )
+
+        if (resourceFeatures.length === 0) {
+          return { usage: [] }
+        }
+
+        // Collect unique resource IDs
+        const resourceIds = [
+          ...new Set(resourceFeatures.map((f) => f.resourceId!)),
+        ]
+
+        // Batch fetch all resources at once
+        const resourcesResult = await selectResources(
+          { id: resourceIds },
+          transaction
+        )
+        const resourcesById = new Map(
+          resourcesResult.map((r) => [r.id, r])
+        )
 
         // If a specific resourceSlug is requested, filter
-        let resourcesToQuery = allResourceFeatures
+        let featuresToQuery = resourceFeatures
         if (input.resourceSlug) {
-          const resources = await selectResources(
-            {
-              slug: input.resourceSlug,
-              pricingModelId: subscription.pricingModelId,
-              organizationId: organization.id,
-            },
-            transaction
+          const matchingResource = resourcesResult.find(
+            (r) =>
+              r.slug === input.resourceSlug &&
+              r.pricingModelId === subscription.pricingModelId &&
+              r.organizationId === organizationId
           )
 
-          if (resources.length === 0) {
-            throw new Error(
-              `Resource with slug "${input.resourceSlug}" not found`
-            )
+          if (!matchingResource) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: 'Resource not found',
+            })
           }
 
-          const resourceId = resources[0].id
-          resourcesToQuery = allResourceFeatures.filter(
-            (rf) => rf.resourceId === resourceId
+          featuresToQuery = resourceFeatures.filter(
+            (rf) => rf.resourceId === matchingResource.id
           )
         }
 
-        // Get usage for each resource feature
+        // Get usage for each resource feature (these are individual queries but necessary for accurate counts)
         const usageResults: Array<{
           resourceSlug: string
           resourceId: string
@@ -308,19 +241,14 @@ const getUsageProcedure = devOnlyProcedure
           available: number
         }> = []
 
-        for (const { feature, resourceId } of resourcesToQuery) {
+        for (const feature of featuresToQuery) {
           const usage = await getResourceUsage(
-            subscriptionId,
+            input.subscriptionId,
             feature.id,
             transaction
           )
 
-          // Get resource to get the slug
-          const [resource] = await selectResources(
-            { id: resourceId },
-            transaction
-          )
-
+          const resource = resourcesById.get(feature.resourceId!)
           if (resource) {
             usageResults.push({
               resourceSlug: resource.slug,
@@ -331,54 +259,19 @@ const getUsageProcedure = devOnlyProcedure
         }
 
         return { usage: usageResults }
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 const listClaimsProcedure = devOnlyProcedure
   .input(listClaimsInputSchema)
   .output(listClaimsOutputSchema)
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction, userId }) => {
-        // Get organization from user's focused membership
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
-            {
-              userId,
-              focused: true,
-            },
-            transaction
-          )
-
-        // Resolve subscription
-        let subscriptionId: string
-        if (input.subscriptionId) {
-          subscriptionId = input.subscriptionId
-        } else {
-          const activeSubscriptions = await selectSubscriptions(
-            { organizationId: organization.id },
-            transaction
-          )
-
-          const nonTerminalSubscription = activeSubscriptions.find(
-            (s) => !isSubscriptionInTerminalState(s.status)
-          )
-
-          if (!nonTerminalSubscription) {
-            throw new Error(
-              'No active subscription found. Please provide a subscriptionId.'
-            )
-          }
-
-          subscriptionId = nonTerminalSubscription.id
-        }
-
-        const subscription = await selectSubscriptionById(
-          subscriptionId,
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction, organizationId }) => {
+        const { subscription } = await validateSubscriptionOwnership(
+          input.subscriptionId,
+          organizationId,
           transaction
         )
 
@@ -387,7 +280,7 @@ const listClaimsProcedure = devOnlyProcedure
           subscriptionId: string
           resourceId?: string
         } = {
-          subscriptionId,
+          subscriptionId: input.subscriptionId,
         }
 
         // If resourceSlug is provided, resolve to resourceId
@@ -396,15 +289,16 @@ const listClaimsProcedure = devOnlyProcedure
             {
               slug: input.resourceSlug,
               pricingModelId: subscription.pricingModelId,
-              organizationId: organization.id,
+              organizationId,
             },
             transaction
           )
 
           if (resources.length === 0) {
-            throw new Error(
-              `Resource with slug "${input.resourceSlug}" not found`
-            )
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: 'Resource not found',
+            })
           }
 
           whereClause.resourceId = resources[0].id
@@ -417,12 +311,9 @@ const listClaimsProcedure = devOnlyProcedure
         )
 
         return { claims }
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 export const resourceClaimsRouter = router({
   claim: claimProcedure,
