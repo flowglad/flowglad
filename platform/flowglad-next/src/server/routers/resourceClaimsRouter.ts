@@ -58,15 +58,47 @@ const listClaimsOutputSchema = z.object({
 })
 
 // Override the input schemas to make subscriptionId required for router endpoints
+// In Zod v4, refined schemas don't have .innerType() - access shape via ._zod.def.shape
 const claimInputSchemaWithRequiredSubscription =
-  claimResourceInputSchema.innerType().extend({
-    subscriptionId: z.string(),
-  })
+  claimResourceInputSchema
+    .safeExtend({
+      subscriptionId: z.string(),
+    })
+    .refine(
+      (data) => {
+        const provided = [
+          data.quantity !== undefined,
+          data.externalId !== undefined,
+          data.externalIds !== undefined,
+        ].filter(Boolean)
+        return provided.length === 1
+      },
+      {
+        message:
+          'Exactly one of quantity, externalId, or externalIds must be provided',
+      }
+    )
 
-const releaseInputSchemaWithRequiredSubscription =
-  releaseResourceInputSchema.innerType().extend({
+const releaseInputSchemaWithRequiredSubscription = z
+  .object({
+    ...releaseResourceInputSchema._zod.def.shape,
     subscriptionId: z.string(),
   })
+  .refine(
+    (data) => {
+      const provided = [
+        data.quantity !== undefined,
+        data.externalId !== undefined,
+        data.externalIds !== undefined,
+        data.claimIds !== undefined,
+      ].filter(Boolean)
+      return provided.length === 1
+    },
+    {
+      message:
+        'Exactly one of quantity, externalId, externalIds, or claimIds must be provided',
+    }
+  )
 
 const getUsageInputSchemaWithRequiredSubscription =
   getResourceUsageInputSchema.extend({
