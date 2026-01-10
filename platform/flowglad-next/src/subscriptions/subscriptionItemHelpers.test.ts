@@ -2445,42 +2445,39 @@ describe('subscriptionItemHelpers', () => {
       // current billing period regardless of the adjustment date. Implementing this behavior
       // would require significant architectural changes beyond the scope of this PR.
 
-      describe('sourceReferenceType filtering', () => {
-        it('should NOT consider credits from BillingPeriodTransition when deduplicating ManualAdjustment credits', async () => {
-          // Pre-create a credit with a different sourceReferenceType
-          // This simulates credits granted during billing period transition
-          const subscriptionItemFeature =
-            await setupSubscriptionItemFeature({
-              subscriptionItemId: subscriptionItem.id,
-              featureId: feature.id,
-              type: FeatureType.UsageCreditGrant,
-              usageMeterId: usageMeter.id,
-              amount: feature.amount,
-              renewalFrequency: feature.renewalFrequency,
-              livemode: true,
-              productFeatureId: productFeature.id,
-            })
+      describe('delta calculation with existing credits', () => {
+        it('calculates delta correctly when BillingPeriodTransition credits exist (upgrade scenario)', async () => {
+          // Simulate a real upgrade scenario:
+          // - Customer has Pro plan with 100 credits granted at billing period start
+          // - Customer upgrades to Mega plan with 200 credits mid-period (50% through)
+          // - Delta should be: (200 * 0.5) - 100 = 0 (no additional credits needed)
+          // - But if upgrade gives more, e.g. 300 credits: (300 * 0.5) - 100 = 50 delta
 
-          // Create a credit with BillingPeriodTransition type (not ManualAdjustment)
+          // Create BillingPeriodTransition credit WITHOUT sourceReferenceId
+          // (this matches real production behavior - these credits don't have sourceReferenceId)
+          const existingCreditAmount = 100
           await setupUsageCredit({
             organizationId: orgData.organization.id,
             subscriptionId: subscription.id,
             usageMeterId: usageMeter.id,
             billingPeriodId: billingPeriod.id,
-            issuedAmount: 100,
+            issuedAmount: existingCreditAmount,
             creditType: UsageCreditType.Grant,
-            sourceReferenceId: subscriptionItemFeature.id,
+            // Note: NO sourceReferenceId - BillingPeriodTransition credits don't have this
             sourceReferenceType:
               UsageCreditSourceReferenceType.BillingPeriodTransition,
             status: UsageCreditStatus.Posted,
           })
 
           await adminTransaction(async ({ transaction }) => {
+            // Adjust at exactly 50% through the billing period
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs
 
-            // Adjustment should still grant credits because existing credit
-            // has BillingPeriodTransition type, not ManualAdjustment
+            // The feature.amount is 100 (from setup)
+            // At 50% remaining, prorated amount = 100 * 0.5 = 50
+            // Existing credits = 100
+            // Delta = 50 - 100 = -50 (negative, so no credits granted)
             const result = await handleSubscriptionItemAdjustment({
               subscriptionId: subscription.id,
               newSubscriptionItems: [
@@ -2499,13 +2496,140 @@ describe('subscriptionItemHelpers', () => {
               transaction,
             })
 
-            // Should grant credits because we only check ManualAdjustment type
+            // Delta is negative (existing credits > new prorated amount)
+            // So NO new credits should be granted
+            expect(result.usageCredits.length).toBe(0)
+
+            // Verify only the original BillingPeriodTransition credit exists
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+              },
+              transaction
+            )
+            expect(allCredits.length).toBe(1)
+            expect(allCredits[0].sourceReferenceType).toBe(
+              UsageCreditSourceReferenceType.BillingPeriodTransition
+            )
+            expect(allCredits[0].issuedAmount).toBe(
+              existingCreditAmount
+            )
+          })
+        })
+
+        it('grants no additional credits when prorated new amount equals existing credits (zero delta)', async () => {
+          // Scenario: Customer has 50 credits from billing period start
+          // New plan also prorates to 50 credits at 50% through period
+          // Delta = 50 - 50 = 0 (no credits should be granted)
+
+          const existingCreditAmount = 50
+          await setupUsageCredit({
+            organizationId: orgData.organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            billingPeriodId: billingPeriod.id,
+            issuedAmount: existingCreditAmount,
+            creditType: UsageCreditType.Grant,
+            // NO sourceReferenceId - matches real BillingPeriodTransition credits
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.BillingPeriodTransition,
+            status: UsageCreditStatus.Posted,
+          })
+
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriodDate =
+              billingPeriodStartDate + 15 * oneDayInMs
+
+            // feature.amount is 100, prorated = 100 * 0.5 = 50
+            // existing = 50, delta = 50 - 50 = 0 (no credits)
+            const result = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Manual Adjustment',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriodDate,
+              transaction,
+            })
+
+            // feature.amount=100, at 50% = 50 prorated
+            // existing = 50, delta = 0
+            // No new credits should be granted
+            expect(result.usageCredits.length).toBe(0)
+
+            // Only original credit should exist
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+              },
+              transaction
+            )
+            expect(allCredits.length).toBe(1)
+          })
+        })
+
+        it('grants positive delta credits when upgrading to plan with more credits', async () => {
+          // Scenario: Customer has 20 credits from billing period start (small plan)
+          // Upgrades to plan with 100 credits at 50% through period
+          // New prorated = 100 * 0.5 = 50
+          // Delta = 50 - 20 = 30 credits should be granted
+
+          const existingCreditAmount = 20
+          await setupUsageCredit({
+            organizationId: orgData.organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            billingPeriodId: billingPeriod.id,
+            issuedAmount: existingCreditAmount,
+            creditType: UsageCreditType.Grant,
+            // NO sourceReferenceId - matches real BillingPeriodTransition credits
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.BillingPeriodTransition,
+            status: UsageCreditStatus.Posted,
+          })
+
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriodDate =
+              billingPeriodStartDate + 15 * oneDayInMs
+
+            // feature.amount is 100, prorated = 100 * 0.5 = 50
+            // existing = 20, delta = 50 - 20 = 30 credits
+            const result = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Upgrade Adjustment',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriodDate,
+              transaction,
+            })
+
+            // Should grant exactly 30 delta credits (50 prorated - 20 existing)
             expect(result.usageCredits.length).toBe(1)
+            expect(result.usageCredits[0].issuedAmount).toBe(30)
             expect(result.usageCredits[0].sourceReferenceType).toBe(
               UsageCreditSourceReferenceType.ManualAdjustment
             )
 
-            // Verify both credits exist (one from each source type)
+            // Total credits should be 20 (original) + 30 (delta) = 50
             const allCredits = await selectUsageCredits(
               {
                 subscriptionId: subscription.id,
@@ -2515,23 +2639,17 @@ describe('subscriptionItemHelpers', () => {
             )
             expect(allCredits.length).toBe(2)
 
-            const billingPeriodTransitionCredits = allCredits.filter(
-              (c) =>
-                c.sourceReferenceType ===
-                UsageCreditSourceReferenceType.BillingPeriodTransition
+            const totalCredits = allCredits.reduce(
+              (sum, c) => sum + c.issuedAmount,
+              0
             )
-            const manualAdjustmentCredits = allCredits.filter(
-              (c) =>
-                c.sourceReferenceType ===
-                UsageCreditSourceReferenceType.ManualAdjustment
-            )
-            expect(billingPeriodTransitionCredits.length).toBe(1)
-            expect(manualAdjustmentCredits.length).toBe(1)
+            expect(totalCredits).toBe(50) // 20 + 30 = 50, which is the prorated amount
           })
         })
 
-        it('should deduplicate when existing credit has ManualAdjustment type', async () => {
-          // Pre-create a ManualAdjustment credit
+        it('calculates delta correctly when ManualAdjustment credits already exist', async () => {
+          // Test scenario: Previous mid-period adjustment already granted 50 credits
+          // New adjustment at same point would calculate delta against existing
           const subscriptionItemFeature =
             await setupSubscriptionItemFeature({
               subscriptionItemId: subscriptionItem.id,
@@ -2544,6 +2662,7 @@ describe('subscriptionItemHelpers', () => {
               productFeatureId: productFeature.id,
             })
 
+          // Existing ManualAdjustment credit from a previous mid-period upgrade
           await setupUsageCredit({
             organizationId: orgData.organization.id,
             subscriptionId: subscription.id,
@@ -2561,8 +2680,9 @@ describe('subscriptionItemHelpers', () => {
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs
 
-            // Adjustment should NOT grant credits because existing credit
-            // has ManualAdjustment type for the same featureId
+            // feature.amount=100, at 50% = 50 prorated
+            // existing = 50 (ManualAdjustment), delta = 50 - 50 = 0
+            // No new credits should be granted
             const result = await handleSubscriptionItemAdjustment({
               subscriptionId: subscription.id,
               newSubscriptionItems: [
@@ -2581,7 +2701,7 @@ describe('subscriptionItemHelpers', () => {
               transaction,
             })
 
-            // Should NOT grant credits - deduplicated!
+            // Delta = 0, so no new credits granted
             expect(result.usageCredits.length).toBe(0)
 
             // Verify only original credit exists
@@ -2595,7 +2715,145 @@ describe('subscriptionItemHelpers', () => {
               transaction
             )
             expect(allCredits.length).toBe(1)
-            expect(allCredits[0].issuedAmount).toBe(50) // Original amount
+            expect(allCredits[0].issuedAmount).toBe(50) // Original amount unchanged
+          })
+        })
+
+        it('calculates delta correctly when multiple features share the same usageMeterId (no double-subtraction)', async () => {
+          // This test verifies the fix for the bug where existing credits were subtracted
+          // from each feature individually when multiple features share the same meter,
+          // causing UNDER-granting of credits.
+          //
+          // Bug scenario (BEFORE fix) - double subtraction caused under-granting:
+          // - Feature A prorates to 50 credits for meter M, Feature B prorates to 100 for meter M
+          // - Existing credits for meter M: 50
+          // - Feature A delta: 50 - 50 = 0 (filtered out)
+          // - Feature B delta: 100 - 50 = 50
+          // - Total granted: 50 (WRONG - should be 100, under-granted by 50!)
+          //
+          // Correct behavior (AFTER fix):
+          // - Total new prorated for meter M: 50 + 100 = 150
+          // - Delta for meter M: 150 - 50 = 100
+          // - Total granted: 100 (correct - existing credits subtracted once per meter)
+          //
+          // Note: When multiple features share a usageMeterId, the allocation logic may
+          // produce 1 or 2 ManualAdjustment credits depending on feature iteration order.
+          // The assertions below validate totals rather than exact credit count.
+
+          // Create a second feature that uses the SAME usage meter
+          const feature2 = await setupUsageCreditGrantFeature({
+            organizationId: orgData.organization.id,
+            name: 'Second Feature Same Meter',
+            usageMeterId: usageMeter.id, // Same meter as the first feature
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+            livemode: true,
+            amount: 200, // First feature has 100, this one has 200
+            pricingModelId: orgData.pricingModel.id,
+          })
+
+          // Link second feature to the same product
+          await setupProductFeature({
+            organizationId: orgData.organization.id,
+            productId: product.id,
+            featureId: feature2.id,
+          })
+
+          // Setup existing credits from BillingPeriodTransition (50 credits)
+          const existingCreditAmount = 50
+          await setupUsageCredit({
+            organizationId: orgData.organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            billingPeriodId: billingPeriod.id,
+            issuedAmount: existingCreditAmount,
+            creditType: UsageCreditType.Grant,
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.BillingPeriodTransition,
+            status: UsageCreditStatus.Posted,
+          })
+
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriodDate =
+              billingPeriodStartDate + 15 * oneDayInMs // 50% through
+
+            // Feature 1: 100 credits * 0.5 = 50 prorated
+            // Feature 2: 200 credits * 0.5 = 100 prorated
+            // Total new prorated for meter: 50 + 100 = 150
+            // Existing credits: 50
+            // Correct delta: 150 - 50 = 100 credits total
+            //
+            // BUG would have calculated:
+            // Feature 1: 50 - 50 = 0 (filtered out)
+            // Feature 2: 100 - 50 = 50
+            // Total: 50 (wrong!)
+
+            const result = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Adjustment With Both Features',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriodDate,
+              transaction,
+            })
+
+            // Should create 2 features (one for each feature definition)
+            const usageCreditGrantFeatures =
+              result.createdFeatures.filter(
+                (f) => f.type === FeatureType.UsageCreditGrant
+              )
+            expect(usageCreditGrantFeatures.length).toBe(2)
+
+            // Total delta of 100 credits is distributed across features.
+            // Depending on iteration order, this may result in 1 or 2 ManualAdjustment credits.
+            // We validate the total granted amount rather than the exact credit count.
+            const totalGrantedCredits = result.usageCredits.reduce(
+              (sum, c) => sum + c.issuedAmount,
+              0
+            )
+            expect(totalGrantedCredits).toBe(100) // Correct delta
+
+            // Verify the total credits in the database
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+                usageMeterId: usageMeter.id,
+              },
+              transaction
+            )
+
+            // Should have 2-3 credits total: 1 BillingPeriodTransition + 1 or 2 ManualAdjustment
+            // (allocation may produce 1 or 2 ManualAdjustment credits depending on iteration order)
+            const totalCreditAmount = allCredits.reduce(
+              (sum, c) => sum + c.issuedAmount,
+              0
+            )
+            // Total should be: 50 (existing) + 100 (delta) = 150 (the prorated amount)
+            expect(totalCreditAmount).toBe(150)
+
+            // Verify we granted the correct delta (the bug would have under-granted,
+            // granting only 50 instead of 100 due to double-subtraction of existing credits)
+            const manualAdjustmentCredits = allCredits.filter(
+              (c) =>
+                c.sourceReferenceType ===
+                UsageCreditSourceReferenceType.ManualAdjustment
+            )
+            const manualAdjustmentTotal =
+              manualAdjustmentCredits.reduce(
+                (sum, c) => sum + c.issuedAmount,
+                0
+              )
+            expect(manualAdjustmentTotal).toBe(100) // Exactly the delta amount
           })
         })
       })

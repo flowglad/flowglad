@@ -876,6 +876,59 @@ describe('usageEventHelpers', () => {
         input.usageEvent.transactionId
       )
     })
+
+    it('should throw error when CountDistinctProperties meter is used with empty properties', async () => {
+      const { distinctMeter, distinctSubscription } =
+        await setupCountDistinctPropertiesMeter({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          pricingModelId: orgSetup.pricingModel.id,
+          productId: orgSetup.product.id,
+        })
+
+      // Test with undefined properties
+      const undefinedPropsInput: CreateUsageEventInput = {
+        usageEvent: {
+          usageMeterId: distinctMeter.id,
+          priceId: null,
+          subscriptionId: distinctSubscription.id,
+          transactionId: `txn_empty_props_undefined_${core.nanoid()}`,
+          amount: 100,
+          // properties intentionally omitted (undefined)
+        },
+      }
+
+      await expect(
+        comprehensiveAdminTransaction(async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input: undefinedPropsInput, livemode: true },
+            transaction
+          )
+        })
+      ).rejects.toThrow('Properties are required')
+
+      // Test with empty object properties
+      const emptyPropsInput: CreateUsageEventInput = {
+        usageEvent: {
+          usageMeterId: distinctMeter.id,
+          priceId: null,
+          subscriptionId: distinctSubscription.id,
+          transactionId: `txn_empty_props_object_${core.nanoid()}`,
+          amount: 100,
+          properties: {},
+        },
+      }
+
+      await expect(
+        comprehensiveAdminTransaction(async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input: emptyPropsInput, livemode: true },
+            transaction
+          )
+        })
+      ).rejects.toThrow('Properties are required')
+    })
   })
 
   describe('createUsageEventWithSlugSchema', () => {

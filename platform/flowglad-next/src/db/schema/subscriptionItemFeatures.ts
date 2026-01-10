@@ -84,6 +84,7 @@ export const subscriptionItemFeatures = pgTable(
     constructIndex(TABLE_NAME, [table.productFeatureId]),
     constructIndex(TABLE_NAME, [table.type]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
+    constructIndex(TABLE_NAME, [table.resourceId]),
     constructUniqueIndex(TABLE_NAME, [
       table.featureId,
       table.subscriptionItemId,

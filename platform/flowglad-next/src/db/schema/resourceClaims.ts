@@ -16,6 +16,7 @@ import { subscriptions } from '@/db/schema/subscriptions'
 import {
   constructIndex,
   enableCustomerReadPolicy,
+  hiddenColumnsForClientSchema,
   livemodePolicy,
   merchantPolicy,
   metadataSchema,
@@ -90,20 +91,17 @@ export const resourceClaims = pgTable(
   ]
 ).enableRLS()
 
-const hiddenColumnsForClientSchema = {
-  position: true,
-  createdByCommit: true,
-  updatedByCommit: true,
-} as const
-
 const readOnlyColumns = {
   organizationId: true,
   livemode: true,
-  pricingModelId: true,
-  subscriptionId: true,
+  claimedAt: true,
+} as const
+
+const createOnlyColumns = {
   subscriptionItemFeatureId: true,
   resourceId: true,
-  claimedAt: true,
+  subscriptionId: true,
+  pricingModelId: true,
 } as const
 
 const columnRefinements = {
@@ -124,6 +122,7 @@ export const {
   client: {
     hiddenColumns: hiddenColumnsForClientSchema,
     readOnlyColumns,
+    createOnlyColumns,
   },
   entityName: 'ResourceClaim',
 })

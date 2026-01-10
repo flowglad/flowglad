@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, count, eq, inArray, isNull } from 'drizzle-orm'
 import {
   type ResourceClaim,
   resourceClaims,
@@ -60,28 +60,40 @@ export const selectResourceClaimsPaginated =
 /**
  * Selects only active (non-released) resource claims.
  * Active claims are those where releasedAt is null.
+ * Uses database-level filtering to leverage the partial index on releasedAt IS NULL.
  */
 export const selectActiveResourceClaims = async (
   where: Omit<ResourceClaim.Where, 'releasedAt'>,
   transaction: DbTransaction
 ): Promise<ResourceClaim.Record[]> => {
-  const allClaims = await selectResourceClaims(where, transaction)
-  return allClaims.filter((claim) => claim.releasedAt === null)
+  return selectResourceClaims(
+    { ...where, releasedAt: null } as ResourceClaim.Where,
+    transaction
+  )
 }
 
 /**
  * Counts active (non-released) claims for a given subscriptionItemFeatureId.
  * Useful for checking capacity against limits.
+ * Uses a database COUNT query for efficiency instead of fetching all records.
  */
 export const countActiveClaimsForSubscriptionItemFeature = async (
   subscriptionItemFeatureId: string,
   transaction: DbTransaction
 ): Promise<number> => {
-  const activeClaims = await selectActiveResourceClaims(
-    { subscriptionItemFeatureId },
-    transaction
-  )
-  return activeClaims.length
+  const result = await transaction
+    .select({ count: count() })
+    .from(resourceClaims)
+    .where(
+      and(
+        eq(
+          resourceClaims.subscriptionItemFeatureId,
+          subscriptionItemFeatureId
+        ),
+        isNull(resourceClaims.releasedAt)
+      )
+    )
+  return result[0]?.count ?? 0
 }
 
 /**
@@ -107,25 +119,30 @@ export const releaseResourceClaim = async (
 /**
  * Releases all active claims for a given subscriptionItemFeatureId.
  * Used when a subscription item feature is detached or expired.
+ * Uses a single atomic UPDATE to avoid TOCTOU race conditions.
  */
 export const releaseAllClaimsForSubscriptionItemFeature = async (
   subscriptionItemFeatureId: string,
   releaseReason: string,
   transaction: DbTransaction
 ): Promise<ResourceClaim.Record[]> => {
-  const activeClaims = await selectActiveResourceClaims(
-    { subscriptionItemFeatureId },
-    transaction
-  )
-
-  return Promise.all(
-    activeClaims.map((claim) =>
-      releaseResourceClaim(
-        { id: claim.id, releaseReason },
-        transaction
+  const result = await transaction
+    .update(resourceClaims)
+    .set({
+      releasedAt: Date.now(),
+      releaseReason,
+    })
+    .where(
+      and(
+        eq(
+          resourceClaims.subscriptionItemFeatureId,
+          subscriptionItemFeatureId
+        ),
+        isNull(resourceClaims.releasedAt)
       )
     )
-  )
+    .returning()
+  return resourceClaimsSelectSchema.array().parse(result)
 }
 
 /**
@@ -149,4 +166,133 @@ export const selectActiveClaimByExternalId = async (
     transaction
   )
   return claims[0] ?? null
+}
+
+/**
+ * Counts active (non-released) claims for a given subscription and resource.
+ * Useful for validating downgrade capacity constraints.
+ * Uses a database COUNT query for efficiency instead of fetching all records.
+ */
+export const countActiveResourceClaims = async (
+  params: {
+    subscriptionId: string
+    resourceId: string
+  },
+  transaction: DbTransaction
+): Promise<number> => {
+  const result = await transaction
+    .select({ count: count() })
+    .from(resourceClaims)
+    .where(
+      and(
+        eq(resourceClaims.subscriptionId, params.subscriptionId),
+        eq(resourceClaims.resourceId, params.resourceId),
+        isNull(resourceClaims.releasedAt)
+      )
+    )
+  return result[0]?.count ?? 0
+}
+
+/**
+ * Batch counts active (non-released) claims for a subscription across multiple resources.
+ * More efficient than calling countActiveResourceClaims for each resource individually.
+ * Uses a single GROUP BY query to count claims per resource.
+ *
+ * @param params - subscriptionId and array of resourceIds to count
+ * @param transaction - Database transaction
+ * @returns Map of resourceId to count of active claims
+ */
+export const countActiveResourceClaimsBatch = async (
+  params: {
+    subscriptionId: string
+    resourceIds: string[]
+  },
+  transaction: DbTransaction
+): Promise<Map<string, number>> => {
+  if (params.resourceIds.length === 0) {
+    return new Map()
+  }
+
+  const result = await transaction
+    .select({
+      resourceId: resourceClaims.resourceId,
+      count: count(),
+    })
+    .from(resourceClaims)
+    .where(
+      and(
+        eq(resourceClaims.subscriptionId, params.subscriptionId),
+        inArray(resourceClaims.resourceId, params.resourceIds),
+        isNull(resourceClaims.releasedAt)
+      )
+    )
+    .groupBy(resourceClaims.resourceId)
+
+  // Build map with counts, defaulting to 0 for resources with no claims
+  const countMap = new Map<string, number>()
+  for (const resourceId of params.resourceIds) {
+    countMap.set(resourceId, 0)
+  }
+  for (const row of result) {
+    countMap.set(row.resourceId, row.count)
+  }
+
+  return countMap
+}
+
+/**
+ * Finds active claims by multiple externalIds for a given resource and subscription.
+ * Useful for batch idempotent claim operations.
+ */
+export const selectActiveClaimsByExternalIds = async (
+  params: {
+    resourceId: string
+    subscriptionId: string
+    externalIds: string[]
+  },
+  transaction: DbTransaction
+): Promise<ResourceClaim.Record[]> => {
+  if (params.externalIds.length === 0) {
+    return []
+  }
+  const result = await transaction
+    .select()
+    .from(resourceClaims)
+    .where(
+      and(
+        eq(resourceClaims.resourceId, params.resourceId),
+        eq(resourceClaims.subscriptionId, params.subscriptionId),
+        inArray(resourceClaims.externalId, params.externalIds),
+        isNull(resourceClaims.releasedAt)
+      )
+    )
+  return resourceClaimsSelectSchema.array().parse(result)
+}
+
+/**
+ * Bulk releases multiple resource claims by their IDs in a single query.
+ * Sets releasedAt timestamp and release reason for all claims.
+ */
+export const bulkReleaseResourceClaims = async (
+  claimIds: string[],
+  releaseReason: string,
+  transaction: DbTransaction
+): Promise<ResourceClaim.Record[]> => {
+  if (claimIds.length === 0) {
+    return []
+  }
+  const result = await transaction
+    .update(resourceClaims)
+    .set({
+      releasedAt: Date.now(),
+      releaseReason,
+    })
+    .where(
+      and(
+        inArray(resourceClaims.id, claimIds),
+        isNull(resourceClaims.releasedAt)
+      )
+    )
+    .returning()
+  return resourceClaimsSelectSchema.array().parse(result)
 }

@@ -1,90 +1,19 @@
 'use client'
 
-import { isValid } from 'date-fns'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
+import { ChartDataTooltip } from '@/components/ChartDataTooltip'
 import {
   ChartBody,
   ChartHeader,
   ChartValueDisplay,
   LineChart,
-  type TooltipProps,
 } from '@/components/charts'
-import ErrorBoundary from '@/components/ErrorBoundary'
 import { useChartInterval } from '@/hooks/useChartInterval'
 import { useChartTooltip } from '@/hooks/useChartTooltip'
-import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
-import {
-  formatDateUTC,
-  MONTH_NAMES_FULL,
-} from '@/utils/chart/dateFormatting'
-
-/**
- * Formats a date label for the tooltip using UTC.
- * Uses the ISO date string if available, otherwise attempts to parse the label.
- * Formats as "MMMM yyyy" (e.g., "October 2025") in UTC.
- * Falls back to the original label if parsing fails.
- */
-function TooltipDateLabel({
-  label,
-  isoDate,
-}: {
-  label: string
-  isoDate?: string
-}) {
-  try {
-    // Prefer isoDate if available, as it contains the full date with year
-    const dateString = isoDate ?? label
-    const date = new Date(dateString)
-    if (isValid(date)) {
-      const month = MONTH_NAMES_FULL[date.getUTCMonth()]
-      const year = date.getUTCFullYear()
-      return <span>{`${month} ${year}`}</span>
-    }
-    return <span>{label}</span>
-  } catch {
-    return <span>{label}</span>
-  }
-}
-
-/**
- * Tooltip component for subscriber count chart.
- * Shows subscriber count on top, date below - matching the Figma design.
- */
-const SubscriberCountTooltip = ({
-  active,
-  payload,
-  label,
-}: TooltipProps) => {
-  if (!active || !payload?.[0] || !label) {
-    return null
-  }
-  const value = payload[0].value as number
-  // Extract the ISO date from the payload data for proper year formatting
-  const isoDate = payload[0].payload?.isoDate as string | undefined
-
-  return (
-    <ErrorBoundary fallback={<div>Error</div>}>
-      <div
-        className={cn(
-          'bg-popover flex flex-col gap-2 p-2 rounded border border-border',
-          'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
-        )}
-      >
-        <p className="text-base font-medium text-foreground tracking-tight leading-none">
-          {value.toLocaleString()}
-        </p>
-        <p className="text-sm text-muted-foreground tracking-tight leading-5">
-          <TooltipDateLabel
-            label={label as string}
-            isoDate={isoDate}
-          />
-        </p>
-      </div>
-    </ErrorBoundary>
-  )
-}
+import { formatDateUTC } from '@/utils/chart/dateFormatting'
+import { createChartTooltipMetadata } from '@/utils/chart/types'
 
 interface ActiveSubscribersChartProps {
   fromDate: Date
@@ -128,19 +57,24 @@ export const ActiveSubscribersChart = ({
 
   const chartData = React.useMemo(() => {
     if (!subscriberData) return []
-    return subscriberData.map((item) => {
+    return subscriberData.map((item, index) => {
       const dateObj = new Date(item.month)
       return {
         // Use UTC formatting to match PostgreSQL's date_trunc behavior
         date: formatDateUTC(dateObj, interval),
-        // Store the ISO date string for the tooltip to use for proper year formatting
-        isoDate: dateObj.toISOString(),
-        // Store the interval unit for the tooltip to format dates appropriately
-        intervalUnit: interval,
+        // Tooltip metadata for consistent date/period formatting
+        ...createChartTooltipMetadata({
+          date: dateObj,
+          intervalUnit: interval,
+          rangeStart: fromDate,
+          rangeEnd: toDate,
+          index,
+          totalPoints: subscriberData.length,
+        }),
         subscribers: item.count,
       }
     })
-  }, [subscriberData, interval])
+  }, [subscriberData, interval, fromDate, toDate])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data
@@ -166,7 +100,7 @@ export const ActiveSubscribersChart = ({
   return (
     <div className="w-full h-full">
       <ChartHeader
-        title="Active Subscribers"
+        title="Active subscribers"
         infoTooltip="The number of customers with active paid subscriptions at each point in time."
         showInlineSelector={showInlineSelector}
         interval={interval}
@@ -188,13 +122,19 @@ export const ActiveSubscribersChart = ({
           className="-mb-2 mt-2"
           colors={['foreground']}
           fill="gradient"
-          customTooltip={SubscriberCountTooltip}
+          customTooltip={(props) => (
+            <ChartDataTooltip
+              {...props}
+              valueFormatter={(value) => value.toLocaleString()}
+            />
+          )}
           maxValue={maxValue}
           autoMinValue={false}
           minValue={0}
           startEndOnly={true}
           startEndOnlyYAxis={true}
           showYAxis={false}
+          intervalUnit={interval}
           valueFormatter={(value: number) => value.toString()}
           tooltipCallback={tooltipCallback}
         />

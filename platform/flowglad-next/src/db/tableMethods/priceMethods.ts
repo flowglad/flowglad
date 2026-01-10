@@ -33,11 +33,12 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
-import { PriceType } from '@/types'
+import { FeatureType, PriceType } from '@/types'
 import {
   type Feature,
   features,
   featuresSelectSchema,
+  resourceFeatureSelectSchema,
 } from '../schema/features'
 import {
   organizations,
@@ -47,7 +48,10 @@ import {
   pricingModels,
   pricingModelsSelectSchema,
 } from '../schema/pricingModels'
-import { productFeatures } from '../schema/productFeatures'
+import {
+  productFeatures,
+  productFeaturesSelectSchema,
+} from '../schema/productFeatures'
 import {
   type Product,
   products,
@@ -752,4 +756,143 @@ export const selectPriceBySlugAndPricingModelId = async (
   }
 
   return result[0]
+}
+
+/**
+ * Selects Resource features for a given price.
+ * Used for validating resource capacity during subscription adjustments.
+ *
+ * Returns features with type=Resource that are linked to the price's product
+ * via productFeatures, including the feature's amount, slug, and resourceId.
+ *
+ * @param priceId - The ID of the price to get resource features for
+ * @param transaction - Database transaction
+ * @returns Array of Resource feature records
+ */
+export const selectResourceFeaturesForPrice = async (
+  priceId: string,
+  transaction: DbTransaction
+): Promise<Feature.ResourceRecord[]> => {
+  // Get the price to find its productId
+  const price = await selectPriceById(priceId, transaction)
+
+  // Query productFeatures joined with features, filtering for Resource type
+  // and non-expired productFeatures
+  const results = await transaction
+    .select({
+      feature: features,
+      productFeature: productFeatures,
+    })
+    .from(productFeatures)
+    .innerJoin(features, eq(productFeatures.featureId, features.id))
+    .where(
+      and(
+        eq(productFeatures.productId, price.productId),
+        eq(features.type, FeatureType.Resource),
+        eq(features.active, true)
+      )
+    )
+
+  // Filter for non-expired productFeatures and parse as Resource features
+  return results
+    .filter(
+      (result) =>
+        result.productFeature.expiredAt === null ||
+        result.productFeature.expiredAt > Date.now()
+    )
+    .map((result) =>
+      resourceFeatureSelectSchema.parse(result.feature)
+    )
+}
+
+/**
+ * Batch selects Resource features for multiple prices.
+ * More efficient than calling selectResourceFeaturesForPrice for each price individually.
+ *
+ * Returns a Map of priceId -> Resource features for that price.
+ *
+ * @param priceIds - Array of price IDs to get resource features for
+ * @param transaction - Database transaction
+ * @returns Map of priceId to array of Resource feature records
+ */
+export const selectResourceFeaturesForPrices = async (
+  priceIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, Feature.ResourceRecord[]>> => {
+  if (priceIds.length === 0) {
+    return new Map()
+  }
+
+  // Fetch all prices to get their productIds
+  const priceRecords = await selectPrices(
+    { id: priceIds },
+    transaction
+  )
+  const priceIdToProductId = new Map(
+    priceRecords.map((p) => [p.id, p.productId])
+  )
+  const productIds = [
+    ...new Set(priceRecords.map((p) => p.productId)),
+  ]
+
+  if (productIds.length === 0) {
+    return new Map()
+  }
+
+  // Query productFeatures joined with features for all products at once
+  const results = await transaction
+    .select({
+      feature: features,
+      productFeature: productFeatures,
+    })
+    .from(productFeatures)
+    .innerJoin(features, eq(productFeatures.featureId, features.id))
+    .where(
+      and(
+        inArray(productFeatures.productId, productIds),
+        eq(features.type, FeatureType.Resource),
+        eq(features.active, true)
+      )
+    )
+
+  // Filter for non-expired productFeatures
+  const now = Date.now()
+  const validResults = results.filter(
+    (result) =>
+      result.productFeature.expiredAt === null ||
+      result.productFeature.expiredAt > now
+  )
+
+  // Build a map of productId -> Resource features
+  const productIdToFeatures = new Map<
+    string,
+    Feature.ResourceRecord[]
+  >()
+  for (const result of validResults) {
+    const productId = result.productFeature.productId
+    const feature = resourceFeatureSelectSchema.parse(result.feature)
+    const existing = productIdToFeatures.get(productId) ?? []
+    existing.push(feature)
+    productIdToFeatures.set(productId, existing)
+  }
+
+  // Map priceIds back to their features via productId
+  // Spread arrays to create independent copies - prices sharing the same productId
+  // should not share array references to prevent mutation side effects
+  const priceIdToFeatures = new Map<
+    string,
+    Feature.ResourceRecord[]
+  >()
+  for (const priceId of priceIds) {
+    const productId = priceIdToProductId.get(priceId)
+    if (productId) {
+      priceIdToFeatures.set(priceId, [
+        ...(productIdToFeatures.get(productId) ?? []),
+      ])
+    } else {
+      priceIdToFeatures.set(priceId, [])
+    }
+  }
+
+  return priceIdToFeatures
 }

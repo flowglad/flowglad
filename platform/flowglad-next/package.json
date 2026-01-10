@@ -20,11 +20,11 @@
     "test:teardown": "docker-compose -f docker-compose.test.yml down --volumes",
     "test:local": "bun run test:setup && DATABASE_URL=postgresql://test:test@localhost:5432/test_db ./src/scripts/run_subscription_tests.sh && bun run test:teardown",
     "stripe:webhook-dev": "stripe listen --forward-to localhost:3000/api/webhook-stripe",
-    "trigger:deploy": "bunx --bun trigger.dev@4.0.2 deploy --env $TRIGGER_ENV",
+    "trigger:deploy": "bunx --bun trigger.dev@4.3.2 deploy --env $TRIGGER_ENV",
     "vercel:env-pull": "bunx vercel env pull .env.local",
     "postvercel:env-pull": "chmod +x ./src/scripts/set_local_user.sh && ./src/scripts/set_local_user.sh .env_user .env.local",
     "vercel:env-rm": "rm -rf .env.local",
-    "trigger:dev": "dotenvx run -f .env.local -- bunx --bun trigger.dev@4.0.2 dev",
+    "trigger:dev": "dotenvx run -f .env.local -- bunx --bun trigger.dev@4.3.2 dev",
     "migrations:drop": "drizzle-kit drop",
     "migrations:generate": "drizzle-kit generate",
     "migrations:push": "bun run src/scripts/migrate.ts",
@@ -115,7 +115,7 @@
     "@tiptap/pm": "^2.9.1",
     "@tiptap/react": "^2.9.1",
     "@tiptap/starter-kit": "^2.9.1",
-    "@trigger.dev/sdk": "4.0.2",
+    "@trigger.dev/sdk": "4.3.2",
     "@trpc/client": "11.5.0",
     "@trpc/react-query": "11.5.0",
     "@trpc/server": "11.8.0",
@@ -204,7 +204,7 @@
     "@testing-library/dom": "10.4.0",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.3.0",
-    "@trigger.dev/build": "4.0.2",
+    "@trigger.dev/build": "4.3.2",
     "@types/bcrypt": "^5.0.2",
     "@types/json-to-pretty-yaml": "^1.2.1",
     "@types/jsonwebtoken": "^9.0.6",
@@ -236,11 +236,7 @@
     "esbuild": "0.25.0",
     "chromium-bidi": "2.1.2",
     "@react-email/render": "0.0.17",
-    "zod": "4.1.5",
-    "@modelcontextprotocol/sdk": "1.23.0-beta.0",
-    "mcp-handler": {
-      "zod": "4.1.5"
-    }
+    "@modelcontextprotocol/sdk": "1.23.0-beta.0"
   },
   "packageManager": "bun@1.3.1"
 }

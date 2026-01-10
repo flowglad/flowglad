@@ -143,12 +143,12 @@ describe('getDefaultInterval', () => {
 describe('getIntervalSelectOptions', () => {
   it('should return options with noun labels for select components', () => {
     const fromDate = new Date('2024-01-01T00:00:00Z')
-    const toDate = new Date('2024-01-15T00:00:00Z') // 14 days → Daily + Hourly
+    const toDate = new Date('2024-01-15T00:00:00Z') // 14 days → Hourly + Daily (sorted smallest to largest)
     const result = getIntervalSelectOptions(fromDate, toDate)
 
     expect(result).toEqual([
-      { label: 'day', value: RevenueChartIntervalUnit.Day },
       { label: 'hour', value: RevenueChartIntervalUnit.Hour },
+      { label: 'day', value: RevenueChartIntervalUnit.Day },
     ])
   })
 

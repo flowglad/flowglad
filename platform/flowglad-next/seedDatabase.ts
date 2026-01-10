@@ -79,6 +79,8 @@ import {
 } from '@/db/tableMethods/productMethods'
 import { insertPurchase } from '@/db/tableMethods/purchaseMethods'
 import { insertRefund } from '@/db/tableMethods/refundMethods'
+import { insertResourceClaim } from '@/db/tableMethods/resourceClaimMethods'
+import { insertResource } from '@/db/tableMethods/resourceMethods'
 import { insertSubscriptionItemFeature } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { insertSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
 import {
@@ -2717,9 +2719,6 @@ export const setupResource = async (params: {
   active?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const { insertResource } = await import(
-      '@/db/tableMethods/resourceMethods'
-    )
     return insertResource(
       {
         organizationId: params.organizationId,
@@ -2746,9 +2745,6 @@ export const setupResourceClaim = async (params: {
   metadata?: Record<string, string | number | boolean> | null
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const { insertResourceClaim } = await import(
-      '@/db/tableMethods/resourceClaimMethods'
-    )
     return insertResourceClaim(
       {
         organizationId: params.organizationId,
@@ -2762,5 +2758,49 @@ export const setupResourceClaim = async (params: {
       },
       transaction
     )
+  })
+}
+
+export const setupResourceFeature = async (
+  params: Partial<Omit<Feature.ResourceInsert, 'type'>> & {
+    organizationId: string
+    name: string
+    resourceId: string
+    livemode: boolean
+  }
+): Promise<Feature.ResourceRecord> => {
+  return adminTransaction(async ({ transaction }) => {
+    const resolvedPricingModelId =
+      params.pricingModelId ??
+      (
+        await selectDefaultPricingModel(
+          {
+            organizationId: params.organizationId,
+            livemode: params.livemode,
+          },
+          transaction
+        )
+      )?.id
+    if (!resolvedPricingModelId) {
+      throw new Error(
+        'setupResourceFeature: No pricingModelId provided and no default pricing model found'
+      )
+    }
+    const { resourceId, pricingModelId: _, ...restParams } = params
+    const insert: Feature.ResourceInsert = {
+      ...restParams,
+      type: FeatureType.Resource,
+      description: params.description ?? '',
+      slug: params.slug ?? `resource-feature-${core.nanoid()}`,
+      amount: params.amount ?? 5,
+      usageMeterId: null,
+      renewalFrequency: null,
+      pricingModelId: resolvedPricingModelId,
+      resourceId,
+    }
+    return insertFeature(
+      insert,
+      transaction
+    ) as Promise<Feature.ResourceRecord>
   })
 }
