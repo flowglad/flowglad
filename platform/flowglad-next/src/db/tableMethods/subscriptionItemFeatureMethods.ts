@@ -285,6 +285,30 @@ export const expireSubscriptionItemFeaturesForSubscriptionItems =
   }
 
 /**
+ * Selects subscription item features for multiple subscription item IDs in a single query.
+ * Useful for avoiding N+1 queries when looking up features for multiple subscription items.
+ */
+export const selectSubscriptionItemFeaturesBySubscriptionItemIds =
+  async (
+    subscriptionItemIds: string[],
+    transaction: DbTransaction
+  ): Promise<SubscriptionItemFeature.Record[]> => {
+    if (subscriptionItemIds.length === 0) {
+      return []
+    }
+    const result = await transaction
+      .select()
+      .from(subscriptionItemFeatures)
+      .where(
+        inArray(
+          subscriptionItemFeatures.subscriptionItemId,
+          subscriptionItemIds
+        )
+      )
+    return subscriptionItemFeaturesSelectSchema.array().parse(result)
+  }
+
+/**
  * Detaches all subscription item features from a specific product feature.
  * This is used when a product feature is being expired/deleted to preserve
  * existing customer subscription item features while breaking the association.

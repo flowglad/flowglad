@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  adjustSubscriptionOptionsSchema,
-  adjustSubscriptionSchema,
+  adjustSubscriptionParamsSchema,
   billingAddressSchema,
   bulkCreateUsageEventsSchema,
   cancelSubscriptionSchema,
@@ -12,6 +11,7 @@ import {
   createUsageEventSchema,
   flowgladActionValidators,
   subscriptionAdjustmentTiming,
+  terseSubscriptionItemSchema,
   updateCustomerInputSchema,
   updateCustomerSchema,
 } from './actions'
@@ -212,182 +212,242 @@ describe('cancelSubscriptionSchema', () => {
   })
 })
 
-describe('adjustSubscriptionOptionsSchema', () => {
-  it('accepts empty options object', () => {
-    const result = adjustSubscriptionOptionsSchema.safeParse({})
-    expect(result.success).toBe(true)
-  })
-
-  it('accepts valid subscriptionId', () => {
-    const result = adjustSubscriptionOptionsSchema.safeParse({
-      subscriptionId: 'sub_123',
-    })
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.subscriptionId).toBe('sub_123')
-    }
-  })
-
-  it('accepts valid positive integer quantity', () => {
-    const result = adjustSubscriptionOptionsSchema.safeParse({
+describe('terseSubscriptionItemSchema', () => {
+  it('accepts valid input with priceSlug', () => {
+    const result = terseSubscriptionItemSchema.safeParse({
+      priceSlug: 'pro-monthly',
       quantity: 5,
     })
     expect(result.success).toBe(true)
     if (result.success) {
+      expect(result.data.priceSlug).toBe('pro-monthly')
       expect(result.data.quantity).toBe(5)
     }
   })
 
+  it('accepts valid input with priceId', () => {
+    const result = terseSubscriptionItemSchema.safeParse({
+      priceId: 'price_123',
+      quantity: 3,
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.priceId).toBe('price_123')
+      expect(result.data.quantity).toBe(3)
+    }
+  })
+
+  it('defaults quantity to 1 when not provided', () => {
+    const result = terseSubscriptionItemSchema.safeParse({
+      priceSlug: 'pro-monthly',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.quantity).toBe(1)
+    }
+  })
+
   it('rejects non-positive quantity', () => {
-    const result = adjustSubscriptionOptionsSchema.safeParse({
+    const result = terseSubscriptionItemSchema.safeParse({
+      priceSlug: 'pro-monthly',
       quantity: 0,
     })
     expect(result.success).toBe(false)
   })
 
   it('rejects negative quantity', () => {
-    const result = adjustSubscriptionOptionsSchema.safeParse({
+    const result = terseSubscriptionItemSchema.safeParse({
+      priceSlug: 'pro-monthly',
       quantity: -1,
     })
     expect(result.success).toBe(false)
   })
 
   it('rejects non-integer quantity', () => {
-    const result = adjustSubscriptionOptionsSchema.safeParse({
+    const result = terseSubscriptionItemSchema.safeParse({
+      priceSlug: 'pro-monthly',
       quantity: 1.5,
     })
     expect(result.success).toBe(false)
   })
 
-  it('accepts immediately timing', () => {
-    const result = adjustSubscriptionOptionsSchema.safeParse({
+  it('rejects input with both priceId and priceSlug', () => {
+    const result = terseSubscriptionItemSchema.safeParse({
+      priceId: 'price_123',
+      priceSlug: 'pro-monthly',
+      quantity: 1,
+    })
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('adjustSubscriptionParamsSchema', () => {
+  it('accepts minimal valid input with priceSlug', () => {
+    const result = adjustSubscriptionParamsSchema.safeParse({
+      priceSlug: 'pro-monthly',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.priceSlug).toBe('pro-monthly')
+      expect(result.data.quantity).toBe(1) // default
+      expect(result.data.timing).toBe('auto') // default
+    }
+  })
+
+  it('accepts valid input with priceId', () => {
+    const result = adjustSubscriptionParamsSchema.safeParse({
+      priceId: 'price_123',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.priceId).toBe('price_123')
+      expect(result.data.quantity).toBe(1) // default
+    }
+  })
+
+  it('accepts priceSlug with quantity and options', () => {
+    const result = adjustSubscriptionParamsSchema.safeParse({
+      priceSlug: 'pro-monthly',
+      quantity: 5,
+      subscriptionId: 'sub_123',
+      timing: subscriptionAdjustmentTiming.Immediately,
+      prorate: true,
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.priceSlug).toBe('pro-monthly')
+      expect(result.data.quantity).toBe(5)
+      expect(result.data.subscriptionId).toBe('sub_123')
+      expect(result.data.timing).toBe('immediately')
+      expect(result.data.prorate).toBe(true)
+    }
+  })
+
+  it('accepts subscriptionItems array for multi-item adjustments', () => {
+    const result = adjustSubscriptionParamsSchema.safeParse({
+      subscriptionItems: [
+        { priceSlug: 'base-plan', quantity: 1 },
+        { priceSlug: 'addon-storage', quantity: 3 },
+      ],
       timing: subscriptionAdjustmentTiming.Immediately,
     })
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.timing).toBe('immediately')
+      expect(result.data.subscriptionItems).toHaveLength(2)
+      expect(result.data.subscriptionItems?.[0].priceSlug).toBe(
+        'base-plan'
+      )
+      expect(result.data.subscriptionItems?.[1].quantity).toBe(3)
     }
   })
 
-  it('accepts at_end_of_period timing', () => {
-    const result = adjustSubscriptionOptionsSchema.safeParse({
-      timing:
-        subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+  it('accepts subscriptionItems with priceId', () => {
+    const result = adjustSubscriptionParamsSchema.safeParse({
+      subscriptionItems: [{ priceId: 'price_123', quantity: 2 }],
     })
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.timing).toBe('at_end_of_period')
+      expect(result.data.subscriptionItems?.[0].priceId).toBe(
+        'price_123'
+      )
     }
   })
 
-  it('accepts auto timing', () => {
-    const result = adjustSubscriptionOptionsSchema.safeParse({
-      timing: subscriptionAdjustmentTiming.Auto,
+  it('rejects input with both priceSlug and priceId', () => {
+    const result = adjustSubscriptionParamsSchema.safeParse({
+      priceSlug: 'pro-monthly',
+      priceId: 'price_123',
     })
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.timing).toBe('auto')
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with both priceSlug and subscriptionItems', () => {
+    const result = adjustSubscriptionParamsSchema.safeParse({
+      priceSlug: 'pro-monthly',
+      subscriptionItems: [{ priceSlug: 'base-plan' }],
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with both priceId and subscriptionItems', () => {
+    const result = adjustSubscriptionParamsSchema.safeParse({
+      priceId: 'price_123',
+      subscriptionItems: [{ priceSlug: 'base-plan' }],
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with none of priceSlug, priceId, or subscriptionItems', () => {
+    const result = adjustSubscriptionParamsSchema.safeParse({
+      subscriptionId: 'sub_123',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects empty subscriptionItems array', () => {
+    const result = adjustSubscriptionParamsSchema.safeParse({
+      subscriptionItems: [],
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('accepts all timing values', () => {
+    const timings = [
+      subscriptionAdjustmentTiming.Immediately,
+      subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+      subscriptionAdjustmentTiming.Auto,
+    ]
+    for (const timing of timings) {
+      const result = adjustSubscriptionParamsSchema.safeParse({
+        priceSlug: 'pro-monthly',
+        timing,
+      })
+      expect(result.success).toBe(true)
     }
   })
 
   it('rejects invalid timing value', () => {
-    const result = adjustSubscriptionOptionsSchema.safeParse({
+    const result = adjustSubscriptionParamsSchema.safeParse({
+      priceSlug: 'pro-monthly',
       timing: 'invalid_timing',
     })
     expect(result.success).toBe(false)
   })
 
   it('accepts prorate boolean', () => {
-    const resultTrue = adjustSubscriptionOptionsSchema.safeParse({
+    const resultTrue = adjustSubscriptionParamsSchema.safeParse({
+      priceSlug: 'pro-monthly',
       prorate: true,
     })
     expect(resultTrue.success).toBe(true)
 
-    const resultFalse = adjustSubscriptionOptionsSchema.safeParse({
+    const resultFalse = adjustSubscriptionParamsSchema.safeParse({
+      priceSlug: 'pro-monthly',
       prorate: false,
     })
     expect(resultFalse.success).toBe(true)
   })
 
-  it('accepts all options together', () => {
-    const result = adjustSubscriptionOptionsSchema.safeParse({
-      subscriptionId: 'sub_123',
-      quantity: 3,
-      timing: subscriptionAdjustmentTiming.Immediately,
-      prorate: true,
+  it('rejects non-positive quantity', () => {
+    const result = adjustSubscriptionParamsSchema.safeParse({
+      priceSlug: 'pro-monthly',
+      quantity: 0,
     })
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.subscriptionId).toBe('sub_123')
-      expect(result.data.quantity).toBe(3)
-      expect(result.data.timing).toBe('immediately')
-      expect(result.data.prorate).toBe(true)
-    }
-  })
-})
-
-describe('adjustSubscriptionSchema', () => {
-  it('accepts minimal valid input with priceIdOrSlug only', () => {
-    const result = adjustSubscriptionSchema.safeParse({
-      priceIdOrSlug: 'pro-monthly',
-    })
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.priceIdOrSlug).toBe('pro-monthly')
-      expect(result.data.options).toBeUndefined()
-    }
-  })
-
-  it('accepts priceIdOrSlug as UUID', () => {
-    const result = adjustSubscriptionSchema.safeParse({
-      priceIdOrSlug: '550e8400-e29b-41d4-a716-446655440000',
-    })
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.priceIdOrSlug).toBe(
-        '550e8400-e29b-41d4-a716-446655440000'
-      )
-    }
-  })
-
-  it('accepts priceIdOrSlug with options', () => {
-    const result = adjustSubscriptionSchema.safeParse({
-      priceIdOrSlug: 'pro-monthly',
-      options: {
-        subscriptionId: 'sub_123',
-        quantity: 5,
-        timing: 'immediately',
-      },
-    })
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.priceIdOrSlug).toBe('pro-monthly')
-      expect(result.data.options?.subscriptionId).toBe('sub_123')
-      expect(result.data.options?.quantity).toBe(5)
-      expect(result.data.options?.timing).toBe('immediately')
-    }
-  })
-
-  it('rejects missing priceIdOrSlug', () => {
-    const result = adjustSubscriptionSchema.safeParse({})
     expect(result.success).toBe(false)
   })
 
-  it('accepts empty priceIdOrSlug (defers validation to server)', () => {
-    const result = adjustSubscriptionSchema.safeParse({
-      priceIdOrSlug: '',
+  it('rejects negative quantity', () => {
+    const result = adjustSubscriptionParamsSchema.safeParse({
+      priceSlug: 'pro-monthly',
+      quantity: -1,
     })
-    // empty string is still a string, schema accepts it
-    // server will reject with a more helpful error message
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(false)
   })
 
-  it('rejects invalid options', () => {
-    const result = adjustSubscriptionSchema.safeParse({
-      priceIdOrSlug: 'pro-monthly',
-      options: {
-        quantity: -1, // invalid
-      },
+  it('rejects non-integer quantity', () => {
+    const result = adjustSubscriptionParamsSchema.safeParse({
+      priceSlug: 'pro-monthly',
+      quantity: 1.5,
     })
     expect(result.success).toBe(false)
   })
@@ -939,27 +999,49 @@ describe('flowgladActionValidators', () => {
     expect(result.success).toBe(true)
   })
 
-  it('AdjustSubscription validator accepts priceIdOrSlug', () => {
+  it('AdjustSubscription validator accepts priceSlug', () => {
     const validator =
       flowgladActionValidators[FlowgladActionKey.AdjustSubscription]
         .inputValidator
     const result = validator.safeParse({
-      priceIdOrSlug: 'pro-monthly',
+      priceSlug: 'pro-monthly',
     })
     expect(result.success).toBe(true)
   })
 
-  it('AdjustSubscription validator accepts priceIdOrSlug with options', () => {
+  it('AdjustSubscription validator accepts priceId', () => {
     const validator =
       flowgladActionValidators[FlowgladActionKey.AdjustSubscription]
         .inputValidator
     const result = validator.safeParse({
-      priceIdOrSlug: 'pro-monthly',
-      options: {
-        subscriptionId: 'sub_123',
-        quantity: 5,
-        timing: 'auto',
-      },
+      priceId: 'price_123',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('AdjustSubscription validator accepts priceSlug with options', () => {
+    const validator =
+      flowgladActionValidators[FlowgladActionKey.AdjustSubscription]
+        .inputValidator
+    const result = validator.safeParse({
+      priceSlug: 'pro-monthly',
+      subscriptionId: 'sub_123',
+      quantity: 5,
+      timing: 'auto',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('AdjustSubscription validator accepts subscriptionItems', () => {
+    const validator =
+      flowgladActionValidators[FlowgladActionKey.AdjustSubscription]
+        .inputValidator
+    const result = validator.safeParse({
+      subscriptionItems: [
+        { priceSlug: 'base-plan', quantity: 1 },
+        { priceId: 'price_addon', quantity: 3 },
+      ],
+      timing: 'immediately',
     })
     expect(result.success).toBe(true)
   })
