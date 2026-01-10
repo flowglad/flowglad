@@ -41,5 +41,16 @@
     "parser": {
       "tailwindDirectives": true
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx"
+      ],
+      "plugins": ["./plugins/no-dynamic-imports-in-tests.grit"]
+    }
+  ]
 }

@@ -721,7 +721,7 @@ describe('subscriptionItemMethods', async () => {
       const futureDate = now + 24 * 60 * 60 * 1000 // tomorrow
       const pastDate = now - 24 * 60 * 60 * 1000 // yesterday
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         // Create an expired item
         const expiredSetup = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -781,7 +781,8 @@ describe('subscriptionItemMethods', async () => {
         const richSubscriptions =
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
-            transaction
+            transaction,
+            livemode
           )
         expect(richSubscriptions.length).toBe(1)
         const subWithItems = richSubscriptions[0]
@@ -818,7 +819,7 @@ describe('subscriptionItemMethods', async () => {
     })
 
     it('should correctly determine current status for non-active subscriptions', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         await updateSubscription(
           {
             id: subscription.id,
@@ -831,7 +832,8 @@ describe('subscriptionItemMethods', async () => {
         const richSubscriptions =
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
-            transaction
+            transaction,
+            livemode
           )
         expect(richSubscriptions.length).toBe(1)
         expect(richSubscriptions[0].current).toBe(false)
@@ -842,7 +844,7 @@ describe('subscriptionItemMethods', async () => {
       const now = Date.now()
       const pastDate = now - 24 * 60 * 60 * 1000 // yesterday
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         // First expire the original subscription item from beforeEach
         await updateSubscriptionItem(
           {
@@ -917,7 +919,8 @@ describe('subscriptionItemMethods', async () => {
         const richSubscriptions =
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
-            transaction
+            transaction,
+            livemode
           )
 
         expect(richSubscriptions.length).toBe(1)
@@ -942,7 +945,7 @@ describe('subscriptionItemMethods', async () => {
     })
 
     it('should only include unexpired subscriptionItemFeatures', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         const now = Date.now()
         const pastDate = now - 1000 * 60 * 60 * 24 // 1 day ago
 
@@ -1013,7 +1016,8 @@ describe('subscriptionItemMethods', async () => {
         const richSubscriptions =
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
-            transaction
+            transaction,
+            livemode
           )
 
         expect(richSubscriptions.length).toBe(1)
@@ -1044,7 +1048,7 @@ describe('subscriptionItemMethods', async () => {
         livemode: true,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         // Update the first meter's ledger entries to include the usageMeterId
         await transaction
           .update(ledgerEntries)
@@ -1107,7 +1111,8 @@ describe('subscriptionItemMethods', async () => {
         const richSubscriptions =
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: scenario1.organization.id },
-            transaction
+            transaction,
+            livemode
           )
 
         expect(richSubscriptions.length).toBe(1)
@@ -1139,7 +1144,7 @@ describe('subscriptionItemMethods', async () => {
     })
 
     it('should handle subscriptions with no items or features', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         // First expire the original subscription item from beforeEach
         await updateSubscriptionItem(
           {
@@ -1161,7 +1166,8 @@ describe('subscriptionItemMethods', async () => {
         const richSubscriptions =
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
-            transaction
+            transaction,
+            livemode
           )
 
         expect(richSubscriptions.length).toBe(2) // Original + new empty subscription

@@ -47,6 +47,7 @@ import {
   isSubscriptionCurrent,
   pricingModelIdsForSubscriptions,
   selectSubscriptions,
+  selectSubscriptionsByCustomerId,
 } from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -377,17 +378,34 @@ const isSubscriptionItemActive = (item: {
  *
  * @param whereConditions - Conditions to filter the subscriptions
  * @param transaction - Database transaction to use for all queries
+ * @param livemode - Required for caching - must match the transaction's livemode context
  * @returns Array of rich subscriptions with their active items, features, and meter balances
  */
 export const selectRichSubscriptionsAndActiveItems = async (
   whereConditions: SelectConditions<typeof subscriptions>,
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  livemode: boolean
 ): Promise<RichSubscription[]> => {
-  // Step 1: Fetch subscriptions (cacheable by whereConditions)
-  const subscriptionRecords = await selectSubscriptions(
-    whereConditions,
-    transaction
-  )
+  // Step 1: Fetch subscriptions
+  // Use cached query when filtering by single customerId (hot path for customer billing)
+  let subscriptionRecords: Subscription.Record[]
+  const customerId = whereConditions.customerId
+  const isSimpleCustomerIdQuery =
+    typeof customerId === 'string' &&
+    Object.keys(whereConditions).length === 1
+
+  if (isSimpleCustomerIdQuery) {
+    subscriptionRecords = await selectSubscriptionsByCustomerId(
+      customerId,
+      transaction,
+      livemode
+    )
+  } else {
+    subscriptionRecords = await selectSubscriptions(
+      whereConditions,
+      transaction
+    )
+  }
 
   const subscriptionIds = subscriptionRecords.map((s) => s.id)
 
