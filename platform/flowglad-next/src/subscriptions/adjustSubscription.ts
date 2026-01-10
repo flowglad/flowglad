@@ -15,9 +15,9 @@ import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   selectPriceById,
   selectPrices,
-  selectResourceFeaturesForPrice,
+  selectResourceFeaturesForPrices,
 } from '@/db/tableMethods/priceMethods'
-import { countActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
+import { countActiveResourceClaimsBatch } from '@/db/tableMethods/resourceClaimMethods'
 import {
   bulkCreateOrUpdateSubscriptionItems,
   expireSubscriptionItems,
@@ -567,35 +567,56 @@ export const adjustSubscription = async (
   )
 
   // Validate resource capacity for downgrades
-  // For each new subscription item with a priceId, check if any Resource features
-  // would have their capacity reduced below active claims
-  for (const newItem of nonManualSubscriptionItems) {
-    if (!newItem.priceId) continue
+  // Batch fetch all resource features and claim counts to avoid N+1 queries
+  const itemPriceIds = nonManualSubscriptionItems
+    .map((item) => item.priceId)
+    .filter((id): id is string => id != null)
 
-    const resourceFeatures = await selectResourceFeaturesForPrice(
-      newItem.priceId,
-      transaction
-    )
+  if (itemPriceIds.length > 0) {
+    // Batch fetch resource features for all prices
+    const priceToResourceFeatures =
+      await selectResourceFeaturesForPrices(itemPriceIds, transaction)
 
-    for (const feature of resourceFeatures) {
-      // Calculate new capacity: feature.amount (per unit) * item quantity
-      const newCapacity = feature.amount * newItem.quantity
+    // Collect all unique resourceIds across all features
+    const allResourceIds = new Set<string>()
+    for (const features of priceToResourceFeatures.values()) {
+      for (const feature of features) {
+        allResourceIds.add(feature.resourceId)
+      }
+    }
 
-      // Count active claims for this resource and subscription
-      const activeClaims = await countActiveResourceClaims(
-        {
-          subscriptionId: subscription.id,
-          resourceId: feature.resourceId,
-        },
-        transaction
-      )
+    // Batch fetch claim counts for all resources
+    const resourceClaimCounts =
+      allResourceIds.size > 0
+        ? await countActiveResourceClaimsBatch(
+            {
+              subscriptionId: subscription.id,
+              resourceIds: [...allResourceIds],
+            },
+            transaction
+          )
+        : new Map<string, number>()
 
-      if (activeClaims > newCapacity) {
-        throw new Error(
-          `Cannot reduce ${feature.slug} capacity to ${newCapacity}. ` +
-            `${activeClaims} resources are currently claimed. ` +
-            `Release ${activeClaims - newCapacity} claims before downgrading.`
-        )
+    // Validate capacity for each item's resource features
+    for (const newItem of nonManualSubscriptionItems) {
+      if (!newItem.priceId) continue
+
+      const resourceFeatures =
+        priceToResourceFeatures.get(newItem.priceId) ?? []
+
+      for (const feature of resourceFeatures) {
+        // Calculate new capacity: feature.amount (per unit) * item quantity
+        const newCapacity = feature.amount * newItem.quantity
+        const activeClaims =
+          resourceClaimCounts.get(feature.resourceId) ?? 0
+
+        if (activeClaims > newCapacity) {
+          throw new Error(
+            `Cannot reduce ${feature.slug} capacity to ${newCapacity}. ` +
+              `${activeClaims} resources are currently claimed. ` +
+              `Release ${activeClaims - newCapacity} claims before downgrading.`
+          )
+        }
       }
     }
   }
