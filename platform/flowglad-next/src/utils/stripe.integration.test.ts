@@ -884,7 +884,11 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         )
 
         // Verify latest_charge is present (charge was created)
-        expect(typeof paymentIntent.latest_charge).toBe('object')
+        // latest_charge is a string (charge ID) unless expanded
+        expect(typeof paymentIntent.latest_charge).toBe('string')
+        expect(
+          (paymentIntent.latest_charge as string).startsWith('ch_')
+        ).toBe(true)
 
         // Verify billing run metadata
         expect(paymentIntent.metadata?.billingRunId).toBe(
@@ -969,10 +973,15 @@ describeIfStripeKey('Stripe Integration Tests', () => {
           confirmedPaymentIntent.status
         )
 
-        // Verify latest_charge is present
+        // Verify latest_charge is present (charge ID string unless expanded)
         expect(typeof confirmedPaymentIntent.latest_charge).toBe(
-          'object'
+          'string'
         )
+        expect(
+          (confirmedPaymentIntent.latest_charge as string).startsWith(
+            'ch_'
+          )
+        ).toBe(true)
       })
 
       it('fails when payment intent is already confirmed', async () => {
