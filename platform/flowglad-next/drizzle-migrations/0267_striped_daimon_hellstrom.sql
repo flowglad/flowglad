@@ -268,12 +268,22 @@ WHERE ue.usage_meter_id = um.id
 DO $$
 DECLARE
   null_count INTEGER;
+  rec RECORD;
 BEGIN
   SELECT COUNT(*) INTO null_count
   FROM payment_methods
   WHERE pricing_model_id IS NULL;
 
   IF null_count > 0 THEN
+    RAISE NOTICE 'Payment methods with NULL pricing_model_id:';
+    FOR rec IN
+      SELECT id, customer_id, external_id
+      FROM payment_methods
+      WHERE pricing_model_id IS NULL
+      LIMIT 50
+    LOOP
+      RAISE NOTICE '  pm_id=%, customer_id=%, external_id=%', rec.id, rec.customer_id, rec.external_id;
+    END LOOP;
     RAISE EXCEPTION 'Migration validation failed: % payment_methods have NULL pricing_model_id', null_count;
   END IF;
 END $$;
@@ -282,6 +292,7 @@ END $$;
 DO $$
 DECLARE
   mismatch_count INTEGER;
+  rec RECORD;
 BEGIN
   SELECT COUNT(*) INTO mismatch_count
   FROM purchases p
@@ -289,6 +300,16 @@ BEGIN
   WHERE p.pricing_model_id != c.pricing_model_id;
 
   IF mismatch_count > 0 THEN
+    RAISE NOTICE 'Purchases with customer pricing_model_id mismatch:';
+    FOR rec IN
+      SELECT p.id as purchase_id, p.customer_id, p.pricing_model_id as purchase_pm, c.pricing_model_id as customer_pm, c.external_id
+      FROM purchases p
+      JOIN customers c ON p.customer_id = c.id
+      WHERE p.pricing_model_id != c.pricing_model_id
+      LIMIT 50
+    LOOP
+      RAISE NOTICE '  purchase_id=%, customer_id=%, purchase_pm=%, customer_pm=%, external_id=%', rec.purchase_id, rec.customer_id, rec.purchase_pm, rec.customer_pm, rec.external_id;
+    END LOOP;
     RAISE EXCEPTION 'Migration validation failed: % purchases have customer with mismatched pricing_model_id', mismatch_count;
   END IF;
 END $$;
@@ -297,6 +318,7 @@ END $$;
 DO $$
 DECLARE
   mismatch_count INTEGER;
+  rec RECORD;
 BEGIN
   SELECT COUNT(*) INTO mismatch_count
   FROM subscriptions s
@@ -304,6 +326,16 @@ BEGIN
   WHERE s.pricing_model_id != c.pricing_model_id;
 
   IF mismatch_count > 0 THEN
+    RAISE NOTICE 'Subscriptions with customer pricing_model_id mismatch:';
+    FOR rec IN
+      SELECT s.id as subscription_id, s.customer_id, s.pricing_model_id as subscription_pm, c.pricing_model_id as customer_pm, c.external_id
+      FROM subscriptions s
+      JOIN customers c ON s.customer_id = c.id
+      WHERE s.pricing_model_id != c.pricing_model_id
+      LIMIT 50
+    LOOP
+      RAISE NOTICE '  subscription_id=%, customer_id=%, subscription_pm=%, customer_pm=%, external_id=%', rec.subscription_id, rec.customer_id, rec.subscription_pm, rec.customer_pm, rec.external_id;
+    END LOOP;
     RAISE EXCEPTION 'Migration validation failed: % subscriptions have customer with mismatched pricing_model_id', mismatch_count;
   END IF;
 END $$;
@@ -312,6 +344,7 @@ END $$;
 DO $$
 DECLARE
   mismatch_count INTEGER;
+  rec RECORD;
 BEGIN
   SELECT COUNT(*) INTO mismatch_count
   FROM subscriptions s
@@ -319,6 +352,16 @@ BEGIN
   WHERE s.pricing_model_id != pm.pricing_model_id;
 
   IF mismatch_count > 0 THEN
+    RAISE NOTICE 'Subscriptions with default_payment_method pricing_model_id mismatch:';
+    FOR rec IN
+      SELECT s.id as subscription_id, s.default_payment_method_id, s.pricing_model_id as subscription_pm, pm.pricing_model_id as pm_pricing_model
+      FROM subscriptions s
+      JOIN payment_methods pm ON s.default_payment_method_id = pm.id
+      WHERE s.pricing_model_id != pm.pricing_model_id
+      LIMIT 50
+    LOOP
+      RAISE NOTICE '  subscription_id=%, pm_id=%, subscription_pm=%, pm_pricing_model=%', rec.subscription_id, rec.default_payment_method_id, rec.subscription_pm, rec.pm_pricing_model;
+    END LOOP;
     RAISE EXCEPTION 'Migration validation failed: % subscriptions have default_payment_method with mismatched pricing_model_id', mismatch_count;
   END IF;
 END $$;
@@ -327,6 +370,7 @@ END $$;
 DO $$
 DECLARE
   mismatch_count INTEGER;
+  rec RECORD;
 BEGIN
   SELECT COUNT(*) INTO mismatch_count
   FROM payments p
@@ -334,6 +378,16 @@ BEGIN
   WHERE p.pricing_model_id != pm.pricing_model_id;
 
   IF mismatch_count > 0 THEN
+    RAISE NOTICE 'Payments with payment_method pricing_model_id mismatch:';
+    FOR rec IN
+      SELECT p.id as payment_id, p.payment_method_id, p.pricing_model_id as payment_pm, pm.pricing_model_id as pm_pricing_model
+      FROM payments p
+      JOIN payment_methods pm ON p.payment_method_id = pm.id
+      WHERE p.pricing_model_id != pm.pricing_model_id
+      LIMIT 50
+    LOOP
+      RAISE NOTICE '  payment_id=%, pm_id=%, payment_pm=%, pm_pricing_model=%', rec.payment_id, rec.payment_method_id, rec.payment_pm, rec.pm_pricing_model;
+    END LOOP;
     RAISE EXCEPTION 'Migration validation failed: % payments have payment_method with mismatched pricing_model_id', mismatch_count;
   END IF;
 END $$;
@@ -342,6 +396,7 @@ END $$;
 DO $$
 DECLARE
   mismatch_count INTEGER;
+  rec RECORD;
 BEGIN
   SELECT COUNT(*) INTO mismatch_count
   FROM invoices i
@@ -349,6 +404,16 @@ BEGIN
   WHERE i.pricing_model_id != c.pricing_model_id;
 
   IF mismatch_count > 0 THEN
+    RAISE NOTICE 'Invoices with customer pricing_model_id mismatch:';
+    FOR rec IN
+      SELECT i.id as invoice_id, i.customer_id, i.pricing_model_id as invoice_pm, c.pricing_model_id as customer_pm, c.external_id
+      FROM invoices i
+      JOIN customers c ON i.customer_id = c.id
+      WHERE i.pricing_model_id != c.pricing_model_id
+      LIMIT 50
+    LOOP
+      RAISE NOTICE '  invoice_id=%, customer_id=%, invoice_pm=%, customer_pm=%, external_id=%', rec.invoice_id, rec.customer_id, rec.invoice_pm, rec.customer_pm, rec.external_id;
+    END LOOP;
     RAISE EXCEPTION 'Migration validation failed: % invoices have customer with mismatched pricing_model_id', mismatch_count;
   END IF;
 END $$;
