@@ -306,7 +306,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
         )
 
         expect(productFeatures.length).toBe(1)
-        expect(productFeatures[0].expiredAt).not.toBeNull()
+        expect(typeof productFeatures[0].expiredAt).toBe('number')
         expect(productFeatures[0].expiredAt).toBeLessThanOrEqual(
           Date.now()
         )
@@ -353,7 +353,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
         expect(detachedFeatures.length).toBe(1)
         const detachedFeature = detachedFeatures[0]!
         expect(detachedFeature.productFeatureId).toBeNull()
-        expect(detachedFeature.detachedAt).not.toBeNull()
+        expect(typeof detachedFeature.detachedAt).toBe('number')
         expect(detachedFeature.detachedReason).toBe(
           'product_feature_expired'
         )
@@ -417,7 +417,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
           { featureId: feature.id },
           transaction
         )
-        expect(expiredFeatures[0].expiredAt).not.toBeNull()
+        expect(typeof expiredFeatures[0].expiredAt).toBe('number')
 
         // Reactivate the feature
         await updateFeatureTransaction(

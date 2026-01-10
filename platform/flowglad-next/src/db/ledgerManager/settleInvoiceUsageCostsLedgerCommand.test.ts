@@ -122,7 +122,6 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         ledgerAccount
       )
       // expects:
-      expect(usageCreditInsert).toBeDefined()
       expect(usageCreditInsert.creditType).toBe(
         UsageCreditType.Payment
       )
@@ -200,7 +199,6 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // expects:
       // 1. A single LedgerTransaction of type SettleInvoiceUsageCosts is created.
-      expect(ledgerTransaction).toBeDefined()
       expect(ledgerTransaction.type).toBe(
         LedgerTransactionType.SettleInvoiceUsageCosts
       )
@@ -226,10 +224,6 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
           le.entryType ===
           LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
       )!
-
-      expect(creditGrantEntry).toBeDefined()
-      expect(debitAppEntry).toBeDefined()
-      expect(creditAppEntry).toBeDefined()
 
       // Assert amounts are correct
       expect(creditGrantEntry.amount).toBe(
@@ -260,7 +254,9 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       expect(creditAppEntry.sourceUsageCreditId).toBe(
         creditGrantEntry.sourceUsageCreditId
       )
-      expect(debitAppEntry.sourceCreditApplicationId).not.toBeNull()
+      expect(debitAppEntry.sourceCreditApplicationId).toMatchObject(
+        {}
+      )
       expect(creditAppEntry.sourceCreditApplicationId).toBe(
         debitAppEntry.sourceCreditApplicationId
       )
@@ -369,7 +365,9 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       })
 
       // expects:
-      expect(ledgerTransaction).toBeDefined()
+      expect(ledgerTransaction.type).toBe(
+        LedgerTransactionType.SettleInvoiceUsageCosts
+      )
       expect(createdLedgerEntries).toHaveLength(6) // 3 for each line item
 
       // Verify counts of each entry type
@@ -453,7 +451,9 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // expects:
       // The command should ignore the static line item and only process the usage one.
-      expect(ledgerTransaction).toBeDefined()
+      expect(ledgerTransaction.type).toBe(
+        LedgerTransactionType.SettleInvoiceUsageCosts
+      )
       expect(createdLedgerEntries).toHaveLength(3) // Only the 3 entries for the single usage item
 
       const finalBalance = await adminTransaction(
@@ -590,7 +590,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       })
 
       // expects:
-      expect(ledgerTransaction).toBeDefined()
+      expect(ledgerTransaction.id).toEqual(expect.any(String))
       expect(createdLedgerEntries).toHaveLength(0)
 
       const finalBalance = await adminTransaction(

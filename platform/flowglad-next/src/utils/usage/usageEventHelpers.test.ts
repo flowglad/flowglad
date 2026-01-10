@@ -133,7 +133,6 @@ describe('usageEventHelpers', () => {
           }
         )
 
-      expect(createdUsageEvent).toBeDefined()
       if (!createdUsageEvent)
         throw new Error(
           'Test setup failed: createdUsageEvent is null'
@@ -431,7 +430,7 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      expect(resultWithoutDate.usageDate).toBeDefined()
+      expect(typeof resultWithoutDate.usageDate).toBe('number')
     })
 
     it('should handle livemode input correctly (true and false)', async () => {
@@ -617,7 +616,6 @@ describe('usageEventHelpers', () => {
         )
 
       // Verify first usage event was inserted with correct properties
-      expect(firstUsageEvent).toBeDefined()
       expect(firstUsageEvent.properties).toEqual(testProperties)
       expect(firstUsageEvent.billingPeriodId).toBe(
         distinctBillingPeriod.id
@@ -670,7 +668,6 @@ describe('usageEventHelpers', () => {
         )
 
       // Verify second usage event was inserted with correct properties
-      expect(secondUsageEvent).toBeDefined()
       expect(secondUsageEvent.properties).toEqual(testProperties)
       expect(secondUsageEvent.billingPeriodId).toBe(
         distinctBillingPeriod.id
@@ -723,7 +720,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      expect(thirdUsageEvent).toBeDefined()
       expect(thirdUsageEvent.properties).toEqual({
         ...testProperties,
         feature: 'import',
@@ -732,7 +728,7 @@ describe('usageEventHelpers', () => {
         distinctBillingPeriod.id
       )
       expect(thirdUsageEvent.usageMeterId).toBe(usageMeter.id)
-      expect(thirdUsageEvent.usageDate).toBeDefined()
+      expect(typeof thirdUsageEvent.usageDate).toBe('number')
 
       // Verify ledger command was emitted (ledger transaction created)
       const thirdLedgerTransactions = await adminTransaction(

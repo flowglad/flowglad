@@ -468,10 +468,10 @@ describe('updateInvoiceTransaction', () => {
         const newItem = result.invoiceLineItems.find(
           (item) => item.description === 'New Item 3'
         )
-        expect(modifiedItem).toBeDefined()
+        expect(modifiedItem).toMatchObject({ price: 1500 })
         expect(modifiedItem!.price).toBe(1500)
         expect(modifiedItem!.quantity).toBe(2)
-        expect(newItem).toBeDefined()
+        expect(newItem).toMatchObject({ price: 3000 })
         expect(newItem!.price).toBe(3000)
       })
     })

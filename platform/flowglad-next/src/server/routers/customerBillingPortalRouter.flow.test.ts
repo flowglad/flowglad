@@ -485,7 +485,9 @@ describe('Customer Billing Portal Router', () => {
         expect(scheduledSubscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
         )
-        expect(scheduledSubscription.cancelScheduledAt).toBeDefined()
+        expect(typeof scheduledSubscription.cancelScheduledAt).toBe(
+          'number'
+        )
       }
     )
 

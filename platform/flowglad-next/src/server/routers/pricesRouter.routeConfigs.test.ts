@@ -22,7 +22,9 @@ describe('pricesRouteConfigs', () => {
     it('should map POST /prices to prices.create procedure', () => {
       const routeConfig = findRouteConfig('POST /prices')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'prices.create',
+      })
       expect(routeConfig!.procedure).toBe('prices.create')
       expect(routeConfig!.pattern.test('prices')).toBe(true)
 
@@ -35,7 +37,9 @@ describe('pricesRouteConfigs', () => {
     it('should map PUT /prices/:id to prices.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /prices/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'prices.update',
+      })
       expect(routeConfig!.procedure).toBe('prices.update')
       expect(routeConfig!.pattern.test('prices/test-id')).toBe(true)
 
@@ -53,7 +57,7 @@ describe('pricesRouteConfigs', () => {
     it('should map GET /prices/:id to prices.get procedure', () => {
       const routeConfig = findRouteConfig('GET /prices/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({ procedure: 'prices.get' })
       expect(routeConfig!.procedure).toBe('prices.get')
       expect(routeConfig!.pattern.test('prices/test-id')).toBe(true)
 
@@ -65,7 +69,7 @@ describe('pricesRouteConfigs', () => {
     it('should map GET /prices to prices.list procedure', () => {
       const routeConfig = findRouteConfig('GET /prices')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({ procedure: 'prices.list' })
       expect(routeConfig!.procedure).toBe('prices.list')
       expect(routeConfig!.pattern.test('prices')).toBe(true)
 
@@ -77,7 +81,9 @@ describe('pricesRouteConfigs', () => {
     it('should map DELETE /prices/:id to prices.delete procedure', () => {
       const routeConfig = findRouteConfig('DELETE /prices/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'prices.delete',
+      })
       expect(routeConfig!.procedure).toBe('prices.delete')
       expect(routeConfig!.pattern.test('prices/test-id')).toBe(true)
 
@@ -122,33 +128,33 @@ describe('pricesRouteConfigs', () => {
       // Test Prices get pattern extraction
       const getConfig = findRouteConfig('GET /prices/:id')
       const getMatches = getConfig!.pattern.exec('prices/test-id')
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test Prices update pattern extraction
       const updateConfig = findRouteConfig('PUT /prices/:id')
       const updateMatches =
         updateConfig!.pattern.exec('prices/test-id')
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test Prices delete pattern extraction
       const deleteConfig = findRouteConfig('DELETE /prices/:id')
       const deleteMatches =
         deleteConfig!.pattern.exec('prices/test-id')
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test Prices list pattern (no captures)
       const listConfig = findRouteConfig('GET /prices')
       const listMatches = listConfig!.pattern.exec('prices')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test Prices create pattern (no captures)
       const createConfig = findRouteConfig('POST /prices')
       const createMatches = createConfig!.pattern.exec('prices')
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })

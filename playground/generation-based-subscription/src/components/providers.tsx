@@ -1,10 +1,10 @@
 'use client'
 
+import { FlowgladProvider } from '@flowglad/nextjs'
 import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
-import { FlowgladProvider } from '@flowglad/nextjs'
 import { authClient } from '@/lib/auth-client'
 
 const createQueryClient = () =>

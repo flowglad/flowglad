@@ -965,11 +965,15 @@ describe('flowgladActionValidators', () => {
     ]
 
     for (const key of expectedKeys) {
-      expect(flowgladActionValidators[key]).toBeDefined()
-      expect(flowgladActionValidators[key].method).toBeDefined()
-      expect(
-        flowgladActionValidators[key].inputValidator
-      ).toBeDefined()
+      const validator = flowgladActionValidators[key]
+      expect(validator).toEqual(
+        expect.objectContaining({
+          method: expect.any(String),
+          inputValidator: expect.objectContaining({
+            safeParse: expect.any(Function),
+          }),
+        })
+      )
     }
   })
 

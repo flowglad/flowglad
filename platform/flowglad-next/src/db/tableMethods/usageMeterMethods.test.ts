@@ -75,7 +75,7 @@ describe('usageMeterMethods', () => {
           },
           transaction
         )
-        expect(newMeter.id).toBeDefined()
+        expect(typeof newMeter.id).toBe('string')
         expect(newMeter.name).toBe('New Meter')
         expect(newMeter.pricingModelId).toBe(pricingModelId)
         expect(newMeter.slug).toBe('new-meter')
@@ -184,7 +184,7 @@ describe('usageMeterMethods', () => {
         )
         expect(result.data.length).toBe(2)
         expect(result.hasMore).toBe(true)
-        expect(result.nextCursor).toBeDefined()
+        expect(result.nextCursor).toMatchObject({})
       })
     })
   })
@@ -275,7 +275,7 @@ describe('usageMeterMethods', () => {
           { slug: 'test-meter', customerId: customer.id },
           transaction
         )
-        expect(result).not.toBeNull()
+        expect(result).toMatchObject({ id: meter.id })
         expect(result!.id).toBe(meter.id)
         expect(result!.slug).toBe('test-meter')
         expect(result!.name).toBe('Test Meter')

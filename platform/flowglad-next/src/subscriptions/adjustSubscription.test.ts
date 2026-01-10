@@ -143,7 +143,7 @@ function expectSubscriptionItemsToMatch(
         ? resultItem.id === newItem.id
         : resultItem.name === newItem.name
     })
-    expect(matchingResultItem).toBeDefined()
+    expect(typeof matchingResultItem).toBe('object')
 
     if (matchingResultItem) {
       // Verify common fields match (excluding dates and system-generated fields)
@@ -956,7 +956,7 @@ describe('adjustSubscription Integration Tests', async () => {
         const item3Result = result.subscriptionItems.find(
           (item) => item.name === 'Item 3'
         )
-        expect(item3Result).toBeDefined()
+        expect(typeof item3Result).toBe('object')
       })
     })
 
@@ -1591,12 +1591,12 @@ describe('adjustSubscription Integration Tests', async () => {
             subscription.id,
             transaction
           )
-        expect(result).not.toBeNull()
+        expect(result).toMatchObject({})
         if (!result) throw new Error('Result is null')
         const futureItem = result.subscriptionItems.find(
           (item) => item.name === 'Future Item'
         )
-        expect(futureItem).toBeDefined()
+        expect(typeof futureItem).toBe('object')
         expect(toMs(futureItem!.addedDate)!).toBe(newEndDate)
       })
     })
@@ -1770,13 +1770,13 @@ describe('adjustSubscription Integration Tests', async () => {
             subscription.id,
             transaction
           )
-        expect(updatedItems).not.toBeNull()
+        expect(typeof updatedItems).toBe('object')
         if (!updatedItems) throw new Error('Result is null')
 
         const expiredItem = updatedItems.subscriptionItems.find(
           (item) => item.id === expensiveItem.id
         )
-        expect(expiredItem).toBeDefined()
+        expect(typeof expiredItem).toBe('object')
         expect(toMs(expiredItem!.expiredAt)!).toEqual(
           toMs(currentBillingPeriod!.endDate)!
         )
@@ -1784,7 +1784,7 @@ describe('adjustSubscription Integration Tests', async () => {
         const newItem = updatedItems.subscriptionItems.find(
           (item) => item.name === 'Basic Plan'
         )
-        expect(newItem).toBeDefined()
+        expect(typeof newItem).toBe('object')
         expect(toMs(newItem!.addedDate)!).toEqual(
           toMs(currentBillingPeriod!.endDate)!
         )
@@ -1849,7 +1849,7 @@ describe('adjustSubscription Integration Tests', async () => {
               subscription.id,
               transaction
             )
-          expect(result).not.toBeNull()
+          expect(result).toMatchObject({})
           if (!result) throw new Error('Result is null')
           expect(result.subscriptionItems.length).toBe(
             newItems.length
@@ -2614,7 +2614,8 @@ describe('adjustSubscription Integration Tests', async () => {
         // Verify organization notification payload
         const orgPayload = mockOrgNotification.mock.calls[0][0]
         expect(orgPayload.adjustmentType).toBe('downgrade')
-        expect(orgPayload.currency).toBeDefined()
+        expect(typeof orgPayload.currency).toBe('string')
+        expect(orgPayload.currency.length).toBeGreaterThan(0)
       })
     })
 
@@ -3205,7 +3206,9 @@ describe('adjustSubscription Integration Tests', async () => {
           triggerCall.adjustmentParams
             .newSubscriptionItems as SubscriptionItem.Record[]
         ).find((i) => i.priceId === slugPrice.id)
-        expect(slugItem).toBeDefined()
+        expect(slugItem).toMatchObject({
+          unitPrice: slugPrice.unitPrice,
+        })
         expect(slugItem!.unitPrice).toBe(slugPrice.unitPrice)
         expect(slugItem!.name).toBe(slugPrice.name)
 
@@ -3214,7 +3217,7 @@ describe('adjustSubscription Integration Tests', async () => {
           triggerCall.adjustmentParams
             .newSubscriptionItems as SubscriptionItem.Record[]
         ).find((i) => i.priceId === idPrice.id)
-        expect(idItem).toBeDefined()
+        expect(idItem).toMatchObject({ quantity: 2 })
         expect(idItem!.quantity).toBe(2)
       })
     })
@@ -3732,7 +3735,10 @@ describe('adjustSubscription Integration Tests', async () => {
         const expiredPremiumItem = itemsAfter.find(
           (item) => item.id === premiumItem.id
         )
-        expect(expiredPremiumItem?.expiredAt).not.toBeNull()
+        expect(typeof expiredPremiumItem?.expiredAt).toBe('number')
+        expect(expiredPremiumItem?.expiredAt).toBeLessThanOrEqual(
+          Date.now()
+        )
 
         // New basic item should be active
         const activeItemsAfter = itemsAfter.filter(

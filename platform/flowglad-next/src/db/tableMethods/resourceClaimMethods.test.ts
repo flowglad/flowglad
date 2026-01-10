@@ -320,7 +320,7 @@ describe('resourceClaimMethods', () => {
       )
 
       // Verify the claim is released
-      expect(releasedClaim.releasedAt).not.toBeNull()
+      expect(typeof releasedClaim.releasedAt).toBe('number')
       expect(releasedClaim.releaseReason).toBe('Reassignment')
 
       // Now we should be able to create a new claim with the same external_id
@@ -390,7 +390,7 @@ describe('resourceClaimMethods', () => {
           transaction
         )
 
-        expect(found).not.toBeNull()
+        expect(found).toMatchObject({ externalId: 'findable' })
         expect(found!.externalId).toBe('findable')
         expect(found!.releasedAt).toBeNull()
       })
@@ -482,7 +482,7 @@ describe('resourceClaimMethods', () => {
         }
       )
 
-      expect(releasedClaim.releasedAt).not.toBeNull()
+      expect(typeof releasedClaim.releasedAt).toBe('number')
       expect(releasedClaim.releaseReason).toBeNull()
     })
   })

@@ -1,6 +1,5 @@
 'use client'
 
-import { authClient } from '@/lib/auth-client'
 import { useBilling } from '@flowglad/nextjs'
 import {
   Card,
@@ -8,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { authClient } from '@/lib/auth-client'
 
 export function DebugClient() {
   const { data: session } = authClient.useSession()

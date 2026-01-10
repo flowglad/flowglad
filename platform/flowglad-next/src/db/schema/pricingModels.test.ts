@@ -70,7 +70,9 @@ describe('Pricing Models RLS - Organization Policy', async () => {
         },
         { apiKey: org1ApiKeyToken }
       )
-      expect(createdPricingModel).toBeDefined()
+      expect(createdPricingModel).toMatchObject({
+        name: pricingModelInsert.name,
+      })
       expect(createdPricingModel!.name).toBe(pricingModelInsert.name)
       expect(createdPricingModel!.organizationId).toBe(
         org1Data.organization.id
@@ -120,11 +122,13 @@ describe('Pricing Models RLS - Organization Policy', async () => {
         { apiKey: org1ApiKeyToken }
       )
 
-      expect(fetchedPricingModel1).toBeDefined()
+      expect(fetchedPricingModel1).toMatchObject({})
       expect(fetchedPricingModel1!.id).toBe(
         org1DefaultPricingModel.id
       )
-      expect(fetchedPricingModel2).toBeDefined()
+      expect(fetchedPricingModel2).toMatchObject({
+        id: org1ExtraPricingModel.id,
+      })
       expect(fetchedPricingModel2!.id).toBe(org1ExtraPricingModel.id)
     })
 
@@ -162,7 +166,7 @@ describe('Pricing Models RLS - Organization Policy', async () => {
         { apiKey: org1ApiKeyToken }
       )
 
-      expect(updatedPricingModel).toBeDefined()
+      expect(updatedPricingModel).toMatchObject({ name: newName })
       expect(updatedPricingModel!.name).toBe(newName)
       expect(updatedPricingModel!.organizationId).toBe(
         org1Data.organization.id

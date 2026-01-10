@@ -373,12 +373,14 @@ describe('SubscriptionItemFeatureHelpers', () => {
           (s) => s.featureId === toggleFeature.id
         )
 
-        expect(grantSif).toBeDefined()
+        expect(grantSif).toMatchObject({
+          type: FeatureType.UsageCreditGrant,
+        })
         expect(grantSif?.type).toBe(FeatureType.UsageCreditGrant)
         expect(grantSif?.amount).toBe(grantAmount)
         expect(grantSif?.productFeatureId).toBe(grantPf.id)
 
-        expect(toggleSif).toBeDefined()
+        expect(toggleSif).toMatchObject({ type: FeatureType.Toggle })
         expect(toggleSif?.type).toBe(FeatureType.Toggle)
         expect(toggleSif?.productFeatureId).toBe(togglePf.id)
 
@@ -422,11 +424,11 @@ describe('SubscriptionItemFeatureHelpers', () => {
           (s) => s.subscriptionItemId === subscriptionItem2.id
         )
 
-        expect(sif1).toBeDefined()
+        expect(sif1).toMatchObject({ featureId: singleFeature.id })
         expect(sif1?.featureId).toBe(singleFeature.id)
         expect(sif1?.productFeatureId).toBe(productFeature.id)
 
-        expect(sif2).toBeDefined()
+        expect(sif2).toMatchObject({ featureId: singleFeature.id })
         expect(sif2?.featureId).toBe(singleFeature.id)
         expect(sif2?.productFeatureId).toBe(productFeature.id)
 

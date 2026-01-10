@@ -267,7 +267,7 @@ describe('refundPaymentTransaction', () => {
         expect(updatedPayment.refundedAmount).toBe(
           partialRefundAmount
         )
-        expect(updatedPayment.refundedAt).not.toBeNull()
+        expect(typeof updatedPayment.refundedAt).toBe('number')
       })
 
       expect(stripeUtils.refundPayment).toHaveBeenCalledWith(
@@ -298,7 +298,7 @@ describe('refundPaymentTransaction', () => {
         expect(updatedPayment.status).toBe(PaymentStatus.Refunded)
         expect(updatedPayment.refunded).toBe(true)
         expect(updatedPayment.refundedAmount).toBe(fullRefundAmount)
-        expect(updatedPayment.refundedAt).not.toBeNull()
+        expect(typeof updatedPayment.refundedAt).toBe('number')
       })
     })
 

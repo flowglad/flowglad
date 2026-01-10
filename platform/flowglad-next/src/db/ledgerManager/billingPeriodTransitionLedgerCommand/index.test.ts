@@ -240,7 +240,6 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
 
           // Assert
           // 1. Verify the main transaction record
-          expect(ledgerTransaction).toBeDefined()
           expect(ledgerTransaction.type).toBe(
             LedgerTransactionType.BillingPeriodTransition
           )
@@ -257,7 +256,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           )
           expect(creditEntry.amount).toBe(feature.amount)
           expect(creditEntry.ledgerAccountId).toBe(ledgerAccount.id)
-          expect(creditEntry.sourceUsageCreditId).not.toBeNull()
+          expect(creditEntry.sourceUsageCreditId).toMatchObject({})
 
           // 3. Verify the usage credit record was created
           const usageCredit = await selectUsageCreditById(
@@ -265,7 +264,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             transaction
           )
 
-          expect(usageCredit).toBeDefined()
+          expect(usageCredit).toMatchObject({})
           if (!usageCredit) {
             throw new Error('Usage credit not found')
           }
@@ -414,7 +413,9 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
 
           // Assert
           // 1. Verify transaction.
-          expect(ledgerTransaction).toBeDefined()
+          expect(ledgerTransaction.type).toBe(
+            LedgerTransactionType.BillingPeriodTransition
+          )
 
           // 2. Verify ledger entry for expiration.
           expect(createdLedgerEntries).toHaveLength(1)
@@ -837,7 +838,6 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             )
 
           // Assert - verify transaction created with correct fields
-          expect(ledgerTransaction).toBeDefined()
           expect(ledgerTransaction.type).toBe(
             LedgerTransactionType.BillingPeriodTransition
           )
@@ -855,7 +855,6 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           const onceEntry = ledgerEntries.find(
             (entry) => entry.amount === 500
           ) as LedgerEntry.CreditGrantRecognizedRecord
-          expect(onceEntry).toBeDefined()
           expect(onceEntry.entryType).toBe(
             LedgerEntryType.CreditGrantRecognized
           )
@@ -869,7 +868,6 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           const recurringEntry = ledgerEntries.find(
             (entry) => entry.amount === 1000
           ) as LedgerEntry.CreditGrantRecognizedRecord
-          expect(recurringEntry).toBeDefined()
           expect(recurringEntry.entryType).toBe(
             LedgerEntryType.CreditGrantRecognized
           )
@@ -880,24 +878,26 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           expect(recurringEntry.usageMeterId).toBe(usageMeter2.id)
 
           // Verify the actual usage credits were created
-          expect(onceEntry.sourceUsageCreditId).toBeDefined()
+          expect(typeof onceEntry.sourceUsageCreditId).toBe('string')
           const onceCredit = await selectUsageCreditById(
             onceEntry.sourceUsageCreditId!,
             transaction
           )
-          expect(onceCredit).toBeDefined()
+          expect(onceCredit).toMatchObject({})
           if (onceCredit) {
             expect(onceCredit.expiresAt).toBeNull() // Never expires
             expect(onceCredit.billingPeriodId).toBeNull()
             expect(onceCredit.issuedAmount).toBe(500)
           }
 
-          expect(recurringEntry.sourceUsageCreditId).toBeDefined()
+          expect(typeof recurringEntry.sourceUsageCreditId).toBe(
+            'string'
+          )
           const recurringCredit = await selectUsageCreditById(
             recurringEntry.sourceUsageCreditId!,
             transaction
           )
-          expect(recurringCredit).toBeDefined()
+          expect(recurringCredit).toMatchObject({})
           if (recurringCredit) {
             expect(recurringCredit.expiresAt).toBeNull() // Never expires for non-renewing
             expect(recurringCredit.billingPeriodId).toBeNull()
@@ -1114,9 +1114,9 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             (a) => a.usageMeterId === usageMeter3.id
           )
 
-          expect(meter1Account).toBeDefined()
-          expect(meter2Account).toBeDefined()
-          expect(meter3Account).toBeDefined()
+          expect(meter1Account).toMatchObject({})
+          expect(meter2Account).toMatchObject({})
+          expect(meter3Account).toMatchObject({})
 
           // All accounts should be linked to the subscription
           createdAccounts.forEach((account) => {
@@ -1143,7 +1143,6 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             )
 
           // Assert - transaction created but no entries
-          expect(ledgerTransaction).toBeDefined()
           expect(ledgerTransaction.type).toBe(
             LedgerTransactionType.BillingPeriodTransition
           )
@@ -1369,7 +1368,6 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             )
 
           // Assert - verify correct processing
-          expect(ledgerTransaction).toBeDefined()
           expect(ledgerTransaction.initiatingSourceId).toBe(
             nonRenewingSubscription.id
           )
@@ -1680,7 +1678,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             newCreditEntry.sourceUsageCreditId!,
             transaction
           )
-          expect(newCredit.expiresAt).toBeDefined()
+          expect(typeof newCredit.expiresAt).toBe('number')
           expect(newCredit.billingPeriodId).toBe(
             renewingBillingPeriod.id
           )
@@ -1825,7 +1823,9 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           expect(ledgerEntries).toHaveLength(1)
           const creditEntry =
             ledgerEntries[0] as LedgerEntry.CreditGrantRecognizedRecord
-          expect(creditEntry.sourceUsageCreditId).toBeDefined()
+          expect(typeof creditEntry.sourceUsageCreditId).toBe(
+            'string'
+          )
           const creditId = creditEntry.sourceUsageCreditId!
 
           // Verify the credit exists
@@ -1838,7 +1838,6 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
               `Credit ${creditId} not found in database`
             )
           }
-          expect(credit).toBeDefined()
 
           // Assert - verify credit properties for non-renewing subscription
           expect(credit.issuedAmount).toBe(500)

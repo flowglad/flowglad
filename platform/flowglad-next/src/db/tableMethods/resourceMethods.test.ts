@@ -389,7 +389,7 @@ describe('resourceMethods', () => {
           (item) => item.resource.id === resource2.id
         )
 
-        expect(foundResource1).not.toBeUndefined()
+        expect(foundResource1).toMatchObject({})
         expect(foundResource1!.resource.slug).toBe(
           'table-row-resource-1'
         )
@@ -398,7 +398,7 @@ describe('resourceMethods', () => {
           pricingModel.name
         )
 
-        expect(foundResource2).not.toBeUndefined()
+        expect(foundResource2).toMatchObject({})
         expect(foundResource2!.resource.slug).toBe(
           'table-row-resource-2'
         )
@@ -442,7 +442,7 @@ describe('resourceMethods', () => {
         const matchingItem = result.items.find(
           (item) => item.resource.name === 'Searchable Seats Resource'
         )
-        expect(matchingItem).not.toBeUndefined()
+        expect(typeof matchingItem).toBe('object')
         expect(matchingItem!.resource.slug).toBe('searchable-seats')
       })
     })

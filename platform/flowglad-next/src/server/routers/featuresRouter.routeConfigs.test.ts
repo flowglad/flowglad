@@ -22,7 +22,9 @@ describe('featuresRouteConfigs', () => {
     it('should map POST /features to features.create procedure', () => {
       const routeConfig = findRouteConfig('POST /features')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'features.create',
+      })
       expect(routeConfig!.procedure).toBe('features.create')
       expect(routeConfig!.pattern.test('features')).toBe(true)
 
@@ -37,7 +39,9 @@ describe('featuresRouteConfigs', () => {
     it('should map PUT /features/:id to features.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /features/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'features.update',
+      })
       expect(routeConfig!.procedure).toBe('features.update')
       expect(routeConfig!.pattern.test('features/test-id')).toBe(true)
 
@@ -53,7 +57,7 @@ describe('featuresRouteConfigs', () => {
     it('should map GET /features/:id to features.get procedure', () => {
       const routeConfig = findRouteConfig('GET /features/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({ procedure: 'features.get' })
       expect(routeConfig!.procedure).toBe('features.get')
       expect(routeConfig!.pattern.test('features/test-id')).toBe(true)
 
@@ -65,7 +69,9 @@ describe('featuresRouteConfigs', () => {
     it('should map DELETE /features/:id to features.delete procedure', () => {
       const routeConfig = findRouteConfig('DELETE /features/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'features.delete',
+      })
       expect(routeConfig!.procedure).toBe('features.delete')
       expect(routeConfig!.pattern.test('features/test-id')).toBe(true)
 
@@ -77,7 +83,9 @@ describe('featuresRouteConfigs', () => {
     it('should map GET /features to features.list procedure', () => {
       const routeConfig = findRouteConfig('GET /features')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'features.list',
+      })
       expect(routeConfig!.procedure).toBe('features.list')
       expect(routeConfig!.pattern.test('features')).toBe(true)
 
@@ -122,7 +130,7 @@ describe('featuresRouteConfigs', () => {
       // Test feature get pattern extraction
       const getConfig = findRouteConfig('GET /features/:id')
       const getMatches = getConfig!.pattern.exec('features/test-id')
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test feature update pattern extraction
@@ -130,7 +138,7 @@ describe('featuresRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'features/feature-456'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('feature-456') // First capture group
 
       // Test feature delete pattern extraction
@@ -138,19 +146,19 @@ describe('featuresRouteConfigs', () => {
       const deleteMatches = deleteConfig!.pattern.exec(
         'features/feature-789'
       )
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('feature-789') // First capture group
 
       // Test feature list pattern (no captures)
       const listConfig = findRouteConfig('GET /features')
       const listMatches = listConfig!.pattern.exec('features')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test feature create pattern (no captures)
       const createConfig = findRouteConfig('POST /features')
       const createMatches = createConfig!.pattern.exec('features')
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })

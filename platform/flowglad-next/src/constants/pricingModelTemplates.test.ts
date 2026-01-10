@@ -13,7 +13,7 @@ describe('Pricing Model Templates', () => {
         const validated = validateSetupPricingModelInput(
           template.input
         )
-        expect(validated).toBeDefined()
+        expect(typeof validated).toBe('object')
       })
     })
   })
@@ -31,7 +31,7 @@ describe('Pricing Model Templates', () => {
 
       templateIds.forEach((id) => {
         const template = getTemplateById(id)
-        expect(template).toBeDefined()
+        expect(template).toMatchObject({})
         expect(template?.metadata.id).toBe(id)
       })
     })

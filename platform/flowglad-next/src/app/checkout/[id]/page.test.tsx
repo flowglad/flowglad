@@ -72,7 +72,7 @@ describe('CheckoutSessionPage', () => {
     const ui = await Page({
       params: Promise.resolve({ id: 'cs_123' }),
     } as any)
-    expect(ui).toBeTruthy()
+    expect(typeof ui).toBe('object')
     expect(redirect).not.toHaveBeenCalled()
   })
 

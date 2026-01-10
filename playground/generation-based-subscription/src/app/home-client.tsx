@@ -1,13 +1,11 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { authClient } from '@/lib/auth-client'
 import { useBilling } from '@flowglad/nextjs'
-import { computeUsageTotal } from '@/lib/billing-helpers'
+import { CheckCircle2 } from 'lucide-react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 import { DashboardSkeleton } from '@/components/dashboard-skeleton'
-import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -15,12 +13,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { CheckCircle2 } from 'lucide-react'
+import { authClient } from '@/lib/auth-client'
+import { computeUsageTotal } from '@/lib/billing-helpers'
 
 // Mock images to cycle through
 const mockImages = [

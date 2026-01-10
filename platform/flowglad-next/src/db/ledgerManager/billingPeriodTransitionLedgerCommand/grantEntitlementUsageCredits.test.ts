@@ -266,7 +266,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(usageCredit.issuedAmount).toBe(
       baseSubscriptionItemFeature.amount
     )
-    expect(usageCredit.issuedAt).toBeDefined()
+    expect(typeof usageCredit.issuedAt).toBe('number')
     expect(usageCredit.creditType).toBe(UsageCreditType.Grant)
     expect(usageCredit.sourceReferenceType).toBe(
       UsageCreditSourceReferenceType.BillingPeriodTransition
@@ -284,7 +284,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry.organizationId).toBe(organization.id)
     expect(ledgerEntry.status).toBe(LedgerEntryStatus.Posted)
     expect(ledgerEntry.livemode).toBe(command.livemode)
-    expect(ledgerEntry.entryTimestamp).toBeDefined()
+    expect(typeof ledgerEntry.entryTimestamp).toBe('number')
     expect(ledgerEntry.amount).toBe(
       baseSubscriptionItemFeature.amount
     )
@@ -382,8 +382,10 @@ describe('grantEntitlementUsageCredits', () => {
       (uc) => uc.usageMeterId === usageMeter2.id
     )
 
-    expect(usageCredit1).toBeDefined()
-    expect(usageCredit2).toBeDefined()
+    expect(usageCredit1).toMatchObject({
+      organizationId: organization.id,
+    })
+    expect(usageCredit2).toMatchObject({})
 
     // Assertions for the first usage credit (linked to usageMeter1)
     expect(usageCredit1!.organizationId).toBe(organization.id)
@@ -393,7 +395,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(usageCredit1!.usageMeterId).toBe(usageMeter1.id)
     expect(usageCredit1!.subscriptionId).toBe(subscription.id)
     expect(usageCredit1!.expiresAt).toEqual(newBillingPeriod.endDate)
-    expect(usageCredit1!.issuedAt).toBeDefined()
+    expect(typeof usageCredit1!.issuedAt).toBe('number')
     expect(usageCredit1!.creditType).toBe(UsageCreditType.Grant)
     expect(usageCredit1!.sourceReferenceType).toBe(
       UsageCreditSourceReferenceType.BillingPeriodTransition
@@ -408,7 +410,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(usageCredit2!.usageMeterId).toBe(usageMeter2.id)
     expect(usageCredit2!.subscriptionId).toBe(subscription.id)
     expect(usageCredit2!.expiresAt).toEqual(newBillingPeriod.endDate)
-    expect(usageCredit2!.issuedAt).toBeDefined()
+    expect(typeof usageCredit2!.issuedAt).toBe('number')
     expect(usageCredit2!.creditType).toBe(UsageCreditType.Grant)
     expect(usageCredit2!.sourceReferenceType).toBe(
       UsageCreditSourceReferenceType.BillingPeriodTransition
@@ -428,8 +430,8 @@ describe('grantEntitlementUsageCredits', () => {
       (le) => le.ledgerAccountId === ledgerAccount2.id
     )
 
-    expect(ledgerEntry1).toBeDefined()
-    expect(ledgerEntry2).toBeDefined()
+    expect(ledgerEntry1).toMatchObject({})
+    expect(ledgerEntry2).toMatchObject({})
 
     // Assertions for the first ledger entry (linked to ledgerAccount1)
     expect(ledgerEntry1!.ledgerTransactionId).toBe(
@@ -440,7 +442,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry1!.organizationId).toBe(organization.id)
     expect(ledgerEntry1!.status).toBe(LedgerEntryStatus.Posted)
     expect(ledgerEntry1!.livemode).toBe(command.livemode)
-    expect(ledgerEntry1!.entryTimestamp).toBeDefined()
+    expect(typeof ledgerEntry1!.entryTimestamp).toBe('number')
     expect(ledgerEntry1!.amount).toBe(amount1)
     expect(ledgerEntry1!.direction).toBe(LedgerEntryDirection.Credit)
     expect(ledgerEntry1!.entryType).toBe(
@@ -458,7 +460,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry2!.organizationId).toBe(organization.id)
     expect(ledgerEntry2!.status).toBe(LedgerEntryStatus.Posted)
     expect(ledgerEntry2!.livemode).toBe(command.livemode)
-    expect(ledgerEntry2!.entryTimestamp).toBeDefined()
+    expect(typeof ledgerEntry2!.entryTimestamp).toBe('number')
     expect(ledgerEntry2!.amount).toBe(amount2)
     expect(ledgerEntry2!.direction).toBe(LedgerEntryDirection.Credit)
     expect(ledgerEntry2!.entryType).toBe(
@@ -542,7 +544,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(usageCredit.usageMeterId).toBe(usageMeter1.id) // Linked to the one with meter
     expect(usageCredit.subscriptionId).toBe(subscription.id)
     expect(usageCredit.expiresAt).toEqual(newBillingPeriod.endDate)
-    expect(usageCredit.issuedAt).toBeDefined()
+    expect(typeof usageCredit.issuedAt).toBe('number')
     expect(usageCredit.creditType).toBe(UsageCreditType.Grant)
     expect(usageCredit.sourceReferenceType).toBe(
       UsageCreditSourceReferenceType.BillingPeriodTransition
@@ -559,7 +561,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry.organizationId).toBe(organization.id)
     expect(ledgerEntry.status).toBe(LedgerEntryStatus.Posted)
     expect(ledgerEntry.livemode).toBe(command.livemode)
-    expect(ledgerEntry.entryTimestamp).toBeDefined()
+    expect(typeof ledgerEntry.entryTimestamp).toBe('number')
     expect(ledgerEntry.amount).toBe(amountWithMeter) // Amount from the metered item
     expect(ledgerEntry.direction).toBe(LedgerEntryDirection.Credit)
     expect(ledgerEntry.entryType).toBe(
@@ -665,7 +667,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(usageCredit.usageMeterId).toBe(usageMeter1.id)
     expect(usageCredit.subscriptionId).toBe(subscription.id)
     expect(usageCredit.expiresAt).toEqual(newBillingPeriod.endDate)
-    expect(usageCredit.issuedAt).toBeDefined()
+    expect(typeof usageCredit.issuedAt).toBe('number')
     expect(usageCredit.creditType).toBe(UsageCreditType.Grant)
     expect(usageCredit.sourceReferenceType).toBe(
       UsageCreditSourceReferenceType.BillingPeriodTransition
@@ -684,7 +686,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry.organizationId).toBe(organization.id)
     expect(ledgerEntry.status).toBe(LedgerEntryStatus.Posted)
     expect(ledgerEntry.livemode).toBe(false) // IMPORTANT CHECK
-    expect(ledgerEntry.entryTimestamp).toBeDefined()
+    expect(typeof ledgerEntry.entryTimestamp).toBe('number')
     expect(ledgerEntry.amount).toBe(testAmount)
     expect(ledgerEntry.direction).toBe(LedgerEntryDirection.Credit)
     expect(ledgerEntry.entryType).toBe(
@@ -785,10 +787,8 @@ describe('grantEntitlementUsageCredits', () => {
       (acc) => acc.usageMeterId === usageMeter2.id
     ) as LedgerAccountSchema.Record | undefined // Cast to ensure type includes balance
 
-    expect(originalLedgerAccount).toBeDefined()
     expect(originalLedgerAccount?.id).toBe(ledgerAccount1.id)
 
-    expect(newLedgerAccount).toBeDefined()
     expect(newLedgerAccount?.organizationId).toBe(organization.id)
     expect(newLedgerAccount?.subscriptionId).toBe(subscription.id)
     expect(newLedgerAccount?.usageMeterId).toBe(usageMeter2.id)
@@ -818,11 +818,9 @@ describe('grantEntitlementUsageCredits', () => {
       (uc) => uc.usageMeterId === usageMeter2.id
     )
 
-    expect(uc1).toBeDefined()
     expect(uc1?.issuedAmount).toBe(amountForBaseSif)
     expect(uc1?.usageMeterId).toBe(usageMeter1.id)
 
-    expect(uc2).toBeDefined()
     expect(uc2?.issuedAmount).toBe(amountForNewSif)
     expect(uc2?.usageMeterId).toBe(usageMeter2.id)
 
@@ -847,12 +845,10 @@ describe('grantEntitlementUsageCredits', () => {
       (le) => le.sourceUsageCreditId === uc2?.id
     )
 
-    expect(le1).toBeDefined()
     expect(le1?.ledgerAccountId).toBe(originalLedgerAccount?.id)
     expect(le1?.amount).toBe(amountForBaseSif)
     expect(le1?.entryType).toBe(LedgerEntryType.CreditGrantRecognized)
 
-    expect(le2).toBeDefined()
     expect(le2?.ledgerAccountId).toBe(newLedgerAccount?.id)
     expect(le2?.amount).toBe(amountForNewSif)
     expect(le2?.entryType).toBe(LedgerEntryType.CreditGrantRecognized)
@@ -964,11 +960,9 @@ describe('grantEntitlementUsageCredits', () => {
         (uc) => uc.usageMeterId === usageMeter2.id
       )
 
-      expect(onceCredit).toBeDefined()
       expect(onceCredit?.issuedAmount).toBe(featureOnce.amount)
       expect(onceCredit?.expiresAt).toBeNull() // One-time grants should not expire
 
-      expect(everyCredit).toBeDefined()
       expect(everyCredit?.issuedAmount).toBe(featureEvery.amount)
       expect(everyCredit?.expiresAt).toEqual(
         standardPayload.newBillingPeriod.endDate
