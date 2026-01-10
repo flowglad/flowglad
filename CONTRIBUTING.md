@@ -163,7 +163,77 @@ Thanks for your interest in contributing to Flowglad’s backend. This section f
 
 Prerequisites:
 - bun installed
-- Docker running (used for the test database via docker-compose)
+- Docker and Docker Compose installed
+
+---
+
+## Docker-based Development (Recommended)
+
+The easiest way to get started is using Docker for the database. You have two options:
+
+### Option 1: Docker Postgres + Local Bun Dev Server (Fastest for Development)
+
+This hybrid approach gives you fast hot-reloading while using Docker for the database:
+
+```bash
+# Navigate to the backend app
+cd platform/flowglad-next
+
+# Start only the PostgreSQL container
+docker-compose up postgres -d
+
+# Install dependencies
+bun run install-packages
+
+# Copy and configure environment variables
+cp .env.example .env.local
+# Edit .env.local and add your API keys (see Environment Variables section below)
+
+# Run database migrations
+bun run migrations:push
+
+# Seed the countries table
+bun run seed:countries
+
+# Start the dev server
+bun dev
+```
+
+The app will be available at http://localhost:3000
+
+### Option 2: Full Docker Stack
+
+Run both PostgreSQL and the Next.js application in Docker:
+
+```bash
+cd platform/flowglad-next
+
+# Copy and configure environment variables first
+cp .env.example .env.local
+# Edit .env.local and add your API keys
+
+# Build and start all services
+docker-compose up --build
+
+# In a separate terminal, run migrations
+docker exec flowglad-app bun run migrations:push
+docker exec flowglad-app bun run seed:countries
+```
+
+### Docker Commands Reference
+
+| Command | Description |
+|---------|-------------|
+| `docker-compose up postgres -d` | Start only PostgreSQL in background |
+| `docker-compose up --build` | Build and start all services |
+| `docker-compose down` | Stop all services |
+| `docker-compose down -v` | Stop all services and delete data volumes |
+| `docker-compose logs -f app` | Follow application logs |
+| `docker-compose logs -f postgres` | Follow database logs |
+
+---
+
+## Manual Setup (Without Docker for the App)
 
 Setup steps:
 1) Change directory to the backend app
