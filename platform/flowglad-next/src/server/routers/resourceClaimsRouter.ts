@@ -3,7 +3,10 @@ import { z } from 'zod'
 import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import { resourceClaimsClientSelectSchema } from '@/db/schema/resourceClaims'
 import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
-import { selectActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
+import {
+  countActiveClaimsForSubscriptionItemFeatures,
+  selectActiveResourceClaims,
+} from '@/db/tableMethods/resourceClaimMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
@@ -12,7 +15,6 @@ import type { DbTransaction } from '@/db/types'
 import {
   claimResourceInputSchema,
   claimResourceTransaction,
-  getResourceUsage,
   getResourceUsageInputSchema,
   releaseResourceInputSchema,
   releaseResourceTransaction,
@@ -264,31 +266,46 @@ const getUsageProcedure = devOnlyProcedure
           )
         }
 
-        // Get usage for each resource feature (these are individual queries but necessary for accurate counts)
-        const usageResults: Array<{
-          resourceSlug: string
-          resourceId: string
-          capacity: number
-          claimed: number
-          available: number
-        }> = []
-
-        for (const feature of featuresToQuery) {
-          const usage = await getResourceUsage(
-            input.subscriptionId,
-            feature.id,
+        // Batch fetch active claim counts for all features in a single query
+        const featureIds = featuresToQuery.map((f) => f.id)
+        const claimCountsByFeatureId =
+          await countActiveClaimsForSubscriptionItemFeatures(
+            featureIds,
             transaction
           )
 
-          const resource = resourcesById.get(feature.resourceId!)
-          if (resource) {
-            usageResults.push({
+        // Build usage results by combining feature capacity with batched claim counts
+        const usageResults = featuresToQuery
+          .map((feature) => {
+            const resource = resourcesById.get(feature.resourceId!)
+            if (!resource) {
+              return null
+            }
+
+            const capacity = feature.amount
+            const claimed =
+              claimCountsByFeatureId.get(feature.id) ?? 0
+            const available = capacity - claimed
+
+            return {
               resourceSlug: resource.slug,
               resourceId: resource.id,
-              ...usage,
-            })
-          }
-        }
+              capacity,
+              claimed,
+              available,
+            }
+          })
+          .filter(
+            (
+              result
+            ): result is {
+              resourceSlug: string
+              resourceId: string
+              capacity: number
+              claimed: number
+              available: number
+            } => result !== null
+          )
 
         return { usage: usageResults }
       }
