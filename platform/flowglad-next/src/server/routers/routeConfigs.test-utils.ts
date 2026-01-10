@@ -156,7 +156,6 @@ export function validateStandardCrudMappings(
   Object.entries(expectedMappings).forEach(
     ([routeKey, expectedProcedure]) => {
       const config = findRouteConfig(routeKey)
-      expect(config).not.toBeNull()
       expect(config!.procedure).toBe(expectedProcedure)
     }
   )
