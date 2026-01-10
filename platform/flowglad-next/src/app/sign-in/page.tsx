@@ -4,9 +4,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
+import type { FieldErrors } from 'react-hook-form'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { trpc } from '@/app/_trpc/client'
 import ErrorLabel from '@/components/ErrorLabel'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,7 +23,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { signInSchema } from '@/lib/schemas'
 import { cn } from '@/lib/utils'
-import { authClient, signIn } from '@/utils/authClient'
+import { signIn } from '@/utils/authClient'
 
 export default function SignIn() {
   type SigninValues = z.infer<typeof signInSchema>
@@ -42,18 +44,32 @@ export default function SignIn() {
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
+  const resetPasswordMutation = trpc.utils.resetPassword.useMutation({
+    onSuccess: () => {
+      toast.success(
+        'If that email has an account, a password reset email has been sent.'
+      )
+    },
+    onError: () => {
+      toast.error('Failed to send reset email')
+    },
+  })
+
   const emailValue = watch('email')
-  const forgotPasswordDisabled = !z
-    .string()
-    .email()
-    .safeParse(emailValue ?? '').success
+
+  const forgotPasswordDisabled =
+    !z
+      .string()
+      .email()
+      .safeParse(emailValue ?? '').success ||
+    resetPasswordMutation.isPending
 
   const signinFetchOptions = {
     onRequest: () => {
       setLoading(true)
       setError('')
     },
-    onError: (ctx: any) => {
+    onError: (ctx: { error: { message: string } }) => {
       setError(ctx.error.message)
     },
     onResponse: () => {
@@ -72,10 +88,20 @@ export default function SignIn() {
     )
   }
 
-  const onError = (errs: any) => {
-    const first = Object.values(errs)[0] as any
+  const onError = (errs: FieldErrors<SigninValues>) => {
+    const first = Object.values(errs)[0]
     const message = first?.message ?? 'Validation failed'
     toast.error(String(message))
+  }
+
+  const handleForgotPassword = () => {
+    if (forgotPasswordDisabled) {
+      if (!resetPasswordMutation.isPending) {
+        toast.error('Please enter a valid email')
+      }
+      return
+    }
+    resetPasswordMutation.mutate({ email: emailValue ?? '' })
   }
 
   return (
@@ -111,20 +137,16 @@ export default function SignIn() {
                     forgotPasswordDisabled &&
                       'opacity-25 cursor-not-allowed'
                   )}
-                  onClick={async (e) => {
-                    if (forgotPasswordDisabled) {
-                      return
-                    }
-                    await authClient.requestPasswordReset({
-                      email: emailValue ?? '',
-                      redirectTo: '/sign-in/reset-password',
-                    })
-                    toast.success(
-                      'If that email has an account, a password reset email has been sent.'
-                    )
-                  }}
+                  onClick={handleForgotPassword}
                 >
-                  Forgot your password?
+                  {resetPasswordMutation.isPending ? (
+                    <span className="flex items-center gap-1">
+                      <Loader2 size={12} className="animate-spin" />
+                      Sending...
+                    </span>
+                  ) : (
+                    'Forgot your password?'
+                  )}
                 </div>
               </div>
               <div className="relative">
@@ -192,10 +214,10 @@ export default function SignIn() {
                       callbackURL: '/',
                     },
                     {
-                      onRequest: (ctx) => {
+                      onRequest: () => {
                         setLoading(true)
                       },
-                      onResponse: (ctx) => {
+                      onResponse: () => {
                         setLoading(false)
                       },
                     }
