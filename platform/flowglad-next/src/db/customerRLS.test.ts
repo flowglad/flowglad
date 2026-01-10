@@ -1012,27 +1012,34 @@ describe('Customer Role RLS Policies', () => {
       )
     })
 
-    it('should return no products when the customer has NULL pricingModelId', async () => {
-      // Create a new customer with its own user and NO pricing model
-      const emptyCustomer = await setupCustomer({
+    it('should return only products from the customers pricing model', async () => {
+      // Create a new customer with its own user and a different pricing model
+      const differentPm = await setupPricingModel({
         organizationId: org1.id,
-        email: `nopm_${core.nanoid()}@test.com`,
-        livemode: true,
+        name: 'Different Pricing Model',
+        isDefault: false,
       })
 
-      const emptyUser = await adminTransaction(
+      const customerWithDifferentPm = await setupCustomer({
+        organizationId: org1.id,
+        email: `diffpm_${core.nanoid()}@test.com`,
+        livemode: true,
+        pricingModelId: differentPm.id,
+      })
+
+      const differentPmUser = await adminTransaction(
         async ({ transaction }) => {
           const user = await insertUser(
             {
               id: `usr_${core.nanoid()}`,
-              email: emptyCustomer.email,
-              name: 'No PM User',
+              email: customerWithDifferentPm.email,
+              name: 'Different PM User',
               betterAuthId: `bau_${core.nanoid()}`,
             },
             transaction
           )
           await updateCustomer(
-            { id: emptyCustomer.id, userId: user.id },
+            { id: customerWithDifferentPm.id, userId: user.id },
             transaction
           )
           return user
@@ -1040,14 +1047,15 @@ describe('Customer Role RLS Policies', () => {
       )
 
       const visibleProducts = await authenticatedCustomerTransaction(
-        emptyCustomer,
-        emptyUser,
+        customerWithDifferentPm,
+        differentPmUser,
         org1,
         async ({ transaction }) => {
           return selectProducts({}, transaction)
         }
       )
 
+      // Should return no products since the different pricing model has no products
       expect(visibleProducts).toHaveLength(0)
     })
   })
@@ -2010,10 +2018,10 @@ describe('Customer Role RLS Policies', () => {
     })
   })
 
-  describe('Customer with null pricingModelId should access default pricing model', () => {
+  describe('Customer with default pricingModelId should access billing portal', () => {
     let organization: Organization.Record
     let defaultPricingModel: PricingModel.Record
-    let customerWithNullPricingModel: Customer.Record
+    let customerWithDefaultPricingModel: Customer.Record
     let user: User.Record
     let apiKey: ApiKey.Record
 
@@ -2053,27 +2061,31 @@ describe('Customer Role RLS Policies', () => {
       user = userApiKey.user
       apiKey = userApiKey.apiKey
 
-      // Create customer without pricing model, using the same user as the API key
-      customerWithNullPricingModel = await setupCustomer({
+      // Create customer with default pricing model, using the same user as the API key
+      customerWithDefaultPricingModel = await setupCustomer({
         organizationId: organization.id,
-        email: 'null-pricing-model@example.com',
+        email: 'default-pricing-model@example.com',
         userId: user.id,
+        pricingModelId: defaultPricingModel.id,
       })
     })
 
-    it('should allow customer with null pricingModelId to access billing portal and get default pricing model', async () => {
-      expect(customerWithNullPricingModel.pricingModelId).toBeNull()
+    it('should allow customer with pricingModelId to access billing portal and get their pricing model', async () => {
+      // pricingModelId is now NOT NULL - customer should have the default pricing model assigned
+      expect(customerWithDefaultPricingModel.pricingModelId).toBe(
+        defaultPricingModel.id
+      )
 
-      // Test as a customer (not merchant) to reproduce the RLS issue
+      // Test as a customer (not merchant) to verify RLS works correctly
 
       // Use the helper function to simulate customer accessing billing portal with proper RLS context
       const result = await authenticatedCustomerTransaction(
-        customerWithNullPricingModel,
+        customerWithDefaultPricingModel,
         user,
         organization,
         async ({ transaction }) => {
           return selectPricingModelForCustomer(
-            customerWithNullPricingModel,
+            customerWithDefaultPricingModel,
             transaction
           )
         }

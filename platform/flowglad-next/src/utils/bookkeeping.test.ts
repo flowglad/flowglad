@@ -462,10 +462,11 @@ describe('createCustomerBookkeeping', () => {
       }
     })
 
-    it('should create customer without subscription when no pricing model exists at all', async () => {
+    it('should throw error when no pricing model exists for customer creation', async () => {
       // setup:
       // - create an organization without any pricing models
-      // - create a customer without specifying a pricing model
+      // - attempt to create a customer without specifying a pricing model
+      // - expect an error since pricingModelId is now required (NOT NULL)
 
       // Create a new org without default pricing model setup
       const minimalOrg = await adminTransaction(
@@ -491,9 +492,9 @@ describe('createCustomerBookkeeping', () => {
         }
       )
 
-      // Create customer for the minimal org
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      // Attempt to create customer for the minimal org - should fail since no pricing model exists
+      await expect(
+        adminTransaction(async ({ transaction }) => {
           const output = await createCustomerBookkeeping(
             {
               customer: {
@@ -510,32 +511,10 @@ describe('createCustomerBookkeeping', () => {
             }
           )
           return output
-        }
+        })
+      ).rejects.toThrow(
+        `No pricing model found for customer. Organization: ${minimalOrg.id}`
       )
-
-      // expects:
-      // - customer should be created successfully
-      // - no subscription should be created since there's no pricing model
-      // - only CustomerCreated event should exist
-      expect(result.result.customer).toBeDefined()
-      expect(result.result.customer.organizationId).toBe(
-        minimalOrg.id
-      )
-      expect(result.result.subscription).toBeUndefined()
-      expect(result.result.subscriptionItems).toBeUndefined()
-
-      // Verify only CustomerCreated event exists
-      expect(result.eventsToInsert).toBeDefined()
-      expect(
-        result.eventsToInsert?.some(
-          (e) => e.type === FlowgladEventType.CustomerCreated
-        )
-      ).toBe(true)
-      expect(
-        result.eventsToInsert?.some(
-          (e) => e.type === FlowgladEventType.SubscriptionCreated
-        )
-      ).toBe(false)
     })
 
     it('should prevent cross-organization customer creation', async () => {
