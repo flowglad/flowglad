@@ -9,11 +9,16 @@ export const resetPassword = publicProcedure
   .mutation(async ({ input }) => {
     const { email } = input
 
-    const userExists = await adminTransaction(
-      async ({ transaction }) => {
-        return selectBetterAuthUserByEmail(email, transaction)
-      }
-    )
+    let userExists = false
+    try {
+      await adminTransaction(async ({ transaction }) => {
+        await selectBetterAuthUserByEmail(email, transaction)
+        userExists = true
+      })
+    } catch {
+      // User doesn't exist - swallow error to prevent user enumeration
+      userExists = false
+    }
 
     if (userExists) {
       try {
