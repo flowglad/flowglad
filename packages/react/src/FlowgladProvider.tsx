@@ -17,6 +17,15 @@ export interface LoadedFlowgladProviderProps {
   children: React.ReactNode
   requestConfig?: RequestConfig
   baseURL?: string
+  /**
+   * When using Better Auth integration, set this to your Better Auth API base path
+   * (e.g., '/api/auth'). This routes all Flowglad API calls through Better Auth
+   * endpoints instead of the standalone /api/flowglad route.
+   *
+   * IMPORTANT: This must match your Better Auth configuration. If you change your
+   * Better Auth basePath, you must update this prop to match.
+   */
+  betterAuthBasePath?: string
   loadBilling: boolean
 }
 
@@ -44,8 +53,13 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
     )
   }
 
-  const { baseURL, loadBilling, requestConfig, children } =
-    props as LoadedFlowgladProviderProps
+  const {
+    baseURL,
+    betterAuthBasePath,
+    loadBilling,
+    requestConfig,
+    children,
+  } = props as LoadedFlowgladProviderProps
   if (baseURL) {
     validateUrl(baseURL, 'baseURL', true)
   }
@@ -53,6 +67,7 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
     <QueryClientProvider client={queryClient}>
       <FlowgladContextProvider
         baseURL={baseURL}
+        betterAuthBasePath={betterAuthBasePath}
         loadBilling={loadBilling}
         requestConfig={requestConfig}
       >
