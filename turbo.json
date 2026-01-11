@@ -7,7 +7,8 @@
     },
     "check": {
       "dependsOn": ["^check", "^build:declarations"],
-      "outputs": []
+      "outputs": [],
+      "env": ["BIOME_BINARY"]
     },
     "build:declarations": {
       "dependsOn": ["^build:declarations"],
