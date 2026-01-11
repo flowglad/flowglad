@@ -262,6 +262,7 @@ describe('Swagger Configuration', () => {
       '/api/v1/payments',
       '/api/v1/products',
       '/api/v1/prices',
+      '/api/v1/resources',
       '/api/v1/product-features',
       '/api/v1/subscriptions',
       '/api/v1/subscription-item-features',
