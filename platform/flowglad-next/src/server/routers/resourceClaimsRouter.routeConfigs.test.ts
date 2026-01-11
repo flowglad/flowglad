@@ -52,16 +52,14 @@ describe('resourceClaimsRouteConfigs', () => {
       ).toBe(true)
     })
 
-    it('maps POST /resource-claims/:id/listClaims to resourceClaims.listClaims procedure', () => {
+    it('maps GET /resource-claims/:id/claims to resourceClaims.listClaims procedure', () => {
       const routeConfig = findRouteConfig(
-        'POST /resource-claims/:id/listClaims'
+        'GET /resource-claims/:id/claims'
       )
 
       expect(routeConfig!.procedure).toBe('resourceClaims.listClaims')
       expect(
-        routeConfig!.pattern.test(
-          'resource-claims/sub-101/listClaims'
-        )
+        routeConfig!.pattern.test('resource-claims/sub-101/claims')
       ).toBe(true)
     })
   })
@@ -139,11 +137,11 @@ describe('resourceClaimsRouteConfigs', () => {
 
     it('validates listClaims route pattern matches expected paths and rejects invalid paths', () => {
       const listConfig = findRouteConfig(
-        'POST /resource-claims/:id/listClaims'
+        'GET /resource-claims/:id/claims'
       )
 
       expect(
-        listConfig!.pattern.test('resource-claims/sub-123/listClaims')
+        listConfig!.pattern.test('resource-claims/sub-123/claims')
       ).toBe(true)
       expect(
         listConfig!.pattern.test('resource-claims/sub-123')
@@ -151,7 +149,7 @@ describe('resourceClaimsRouteConfigs', () => {
       expect(listConfig!.pattern.test('resource-claims')).toBe(false)
       expect(
         listConfig!.pattern.test(
-          'resource-claims/sub-123/listClaims/extra'
+          'resource-claims/sub-123/claims/extra'
         )
       ).toBe(false)
       expect(
@@ -188,10 +186,10 @@ describe('resourceClaimsRouteConfigs', () => {
       expect(usageMatches![1]).toBe('test-sub-id')
 
       const listConfig = findRouteConfig(
-        'POST /resource-claims/:id/listClaims'
+        'GET /resource-claims/:id/claims'
       )
       const listMatches = listConfig!.pattern.exec(
-        'resource-claims/test-sub-id/listClaims'
+        'resource-claims/test-sub-id/claims'
       )
       expect(typeof listMatches).toBe('object')
       expect(listMatches![1]).toBe('test-sub-id')
@@ -263,17 +261,20 @@ describe('resourceClaimsRouteConfigs', () => {
       })
     })
 
-    it('listClaims mapParams includes id when called with sliced matches', () => {
+    it('listClaims mapParams returns entity Id when called with full match array', () => {
       const routeConfig = findRouteConfig(
-        'POST /resource-claims/:id/listClaims'
+        'GET /resource-claims/:id/claims'
       )
       const fullMatch = routeConfig!.pattern.exec(
-        'resource-claims/subscription-list-404/listClaims'
+        'resource-claims/subscription-list-404/claims'
       )
-      const result = routeConfig!.mapParams(fullMatch!.slice(1))
+      // The listClaims action is treated as a nested resource lister,
+      // which expects the full match array (uses matches[1] internally)
+      const result = routeConfig!.mapParams(fullMatch as string[])
 
+      // Uses camelCase format: `${camelCase(entity)}Id` becomes `resourceClaimsId`
       expect(result).toEqual({
-        id: 'subscription-list-404',
+        resourceClaimsId: 'subscription-list-404',
       })
     })
 
@@ -317,15 +318,13 @@ describe('resourceClaimsRouteConfigs', () => {
       expect(routeKeys).toContain('POST /resource-claims/:id/claim')
       expect(routeKeys).toContain('POST /resource-claims/:id/release')
       expect(routeKeys).toContain('GET /resource-claims/:id/usage')
-      expect(routeKeys).toContain(
-        'POST /resource-claims/:id/listClaims'
-      )
+      expect(routeKeys).toContain('GET /resource-claims/:id/claims')
 
       expect(routeKeys).toHaveLength(4)
     })
 
     it('extracts id from routes with correct mapParams invocation per route type', () => {
-      // Custom action routes (claim, release, listClaims) expect sliced matches
+      // Custom action routes (claim, release) expect sliced matches
       const slicedMatchRoutes = [
         {
           key: 'POST /resource-claims/:id/claim',
@@ -335,11 +334,6 @@ describe('resourceClaimsRouteConfigs', () => {
         {
           key: 'POST /resource-claims/:id/release',
           path: 'resource-claims/test-sub/release',
-          idKey: 'id',
-        },
-        {
-          key: 'POST /resource-claims/:id/listClaims',
-          path: 'resource-claims/test-sub/listClaims',
           idKey: 'id',
         },
       ]
@@ -353,20 +347,24 @@ describe('resourceClaimsRouteConfigs', () => {
         expect(result).toHaveProperty(idKey, 'test-sub')
       })
 
-      // Nested resource getter (getUsage) expects full match array
-      const usageConfig = findRouteConfig(
-        'GET /resource-claims/:id/usage'
-      )
-      const usageMatch = usageConfig!.pattern.exec(
-        'resource-claims/test-sub/usage'
-      )
-      const usageResult = usageConfig!.mapParams(
-        usageMatch as string[]
-      )
-      expect(usageResult).toHaveProperty(
-        'resourceClaimsId',
-        'test-sub'
-      )
+      // Nested resource getter (getUsage) and lister (listClaims) expect full match array
+      const fullMatchRoutes = [
+        {
+          key: 'GET /resource-claims/:id/usage',
+          path: 'resource-claims/test-sub/usage',
+        },
+        {
+          key: 'GET /resource-claims/:id/claims',
+          path: 'resource-claims/test-sub/claims',
+        },
+      ]
+
+      fullMatchRoutes.forEach(({ key, path }) => {
+        const config = findRouteConfig(key)
+        const fullMatch = config!.pattern.exec(path)
+        const result = config!.mapParams(fullMatch as string[])
+        expect(result).toHaveProperty('resourceClaimsId', 'test-sub')
+      })
     })
 
     it('has valid route config structure for all routes', () => {
@@ -384,7 +382,7 @@ describe('resourceClaimsRouteConfigs', () => {
         'POST /resource-claims/:id/claim': 'resourceClaims.claim',
         'POST /resource-claims/:id/release': 'resourceClaims.release',
         'GET /resource-claims/:id/usage': 'resourceClaims.getUsage',
-        'POST /resource-claims/:id/listClaims':
+        'GET /resource-claims/:id/claims':
           'resourceClaims.listClaims',
       }
 
@@ -427,16 +425,16 @@ describe('resourceClaimsRouteConfigs', () => {
       expect(releaseConfig!.pattern.test(claimPath)).toBe(false)
     })
 
-    it('differentiates between usage and listClaims for the same subscription', () => {
+    it('differentiates between usage and claims for the same subscription', () => {
       const usageConfig = findRouteConfig(
         'GET /resource-claims/:id/usage'
       )
       const listConfig = findRouteConfig(
-        'POST /resource-claims/:id/listClaims'
+        'GET /resource-claims/:id/claims'
       )
 
       const usagePath = 'resource-claims/sub-same/usage'
-      const listPath = 'resource-claims/sub-same/listClaims'
+      const listPath = 'resource-claims/sub-same/claims'
 
       expect(usageConfig!.pattern.test(usagePath)).toBe(true)
       expect(usageConfig!.pattern.test(listPath)).toBe(false)

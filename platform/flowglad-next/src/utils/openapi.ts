@@ -324,9 +324,25 @@ export const trpcToRest = (
 
     // Handle special cases for nested resources or custom actions
     default:
-      // Check if it's a nested resource getter (like getRevenue)
+      // Check if it's a nested resource getter (like getRevenue, getUsage)
       if (action.startsWith('get')) {
         const resource = action.slice(3).toLowerCase()
+        // Use camelCase for the entity ID key (e.g., resourceClaimsId not resource-claimsId)
+        const entityIdKey = `${camelCase(entity)}Id`
+        return {
+          [`GET /${entity}/:id/${resource}`]: {
+            procedure: procedureName,
+            pattern: new RegExp(`^${entity}/([^\\/]+)/${resource}$`),
+            mapParams: (matches) => ({
+              [entityIdKey]: matches[1],
+            }),
+          },
+        }
+      }
+
+      // Check if it's a nested resource lister (like listClaims)
+      if (action.startsWith('list')) {
+        const resource = action.slice(4).toLowerCase()
         // Use camelCase for the entity ID key (e.g., resourceClaimsId not resource-claimsId)
         const entityIdKey = `${camelCase(entity)}Id`
         return {
