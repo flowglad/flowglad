@@ -152,7 +152,7 @@ describe('resourcesRouteConfigs', () => {
   })
 
   describe('mapParams function behavior', () => {
-    it('maps URL parameters correctly for resources get requests', () => {
+    it('maps URL parameters to id field for resources get requests', () => {
       const routeConfig = findRouteConfig('GET /resources/:id')
       const result = routeConfig!.mapParams(['resource-123'])
 
