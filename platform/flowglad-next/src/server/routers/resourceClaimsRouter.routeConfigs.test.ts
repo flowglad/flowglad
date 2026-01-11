@@ -197,88 +197,65 @@ describe('resourceClaimsRouteConfigs', () => {
   })
 
   describe('mapParams function behavior', () => {
-    it('claim mapParams includes id and body when called with sliced matches', () => {
-      const routeConfig = findRouteConfig(
-        'POST /resource-claims/:id/claim'
-      )
-      const fullMatch = routeConfig!.pattern.exec(
-        'resource-claims/subscription-claim-123/claim'
-      )
-      const testBody = {
-        resourceSlug: 'seats',
-        quantity: 10,
-      }
-      // Standard CRUD routes expect sliced matches (match[1:])
-      const result = routeConfig!.mapParams(
-        fullMatch!.slice(1),
-        testBody
-      )
+    it('returns correct params for all route types based on their invocation pattern', () => {
+      // Custom action routes (claim, release) expect sliced matches and return id + body
+      const slicedMatchRoutes = [
+        {
+          key: 'POST /resource-claims/:id/claim',
+          path: 'resource-claims/subscription-claim-123/claim',
+          body: { resourceSlug: 'seats', quantity: 10 },
+          expected: {
+            id: 'subscription-claim-123',
+            resourceSlug: 'seats',
+            quantity: 10,
+          },
+        },
+        {
+          key: 'POST /resource-claims/:id/release',
+          path: 'resource-claims/subscription-release-789/release',
+          body: { resourceSlug: 'seats', quantity: 5 },
+          expected: {
+            id: 'subscription-release-789',
+            resourceSlug: 'seats',
+            quantity: 5,
+          },
+        },
+      ]
 
-      expect(result).toEqual({
-        id: 'subscription-claim-123',
-        resourceSlug: 'seats',
-        quantity: 10,
+      slicedMatchRoutes.forEach(({ key, path, body, expected }) => {
+        const routeConfig = findRouteConfig(key)
+        const fullMatch = routeConfig!.pattern.exec(path)
+        const result = routeConfig!.mapParams(
+          fullMatch!.slice(1),
+          body
+        )
+        expect(result).toEqual(expected)
+      })
+
+      // Nested resource getter (getUsage) and lister (listClaims) expect full match array
+      // and return entityId using camelCase format (resourceClaimsId)
+      const fullMatchRoutes = [
+        {
+          key: 'GET /resource-claims/:id/usage',
+          path: 'resource-claims/subscription-usage-202/usage',
+          expected: { resourceClaimsId: 'subscription-usage-202' },
+        },
+        {
+          key: 'GET /resource-claims/:id/claims',
+          path: 'resource-claims/subscription-list-404/claims',
+          expected: { resourceClaimsId: 'subscription-list-404' },
+        },
+      ]
+
+      fullMatchRoutes.forEach(({ key, path, expected }) => {
+        const routeConfig = findRouteConfig(key)
+        const fullMatch = routeConfig!.pattern.exec(path)
+        const result = routeConfig!.mapParams(fullMatch as string[])
+        expect(result).toEqual(expected)
       })
     })
 
-    it('release mapParams includes id and body when called with sliced matches', () => {
-      const routeConfig = findRouteConfig(
-        'POST /resource-claims/:id/release'
-      )
-      const fullMatch = routeConfig!.pattern.exec(
-        'resource-claims/subscription-release-789/release'
-      )
-      const testBody = {
-        resourceSlug: 'seats',
-        quantity: 5,
-      }
-      const result = routeConfig!.mapParams(
-        fullMatch!.slice(1),
-        testBody
-      )
-
-      expect(result).toEqual({
-        id: 'subscription-release-789',
-        resourceSlug: 'seats',
-        quantity: 5,
-      })
-    })
-
-    it('getUsage mapParams returns entity Id when called with full match array', () => {
-      const routeConfig = findRouteConfig(
-        'GET /resource-claims/:id/usage'
-      )
-      const fullMatch = routeConfig!.pattern.exec(
-        'resource-claims/subscription-usage-202/usage'
-      )
-      // The getUsage action is treated as a nested resource getter,
-      // which expects the full match array (uses matches[1] internally)
-      const result = routeConfig!.mapParams(fullMatch as string[])
-
-      // Uses camelCase format: `${camelCase(entity)}Id` becomes `resourceClaimsId`
-      expect(result).toEqual({
-        resourceClaimsId: 'subscription-usage-202',
-      })
-    })
-
-    it('listClaims mapParams returns entity Id when called with full match array', () => {
-      const routeConfig = findRouteConfig(
-        'GET /resource-claims/:id/claims'
-      )
-      const fullMatch = routeConfig!.pattern.exec(
-        'resource-claims/subscription-list-404/claims'
-      )
-      // The listClaims action is treated as a nested resource lister,
-      // which expects the full match array (uses matches[1] internally)
-      const result = routeConfig!.mapParams(fullMatch as string[])
-
-      // Uses camelCase format: `${camelCase(entity)}Id` becomes `resourceClaimsId`
-      expect(result).toEqual({
-        resourceClaimsId: 'subscription-list-404',
-      })
-    })
-
-    it('handles special characters in id with sliced matches', () => {
+    it('preserves special characters in id when extracting from URL paths', () => {
       const routeConfig = findRouteConfig(
         'POST /resource-claims/:id/claim'
       )
