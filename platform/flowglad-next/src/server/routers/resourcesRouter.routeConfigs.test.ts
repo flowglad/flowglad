@@ -119,7 +119,7 @@ describe('resourcesRouteConfigs', () => {
       expect(listConfig!.pattern.test('resources/id')).toBe(false)
     })
 
-    it('extracts correct capture groups from URL paths', () => {
+    it('extracts id parameter as first capture group from URL paths', () => {
       const getConfig = findRouteConfig('GET /resources/:id')
       const getMatches = getConfig!.pattern.exec('resources/test-id')
       expect(typeof getMatches).toBe('object')
