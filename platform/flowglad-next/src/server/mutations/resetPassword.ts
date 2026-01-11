@@ -17,10 +17,9 @@ export const resetPassword = publicProcedure
 
     if (userExists) {
       try {
-        await auth.api.forgetPassword({
+        await auth.api.forgetPasswordEmailOTP({
           body: {
             email,
-            redirectTo: '/sign-in/reset-password',
           },
         })
       } catch (error) {
