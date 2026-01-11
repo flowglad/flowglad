@@ -39,7 +39,6 @@ describe('resourceMethods', () => {
     pricingModelId: params?.pricingModelId ?? pricingModel.id,
     slug: params?.slug ?? 'seats',
     name: params?.name ?? 'Seats',
-    description: 'User seats for the application',
     livemode: true,
     active: true,
   })
@@ -55,9 +54,6 @@ describe('resourceMethods', () => {
         expect(inserted.id).toMatch(/^resource_/)
         expect(inserted.slug).toBe('seats')
         expect(inserted.name).toBe('Seats')
-        expect(inserted.description).toBe(
-          'User seats for the application'
-        )
         expect(inserted.organizationId).toBe(organization.id)
         expect(inserted.pricingModelId).toBe(pricingModel.id)
         expect(inserted.active).toBe(true)

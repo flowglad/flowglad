@@ -11640,9 +11640,6 @@
           "name": {
             "type": "string"
           },
-          "description": {
-            "type": "string"
-          },
           "active": {
             "type": "boolean"
           }
@@ -11661,14 +11658,11 @@
           "name": {
             "type": "string"
           },
-          "description": {
-            "type": "string"
-          },
           "active": {
             "type": "boolean"
           }
         },
-        "required": ["pricingModelId", "slug", "name", "description"]
+        "required": ["pricingModelId", "slug", "name"]
       },
       "PaymentClientSelectSchema": {
         "type": "object",
@@ -19182,9 +19176,6 @@
           "name": {
             "type": "string"
           },
-          "description": {
-            "type": "string"
-          },
           "active": {
             "type": "boolean"
           }
@@ -19198,7 +19189,6 @@
           "pricingModelId",
           "slug",
           "name",
-          "description",
           "active"
         ],
         "additionalProperties": false
