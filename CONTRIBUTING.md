@@ -225,10 +225,10 @@ bun run test
 ### Adding tests (backend)
 
 Follow this sequence when introducing new tests:
-- Plan: `.conductor/fix-new-org-default-plan/platform/flowglad-next/llm-prompts/new-test-1-outline-test-cases.md`
-- Stub: `.conductor/fix-new-org-default-plan/platform/flowglad-next/llm-prompts/new-test-2-planning-stubs.md`
-- Global setup: `.conductor/fix-new-org-default-plan/platform/flowglad-next/llm-prompts/new-test-3-before-each-setup.md`
-- Implement: `.conductor/fix-new-org-default-plan/platform/flowglad-next/llm-prompts/new-test-4-implementation.md`
+- Plan: `platform/flowglad-next/llm-prompts/new-test-1-outline-test-cases.md`
+- Stub: `platform/flowglad-next/llm-prompts/new-test-2-planning-stubs.md`
+- Global setup: `platform/flowglad-next/llm-prompts/new-test-3-before-each-setup.md`
+- Implement: `platform/flowglad-next/llm-prompts/new-test-4-implementation.md`
 
 Guidelines:
 - Do not mock the database. Tests use the local Postgres test instance (Docker) with real reads/writes.
