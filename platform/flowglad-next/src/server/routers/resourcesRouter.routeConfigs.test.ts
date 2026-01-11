@@ -183,7 +183,7 @@ describe('resourcesRouteConfigs', () => {
       })
     })
 
-    it('maps URL parameters correctly for resources delete requests', () => {
+    it('maps URL parameters to id field for resources delete requests', () => {
       const routeConfig = findRouteConfig('DELETE /resources/:id')
       const result = routeConfig!.mapParams(['resource-789'])
 
