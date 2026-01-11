@@ -1,0 +1,4 @@
+{
+  "terminals": [],
+  "install": "bun i && bun run build && cd platform/flowglad-next && bun i"
+}
