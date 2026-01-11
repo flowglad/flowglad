@@ -28,20 +28,24 @@ const getFlowgladRoute = (baseURL?: string): string => {
   return baseURL ? `${baseURL}/api/flowglad` : '/api/flowglad'
 }
 
+type CheckoutSessionParamsBase = {
+  successUrl: string
+  cancelUrl: string
+  autoRedirect?: boolean
+} & Record<string, unknown>
+
 export type FrontendProductCreateCheckoutSessionParams =
   CreateProductCheckoutSessionParams & {
     autoRedirect?: boolean
   }
 
 export type FrontendCreateAddPaymentMethodCheckoutSessionParams =
-  Omit<CreateAddPaymentMethodCheckoutSessionParams, 'type'> & {
-    autoRedirect?: boolean
-  }
+  Omit<CreateAddPaymentMethodCheckoutSessionParams, 'type'> &
+    CheckoutSessionParamsBase
 
 export type FrontendCreateActivateSubscriptionCheckoutSessionParams =
-  Omit<CreateActivateSubscriptionCheckoutSessionParams, 'type'> & {
-    autoRedirect?: boolean
-  }
+  Omit<CreateActivateSubscriptionCheckoutSessionParams, 'type'> &
+    CheckoutSessionParamsBase
 
 type CreateCheckoutSessionResponse =
   | {
@@ -208,12 +212,6 @@ const FlowgladContext = createContext<FlowgladContextValues>({
   errors: null,
   ...notPresentContextValues,
 })
-
-type CheckoutSessionParamsBase = {
-  successUrl: string
-  cancelUrl: string
-  autoRedirect?: boolean
-} & Record<string, unknown>
 
 // Builds a context-facing helper that hits a specific checkout session subroute,
 // while reusing shared validation, axios plumbing, and optional payload shaping.
@@ -667,11 +665,19 @@ export const FlowgladContextProvider = (
           cancelSubscription: (params: CancelSubscriptionParams) => {
             const subscription =
               billingData.currentSubscriptions?.find(
-                (sub) => sub.id === params.id
+                (
+                  sub: NonNullable<
+                    CustomerBillingDetails['currentSubscriptions']
+                  >[number]
+                ) => sub.id === params.id
               ) ??
               billingData.currentSubscription ??
               billingData.subscriptions?.find(
-                (sub) => sub.id === params.id
+                (
+                  sub: NonNullable<
+                    CustomerBillingDetails['subscriptions']
+                  >[number]
+                ) => sub.id === params.id
               )
             if (!subscription) {
               return Promise.reject(
@@ -700,11 +706,19 @@ export const FlowgladContextProvider = (
           ) => {
             const subscription =
               billingData.currentSubscriptions?.find(
-                (sub) => sub.id === params.id
+                (
+                  sub: NonNullable<
+                    CustomerBillingDetails['currentSubscriptions']
+                  >[number]
+                ) => sub.id === params.id
               ) ??
               billingData.currentSubscription ??
               billingData.subscriptions?.find(
-                (sub) => sub.id === params.id
+                (
+                  sub: NonNullable<
+                    CustomerBillingDetails['subscriptions']
+                  >[number]
+                ) => sub.id === params.id
               )
             if (!subscription) {
               return Promise.reject(
@@ -753,11 +767,19 @@ export const FlowgladContextProvider = (
 
             const subscription =
               billingData.currentSubscriptions?.find(
-                (sub) => sub.id === subscriptionId
+                (
+                  sub: NonNullable<
+                    CustomerBillingDetails['currentSubscriptions']
+                  >[number]
+                ) => sub.id === subscriptionId
               ) ??
               billingData.currentSubscription ??
               billingData.subscriptions?.find(
-                (sub) => sub.id === subscriptionId
+                (
+                  sub: NonNullable<
+                    CustomerBillingDetails['subscriptions']
+                  >[number]
+                ) => sub.id === subscriptionId
               )
             if (!subscription) {
               return Promise.reject(
