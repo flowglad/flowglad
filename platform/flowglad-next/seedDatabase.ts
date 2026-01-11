@@ -2725,8 +2725,6 @@ export const setupResource = async (params: {
         pricingModelId: params.pricingModelId,
         slug: params.slug ?? 'seats',
         name: params.name ?? 'Seats',
-        description:
-          params.description ?? 'Resource seats for the application',
         livemode: true,
         active: params.active ?? true,
       },
