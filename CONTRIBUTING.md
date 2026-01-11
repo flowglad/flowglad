@@ -222,6 +222,11 @@ bun dev
 ```
 bun run test
 ```
+
+8) To open the drizzle-studio
+```
+bun run studio
+```
 ### Adding tests (backend)
 
 Follow this sequence when introducing new tests:
