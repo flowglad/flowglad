@@ -270,6 +270,13 @@ const InnerSubscriptionPage = ({
                 </ItemFeature>
               )
             )}
+            {!canAddFeature &&
+              (!subscription.experimental?.featureItems ||
+                subscription.experimental.featureItems.length === 0) && (
+                <div className="text-center py-8 px-4 text-muted-foreground">
+                  No features granted.
+                </div>
+              )}
           </div>
         </ExpandSection>
         <BillingHistorySection
