@@ -21,6 +21,22 @@ import {
 } from '@/resources/resourceClaimHelpers'
 import { devOnlyProcedure, router } from '@/server/trpc'
 import { FeatureType } from '@/types'
+import { trpcToRest } from '@/utils/openapi'
+
+export const resourceClaimsRouteConfigs = [
+  trpcToRest('resourceClaims.claim', {
+    routeParams: ['subscriptionId'],
+  }),
+  trpcToRest('resourceClaims.release', {
+    routeParams: ['subscriptionId'],
+  }),
+  trpcToRest('resourceClaims.getUsage', {
+    routeParams: ['subscriptionId'],
+  }),
+  trpcToRest('resourceClaims.listClaims', {
+    routeParams: ['subscriptionId'],
+  }),
+]
 
 const resourceUsageOutputSchema = z.object({
   capacity: z.number().int(),
@@ -135,6 +151,17 @@ async function validateSubscriptionOwnership(
 }
 
 const claimProcedure = devOnlyProcedure
+  .meta({
+    openapi: {
+      method: 'POST',
+      path: '/api/v1/resource-claims/{subscriptionId}/claim',
+      summary: 'Claim Resource',
+      description:
+        'Claim a resource for a subscription. Exactly one of quantity, externalId, or externalIds must be provided.',
+      tags: ['Resource Claims'],
+      protect: true,
+    },
+  })
   .input(claimInputSchemaWithRequiredSubscription)
   .output(claimOutputSchema)
   .mutation(
@@ -161,6 +188,17 @@ const claimProcedure = devOnlyProcedure
   )
 
 const releaseProcedure = devOnlyProcedure
+  .meta({
+    openapi: {
+      method: 'POST',
+      path: '/api/v1/resource-claims/{subscriptionId}/release',
+      summary: 'Release Resource',
+      description:
+        'Release claimed resources for a subscription. Exactly one of quantity, externalId, externalIds, or claimIds must be provided.',
+      tags: ['Resource Claims'],
+      protect: true,
+    },
+  })
   .input(releaseInputSchemaWithRequiredSubscription)
   .output(releaseOutputSchema)
   .mutation(
@@ -187,6 +225,17 @@ const releaseProcedure = devOnlyProcedure
   )
 
 const getUsageProcedure = devOnlyProcedure
+  .meta({
+    openapi: {
+      method: 'GET',
+      path: '/api/v1/resource-claims/{subscriptionId}/usage',
+      summary: 'Get Resource Usage',
+      description:
+        'Get resource usage information for a subscription. Optionally filter by resourceSlug.',
+      tags: ['Resource Claims'],
+      protect: true,
+    },
+  })
   .input(getUsageInputSchemaWithRequiredSubscription)
   .output(getUsageOutputSchema)
   .query(
@@ -313,6 +362,17 @@ const getUsageProcedure = devOnlyProcedure
   )
 
 const listClaimsProcedure = devOnlyProcedure
+  .meta({
+    openapi: {
+      method: 'GET',
+      path: '/api/v1/resource-claims/{subscriptionId}/claims',
+      summary: 'List Resource Claims',
+      description:
+        'List active resource claims for a subscription. Optionally filter by resourceSlug.',
+      tags: ['Resource Claims'],
+      protect: true,
+    },
+  })
   .input(listClaimsInputSchema)
   .output(listClaimsOutputSchema)
   .query(

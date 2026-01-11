@@ -327,12 +327,14 @@ export const trpcToRest = (
       // Check if it's a nested resource getter (like getRevenue)
       if (action.startsWith('get')) {
         const resource = action.slice(3).toLowerCase()
+        // Use camelCase for the entity ID key (e.g., resourceClaimsId not resource-claimsId)
+        const entityIdKey = `${camelCase(entity)}Id`
         return {
           [`GET /${entity}/:id/${resource}`]: {
             procedure: procedureName,
             pattern: new RegExp(`^${entity}/([^\\/]+)/${resource}$`),
             mapParams: (matches) => ({
-              [`${entity}Id`]: matches[1],
+              [entityIdKey]: matches[1],
             }),
           },
         }
