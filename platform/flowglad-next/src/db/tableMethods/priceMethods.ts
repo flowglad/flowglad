@@ -850,9 +850,9 @@ export const safelyInsertPrice = async (
   price: Omit<Price.Insert, 'isDefault' | 'active'>,
   transaction: DbTransaction
 ) => {
-  // For non-usage prices, reset default/active for existing product prices.
-  // Usage prices (no productId) skip this step since they don't share product-level
-  // default semantics - they're scoped to usage meters instead.
+  // Archive existing prices for the same product.
+  // Usage meters can have multiple active prices, so we don't archive them here.
+  // When editing a usage price creates a new one, the caller archives the old price.
   if (price.productId) {
     await setPricesForProductToNonDefaultNonActive(
       price.productId,
