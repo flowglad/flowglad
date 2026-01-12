@@ -1246,7 +1246,7 @@ describe('diffUsageMeters with prices', () => {
     expect(result.toUpdate[0].priceDiff.toUpdate).toEqual([])
   })
 
-  it('includes empty priceDiff when no price changes for usage meter update', () => {
+  it('includes priceDiff with unchanged price in toUpdate when usage meter name changes but prices stay the same', () => {
     const price = createUsagePrice({
       slug: 'same-price',
       unitPrice: 100,

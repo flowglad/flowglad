@@ -577,7 +577,8 @@ export const selectPriceBySlugAndCustomerId = async (
       and(
         eq(prices.slug, params.slug),
         eq(prices.pricingModelId, pricingModel.id),
-        eq(prices.active, true)
+        eq(prices.active, true),
+        eq(prices.type, PriceType.Usage)
       )
     )
 
@@ -657,7 +658,8 @@ export const selectPriceBySlugForDefaultPricingModel = async (
       and(
         eq(prices.slug, params.slug),
         eq(prices.pricingModelId, pricingModel.id),
-        eq(prices.active, true)
+        eq(prices.active, true),
+        eq(prices.type, PriceType.Usage)
       )
     )
 
@@ -705,12 +707,15 @@ export const selectPricesTableRowData =
 
       return priceRecords.map((price) => ({
         price,
-        // Return null for usage prices that don't have a productId
+        // Return null for usage prices that don't have a productId,
+        // or if the product was deleted/not found
         product: Price.hasProductId(price)
-          ? {
-              id: productsById.get(price.productId)!.id,
-              name: productsById.get(price.productId)!.name,
-            }
+          ? (() => {
+              const product = productsById.get(price.productId)
+              return product
+                ? { id: product.id, name: product.name }
+                : null
+            })()
           : null,
       }))
     },

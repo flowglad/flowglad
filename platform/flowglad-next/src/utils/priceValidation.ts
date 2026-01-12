@@ -3,26 +3,49 @@ import { Price } from '@/db/schema/prices'
 import { PriceType } from '@/types'
 
 /**
+ * Raw input type for price validation before Zod transforms.
+ * This type explicitly allows productId to be string | null | undefined
+ * to enable validation of raw API input.
+ */
+type RawPriceInput = {
+  type: PriceType
+  productId?: string | null
+}
+
+/**
+ * Type guard to extract raw productId value from a price input.
+ * Works with both parsed Price.ClientInsert and raw input objects.
+ */
+const getRawProductId = (
+  price: Price.ClientInsert | RawPriceInput
+): string | null | undefined => {
+  // Access productId from the object, handling the discriminated union
+  // by checking if the property exists on the raw object
+  return 'productId' in price
+    ? (price.productId as string | null | undefined)
+    : undefined
+}
+
+/**
  * Validates that a price insert has the correct productId based on its type.
  * - Usage prices: productId must be null/undefined
  * - Subscription/SinglePayment prices: productId must be a string
  *
  * This is a pure function that can be unit tested without database dependencies.
  *
- * @param price - The price insert to validate
+ * @param price - The price insert to validate (raw or parsed)
  * @throws TRPCError with code BAD_REQUEST if validation fails
  */
 export const validatePriceTypeProductIdConsistency = (
-  price: Price.ClientInsert
+  price: Price.ClientInsert | RawPriceInput
 ): void => {
-  // For usage prices, productId must be null or undefined (not a valid string).
-  // Cast to unknown to check raw input before Zod transform coerces it to null.
-  const rawPrice = price as unknown as { productId?: string | null }
+  const productId = getRawProductId(price)
 
+  // For usage prices, productId must be null or undefined (not a valid string).
   if (
     price.type === PriceType.Usage &&
-    rawPrice.productId !== null &&
-    rawPrice.productId !== undefined
+    productId !== null &&
+    productId !== undefined
   ) {
     throw new TRPCError({
       code: 'BAD_REQUEST',
@@ -32,11 +55,9 @@ export const validatePriceTypeProductIdConsistency = (
   }
 
   // For subscription/single payment prices, productId must be a non-empty string.
-  // We check the raw value since Zod transforms might not have run yet.
-  // Empty strings are caught explicitly as they would bypass null/undefined checks.
   if (
     price.type !== PriceType.Usage &&
-    (!rawPrice.productId || rawPrice.productId.trim() === '')
+    (!productId || productId.trim() === '')
   ) {
     throw new TRPCError({
       code: 'BAD_REQUEST',

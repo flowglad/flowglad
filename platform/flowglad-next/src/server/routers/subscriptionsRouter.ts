@@ -246,7 +246,17 @@ export const validateAndResolveCustomerForSubscription =
     } = params
 
     if (customerId) {
-      return selectCustomerById(customerId, transaction)
+      try {
+        return await selectCustomerById(customerId, transaction)
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Customer with id "${customerId}" not found`,
+          })
+        }
+        throw error
+      }
     } else if (customerExternalId) {
       const customer =
         await selectCustomerByExternalIdAndOrganizationId(

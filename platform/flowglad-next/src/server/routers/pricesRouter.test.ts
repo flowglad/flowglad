@@ -1151,17 +1151,19 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
       // The zod schema enforces usage prices must have productId: null
       await expect(
         pricesRouter.createCaller(ctx as any).create({
+          // @ts-expect-error - Intentionally passing productId (should be null for usage prices)
+          // to test that the schema rejects usage prices with a productId.
           price: {
             type: PriceType.Usage,
             usageMeterId,
-            productId: regularProductId, // This should cause rejection
+            productId: regularProductId,
             unitPrice: 100,
             isDefault: true,
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             name: 'Usage Price With Product',
             usageEventsPerUnit: 1,
-          } as any,
+          },
         })
       ).rejects.toThrow() // Schema rejects with "expected null, received string"
     })

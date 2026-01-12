@@ -274,9 +274,10 @@ const usagePriceColumns = {
   type: z.literal(PriceType.Usage),
   // Override productId: usage prices don't have a productId (it's null)
   // v1: coerce to null regardless of input (for migration compatibility)
+  // Uses z.unknown() to accept any input type, then transforms to null
   // .pipe(z.null()) is required for OpenAPI schema generation compatibility
   productId: z
-    .any()
+    .unknown()
     .transform(() => null as null)
     .pipe(z.null()),
 }

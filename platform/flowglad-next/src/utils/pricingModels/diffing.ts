@@ -334,8 +334,11 @@ const getUsagePriceSlug = (
   if (price.slug) {
     return price.slug
   }
-  // Fallback: generate a unique key from unitPrice and usageEventsPerUnit
-  return `__generated__${price.unitPrice}_${price.usageEventsPerUnit}`
+  // Fallback: generate a unique key from identifying fields to avoid collisions.
+  // Include currency and name to differentiate prices with same unitPrice/usageEventsPerUnit.
+  const currency = price.currency ?? 'USD'
+  const name = price.name ?? ''
+  return `__generated__${price.unitPrice}_${price.usageEventsPerUnit}_${currency}_${name}`
 }
 
 /**
