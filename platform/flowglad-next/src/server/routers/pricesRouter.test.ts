@@ -1527,6 +1527,43 @@ describe('pricesRouter.replaceUsagePrice', () => {
     ).rejects.toThrow()
   })
 
+  it('throws BAD_REQUEST when new price usageMeterId does not match old price', async () => {
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    const ctx = {
+      organizationId,
+      apiKey: apiKey.token!,
+      livemode,
+      environment: 'live' as const,
+      isApi: true as const,
+      path: '',
+    }
+
+    // Attempt to replace with a different usageMeterId
+    await expect(
+      pricesRouter.createCaller(ctx as any).replaceUsagePrice({
+        newPrice: {
+          type: PriceType.Usage,
+          productId: null,
+          usageMeterId: 'meter_' + core.nanoid(), // Different meter ID
+          unitPrice: 200,
+          usageEventsPerUnit: 20,
+          isDefault: true,
+          name: 'New Usage Price',
+          slug: 'new-usage-price-different-meter',
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          trialPeriodDays: null,
+        },
+        oldPriceId: usagePriceId,
+      })
+    ).rejects.toThrow(
+      'New price must belong to the same usage meter as the old price'
+    )
+  })
+
   it('preserves other usage prices for the same meter when replacing one', async () => {
     const { apiKey } = await setupUserAndApiKey({
       organizationId,

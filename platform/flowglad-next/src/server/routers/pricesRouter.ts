@@ -288,6 +288,15 @@ export const replaceUsagePrice = protectedProcedure
           })
         }
 
+        // Validate the new price belongs to the same usage meter
+        if (input.newPrice.usageMeterId !== oldPrice.usageMeterId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'New price must belong to the same usage meter as the old price',
+          })
+        }
+
         // Create the new price
         const newPrice = await createPriceTransaction(
           { price: input.newPrice },
