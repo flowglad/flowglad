@@ -300,9 +300,7 @@ describe('usageEventsRouter', () => {
   })
 
   describe('getTableRows procedure', () => {
-    // TODO: PR 2 - Usage prices with productId: null have RLS visibility issues
-    // These tests need the RLS policies to be updated for the new data model
-    it.skip('should return enriched data with all related records', async () => {
+    it('should return enriched data with all related records', async () => {
       // Create 3 usage events for organization 1
       const createdEvents = []
       for (let i = 0; i < 3; i++) {
@@ -370,7 +368,7 @@ describe('usageEventsRouter', () => {
       expect(result.hasNextPage).toBe(false)
     })
 
-    it.skip('should respect cursor pagination', async () => {
+    it('should respect cursor pagination', async () => {
       // Create 10 usage events for organization 1
       for (let i = 0; i < 10; i++) {
         await setupUsageEvent({
@@ -427,8 +425,7 @@ describe('usageEventsRouter', () => {
   })
 
   describe('create procedure with price slug support', () => {
-    // TODO: PR 2 - Usage prices with productId: null have RLS visibility issues
-    it.skip('should create usage event with priceId', async () => {
+    it('should create usage event with priceId', async () => {
       const caller = createCaller(
         org1Data.organization,
         org1ApiKeyToken
@@ -473,7 +470,7 @@ describe('usageEventsRouter', () => {
       expect(bulkResult.usageEvents[1].amount).toBe(200)
     }, 60000)
 
-    it.skip('should create usage event with priceSlug', async () => {
+    it('should create usage event with priceSlug', async () => {
       // First, update price1 to have a slug
       await authenticatedTransaction(
         async ({ transaction }) => {
@@ -854,7 +851,7 @@ describe('usageEventsRouter', () => {
       )
     })
 
-    it.skip('should throw error when both priceSlug and usageMeterSlug are provided', async () => {
+    it('should throw error when both priceSlug and usageMeterSlug are provided', async () => {
       // First, update price1 and usageMeter1 to have slugs
       await authenticatedTransaction(
         async ({ transaction }) => {
@@ -1007,8 +1004,7 @@ describe('usageEventsRouter', () => {
   })
 
   describe('bulkInsert procedure', () => {
-    // TODO: PR 2 - Usage prices with productId: null have RLS visibility issues
-    it.skip('should successfully bulk insert usage events', async () => {
+    it('should successfully bulk insert usage events', async () => {
       const caller = createCaller(
         org1Data.organization,
         org1ApiKeyToken

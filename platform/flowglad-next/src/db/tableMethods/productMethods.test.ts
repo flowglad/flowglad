@@ -804,7 +804,7 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
     pricingModel = orgData.pricingModel
   })
 
-  it('excludes products that have any usage price when excludeUsageProducts=true', async () => {
+  it('returns all products when excludeUsageProducts=true since usage prices no longer have productId (filter is obsolete)', async () => {
     // Create a subscription product
     const subscriptionProduct = await setupProduct({
       organizationId: organization.id,
@@ -845,8 +845,8 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
     })
 
     // Query with excludeUsageProducts=true
-    // Since usage prices no longer have products, this filter has no effect
-    // All products are now "non-usage" products
+    // Since usage prices no longer have products (productId is null),
+    // this filter has no effect - all products are returned
     const resultWithExclusion = await adminTransaction(
       async ({ transaction }) => {
         return selectProductsCursorPaginated({
@@ -863,8 +863,7 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
       }
     )
 
-    // Should include subscription product and the default product
-    // (no products are excluded since usage prices don't have products)
+    // All products are included since usage prices don't have productId
     const productNames = resultWithExclusion.items.map(
       (item) => item.product.name
     )
@@ -872,7 +871,7 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
     // Default product from setupOrg should also be included
     expect(productNames.length).toBeGreaterThanOrEqual(2)
 
-    // Query without excludeUsageProducts filter (should include all)
+    // Query without excludeUsageProducts filter (should return same results)
     const resultWithoutExclusion = await adminTransaction(
       async ({ transaction }) => {
         return selectProductsCursorPaginated({
@@ -890,7 +889,7 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
       (item) => item.product.name
     )
     expect(allProductNames).toContain('Subscription Product')
-    // Both queries should return the same products since there are no usage products
+    // Both queries return the same products since the filter is obsolete
     expect(allProductNames.length).toBe(productNames.length)
   })
 
