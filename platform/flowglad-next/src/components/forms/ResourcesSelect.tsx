@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { type Control, useFormContext } from 'react-hook-form'
-import { useListResourcesQuery } from '@/app/hooks/useListResourcesQuery'
+import { trpc } from '@/app/_trpc/client'
 import {
   FormControl,
   FormField,
@@ -31,7 +31,14 @@ const ResourcesSelect = ({
   pricingModelId,
 }: ResourcesSelectProps) => {
   const { data, isLoading: isLoadingResources } =
-    useListResourcesQuery(pricingModelId)
+    trpc.resources.list.useQuery(
+      { pricingModelId: pricingModelId! },
+      {
+        enabled: !!pricingModelId,
+        refetchOnMount: 'always',
+        staleTime: 0,
+      }
+    )
   const resources = data?.resources
   const form = useFormContext()
   const { watch, setValue } = form
@@ -58,6 +65,9 @@ const ResourcesSelect = ({
     }
   }, [name, resourceId, resources, setValue])
 
+  const hasNoResources =
+    !isLoadingResources && (!resources || resources.length === 0)
+
   return (
     <>
       {isLoadingResources ? (
@@ -73,14 +83,14 @@ const ResourcesSelect = ({
                 <Select
                   value={field.value}
                   onValueChange={field.onChange}
-                  disabled={disabled || !resources?.length}
+                  disabled={disabled || hasNoResources}
                 >
                   <SelectTrigger>
                     <SelectValue
                       placeholder={
-                        resources?.length
-                          ? 'Select a resource'
-                          : 'No resources available'
+                        hasNoResources
+                          ? 'No resources available'
+                          : 'Select a resource'
                       }
                     />
                   </SelectTrigger>
