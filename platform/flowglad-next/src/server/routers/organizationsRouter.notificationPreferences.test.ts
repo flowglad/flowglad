@@ -75,11 +75,15 @@ describe('organizationsRouter notification preferences', () => {
         livemode: true,
       })
 
-      // Create caller with secondUser but targeting the first organization
+      if (!secondUserSetup.apiKey.token) {
+        throw new Error('Second user API key token not found')
+      }
+
+      // Create caller with secondUser's API key but targeting the first organization
       // This user has no membership in the first organization
       const caller = createCaller(
         organization,
-        apiKeyToken,
+        secondUserSetup.apiKey.token,
         secondUserSetup.user
       )
 
@@ -146,10 +150,14 @@ describe('organizationsRouter notification preferences', () => {
         livemode: true,
       })
 
-      // Create caller with secondUser but targeting the first organization
+      if (!secondUserSetup.apiKey.token) {
+        throw new Error('Second user API key token not found')
+      }
+
+      // Create caller with secondUser's API key but targeting the first organization
       const caller = createCaller(
         organization,
-        apiKeyToken,
+        secondUserSetup.apiKey.token,
         secondUserSetup.user
       )
 
