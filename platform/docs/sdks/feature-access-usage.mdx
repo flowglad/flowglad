@@ -10,10 +10,10 @@ Flowglad tracks feature entitlements and consumption so you can gate premium fun
 ### How to use
 - For `checkFeatureAccess` (available on client & server): provide the `featureSlug` to check for and optionally refine the result to a specific subscription by passing in a `subscriptionId` for `refinementParams`. Returns a boolean.
 - For `checkUsageBalance` (available on client & server): provide the `usageMeterSlug` to check for and optionally refine the result to a specific subscription by passing in a `subscriptionId` for `refinementParams`. Returns either `{ availableBalance: number }` or `null` if not found.
-- For `createUsageEvent` (server only): provide `{amount: number, subscriptionId: string, transactionId: string, properties?: Record<string, unknown>, usageDate?: number}` along with exactly one of:
-  - `priceSlug` or `priceId` (for tracking usage with billing)
-  - `usageMeterSlug` or `usageMeterId` (for tracking usage without billing)
-  The optional `properties` field is for usage meter of count distinct properties aggregation type. See [here](/api-reference/usage-events/create-usage-event#body-usage-event) for more details on the parameters.
+- For `createUsageEvent` (available on client & server): provide exactly one of `priceSlug`, `priceId`, `usageMeterSlug`, or `usageMeterId` to identify the usage meter.
+  - **Client**: The SDK auto-resolves `subscriptionId` from the current subscription, defaults `amount` to 1, and auto-generates `transactionId` for idempotency. You can optionally override any of these.
+  - **Server**: You must provide `subscriptionId`, `transactionId`, and `amount` explicitly, along with optional `properties` and `usageDate`.
+  The optional `properties` field is for usage meters with count distinct aggregation type. See [here](/api-reference/usage-events/create-usage-event#body-usage-event) for more details on the parameters.
 
 ### What you can do
 
@@ -157,43 +157,80 @@ Flowglad tracks feature entitlements and consumption so you can gate premium fun
   </Tab>
 </Tabs>
 
-### Example: Recording Usage from the Server
+### Example: Recording Usage
 
-```ts
-import Fastify from 'fastify'
-import {
-  FlowgladServer,
-  type CreateUsageEventParams,
-} from '@flowglad/server'
-import { getSessionUser } from './auth'
-import { flowglad } from '@/utils/flowglad'
+<Tabs>
+  <Tab title="Client">
 
-const fastify = Fastify()
+  ```tsx
+  'use client'
 
-fastify.post('/api/usage', async (request, reply) => {
-  const {
-    amount,
-    priceSlug, // or priceId, usageMeterSlug, usageMeterId (exactly one required)
-    subscriptionId,
-    transactionId,
-    usageDate,
-    properties,
-  } = request.body as CreateUsageEventParams
-  // Extract customerExternalId from your auth/session
-  // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
-  const userId = await getUserIdFromRequest(request)
+  import { useBilling } from '@flowglad/nextjs'
 
-  const usageEvent = await flowglad(userId).createUsageEvent({
-    amount,
-    priceSlug, // or priceId, usageMeterSlug, usageMeterId
-    subscriptionId,
-    transactionId,
-    usageDate: usageDate ?? Date.now(),
-    properties,
+  export function RecordUsageButton({
+    usageMeterSlug,
+  }: {
+    usageMeterSlug: string
+  }) {
+    const billing = useBilling()
+
+    const handleClick = async () => {
+      if (!billing.createUsageEvent) return
+
+      const result = await billing.createUsageEvent({
+        usageMeterSlug,
+        amount: 1, // optional, defaults to 1
+      })
+
+      if ('error' in result) {
+        console.error('Failed to record usage:', result.error)
+        return
+      }
+
+      console.log('Usage recorded:', result.usageEvent.id)
+    }
+
+    return <button onClick={handleClick}>Use Feature</button>
+  }
+  ```
+
+  </Tab>
+  <Tab title="Server">
+
+  ```ts
+  import Fastify from 'fastify'
+  import { type CreateUsageEventParams } from '@flowglad/server'
+  import { flowglad } from '@/utils/flowglad'
+
+  const fastify = Fastify()
+
+  fastify.post('/api/usage', async (request, reply) => {
+    const {
+      amount,
+      priceSlug, // or priceId, usageMeterSlug, usageMeterId (exactly one required)
+      subscriptionId,
+      transactionId,
+      usageDate,
+      properties,
+    } = request.body as CreateUsageEventParams
+    // Extract customerExternalId from your auth/session
+    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+    const userId = await getUserIdFromRequest(request)
+
+    const usageEvent = await flowglad(userId).createUsageEvent({
+      amount,
+      priceSlug, // or priceId, usageMeterSlug, usageMeterId
+      subscriptionId,
+      transactionId,
+      usageDate: usageDate ?? Date.now(),
+      properties,
+    })
+
+    reply.send({ usageEvent })
   })
 
-  reply.send({ usageEvent })
-})
+  fastify.listen({ port: 3000 })
+  ```
 
-fastify.listen({ port: 3000 })
-```
+  </Tab>
+</Tabs>
