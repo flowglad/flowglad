@@ -2,6 +2,7 @@ import { eq, inArray } from 'drizzle-orm'
 import {
   type SubscriptionItemFeature,
   subscriptionItemFeatures,
+  subscriptionItemFeaturesClientSelectSchema,
   subscriptionItemFeaturesInsertSchema,
   subscriptionItemFeaturesSelectSchema,
   subscriptionItemFeaturesUpdateSchema,
@@ -17,6 +18,8 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { CacheDependency, cached } from '@/utils/cache'
+import { RedisKeyNamespace } from '@/utils/redis'
 import { features } from '../schema/features'
 import { productFeatures } from '../schema/productFeatures'
 import {
@@ -106,13 +109,19 @@ export const selectSubscriptionItemFeatures = createSelectFunction(
   config
 )
 
-export const selectSubscriptionItemFeaturesWithFeatureSlug = async (
-  where: SubscriptionItemFeature.Where,
+/**
+ * Internal implementation that fetches features with slug from the database.
+ * This is used by the cached version and can be called directly when ignoreCache is true.
+ */
+const selectSubscriptionItemFeaturesWithFeatureSlugFromDb = async (
+  subscriptionItemId: string,
   transaction: DbTransaction
 ): Promise<SubscriptionItemFeature.ClientRecord[]> => {
   const whereClause = whereClauseFromObject(
     subscriptionItemFeatures,
-    where
+    {
+      subscriptionItemId,
+    }
   )
   const result = await transaction
     .select({
@@ -139,6 +148,61 @@ export const selectSubscriptionItemFeaturesWithFeatureSlug = async (
       slug: row.feature.slug,
     }
   })
+}
+
+/**
+ * Cached version for single subscription item lookup (internal).
+ */
+const selectSubscriptionItemFeaturesWithFeatureSlugCachedInternal =
+  cached(
+    {
+      namespace: RedisKeyNamespace.FeaturesBySubscriptionItem,
+      keyFn: (
+        subscriptionItemId: string,
+        _transaction: DbTransaction
+      ) => subscriptionItemId,
+      schema: subscriptionItemFeaturesClientSelectSchema.array(),
+      dependenciesFn: (subscriptionItemId: string) => [
+        CacheDependency.subscriptionItemFeatures(subscriptionItemId),
+      ],
+    },
+    selectSubscriptionItemFeaturesWithFeatureSlugFromDb
+  )
+
+export interface SelectSubscriptionItemFeaturesOptions {
+  /**
+   * If true, bypasses the cache and fetches directly from the database.
+   * Defaults to false.
+   */
+  ignoreCache?: boolean
+}
+
+/**
+ * Fetches subscription item features with feature name and slug for a single subscription item.
+ * Results are cached by default for performance.
+ *
+ * @param subscriptionItemId - The ID of the subscription item
+ * @param transaction - The database transaction
+ * @param options - Optional settings including ignoreCache
+ */
+export const selectSubscriptionItemFeaturesWithFeatureSlug = async (
+  subscriptionItemId: string,
+  transaction: DbTransaction,
+  options: SelectSubscriptionItemFeaturesOptions = {}
+): Promise<SubscriptionItemFeature.ClientRecord[]> => {
+  const { ignoreCache = false } = options
+
+  if (ignoreCache) {
+    return selectSubscriptionItemFeaturesWithFeatureSlugFromDb(
+      subscriptionItemId,
+      transaction
+    )
+  }
+
+  return selectSubscriptionItemFeaturesWithFeatureSlugCachedInternal(
+    subscriptionItemId,
+    transaction
+  )
 }
 
 const baseUpsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId =

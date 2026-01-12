@@ -574,16 +574,19 @@ export const selectRichSubscriptionsAndActiveItems = async (
     .map(({ subscriptionItem }) => subscriptionItem)
 
   // Step 5: Fetch related data in parallel for better performance
+  // Step 5a: Fetch features - use cache per subscription item
+  const allSubscriptionItemFeaturesPromise = Promise.all(
+    activeSubscriptionItems.map((item) =>
+      selectSubscriptionItemFeaturesWithFeatureSlug(
+        item.id,
+        transaction
+      )
+    )
+  ).then((results) => results.flat())
+
   const [allSubscriptionItemFeatures, usageMeterBalances] =
     await Promise.all([
-      selectSubscriptionItemFeaturesWithFeatureSlug(
-        {
-          subscriptionItemId: activeSubscriptionItems.map(
-            (item) => item.id
-          ),
-        },
-        transaction
-      ),
+      allSubscriptionItemFeaturesPromise,
       selectUsageMeterBalancesForSubscriptions(
         { subscriptionId: subscriptionIds },
         transaction
