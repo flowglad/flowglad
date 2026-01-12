@@ -495,11 +495,11 @@ const updateNotificationPreferences = protectedProcedure
           })
         }
         const currentPrefs =
-          (membership.notificationPreferences as Record<
-            string,
-            boolean
-          >) ?? {}
-        const updatedPrefs = { ...currentPrefs, ...input.preferences }
+          getMembershipNotificationPreferences(membership)
+        const updatedPrefs = notificationPreferencesSchema.parse({
+          ...currentPrefs,
+          ...input.preferences,
+        })
         await updateMembership(
           {
             id: membership.id,
