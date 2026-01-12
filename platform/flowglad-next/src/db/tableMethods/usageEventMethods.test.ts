@@ -429,6 +429,7 @@ describe('selectUsageEventsTableRowData', () => {
     customer1 = await setupCustomer({
       organizationId: org1Data.organization.id,
       email: `customer1+${Date.now()}@test.com`,
+      pricingModelId: org1Data.pricingModel.id,
     })
 
     // Setup payment method
@@ -474,10 +475,7 @@ describe('selectUsageEventsTableRowData', () => {
     })
   })
 
-  // TODO: Temporarily skipped - price lookup issue in tests needs investigation
-  // The test setup creates prices correctly but they're not being found during query.
-  // This may be related to RLS context or test isolation issues.
-  it.skip('should return enriched data with all related records, including events with and without prices', async () => {
+  it('should return enriched data with all related records, including events with and without prices', async () => {
     // Create multiple usage events with prices
     const eventsWithPrice: UsageEvent.Record[] = []
     for (let i = 0; i < 3; i++) {
@@ -605,6 +603,7 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
     customer1 = await setupCustomer({
       organizationId: org1Data.organization.id,
       email: `customer1+${Date.now()}@test.com`,
+      pricingModelId: org1Data.pricingModel.id,
     })
 
     // Setup payment method
@@ -996,6 +995,7 @@ describe('insertUsageEvent', () => {
     customer1 = await setupCustomer({
       organizationId: org1Data.organization.id,
       email: `customer1+${Date.now()}@test.com`,
+      pricingModelId: org1Data.pricingModel.id,
     })
 
     // Setup payment method
