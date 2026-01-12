@@ -46,8 +46,8 @@ async function registerDependencies(
 ): Promise<void> {
   if (dependencies.length === 0) return
 
-  const client = redis()
   try {
+    const client = redis()
     await Promise.all(
       dependencies.map(async (dep) => {
         const registryKey = dependencyRegistryKey(dep)
