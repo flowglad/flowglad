@@ -6,7 +6,7 @@ import { organizations } from '@/db/schema/organizations'
 import {
   constructIndex,
   constructUniqueIndex,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   orgIdEqualsCurrentSQL,
@@ -47,7 +47,7 @@ export const ledgerTransactions = pgTable(
       pricingModels
     ),
   },
-  (table) => [
+  livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [
       table.initiatingSourceType,
       table.initiatingSourceId,
@@ -75,9 +75,8 @@ export const ledgerTransactions = pgTable(
         using: orgIdEqualsCurrentSQL(),
       }
     ),
-    livemodePolicy(TABLE_NAME),
-  ]
-)
+  ])
+).enableRLS()
 
 const columnRefinements = {
   metadata: z.record(z.string(), z.any()).nullable(),
