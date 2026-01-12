@@ -358,13 +358,21 @@ export const updatePricingModelTransaction = async (
         }
 
         // Handle Resource type
-        if (feature.type === FeatureType.Resource) {
+        // Note: This branch requires Patch 1 (setupSchemas) to add Resource to the
+        // discriminated union. Until then, we use type assertions to handle the case.
+        const featureAsUnknown = feature as unknown as {
+          type: string
+          resourceSlug?: string
+          amount?: number
+          active?: boolean
+        }
+        if (featureAsUnknown.type === FeatureType.Resource) {
           const resourceId = idMaps.resources.get(
-            feature.resourceSlug
+            featureAsUnknown.resourceSlug!
           )
           if (!resourceId) {
             throw new Error(
-              `Resource ${feature.resourceSlug} not found`
+              `Resource ${featureAsUnknown.resourceSlug} not found`
             )
           }
           return {
@@ -372,9 +380,9 @@ export const updatePricingModelTransaction = async (
             type: FeatureType.Resource,
             resourceId,
             usageMeterId: null,
-            amount: feature.amount,
+            amount: featureAsUnknown.amount!,
             renewalFrequency: null,
-            active: feature.active ?? true,
+            active: featureAsUnknown.active ?? true,
           }
         }
 
