@@ -15,6 +15,7 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { filterEligibleRecipients } from '@/utils/notifications'
 
 const sendOrganizationSubscriptionCreatedNotificationTask = task({
   id: 'send-organization-subscription-created-notification',
@@ -62,12 +63,34 @@ const sendOrganizationSubscriptionCreatedNotificationTask = task({
       throw new Error('Organization or customer not found')
     }
 
+    const eligibleRecipients = filterEligibleRecipients(
+      usersAndMemberships,
+      'subscriptionCreated',
+      subscription.livemode
+    )
+
+    if (eligibleRecipients.length === 0) {
+      return {
+        message: 'No recipients opted in for this notification',
+      }
+    }
+
+    const recipientEmails = eligibleRecipients
+      .map(({ user }) => user.email)
+      .filter(
+        (email): email is string => !isNil(email) && email !== ''
+      )
+
+    if (recipientEmails.length === 0) {
+      return {
+        message: 'No valid email addresses for eligible recipients',
+      }
+    }
+
     await safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
       bcc: getBccForLivemode(subscription.livemode),
-      to: usersAndMemberships
-        .map(({ user }) => user.email)
-        .filter((email) => !isNil(email)),
+      to: recipientEmails,
       subject: formatEmailSubject(
         `New Subscription: ${customer.name} subscribed to ${subscription.name}`,
         subscription.livemode

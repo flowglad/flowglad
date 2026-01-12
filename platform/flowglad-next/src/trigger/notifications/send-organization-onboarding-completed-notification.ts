@@ -9,6 +9,7 @@ import {
 } from '@/utils/backendCore'
 import core, { isNil } from '@/utils/core'
 import { sendOrganizationOnboardingCompletedNotificationEmail } from '@/utils/email'
+import { filterEligibleRecipients } from '@/utils/notifications'
 
 const notifyFlowgladTeamPayoutsEnabled = async (params: {
   organizationId: string
@@ -83,16 +84,43 @@ const sendOrganizationOnboardingCompletedNotificationTask = task({
       throw new Error('Organization not found')
     }
 
-    const recipients = usersAndMemberships
-      .map(({ user }) => user.email)
-      .filter((email) => !isNil(email))
+    // Onboarding completed is always a livemode event
+    const eligibleRecipients = filterEligibleRecipients(
+      usersAndMemberships,
+      'onboardingCompleted',
+      true
+    )
 
-    if (recipients.length === 0) {
-      throw new Error('No recipient emails found for organization')
+    if (eligibleRecipients.length === 0) {
+      // Still notify Flowglad team even if no user recipients
+      await notifyFlowgladTeamPayoutsEnabled({
+        organizationId: organization.id,
+        organizationName: organization.name,
+      })
+      return {
+        message: 'No recipients opted in for this notification',
+      }
+    }
+
+    const recipientEmails = eligibleRecipients
+      .map(({ user }) => user.email)
+      .filter(
+        (email): email is string => !isNil(email) && email !== ''
+      )
+
+    if (recipientEmails.length === 0) {
+      // Still notify Flowglad team even if no valid email addresses
+      await notifyFlowgladTeamPayoutsEnabled({
+        organizationId: organization.id,
+        organizationName: organization.name,
+      })
+      return {
+        message: 'No valid email addresses for eligible recipients',
+      }
     }
 
     await sendOrganizationOnboardingCompletedNotificationEmail({
-      to: recipients,
+      to: recipientEmails,
       organizationName: organization.name,
     })
     await notifyFlowgladTeamPayoutsEnabled({

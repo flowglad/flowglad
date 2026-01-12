@@ -8,6 +8,7 @@ import {
 } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
 import { sendOrganizationPayoutsEnabledNotificationEmail } from '@/utils/email'
+import { filterEligibleRecipients } from '@/utils/notifications'
 
 const sendOrganizationPayoutsEnabledNotificationTask = task({
   id: 'send-organization-payouts-enabled-notification',
@@ -49,14 +50,29 @@ const sendOrganizationPayoutsEnabledNotificationTask = task({
         }
       })
 
-    const recipientEmails = usersAndMemberships
+    // Payouts enabled is always a livemode event
+    const eligibleRecipients = filterEligibleRecipients(
+      usersAndMemberships,
+      'payoutsEnabled',
+      true
+    )
+
+    if (eligibleRecipients.length === 0) {
+      return {
+        message: 'No recipients opted in for this notification',
+      }
+    }
+
+    const recipientEmails = eligibleRecipients
       .map(({ user }) => user.email)
-      .filter((email) => !isNil(email))
+      .filter(
+        (email): email is string => !isNil(email) && email !== ''
+      )
 
     if (recipientEmails.length === 0) {
-      throw new Error(
-        `No recipient emails found for organization ${organizationId}`
-      )
+      return {
+        message: 'No valid email addresses for eligible recipients',
+      }
     }
 
     await sendOrganizationPayoutsEnabledNotificationEmail({
