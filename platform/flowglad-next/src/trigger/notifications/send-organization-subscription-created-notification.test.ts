@@ -11,10 +11,10 @@ import type { Subscription } from '@/db/schema/subscriptions'
 import type { User } from '@/db/schema/users'
 import {
   insertMembership,
-  updateMembership,
+  selectMembershipsAndUsersByMembershipWhere,
 } from '@/db/tableMethods/membershipMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
-import { core } from '@/utils/core'
+import { core, isNil } from '@/utils/core'
 import { filterEligibleRecipients } from '@/utils/notifications'
 
 // Mock safeSend to verify email recipients
@@ -28,29 +28,65 @@ vi.mock('@/utils/email', async (importOriginal) => {
   }
 })
 
+/**
+ * Simulates the notification sending logic from the trigger task.
+ * This allows us to test the full flow without invoking the trigger.dev runtime.
+ */
+const simulateSendNotification = async (
+  subscription: Subscription.Record
+): Promise<{ message: string }> => {
+  const { usersAndMemberships } = await adminTransaction(
+    async ({ transaction }) => {
+      const usersAndMemberships =
+        await selectMembershipsAndUsersByMembershipWhere(
+          {
+            organizationId: subscription.organizationId,
+          },
+          transaction
+        )
+      return { usersAndMemberships }
+    }
+  )
+
+  const eligibleRecipients = filterEligibleRecipients(
+    usersAndMemberships,
+    'subscriptionCreated',
+    subscription.livemode
+  )
+
+  if (eligibleRecipients.length === 0) {
+    return {
+      message: 'No recipients opted in for this notification',
+    }
+  }
+
+  const recipientEmails = eligibleRecipients
+    .map(({ user }) => user.email)
+    .filter((email): email is string => !isNil(email) && email !== '')
+
+  if (recipientEmails.length === 0) {
+    return {
+      message: 'No valid email addresses for eligible recipients',
+    }
+  }
+
+  await mockSafeSend({
+    to: recipientEmails,
+  })
+
+  return {
+    message:
+      'Organization subscription created notification sent successfully',
+  }
+}
+
 describe('send-organization-subscription-created-notification', () => {
   let organizationId: string
-  let subscription: Subscription.Record
-  let priceId: string
 
   beforeEach(async () => {
     mockSafeSend.mockClear()
-    const { organization, price } = await setupOrg()
+    const { organization } = await setupOrg()
     organizationId = organization.id
-    priceId = price.id
-
-    const customer = await setupCustomer({ organizationId })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId,
-      customerId: customer.id,
-    })
-    subscription = await setupSubscription({
-      organizationId,
-      customerId: customer.id,
-      paymentMethodId: paymentMethod.id,
-      priceId,
-      livemode: false,
-    })
   })
 
   /**
@@ -343,6 +379,147 @@ describe('send-organization-subscription-created-notification', () => {
 
       expect(eligibleRecipients).toHaveLength(1)
       expect(eligibleRecipients[0].user.email).toBe('user@test.com')
+    })
+  })
+
+  describe('integration: full notification flow', () => {
+    let subscription: Subscription.Record
+
+    const setupTestSubscription = async (
+      orgId: string,
+      livemode: boolean
+    ): Promise<Subscription.Record> => {
+      const customer = await setupCustomer({ organizationId: orgId })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: orgId,
+        customerId: customer.id,
+      })
+      const { organization } = await setupOrg()
+      const { price } = await setupOrg()
+      return setupSubscription({
+        organizationId: orgId,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        livemode,
+      })
+    }
+
+    it('sends email only to opted-in users for testmode subscription and verifies safeSend receives correct recipients', async () => {
+      subscription = await setupTestSubscription(
+        organizationId,
+        false
+      )
+
+      // User A: opted in for test mode notifications
+      await createUserWithPreferences({
+        organizationId,
+        email: 'opted-in@test.com',
+        notificationPreferences: {
+          testModeNotifications: true,
+          subscriptionCreated: true,
+        },
+      })
+
+      // User B: opted out of test mode notifications
+      await createUserWithPreferences({
+        organizationId,
+        email: 'opted-out@test.com',
+        notificationPreferences: {
+          testModeNotifications: false,
+          subscriptionCreated: true,
+        },
+      })
+
+      const result = await simulateSendNotification(subscription)
+
+      expect(result.message).toBe(
+        'Organization subscription created notification sent successfully'
+      )
+      expect(mockSafeSend).toHaveBeenCalledTimes(1)
+      expect(mockSafeSend).toHaveBeenCalledWith({
+        to: ['opted-in@test.com'],
+      })
+    })
+
+    it('sends email to all opted-in users for livemode subscription regardless of testModeNotifications setting', async () => {
+      subscription = await setupTestSubscription(organizationId, true)
+
+      // User A: has testModeNotifications disabled but subscriptionCreated enabled
+      await createUserWithPreferences({
+        organizationId,
+        email: 'user-a@test.com',
+        notificationPreferences: {
+          testModeNotifications: false,
+          subscriptionCreated: true,
+        },
+      })
+
+      // User B: has both enabled
+      await createUserWithPreferences({
+        organizationId,
+        email: 'user-b@test.com',
+        notificationPreferences: {
+          testModeNotifications: true,
+          subscriptionCreated: true,
+        },
+      })
+
+      const result = await simulateSendNotification(subscription)
+
+      expect(result.message).toBe(
+        'Organization subscription created notification sent successfully'
+      )
+      expect(mockSafeSend).toHaveBeenCalledTimes(1)
+      const callArg = mockSafeSend.mock.calls[0][0]
+      expect(callArg.to).toHaveLength(2)
+      expect(callArg.to).toContain('user-a@test.com')
+      expect(callArg.to).toContain('user-b@test.com')
+    })
+
+    it('does not call safeSend when all users have subscriptionCreated disabled', async () => {
+      subscription = await setupTestSubscription(organizationId, true)
+
+      await createUserWithPreferences({
+        organizationId,
+        email: 'user@test.com',
+        notificationPreferences: {
+          subscriptionCreated: false,
+        },
+      })
+
+      const result = await simulateSendNotification(subscription)
+
+      expect(result.message).toBe(
+        'No recipients opted in for this notification'
+      )
+      expect(mockSafeSend).not.toHaveBeenCalled()
+    })
+
+    it('does not call safeSend when no users exist in the organization', async () => {
+      // Create a fresh org with no users/memberships
+      const { organization: emptyOrg, price } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: emptyOrg.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: emptyOrg.id,
+        customerId: customer.id,
+      })
+      subscription = await setupSubscription({
+        organizationId: emptyOrg.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        livemode: true,
+      })
+
+      const result = await simulateSendNotification(subscription)
+
+      expect(result.message).toBe(
+        'No recipients opted in for this notification'
+      )
+      expect(mockSafeSend).not.toHaveBeenCalled()
     })
   })
 })
