@@ -64,6 +64,22 @@ export const endpointKeyToActionKey: Record<
 }
 
 /**
+ * Compile-time exhaustiveness check for endpointKeyToActionKey.
+ *
+ * This assignment will cause a TypeScript compile error if any FlowgladActionKey
+ * value is missing from endpointKeyToActionKey. This ensures that when new action
+ * keys are added to the enum, developers are forced to add corresponding endpoint
+ * mappings, preventing runtime gaps in API coverage.
+ *
+ * The variable is intentionally unused (prefixed with _) as its only purpose is
+ * to trigger the type check at compile time.
+ */
+const _endpointKeyExhaustiveCheck: Record<FlowgladActionKey, string> =
+  Object.fromEntries(
+    Object.entries(endpointKeyToActionKey).map(([k, v]) => [v, k])
+  ) as Record<FlowgladActionKey, string>
+
+/**
  * Error response format for Better Auth endpoints.
  * Consistent format: { error: { code, message, details? } }
  */
@@ -373,7 +389,10 @@ const createFlowgladBillingEndpoint = <T extends FlowgladActionKey>(
           {
             error: {
               code: result.error.code,
-              message: result.error.code,
+              message:
+                typeof result.error.json?.message === 'string'
+                  ? result.error.json.message
+                  : `Flowglad API error: ${result.error.code}`,
               details: result.error.json,
             },
           },
