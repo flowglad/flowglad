@@ -20,8 +20,16 @@ import {
 } from '@flowglad/shared'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type React from 'react'
-import { createContext, useContext } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { devError } from './lib/utils'
+import type { FlowgladError, FlowgladHookData } from './types'
 import { validateUrl } from './utils'
 
 const getFlowgladRoute = (baseURL?: string): string => {
@@ -172,11 +180,24 @@ export interface ErrorFlowgladContextValues
   errors: Error[]
 }
 
-export type FlowgladContextValues =
+/**
+ * Internal context values for lazy billing loading
+ */
+interface LazyBillingContextValues {
+  triggerBillingLoad: () => void
+  isPendingBilling: boolean
+  isRefetchingBilling: boolean
+  errorBilling: Error | null
+  refetchBilling: () => void
+}
+
+export type FlowgladContextValues = (
   | LoadedFlowgladContextValues
   | NotLoadedFlowgladContextValues
   | NotAuthenticatedFlowgladContextValues
   | ErrorFlowgladContextValues
+) &
+  LazyBillingContextValues
 
 const notPresentContextValues: NonPresentContextValues = {
   customer: null,
@@ -207,6 +228,12 @@ const FlowgladContext = createContext<FlowgladContextValues>({
   loadBilling: false,
   errors: null,
   ...notPresentContextValues,
+  // Lazy billing values
+  triggerBillingLoad: () => {},
+  isPendingBilling: false,
+  isRefetchingBilling: false,
+  errorBilling: null,
+  refetchBilling: () => {},
 })
 
 type CheckoutSessionParamsBase = {
@@ -517,6 +544,9 @@ export interface RequestConfig {
 }
 
 interface CoreFlowgladContextProviderProps {
+  /**
+   * @deprecated This prop is no longer used. Billing is now loaded lazily when useBilling() is called.
+   */
   loadBilling?: boolean
   baseURL?: string
   requestConfig?: RequestConfig
@@ -608,17 +638,27 @@ export const FlowgladContextProvider = (
   const devModeProps = isDevModeProps(props) ? props : null
   const coreProps = isDevModeProps(props) ? null : props
   const isDevMode = devModeProps !== null
+
+  // Lazy billing loading state
+  const [billingRequested, setBillingRequested] = useState(false)
+  const triggerBillingLoad = useCallback(
+    () => setBillingRequested(true),
+    []
+  )
+
   // In a perfect world, this would be a useMutation hook rather than useQuery.
   // Because technically, billing fetch requests run a "find or create" operation on
   // the customer. But useQuery allows us to execute the call using `enabled`
   // which allows us to avoid maintaining a useEffect hook.
   const {
     isPending: isPendingBilling,
+    isRefetching: isRefetchingBilling,
     error: errorBilling,
     data: billing,
+    refetch: refetchBilling,
   } = useQuery<CustomerBillingRouteResponse | null>({
     queryKey: [FlowgladActionKey.GetCustomerBilling],
-    enabled: Boolean(coreProps?.loadBilling),
+    enabled: billingRequested,
     queryFn: coreProps
       ? () =>
           fetchCustomerBilling({
@@ -649,6 +689,12 @@ export const FlowgladContextProvider = (
           loaded: true,
           loadBilling: true,
           errors: null,
+          // Lazy billing values for dev mode
+          triggerBillingLoad: () => {},
+          isPendingBilling: false,
+          isRefetchingBilling: false,
+          errorBilling: null,
+          refetchBilling: () => {},
           createCheckoutSession: () =>
             Promise.resolve({
               id: 'checkout-session-id',
@@ -811,12 +857,7 @@ export const FlowgladContextProvider = (
     throw new Error('FlowgladContextProvider: missing core props')
   }
 
-  const {
-    baseURL,
-    requestConfig,
-    loadBilling: loadBillingProp,
-  } = coreProps
-  const loadBilling = loadBillingProp ?? false
+  const { baseURL, requestConfig } = coreProps
   // Each handler below gets its own Flowglad subroute, but still funnels through
   // the shared creator for validation and redirect behavior.
   const createCheckoutSession =
@@ -861,13 +902,25 @@ export const FlowgladContextProvider = (
     requestConfig,
   })
 
+  // Common lazy billing context values
+  const lazyBillingValues: LazyBillingContextValues = {
+    triggerBillingLoad,
+    isPendingBilling,
+    isRefetchingBilling,
+    errorBilling,
+    refetchBilling: () => refetchBilling(),
+  }
+
   let value: FlowgladContextValues
-  if (!loadBilling) {
+  // Use billingRequested for lazy loading - billing only loads when useBilling() is called
+  if (!billingRequested) {
+    // Not yet requested - waiting for useBilling() to be called
     value = {
       loaded: true,
-      loadBilling,
+      loadBilling: false,
       errors: null,
       ...notPresentContextValues,
+      ...lazyBillingValues,
     }
   } else if (billing) {
     const billingError = billing.error
@@ -900,7 +953,7 @@ export const FlowgladContextProvider = (
       })
       value = {
         loaded: true,
-        loadBilling,
+        loadBilling: true,
         customer: billingData.customer,
         createCheckoutSession,
         createAddPaymentMethodCheckoutSession,
@@ -929,21 +982,24 @@ export const FlowgladContextProvider = (
         currentSubscriptions: billingData.currentSubscriptions,
         billingPortalUrl: billingData.billingPortalUrl,
         pricingModel: billingData.pricingModel,
+        ...lazyBillingValues,
       }
     } else {
       value = {
         loaded: true,
-        loadBilling,
+        loadBilling: true,
         errors,
         ...notPresentContextValues,
+        ...lazyBillingValues,
       }
     }
   } else if (isPendingBilling) {
     value = {
       loaded: false,
-      loadBilling,
+      loadBilling: true,
       errors: null,
       ...notPresentContextValues,
+      ...lazyBillingValues,
     }
   } else {
     const errors: Error[] = [errorBilling].filter(
@@ -951,9 +1007,10 @@ export const FlowgladContextProvider = (
     )
     value = {
       loaded: true,
-      loadBilling,
+      loadBilling: true,
       errors,
       ...notPresentContextValues,
+      ...lazyBillingValues,
     }
   }
 
@@ -964,9 +1021,62 @@ export const FlowgladContextProvider = (
   )
 }
 
-export const useBilling = () => useContext(FlowgladContext)
+/**
+ * @deprecated Use useBillingData() for the new FlowgladHookData return type,
+ * or continue using useBilling() for backwards compatibility with the full context.
+ */
+export const useBilling =
+  (): FlowgladHookData<CustomerBillingRouteResponse> => {
+    const context = useContext(FlowgladContext)
+    const hasTriggeredRef = useRef(false)
 
+    useEffect(() => {
+      if (!hasTriggeredRef.current && context.triggerBillingLoad) {
+        hasTriggeredRef.current = true
+        context.triggerBillingLoad()
+      }
+    }, [context.triggerBillingLoad])
+
+    // Map the billing data to the CustomerBillingRouteResponse shape
+    const billingData: CustomerBillingRouteResponse | null =
+      context.loaded && 'customer' in context && context.customer
+        ? {
+            data: {
+              customer: context.customer,
+              subscriptions: context.subscriptions,
+              purchases: context.purchases,
+              invoices: context.invoices,
+              paymentMethods: context.paymentMethods,
+              currentSubscription: context.currentSubscription,
+              currentSubscriptions: context.currentSubscriptions,
+              catalog: context.catalog,
+              billingPortalUrl: context.billingPortalUrl,
+              pricingModel: context.pricingModel,
+            },
+          }
+        : null
+
+    return {
+      data: billingData,
+      isPending: context.isPendingBilling,
+      isRefetching: context.isRefetchingBilling,
+      error: context.errorBilling
+        ? { message: context.errorBilling.message }
+        : null,
+      refetch: context.refetchBilling,
+    }
+  }
+
+/**
+ * @deprecated useCatalog is deprecated and will be removed in a future version.
+ * Use useBilling() instead and access catalog from the response data.
+ */
 export const useCatalog = () => {
-  const { catalog } = useBilling()
-  return catalog
+  const billing = useBilling()
+  return billing.data?.data?.catalog ?? null
 }
+
+/**
+ * Export the CustomerBillingRouteResponse type for external use
+ */
+export type { CustomerBillingRouteResponse }

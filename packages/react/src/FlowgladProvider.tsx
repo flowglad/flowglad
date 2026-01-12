@@ -13,12 +13,20 @@ import { validateUrl } from './utils'
 
 const queryClient = new QueryClient()
 
-export interface LoadedFlowgladProviderProps {
+export interface FlowgladProviderProps {
   children: React.ReactNode
   requestConfig?: RequestConfig
   baseURL?: string
-  loadBilling: boolean
+  /**
+   * @deprecated This prop is no longer used. Billing is now loaded lazily when useBilling() is called.
+   */
+  loadBilling?: boolean
 }
+
+/**
+ * @deprecated Use FlowgladProviderProps instead
+ */
+export type LoadedFlowgladProviderProps = FlowgladProviderProps
 
 interface DevModeFlowgladProviderProps {
   __devMode: true
@@ -26,11 +34,13 @@ interface DevModeFlowgladProviderProps {
   children: React.ReactNode
 }
 
-export type FlowgladProviderProps =
-  | LoadedFlowgladProviderProps
+export type FlowgladProviderPropsUnion =
+  | FlowgladProviderProps
   | DevModeFlowgladProviderProps
 
-export const FlowgladProvider = (props: FlowgladProviderProps) => {
+export const FlowgladProvider = (
+  props: FlowgladProviderPropsUnion
+) => {
   if ('__devMode' in props) {
     return (
       <QueryClientProvider client={queryClient}>
@@ -44,8 +54,8 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
     )
   }
 
-  const { baseURL, loadBilling, requestConfig, children } =
-    props as LoadedFlowgladProviderProps
+  const { baseURL, requestConfig, children } =
+    props as FlowgladProviderProps
   if (baseURL) {
     validateUrl(baseURL, 'baseURL', true)
   }
@@ -53,7 +63,6 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
     <QueryClientProvider client={queryClient}>
       <FlowgladContextProvider
         baseURL={baseURL}
-        loadBilling={loadBilling}
         requestConfig={requestConfig}
       >
         {children}
