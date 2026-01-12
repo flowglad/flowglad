@@ -1,5 +1,25 @@
 # @flowglad/react
 
+## 0.17.0
+
+### Minor Changes
+
+- Better Auth Plugin Rework (GP-51): Add `betterAuthBasePath` prop to FlowgladProvider
+
+  - New `betterAuthBasePath` prop on `FlowgladProvider` routes API calls through Better Auth
+  - When set (e.g., `/api/auth`), calls route to `/api/auth/flowglad/*` instead of `/api/flowglad/*`
+  - Updated `getFlowgladRoute` to support Better Auth routing
+  - Backward compatible: existing `baseURL` prop continues to work for standalone route handlers
+
+  ## Breaking Changes
+
+  ⚠️ **None** - All changes are additive. The `betterAuthBasePath` prop is optional.
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/shared@0.17.0
+
 ## 0.16.2
 
 ### Patch Changes

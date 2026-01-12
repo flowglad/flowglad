@@ -1,5 +1,15 @@
 # @flowglad/shared
 
+## 0.17.0
+
+### Minor Changes
+
+- Better Auth Plugin Rework (GP-51): Supporting types and validators for Better Auth route integration
+
+  ## Breaking Changes
+
+  ⚠️ **None** - All changes are additive.
+
 ## 0.16.2
 
 ### Patch Changes
