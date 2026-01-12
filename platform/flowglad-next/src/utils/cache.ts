@@ -369,21 +369,33 @@ export async function cachedBulkLookup<TKey, TResult>(
       const cachedValue = cachedValues[i]
 
       if (cachedValue !== null) {
-        // Parse and validate
-        const jsonValue =
-          typeof cachedValue === 'string'
-            ? JSON.parse(cachedValue)
-            : cachedValue
+        try {
+          // Parse and validate
+          const jsonValue =
+            typeof cachedValue === 'string'
+              ? JSON.parse(cachedValue)
+              : cachedValue
 
-        const parsed = config.schema.safeParse(jsonValue)
-        if (parsed.success) {
-          results.set(key, parsed.data)
-          hitCount++
-        } else {
-          // Schema validation failed - treat as miss
-          logger.warn('Bulk cache schema validation failed', {
+          const parsed = config.schema.safeParse(jsonValue)
+          if (parsed.success) {
+            results.set(key, parsed.data)
+            hitCount++
+          } else {
+            // Schema validation failed - treat as miss
+            logger.warn('Bulk cache schema validation failed', {
+              key: fullKey,
+              error: parsed.error.message,
+            })
+            missedKeys.push(key)
+          }
+        } catch (parseError) {
+          // JSON.parse failed - treat as miss (corrupted cache data)
+          logger.warn('Bulk cache JSON parse failed', {
             key: fullKey,
-            error: parsed.error.message,
+            error:
+              parseError instanceof Error
+                ? parseError.message
+                : String(parseError),
           })
           missedKeys.push(key)
         }
