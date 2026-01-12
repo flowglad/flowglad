@@ -1420,9 +1420,8 @@ describe('pricesRouter.replaceUsagePrice', () => {
 
     // Replace the usage price with new immutable field values
     const result = await pricesRouter
-      .createCaller(ctx as any)
-      .replaceUsagePrice({
-        newPrice: {
+    const caller = pricesRouter.createCaller(ctx)
+    const result = await caller.replaceUsagePrice({
           type: PriceType.Usage,
           productId: null,
           usageMeterId,
