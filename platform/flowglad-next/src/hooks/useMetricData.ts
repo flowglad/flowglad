@@ -62,7 +62,7 @@ export function useMetricData(
       endDate: toDate,
       granularity: interval,
     },
-    { enabled: metric === 'mrr' }
+    { enabled: metric === 'mrr' && !!organizationId }
   )
 
   // Subscribers query - only enabled when metric === 'subscribers'
@@ -73,7 +73,7 @@ export function useMetricData(
         endDate: toDate,
         granularity: interval,
       },
-      { enabled: metric === 'subscribers' }
+      { enabled: metric === 'subscribers' && !!organizationId }
     )
 
   // Transform revenue data to chart format

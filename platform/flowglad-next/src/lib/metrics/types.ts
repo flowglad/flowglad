@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react'
 import type { TooltipProps } from '@/components/charts'
 import type { CurrencyCode, RevenueChartIntervalUnit } from '@/types'
 
@@ -78,7 +79,7 @@ export interface MetricConfig {
    * Custom tooltip component for this metric.
    * Receives standard TooltipProps and valueFormatter.
    */
-  Tooltip?: React.ComponentType<
+  Tooltip?: ComponentType<
     TooltipProps & { valueFormatter: (value: number) => string }
   >
 }
