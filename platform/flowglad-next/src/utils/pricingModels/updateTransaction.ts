@@ -350,16 +350,40 @@ export const updatePricingModelTransaction = async (
             ...coreParams,
             type: FeatureType.UsageCreditGrant,
             usageMeterId,
+            resourceId: null,
             amount: feature.amount,
             renewalFrequency: feature.renewalFrequency,
             active: feature.active ?? true,
           }
         }
 
+        // Handle Resource type
+        if (feature.type === FeatureType.Resource) {
+          const resourceId = idMaps.resources.get(
+            feature.resourceSlug
+          )
+          if (!resourceId) {
+            throw new Error(
+              `Resource ${feature.resourceSlug} not found`
+            )
+          }
+          return {
+            ...coreParams,
+            type: FeatureType.Resource,
+            resourceId,
+            usageMeterId: null,
+            amount: feature.amount,
+            renewalFrequency: null,
+            active: feature.active ?? true,
+          }
+        }
+
+        // Toggle type (default)
         return {
           ...coreParams,
           type: FeatureType.Toggle,
           usageMeterId: null,
+          resourceId: null,
           amount: null,
           renewalFrequency: null,
           active: feature.active ?? true,
@@ -395,6 +419,17 @@ export const updatePricingModelTransaction = async (
         }
         transformedUpdate.usageMeterId = newUsageMeterId
         delete transformedUpdate.usageMeterSlug
+      }
+
+      // Handle resourceSlug -> resourceId transformation
+      if ('resourceSlug' in transformedUpdate) {
+        const newSlug = transformedUpdate.resourceSlug as string
+        const newResourceId = idMaps.resources.get(newSlug)
+        if (!newResourceId) {
+          throw new Error(`Resource ${newSlug} not found`)
+        }
+        transformedUpdate.resourceId = newResourceId
+        delete transformedUpdate.resourceSlug
       }
 
       if (Object.keys(transformedUpdate).length === 0) return null

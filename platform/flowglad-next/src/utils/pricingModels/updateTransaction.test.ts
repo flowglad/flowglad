@@ -911,6 +911,633 @@ describe('updatePricingModelTransaction', () => {
     })
   })
 
+  /**
+   * Resource feature update tests - these tests require:
+   * - Patch 1 (schema changes) for Resource feature type in setup schema
+   * - Patch 3 (updateHelpers) for resources in ID resolution
+   * - Patch 4 (updateTransaction) for resource diffing
+   * - Patch 5 (updateTransaction) for Resource feature handling
+   * - Patch 6 (setupHelpers) for resources in export
+   *
+   * Unskip these tests once all patches are implemented.
+   */
+  describe('resource feature updates', () => {
+    it.skip('creates new Resource features with correct resourceId', async () => {
+      // First create a pricing model with a resource but no Resource features
+      const setupResult = await createBasicPricingModel()
+
+      // Add a resource first
+      await adminTransaction(async ({ transaction }) =>
+        updatePricingModelTransaction(
+          {
+            pricingModelId: setupResult.pricingModel.id,
+            proposedInput: {
+              name: 'Test Pricing Model',
+              isDefault: false,
+              usageMeters: [],
+              resources: [{ slug: 'seats', name: 'Seats' }],
+              features: [
+                {
+                  type: FeatureType.Toggle,
+                  slug: 'feature-a',
+                  name: 'Feature A',
+                  description: 'A toggle feature',
+                  active: true,
+                },
+              ],
+              products: [
+                {
+                  product: {
+                    name: 'Starter Plan',
+                    slug: 'starter',
+                    default: false,
+                    active: true,
+                  },
+                  price: {
+                    type: PriceType.Subscription,
+                    slug: 'starter-monthly',
+                    unitPrice: 1999,
+                    isDefault: true,
+                    active: true,
+                    intervalCount: 1,
+                    intervalUnit: IntervalUnit.Month,
+                    usageMeterId: null,
+                    usageEventsPerUnit: null,
+                  },
+                  features: ['feature-a'],
+                },
+              ],
+            } as SetupPricingModelInputWithResources,
+          },
+          transaction
+        )
+      )
+
+      // Get the resource ID
+      const resources = await adminTransaction(
+        async ({ transaction }) =>
+          selectResources(
+            { pricingModelId: setupResult.pricingModel.id },
+            transaction
+          )
+      )
+      const seatsResource = resources.find((r) => r.slug === 'seats')
+
+      // Now add a Resource feature referencing the resource
+      const updateResult = await adminTransaction(
+        async ({ transaction }) =>
+          updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                resources: [{ slug: 'seats', name: 'Seats' }],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
+                    active: true,
+                  },
+                  {
+                    type: FeatureType.Resource,
+                    slug: 'seat-grant',
+                    name: 'Seat Grant',
+                    description: 'Grants seats to the subscription',
+                    resourceSlug: 'seats',
+                    amount: 5,
+                    active: true,
+                  },
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'Starter Plan',
+                      slug: 'starter',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'starter-monthly',
+                      unitPrice: 1999,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a', 'seat-grant'],
+                  },
+                ],
+              } as SetupPricingModelInputWithResources,
+            },
+            transaction
+          )
+      )
+
+      expect(updateResult.features.created).toHaveLength(1)
+      const createdFeature = updateResult.features.created[0]
+      expect(createdFeature.slug).toBe('seat-grant')
+      expect(createdFeature.type).toBe(FeatureType.Resource)
+      expect(createdFeature.resourceId).toBe(seatsResource!.id)
+      expect(createdFeature.amount).toBe(5)
+      expect(createdFeature.usageMeterId).toBeNull()
+      expect(createdFeature.renewalFrequency).toBeNull()
+    })
+
+    it.skip('transforms resourceSlug to resourceId when updating Resource feature', async () => {
+      // First create a pricing model with two resources and a Resource feature
+      const setupResult = await createBasicPricingModel()
+
+      // Add resources and a Resource feature
+      await adminTransaction(async ({ transaction }) =>
+        updatePricingModelTransaction(
+          {
+            pricingModelId: setupResult.pricingModel.id,
+            proposedInput: {
+              name: 'Test Pricing Model',
+              isDefault: false,
+              usageMeters: [],
+              resources: [
+                { slug: 'seats', name: 'Seats' },
+                { slug: 'projects', name: 'Projects' },
+              ],
+              features: [
+                {
+                  type: FeatureType.Toggle,
+                  slug: 'feature-a',
+                  name: 'Feature A',
+                  description: 'A toggle feature',
+                  active: true,
+                },
+                {
+                  type: FeatureType.Resource,
+                  slug: 'resource-grant',
+                  name: 'Resource Grant',
+                  description:
+                    'Grants a resource to the subscription',
+                  resourceSlug: 'seats',
+                  amount: 5,
+                  active: true,
+                },
+              ],
+              products: [
+                {
+                  product: {
+                    name: 'Starter Plan',
+                    slug: 'starter',
+                    default: false,
+                    active: true,
+                  },
+                  price: {
+                    type: PriceType.Subscription,
+                    slug: 'starter-monthly',
+                    unitPrice: 1999,
+                    isDefault: true,
+                    active: true,
+                    intervalCount: 1,
+                    intervalUnit: IntervalUnit.Month,
+                    usageMeterId: null,
+                    usageEventsPerUnit: null,
+                  },
+                  features: ['feature-a', 'resource-grant'],
+                },
+              ],
+            } as SetupPricingModelInputWithResources,
+          },
+          transaction
+        )
+      )
+
+      // Get the resource IDs
+      const resources = await adminTransaction(
+        async ({ transaction }) =>
+          selectResources(
+            { pricingModelId: setupResult.pricingModel.id },
+            transaction
+          )
+      )
+      const projectsResource = resources.find(
+        (r) => r.slug === 'projects'
+      )
+
+      // Now update the Resource feature to reference projects instead of seats
+      const updateResult = await adminTransaction(
+        async ({ transaction }) =>
+          updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                resources: [
+                  { slug: 'seats', name: 'Seats' },
+                  { slug: 'projects', name: 'Projects' },
+                ],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
+                    active: true,
+                  },
+                  {
+                    type: FeatureType.Resource,
+                    slug: 'resource-grant',
+                    name: 'Resource Grant Updated',
+                    description: 'Now grants projects instead',
+                    resourceSlug: 'projects', // Changed from 'seats' to 'projects'
+                    amount: 10, // Changed amount too
+                    active: true,
+                  },
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'Starter Plan',
+                      slug: 'starter',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'starter-monthly',
+                      unitPrice: 1999,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a', 'resource-grant'],
+                  },
+                ],
+              } as SetupPricingModelInputWithResources,
+            },
+            transaction
+          )
+      )
+
+      expect(updateResult.features.updated).toHaveLength(1)
+      const updatedFeature = updateResult.features.updated[0]
+      expect(updatedFeature.slug).toBe('resource-grant')
+      expect(updatedFeature.name).toBe('Resource Grant Updated')
+      expect(updatedFeature.resourceId).toBe(projectsResource!.id)
+      expect(updatedFeature.amount).toBe(10)
+    })
+
+    it.skip('throws when Resource feature references non-existent resource', async () => {
+      const setupResult = await createBasicPricingModel()
+
+      // Add a resource first
+      await adminTransaction(async ({ transaction }) =>
+        updatePricingModelTransaction(
+          {
+            pricingModelId: setupResult.pricingModel.id,
+            proposedInput: {
+              name: 'Test Pricing Model',
+              isDefault: false,
+              usageMeters: [],
+              resources: [{ slug: 'seats', name: 'Seats' }],
+              features: [
+                {
+                  type: FeatureType.Toggle,
+                  slug: 'feature-a',
+                  name: 'Feature A',
+                  description: 'A toggle feature',
+                  active: true,
+                },
+              ],
+              products: [
+                {
+                  product: {
+                    name: 'Starter Plan',
+                    slug: 'starter',
+                    default: false,
+                    active: true,
+                  },
+                  price: {
+                    type: PriceType.Subscription,
+                    slug: 'starter-monthly',
+                    unitPrice: 1999,
+                    isDefault: true,
+                    active: true,
+                    intervalCount: 1,
+                    intervalUnit: IntervalUnit.Month,
+                    usageMeterId: null,
+                    usageEventsPerUnit: null,
+                  },
+                  features: ['feature-a'],
+                },
+              ],
+            } as SetupPricingModelInputWithResources,
+          },
+          transaction
+        )
+      )
+
+      // Try to add a Resource feature referencing a non-existent resource
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                resources: [{ slug: 'seats', name: 'Seats' }],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
+                    active: true,
+                  },
+                  {
+                    type: FeatureType.Resource,
+                    slug: 'invalid-grant',
+                    name: 'Invalid Grant',
+                    description: 'References a non-existent resource',
+                    resourceSlug: 'non-existent-resource',
+                    amount: 5,
+                    active: true,
+                  },
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'Starter Plan',
+                      slug: 'starter',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'starter-monthly',
+                      unitPrice: 1999,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a', 'invalid-grant'],
+                  },
+                ],
+              } as SetupPricingModelInputWithResources,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow('Resource non-existent-resource not found')
+    })
+
+    it.skip('deactivates Resource features when removed from proposed input', async () => {
+      const setupResult = await createBasicPricingModel()
+
+      // Add a resource and Resource feature
+      await adminTransaction(async ({ transaction }) =>
+        updatePricingModelTransaction(
+          {
+            pricingModelId: setupResult.pricingModel.id,
+            proposedInput: {
+              name: 'Test Pricing Model',
+              isDefault: false,
+              usageMeters: [],
+              resources: [{ slug: 'seats', name: 'Seats' }],
+              features: [
+                {
+                  type: FeatureType.Toggle,
+                  slug: 'feature-a',
+                  name: 'Feature A',
+                  description: 'A toggle feature',
+                  active: true,
+                },
+                {
+                  type: FeatureType.Resource,
+                  slug: 'seat-grant',
+                  name: 'Seat Grant',
+                  description: 'Grants seats',
+                  resourceSlug: 'seats',
+                  amount: 5,
+                  active: true,
+                },
+              ],
+              products: [
+                {
+                  product: {
+                    name: 'Starter Plan',
+                    slug: 'starter',
+                    default: false,
+                    active: true,
+                  },
+                  price: {
+                    type: PriceType.Subscription,
+                    slug: 'starter-monthly',
+                    unitPrice: 1999,
+                    isDefault: true,
+                    active: true,
+                    intervalCount: 1,
+                    intervalUnit: IntervalUnit.Month,
+                    usageMeterId: null,
+                    usageEventsPerUnit: null,
+                  },
+                  features: ['feature-a', 'seat-grant'],
+                },
+              ],
+            } as SetupPricingModelInputWithResources,
+          },
+          transaction
+        )
+      )
+
+      // Now remove the Resource feature
+      const updateResult = await adminTransaction(
+        async ({ transaction }) =>
+          updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                resources: [{ slug: 'seats', name: 'Seats' }],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
+                    active: true,
+                  },
+                  // seat-grant feature removed
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'Starter Plan',
+                      slug: 'starter',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'starter-monthly',
+                      unitPrice: 1999,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a'],
+                  },
+                ],
+              } as SetupPricingModelInputWithResources,
+            },
+            transaction
+          )
+      )
+
+      expect(updateResult.features.deactivated).toHaveLength(1)
+      const deactivatedFeature = updateResult.features.deactivated[0]
+      expect(deactivatedFeature.slug).toBe('seat-grant')
+      expect(deactivatedFeature.type).toBe(FeatureType.Resource)
+      expect(deactivatedFeature.active).toBe(false)
+
+      // Verify database state
+      const allFeatures = await adminTransaction(
+        async ({ transaction }) =>
+          selectFeatures(
+            { pricingModelId: setupResult.pricingModel.id },
+            transaction
+          )
+      )
+      const seatGrantFeature = allFeatures.find(
+        (f) => f.slug === 'seat-grant'
+      )
+      expect(seatGrantFeature!.active).toBe(false)
+    })
+
+    it.skip('creates new resources and Resource features that use those resources in the same update', async () => {
+      const setupResult = await createBasicPricingModel()
+
+      // Add both resources and Resource features in a single update
+      const updateResult = await adminTransaction(
+        async ({ transaction }) =>
+          updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                resources: [
+                  { slug: 'seats', name: 'Seats' },
+                  { slug: 'projects', name: 'Projects' },
+                ],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
+                    active: true,
+                  },
+                  {
+                    type: FeatureType.Resource,
+                    slug: 'seat-grant',
+                    name: 'Seat Grant',
+                    description: 'Grants seats',
+                    resourceSlug: 'seats',
+                    amount: 5,
+                    active: true,
+                  },
+                  {
+                    type: FeatureType.Resource,
+                    slug: 'project-grant',
+                    name: 'Project Grant',
+                    description: 'Grants projects',
+                    resourceSlug: 'projects',
+                    amount: 3,
+                    active: true,
+                  },
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'Starter Plan',
+                      slug: 'starter',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'starter-monthly',
+                      unitPrice: 1999,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: [
+                      'feature-a',
+                      'seat-grant',
+                      'project-grant',
+                    ],
+                  },
+                ],
+              } as SetupPricingModelInputWithResources,
+            },
+            transaction
+          )
+      )
+
+      // Verify resources created
+      expect(updateResult.resources.created).toHaveLength(2)
+      expect(
+        updateResult.resources.created.map((r) => r.slug).sort()
+      ).toEqual(['projects', 'seats'])
+
+      // Verify Resource features created with correct resourceIds
+      expect(updateResult.features.created).toHaveLength(2)
+      const seatGrant = updateResult.features.created.find(
+        (f) => f.slug === 'seat-grant'
+      )
+      const projectGrant = updateResult.features.created.find(
+        (f) => f.slug === 'project-grant'
+      )
+      const seatsResource = updateResult.resources.created.find(
+        (r) => r.slug === 'seats'
+      )
+      const projectsResource = updateResult.resources.created.find(
+        (r) => r.slug === 'projects'
+      )
+
+      expect(seatGrant!.type).toBe(FeatureType.Resource)
+      expect(seatGrant!.resourceId).toBe(seatsResource!.id)
+      expect(seatGrant!.amount).toBe(5)
+
+      expect(projectGrant!.type).toBe(FeatureType.Resource)
+      expect(projectGrant!.resourceId).toBe(projectsResource!.id)
+      expect(projectGrant!.amount).toBe(3)
+    })
+  })
+
   describe('feature updates', () => {
     it('creates new features', async () => {
       const setupResult = await createBasicPricingModel()
