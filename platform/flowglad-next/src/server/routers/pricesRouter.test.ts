@@ -1286,7 +1286,6 @@ describe('pricesRouter.replaceUsagePrice', () => {
   let usageMeterId: string
   let usagePriceId: string
   let subscriptionPriceId: string
-  let regularProductId: string
   const livemode = true
 
   beforeEach(async () => {
@@ -1392,7 +1391,6 @@ describe('pricesRouter.replaceUsagePrice', () => {
         usageMeterId: usageMeter.id,
         usagePriceId: usagePrice.id,
         subscriptionPriceId: subscriptionPrice.id,
-        regularProductId: regularProduct.id,
       }
     })
 
@@ -1401,7 +1399,6 @@ describe('pricesRouter.replaceUsagePrice', () => {
     usageMeterId = result.usageMeterId
     usagePriceId = result.usagePriceId
     subscriptionPriceId = result.subscriptionPriceId
-    regularProductId = result.regularProductId
   })
 
   it('atomically creates new price and archives old price when immutable fields change', async () => {

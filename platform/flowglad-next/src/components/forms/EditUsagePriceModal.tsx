@@ -345,7 +345,7 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
           await replaceUsagePrice.mutateAsync({
             newPrice: {
               type: PriceType.Usage,
-              productId: price.productId,
+              productId: null, // Usage prices belong to meters, not products
               unitPrice: newUnitPrice,
               usageEventsPerUnit: input.usageEventsPerUnit,
               usageMeterId: usageMeterId,
