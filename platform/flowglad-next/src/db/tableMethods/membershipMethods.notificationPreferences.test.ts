@@ -166,34 +166,14 @@ describe('memberships notificationPreferences', () => {
       })
     })
 
-    it('treats explicit null values in stored preferences as overriding defaults', async () => {
-      // This test documents the current behavior: explicit null values override defaults
-      // Note: In practice, the Zod schema validation should prevent null values from being stored,
-      // but this test ensures we understand the behavior if they somehow exist
-      await adminTransaction(async ({ transaction }) => {
-        // Simulate a membership with null values in the stored preferences
-        // by directly setting them (bypassing normal validation)
-        const membershipWithNulls: Membership.Record = {
-          ...membership,
-          notificationPreferences: {
-            subscriptionCreated: null,
-          } as unknown as Partial<NotificationPreferences>,
-        }
+    it('rejects null values for notification preference fields via Zod validation', () => {
+      const invalidPrefs = {
+        subscriptionCreated: null,
+      }
 
-        const prefs = getMembershipNotificationPreferences(
-          membershipWithNulls
-        )
-
-        // The current implementation spreads stored values over defaults,
-        // so null values will override the default true value
-        // This test documents this behavior - if null values shouldn't override,
-        // the helper function should be updated to filter them out
-        expect(prefs.subscriptionCreated).toBeNull()
-
-        // Other values should still use defaults
-        expect(prefs.testModeNotifications).toBe(false)
-        expect(prefs.subscriptionAdjusted).toBe(true)
-      })
+      expect(() =>
+        notificationPreferencesSchema.partial().parse(invalidPrefs)
+      ).toThrow()
     })
   })
 
