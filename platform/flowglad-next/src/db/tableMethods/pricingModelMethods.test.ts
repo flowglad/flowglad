@@ -7,6 +7,7 @@ import {
   setupProduct,
   setupProductFeature,
   setupToggleFeature,
+  setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
@@ -19,6 +20,7 @@ import {
   safelyUpdatePricingModel,
   selectPricingModelById,
   selectPricingModelForCustomer,
+  selectPricingModelSlugResolutionData,
   selectPricingModels,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
 } from './pricingModelMethods'
@@ -707,14 +709,14 @@ describe('selectPricingModelForCustomer', () => {
       organizationId: fakeOrgId,
     }
 
-    await expect(async () => {
-      await adminTransaction(async ({ transaction }) => {
+    await expect(
+      adminTransaction(async ({ transaction }) => {
         return selectPricingModelForCustomer(
           customerWithFakeOrg,
           transaction
         )
       })
-    }).rejects.toThrow(
+    ).rejects.toThrow(
       `No default pricing model found for organization ${fakeOrgId}`
     )
   })
@@ -1254,5 +1256,323 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
     returnedPrices.forEach((price) => {
       expect(price.active).toBe(true)
     })
+  })
+})
+
+describe('selectPricingModelSlugResolutionData', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+  })
+
+  it('should return only minimal price fields (id, slug, type, usageMeterId, active)', async () => {
+    const product = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Product',
+      active: true,
+    })
+
+    const price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      slug: 'test-price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+      active: true,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelSlugResolutionData(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe(pricingModel.id)
+    expect(result[0].prices.length).toBeGreaterThan(0)
+
+    const priceInResult = result[0].prices.find(
+      (p) => p.id === price.id
+    )
+    expect(priceInResult).toBeDefined()
+    expect(Object.keys(priceInResult!).sort()).toEqual([
+      'active',
+      'id',
+      'slug',
+      'type',
+      'usageMeterId',
+    ])
+    expect(priceInResult!.slug).toBe('test-price')
+    expect(priceInResult!.type).toBe(PriceType.Subscription)
+    expect(priceInResult!.active).toBe(true)
+  })
+
+  it('should return only minimal usage meter fields (id, slug)', async () => {
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      slug: 'test-usage-meter',
+      name: 'Test Usage Meter',
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelSlugResolutionData(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].usageMeters.length).toBeGreaterThan(0)
+
+    const usageMeterInResult = result[0].usageMeters.find(
+      (um) => um.id === usageMeter.id
+    )
+    expect(usageMeterInResult).toBeDefined()
+    expect(Object.keys(usageMeterInResult!)).toEqual(['id', 'slug'])
+    expect(usageMeterInResult!.slug).toBe('test-usage-meter')
+  })
+
+  it('should NOT fetch products or features', async () => {
+    const product = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Product',
+      active: true,
+    })
+
+    const feature = await setupToggleFeature({
+      organizationId: organization.id,
+      name: 'Test Feature',
+      livemode: false,
+    })
+
+    await setupProductFeature({
+      productId: product.id,
+      featureId: feature.id,
+      organizationId: organization.id,
+    })
+
+    await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      slug: 'test-price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+      active: true,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelSlugResolutionData(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    // Verify result does not contain product or feature data
+    expect(result[0]).not.toHaveProperty('products')
+    expect(result[0]).not.toHaveProperty('features')
+    // Only contains: id, organizationId, livemode, isDefault, prices, usageMeters
+    expect(Object.keys(result[0]).sort()).toEqual([
+      'id',
+      'isDefault',
+      'livemode',
+      'organizationId',
+      'prices',
+      'usageMeters',
+    ])
+  })
+
+  it('should filter by pricing model where conditions', async () => {
+    const pricingModel2 = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Second Pricing Model',
+      isDefault: false,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelSlugResolutionData(
+        { id: pricingModel2.id },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe(pricingModel2.id)
+    expect(result[0].id).not.toBe(pricingModel.id)
+  })
+
+  it('should de-duplicate usage meters from LEFT JOIN rows', async () => {
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      slug: 'test-usage-meter-dedup',
+      name: 'Test Usage Meter Dedup',
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelSlugResolutionData(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    const usageMeterIds = result[0].usageMeters.map((um) => um.id)
+    const uniqueUsageMeterIds = [...new Set(usageMeterIds)]
+    expect(usageMeterIds.length).toBe(uniqueUsageMeterIds.length)
+  })
+
+  it('should only return prices from active products', async () => {
+    const activeProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Active Product',
+      active: true,
+    })
+
+    const inactiveProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Inactive Product',
+      active: false,
+    })
+
+    const activePrice = await setupPrice({
+      productId: activeProduct.id,
+      name: 'Active Product Price',
+      slug: 'active-product-price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+      active: true,
+    })
+
+    const inactiveProductPrice = await setupPrice({
+      productId: inactiveProduct.id,
+      name: 'Inactive Product Price',
+      slug: 'inactive-product-price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+      active: true,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelSlugResolutionData(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    const priceIds = result[0].prices.map((p) => p.id)
+    expect(priceIds).toContain(activePrice.id)
+    expect(priceIds).not.toContain(inactiveProductPrice.id)
+  })
+
+  it('should de-duplicate prices by price ID', async () => {
+    const product = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Product',
+      active: true,
+    })
+
+    await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      slug: 'test-price-dedup',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+      active: true,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelSlugResolutionData(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    const priceIds = result[0].prices.map((p) => p.id)
+    const uniquePriceIds = [...new Set(priceIds)]
+    expect(priceIds.length).toBe(uniquePriceIds.length)
+  })
+
+  it('should handle pricing models with no prices or usage meters', async () => {
+    const emptyPricingModel = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Empty Pricing Model',
+      isDefault: false,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelSlugResolutionData(
+        { id: emptyPricingModel.id },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe(emptyPricingModel.id)
+    expect(result[0].prices).toEqual([])
+    expect(result[0].usageMeters).toEqual([])
+  })
+
+  it('should handle multiple pricing models', async () => {
+    const pricingModel2 = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Second Pricing Model',
+      isDefault: false,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelSlugResolutionData(
+        { organizationId: organization.id },
+        transaction
+      )
+    })
+
+    expect(result.length).toBeGreaterThanOrEqual(2)
+    const pricingModelIds = result.map((pm) => pm.id)
+    expect(pricingModelIds).toContain(pricingModel.id)
+    expect(pricingModelIds).toContain(pricingModel2.id)
   })
 })

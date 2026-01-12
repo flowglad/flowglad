@@ -486,3 +486,43 @@ export const setUserIdForCustomerRecords = async (
       )
     )
 }
+
+/**
+ * Minimal customer data needed for pricing model resolution in bulk operations.
+ * Only fetches the fields required to determine which pricing model applies to each customer.
+ */
+export type CustomerPricingInfo = {
+  id: string
+  pricingModelId: string | null
+  organizationId: string
+  livemode: boolean
+}
+
+/**
+ * Performance-optimized batch fetch of customer pricing info.
+ * Only selects the minimal fields needed for pricing model resolution.
+ *
+ * @param customerIds - Array of customer IDs to fetch
+ * @param transaction - Database transaction
+ * @returns Map of customerId to CustomerPricingInfo
+ */
+export const selectCustomerPricingInfoBatch = async (
+  customerIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, CustomerPricingInfo>> => {
+  if (customerIds.length === 0) {
+    return new Map()
+  }
+
+  const results = await transaction
+    .select({
+      id: customers.id,
+      pricingModelId: customers.pricingModelId,
+      organizationId: customers.organizationId,
+      livemode: customers.livemode,
+    })
+    .from(customers)
+    .where(inArray(customers.id, customerIds))
+
+  return new Map(results.map((c) => [c.id, c]))
+}
