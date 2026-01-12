@@ -6,7 +6,7 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { updatePricingModel } from './pricingModelMethods'
+import { selectPricingModelForCustomer } from './pricingModelMethods'
 import {
   insertUsageMeter,
   pricingModelIdsForUsageMeters,
@@ -336,9 +336,6 @@ describe('usageMeterMethods', () => {
           // To properly test this, we need to mock or override the customer lookup
 
           // For now, we test by directly calling selectPricingModelForCustomer with the fake data
-          const { selectPricingModelForCustomer } = await import(
-            './pricingModelMethods'
-          )
           return selectPricingModelForCustomer(
             customerWithInvalidPricingModel,
             transaction

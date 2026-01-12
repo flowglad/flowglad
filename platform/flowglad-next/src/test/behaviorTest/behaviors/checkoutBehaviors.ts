@@ -35,6 +35,7 @@ import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import type { BillingAddress } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import { nulledPriceColumns } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import {
   insertCheckoutSession,
@@ -74,6 +75,8 @@ export interface CreateProductWithPriceResult
   product: Product.Record
   /** The created price for the product */
   price: Price.Record
+  /** The pricing model used */
+  pricingModel: PricingModel.Record
 }
 
 /**
@@ -208,7 +211,7 @@ export const createProductWithPriceBehavior = defineBehavior({
         transaction
       )
 
-      return { product, price }
+      return { product, price, pricingModel }
     })
 
     return {
@@ -262,6 +265,7 @@ export const initiateCheckoutSessionBehavior = defineBehavior({
           livemode: true,
           stripeCustomerId: `cus_${core.nanoid()}`,
           invoiceNumberBase: core.nanoid(),
+          pricingModelId: prev.pricingModel.id,
         },
         transaction
       )

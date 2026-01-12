@@ -492,10 +492,11 @@ describe('createCustomerBookkeeping', () => {
         }
       )
 
-      // Attempt to create customer for the minimal org - should fail since no pricing model exists
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          const output = await createCustomerBookkeeping(
+      // Attempt to create customer for the minimal org - should throw error
+      let error: Error | null = null
+      try {
+        await adminTransaction(async ({ transaction }) => {
+          await createCustomerBookkeeping(
             {
               customer: {
                 email: `test+${core.nanoid()}@example.com`,
@@ -510,33 +511,18 @@ describe('createCustomerBookkeeping', () => {
               livemode,
             }
           )
-          return output
-        }
-      )
+        })
+      } catch (err: any) {
+        error = err
+      }
 
       // expects:
-      // - customer should be created successfully
-      // - no subscription should be created since there's no pricing model
-      // - only CustomerCreated event should exist
-      expect(result.result.customer).toMatchObject({})
-      expect(result.result.customer.organizationId).toBe(
-        minimalOrg.id
+      // - an error should be thrown since pricingModelId is required
+      // - no customer should be created
+      expect(error).toBeInstanceOf(Error)
+      expect(error?.message).toMatch(
+        /No pricing model found for customer/i
       )
-      expect(result.result.subscription).toBeUndefined()
-      expect(result.result.subscriptionItems).toBeUndefined()
-
-      // Verify only CustomerCreated event exists
-      expect(result.eventsToInsert).toMatchObject({})
-      expect(
-        result.eventsToInsert?.some(
-          (e) => e.type === FlowgladEventType.CustomerCreated
-        )
-      ).toBe(true)
-      expect(
-        result.eventsToInsert?.some(
-          (e) => e.type === FlowgladEventType.SubscriptionCreated
-        )
-      ).toBe(false)
     })
 
     it('should prevent cross-organization customer creation', async () => {

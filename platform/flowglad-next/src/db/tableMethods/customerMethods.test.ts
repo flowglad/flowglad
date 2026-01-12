@@ -1125,7 +1125,10 @@ describe('Customer uniqueness constraints', () => {
         }
       )
 
-      expect(customer2).toBeDefined()
+      expect(customer2).toMatchObject({
+        stripeCustomerId,
+        pricingModelId: pricingModel2Id,
+      })
       expect(customer2.stripeCustomerId).toBe(stripeCustomerId)
       expect(customer2.pricingModelId).toBe(pricingModel2Id)
     })

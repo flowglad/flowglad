@@ -1643,74 +1643,11 @@ describe('Customer Role RLS Policies', () => {
         )
       })
 
-      it('should prevent checkout when customer has NULL pricing model', async () => {
-        // Create a customer with NULL pricing model
-        const nullPricingModelCustomer = await setupCustomer({
-          organizationId: org1.id,
-          email: `null_pm_${core.nanoid()}@test.com`,
-          livemode: true,
-        })
-
-        const nullPricingModelUser = await adminTransaction(
-          async ({ transaction }) => {
-            const user = await insertUser(
-              {
-                id: `usr_${core.nanoid()}`,
-                email: nullPricingModelCustomer.email,
-                name: 'Null PM Customer',
-                betterAuthId: `bau_${core.nanoid()}`,
-              },
-              transaction
-            )
-
-            await updateCustomer(
-              {
-                id: nullPricingModelCustomer.id,
-                userId: user.id,
-                pricingModelId: null, // Explicitly set to null
-              },
-              transaction
-            )
-
-            return user
-          }
-        )
-
-        let error: Error | null = null
-
-        try {
-          await authenticatedCustomerTransaction(
-            nullPricingModelCustomer,
-            nullPricingModelUser,
-            org1,
-            async ({ transaction }) => {
-              // Customer with null pricing model shouldn't be able to checkout any price
-              await insertCheckoutSession(
-                {
-                  organizationId: org1.id,
-                  customerId: nullPricingModelCustomer.id,
-                  priceId: priceInModelA.id,
-                  type: CheckoutSessionType.Product,
-                  status: CheckoutSessionStatus.Open,
-                  quantity: 1,
-                  invoiceId: null,
-                  purchaseId: null,
-                  targetSubscriptionId: null,
-                  automaticallyUpdateSubscriptions: null,
-                  livemode: true,
-                },
-                transaction
-              )
-            }
-          )
-        } catch (err: any) {
-          error = err
-        }
-
-        expect(error).toBeInstanceOf(Error)
-        expect(error?.message).toMatch(
-          /Failed to insert|violates row-level security|permission denied|No prices found with id/i
-        )
+      // NOTE: This test is no longer applicable since pricingModelId is now a required (NOT NULL) field on customers.
+      // The migration ensures all customers have a valid pricing model, so this scenario cannot occur.
+      // The database schema prevents NULL pricing models at the constraint level.
+      it.skip('should prevent checkout when customer has NULL pricing model', async () => {
+        // Test skipped: pricingModelId is now a required field and cannot be NULL
       })
 
       it('should prevent checkout with price from different organization', async () => {
