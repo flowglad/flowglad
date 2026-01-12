@@ -18,14 +18,13 @@ import {
 } from '@/db/schema/customers'
 import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
 import {
-  clientWriteOmitsConstructor,
   constructIndex,
   constructUniqueIndex,
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   metadataSchema,
   notNullStringForeignKey,
@@ -119,10 +118,11 @@ const columns = {
   ),
 }
 
-export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
-  return [
-    // Composite index for customer queries - RLS always adds livemode filter via livemodePolicy
-    constructIndex(TABLE_NAME, [table.customerId, table.livemode]),
+export const subscriptions = pgTable(
+  TABLE_NAME,
+  columns,
+  livemodePolicyTable(TABLE_NAME, (table, livemodeIndex) => [
+    livemodeIndex([table.customerId]),
     constructIndex(TABLE_NAME, [table.priceId]),
     constructIndex(TABLE_NAME, [table.status]),
     constructIndex(TABLE_NAME, [table.replacedBySubscriptionId]),
@@ -156,9 +156,8 @@ export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
       for: 'delete',
       using: sql`false`,
     }),
-    livemodePolicy(TABLE_NAME),
-  ]
-}).enableRLS()
+  ])
+).enableRLS()
 
 const standardSubscriptionStatuses = Object.values(
   SubscriptionStatus

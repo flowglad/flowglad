@@ -21,11 +21,13 @@ import {
 import {
   bigserial,
   boolean,
+  type IndexBuilder,
   type IndexBuilderOn,
   type IndexColumn,
   index,
   integer,
   type PgColumn,
+  type PgPolicy,
   type PgUpdateSetSource,
   pgEnum,
   pgPolicy,
@@ -721,6 +723,61 @@ export const livemodePolicy = (tableName: string) =>
     for: 'all',
     using: sql`current_setting('app.livemode')::boolean = livemode`,
   })
+
+/**
+ * Type for table extras that can be returned by pgTable callbacks.
+ * This includes policies, indexes, and unique indexes.
+ */
+export type TableExtra = PgPolicy | IndexBuilder
+
+/**
+ * Type for the livemode index helper function provided to livemodePolicyTable callbacks.
+ */
+export type LivemodeIndexFn = (
+  columns: Parameters<IndexBuilderOn['on']>
+) => IndexBuilder
+
+/**
+ * Higher-order function that wraps the extras callback for pgTable,
+ * automatically adding a livemode RLS policy and providing a helper
+ * for creating composite indexes with livemode.
+ *
+ * @param tableName - The name of the table (used for policy/index naming)
+ * @param extrasCallback - Callback that receives the table and a `livemodeIndex` helper function.
+ *   The helper creates indexes with the provided columns plus `livemode` appended.
+ * @returns A new extras callback that includes the livemode policy
+ *
+ * @example
+ * ```typescript
+ * export const subscriptions = pgTable(
+ *   TABLE_NAME,
+ *   columns,
+ *   livemodePolicyTable(TABLE_NAME, (table, livemodeIndex) => [
+ *     livemodeIndex([table.customerId]),  // creates index on [customerId, livemode]
+ *     constructIndex(TABLE_NAME, [table.priceId]),
+ *     // ... other indexes/policies
+ *   ])
+ * ).enableRLS()
+ * ```
+ */
+export const livemodePolicyTable = <T extends { livemode: PgColumn }>(
+  tableName: string,
+  extrasCallback?: (
+    table: T,
+    livemodeIndex: LivemodeIndexFn
+  ) => TableExtra[]
+) => {
+  return (table: T): TableExtra[] => {
+    const livemodeIndex: LivemodeIndexFn = (columns) =>
+      constructIndex(tableName, [...columns, table.livemode])
+
+    const baseExtras = extrasCallback
+      ? extrasCallback(table, livemodeIndex)
+      : []
+
+    return [...baseExtras, livemodePolicy(tableName)]
+  }
+}
 
 /**
  * Ensure that the organization id for this record is consistent with the organization id for its parent table,
