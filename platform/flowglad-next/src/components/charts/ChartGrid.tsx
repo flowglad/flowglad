@@ -105,9 +105,7 @@ export function ChartGrid({
               // === MOBILE BORDERS (below md) ===
               // Horizontal divider: bottom border on all items except last
               !isLastItem &&
-                'border-b border-dashed border-border md:border-b-0',
-              // Re-apply desktop bottom border (was removed by mobile rule above)
-              !isLastRow && 'md:border-b'
+                'max-md:border-b max-md:border-dashed max-md:border-border'
             )}
           >
             {child}

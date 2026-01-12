@@ -13,9 +13,13 @@ const config: Config = {
       /**
        * Layout spacing tokens for consistent page padding.
        * Use this semantic name instead of raw values.
+       *
+       * This value is synchronized with the CSS variable --spacing-page
+       * defined in globals.css, ensuring consistency between Tailwind
+       * classes and JavaScript values used in Recharts margins.
        */
       spacing: {
-        page: '32px', // Standard page horizontal inset
+        page: 'var(--spacing-page)', // Standard page horizontal inset (32px)
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],

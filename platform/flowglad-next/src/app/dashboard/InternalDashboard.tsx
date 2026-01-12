@@ -43,13 +43,10 @@ function InternalDashboardPage({
   // Auto-correct interval when date range changes if it becomes invalid
   useEffect(() => {
     const config = getIntervalConfig(range.from, range.to)
-    const isCurrentIntervalInvalid =
-      !config.options.includes(interval)
-
-    if (isCurrentIntervalInvalid) {
-      setInterval(config.default)
-    }
-  }, [range, interval])
+    setInterval((prev) =>
+      config.options.includes(prev) ? prev : config.default
+    )
+  }, [range.from, range.to])
 
   return (
     <PageContainer>

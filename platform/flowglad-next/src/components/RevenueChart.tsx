@@ -85,7 +85,7 @@ export function RevenueChart({
           totalPoints: revenueData.length,
         }),
         formattedRevenue,
-        revenue: Number(item.revenue).toFixed(2),
+        revenue: Math.round(Number(item.revenue) * 100) / 100,
       }
     })
   }, [

@@ -97,7 +97,10 @@ export const RecurringRevenueChart = ({
 
   const formattedMRRValue = React.useMemo(() => {
     if (!mrrData?.length || !defaultCurrency) {
-      return '0.00'
+      return stripeCurrencyAmountToHumanReadableCurrencyAmount(
+        defaultCurrency ?? CurrencyCode.USD,
+        0
+      )
     }
     // If the tooltip is active, use the value from the tooltip
     if (firstPayloadValue) {
