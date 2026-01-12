@@ -9,8 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
 import { getIntervalSelectOptions } from '@/utils/chartIntervalUtils'
+import { CHART_SIZE_CONFIG } from './constants'
 
 interface ChartHeaderProps {
   /** Chart title displayed in header */
@@ -27,6 +29,8 @@ interface ChartHeaderProps {
   fromDate?: Date
   /** Date range end for computing interval options */
   toDate?: Date
+  /** Compact mode for secondary charts - smaller text, reduced padding */
+  compact?: boolean
 }
 
 /**
@@ -41,6 +45,7 @@ interface ChartHeaderProps {
  *   onIntervalChange={handleIntervalChange}
  *   fromDate={fromDate}
  *   toDate={toDate}
+ *   compact={false}
  * />
  */
 export function ChartHeader({
@@ -51,15 +56,28 @@ export function ChartHeader({
   onIntervalChange,
   fromDate,
   toDate,
+  compact = false,
 }: ChartHeaderProps) {
+  const config = CHART_SIZE_CONFIG[compact ? 'sm' : 'lg']
+
   const intervalOptions = React.useMemo(() => {
     if (!fromDate || !toDate) return []
     return getIntervalSelectOptions(fromDate, toDate)
   }, [fromDate, toDate])
 
   return (
-    <div className="flex flex-row gap-2 justify-between px-6">
-      <div className="text-foreground w-fit flex items-center flex-row gap-0.5">
+    <div
+      className={cn(
+        'flex flex-row gap-2 justify-between',
+        config.padding
+      )}
+    >
+      <div
+        className={cn(
+          'text-foreground w-fit flex items-center flex-row gap-0.5',
+          config.headerText
+        )}
+      >
         <p className="whitespace-nowrap">{title}</p>
         {showInlineSelector && interval && onIntervalChange && (
           <Select
