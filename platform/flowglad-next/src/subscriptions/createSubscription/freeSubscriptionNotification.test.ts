@@ -111,7 +111,7 @@ describe('Free Subscription Notification Behavior', () => {
     }
 
     await adminTransaction(async ({ transaction }) => {
-      await createSubscriptionWorkflow(params, transaction)
+      await createSubscriptionWorkflow(params, { transaction })
     })
 
     // Verify notification was NOT sent for free subscription
@@ -153,7 +153,7 @@ describe('Free Subscription Notification Behavior', () => {
     }
 
     await adminTransaction(async ({ transaction }) => {
-      await createSubscriptionWorkflow(params, transaction)
+      await createSubscriptionWorkflow(params, { transaction })
     })
 
     // Verify notification WAS sent for paid subscription
@@ -200,7 +200,7 @@ describe('Free Subscription Notification Behavior', () => {
     }
 
     await adminTransaction(async ({ transaction }) => {
-      await createSubscriptionWorkflow(params, transaction)
+      await createSubscriptionWorkflow(params, { transaction })
     })
 
     // Verify notification was NOT sent even though slug is not 'free'

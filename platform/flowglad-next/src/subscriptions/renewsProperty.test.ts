@@ -94,7 +94,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId,
                 autoStart: true,
               },
-              transaction
+              { transaction }
             )
           }
         )
@@ -136,7 +136,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId,
                 autoStart: true,
               },
-              transaction
+              { transaction }
             )
           }
         )
@@ -173,7 +173,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId,
                 autoStart: true,
               },
-              transaction
+              { transaction }
             )
           }
         )
@@ -210,7 +210,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 trialEnd,
                 autoStart: true,
               },
-              transaction
+              { transaction }
             )
           }
         )
@@ -288,7 +288,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 interval: IntervalUnit.Month,
                 intervalCount: 1,
               },
-              transaction
+              { transaction }
             )
 
             const billingPeriods = await selectBillingPeriods(
@@ -338,7 +338,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               interval: IntervalUnit.Month,
               intervalCount: 1,
             },
-            transaction
+            { transaction }
           )
           const billingRuns = await selectBillingRuns(
             { subscriptionId: nonRenewingSubscription.id },
@@ -716,7 +716,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId: `si_credits_${core.nanoid()}`,
                 autoStart: true,
               },
-              transaction
+              { transaction }
             )
           }
         )
@@ -954,7 +954,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId: `si_no_runs_${core.nanoid()}`,
                 autoStart: true,
               },
-              transaction
+              { transaction }
             )
           }
         )
@@ -1010,7 +1010,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId: `si_period_start_${core.nanoid()}`,
                 autoStart: true,
               },
-              transaction
+              { transaction }
             )
           }
         )

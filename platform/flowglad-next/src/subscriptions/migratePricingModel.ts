@@ -372,7 +372,7 @@ async function createDefaultSubscriptionOnPricingModel(
       autoStart: true,
       name: `${defaultProduct.name} Subscription`,
     },
-    transaction
+    { transaction }
   )
 
   return {

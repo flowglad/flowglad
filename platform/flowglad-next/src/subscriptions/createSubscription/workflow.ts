@@ -23,6 +23,7 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@/types'
+import type { CacheDependencyKey } from '@/utils/cache'
 import { CacheDependency } from '@/utils/cache'
 import { calculateTrialEligibility } from '@/utils/checkoutHelpers'
 import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
@@ -44,16 +45,29 @@ import type {
 } from './types'
 
 /**
+ * Transaction context for workflow functions.
+ * Contains the database transaction and optional effect callbacks.
+ */
+export interface WorkflowTransactionContext {
+  transaction: DbTransaction
+  /**
+   * Queue cache dependency keys to be invalidated after the transaction commits.
+   * Use CacheDependency helpers to construct keys.
+   */
+  invalidateCache?: (...keys: CacheDependencyKey[]) => void
+}
+
+/**
  * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
  * This is because the subscription will not be active until the organization has started it,
  * and we do not want to create a billing run if the organization has not explicitly opted to start the subscription.
  * @param params
- * @param transaction
+ * @param ctx - Transaction context with database transaction and optional effect callbacks
  * @returns
  */
 export const createSubscriptionWorkflow = async (
   params: CreateSubscriptionParams,
-  transaction: DbTransaction
+  ctx: WorkflowTransactionContext
 ): Promise<
   TransactionOutput<
     | StandardCreateSubscriptionResult
@@ -78,7 +92,7 @@ export const createSubscriptionWorkflow = async (
       {
         stripeSetupIntentId: params.stripeSetupIntentId,
       },
-      transaction
+      ctx.transaction
     )
 
     if (existingSubscription) {
@@ -86,7 +100,7 @@ export const createSubscriptionWorkflow = async (
         params,
         existingSubscription.subscription,
         existingSubscription.subscriptionItems,
-        transaction
+        ctx.transaction
       )
     }
   }
@@ -103,7 +117,7 @@ export const createSubscriptionWorkflow = async (
         customerId: params.customer.id,
         status: SubscriptionStatus.Active,
       },
-      transaction
+      ctx.transaction
     )
 
     const freeSubscriptions = activeSubscriptions.filter(
@@ -171,7 +185,7 @@ export const createSubscriptionWorkflow = async (
           canceledAt: Date.now(),
           cancellationReason: CancellationReason.UpgradedToPaid,
         },
-        transaction
+        ctx.transaction
       )
     }
   }
@@ -187,16 +201,19 @@ export const createSubscriptionWorkflow = async (
     // Fetch customer to check trial eligibility
     const customer = await selectCustomerById(
       params.customer.id,
-      transaction
+      ctx.transaction
     )
     // Fetch price record to check trial eligibility
-    const price = await selectPriceById(params.price.id, transaction)
+    const price = await selectPriceById(
+      params.price.id,
+      ctx.transaction
+    )
 
     // Calculate trial eligibility (returns undefined for non-subscription prices)
     const isEligibleForTrial = await calculateTrialEligibility(
       price,
       customer,
-      transaction
+      ctx.transaction
     )
 
     // If not eligible, remove trial period (similar to checkout flow setting trialPeriodDays to null)
@@ -211,17 +228,17 @@ export const createSubscriptionWorkflow = async (
     trialEnd: finalTrialEnd,
   }
 
-  await verifyCanCreateSubscription(params, transaction)
+  await verifyCanCreateSubscription(params, ctx.transaction)
   const defaultPaymentMethod =
     await maybeDefaultPaymentMethodForSubscription(
       {
         customerId: params.customer.id,
         defaultPaymentMethod: params.defaultPaymentMethod,
       },
-      transaction
+      ctx.transaction
     )
   const { subscription, subscriptionItems } =
-    await insertSubscriptionAndItems(params, transaction)
+    await insertSubscriptionAndItems(params, ctx.transaction)
 
   // Link the canceled free subscription to the new paid subscription
   if (canceledFreeSubscription) {
@@ -231,7 +248,7 @@ export const createSubscriptionWorkflow = async (
         renews: canceledFreeSubscription.renews,
         replacedBySubscriptionId: subscription.id,
       },
-      transaction
+      ctx.transaction
     )
   }
 
@@ -241,14 +258,14 @@ export const createSubscriptionWorkflow = async (
         ...params.discountRedemption,
         subscriptionId: subscription.id,
       },
-      transaction
+      ctx.transaction
     )
   }
   const { price } = params
   const subscriptionItemFeatures =
     await createSubscriptionFeatureItems(
       subscriptionItems,
-      transaction
+      ctx.transaction
     )
 
   const {
@@ -267,7 +284,7 @@ export const createSubscriptionWorkflow = async (
       preservedBillingPeriodStart: params.preservedBillingPeriodStart,
       isDefaultPlan: params.product.default,
     },
-    transaction
+    ctx.transaction
   )
   // Don't send notifications for free subscriptions
   // A subscription is considered free if unitPrice is 0, not based on slug
@@ -299,7 +316,7 @@ export const createSubscriptionWorkflow = async (
   const timestamp = Date.now()
   const customer = await selectCustomerById(
     updatedSubscription.customerId,
-    transaction
+    ctx.transaction
   )
 
   if (!customer) {
@@ -383,6 +400,17 @@ export const createSubscriptionWorkflow = async (
           billingPeriodItems,
           billingRun,
         }
+
+  // Invalidate customer subscriptions cache via effects context
+  // This queues the invalidation to be processed after transaction commits
+  ctx.invalidateCache?.(
+    CacheDependency.customerSubscriptions(
+      updatedSubscription.customerId
+    )
+  )
+
+  // Also return cacheInvalidations for backward compatibility with callers
+  // that don't pass the effects context (the transaction wrapper will deduplicate)
   return {
     result: transactionResult,
     ledgerCommand,

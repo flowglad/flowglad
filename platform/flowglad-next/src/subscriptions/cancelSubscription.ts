@@ -179,7 +179,7 @@ export const reassignDefaultSubscription = async (
         autoStart: true,
         name: `${defaultProduct.name} Subscription`,
       },
-      transaction
+      { transaction }
     )
   } catch (error) {
     console.error(

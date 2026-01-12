@@ -138,7 +138,7 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscription, subscriptionItems },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, transaction)
+      return createSubscriptionWorkflow(params, { transaction })
     })
 
     expect(subscriptionItems).toHaveLength(1)
@@ -175,7 +175,7 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscription },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, transaction)
+      return createSubscriptionWorkflow(params, { transaction })
     })
 
     expect(subscription.isFreePlan).toBe(false)
@@ -205,7 +205,7 @@ describe('doNotCharge subscription creation', () => {
     }
 
     await adminTransaction(async ({ transaction }) => {
-      await createSubscriptionWorkflow(params, transaction)
+      await createSubscriptionWorkflow(params, { transaction })
     })
 
     expect(
@@ -252,7 +252,7 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscription: newSubscription },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, transaction)
+      return createSubscriptionWorkflow(params, { transaction })
     })
 
     await adminTransaction(async ({ transaction }) => {
@@ -296,7 +296,7 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscriptionItems },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, transaction)
+      return createSubscriptionWorkflow(params, { transaction })
     })
 
     expect(subscriptionItems).toHaveLength(1)
@@ -329,7 +329,7 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscriptionItems },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, transaction)
+      return createSubscriptionWorkflow(params, { transaction })
     })
 
     expect(subscriptionItems).toHaveLength(1)
@@ -362,7 +362,7 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscriptionItems },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, transaction)
+      return createSubscriptionWorkflow(params, { transaction })
     })
 
     // All subscription items should have unitPrice 0
@@ -459,7 +459,7 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscription },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, transaction)
+      return createSubscriptionWorkflow(params, { transaction })
     })
 
     // Should be treated as paid plan (isFreePlan = false)
@@ -494,7 +494,7 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscription, subscriptionItems },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, transaction)
+      return createSubscriptionWorkflow(params, { transaction })
     })
 
     expect(subscriptionItems).toHaveLength(1)
@@ -534,7 +534,7 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscription },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, transaction)
+      return createSubscriptionWorkflow(params, { transaction })
     })
 
     // Subscription should be Incomplete without payment method when doNotCharge is false
@@ -571,7 +571,7 @@ describe('doNotCharge subscription creation', () => {
       const {
         result: { billingRun },
       } = await adminTransaction(async ({ transaction }) => {
-        return createSubscriptionWorkflow(params, transaction)
+        return createSubscriptionWorkflow(params, { transaction })
       })
 
       // No billing run should be created when doNotCharge is true

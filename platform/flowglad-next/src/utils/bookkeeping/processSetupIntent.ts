@@ -492,7 +492,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         product,
         livemode: checkoutSession.livemode,
       },
-      transaction
+      { transaction }
     )
 
     const eventInserts: Event.Insert[] = []

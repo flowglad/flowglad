@@ -1322,7 +1322,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          transaction
+          { transaction }
         )
       }
     )
@@ -1506,7 +1506,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          transaction
+          { transaction }
         )
       }
     )
@@ -1685,7 +1685,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          transaction
+          { transaction }
         )
       }
     )
