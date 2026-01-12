@@ -297,8 +297,8 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
 }) => {
   const utils = trpc.useUtils()
   const updatePrice = trpc.prices.update.useMutation()
-  const createPrice = trpc.prices.create.useMutation()
-  const archivePrice = trpc.prices.archive.useMutation()
+  const replaceUsagePrice =
+    trpc.prices.replaceUsagePrice.useMutation()
   const { organization } = useAuthenticatedContext()
 
   // Don't render modal if organization is not loaded yet
@@ -341,9 +341,9 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
           input.usageEventsPerUnit !== price.usageEventsPerUnit
 
         if (unitPriceChanged || usageEventsPerUnitChanged) {
-          // Immutable fields changed: create new price and archive the old one
-          await createPrice.mutateAsync({
-            price: {
+          // Immutable fields changed: atomically create new price and archive old one
+          await replaceUsagePrice.mutateAsync({
+            newPrice: {
               type: PriceType.Usage,
               productId: price.productId,
               unitPrice: newUnitPrice,
@@ -356,9 +356,8 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
               intervalCount: price.intervalCount,
               trialPeriodDays: null,
             },
+            oldPriceId: price.id,
           })
-          // Archive the old price (usage meters can have multiple prices, so only archive this one)
-          await archivePrice.mutateAsync({ id: price.id })
         } else {
           // Only mutable fields changed: use update mutation
           // Extract only mutable fields (exclude usageMeterId which is create-only)

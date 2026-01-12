@@ -1279,3 +1279,333 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
     })
   })
 })
+
+describe('pricesRouter.replaceUsagePrice', () => {
+  let organizationId: string
+  let pricingModelId: string
+  let usageMeterId: string
+  let usagePriceId: string
+  let subscriptionPriceId: string
+  let regularProductId: string
+  const livemode = true
+
+  beforeEach(async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const { organization } = await setupOrg()
+
+      // Create pricing model with default product
+      const bookkeepingResult = await createPricingModelBookkeeping(
+        {
+          pricingModel: {
+            name: 'Test Pricing Model for replaceUsagePrice',
+            isDefault: false,
+          },
+        },
+        {
+          transaction,
+          organizationId: organization.id,
+          livemode,
+        }
+      )
+
+      const pricingModelId = bookkeepingResult.result.pricingModel.id
+
+      // Create a usage meter
+      const usageMeter = await insertUsageMeter(
+        {
+          name: 'API Calls for Replace Test',
+          slug: 'api-calls-replace-test',
+          organizationId: organization.id,
+          pricingModelId,
+          livemode,
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        transaction
+      )
+
+      // Create a usage price
+      const usagePrice = await insertPrice(
+        {
+          productId: null,
+          pricingModelId,
+          unitPrice: 100,
+          isDefault: true,
+          type: PriceType.Usage,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          currency: organization.defaultCurrency,
+          livemode,
+          active: true,
+          name: 'Original Usage Price',
+          trialPeriodDays: null,
+          usageEventsPerUnit: 10,
+          usageMeterId: usageMeter.id,
+          externalId: null,
+          slug: 'original-usage-price',
+        },
+        transaction
+      )
+
+      // Create a regular product with subscription price (for negative test)
+      const regularProduct = await insertProduct(
+        {
+          name: 'Regular Product for Replace Test',
+          slug: 'regular-product-replace-test',
+          default: false,
+          description: null,
+          imageURL: null,
+          singularQuantityLabel: null,
+          pluralQuantityLabel: null,
+          externalId: null,
+          pricingModelId,
+          organizationId: organization.id,
+          livemode,
+          active: true,
+        },
+        transaction
+      )
+
+      const subscriptionPrice = await insertPrice(
+        {
+          productId: regularProduct.id,
+          unitPrice: 1000,
+          isDefault: true,
+          type: PriceType.Subscription,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          currency: organization.defaultCurrency,
+          livemode,
+          active: true,
+          name: 'Subscription Price',
+          trialPeriodDays: null,
+          usageEventsPerUnit: null,
+          usageMeterId: null,
+          externalId: null,
+          slug: 'subscription-price-replace-test',
+        },
+        transaction
+      )
+
+      return {
+        organizationId: organization.id,
+        pricingModelId,
+        usageMeterId: usageMeter.id,
+        usagePriceId: usagePrice.id,
+        subscriptionPriceId: subscriptionPrice.id,
+        regularProductId: regularProduct.id,
+      }
+    })
+
+    organizationId = result.organizationId
+    pricingModelId = result.pricingModelId
+    usageMeterId = result.usageMeterId
+    usagePriceId = result.usagePriceId
+    subscriptionPriceId = result.subscriptionPriceId
+    regularProductId = result.regularProductId
+  })
+
+  it('atomically creates new price and archives old price when immutable fields change', async () => {
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    const ctx = {
+      organizationId,
+      apiKey: apiKey.token!,
+      livemode,
+      environment: 'live' as const,
+      isApi: true as const,
+      path: '',
+    }
+
+    // Replace the usage price with new immutable field values
+    const result = await pricesRouter
+      .createCaller(ctx as any)
+      .replaceUsagePrice({
+        newPrice: {
+          type: PriceType.Usage,
+          productId: null,
+          usageMeterId,
+          unitPrice: 200, // Changed from 100
+          usageEventsPerUnit: 20, // Changed from 10
+          isDefault: true,
+          name: 'Updated Usage Price',
+          slug: 'updated-usage-price',
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          trialPeriodDays: null,
+        },
+        oldPriceId: usagePriceId,
+      })
+
+    // Verify new price was created with correct values
+    expect(result.newPrice.id).not.toBe(usagePriceId)
+    expect(result.newPrice.type).toBe(PriceType.Usage)
+    expect(result.newPrice.unitPrice).toBe(200)
+    expect(result.newPrice.usageEventsPerUnit).toBe(20)
+    expect(result.newPrice.name).toBe('Updated Usage Price')
+    expect(result.newPrice.active).toBe(true)
+    expect(result.newPrice.productId).toBeNull()
+    expect(result.newPrice.usageMeterId).toBe(usageMeterId)
+
+    // Verify old price was archived
+    expect(result.archivedPrice.id).toBe(usagePriceId)
+    expect(result.archivedPrice.active).toBe(false)
+    expect(result.archivedPrice.unitPrice).toBe(100) // Original value preserved
+    expect(result.archivedPrice.usageEventsPerUnit).toBe(10) // Original value preserved
+  })
+
+  it('throws BAD_REQUEST when attempting to replace a non-usage price', async () => {
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    const ctx = {
+      organizationId,
+      apiKey: apiKey.token!,
+      livemode,
+      environment: 'live' as const,
+      isApi: true as const,
+      path: '',
+    }
+
+    // Attempt to replace a subscription price (should fail)
+    await expect(
+      pricesRouter.createCaller(ctx as any).replaceUsagePrice({
+        newPrice: {
+          type: PriceType.Usage,
+          productId: null,
+          usageMeterId,
+          unitPrice: 200,
+          usageEventsPerUnit: 20,
+          isDefault: true,
+          name: 'New Usage Price',
+          slug: 'new-usage-price',
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          trialPeriodDays: null,
+        },
+        oldPriceId: subscriptionPriceId, // Subscription price, not usage
+      })
+    ).rejects.toThrow(
+      'replaceUsagePrice can only be used with usage prices'
+    )
+  })
+
+  it('throws NOT_FOUND when old price ID does not exist', async () => {
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    const ctx = {
+      organizationId,
+      apiKey: apiKey.token!,
+      livemode,
+      environment: 'live' as const,
+      isApi: true as const,
+      path: '',
+    }
+
+    // Attempt to replace with invalid old price ID
+    await expect(
+      pricesRouter.createCaller(ctx as any).replaceUsagePrice({
+        newPrice: {
+          type: PriceType.Usage,
+          productId: null,
+          usageMeterId,
+          unitPrice: 200,
+          usageEventsPerUnit: 20,
+          isDefault: true,
+          name: 'New Usage Price',
+          slug: 'new-usage-price-not-found',
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          trialPeriodDays: null,
+        },
+        oldPriceId: 'prc_' + core.nanoid(), // Non-existent price
+      })
+    ).rejects.toThrow()
+  })
+
+  it('preserves other usage prices for the same meter when replacing one', async () => {
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    const ctx = {
+      organizationId,
+      apiKey: apiKey.token!,
+      livemode,
+      environment: 'live' as const,
+      isApi: true as const,
+      path: '',
+    }
+
+    // Create a second usage price for the same meter
+    const secondPrice = await adminTransaction(
+      async ({ transaction }) => {
+        const org = await orgSetup.selectOrganizationById(
+          organizationId,
+          transaction
+        )
+        return insertPrice(
+          {
+            productId: null,
+            pricingModelId,
+            unitPrice: 500,
+            isDefault: false,
+            type: PriceType.Usage,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: org.defaultCurrency,
+            livemode,
+            active: true,
+            name: 'Second Usage Price',
+            trialPeriodDays: null,
+            usageEventsPerUnit: 50,
+            usageMeterId,
+            externalId: null,
+            slug: 'second-usage-price',
+          },
+          transaction
+        )
+      }
+    )
+
+    // Replace the first usage price
+    const result = await pricesRouter
+      .createCaller(ctx as any)
+      .replaceUsagePrice({
+        newPrice: {
+          type: PriceType.Usage,
+          productId: null,
+          usageMeterId,
+          unitPrice: 200,
+          usageEventsPerUnit: 20,
+          isDefault: true,
+          name: 'Replaced First Price',
+          slug: 'replaced-first-price',
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          trialPeriodDays: null,
+        },
+        oldPriceId: usagePriceId,
+      })
+
+    // Verify the replacement worked
+    expect(result.archivedPrice.id).toBe(usagePriceId)
+    expect(result.archivedPrice.active).toBe(false)
+    expect(result.newPrice.active).toBe(true)
+
+    // Verify second price is still active (not affected by the replacement)
+    const secondPriceAfter = await adminTransaction(
+      async ({ transaction }) => {
+        return selectPriceById(secondPrice.id, transaction)
+      }
+    )
+
+    expect(secondPriceAfter.active).toBe(true)
+    expect(secondPriceAfter.unitPrice).toBe(500)
+    expect(secondPriceAfter.usageEventsPerUnit).toBe(50)
+  })
+})

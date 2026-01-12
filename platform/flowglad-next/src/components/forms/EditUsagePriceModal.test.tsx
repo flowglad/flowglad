@@ -93,46 +93,6 @@ describe('EditUsagePriceModal schema validation', () => {
     })
   })
 
-  describe('Immutable field change detection', () => {
-    it('detects unitPrice change correctly', () => {
-      const existingPrice = baseUsagePrice
-      const newUnitPrice = 100
-
-      const unitPriceChanged =
-        newUnitPrice !== existingPrice.unitPrice
-
-      expect(unitPriceChanged).toBe(true)
-      expect(existingPrice.unitPrice).toBe(50)
-      expect(newUnitPrice).toBe(100)
-    })
-
-    it('detects usageEventsPerUnit change correctly', () => {
-      const existingPrice = baseUsagePrice
-      const newUsageEventsPerUnit = 200
-
-      const usageEventsPerUnitChanged =
-        newUsageEventsPerUnit !== existingPrice.usageEventsPerUnit
-
-      expect(usageEventsPerUnitChanged).toBe(true)
-      expect(existingPrice.usageEventsPerUnit).toBe(100)
-      expect(newUsageEventsPerUnit).toBe(200)
-    })
-
-    it('detects no change when values are the same', () => {
-      const existingPrice = baseUsagePrice
-      const sameUnitPrice = 50
-      const sameUsageEventsPerUnit = 100
-
-      const unitPriceChanged =
-        sameUnitPrice !== existingPrice.unitPrice
-      const usageEventsPerUnitChanged =
-        sameUsageEventsPerUnit !== existingPrice.usageEventsPerUnit
-
-      expect(unitPriceChanged).toBe(false)
-      expect(usageEventsPerUnitChanged).toBe(false)
-    })
-  })
-
   describe('Valid usage price records with null productId', () => {
     it('accepts usage price record with all required fields and null productId', () => {
       const validUsagePrice = {
