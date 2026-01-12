@@ -5,6 +5,7 @@ import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   type Membership,
   type NotificationPreferences,
+  notificationPreferencesSchema,
 } from '@/db/schema/memberships'
 import {
   getMembershipNotificationPreferences,
@@ -163,6 +164,56 @@ describe('memberships notificationPreferences', () => {
         expect(prefs.onboardingCompleted).toBe(true)
         expect(prefs.payoutsEnabled).toBe(true)
       })
+    })
+
+    it('treats explicit null values in stored preferences as overriding defaults', async () => {
+      // This test documents the current behavior: explicit null values override defaults
+      // Note: In practice, the Zod schema validation should prevent null values from being stored,
+      // but this test ensures we understand the behavior if they somehow exist
+      await adminTransaction(async ({ transaction }) => {
+        // Simulate a membership with null values in the stored preferences
+        // by directly setting them (bypassing normal validation)
+        const membershipWithNulls: Membership.Record = {
+          ...membership,
+          notificationPreferences: {
+            subscriptionCreated: null,
+          } as unknown as Partial<NotificationPreferences>,
+        }
+
+        const prefs = getMembershipNotificationPreferences(
+          membershipWithNulls
+        )
+
+        // The current implementation spreads stored values over defaults,
+        // so null values will override the default true value
+        // This test documents this behavior - if null values shouldn't override,
+        // the helper function should be updated to filter them out
+        expect(prefs.subscriptionCreated).toBeNull()
+
+        // Other values should still use defaults
+        expect(prefs.testModeNotifications).toBe(false)
+        expect(prefs.subscriptionAdjusted).toBe(true)
+      })
+    })
+  })
+
+  describe('notificationPreferencesSchema', () => {
+    it('successfully parses an empty object and returns all defaults', () => {
+      const result = notificationPreferencesSchema.parse({})
+
+      expect(result.testModeNotifications).toBe(false)
+      expect(result.subscriptionCreated).toBe(true)
+      expect(result.subscriptionAdjusted).toBe(true)
+      expect(result.subscriptionCanceled).toBe(true)
+      expect(result.subscriptionCancellationScheduled).toBe(true)
+      expect(result.paymentFailed).toBe(true)
+      expect(result.onboardingCompleted).toBe(true)
+      expect(result.payoutsEnabled).toBe(true)
+    })
+
+    it('DEFAULT_NOTIFICATION_PREFERENCES equals notificationPreferencesSchema.parse({})', () => {
+      const parsedDefaults = notificationPreferencesSchema.parse({})
+      expect(DEFAULT_NOTIFICATION_PREFERENCES).toEqual(parsedDefaults)
     })
   })
 })
