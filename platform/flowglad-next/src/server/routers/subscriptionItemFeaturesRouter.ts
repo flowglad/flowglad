@@ -1,7 +1,10 @@
 import { TRPCError } from '@trpc/server'
 import { kebabCase } from 'change-case'
 import { z } from 'zod'
-import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedProcedureComprehensiveTransaction,
+  authenticatedProcedureTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   createSubscriptionItemFeatureInputSchema,
   editSubscriptionItemFeatureInputSchema,
@@ -18,6 +21,7 @@ import {
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { idInputSchema } from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
+import { CacheDependency } from '@/utils/cache'
 import {
   createPostOpenApiMeta,
   generateOpenApiMetas,
@@ -66,7 +70,7 @@ const createSubscriptionItemFeature = protectedProcedure
   .input(createSubscriptionItemFeatureInputSchema)
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
-    authenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({ input, transaction, ctx }) => {
         const organizationId = ctx.organizationId
         if (!organizationId) {
@@ -78,7 +82,7 @@ const createSubscriptionItemFeature = protectedProcedure
         }
         // FIXME: Potentially validate that the featureId, productFeatureId, and subscriptionId belong to the org
 
-        const { id: subscriptionItemFeatureId } =
+        const { id: subscriptionItemFeatureId, subscriptionItemId } =
           await insertSubscriptionItemFeature(
             {
               ...input.subscriptionItemFeature,
@@ -91,7 +95,14 @@ const createSubscriptionItemFeature = protectedProcedure
             subscriptionItemFeatureId,
             transaction
           )
-        return { subscriptionItemFeature }
+        return {
+          result: { subscriptionItemFeature },
+          cacheInvalidations: [
+            CacheDependency.subscriptionItemFeatures(
+              subscriptionItemId
+            ),
+          ],
+        }
       }
     )
   )
@@ -101,8 +112,21 @@ const updateSubscriptionItemFeature = protectedProcedure
   .input(editSubscriptionItemFeatureInputSchema)
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
-    authenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({ input, transaction }) => {
+        // Get existing record to obtain subscriptionItemId for cache invalidation
+        const existingFeature =
+          await selectSubscriptionItemFeatureById(
+            input.id,
+            transaction
+          )
+        if (!existingFeature) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `SubscriptionItemFeature with id ${input.id} not found.`,
+          })
+        }
+
         const updatePayload = {
           ...input.subscriptionItemFeature,
           id: input.id,
@@ -117,7 +141,14 @@ const updateSubscriptionItemFeature = protectedProcedure
             input.id,
             transaction
           )
-        return { subscriptionItemFeature }
+        return {
+          result: { subscriptionItemFeature },
+          cacheInvalidations: [
+            CacheDependency.subscriptionItemFeatures(
+              existingFeature.subscriptionItemId
+            ),
+          ],
+        }
       }
     )
   )
@@ -161,7 +192,7 @@ const expireSubscriptionItemFeature = protectedProcedure
   .input(expireSubscriptionItemFeatureInputSchema)
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
-    authenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({ input, transaction }) => {
         const { id, expiredAt } = input
         // Ensure the feature exists before attempting to deactivate
@@ -185,7 +216,14 @@ const expireSubscriptionItemFeature = protectedProcedure
             subscriptionItemFeatureId,
             transaction
           )
-        return { subscriptionItemFeature }
+        return {
+          result: { subscriptionItemFeature },
+          cacheInvalidations: [
+            CacheDependency.subscriptionItemFeatures(
+              existingFeature.subscriptionItemId
+            ),
+          ],
+        }
       }
     )
   )

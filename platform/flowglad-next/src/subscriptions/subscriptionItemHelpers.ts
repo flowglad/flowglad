@@ -591,6 +591,18 @@ export const handleSubscriptionItemAdjustment = async (params: {
       transaction,
     })
 
+  // Collect subscription item IDs that need feature cache invalidation:
+  // 1. Expired items (their features were expired)
+  // 2. Created/updated items (their features were created)
+  // 3. Manual item if it had overlapping features expired
+  const subscriptionItemIdsWithFeatureChanges = new Set<string>([
+    ...itemsToExpire.map((item) => item.id),
+    ...createdOrUpdatedSubscriptionItems.map((item) => item.id),
+    ...(manualItem && createdFeatures.length > 0
+      ? [manualItem.id]
+      : []),
+  ])
+
   return {
     createdOrUpdatedSubscriptionItems,
     createdFeatures,
@@ -598,6 +610,9 @@ export const handleSubscriptionItemAdjustment = async (params: {
     ledgerEntries,
     cacheInvalidations: [
       CacheDependency.subscriptionItems(subscriptionId),
+      ...Array.from(subscriptionItemIdsWithFeatureChanges).map((id) =>
+        CacheDependency.subscriptionItemFeatures(id)
+      ),
     ],
   }
 }

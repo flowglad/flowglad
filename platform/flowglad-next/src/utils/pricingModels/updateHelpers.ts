@@ -23,6 +23,7 @@ import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import type { DbTransaction } from '@/db/types'
+import type { CacheDependencyKey } from '@/utils/cache'
 
 /**
  * Maps of slugs to database IDs for all child entities of a pricing model.
@@ -173,10 +174,11 @@ export const syncProductFeaturesForMultipleProducts = async (
 ): Promise<{
   added: ProductFeature.Record[]
   removed: ProductFeature.Record[]
+  cacheInvalidations: CacheDependencyKey[]
 }> => {
   // Early return if no products to sync
   if (productsWithFeatures.length === 0) {
-    return { added: [], removed: [] }
+    return { added: [], removed: [], cacheInvalidations: [] }
   }
 
   // Step 1: Fetch all existing product_features for all affected products in one query
@@ -256,12 +258,14 @@ export const syncProductFeaturesForMultipleProducts = async (
 
   // Step 3: Batch expire unwanted product features
   let expiredProductFeatures: ProductFeature.Record[] = []
+  let expireCacheInvalidations: CacheDependencyKey[] = []
   if (productFeatureIdsToExpire.length > 0) {
     const expireResult = await expireProductFeaturesByFeatureId(
       productFeatureIdsToExpire,
       transaction
     )
     expiredProductFeatures = expireResult.expiredProductFeature
+    expireCacheInvalidations = expireResult.cacheInvalidations
   }
 
   // Step 4: Batch unexpire previously expired product features
@@ -287,5 +291,6 @@ export const syncProductFeaturesForMultipleProducts = async (
     // Include both newly created and unexpired features in 'added'
     added: [...createdProductFeatures, ...unexpiredProductFeatures],
     removed: expiredProductFeatures,
+    cacheInvalidations: expireCacheInvalidations,
   }
 }

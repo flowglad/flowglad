@@ -19,6 +19,10 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import {
+  CacheDependency,
+  type CacheDependencyKey,
+} from '@/utils/cache'
 import { features, featuresSelectSchema } from '../schema/features'
 import type { Product } from '../schema/products'
 import { createDateNotPassedFilter } from '../tableUtils'
@@ -95,7 +99,11 @@ export const selectProductFeaturesPaginated =
 export const expireProductFeaturesByFeatureId = async (
   productFeatureIds: string[],
   transaction: DbTransaction
-) => {
+): Promise<{
+  expiredProductFeature: ProductFeature.Record[]
+  detachedSubscriptionItemFeatures: import('@/db/schema/subscriptionItemFeatures').SubscriptionItemFeature.Record[]
+  cacheInvalidations: CacheDependencyKey[]
+}> => {
   // First, detach any existing subscription item features
   const detachedSubscriptionItemFeatures =
     await detachSubscriptionItemFeaturesFromProductFeature(
@@ -113,9 +121,23 @@ export const expireProductFeaturesByFeatureId = async (
     .where(inArray(productFeatures.id, productFeatureIds))
     .returning()
 
+  // Collect unique subscription item IDs that need cache invalidation
+  const subscriptionItemIds = [
+    ...new Set(
+      detachedSubscriptionItemFeatures.map(
+        (feature) => feature.subscriptionItemId
+      )
+    ),
+  ]
+
   return {
-    expiredProductFeature,
+    expiredProductFeature: productFeaturesSelectSchema
+      .array()
+      .parse(expiredProductFeature),
     detachedSubscriptionItemFeatures,
+    cacheInvalidations: subscriptionItemIds.map((id) =>
+      CacheDependency.subscriptionItemFeatures(id)
+    ),
   }
 }
 

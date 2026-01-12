@@ -1,5 +1,8 @@
 import { z } from 'zod'
-import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedProcedureComprehensiveTransaction,
+  authenticatedProcedureTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   createProductFeatureInputSchema,
   productFeatureClientSelectSchema,
@@ -147,13 +150,17 @@ export const expireProductFeature = protectedProcedure
   .input(idInputSchema) // Input is the ID of the ProductFeature record
   .output(z.object({ success: z.boolean() })) // Indicate success
   .mutation(
-    authenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({ input, transaction }) => {
-        await expireProductFeaturesByFeatureId(
-          [input.id],
-          transaction
-        )
-        return { success: true }
+        const { cacheInvalidations } =
+          await expireProductFeaturesByFeatureId(
+            [input.id],
+            transaction
+          )
+        return {
+          result: { success: true },
+          cacheInvalidations,
+        }
       }
     )
   )
