@@ -1870,6 +1870,13 @@
       "when": 1768108215123,
       "tag": "0267_massive_zarek",
       "breakpoints": true
+    },
+    {
+      "idx": 268,
+      "version": "7",
+      "when": 1768201386385,
+      "tag": "0268_naive_masque",
+      "breakpoints": true
     }
   ]
 }

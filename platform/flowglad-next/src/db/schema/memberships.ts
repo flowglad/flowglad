@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
+import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import * as R from 'ramda'
 import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
@@ -31,6 +31,9 @@ export const memberships = pgTable(
       organizations
     ),
     focused: boolean('focused').notNull().default(false),
+    notificationPreferences: jsonb(
+      'notification_preferences'
+    ).default({}),
   },
   (table) => {
     return [
@@ -99,6 +102,42 @@ export namespace Membership {
   >
   export type Where = SelectConditions<typeof memberships>
 }
+
+/**
+ * Schema for notification preferences stored in the memberships table.
+ * Controls which notifications a member receives and whether they receive test mode notifications.
+ */
+export const notificationPreferencesSchema = z.object({
+  testModeNotifications: z.boolean().default(false),
+  subscriptionCreated: z.boolean().default(true),
+  subscriptionAdjusted: z.boolean().default(true),
+  subscriptionCanceled: z.boolean().default(true),
+  subscriptionCancellationScheduled: z.boolean().default(true),
+  paymentFailed: z.boolean().default(true),
+  onboardingCompleted: z.boolean().default(true),
+  payoutsEnabled: z.boolean().default(true),
+})
+
+export type NotificationPreferences = z.infer<
+  typeof notificationPreferencesSchema
+>
+
+/**
+ * Default notification preferences for new memberships.
+ * - testModeNotifications defaults to false (opt-in for dev notifications)
+ * - All notification types default to true (backwards compatible)
+ */
+export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences =
+  {
+    testModeNotifications: false,
+    subscriptionCreated: true,
+    subscriptionAdjusted: true,
+    subscriptionCanceled: true,
+    subscriptionCancellationScheduled: true,
+    paymentFailed: true,
+    onboardingCompleted: true,
+    payoutsEnabled: true,
+  }
 
 export const inviteUserToOrganizationSchema = z.object({
   email: z.email(),

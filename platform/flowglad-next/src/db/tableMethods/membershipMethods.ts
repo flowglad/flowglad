@@ -2,6 +2,7 @@ import { and, eq, sql } from 'drizzle-orm'
 import * as R from 'ramda'
 import { z } from 'zod'
 import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
   type Membership,
   memberships,
   membershipsClientSelectSchema,
@@ -9,6 +10,7 @@ import {
   membershipsSelectSchema,
   membershipsTableRowDataSchema,
   membershipsUpdateSchema,
+  type NotificationPreferences,
 } from '@/db/schema/memberships'
 import type { User } from '@/db/schema/users'
 import {
@@ -216,3 +218,20 @@ export const selectMembershipsTableRowData =
       }))
     }
   )
+
+/**
+ * Returns the effective notification preferences for a membership by merging
+ * stored preferences with defaults. Any stored preferences override defaults.
+ *
+ * @param membership - The membership record to get preferences for
+ * @returns The merged notification preferences
+ */
+export const getMembershipNotificationPreferences = (
+  membership: Membership.Record
+): NotificationPreferences => {
+  return {
+    ...DEFAULT_NOTIFICATION_PREFERENCES,
+    ...((membership.notificationPreferences as Partial<NotificationPreferences>) ??
+      {}),
+  }
+}
