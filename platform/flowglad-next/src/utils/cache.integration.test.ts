@@ -1315,8 +1315,8 @@ describeIfRedisKey(
         },
       ] = featureData
 
-      // Track the cache key for cleanup
-      const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:${subscriptionItem.id}`
+      // Track the cache key for cleanup (livemode is true)
+      const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:${subscriptionItem.id}:true`
       const depKey = CacheDependency.subscriptionItemFeatures(
         subscriptionItem.id
       )
@@ -1351,7 +1351,7 @@ describeIfRedisKey(
 
       // Verify cache is populated
       const cachedBefore = await client.get(cacheKey)
-      expect(typeof cachedBefore).toBe('object')
+      expect(typeof cachedBefore).toBe('string')
 
       // Invalidate the subscriptionItem dependency
       await invalidateDependencies([depKey])
