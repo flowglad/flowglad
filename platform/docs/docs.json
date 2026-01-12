@@ -114,7 +114,9 @@
           },
           {
             "group": "Tanstack Start",
-            "pages": ["guides/tanstack-start/generation-based-subscription"]
+            "pages": [
+              "guides/tanstack-start/generation-based-subscription"
+            ]
           }
         ]
       },
