@@ -1,5 +1,5 @@
 {
-  "id": "5dcf033f-edc4-455b-b3c3-6524b0ea9202",
+  "id": "ece66b9e-7844-4aae-a54b-e429de8fb990",
   "prevId": "3f727031-8d56-4bfb-a155-80352c40f542",
   "version": "7",
   "dialect": "postgresql",
@@ -8630,11 +8630,17 @@
         }
       },
       "indexes": {
-        "subscription_item_features_subscription_item_id_idx": {
-          "name": "subscription_item_features_subscription_item_id_idx",
+        "subscription_item_features_subscription_item_id_livemode_idx": {
+          "name": "subscription_item_features_subscription_item_id_livemode_idx",
           "columns": [
             {
               "expression": "subscription_item_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "livemode",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -8977,11 +8983,17 @@
         }
       },
       "indexes": {
-        "subscription_items_subscription_id_idx": {
-          "name": "subscription_items_subscription_id_idx",
+        "subscription_items_subscription_id_livemode_idx": {
+          "name": "subscription_items_subscription_id_livemode_idx",
           "columns": [
             {
               "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "livemode",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
