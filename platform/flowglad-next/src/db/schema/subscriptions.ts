@@ -140,15 +140,12 @@ export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
         using: sql`"customer_id" in (select "id" from "customers")`,
       }
     ),
-    merchantPolicy(
-      'Enable actions for own organizations via customer',
-      {
-        as: 'permissive',
-        to: 'merchant',
-        for: 'all',
-        using: sql`"customer_id" in (select "id" from "customers")`,
-      }
-    ),
+    merchantPolicy('Enable actions for own organizations', {
+      as: 'permissive',
+      to: 'merchant',
+      for: 'all',
+      using: sql`"organization_id" = current_organization_id()`,
+    }),
     merchantPolicy('Forbid deletion', {
       as: 'restrictive',
       to: 'merchant',

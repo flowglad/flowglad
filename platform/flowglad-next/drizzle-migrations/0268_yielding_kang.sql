@@ -1,0 +1,2 @@
+DROP POLICY "Enable actions for own organizations via customer" ON "subscriptions" CASCADE;--> statement-breakpoint
+CREATE POLICY "Enable actions for own organizations" ON "subscriptions" AS PERMISSIVE FOR ALL TO "merchant" USING ("organization_id" = current_organization_id());

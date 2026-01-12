@@ -49,6 +49,7 @@ import {
   products,
   productsClientSelectSchema,
 } from '../schema/products'
+import { selectCustomerById } from './customerMethods'
 import {
   derivePricingModelIdFromPrice,
   pricingModelIdsForPrices,
@@ -91,6 +92,20 @@ export const insertSubscription = async (
   subscriptionInsert: Subscription.Insert,
   transaction: DbTransaction
 ): Promise<Subscription.Record> => {
+  // Validate that subscription's organizationId matches the customer's organizationId.
+  // This invariant is required for RLS policies that check organization_id directly
+  // instead of going through the customers table.
+  const customer = await selectCustomerById(
+    subscriptionInsert.customerId,
+    transaction
+  )
+  if (customer.organizationId !== subscriptionInsert.organizationId) {
+    throw new Error(
+      `Organization mismatch: subscription organizationId ${subscriptionInsert.organizationId} ` +
+        `does not match customer organizationId ${customer.organizationId}`
+    )
+  }
+
   const pricingModelId = subscriptionInsert.pricingModelId
     ? subscriptionInsert.pricingModelId
     : await derivePricingModelIdFromPrice(
