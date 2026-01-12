@@ -77,19 +77,40 @@ function InternalDashboardPage({
           </div>
         }
       />
-      <div className="w-full flex flex-col gap-6 pt-4 pb-16">
-        {/* Primary Chart - Full Size */}
-        <RevenueChart
-          fromDate={range.from}
-          toDate={range.to}
-          interval={interval}
-          size="lg"
-        />
+      {/* 
+        Content container uses Lemon Squeezy pattern:
+        - NO gap between items
+        - Padding on individual sections for spacing
+        - Allows ChartDivider to touch both sections seamlessly
+      */}
+      <div className="w-full flex flex-col pt-4 pb-16">
+        {/* Primary Chart - Full Size with bottom padding */}
+        <div className="pb-6">
+          <RevenueChart
+            fromDate={range.from}
+            toDate={range.to}
+            interval={interval}
+            size="lg"
+          />
+        </div>
 
         <ChartDivider />
 
-        {/* Secondary Charts - Compact Grid */}
+        {/* Secondary Charts - Compact Grid with top padding */}
         <ChartGrid>
+          <RecurringRevenueChart
+            fromDate={range.from}
+            toDate={range.to}
+            interval={interval}
+            size="sm"
+          />
+          <ActiveSubscribersChart
+            fromDate={range.from}
+            toDate={range.to}
+            interval={interval}
+            size="sm"
+          />
+          {/* TODO: Remove these preview placeholder charts */}
           <RecurringRevenueChart
             fromDate={range.from}
             toDate={range.to}
