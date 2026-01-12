@@ -26,19 +26,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type { Resource } from '@/db/schema/resources'
-import { createColumns } from './columns'
+import { createColumns, type ResourceTableRowData } from './columns'
 
 export interface ResourcesTableFilters {
   pricingModelId?: string
   active?: boolean
-}
-
-type ResourceTableRowData = {
-  resource: Resource.ClientRecord
-  pricingModel: {
-    id: string
-    name: string
-  }
 }
 
 interface ResourcesDataTableProps {

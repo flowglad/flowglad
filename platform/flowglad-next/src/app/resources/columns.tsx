@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/enhanced-data-table-actions-menu'
 import type { Resource } from '@/db/schema/resources'
 
-type ResourceTableRowData = {
+export type ResourceTableRowData = {
   resource: Resource.ClientRecord
   pricingModel: {
     id: string
