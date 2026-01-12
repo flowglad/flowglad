@@ -329,7 +329,7 @@ const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
         subscriptionId,
       schema: subscriptionItemWithPriceSchema.array(),
       dependenciesFn: (subscriptionId: string) => [
-        CacheDependency.subscription(subscriptionId),
+        CacheDependency.subscriptionItems(subscriptionId),
       ],
     },
     async (subscriptionId: string, transaction: DbTransaction) => {

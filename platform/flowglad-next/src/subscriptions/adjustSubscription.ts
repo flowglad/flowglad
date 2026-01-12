@@ -881,7 +881,7 @@ export const adjustSubscription = async (
   // The actual subscription item changes happen in processOutcomeForBillingRun
   // But we still need to signal that subscription data has changed
   if (pendingBillingRunId && cacheInvalidations.length === 0) {
-    cacheInvalidations = [CacheDependency.subscription(id)]
+    cacheInvalidations = [CacheDependency.subscriptionItems(id)]
   }
 
   return {

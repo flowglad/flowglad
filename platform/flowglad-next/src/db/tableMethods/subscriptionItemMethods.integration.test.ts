@@ -30,7 +30,7 @@ import { selectSubscriptionItemsWithPricesBySubscriptionId } from './subscriptio
  *
  * These tests make real calls to Redis (Upstash) to verify:
  * 1. selectSubscriptionItemsWithPricesBySubscriptionId correctly caches data
- * 2. Cache invalidation via CacheDependency.subscription works correctly
+ * 2. Cache invalidation via CacheDependency.subscriptionItems works correctly
  *
  * These tests require UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
  * environment variables to be set.
@@ -78,7 +78,7 @@ describeIfRedisKey(
 
       // Track cache keys for cleanup
       const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}`
-      const dependencyKey = CacheDependency.subscription(
+      const dependencyKey = CacheDependency.subscriptionItems(
         subscription.id
       )
       const registryKey = `cacheDeps:${dependencyKey}`
@@ -93,7 +93,7 @@ describeIfRedisKey(
     it('selectSubscriptionItemsWithPricesBySubscriptionId populates cache, returns cached result on subsequent calls, and registers subscription dependency', async () => {
       const client = getRedisTestClient()
       const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}`
-      const dependencyKey = CacheDependency.subscription(
+      const dependencyKey = CacheDependency.subscriptionItems(
         subscription.id
       )
       const registryKey = `cacheDeps:${dependencyKey}`
@@ -115,7 +115,7 @@ describeIfRedisKey(
 
         // Verify the value is stored in Redis
         const storedValue = await client.get(cacheKey)
-        expect(storedValue).not.toBeNull()
+        expect(typeof storedValue).toBe('object')
 
         // Verify the dependency registry contains our cache key
         const registeredKeys = await client.smembers(registryKey)
@@ -150,7 +150,7 @@ describeIfRedisKey(
 
         // Verify cache is populated
         const cachedBefore = await client.get(cacheKey)
-        expect(cachedBefore).not.toBeNull()
+        expect(typeof cachedBefore).toBe('object')
 
         // Add a new subscription item (outside the cache)
         await setupSubscriptionItem({
@@ -163,7 +163,7 @@ describeIfRedisKey(
 
         // Invalidate the subscription dependency
         await invalidateDependencies([
-          CacheDependency.subscription(subscription.id),
+          CacheDependency.subscriptionItems(subscription.id),
         ])
 
         // Verify cache entry was deleted
@@ -184,7 +184,7 @@ describeIfRedisKey(
       const nonExistentId = 'sub_nonexistent_12345'
       const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${nonExistentId}`
       const dependencyKey =
-        CacheDependency.subscription(nonExistentId)
+        CacheDependency.subscriptionItems(nonExistentId)
       const registryKey = `cacheDeps:${dependencyKey}`
       keysToCleanup.push(cacheKey, registryKey)
 

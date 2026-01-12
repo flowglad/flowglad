@@ -597,7 +597,7 @@ export const handleSubscriptionItemAdjustment = async (params: {
     usageCredits,
     ledgerEntries,
     cacheInvalidations: [
-      CacheDependency.subscription(subscriptionId),
+      CacheDependency.subscriptionItems(subscriptionId),
     ],
   }
 }
