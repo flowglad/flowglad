@@ -20,15 +20,17 @@ const EditResourceModal: React.FC<EditResourceModalProps> = ({
   setIsOpen,
   resource,
 }) => {
+  const trpcContext = trpc.useContext()
   const editResource = trpc.resources.update.useMutation({
     onSuccess: () => {
       toast.success('Resource updated successfully')
+      trpcContext.resources.list.invalidate()
+      trpcContext.resources.getTableRows.invalidate()
     },
     onError: () => {
       toast.error('Failed to update resource')
     },
   })
-  const trpcContext = trpc.useContext()
 
   // Explicitly exclude create-only and read-only fields from defaultValues
   const {
@@ -51,10 +53,7 @@ const EditResourceModal: React.FC<EditResourceModalProps> = ({
       onSubmit={async (input) => {
         await editResource.mutateAsync(input)
       }}
-      onSuccess={() => {
-        trpcContext.resources.list.invalidate()
-        trpcContext.resources.getTableRows.invalidate()
-      }}
+      allowContentOverflow={true}
     >
       <ResourceFormFields edit={true} />
     </FormModal>

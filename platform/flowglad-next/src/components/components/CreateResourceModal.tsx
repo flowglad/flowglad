@@ -19,15 +19,17 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
   defaultPricingModelId,
   hidePricingModelSelect,
 }) => {
+  const trpcContext = trpc.useContext()
   const createResource = trpc.resources.create.useMutation({
     onSuccess: () => {
       toast.success('Resource created successfully')
+      trpcContext.resources.list.invalidate()
+      trpcContext.resources.getTableRows.invalidate()
     },
     onError: () => {
       toast.error('Failed to create resource')
     },
   })
-  const trpcContext = trpc.useContext()
 
   return (
     <FormModal
@@ -46,10 +48,7 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
       onSubmit={async (input) => {
         await createResource.mutateAsync(input)
       }}
-      onSuccess={() => {
-        trpcContext.resources.list.invalidate()
-        trpcContext.resources.getTableRows.invalidate()
-      }}
+      allowContentOverflow={true}
     >
       <ResourceFormFields
         hidePricingModelSelect={hidePricingModelSelect}
