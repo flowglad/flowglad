@@ -1405,7 +1405,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
   })
 
   it('atomically creates new price and archives old price when immutable fields change', async () => {
-    const { apiKey } = await setupUserAndApiKey({
+    const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
     })
@@ -1414,13 +1414,13 @@ describe('pricesRouter.replaceUsagePrice', () => {
       apiKey: apiKey.token!,
       livemode,
       environment: 'live' as const,
-      isApi: true as const,
       path: '',
+      user,
     }
 
     // Replace the usage price with new immutable field values
     const result = await pricesRouter
-      .createCaller(ctx as any)
+      .createCaller(ctx)
       .replaceUsagePrice({
         newPrice: {
           type: PriceType.Usage,
@@ -1456,7 +1456,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
   })
 
   it('throws BAD_REQUEST when attempting to replace a non-usage price', async () => {
-    const { apiKey } = await setupUserAndApiKey({
+    const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
     })
@@ -1465,13 +1465,13 @@ describe('pricesRouter.replaceUsagePrice', () => {
       apiKey: apiKey.token!,
       livemode,
       environment: 'live' as const,
-      isApi: true as const,
       path: '',
+      user,
     }
 
     // Attempt to replace a subscription price (should fail)
     await expect(
-      pricesRouter.createCaller(ctx as any).replaceUsagePrice({
+      pricesRouter.createCaller(ctx).replaceUsagePrice({
         newPrice: {
           type: PriceType.Usage,
           productId: null,
@@ -1493,7 +1493,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
   })
 
   it('throws NOT_FOUND when old price ID does not exist', async () => {
-    const { apiKey } = await setupUserAndApiKey({
+    const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
     })
@@ -1502,13 +1502,13 @@ describe('pricesRouter.replaceUsagePrice', () => {
       apiKey: apiKey.token!,
       livemode,
       environment: 'live' as const,
-      isApi: true as const,
       path: '',
+      user,
     }
 
     // Attempt to replace with invalid old price ID
     await expect(
-      pricesRouter.createCaller(ctx as any).replaceUsagePrice({
+      pricesRouter.createCaller(ctx).replaceUsagePrice({
         newPrice: {
           type: PriceType.Usage,
           productId: null,
@@ -1528,7 +1528,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
   })
 
   it('throws BAD_REQUEST when new price usageMeterId does not match old price', async () => {
-    const { apiKey } = await setupUserAndApiKey({
+    const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
     })
@@ -1537,13 +1537,13 @@ describe('pricesRouter.replaceUsagePrice', () => {
       apiKey: apiKey.token!,
       livemode,
       environment: 'live' as const,
-      isApi: true as const,
       path: '',
+      user,
     }
 
     // Attempt to replace with a different usageMeterId
     await expect(
-      pricesRouter.createCaller(ctx as any).replaceUsagePrice({
+      pricesRouter.createCaller(ctx).replaceUsagePrice({
         newPrice: {
           type: PriceType.Usage,
           productId: null,
@@ -1565,7 +1565,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
   })
 
   it('preserves other usage prices for the same meter when replacing one', async () => {
-    const { apiKey } = await setupUserAndApiKey({
+    const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
     })
@@ -1574,8 +1574,8 @@ describe('pricesRouter.replaceUsagePrice', () => {
       apiKey: apiKey.token!,
       livemode,
       environment: 'live' as const,
-      isApi: true as const,
       path: '',
+      user,
     }
 
     // Create a second usage price for the same meter
@@ -1611,7 +1611,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
 
     // Replace the first usage price
     const result = await pricesRouter
-      .createCaller(ctx as any)
+      .createCaller(ctx)
       .replaceUsagePrice({
         newPrice: {
           type: PriceType.Usage,
