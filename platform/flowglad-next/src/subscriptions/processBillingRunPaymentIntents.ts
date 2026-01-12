@@ -55,6 +55,10 @@ import {
 } from '@/types'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { createStripeTaxTransactionIfNeededForPayment } from '@/utils/bookkeeping/stripeTaxTransactions'
+import {
+  CacheDependency,
+  type CacheDependencyKey,
+} from '@/utils/cache'
 import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import {
   sendAwaitingPaymentConfirmationEmail,
@@ -423,6 +427,11 @@ export const processOutcomeForBillingRun = async (
   // Re-Select Invoice after changes have been made
   invoice = await selectInvoiceById(invoice.id, transaction)
 
+  // Track subscription item adjustment result for cache invalidation
+  let subscriptionItemAdjustmentResult:
+    | Awaited<ReturnType<typeof handleSubscriptionItemAdjustment>>
+    | undefined
+
   // Handle subscription item adjustments after successful payment
   if (
     billingRun.isAdjustment &&
@@ -437,12 +446,13 @@ export const processOutcomeForBillingRun = async (
         transaction
       )
 
-    await handleSubscriptionItemAdjustment({
-      subscriptionId: subscription.id,
-      newSubscriptionItems: adjustmentParams.newSubscriptionItems,
-      adjustmentDate: adjustmentParams.adjustmentDate,
-      transaction,
-    })
+    subscriptionItemAdjustmentResult =
+      await handleSubscriptionItemAdjustment({
+        subscriptionId: subscription.id,
+        newSubscriptionItems: adjustmentParams.newSubscriptionItems,
+        adjustmentDate: adjustmentParams.adjustmentDate,
+        transaction,
+      })
 
     // Sync subscription record with updated items
     await syncSubscriptionWithActiveItems(
@@ -532,6 +542,13 @@ export const processOutcomeForBillingRun = async (
   if (childeventsToInsert && childeventsToInsert.length > 0) {
     eventsToInsert.push(...childeventsToInsert)
   }
+
+  // Track cache invalidations from subscription item adjustments and status changes
+  const cacheInvalidations: CacheDependencyKey[] = [
+    // Always invalidate customerSubscriptions since status may change
+    CacheDependency.customerSubscriptions(subscription.customerId),
+    ...(subscriptionItemAdjustmentResult?.cacheInvalidations ?? []),
+  ]
 
   const notificationParams: BillingRunNotificationParams = {
     invoice,
@@ -692,6 +709,7 @@ export const processOutcomeForBillingRun = async (
     },
     ledgerCommands: ledgerCommands,
     eventsToInsert,
+    cacheInvalidations,
   }
 }
 

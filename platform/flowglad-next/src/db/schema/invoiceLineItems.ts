@@ -10,8 +10,7 @@ import {
   createPaginatedSelectSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
-  merchantPolicy,
+  livemodePolicyTable,
   notNullStringForeignKey,
   nullableStringForeignKey,
   ommittedColumnsForInsertSchema,
@@ -77,22 +76,19 @@ export const invoiceLineItems = pgTable(
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.invoiceId]),
-      constructIndex(TABLE_NAME, [table.priceId]),
-      constructIndex(TABLE_NAME, [table.billingRunId]),
-      constructIndex(TABLE_NAME, [table.ledgerAccountId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"invoice_id" in (select "id" from "invoices")`,
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.invoiceId]),
+    constructIndex(TABLE_NAME, [table.priceId]),
+    constructIndex(TABLE_NAME, [table.billingRunId]),
+    constructIndex(TABLE_NAME, [table.ledgerAccountId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"invoice_id" in (select "id" from "invoices")`,
+      }
+    ),
+  ])
 ).enableRLS()
 
 const baseColumnRefinements = {
