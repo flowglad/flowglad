@@ -1884,6 +1884,13 @@
       "when": 1768252988100,
       "tag": "0269_nebulous_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 270,
+      "version": "7",
+      "when": 1768260471201,
+      "tag": "0270_gigantic_goliath",
+      "breakpoints": true
     }
   ]
 }

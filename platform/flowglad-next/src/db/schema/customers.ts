@@ -62,13 +62,9 @@ const columns = {
 export const customers = pgTable(
   TABLE_NAME,
   columns,
-  livemodePolicyTable(TABLE_NAME, (table) => [
-    constructIndex(TABLE_NAME, [table.organizationId]),
-    constructIndex(TABLE_NAME, [
-      table.email,
-      table.organizationId,
-      table.livemode,
-    ]),
+  livemodePolicyTable(TABLE_NAME, (table, livemodeIndex) => [
+    livemodeIndex([table.organizationId]),
+    constructIndex(TABLE_NAME, [table.email]),
     constructIndex(TABLE_NAME, [table.userId]),
     /**
      * Cannot have a unique index on email, because Stripe can have multiple
