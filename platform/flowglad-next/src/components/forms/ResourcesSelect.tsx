@@ -1,10 +1,5 @@
 import { useEffect } from 'react'
-import {
-  type Control,
-  type FieldPath,
-  type FieldValues,
-  useFormContext,
-} from 'react-hook-form'
+import { type Control, useFormContext } from 'react-hook-form'
 import { trpc } from '@/app/_trpc/client'
 import {
   FormControl,
@@ -22,19 +17,19 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 
-interface ResourcesSelectProps<T extends FieldValues = FieldValues> {
-  name: FieldPath<T>
-  control: Control<T>
+interface ResourcesSelectProps {
+  name: string
+  control: Control<any>
   disabled?: boolean
   pricingModelId?: string
 }
 
-const ResourcesSelect = <T extends FieldValues = FieldValues>({
+const ResourcesSelect = ({
   name,
   control,
   disabled,
   pricingModelId,
-}: ResourcesSelectProps<T>) => {
+}: ResourcesSelectProps) => {
   const { data, isLoading: isLoadingResources } =
     trpc.resources.list.useQuery(
       { pricingModelId: pricingModelId! },
@@ -47,16 +42,14 @@ const ResourcesSelect = <T extends FieldValues = FieldValues>({
   const resources = data?.resources
   const form = useFormContext()
   const { watch, setValue } = form
-  // Cast name to string since useFormContext returns an untyped form
-  const nameAsString = name as string
-  const resourceId = watch(nameAsString)
+  const resourceId = watch(name)
 
   // Validate and reset selection when filtered data changes
   useEffect(() => {
     // If no resources available, clear the selection
     if (!resources?.length) {
       if (resourceId) {
-        setValue(nameAsString, '')
+        setValue(name, '')
       }
       return
     }
@@ -68,9 +61,9 @@ const ResourcesSelect = <T extends FieldValues = FieldValues>({
 
     if (!isCurrentResourceValid) {
       // Reset to first resource when current selection is invalid
-      setValue(nameAsString, resources[0].id)
+      setValue(name, resources[0].id)
     }
-  }, [nameAsString, resourceId, resources, setValue])
+  }, [name, resourceId, resources, setValue])
 
   const hasNoResources =
     !isLoadingResources && (!resources || resources.length === 0)
