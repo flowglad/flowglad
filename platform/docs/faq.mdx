@@ -8,169 +8,173 @@ export const FAQSearch = () => {
 
   const items = [
     {
-      title: "Why don't I have a live API key yet?",
-      search: "live api key verification checks pending live mode production",
+      title: "What does \"payments without webhooks\" mean?",
+      search: "payments webhooks entitlements sync billing state sdk",
       body: (
         <>
-          Flowglad may need to run verification checks on your account before live API keys are enabled.
-          In many cases, your live key becomes available within a few hours. If it's taking longer than expected,
-          contact support so they can check your verification status.
+          You do not need to build webhook handlers or any glue code to keep entitlements in sync with your customer's billing state according to your payment provider. Flowglad handles the webhook-driven state transitions internally and exposes the latest derived state via our SDK.
         </>
       ),
     },
     {
-      title: "What is Flowglad (in one sentence)?",
-      search: "what is flowglad billing",
+      title: "Does Flowglad eliminate webhooks entirely?",
+      search: "webhooks eliminate background jobs event-driven workflows",
       body: (
         <>
-          Flowglad is a payments provider that both processes your payments and allows you to gate feature access based on a customer's billing state.
+          For most cases, yes. Webhooks are still useful if you need to trigger background jobs and event-driven workflows, such as shutting down a customer's server in response to them cancelling their plan. Flowglad's goal is that entitlement checks and billing-state reads do not require you to run your own webhook pipeline.
         </>
       ),
     },
     {
-      title: "What do I need to add to my environment variables?",
-      search: "env environment variables FLOWGLAD_SECRET_KEY .env",
+      title: "Who processes payments?",
+      search: "payments processor stripe processing",
       body: (
         <>
-          Set <code>FLOWGLAD_SECRET_KEY</code> in your environment (for example in <code>.env</code>).
+          Currently Flowglad processes payments through Stripe.
         </>
       ),
     },
     {
-      title: "What package do I install for Next.js?",
-      search: "install nextjs package @flowglad/nextjs bun add npm",
+      title: "Do I bring my own Stripe API key or existing Stripe account?",
+      search: "stripe api key byok bring your own stripe connect onboard",
       body: (
         <>
-          For Next.js, install <code>@flowglad/nextjs</code> (the docs show a <code>bun add</code> example).
+          No. Flowglad is not a BYOK product. You onboard to Flowglad by creating a new Stripe Connect account.
         </>
       ),
     },
     {
-      title: "What is customerExternalId and what should I use for it?",
-      search: "customerExternalId user.id organization.id team.id b2b b2c",
+      title: "Can I migrate my existing Stripe account over to Flowglad?",
+      search: "migrate stripe account existing customers billing",
       body: (
         <>
-          <code>customerExternalId</code> is the ID from <strong>your app's database</strong> (not Flowglad's customer ID).
-          Use <code>user.id</code> for B2C apps, or <code>organization.id</code>/<code>team.id</code> for B2B.
+          Absolutely. Reach out to our team (<a href="mailto:support@flowglad.com">support@flowglad.com</a>) and we'll work with you to migrate over your existing customers and billing to Flowglad.
         </>
       ),
     },
     {
-      title: "What is getCustomerDetails?",
-      search: "getCustomerDetails name email fetch customer details",
+      title: "Do I need to store Stripe customer IDs or subscription IDs in my database?",
+      search: "stripe customer id subscription id database store processor",
       body: (
         <>
-          It's a function you provide that returns customer details (like name and email) from <strong>your</strong> database
-          given your <code>customerExternalId</code>.
+          No. You refer to customers using your own customer ID. Flowglad handles processor IDs and mappings internally.
         </>
       ),
     },
     {
-      title: "Where do I put the Flowglad “server factory” function?",
-      search: "server factory utils/flowglad.ts scope customer",
+      title: "What are entitlements in Flowglad? How do they work?",
+      search: "entitlements features usage credits billing state access",
       body: (
         <>
-          The Quickstart recommends creating a reusable factory (for example <code>lib/flowglad.ts</code>) so you can scope
-          Flowglad calls to the current customer.
+          Entitlements are the features a customer can access and the usage credits they have available, derived from their billing state.
         </>
       ),
     },
     {
-      title: "What is the “server route” and why do I need it?",
-      search: "server route api handler /api/flowglad [...path] secret key",
+      title: "How does Flowglad handle past-due and grace periods?",
+      search: "past-due grace period charge fails access blocked",
       body: (
         <>
-          The server route is your API handler (commonly <code>/api/flowglad/[...path]</code>) that talks to Flowglad using your
-          secret key, so your frontend never sees the secret.
+          The current default behavior is: when the first charge fails, access is blocked; after subsequent failures, access may continue until you cancel.
         </>
       ),
     },
     {
-      title: "I mounted the handler somewhere else — what do I change?",
-      search: "mounted handler custom route serverRoute FlowgladProvider",
+      title: "How does Flowglad handle 3DS and asynchronous payment edge cases?",
+      search: "3ds asynchronous payment edge cases payment method charge fails",
       body: (
         <>
-          Pass the custom path via the <code>serverRoute</code> prop on <code>&lt;FlowgladProvider /&gt;</code> so the client knows
-          where to call.
+          Flowglad is expanding coverage for these cases. If a customer adds a payment method but the first charge fails, Flowglad does not grant entitlements.
         </>
       ),
     },
     {
-      title: "Why am I getting 404s for /api/flowglad/... ?",
-      search: "404 api flowglad route.ts app router serverRoute integrate by http post",
+      title: "What happens if Flowglad is down?",
+      search: "down status outage service availability",
       body: (
         <>
-          Usually one of these:
-          <ul>
-            <li>The handler file isn't at <code>app/api/flowglad/[...path]/route.ts</code> (App Router).</li>
-            <li>You mounted at a different path but didn't set <code>serverRoute</code>.</li>
-            <li>You're integrating “by HTTP” but your endpoint doesn't accept POST for read actions.</li>
-          </ul>
+          You can monitor service status at <a href="https://status.flowglad.com">https://status.flowglad.com</a>.
         </>
       ),
     },
     {
-      title: "If I integrate “by HTTP”, why does everything use POST (even reads)?",
-      search: "integrate by http post reads react sdk response { data, error }",
+      title: "Is Flowglad the source of truth for entitlements?",
+      search: "source of truth entitlements data model sdk",
       body: (
         <>
-          The docs explain the React SDK always sends POST requests and expects a response shaped like{" "}
-          <code>{"{ data, error? }"}</code>, even for read actions.{" "}
-          <a href="https://docs.flowglad.com/integrate-by-http">See Integrate by HTTP → Implement the Sub-routes</a>.
+          In the default setup, yes. Flowglad is working toward giving teams the option to store more of that source-of-truth data on their side while still benefiting from the data model and SDK.
         </>
       ),
     },
     {
-      title: "How do I check if a customer can use a paid feature?",
-      search: "useBilling checkFeatureAccess feature slug loading",
+      title: "How is this different from calling Stripe APIs directly?",
+      search: "stripe api directly mappings derived state backend frontend",
       body: (
         <>
-          On the frontend: use <code>useBilling()</code> in the frontend and call <code>checkFeatureAccess('your-feature-slug')</code>. Make sure
-          you handle the “not loaded yet” state first. On the backend: use <code>flowglad(customerId).getBilling()</code> and call <code>checkFeatureAccess('your-feature-slug')</code> as returned by the result.
+          Even if you call Stripe directly, you still end up maintaining mappings and derived state across your backend and frontend. Flowglad centralizes those primitives and exposes the end result as a read-friendly layer.
         </>
       ),
     },
     {
-      title: "How do checkout sessions work?",
-      search: "checkout sessions hosted checkout purchases add payment method activate subscription",
+      title: "Is Flowglad a merchant of record?",
+      search: "merchant of record settlement mor",
       body: (
         <>
-          Checkout sessions launch hosted Flowglad checkout pages to complete customer transactions (purchases, adding payment
-          methods, or activating an existing subscription).
+          Not yet. Today, you are the settlement merchant. Merchant of record support is on the roadmap.
         </>
       ),
     },
     {
-      title: "What types of checkout sessions exist?",
-      search: "product checkout add payment method activate subscription types",
+      title: "Can I sell human services with Flowglad?",
+      search: "human services sell settlement merchant",
       body: (
         <>
-          Flowglad supports three types:
-          <ul>
-            <li><strong>Product checkout</strong> (purchase a price)</li>
-            <li><strong>Add payment method</strong></li>
-            <li><strong>Activate subscription</strong> (when a subscription exists but needs payment details to begin billing)</li>
-          </ul>
+          Yes, when you are the settlement merchant. Merchant of record support will not support human services.
         </>
       ),
     },
     {
-      title: "Can checkout sessions be anonymous?",
-      search: "anonymous checkout sessions anonymous true sdk api",
+      title: "What countries does Flowglad support?",
+      search: "countries supported stripe connect merchants currencies",
       body: (
         <>
-          Yes. The docs note SDK-created sessions auto-associate to the authenticated customer, but you can create anonymous
-          checkout sessions by calling the API directly with <code>anonymous: true</code>.
+          Flowglad supports countries where Stripe can onboard merchants via Stripe Connect. See the docs for the current list of supported countries and currencies.
         </>
       ),
     },
     {
-      title: "Can a customer have multiple subscriptions?",
-      search: "multiple subscriptions allow_multiple_subscriptions_per_customer",
+      title: "Can I use a payment provider other than Stripe?",
+      search: "payment provider processor byop bring your own",
       body: (
         <>
-          By default, Flowglad is “one current subscription per customer.” If you need multiple, you can enable{" "}
-          <code>allow_multiple_subscriptions_per_customer</code> at the organization level in the dashboard.
+          Not today. Flowglad does not currently support bring-your-own-processor.
+        </>
+      ),
+    },
+    {
+      title: "What does Flowglad cost?",
+      search: "cost pricing fees processing percentage",
+      body: (
+        <>
+          Flowglad's billing layer is priced at 0.65% on top of standard processing fees (2.9%).
+        </>
+      ),
+    },
+    {
+      title: "Is Flowglad fully open source?",
+      search: "open source agpl mit license packages playground",
+      body: (
+        <>
+          We open source everything that we possibly can. The core billing SaaS platform is fully open source, licensed under AGPLv3. The packages and the playground are MIT licensed. There is some technology related to compliance and risk that we cannot open source to protect the security of our customers.
+        </>
+      ),
+    },
+    {
+      title: "What stacks are best supported today?",
+      search: "stacks typescript react vue svelte frontend frameworks",
+      body: (
+        <>
+          The happiest path today is fullstack TypeScript with React. We're working on expanding this to additional frontend frameworks, such as Vue and Svelte.
         </>
       ),
     },
