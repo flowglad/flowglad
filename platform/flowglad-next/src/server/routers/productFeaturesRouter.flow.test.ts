@@ -42,7 +42,10 @@ describe('productFeaturesRouter.create - Toggle Feature Validation', () => {
       organizationId: organization.id,
       livemode: true,
     })
-    apiKeyToken = apiKey.token!
+    if (!apiKey.token) {
+      throw new Error('API key token not found after setup')
+    }
+    apiKeyToken = apiKey.token
 
     ctx = {
       organizationId: organization.id,
