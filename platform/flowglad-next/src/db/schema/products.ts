@@ -18,7 +18,7 @@ import {
   createSupabaseWebhookSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   newBaseZodSelectSchemaColumns,
   notNullStringForeignKey,
@@ -75,8 +75,10 @@ const columns = {
   slug: text('slug'),
 }
 
-export const products = pgTable(TABLE_NAME, columns, (table) => {
-  return [
+export const products = pgTable(
+  TABLE_NAME,
+  columns,
+  livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructIndex(TABLE_NAME, [table.active]),
     constructUniqueIndex(TABLE_NAME, [table.externalId]),
@@ -101,9 +103,8 @@ export const products = pgTable(TABLE_NAME, columns, (table) => {
         using: orgIdEqualsCurrentSQL(),
       }
     ),
-    livemodePolicy(TABLE_NAME),
-  ]
-}).enableRLS()
+  ])
+).enableRLS()
 
 const refinement = {
   name: z.string(),

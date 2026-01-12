@@ -1,0 +1,140 @@
+---
+title: Generation-Based Subscription
+description: Learn how to implement generation-based subscription in Next.js with Flowglad.
+---
+
+A hybrid billing model combining subscriptions with usage credits and one-time top-ups. Common for AI generation platforms.
+
+<Note>
+View the complete source code on [GitHub](https://github.com/flowglad/examples/tree/main/nextjs/generation-based-subscription).
+</Note>
+
+## Prerequisites
+
+- Flowglad account with API key
+- Next.js 15+ with App Router
+- PostgreSQL database
+
+## Project Structure
+
+```
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── flowglad/[...path]/route.ts  # Flowglad API handler
+│   │   ├── pricing/page.tsx                 # Pricing page
+│   │   └── home-client.tsx                  # Main UI component
+│   └── lib/
+│       ├── billing-helpers.ts               # Usage & pricing utilities
+│       └── flowglad.ts                      # Flowglad server setup
+├── pricing.yaml                             # Pricing configuration
+└── package.json
+```
+
+## Key Concepts
+
+This pricing model combines three billing mechanisms:
+
+1. **Subscription tiers** - Monthly plans at fixed prices (\$10, \$30, \$60/mo)
+2. **Usage credit grants** - Each tier includes credits that renew each billing period (200, 360, 750 generations)
+3. **One-time top-ups** - Customers can purchase additional credits when they run out
+
+This model works well when you want predictable recurring revenue while giving customers flexibility to exceed their plan limits. Customers who find themselves consistently purchasing top-ups can choose to upgrade to a higher tier for better value.
+
+## Implementation
+
+### Pricing Configuration
+
+The `pricing.yaml` file defines subscription tiers, credit allocations, and top-up products. See the [full configuration](https://github.com/flowglad/examples/blob/main/nextjs/generation-based-subscription/pricing.yaml) in the repository.
+
+
+<img 
+  className="block dark:hidden" 
+  src="/images/example-diagrams/light/generation-based-diagram.svg" 
+  alt="Pricing model diagram showing usage meters, subscription tiers, and top-ups"
+/>
+
+<img 
+  className="hidden dark:block" 
+  src="/images/example-diagrams/dark/generation-based-diagram.svg" 
+  alt="Pricing model diagram showing usage meters, subscription tiers, and top-ups"
+/>
+
+The key distinction in `pricing.yaml` is `renewalFrequency`: use `"every_billing_period"` for subscription credits that reset monthly, and `"once"` for top-up credits that are consumed permanently.
+
+### Checking Usage Balance
+
+Use `checkUsageBalance` to display remaining credits and gate access to generation features.
+
+```tsx src/app/example.tsx
+const billing = useBilling();
+const balance = billing.checkUsageBalance('fast_generations');
+
+// balance.availableBalance - credits remaining
+```
+
+The balance includes both subscription credits and any purchased top-ups. Flowglad automatically draws from credits when you register a usage event.
+
+### Recording Usage
+
+When a customer generates content, record the usage event. This decrements their credit balance. The SDK's `createUsageEvent` method on the `useBilling()` hook handles the server communication automatically.
+
+```tsx src/app/home-client.tsx
+const billing = useBilling();
+
+const result = await billing.createUsageEvent({
+  usageMeterSlug: 'fast_generations',
+  amount: 3,
+});
+
+if ('error' in result) {
+  throw new Error(result.error.json?.error || 'Failed to create usage event');
+}
+```
+
+The SDK auto-resolves the `subscriptionId` from the customer's current subscription.
+
+### Checking Feature Access
+
+Toggle features let you differentiate plans beyond just credit amounts. Use `checkFeatureAccess` to check if a user has access to gated premium features.
+
+```tsx src/app/example.tsx
+const hasRelaxMode = billing.checkFeatureAccess('unlimited_relaxed_images');
+```
+
+This returns `true` if the customer's current subscription includes the feature, `false` otherwise.
+
+### Purchasing Top-Up Credits
+
+When customers run low on credits, let them purchase additional credits without changing their subscription.
+
+```tsx src/app/home-client.tsx
+const price = billing.getPrice('fast_generation_top_up');
+
+await billing.createCheckoutSession({
+  priceId: price.id,
+  successUrl: window.location.href,
+  cancelUrl: window.location.href,
+  quantity: 1,
+  autoRedirect: true,
+});
+```
+
+This opens a checkout for the top-up product. On successful payment, the credits are immediately added to the customer's balance.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="View Source Code" icon="github" href="https://github.com/flowglad/examples/tree/main/nextjs/generation-based-subscription">
+    Browse the complete example implementation
+  </Card>
+  <Card title="Next.js SDK" icon="book" href="/sdks/nextjs">
+    Full Next.js SDK documentation
+  </Card>
+  <Card title="Feature Access & Usage" icon="gauge" href="/sdks/feature-access-usage">
+    Learn more about usage-based billing
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/features/webhooks">
+    Handle billing events server-side
+  </Card>
+</CardGroup>

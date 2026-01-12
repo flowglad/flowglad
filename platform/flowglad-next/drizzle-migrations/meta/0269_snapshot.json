@@ -1,5 +1,5 @@
 {
-  "id": "f5a50646-1cbe-4e22-8b0f-124c2414e2a7",
+  "id": "c84b9483-ce3b-4975-a524-41261d84289b",
   "prevId": "98cf7846-fdc4-43e6-abef-65cfccefaadf",
   "version": "7",
   "dialect": "postgresql",
@@ -5434,13 +5434,6 @@
           "for": "SELECT",
           "to": ["merchant"],
           "using": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id() AND (current_auth_type() = 'api_key' OR \"focused\" = true)"
-        },
-        "Enable update for own membership in current organization": {
-          "name": "Enable update for own membership in current organization",
-          "as": "PERMISSIVE",
-          "for": "UPDATE",
-          "to": ["merchant"],
-          "using": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id()"
         }
       },
       "checkConstraints": {},
@@ -8644,11 +8637,17 @@
         }
       },
       "indexes": {
-        "subscription_item_features_subscription_item_id_idx": {
-          "name": "subscription_item_features_subscription_item_id_idx",
+        "subscription_item_features_subscription_item_id_livemode_idx": {
+          "name": "subscription_item_features_subscription_item_id_livemode_idx",
           "columns": [
             {
               "expression": "subscription_item_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "livemode",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -8991,11 +8990,17 @@
         }
       },
       "indexes": {
-        "subscription_items_subscription_id_idx": {
-          "name": "subscription_items_subscription_id_idx",
+        "subscription_items_subscription_id_livemode_idx": {
+          "name": "subscription_items_subscription_id_livemode_idx",
           "columns": [
             {
               "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "livemode",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -9735,11 +9740,17 @@
         }
       },
       "indexes": {
-        "subscriptions_customer_id_idx": {
-          "name": "subscriptions_customer_id_idx",
+        "subscriptions_customer_id_livemode_idx": {
+          "name": "subscriptions_customer_id_livemode_idx",
           "columns": [
             {
               "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "livemode",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

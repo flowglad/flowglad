@@ -17,7 +17,7 @@ import {
   createPaginatedSelectSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -133,34 +133,31 @@ export const invoices = pgTable(
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructUniqueIndex(TABLE_NAME, [table.invoiceNumber]),
-      constructIndex(TABLE_NAME, [table.purchaseId]),
-      constructIndex(TABLE_NAME, [table.status]),
-      constructIndex(TABLE_NAME, [table.customerId]),
-      constructIndex(TABLE_NAME, [table.stripePaymentIntentId]),
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.billingRunId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      livemodePolicy(TABLE_NAME),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"customer_id" in (select "id" from "customers")`,
-        }
-      ),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          to: 'all',
-          for: 'all',
-          using: orgIdEqualsCurrentSQL(),
-        }
-      ),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructUniqueIndex(TABLE_NAME, [table.invoiceNumber]),
+    constructIndex(TABLE_NAME, [table.purchaseId]),
+    constructIndex(TABLE_NAME, [table.status]),
+    constructIndex(TABLE_NAME, [table.customerId]),
+    constructIndex(TABLE_NAME, [table.stripePaymentIntentId]),
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.billingRunId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"customer_id" in (select "id" from "customers")`,
+      }
+    ),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        to: 'all',
+        for: 'all',
+        using: orgIdEqualsCurrentSQL(),
+      }
+    ),
+  ])
 ).enableRLS()
 
 const refineColumns = {
