@@ -10,7 +10,7 @@ interface ChartGridProps {
 
 /**
  * Responsive grid layout for secondary dashboard charts.
- * Uses the Lemon Squeezy pattern: no gap + cell padding + borders.
+ * Uses edge-to-edge divider pattern: no gap + cell padding + borders.
  *
  * Features:
  * - Vertical dashed divider between columns (border on cells)
@@ -18,7 +18,7 @@ interface ChartGridProps {
  * - On mobile, horizontal dividers appear between stacked items
  * - Dividers span full width/height naturally (no absolute positioning)
  *
- * Layout pattern (Lemon Squeezy style):
+ * Layout pattern (edge-to-edge dividers):
  * - Grid has NO gap (cells touch each other)
  * - Each cell has padding for visual spacing
  * - Borders on cells create the dividers

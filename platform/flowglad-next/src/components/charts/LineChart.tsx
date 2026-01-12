@@ -127,6 +127,8 @@ interface LineChartProps
   fill?: 'gradient' | 'solid' | 'none'
   /** The time interval unit of the data. Used for smart grid line sampling when there are many data points. */
   intervalUnit?: RevenueChartIntervalUnit
+  /** Horizontal margin (left/right) in pixels. Defaults to 24 for alignment with page padding. */
+  horizontalMargin?: number
 }
 
 /**
@@ -226,6 +228,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       startEndOnlyYAxis = false,
       fill = 'none',
       intervalUnit,
+      horizontalMargin = 24,
       ...other
     } = props
     const { containerRef, width, height } = useContainerSize()
@@ -401,8 +404,8 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             }
             margin={{
               bottom: xAxisLabel ? 30 : undefined,
-              left: 24,
-              right: 24,
+              left: horizontalMargin,
+              right: horizontalMargin,
               top: 5,
             }}
           >

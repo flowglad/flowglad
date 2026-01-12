@@ -19,12 +19,25 @@ export interface ChartSizeConfig {
   height: string
   /** Tailwind padding class for horizontal spacing */
   padding: string
+  /** Numeric padding value in pixels (for Recharts margins) */
+  chartMargin: number
   /** Tailwind width class for skeleton loading state */
   skeletonWidth: string
   /** Tailwind height class for skeleton loading state */
   skeletonHeight: string
   /** Whether to show vertical grid lines on the chart */
   showGridLines: boolean
+}
+
+/**
+ * Layout tokens for consistent horizontal padding across dashboard components.
+ * These values are the single source of truth for page-level horizontal spacing.
+ */
+export interface LayoutToken {
+  /** Numeric value in pixels (for JS-based styling like Recharts margins) */
+  value: number
+  /** Tailwind class name (for CSS-based styling) */
+  class: string
 }
 
 /**

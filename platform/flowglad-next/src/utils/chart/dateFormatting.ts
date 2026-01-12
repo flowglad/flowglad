@@ -119,7 +119,7 @@ export function calculateNaturalPeriodBoundary(
  * Calculates the actual period boundaries, accounting for partial periods
  * at the start and end of the user's selected date range.
  *
- * This is the key function for LemonSqueezy-style tooltips:
+ * This enables contextual tooltips that show accurate date ranges:
  * - First data point: may start mid-period (e.g., "8 Jan - 31 Jan")
  * - Last data point: may end early (e.g., "1 Jan - 8 Jan" for current month)
  * - Middle data points: full period (e.g., "1 Feb - 28 Feb")
@@ -203,7 +203,7 @@ export const MONTH_NAMES_FULL = [
  * Ensures dates from PostgreSQL date_trunc display correctly
  * regardless of user's local timezone.
  *
- * Format matches LemonSqueezy's chart label style:
+ * Format follows analytics dashboard conventions:
  * - Hourly: "00:00" (just time)
  * - Daily/Weekly: "15 Jan" (day + month)
  * - Monthly: "Jan" (just month)

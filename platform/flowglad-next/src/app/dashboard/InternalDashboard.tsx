@@ -78,10 +78,10 @@ function InternalDashboardPage({
         }
       />
       {/* 
-        Content container uses Lemon Squeezy pattern:
+        Content container uses edge-to-edge divider pattern:
         - NO gap between items
         - Padding on individual sections for spacing
-        - Allows ChartDivider to touch both sections seamlessly
+        - Allows ChartDivider to span full width while content is inset
       */}
       <div className="w-full flex flex-col pt-4 pb-16">
         {/* Primary Chart - Full Size with bottom padding */}

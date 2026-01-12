@@ -3,7 +3,30 @@ import type {
   ChartSize,
   ChartSizeConfig,
   DashboardLineChartDefaults,
+  LayoutToken,
 } from './types'
+
+/**
+ * Layout tokens for consistent horizontal padding across dashboard components.
+ * Single source of truth for page-level horizontal spacing.
+ *
+ * Use `LAYOUT_TOKENS.page.class` for Tailwind classes (e.g., in className)
+ * Use `LAYOUT_TOKENS.page.value` for numeric values (e.g., Recharts margins)
+ *
+ * @example
+ * // In a React component
+ * <div className={LAYOUT_TOKENS.page.class}>Content</div>
+ *
+ * // In Recharts config
+ * margin={{ left: LAYOUT_TOKENS.page.value, right: LAYOUT_TOKENS.page.value }}
+ */
+export const LAYOUT_TOKENS = {
+  /** Standard page horizontal inset (24px) */
+  page: {
+    value: 24,
+    class: 'px-page',
+  } as LayoutToken,
+} as const
 
 /**
  * Default props for LineChart used in dashboard charts.
@@ -46,22 +69,27 @@ export const CHART_CONSTANTS: ChartConstants = {
  * Size-specific configuration for chart components.
  * Use this for properties that SHOULD vary between lg and sm charts.
  *
+ * Note: `chartMargin` should match `padding` to align chart content with text.
+ *
  * @example
  * const config = CHART_SIZE_CONFIG['lg']
  * // config.height === 'h-80'
- * // config.padding === 'px-6'
+ * // config.padding === 'px-page'
+ * // config.chartMargin === 24
  */
 export const CHART_SIZE_CONFIG: Record<ChartSize, ChartSizeConfig> = {
   lg: {
     height: 'h-80', // 320px
-    padding: 'px-6',
+    padding: LAYOUT_TOKENS.page.class,
+    chartMargin: LAYOUT_TOKENS.page.value,
     skeletonWidth: 'w-36',
     skeletonHeight: 'h-7',
     showGridLines: true,
   },
   sm: {
     height: 'h-40', // 160px
-    padding: 'px-4',
+    padding: LAYOUT_TOKENS.page.class,
+    chartMargin: LAYOUT_TOKENS.page.value,
     skeletonWidth: 'w-24',
     skeletonHeight: 'h-5',
     showGridLines: false,

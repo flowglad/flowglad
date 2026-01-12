@@ -131,6 +131,7 @@ export const RecurringRevenueChart = ({
         categories={['revenue']}
         className={cn('-mb-2 mt-2', config.height)}
         showGridLines={config.showGridLines}
+        horizontalMargin={config.chartMargin}
         maxValue={maxValue}
         intervalUnit={interval}
         customTooltip={(props) => (

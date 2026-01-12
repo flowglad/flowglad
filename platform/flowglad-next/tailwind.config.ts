@@ -10,6 +10,13 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      /**
+       * Layout spacing tokens for consistent page padding.
+       * Use this semantic name instead of raw values (e.g., px-page instead of px-6).
+       */
+      spacing: {
+        page: '32px', // Standard page horizontal inset
+      },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
         heading: ['var(--font-heading)', 'serif'],
