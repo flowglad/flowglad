@@ -326,6 +326,35 @@ describe('supabaseEdgeHandler', () => {
   })
 
   describe('error handling', () => {
+    it('returns 400 status with error message for invalid request URL', async () => {
+      const onError = vi.fn()
+      const handler = supabaseEdgeHandler(
+        createMockOptions({
+          onError,
+        })
+      )
+
+      // Create a mock Request-like object with an invalid URL that will fail new URL() parsing
+      // The Request constructor validates URLs, so we need to mock the url property
+      const mockRequestWithInvalidUrl = {
+        url: 'not-a-valid-url',
+        method: 'GET',
+        headers: new Headers(),
+        json: async () => ({}),
+      } as unknown as Request
+
+      const response = await handler(mockRequestWithInvalidUrl)
+      const json = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(json.data).toBeNull()
+      expect(json.error.message).toBe('Invalid request URL')
+      expect(response.headers.get('Content-Type')).toBe(
+        'application/json'
+      )
+      expect(onError).toHaveBeenCalledTimes(1)
+    })
+
     it('returns 500 status for unexpected errors', async () => {
       const handler = supabaseEdgeHandler({
         getCustomerExternalId: async () => {
