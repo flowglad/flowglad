@@ -1,4 +1,4 @@
-import { SpanKind, trace } from '@opentelemetry/api'
+import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import core from './core'
 import { logger } from './logger'
@@ -223,6 +223,13 @@ export function cached<TArgs extends unknown[], TResult>(
               key: fullKey,
               latency_ms: latencyMs,
             })
+            logger.info('cache_stats', {
+              namespace: config.namespace,
+              hit_count: 1,
+              miss_count: 0,
+              total_count: 1,
+              latency_ms: latencyMs,
+            })
             return parsed.data
           } else {
             // Schema validation failed - treat as cache miss
@@ -232,11 +239,26 @@ export function cached<TArgs extends unknown[], TResult>(
               key: fullKey,
               error: parsed.error.message,
             })
+            logger.info('cache_stats', {
+              namespace: config.namespace,
+              hit_count: 0,
+              miss_count: 1,
+              total_count: 1,
+              validation_failed: true,
+              latency_ms: latencyMs,
+            })
           }
         } else {
           span?.setAttribute('cache.hit', false)
           logger.debug('Cache miss', {
             key: fullKey,
+            latency_ms: latencyMs,
+          })
+          logger.info('cache_stats', {
+            namespace: config.namespace,
+            hit_count: 0,
+            miss_count: 1,
+            total_count: 1,
             latency_ms: latencyMs,
           })
         }
@@ -249,6 +271,13 @@ export function cached<TArgs extends unknown[], TResult>(
         logger.error('Cache read error', {
           key: fullKey,
           error: errorMessage,
+        })
+        logger.info('cache_stats', {
+          namespace: config.namespace,
+          hit_count: 0,
+          miss_count: 1,
+          total_count: 1,
+          error: true,
         })
       }
 
@@ -333,7 +362,48 @@ export async function cachedBulkLookup<TKey, TResult>(
     return new Map()
   }
 
-  const span = trace.getActiveSpan()
+  const tracer = trace.getTracer('cache')
+  return tracer.startActiveSpan(
+    `cache.bulk.${config.namespace}`,
+    { kind: SpanKind.CLIENT },
+    async (span) => {
+      span.setAttribute('cache.namespace', config.namespace)
+      span.setAttribute('cache.bulk', true)
+      span.setAttribute('cache.key_count', keys.length)
+
+      const startTime = Date.now()
+      try {
+        const result = await cachedBulkLookupImpl(
+          config,
+          keys,
+          bulkFetchFn,
+          groupByKey,
+          span
+        )
+        span.setStatus({ code: SpanStatusCode.OK })
+        return result
+      } catch (error) {
+        span.recordException(error as Error)
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: (error as Error).message,
+        })
+        throw error
+      } finally {
+        span.setAttribute('duration_ms', Date.now() - startTime)
+        span.end()
+      }
+    }
+  )
+}
+
+async function cachedBulkLookupImpl<TKey, TResult>(
+  config: BulkCacheConfig<TKey, TResult[]>,
+  keys: TKey[],
+  bulkFetchFn: (keys: TKey[]) => Promise<TResult[]>,
+  groupByKey: (item: TResult) => TKey,
+  span: ReturnType<ReturnType<typeof trace.getTracer>['startSpan']>
+): Promise<Map<TKey, TResult[]>> {
   const redisClient = redis()
   const ttl = getTtlForNamespace(config.namespace)
 
@@ -358,8 +428,8 @@ export async function cachedBulkLookup<TKey, TResult>(
     )) as (TResult[] | null)[]
     const latencyMs = Date.now() - startTime
 
-    span?.setAttribute('cache.bulk_lookup_count', keys.length)
-    span?.setAttribute('cache.bulk_latency_ms', latencyMs)
+    span.setAttribute('cache.bulk_lookup_count', keys.length)
+    span.setAttribute('cache.bulk_latency_ms', latencyMs)
 
     // Process cached values
     let hitCount = 0
@@ -404,8 +474,8 @@ export async function cachedBulkLookup<TKey, TResult>(
       }
     }
 
-    span?.setAttribute('cache.bulk_hit_count', hitCount)
-    span?.setAttribute('cache.bulk_miss_count', missedKeys.length)
+    span.setAttribute('cache.bulk_hit_count', hitCount)
+    span.setAttribute('cache.bulk_miss_count', missedKeys.length)
 
     logger.debug('Bulk cache lookup', {
       namespace: config.namespace,
@@ -414,14 +484,30 @@ export async function cachedBulkLookup<TKey, TResult>(
       misses: missedKeys.length,
       latency_ms: latencyMs,
     })
+    logger.info('cache_stats', {
+      namespace: config.namespace,
+      bulk: true,
+      hit_count: hitCount,
+      miss_count: missedKeys.length,
+      total_count: keys.length,
+      latency_ms: latencyMs,
+    })
   } catch (error) {
     // Fail open - all keys become misses
     const errorMessage =
       error instanceof Error ? error.message : String(error)
-    span?.setAttribute('cache.bulk_error', errorMessage)
+    span.setAttribute('cache.bulk_error', errorMessage)
     logger.error('Bulk cache read error', {
       namespace: config.namespace,
       error: errorMessage,
+    })
+    logger.info('cache_stats', {
+      namespace: config.namespace,
+      bulk: true,
+      hit_count: 0,
+      miss_count: keys.length,
+      total_count: keys.length,
+      error: true,
     })
     missedKeys.push(...keys)
   }

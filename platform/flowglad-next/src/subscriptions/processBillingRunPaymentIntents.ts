@@ -55,7 +55,10 @@ import {
 } from '@/types'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { createStripeTaxTransactionIfNeededForPayment } from '@/utils/bookkeeping/stripeTaxTransactions'
-import type { CacheDependencyKey } from '@/utils/cache'
+import {
+  CacheDependency,
+  type CacheDependencyKey,
+} from '@/utils/cache'
 import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import {
   sendAwaitingPaymentConfirmationEmail,
@@ -540,9 +543,12 @@ export const processOutcomeForBillingRun = async (
     eventsToInsert.push(...childeventsToInsert)
   }
 
-  // Track cache invalidations from subscription item adjustments
-  const cacheInvalidations: CacheDependencyKey[] =
-    subscriptionItemAdjustmentResult?.cacheInvalidations ?? []
+  // Track cache invalidations from subscription item adjustments and status changes
+  const cacheInvalidations: CacheDependencyKey[] = [
+    // Always invalidate customerSubscriptions since status may change
+    CacheDependency.customerSubscriptions(subscription.customerId),
+    ...(subscriptionItemAdjustmentResult?.cacheInvalidations ?? []),
+  ]
 
   const notificationParams: BillingRunNotificationParams = {
     invoice,

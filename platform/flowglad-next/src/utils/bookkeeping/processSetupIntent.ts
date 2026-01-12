@@ -46,6 +46,7 @@ import {
   PurchaseStatus,
   SubscriptionStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import {
   IntentMetadataType,
   StripeIntentMetadata,
@@ -819,6 +820,9 @@ export const processSetupIntentSucceeded = async (
     return {
       result,
       eventsToInsert: [],
+      cacheInvalidations: [
+        CacheDependency.customerSubscriptions(result.customer.id),
+      ],
     }
   }
 
