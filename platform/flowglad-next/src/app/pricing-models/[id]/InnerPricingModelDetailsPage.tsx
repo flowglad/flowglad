@@ -11,7 +11,9 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import { CustomersDataTable } from '@/app/customers/data-table'
+import { ResourcesDataTable } from '@/app/resources/data-table'
 import { UsageMetersDataTable } from '@/app/usage-meters/data-table'
+import CreateResourceModal from '@/components/components/CreateResourceModal'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 import { ExpandSection } from '@/components/ExpandSection'
 import { FeaturesDataTable } from '@/components/features/data-table'
@@ -63,6 +65,8 @@ function InnerPricingModelDetailsPage({
     isCreateUsageMeterModalOpen,
     setIsCreateUsageMeterModalOpen,
   ] = useState(false)
+  const [isCreateResourceModalOpen, setIsCreateResourceModalOpen] =
+    useState(false)
   const [activeProductFilter, setActiveProductFilter] =
     useState<string>('active')
   const [activeFeatureFilter, setActiveFeatureFilter] =
@@ -291,6 +295,19 @@ function InnerPricingModelDetailsPage({
           />
         </ExpandSection>
         <ExpandSection
+          title="Resources"
+          defaultExpanded={false}
+          contentPadding={false}
+        >
+          <ResourcesDataTable
+            filters={{ pricingModelId: pricingModel.id }}
+            onCreateResource={() =>
+              setIsCreateResourceModalOpen(true)
+            }
+            buttonVariant="secondary"
+          />
+        </ExpandSection>
+        <ExpandSection
           title="Customers"
           defaultExpanded={false}
           contentPadding={false}
@@ -329,6 +346,12 @@ function InnerPricingModelDetailsPage({
       <CreateUsageMeterModal
         isOpen={isCreateUsageMeterModalOpen}
         setIsOpen={setIsCreateUsageMeterModalOpen}
+        defaultPricingModelId={pricingModel.id}
+        hidePricingModelSelect={true}
+      />
+      <CreateResourceModal
+        isOpen={isCreateResourceModalOpen}
+        setIsOpen={setIsCreateResourceModalOpen}
         defaultPricingModelId={pricingModel.id}
         hidePricingModelSelect={true}
       />
