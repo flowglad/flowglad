@@ -25,7 +25,11 @@ import { devError } from './lib/utils'
 import { validateUrl } from './utils'
 
 const getFlowgladRoute = (baseURL?: string): string => {
-  return baseURL ? `${baseURL}/api/flowglad` : '/api/flowglad'
+  const sanitizedBaseURL = baseURL?.trim() ?? ''
+  if (sanitizedBaseURL !== '') {
+    return `${sanitizedBaseURL}/api/flowglad`
+  }
+  return '/api/flowglad'
 }
 
 export type FrontendProductCreateCheckoutSessionParams =
