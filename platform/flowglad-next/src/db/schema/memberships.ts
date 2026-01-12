@@ -1,5 +1,11 @@
 import { sql } from 'drizzle-orm'
-import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+} from 'drizzle-orm/pg-core'
 import * as R from 'ramda'
 import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
@@ -34,6 +40,8 @@ export const memberships = pgTable(
     notificationPreferences: jsonb(
       'notification_preferences'
     ).default({}),
+    role: text('role').notNull().default('member'),
+    deactivatedAt: integer('deactivated_at'),
   },
   (table) => {
     return [
@@ -56,7 +64,17 @@ export const memberships = pgTable(
           for: 'select',
           // API keys bypass the focused check because they're scoped to a specific organization.
           // Webapp auth requires focused=true to ensure users only see their active organization.
-          using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND (current_auth_type() = 'api_key' OR "focused" = true)`,
+          using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND (current_auth_type() = 'api_key' OR "focused" = true) AND "deactivated_at" IS NULL`,
+        }
+      ),
+      merchantPolicy(
+        'Enable update for own membership in current organization',
+        {
+          as: 'permissive',
+          to: 'merchant',
+          for: 'update',
+          using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND "deactivated_at" IS NULL`,
+          withCheck: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND "deactivated_at" IS NULL`,
         }
       ),
       // no livemode policy for memberships, because memberships are used to determine access to
@@ -67,12 +85,13 @@ export const memberships = pgTable(
 ).enableRLS()
 
 /**
- * Zod schema for notification preferences stored in the membership's JSONB column.
- * Each preference defaults to true (enabled) for Zod validation purposes.
- * Actual defaults for new memberships come from DEFAULT_NOTIFICATION_PREFERENCES.
+ * Zod schema for notification preferences stored in the JSONB column.
+ * Contains 8 fields:
+ * - testModeNotifications: Controls whether test mode emails are sent (defaults to false)
+ * - 7 notification type preferences: Each controls a specific notification type (all default to true)
  */
 export const notificationPreferencesSchema = z.object({
-  testModeNotifications: z.boolean().default(true),
+  testModeNotifications: z.boolean().default(false),
   subscriptionCreated: z.boolean().default(true),
   subscriptionAdjusted: z.boolean().default(true),
   subscriptionCanceled: z.boolean().default(true),
@@ -88,20 +107,11 @@ export type NotificationPreferences = z.infer<
 
 /**
  * Default notification preferences for new memberships.
- * - testModeNotifications defaults to false (most users don't need test notifications)
- * - All notification types default to true (maintains backwards compatibility)
+ * Derived from the schema defaults by parsing an empty object.
+ * Test mode defaults to OFF, all notification types default to ON.
  */
 export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences =
-  {
-    testModeNotifications: false,
-    subscriptionCreated: true,
-    subscriptionAdjusted: true,
-    subscriptionCanceled: true,
-    subscriptionCancellationScheduled: true,
-    paymentFailed: true,
-    onboardingCompleted: true,
-    payoutsEnabled: true,
-  }
+  notificationPreferencesSchema.parse({})
 
 // Build server and client schemas using the shared builder
 export const {
@@ -113,6 +123,12 @@ export const {
     update: membershipsClientUpdateSchema,
   },
 } = buildSchemas(memberships, {
+  refine: {
+    notificationPreferences: notificationPreferencesSchema
+      .partial()
+      .nullable()
+      .optional(),
+  },
   selectRefine: {
     ...newBaseZodSelectSchemaColumns,
     notificationPreferences: notificationPreferencesSchema

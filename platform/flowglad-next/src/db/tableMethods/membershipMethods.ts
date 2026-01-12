@@ -220,11 +220,11 @@ export const selectMembershipsTableRowData =
   )
 
 /**
- * Gets the notification preferences for a membership, merging stored preferences
- * with defaults. Any stored preference overrides the default.
+ * Get the notification preferences for a membership, merging stored preferences with defaults.
+ * If a preference is not set, the default value is used.
  *
  * @param membership - The membership record
- * @returns The complete notification preferences with defaults applied
+ * @returns Complete notification preferences with defaults applied
  */
 export const getMembershipNotificationPreferences = (
   membership: Membership.Record
