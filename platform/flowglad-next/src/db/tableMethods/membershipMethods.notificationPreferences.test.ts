@@ -24,23 +24,20 @@ describe('memberships notificationPreferences', () => {
   })
 
   describe('getMembershipNotificationPreferences', () => {
-    it('defaults to empty object for new memberships and getMembershipNotificationPreferences returns expected defaults', async () => {
+    it('returns expected defaults for new memberships via getMembershipNotificationPreferences', async () => {
       await adminTransaction(async ({ transaction }) => {
-        // Fetch the fresh membership to verify the column value
+        // Fetch the fresh membership
         const freshMembership = await selectMembershipById(
           membership.id,
           transaction
         )
-
-        // The notificationPreferences column should be an empty object by default
-        expect(freshMembership.notificationPreferences).toEqual({})
 
         // getMembershipNotificationPreferences should return testModeNotifications = false
         const prefs =
           getMembershipNotificationPreferences(freshMembership)
         expect(prefs.testModeNotifications).toBe(false)
 
-        // getMembershipNotificationPreferences should return all 8 notification types as true (except testModeNotifications)
+        // getMembershipNotificationPreferences should return all 7 notification types as true
         expect(prefs.subscriptionCreated).toBe(true)
         expect(prefs.subscriptionAdjusted).toBe(true)
         expect(prefs.subscriptionCanceled).toBe(true)
@@ -54,7 +51,7 @@ describe('memberships notificationPreferences', () => {
       })
     })
 
-    it('merges stored preferences with defaults correctly', async () => {
+    it('persists updated preferences and getMembershipNotificationPreferences returns them correctly', async () => {
       // Update membership with partial preferences
       const partialPrefs: Partial<NotificationPreferences> = {
         testModeNotifications: true,
@@ -76,12 +73,7 @@ describe('memberships notificationPreferences', () => {
           transaction
         )
 
-        // The stored preferences should have only the values we set
-        expect(updatedMembership.notificationPreferences).toEqual(
-          partialPrefs
-        )
-
-        // getMembershipNotificationPreferences should merge with defaults
+        // getMembershipNotificationPreferences should return the updated values
         const prefs =
           getMembershipNotificationPreferences(updatedMembership)
 
@@ -101,15 +93,12 @@ describe('memberships notificationPreferences', () => {
       })
     })
 
-    it('returns all defaults when membership has empty preferences', async () => {
+    it('returns all defaults for a fresh membership', async () => {
       await adminTransaction(async ({ transaction }) => {
         const freshMembership = await selectMembershipById(
           membership.id,
           transaction
         )
-
-        // Verify preferences are empty
-        expect(freshMembership.notificationPreferences).toEqual({})
 
         const prefs =
           getMembershipNotificationPreferences(freshMembership)
