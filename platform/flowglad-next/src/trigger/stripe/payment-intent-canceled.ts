@@ -12,10 +12,11 @@ export const stripePaymentIntentCanceledTask = task({
     const metadata = payload.data.object.metadata
     if ('billingRunId' in metadata) {
       return comprehensiveAdminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, invalidateCache }) => {
           return await processOutcomeForBillingRun(
             { input: payload },
-            transaction
+            transaction,
+            invalidateCache
           )
         }
       )

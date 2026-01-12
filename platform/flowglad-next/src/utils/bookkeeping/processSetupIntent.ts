@@ -46,6 +46,7 @@ import {
   PurchaseStatus,
   SubscriptionStatus,
 } from '@/types'
+import type { CacheDependencyKey } from '@/utils/cache'
 import { CacheDependency } from '@/utils/cache'
 import {
   IntentMetadataType,
@@ -410,7 +411,8 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     }: SetupIntentSucceededBookkeepingResult & {
       setupIntent: CoreSripeSetupIntent
     },
-    transaction: DbTransaction
+    transaction: DbTransaction,
+    invalidateCache?: (...keys: CacheDependencyKey[]) => void
   ): Promise<
     TransactionOutput<ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult>
   > => {
@@ -492,7 +494,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         product,
         livemode: checkoutSession.livemode,
       },
-      { transaction }
+      { transaction, invalidateCache }
     )
 
     const eventInserts: Event.Insert[] = []
@@ -670,7 +672,8 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
 
 export const processSetupIntentSucceeded = async (
   setupIntent: CoreSripeSetupIntent,
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  invalidateCache?: (...keys: CacheDependencyKey[]) => void
 ): Promise<
   TransactionOutput<
     | ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult
@@ -817,12 +820,14 @@ export const processSetupIntentSucceeded = async (
         setupIntent,
         transaction
       )
+    const cacheKey = CacheDependency.customerSubscriptions(
+      result.customer.id
+    )
+    invalidateCache?.(cacheKey)
     return {
       result,
       eventsToInsert: [],
-      cacheInvalidations: [
-        CacheDependency.customerSubscriptions(result.customer.id),
-      ],
+      cacheInvalidations: [cacheKey],
     }
   }
 
@@ -838,6 +843,7 @@ export const processSetupIntentSucceeded = async (
 
   return await createSubscriptionFromSetupIntentableCheckoutSession(
     withSetupIntent,
-    transaction
+    transaction,
+    invalidateCache
   )
 }

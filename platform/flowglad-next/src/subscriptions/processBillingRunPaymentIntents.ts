@@ -218,7 +218,8 @@ const processAwaitingPaymentConfirmationNotifications = async (
 
 export const processOutcomeForBillingRun = async (
   params: ProcessOutcomeForBillingRunParams,
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  invalidateCache?: (...keys: CacheDependencyKey[]) => void
 ): Promise<
   TransactionOutput<{
     invoice: Invoice.Record
@@ -544,9 +545,13 @@ export const processOutcomeForBillingRun = async (
   }
 
   // Track cache invalidations from subscription item adjustments and status changes
+  const customerSubscriptionsCacheKey =
+    CacheDependency.customerSubscriptions(subscription.customerId)
+  // Queue via effects context if available
+  invalidateCache?.(customerSubscriptionsCacheKey)
+  // Also return for backward compatibility
   const cacheInvalidations: CacheDependencyKey[] = [
-    // Always invalidate customerSubscriptions since status may change
-    CacheDependency.customerSubscriptions(subscription.customerId),
+    customerSubscriptionsCacheKey,
     ...(subscriptionItemAdjustmentResult?.cacheInvalidations ?? []),
   ]
 
@@ -583,7 +588,8 @@ export const processOutcomeForBillingRun = async (
         {
           subscription,
         },
-        transaction
+        transaction,
+        invalidateCache
       )
 
       if (cancelEvents && cancelEvents.length > 0) {

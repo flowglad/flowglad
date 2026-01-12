@@ -52,6 +52,7 @@ import {
   SubscriptionCancellationArrangement,
   SubscriptionStatus,
 } from '@/types'
+import type { CacheDependencyKey } from '@/utils/cache'
 import { CacheDependency } from '@/utils/cache'
 import { constructSubscriptionCanceledEventHash } from '@/utils/eventHelpers'
 
@@ -238,7 +239,8 @@ export interface CancelSubscriptionImmediatelyParams {
 // Cancel a subscription immediately
 export const cancelSubscriptionImmediately = async (
   params: CancelSubscriptionImmediatelyParams,
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  invalidateCache?: (...keys: CacheDependencyKey[]) => void
 ): Promise<TransactionOutput<Subscription.Record>> => {
   const {
     subscription,
@@ -251,10 +253,14 @@ export const cancelSubscriptionImmediately = async (
     providedCustomer ??
     (await selectCustomerById(subscription.customerId, transaction))
 
-  // Cache invalidation for this customer's subscriptions (used in all return paths)
-  const cacheInvalidations = [
-    CacheDependency.customerSubscriptions(subscription.customerId),
-  ]
+  // Cache invalidation for this customer's subscriptions
+  const cacheKey = CacheDependency.customerSubscriptions(
+    subscription.customerId
+  )
+  // Queue via effects context if available
+  invalidateCache?.(cacheKey)
+  // Also return for backward compatibility
+  const cacheInvalidations = [cacheKey]
 
   if (isSubscriptionInTerminalState(subscription.status)) {
     return {
@@ -612,7 +618,7 @@ type CancelSubscriptionProcedureParams =
 export const cancelSubscriptionProcedureTransaction = async ({
   input,
   transaction,
-  ctx,
+  invalidateCache,
 }: CancelSubscriptionProcedureParams): Promise<
   TransactionOutput<{ subscription: Subscription.ClientRecord }>
 > => {
@@ -652,7 +658,8 @@ export const cancelSubscriptionProcedureTransaction = async ({
       {
         subscription,
       },
-      transaction
+      transaction,
+      invalidateCache
     )
     return {
       result: {
@@ -672,6 +679,11 @@ export const cancelSubscriptionProcedureTransaction = async ({
     input,
     transaction
   )
+  // Queue cache invalidation via effects context
+  const cacheKey = CacheDependency.customerSubscriptions(
+    updatedSubscription.customerId
+  )
+  invalidateCache?.(cacheKey)
   return {
     result: {
       subscription: {
@@ -683,11 +695,7 @@ export const cancelSubscriptionProcedureTransaction = async ({
       },
     },
     eventsToInsert: [],
-    cacheInvalidations: [
-      CacheDependency.customerSubscriptions(
-        updatedSubscription.customerId
-      ),
-    ],
+    cacheInvalidations: [cacheKey],
   }
 }
 
@@ -830,18 +838,24 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
  */
 export const uncancelSubscription = async (
   subscription: Subscription.Record,
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  invalidateCache?: (...keys: CacheDependencyKey[]) => void
 ): Promise<TransactionOutput<Subscription.Record>> => {
+  // Cache invalidation for this customer's subscriptions
+  const cacheKey = CacheDependency.customerSubscriptions(
+    subscription.customerId
+  )
+  // Queue via effects context if available
+  invalidateCache?.(cacheKey)
+  // For backward compatibility with callers that don't pass invalidateCache
+  const cacheInvalidations = [cacheKey]
+
   // Idempotent behavior: If subscription is in terminal state, silently succeed
   if (isSubscriptionInTerminalState(subscription.status)) {
     return {
       result: subscription,
       eventsToInsert: [],
-      cacheInvalidations: [
-        CacheDependency.customerSubscriptions(
-          subscription.customerId
-        ),
-      ],
+      cacheInvalidations,
     }
   }
 
@@ -852,11 +866,7 @@ export const uncancelSubscription = async (
     return {
       result: subscription,
       eventsToInsert: [],
-      cacheInvalidations: [
-        CacheDependency.customerSubscriptions(
-          subscription.customerId
-        ),
-      ],
+      cacheInvalidations,
     }
   }
 
@@ -877,11 +887,7 @@ export const uncancelSubscription = async (
     return {
       result: subscription,
       eventsToInsert: [],
-      cacheInvalidations: [
-        CacheDependency.customerSubscriptions(
-          subscription.customerId
-        ),
-      ],
+      cacheInvalidations,
     }
   }
 
@@ -928,11 +934,7 @@ export const uncancelSubscription = async (
   return {
     result: updatedSubscription,
     eventsToInsert: [],
-    cacheInvalidations: [
-      CacheDependency.customerSubscriptions(
-        updatedSubscription.customerId
-      ),
-    ],
+    cacheInvalidations,
   }
 }
 
@@ -955,6 +957,7 @@ type UncancelSubscriptionProcedureParams =
 export const uncancelSubscriptionProcedureTransaction = async ({
   input,
   transaction,
+  invalidateCache,
 }: UncancelSubscriptionProcedureParams): Promise<
   TransactionOutput<{ subscription: Subscription.ClientRecord }>
 > => {
@@ -964,7 +967,11 @@ export const uncancelSubscriptionProcedureTransaction = async ({
   )
 
   const { result: updatedSubscription, cacheInvalidations } =
-    await uncancelSubscription(subscription, transaction)
+    await uncancelSubscription(
+      subscription,
+      transaction,
+      invalidateCache
+    )
 
   return {
     result: {

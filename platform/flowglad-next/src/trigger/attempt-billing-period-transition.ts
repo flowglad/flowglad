@@ -17,7 +17,7 @@ export const attemptBillingPeriodTransitionTask = task({
       'attemptBillingPeriodTransition',
       async () => {
         const { billingRun } = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
+          async ({ transaction, invalidateCache }) => {
             const billingPeriod = await selectBillingPeriodById(
               payload.billingPeriod.id,
               transaction
@@ -28,7 +28,8 @@ export const attemptBillingPeriodTransitionTask = task({
             })
             return attemptToTransitionSubscriptionBillingPeriod(
               billingPeriod,
-              transaction
+              transaction,
+              invalidateCache
             )
           }
         )
