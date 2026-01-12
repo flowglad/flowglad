@@ -8,12 +8,65 @@ import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import type { DbTransaction } from '@/db/types'
+import type { CurrencyCode } from '@/types'
 import { FeatureType, PriceType } from '@/types'
 import {
   type SetupPricingModelInput,
+  type SetupPricingModelProductPriceInput,
   type SetupUsageMeterPriceInput,
   validateSetupPricingModelInput,
 } from './setupSchemas'
+
+/**
+ * Creates a Price.Insert from a product price input (Subscription or SinglePayment).
+ */
+export const createProductPriceInsert = (
+  price: SetupPricingModelProductPriceInput,
+  options: {
+    productId: string
+    currency: CurrencyCode
+    livemode: boolean
+  }
+): Price.Insert => {
+  const { productId, currency, livemode } = options
+  const base = {
+    name: price.name ?? null,
+    slug: price.slug ?? null,
+    unitPrice: price.unitPrice,
+    isDefault: price.isDefault,
+    active: price.active,
+    currency,
+    productId,
+    livemode,
+    externalId: null,
+    usageMeterId: null,
+  }
+
+  switch (price.type) {
+    case PriceType.Subscription:
+      return {
+        ...base,
+        type: PriceType.Subscription,
+        intervalCount: price.intervalCount,
+        intervalUnit: price.intervalUnit,
+        trialPeriodDays: price.trialPeriodDays ?? null,
+        usageEventsPerUnit: price.usageEventsPerUnit ?? null,
+      }
+    case PriceType.SinglePayment:
+      return {
+        ...base,
+        type: PriceType.SinglePayment,
+        intervalCount: null,
+        intervalUnit: null,
+        trialPeriodDays: price.trialPeriodDays ?? null,
+        usageEventsPerUnit: price.usageEventsPerUnit ?? null,
+      }
+    default:
+      throw new Error(
+        `Unknown or unhandled price type: ${(price as { type: string }).type}`
+      )
+  }
+}
 
 /**
  * Fetches a pricing model and all its related records (usage meters, features, products, prices)

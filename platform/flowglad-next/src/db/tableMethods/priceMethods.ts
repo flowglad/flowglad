@@ -223,6 +223,7 @@ export const selectPrices = createSelectFunction(prices, config)
 
 const baseInsertPrice = createInsertFunction(prices, config)
 
+// Note: Queries pricingModelId per row. Use bulkInsertPrices for batch inserts.
 export const insertPrice = async (
   priceInsert: Price.Insert,
   transaction: DbTransaction
@@ -705,19 +706,17 @@ export const selectPricesTableRowData =
         ])
       )
 
-      return priceRecords.map((price) => ({
-        price,
-        // Return null for usage prices that don't have a productId,
-        // or if the product was deleted/not found
-        product: Price.hasProductId(price)
-          ? (() => {
-              const product = productsById.get(price.productId)
-              return product
-                ? { id: product.id, name: product.name }
-                : null
-            })()
-          : null,
-      }))
+      return priceRecords.map((price) => {
+        // Usage prices don't have a productId; product may also be deleted/not found
+        let productInfo: { id: string; name: string } | null = null
+        if (Price.hasProductId(price)) {
+          const product = productsById.get(price.productId)
+          if (product) {
+            productInfo = { id: product.id, name: product.name }
+          }
+        }
+        return { price, product: productInfo }
+      })
     },
     // Searchable columns for ILIKE search on name and slug
     [prices.name, prices.slug],

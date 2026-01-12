@@ -158,6 +158,50 @@ describe('priceValidation', () => {
       }
     })
 
+    it('throws BAD_REQUEST when subscription price has empty string productId', () => {
+      const price = {
+        ...createSubscriptionPriceInsert(),
+        productId: '',
+      } as unknown as Price.ClientInsert
+
+      expect(() =>
+        validatePriceTypeProductIdConsistency(price)
+      ).toThrow(TRPCError)
+
+      try {
+        validatePriceTypeProductIdConsistency(price)
+      } catch (error) {
+        expect(error).toBeInstanceOf(TRPCError)
+        const trpcError = error as TRPCError
+        expect(trpcError.code).toBe('BAD_REQUEST')
+        expect(trpcError.message).toBe(
+          'Subscription and single payment prices require a productId.'
+        )
+      }
+    })
+
+    it('throws BAD_REQUEST when subscription price has whitespace-only productId', () => {
+      const price = {
+        ...createSubscriptionPriceInsert(),
+        productId: '   ',
+      } as unknown as Price.ClientInsert
+
+      expect(() =>
+        validatePriceTypeProductIdConsistency(price)
+      ).toThrow(TRPCError)
+
+      try {
+        validatePriceTypeProductIdConsistency(price)
+      } catch (error) {
+        expect(error).toBeInstanceOf(TRPCError)
+        const trpcError = error as TRPCError
+        expect(trpcError.code).toBe('BAD_REQUEST')
+        expect(trpcError.message).toBe(
+          'Subscription and single payment prices require a productId.'
+        )
+      }
+    })
+
     it('does not throw when subscription price has valid productId', () => {
       const price = createSubscriptionPriceInsert({
         productId: 'prod_123',

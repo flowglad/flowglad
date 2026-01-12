@@ -35,10 +35,13 @@ import {
   updateUsageMeter,
 } from '@/db/tableMethods/usageMeterMethods'
 import type { DbTransaction } from '@/db/types'
-import { FeatureType, PriceType } from '@/types'
+import { FeatureType } from '@/types'
 import { computeUpdateObject, diffPricingModel } from './diffing'
 import { protectDefaultProduct } from './protectDefaultProduct'
-import { getPricingModelSetupData } from './setupHelpers'
+import {
+  createProductPriceInsert,
+  getPricingModelSetupData,
+} from './setupHelpers'
 import {
   type SetupPricingModelInput,
   validateSetupPricingModelInput,
@@ -389,51 +392,11 @@ export const updatePricingModelTransaction = async (
 
         // PR 5: Product prices can only be Subscription or SinglePayment.
         // Usage prices belong to usage meters, not products.
-        const price = productInput.price
-        switch (price.type) {
-          case PriceType.Subscription:
-            return {
-              type: PriceType.Subscription,
-              name: price.name ?? null,
-              slug: price.slug ?? null,
-              unitPrice: price.unitPrice,
-              isDefault: price.isDefault,
-              active: price.active,
-              intervalCount: price.intervalCount,
-              intervalUnit: price.intervalUnit,
-              trialPeriodDays: price.trialPeriodDays,
-              usageEventsPerUnit: price.usageEventsPerUnit ?? null,
-              currency: organization.defaultCurrency,
-              productId: product.id,
-              livemode: pricingModel.livemode,
-              externalId: null,
-              usageMeterId: null,
-            }
-
-          case PriceType.SinglePayment:
-            return {
-              type: PriceType.SinglePayment,
-              name: price.name ?? null,
-              slug: price.slug ?? null,
-              unitPrice: price.unitPrice,
-              isDefault: price.isDefault,
-              active: price.active,
-              intervalCount: null,
-              intervalUnit: null,
-              trialPeriodDays: price.trialPeriodDays ?? null,
-              usageEventsPerUnit: price.usageEventsPerUnit ?? null,
-              currency: organization.defaultCurrency,
-              productId: product.id,
-              livemode: pricingModel.livemode,
-              externalId: null,
-              usageMeterId: null,
-            }
-
-          default:
-            throw new Error(
-              `Unknown or unhandled price type: ${(price as { type: string }).type}`
-            )
-        }
+        return createProductPriceInsert(productInput.price, {
+          productId: product.id,
+          currency: organization.defaultCurrency,
+          livemode: pricingModel.livemode,
+        })
       }
     )
 
@@ -542,53 +505,12 @@ export const updatePricingModelTransaction = async (
   // Usage prices belong to usage meters, not products.
   if (priceChanges.length > 0) {
     const newPriceInserts: Price.Insert[] = priceChanges.map(
-      (change) => {
-        const price = change.proposedPrice
-        switch (price.type) {
-          case PriceType.Subscription:
-            return {
-              type: PriceType.Subscription,
-              name: price.name ?? null,
-              slug: price.slug ?? null,
-              unitPrice: price.unitPrice,
-              isDefault: price.isDefault,
-              active: price.active,
-              intervalCount: price.intervalCount,
-              intervalUnit: price.intervalUnit,
-              trialPeriodDays: price.trialPeriodDays,
-              usageEventsPerUnit: price.usageEventsPerUnit ?? null,
-              currency: organization.defaultCurrency,
-              productId: change.productId,
-              livemode: pricingModel.livemode,
-              externalId: null,
-              usageMeterId: null,
-            }
-
-          case PriceType.SinglePayment:
-            return {
-              type: PriceType.SinglePayment,
-              name: price.name ?? null,
-              slug: price.slug ?? null,
-              unitPrice: price.unitPrice,
-              isDefault: price.isDefault,
-              active: price.active,
-              intervalCount: null,
-              intervalUnit: null,
-              trialPeriodDays: price.trialPeriodDays ?? null,
-              usageEventsPerUnit: price.usageEventsPerUnit ?? null,
-              currency: organization.defaultCurrency,
-              productId: change.productId,
-              livemode: pricingModel.livemode,
-              externalId: null,
-              usageMeterId: null,
-            }
-
-          default:
-            throw new Error(
-              `Unknown or unhandled price type: ${(price as { type: string }).type}`
-            )
-        }
-      }
+      (change) =>
+        createProductPriceInsert(change.proposedPrice, {
+          productId: change.productId,
+          currency: organization.defaultCurrency,
+          livemode: pricingModel.livemode,
+        })
     )
 
     const createdPrices = await bulkInsertPrices(

@@ -76,7 +76,7 @@ const TABLE_NAME = 'prices'
  * This uses pricingModelId instead of product subquery to handle usage prices
  * with null productId.
  */
-const usageMeterBelongsToSameOrganization = sql`"usage_meter_id" IS NULL
+const usageMeterBelongsToSamePricingModel = sql`"usage_meter_id" IS NULL
   OR "usage_meter_id" IN (
     SELECT "id" FROM "usage_meters"
     WHERE "usage_meters"."pricing_model_id" = "prices"."pricing_model_id"
@@ -169,7 +169,7 @@ export const prices = pgTable(
           as: 'permissive',
           to: 'merchant',
           for: 'update',
-          withCheck: usageMeterBelongsToSameOrganization,
+          withCheck: usageMeterBelongsToSamePricingModel,
         }
       ),
       // Merchant access policy for prices.

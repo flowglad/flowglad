@@ -16,6 +16,7 @@ import type { DbTransaction } from '@/db/types'
 import { FeatureType, IntervalUnit, PriceType } from '@/types'
 import { hashData } from '@/utils/backendCore'
 import { validateDefaultProductSchema } from '@/utils/defaultProductValidation'
+import { createProductPriceInsert } from '@/utils/pricingModels/setupHelpers'
 import {
   type SetupPricingModelInput,
   type SetupPricingModelProductInput,
@@ -185,51 +186,11 @@ export const setupPricingModelTransaction = async (
       if (!productId) {
         throw new Error(`Product ${product.product.name} not found`)
       }
-      const price = product.price
-      switch (price.type) {
-        case PriceType.Subscription:
-          return {
-            type: PriceType.Subscription,
-            name: price.name ?? null,
-            slug: price.slug ?? null,
-            unitPrice: price.unitPrice,
-            isDefault: price.isDefault,
-            active: price.active,
-            intervalCount: price.intervalCount,
-            intervalUnit: price.intervalUnit,
-            trialPeriodDays: price.trialPeriodDays,
-            usageEventsPerUnit: price.usageEventsPerUnit,
-            currency: organization.defaultCurrency,
-            productId,
-            livemode,
-            externalId: null,
-            usageMeterId: null,
-          }
-
-        case PriceType.SinglePayment:
-          return {
-            type: PriceType.SinglePayment,
-            name: price.name ?? null,
-            slug: price.slug ?? null,
-            unitPrice: price.unitPrice,
-            isDefault: price.isDefault,
-            active: price.active,
-            intervalCount: null,
-            intervalUnit: null,
-            trialPeriodDays: price.trialPeriodDays,
-            usageEventsPerUnit: price.usageEventsPerUnit,
-            currency: organization.defaultCurrency,
-            productId,
-            livemode,
-            externalId: null,
-            usageMeterId: null,
-          }
-
-        default:
-          throw new Error(
-            `Unknown or unhandled price type on product price: ${price}`
-          )
-      }
+      return createProductPriceInsert(product.price, {
+        productId,
+        currency: organization.defaultCurrency,
+        livemode,
+      })
     }
   )
 

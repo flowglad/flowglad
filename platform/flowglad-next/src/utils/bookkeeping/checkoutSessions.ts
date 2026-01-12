@@ -461,18 +461,6 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
           priceType: PriceType.SinglePayment,
         }
       purchaseInsert = singlePaymentPurchaseInsert
-    } else if (price.type === PriceType.Usage) {
-      const usagePurchaseInsert: Purchase.UsagePurchaseInsert = {
-        ...corePurchaseFields,
-        trialPeriodDays: null,
-        intervalUnit: null,
-        intervalCount: null,
-        pricePerBillingCycle: null,
-        firstInvoiceValue: price.unitPrice ?? 0,
-        totalPurchaseValue: price.unitPrice,
-        priceType: PriceType.Usage,
-      }
-      purchaseInsert = usagePurchaseInsert
     } else {
       throw new Error(
         `Unsupported price type for checkout session ${checkoutSession.id}`

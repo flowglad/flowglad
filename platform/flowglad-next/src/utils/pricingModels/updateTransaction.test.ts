@@ -240,10 +240,7 @@ describe('updatePricingModelTransaction', () => {
   })
 
   describe('usage meter updates', () => {
-    // TODO: PR 2/5 - This test expects usage meters to create associated products
-    // but in the new data model, usage prices have productId: null and don't create products
-    // PR 5: Usage meters now use nested structure
-    it.skip('creates new usage meters', async () => {
+    it('creates new usage meters', async () => {
       const setupResult = await createBasicPricingModel({
         usageMeters: [
           {
@@ -354,9 +351,7 @@ describe('updatePricingModelTransaction', () => {
       expect(updateResult.usageMeters.created[0].name).toBe('Storage')
     })
 
-    // TODO: PR 2 - This test expects usage meters to create associated products
-    // but in the new data model, usage prices have productId: null and don't create products
-    it.skip('updates existing usage meter name', async () => {
+    it('updates existing usage meter name', async () => {
       const setupResult = await createBasicPricingModel({
         usageMeters: [
           {
