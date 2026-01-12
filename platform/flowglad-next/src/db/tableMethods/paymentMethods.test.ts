@@ -103,7 +103,7 @@ describe('paymentMethods.ts', () => {
             transaction
           )
         ).rejects.toThrow(
-          `Failed to update payment ${payment.id}: Refunded amount must be the same as the original amount, Only refund status is supported`
+          `Failed to update payment ${payment.id}: Only refund or succeeded status is supported`
         )
       })
     })
@@ -118,12 +118,61 @@ describe('paymentMethods.ts', () => {
               refunded: true,
               refundedAt: Date.now(),
               refundedAmount: refundAmount,
+              status: PaymentStatus.Refunded,
             },
             transaction
           )
         ).rejects.toThrow(
-          `Failed to update payment ${payment.id}: Refunded amount must be the same as the original amount, Only refund status is supported`
+          `Failed to update payment ${payment.id}: Refunded amount cannot exceed the original payment amount`
         )
+      })
+    })
+
+    it('successfully updates a payment for partial refund with Succeeded status', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const partialRefundAmount = 500 // 50% refund
+        const updatedPayment = await safelyUpdatePaymentForRefund(
+          {
+            id: payment.id,
+            refunded: false,
+            refundedAt: Date.now(),
+            refundedAmount: partialRefundAmount,
+            status: PaymentStatus.Succeeded,
+          },
+          transaction
+        )
+
+        expect(updatedPayment.refunded).toBe(false)
+        expect(updatedPayment.refundedAmount).toBe(
+          partialRefundAmount
+        )
+        expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
+        expect(updatedPayment.refundedAt).not.toBeNull()
+      })
+    })
+
+    it('allows partial refund with Succeeded status and original amount remains unchanged', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const partialRefundAmount = 300 // 30% refund
+        const updatedPayment = await safelyUpdatePaymentForRefund(
+          {
+            id: payment.id,
+            refunded: false,
+            refundedAt: Date.now(),
+            refundedAmount: partialRefundAmount,
+            status: PaymentStatus.Succeeded,
+          },
+          transaction
+        )
+
+        // The payment amount should remain unchanged
+        expect(updatedPayment.amount).toBe(payment.amount)
+        // Only the refunded amount should reflect the partial refund
+        expect(updatedPayment.refundedAmount).toBe(
+          partialRefundAmount
+        )
+        // Status should stay Succeeded for partial refunds
+        expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
       })
     })
 

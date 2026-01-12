@@ -4151,7 +4151,7 @@
       "post": {
         "operationId": "subscriptions-adjust",
         "summary": "Adjust Subscription",
-        "description": "Note: Immediate adjustments are in private preview (Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616). Adjustments at the end of the current billing period are generally available.",
+        "description": "Adjust an active subscription by changing its plan or quantity. Supports immediate adjustments with proration, end-of-billing-period adjustments for downgrades, and auto timing that automatically chooses based on whether it's an upgrade or downgrade. Also supports priceSlug for referencing prices by slug instead of id.",
         "tags": ["Subscriptions"],
         "security": [
           {
@@ -4182,6 +4182,9 @@
                       },
                       {
                         "$ref": "#/components/schemas/AdjustSubscriptionAtEndOfCurrentBillingPeriodInput"
+                      },
+                      {
+                        "$ref": "#/components/schemas/AdjustSubscriptionAutoTimingInput"
                       }
                     ],
                     "type": "object",
@@ -4189,7 +4192,8 @@
                       "propertyName": "timing",
                       "mapping": {
                         "immediately": "#/components/schemas/AdjustSubscriptionImmediatelyInput",
-                        "at_end_of_current_billing_period": "#/components/schemas/AdjustSubscriptionAtEndOfCurrentBillingPeriodInput"
+                        "at_end_of_current_billing_period": "#/components/schemas/AdjustSubscriptionAtEndOfCurrentBillingPeriodInput",
+                        "auto": "#/components/schemas/AdjustSubscriptionAutoTimingInput"
                       }
                     }
                   }
@@ -4205,20 +4209,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "subscription": {
-                      "$ref": "#/components/schemas/SubscriptionClientSelectSchema"
-                    },
-                    "subscriptionItems": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/SubscriptionItemRecordOutput"
-                      }
-                    }
-                  },
-                  "required": ["subscription", "subscriptionItems"],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/AdjustSubscriptionOutput"
                 }
               }
             }
@@ -9210,7 +9201,7 @@
         "type": "object",
         "properties": {
           "timing": {
-            "description": "Note: Immediate adjustments are in private preview. Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616.",
+            "description": "Apply the adjustment immediately.",
             "type": "string",
             "const": "immediately"
           },
@@ -9223,19 +9214,23 @@
                 },
                 {
                   "$ref": "#/components/schemas/SubscriptionItemRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/SubscriptionItemWithPriceSlugInput"
+                },
+                {
+                  "$ref": "#/components/schemas/TerseSubscriptionItem"
                 }
               ]
             }
           },
           "prorateCurrentBillingPeriod": {
+            "description": "Whether to prorate the current billing period. Defaults to true for immediate adjustments.",
+            "default": true,
             "type": "boolean"
           }
         },
-        "required": [
-          "timing",
-          "newSubscriptionItems",
-          "prorateCurrentBillingPeriod"
-        ]
+        "required": ["timing", "newSubscriptionItems"]
       },
       "SubscriptionItemInsert": {
         "$ref": "#/components/schemas/StaticSubscriptionItemClientInsertSchema"
@@ -9493,6 +9488,140 @@
           "pricingModelId"
         ]
       },
+      "SubscriptionItemWithPriceSlugInput": {
+        "type": "object",
+        "properties": {
+          "subscriptionId": {
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "addedDate": {
+            "description": "Epoch milliseconds.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "priceId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unitPrice": {
+            "anyOf": [
+              {
+                "description": "A positive integer",
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "number",
+                "const": 0
+              }
+            ]
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "description": "A positive integer",
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "number",
+                "const": 0
+              }
+            ]
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Metadata"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "type": "string",
+            "const": "static"
+          },
+          "externalId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expiredAt": {
+            "description": "Used as a flag to soft delete a subscription item without losing its history for auditability. If set, it will be removed from the subscription items list and will not be included in the billing period item list. Epoch milliseconds.",
+            "anyOf": [
+              {
+                "description": "Used as a flag to soft delete a subscription item without losing its history for auditability. If set, it will be removed from the subscription items list and will not be included in the billing period item list. Epoch milliseconds.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "manuallyCreated": {
+            "type": "boolean"
+          },
+          "priceSlug": {
+            "description": "The slug of the price to subscribe to. If not provided, priceId is required. Price slugs are scoped to the customer's pricing model. Used to determine whether the subscription is usage-based or not, and set other defaults such as trial period and billing intervals.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subscriptionId",
+          "addedDate",
+          "unitPrice",
+          "quantity",
+          "type"
+        ]
+      },
+      "TerseSubscriptionItem": {
+        "type": "object",
+        "properties": {
+          "priceId": {
+            "description": "The id of the price to subscribe to. If not provided, priceSlug is required. Used to determine whether the subscription is usage-based or not, and set other defaults such as trial period and billing intervals.",
+            "type": "string"
+          },
+          "priceSlug": {
+            "description": "The slug of the price to subscribe to. If not provided, priceId is required. Price slugs are scoped to the customer's pricing model. Used to determine whether the subscription is usage-based or not, and set other defaults such as trial period and billing intervals.",
+            "type": "string"
+          },
+          "quantity": {
+            "description": "The quantity of units. Defaults to 1.",
+            "default": 1,
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
       "AdjustSubscriptionAtEndOfCurrentBillingPeriodInput": {
         "type": "object",
         "properties": {
@@ -9509,9 +9638,50 @@
                 },
                 {
                   "$ref": "#/components/schemas/SubscriptionItemRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/SubscriptionItemWithPriceSlugInput"
+                },
+                {
+                  "$ref": "#/components/schemas/TerseSubscriptionItem"
                 }
               ]
             }
+          }
+        },
+        "required": ["timing", "newSubscriptionItems"]
+      },
+      "AdjustSubscriptionAutoTimingInput": {
+        "type": "object",
+        "properties": {
+          "timing": {
+            "description": "Automatically determine timing: upgrades happen immediately, downgrades at end of period.",
+            "type": "string",
+            "const": "auto"
+          },
+          "newSubscriptionItems": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SubscriptionItemInsert"
+                },
+                {
+                  "$ref": "#/components/schemas/SubscriptionItemRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/SubscriptionItemWithPriceSlugInput"
+                },
+                {
+                  "$ref": "#/components/schemas/TerseSubscriptionItem"
+                }
+              ]
+            }
+          },
+          "prorateCurrentBillingPeriod": {
+            "description": "Whether to prorate if the adjustment is applied immediately. Defaults to true.",
+            "default": true,
+            "type": "boolean"
           }
         },
         "required": ["timing", "newSubscriptionItems"]
@@ -11033,6 +11203,9 @@
           "livemode": {
             "type": "boolean"
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -11203,6 +11376,7 @@
           "createdAt",
           "updatedAt",
           "livemode",
+          "pricingModelId",
           "status",
           "priceId",
           "purchaseId",
@@ -11372,6 +11546,9 @@
           "livemode": {
             "type": "boolean"
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -11531,6 +11708,7 @@
           "createdAt",
           "updatedAt",
           "livemode",
+          "pricingModelId",
           "status",
           "priceId",
           "purchaseId",
@@ -11573,6 +11751,9 @@
           },
           "livemode": {
             "type": "boolean"
+          },
+          "pricingModelId": {
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -11744,6 +11925,7 @@
           "createdAt",
           "updatedAt",
           "livemode",
+          "pricingModelId",
           "status",
           "priceId",
           "purchaseId",
@@ -11782,6 +11964,9 @@
           },
           "livemode": {
             "type": "boolean"
+          },
+          "pricingModelId": {
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -11974,6 +12159,7 @@
           "createdAt",
           "updatedAt",
           "livemode",
+          "pricingModelId",
           "status",
           "priceId",
           "purchaseId",
@@ -12014,6 +12200,9 @@
           },
           "livemode": {
             "type": "boolean"
+          },
+          "pricingModelId": {
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -12190,6 +12379,7 @@
           "createdAt",
           "updatedAt",
           "livemode",
+          "pricingModelId",
           "status",
           "priceId",
           "quantity",
@@ -17450,6 +17640,39 @@
           "type",
           "stackAuthHostedBillingUserId",
           "hashText"
+        ],
+        "additionalProperties": false
+      },
+      "AdjustSubscriptionOutput": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "$ref": "#/components/schemas/SubscriptionClientSelectSchema"
+          },
+          "subscriptionItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionItemRecordOutput"
+            }
+          },
+          "resolvedTiming": {
+            "description": "The actual timing applied. When 'auto' timing is requested, this indicates whether the adjustment was applied immediately (for upgrades) or at the end of the billing period (for downgrades).",
+            "type": "string",
+            "enum": [
+              "immediately",
+              "at_end_of_current_billing_period"
+            ]
+          },
+          "isUpgrade": {
+            "description": "Whether this adjustment is an upgrade (true) or downgrade/lateral move (false). An upgrade means the new plan total is greater than the old plan total.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "subscription",
+          "subscriptionItems",
+          "resolvedTiming",
+          "isUpgrade"
         ],
         "additionalProperties": false
       },

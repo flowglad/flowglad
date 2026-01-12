@@ -16,6 +16,7 @@ import {
   livemodePolicy,
   merchantPolicy,
   notNullStringForeignKey,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   type SelectConditions,
   tableBase,
@@ -82,7 +83,7 @@ export const discounts = pgTable(
           as: 'permissive',
           to: 'all',
           for: 'all',
-          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+          using: orgIdEqualsCurrentSQL(),
         }
       ),
     ]

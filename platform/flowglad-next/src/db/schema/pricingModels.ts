@@ -11,6 +11,7 @@ import {
   livemodePolicy,
   merchantPolicy,
   notNullStringForeignKey,
+  orgIdEqualsCurrentSQL,
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
@@ -48,7 +49,7 @@ export const pricingModels = pgTable(
           as: 'permissive',
           to: 'merchant',
           for: 'all',
-          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+          using: orgIdEqualsCurrentSQL(),
         }
       ),
       livemodePolicy(TABLE_NAME),

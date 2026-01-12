@@ -30,6 +30,7 @@ import {
   notNullStringForeignKey,
   nullableStringForeignKey,
   ommittedColumnsForInsertSchema,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   type SelectConditions,
   tableBase,
@@ -43,6 +44,7 @@ import core, { safeZodNonNegativeInteger } from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 import { billingPeriods } from './billingPeriods'
 import { prices } from './prices'
+import { pricingModels } from './pricingModels'
 
 const TABLE_NAME = 'fee_calculations'
 
@@ -57,6 +59,10 @@ export const feeCalculations = pgTable(
     organizationId: notNullStringForeignKey(
       'organization_id',
       organizations
+    ),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
     ),
     checkoutSessionId: nullableStringForeignKey(
       'checkout_session_id',
@@ -109,6 +115,7 @@ export const feeCalculations = pgTable(
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.organizationId]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       constructIndex(TABLE_NAME, [table.checkoutSessionId]),
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructIndex(TABLE_NAME, [table.discountId]),
@@ -117,7 +124,7 @@ export const feeCalculations = pgTable(
         as: 'permissive',
         to: 'merchant',
         for: 'select',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        using: orgIdEqualsCurrentSQL(),
       }),
     ]
   }
@@ -151,6 +158,7 @@ const subscriptionFeeCalculationExtension = {
 
 const readOnlyColumns = {
   organizationId: true,
+  pricingModelId: true,
   checkoutSessionId: true,
   purchaseId: true,
   livemode: true,
@@ -179,6 +187,9 @@ export const {
     ...subscriptionFeeCalculationExtension,
     type: z.literal(FeeCalculationType.SubscriptionPayment),
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns,
     readOnlyColumns,
@@ -206,6 +217,9 @@ export const {
     ...columnRefinements,
     ...checkoutSessionFeeCalculationExtension,
     type: z.literal(FeeCalculationType.CheckoutSessionPayment),
+  },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
   },
   client: {
     hiddenColumns,

@@ -9,6 +9,7 @@ import {
   livemodePolicy,
   merchantPolicy,
   notNullStringForeignKey,
+  orgIdEqualsCurrentSQL,
   pgEnumColumn,
   tableBase,
 } from '@/db/tableUtils'
@@ -71,7 +72,7 @@ export const ledgerTransactions = pgTable(
         as: 'permissive',
         to: 'merchant',
         for: 'all',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        using: orgIdEqualsCurrentSQL(),
       }
     ),
     livemodePolicy(TABLE_NAME),

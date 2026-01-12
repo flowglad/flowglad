@@ -65,6 +65,7 @@ import {
   BillingPeriodStatus,
   IntervalUnit,
   PriceType,
+  SubscriptionAdjustmentTiming,
   SubscriptionStatus,
 } from '@/types'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
@@ -89,6 +90,26 @@ export const subscriptionsRouteConfigs = [
   }),
 ]
 
+const adjustSubscriptionOutputSchema = z
+  .object({
+    subscription: subscriptionClientSelectSchema,
+    subscriptionItems: subscriptionItemClientSelectSchema.array(),
+    resolvedTiming: z
+      .enum([
+        SubscriptionAdjustmentTiming.Immediately,
+        SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+      ])
+      .describe(
+        "The actual timing applied. When 'auto' timing is requested, this indicates whether the adjustment was applied immediately (for upgrades) or at the end of the billing period (for downgrades)."
+      ),
+    isUpgrade: z
+      .boolean()
+      .describe(
+        'Whether this adjustment is an upgrade (true) or downgrade/lateral move (false). An upgrade means the new plan total is greater than the old plan total.'
+      ),
+  })
+  .meta({ id: 'AdjustSubscriptionOutput' })
+
 const adjustSubscriptionProcedure = protectedProcedure
   .meta({
     openapi: {
@@ -96,18 +117,13 @@ const adjustSubscriptionProcedure = protectedProcedure
       path: '/api/v1/subscriptions/{id}/adjust',
       summary: 'Adjust Subscription',
       description:
-        'Note: Immediate adjustments are in private preview (Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616). Adjustments at the end of the current billing period are generally available.',
+        "Adjust an active subscription by changing its plan or quantity. Supports immediate adjustments with proration, end-of-billing-period adjustments for downgrades, and auto timing that automatically chooses based on whether it's an upgrade or downgrade. Also supports priceSlug for referencing prices by slug instead of id.",
       tags: ['Subscriptions'],
       protect: true,
     },
   })
   .input(adjustSubscriptionInputSchema)
-  .output(
-    z.object({
-      subscription: subscriptionClientSelectSchema,
-      subscriptionItems: subscriptionItemClientSelectSchema.array(),
-    })
-  )
+  .output(adjustSubscriptionOutputSchema)
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, transaction, ctx }) => {
@@ -117,12 +133,16 @@ const adjustSubscriptionProcedure = protectedProcedure
             message: 'Organization not found',
           })
         }
-        const { subscription, subscriptionItems } =
-          await adjustSubscription(
-            input,
-            ctx.organization,
-            transaction
-          )
+        const {
+          subscription,
+          subscriptionItems,
+          resolvedTiming,
+          isUpgrade,
+        } = await adjustSubscription(
+          input,
+          ctx.organization,
+          transaction
+        )
         return {
           result: {
             subscription: {
@@ -133,6 +153,8 @@ const adjustSubscriptionProcedure = protectedProcedure
               ),
             },
             subscriptionItems,
+            resolvedTiming,
+            isUpgrade,
           },
         }
       }

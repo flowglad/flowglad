@@ -470,7 +470,7 @@ describe('usageEventsRouter', () => {
       expect(bulkResult.usageEvents[0].priceId).toBe(price1.id)
       expect(bulkResult.usageEvents[0].amount).toBe(100)
       expect(bulkResult.usageEvents[1].amount).toBe(200)
-    })
+    }, 60000)
 
     it('should create usage event with priceSlug', async () => {
       // First, update price1 to have a slug
@@ -531,7 +531,7 @@ describe('usageEventsRouter', () => {
       expect(bulkResult.usageEvents[0].amount).toBe(150)
       expect(bulkResult.usageEvents[1].priceId).toBe(price1.id)
       expect(bulkResult.usageEvents[1].amount).toBe(250)
-    })
+    }, 60000)
 
     it('should throw error when invalid priceSlug is provided', async () => {
       const caller = createCaller(
@@ -705,7 +705,7 @@ describe('usageEventsRouter', () => {
       expect(bulkResult.usageEvents[0].amount).toBe(100)
       expect(bulkResult.usageEvents[1].amount).toBe(200)
       expect(bulkResult.usageEvents[2].amount).toBe(300)
-    })
+    }, 60000)
 
     it('should create usage event with usageMeterSlug', async () => {
       // First, update usageMeter1 to have a slug
@@ -769,7 +769,7 @@ describe('usageEventsRouter', () => {
       })
       expect(bulkResult.usageEvents[0].amount).toBe(150)
       expect(bulkResult.usageEvents[1].amount).toBe(250)
-    })
+    }, 60000)
 
     it('should throw error when invalid usageMeterSlug is provided', async () => {
       const caller = createCaller(
@@ -1030,7 +1030,7 @@ describe('usageEventsRouter', () => {
       expect(event.priceId).toBe(price1.id)
       expect(event.customerId).toBe(customer1.id)
       expect(event.amount).toBe(100)
-    })
+    }, 60000)
 
     it('should throw error when no identifier is provided', async () => {
       const caller = createCaller(

@@ -17,7 +17,6 @@ import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { Button } from '@/components/ui/button'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import {
   Table,
   TableBody,
@@ -36,22 +35,12 @@ export interface ApiKeysTableFilters {
 
 interface ApiKeysDataTableProps {
   filters?: ApiKeysTableFilters
-  title?: string
   onCreateApiKey?: () => void
-  buttonVariant?:
-    | 'default'
-    | 'outline'
-    | 'ghost'
-    | 'link'
-    | 'secondary'
-    | 'destructive'
 }
 
 export function ApiKeysDataTable({
   filters = {},
-  title,
   onCreateApiKey,
-  buttonVariant = 'default',
 }: ApiKeysDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -137,24 +126,19 @@ export function ApiKeysDataTable({
 
   return (
     <div className="w-full">
-      {/* Enhanced toolbar */}
-      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
-        {/* Title on the left (for detail pages) */}
-        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && <h3 className="text-lg truncate">{title}</h3>}
+      {/* Toolbar */}
+      {onCreateApiKey && (
+        <div className="flex items-center justify-end pt-1 pb-2 px-4">
+          <Button
+            onClick={onCreateApiKey}
+            variant="secondary"
+            size="sm"
+          >
+            <Plus className="w-4 h-4" />
+            Create API Key
+          </Button>
         </div>
-
-        {/* Controls on the right */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <DataTableViewOptions table={table} />
-          {onCreateApiKey && (
-            <Button onClick={onCreateApiKey} variant={buttonVariant}>
-              <Plus className="w-4 h-4" />
-              Create API Key
-            </Button>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Table */}
       <Table className="w-full" style={{ tableLayout: 'fixed' }}>
@@ -222,7 +206,7 @@ export function ApiKeysDataTable({
       </Table>
 
       {/* Pagination */}
-      <div className="py-2">
+      <div className="py-2 px-4">
         <DataTablePagination
           table={table}
           totalCount={data?.total}

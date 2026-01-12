@@ -11,6 +11,7 @@ import {
   setupOrg,
   setupPrice,
   setupProduct,
+  setupPurchase,
   setupUsageMeter,
   teardownOrg,
 } from '@/../seedDatabase'
@@ -18,6 +19,7 @@ import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { CheckoutSessionType, IntervalUnit, PriceType } from '@/types'
 import { core } from '@/utils/core'
@@ -30,9 +32,11 @@ describe('createNonInvoiceCheckoutSession', () => {
   let subscriptionPrice: Price.Record
   let usagePrice: Price.Record
   let usageMeter: UsageMeter.Record
+  let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
-    const { organization: org, pricingModel } = await setupOrg()
+    const { organization: org, pricingModel: pm } = await setupOrg()
+    pricingModel = pm
     organization = org
     customer = await setupCustomer({
       organizationId: organization.id,
@@ -158,6 +162,10 @@ describe('createNonInvoiceCheckoutSession', () => {
       expect(checkoutSession.stripeSetupIntentId).toBeNull()
       expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
       expect(checkoutSession.priceId).toBe(singlePaymentPrice.id)
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+      expect(checkoutSession.pricingModelId).toBe(
+        singlePaymentPrice.pricingModelId
+      )
     })
 
     it('should create a checkout session for a Subscription product', async () => {
@@ -176,6 +184,10 @@ describe('createNonInvoiceCheckoutSession', () => {
       expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
       expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
       expect(checkoutSession.priceId).toBe(subscriptionPrice.id)
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+      expect(checkoutSession.pricingModelId).toBe(
+        subscriptionPrice.pricingModelId
+      )
     })
 
     it('should create a checkout session for a Usage-based product', async () => {
@@ -193,6 +205,10 @@ describe('createNonInvoiceCheckoutSession', () => {
       expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
       expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
       expect(checkoutSession.priceId).toBe(usagePrice.id)
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+      expect(checkoutSession.pricingModelId).toBe(
+        usagePrice.pricingModelId
+      )
     })
   })
 
@@ -217,6 +233,96 @@ describe('createNonInvoiceCheckoutSession', () => {
       )
       expect(checkoutSession.targetSubscriptionId).toBe('sub_123')
       expect(checkoutSession.customerId).toBe(customer.id)
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+      expect(checkoutSession.pricingModelId).toBe(
+        subscriptionPrice.pricingModelId
+      )
+    })
+  })
+
+  describe('Purchase checkout sessions', () => {
+    it('should derive pricingModelId from price for SinglePayment purchase', async () => {
+      const purchase = await setupPurchase({
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: singlePaymentPrice.id,
+        livemode: false,
+      })
+
+      const checkoutSession = await adminTransaction(
+        async ({ transaction }) =>
+          createNonInvoiceCheckoutSession(
+            {
+              price: singlePaymentPrice,
+              organizationId: organization.id,
+              purchase,
+            },
+            transaction
+          )
+      )
+
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+      expect(checkoutSession.pricingModelId).toBe(
+        singlePaymentPrice.pricingModelId
+      )
+      expect(checkoutSession.type).toBe(CheckoutSessionType.Purchase)
+      expect(checkoutSession.purchaseId).toBe(purchase.id)
+    })
+
+    it('should derive pricingModelId from price for Subscription purchase', async () => {
+      const purchase = await setupPurchase({
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: subscriptionPrice.id,
+        livemode: false,
+      })
+
+      const checkoutSession = await adminTransaction(
+        async ({ transaction }) =>
+          createNonInvoiceCheckoutSession(
+            {
+              price: subscriptionPrice,
+              organizationId: organization.id,
+              purchase,
+            },
+            transaction
+          )
+      )
+
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+      expect(checkoutSession.pricingModelId).toBe(
+        subscriptionPrice.pricingModelId
+      )
+      expect(checkoutSession.type).toBe(CheckoutSessionType.Purchase)
+      expect(checkoutSession.purchaseId).toBe(purchase.id)
+    })
+
+    it('should derive pricingModelId from price for Usage purchase', async () => {
+      const purchase = await setupPurchase({
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: usagePrice.id,
+        livemode: false,
+      })
+
+      const checkoutSession = await adminTransaction(
+        async ({ transaction }) =>
+          createNonInvoiceCheckoutSession(
+            {
+              price: usagePrice,
+              organizationId: organization.id,
+              purchase,
+            },
+            transaction
+          )
+      )
+
+      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+      expect(checkoutSession.pricingModelId).toBe(
+        usagePrice.pricingModelId
+      )
+      expect(checkoutSession.type).toBe(CheckoutSessionType.Purchase)
+      expect(checkoutSession.purchaseId).toBe(purchase.id)
     })
   })
 })

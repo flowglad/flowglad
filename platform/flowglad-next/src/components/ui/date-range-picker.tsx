@@ -85,14 +85,14 @@ export function DateRangePicker({
             id="date"
             variant="secondary"
             className={cn(
-              'w-[300px] justify-start text-left font-normal',
+              'h-8 justify-start text-left font-normal',
               !selectedRange?.from && 'text-muted-foreground'
             )}
             disabled={disabled}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
             {formatDateRange()}
-            <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
+            <ChevronDown className="h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent

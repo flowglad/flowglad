@@ -17,7 +17,6 @@ import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { Button } from '@/components/ui/button'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import {
   Table,
   TableBody,
@@ -35,22 +34,12 @@ export type OrganizationMembersTableFilters = {}
 
 interface OrganizationMembersDataTableProps {
   filters?: OrganizationMembersTableFilters
-  title?: string
   onInviteMember?: () => void
-  buttonVariant?:
-    | 'default'
-    | 'outline'
-    | 'ghost'
-    | 'link'
-    | 'secondary'
-    | 'destructive'
 }
 
 export function OrganizationMembersDataTable({
   filters = {},
-  title,
   onInviteMember,
-  buttonVariant = 'default',
 }: OrganizationMembersDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -137,24 +126,19 @@ export function OrganizationMembersDataTable({
 
   return (
     <div className="w-full">
-      {/* Enhanced toolbar */}
-      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
-        {/* Title on the left (for detail pages) */}
-        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && <h3 className="text-lg truncate">{title}</h3>}
+      {/* Toolbar */}
+      {onInviteMember && (
+        <div className="flex items-center justify-end pt-1 pb-2 px-4">
+          <Button
+            onClick={onInviteMember}
+            variant="secondary"
+            size="sm"
+          >
+            <UserPlus className="w-4 h-4" />
+            Invite Teammate
+          </Button>
         </div>
-
-        {/* Controls on the right */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <DataTableViewOptions table={table} />
-          {onInviteMember && (
-            <Button onClick={onInviteMember} variant={buttonVariant}>
-              <UserPlus className="w-4 h-4" />
-              Invite Teammate
-            </Button>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Table */}
       <Table className="w-full" style={{ tableLayout: 'fixed' }}>
@@ -222,7 +206,7 @@ export function OrganizationMembersDataTable({
       </Table>
 
       {/* Pagination */}
-      <div className="py-2">
+      <div className="py-2 px-4">
         <DataTablePagination
           table={table}
           totalCount={data?.total}
