@@ -61,7 +61,7 @@ import {
   bulkInsertLedgerEntries,
   derivePricingModelIdForLedgerEntry,
   insertLedgerEntry,
-  selectUsageMeterBalancesForSubscription,
+  selectUsageMeterBalancesBySubscriptionId,
 } from './ledgerEntryMethods'
 
 describe('ledgerEntryMethods', () => {
@@ -3984,7 +3984,7 @@ describe('ledgerEntryMethods', () => {
     })
   })
 
-  describe('selectUsageMeterBalancesForSubscription', () => {
+  describe('selectUsageMeterBalancesBySubscriptionId', () => {
     it('returns aggregated balances for a subscription with usage - credits minus debits equals availableBalance', async () => {
       await adminTransaction(async ({ transaction }) => {
         const testLedgerTransaction = await setupLedgerTransaction({
@@ -4059,9 +4059,10 @@ describe('ledgerEntryMethods', () => {
           transaction
         )
 
-        const result = await selectUsageMeterBalancesForSubscription(
+        const result = await selectUsageMeterBalancesBySubscriptionId(
           subscription.id,
           transaction,
+          true, // livemode
           { ignoreCache: true }
         )
 
@@ -4093,9 +4094,10 @@ describe('ledgerEntryMethods', () => {
           livemode: true,
         })
 
-        const result = await selectUsageMeterBalancesForSubscription(
+        const result = await selectUsageMeterBalancesBySubscriptionId(
           newSubscription.id,
           transaction,
+          true, // livemode
           { ignoreCache: true }
         )
 
@@ -4145,9 +4147,10 @@ describe('ledgerEntryMethods', () => {
           transaction
         )
 
-        const result = await selectUsageMeterBalancesForSubscription(
+        const result = await selectUsageMeterBalancesBySubscriptionId(
           subscription.id,
           transaction,
+          true, // livemode
           { ignoreCache: true }
         )
 
@@ -4228,9 +4231,10 @@ describe('ledgerEntryMethods', () => {
           transaction
         )
 
-        const result = await selectUsageMeterBalancesForSubscription(
+        const result = await selectUsageMeterBalancesBySubscriptionId(
           subscription.id,
           transaction,
+          true, // livemode
           { ignoreCache: true }
         )
 

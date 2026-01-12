@@ -44,7 +44,7 @@ import {
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
 import { createDateNotPassedFilter } from '../tableUtils'
-import { selectUsageMeterBalancesForSubscription } from './ledgerEntryMethods'
+import { selectUsageMeterBalancesBySubscriptionIds } from './ledgerEntryMethods'
 import {
   expireSubscriptionItemFeaturesForSubscriptionItems,
   selectSubscriptionItemFeaturesWithFeatureSlug,
@@ -586,12 +586,14 @@ export const selectRichSubscriptionsAndActiveItems = async (
       transaction
     )
 
-  // Step 5b: Fetch meter balances - use cache per subscription
-  const usageMeterBalancesPromise = Promise.all(
-    subscriptionIds.map((id) =>
-      selectUsageMeterBalancesForSubscription(id, transaction)
+  // Step 5b: Fetch meter balances - uses bulk cache for efficiency
+  // MGET for single Redis round-trip, then single DB query for all misses
+  const usageMeterBalancesPromise =
+    selectUsageMeterBalancesBySubscriptionIds(
+      subscriptionIds,
+      transaction,
+      livemode
     )
-  ).then((results) => results.flat())
 
   const [allSubscriptionItemFeatures, usageMeterBalances] =
     await Promise.all([
