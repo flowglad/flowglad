@@ -474,6 +474,7 @@ async function cachedBulkLookupImpl<TKey, TResult>(
       }
     }
 
+    span.setAttribute('cache.hit', missedKeys.length === 0)
     span.setAttribute('cache.bulk_hit_count', hitCount)
     span.setAttribute('cache.bulk_miss_count', missedKeys.length)
 
@@ -496,6 +497,7 @@ async function cachedBulkLookupImpl<TKey, TResult>(
     // Fail open - all keys become misses
     const errorMessage =
       error instanceof Error ? error.message : String(error)
+    span.setAttribute('cache.hit', false)
     span.setAttribute('cache.bulk_error', errorMessage)
     logger.error('Bulk cache read error', {
       namespace: config.namespace,
