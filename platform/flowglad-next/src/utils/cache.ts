@@ -291,6 +291,203 @@ export function cached<TArgs extends unknown[], TResult>(
 }
 
 /**
+ * Configuration for bulk cache operations.
+ */
+export interface BulkCacheConfig<TKey, TResult> {
+  namespace: RedisKeyNamespace
+  /** Convert a key to its cache key suffix */
+  keyFn: (key: TKey) => string
+  /** Zod schema for validating cached data */
+  schema: z.ZodType<TResult>
+  /** Get dependencies for a single key */
+  dependenciesFn: (key: TKey) => CacheDependencyKey[]
+}
+
+/**
+ * Bulk cache lookup with fallback to a single database query for misses.
+ *
+ * This optimizes the N+1 cache lookup pattern by:
+ * 1. Using Redis MGET to fetch all cache keys in one round-trip
+ * 2. Identifying cache misses
+ * 3. Calling the bulk fetch function once for all misses
+ * 4. Writing back individual cache entries for each miss
+ *
+ * This provides the best of both worlds:
+ * - Fine-grained cache invalidation (per-key)
+ * - Efficient bulk database queries (single query for all misses)
+ * - Single Redis round-trip for cache lookups
+ *
+ * @param config - Cache configuration
+ * @param keys - Array of keys to look up
+ * @param bulkFetchFn - Function to fetch all missing items in one query
+ * @param groupByKey - Function to extract the key from a result item (for grouping bulk results)
+ * @returns Map of key -> result (empty array if no items for that key)
+ */
+export async function cachedBulkLookup<TKey, TResult>(
+  config: BulkCacheConfig<TKey, TResult[]>,
+  keys: TKey[],
+  bulkFetchFn: (keys: TKey[]) => Promise<TResult[]>,
+  groupByKey: (item: TResult) => TKey
+): Promise<Map<TKey, TResult[]>> {
+  if (keys.length === 0) {
+    return new Map()
+  }
+
+  const span = trace.getActiveSpan()
+  const redisClient = redis()
+  const ttl = getTtlForNamespace(config.namespace)
+
+  // Build cache keys for all input keys
+  const cacheKeyMap = new Map<string, TKey>()
+  const fullCacheKeys: string[] = []
+  for (const key of keys) {
+    const suffix = config.keyFn(key)
+    const fullKey = `${config.namespace}:${suffix}`
+    cacheKeyMap.set(fullKey, key)
+    fullCacheKeys.push(fullKey)
+  }
+
+  const results = new Map<TKey, TResult[]>()
+  const missedKeys: TKey[] = []
+
+  // Step 1: Bulk fetch from cache using MGET
+  try {
+    const startTime = Date.now()
+    const cachedValues = (await redisClient.mget(
+      ...fullCacheKeys
+    )) as (TResult[] | null)[]
+    const latencyMs = Date.now() - startTime
+
+    span?.setAttribute('cache.bulk_lookup_count', keys.length)
+    span?.setAttribute('cache.bulk_latency_ms', latencyMs)
+
+    // Process cached values
+    let hitCount = 0
+    for (let i = 0; i < fullCacheKeys.length; i++) {
+      const fullKey = fullCacheKeys[i]
+      const key = cacheKeyMap.get(fullKey)!
+      const cachedValue = cachedValues[i]
+
+      if (cachedValue !== null) {
+        // Parse and validate
+        const jsonValue =
+          typeof cachedValue === 'string'
+            ? JSON.parse(cachedValue)
+            : cachedValue
+
+        const parsed = config.schema.safeParse(jsonValue)
+        if (parsed.success) {
+          results.set(key, parsed.data)
+          hitCount++
+        } else {
+          // Schema validation failed - treat as miss
+          logger.warn('Bulk cache schema validation failed', {
+            key: fullKey,
+            error: parsed.error.message,
+          })
+          missedKeys.push(key)
+        }
+      } else {
+        missedKeys.push(key)
+      }
+    }
+
+    span?.setAttribute('cache.bulk_hit_count', hitCount)
+    span?.setAttribute('cache.bulk_miss_count', missedKeys.length)
+
+    logger.debug('Bulk cache lookup', {
+      namespace: config.namespace,
+      totalKeys: keys.length,
+      hits: hitCount,
+      misses: missedKeys.length,
+      latency_ms: latencyMs,
+    })
+  } catch (error) {
+    // Fail open - all keys become misses
+    const errorMessage =
+      error instanceof Error ? error.message : String(error)
+    span?.setAttribute('cache.bulk_error', errorMessage)
+    logger.error('Bulk cache read error', {
+      namespace: config.namespace,
+      error: errorMessage,
+    })
+    missedKeys.push(...keys)
+  }
+
+  // Step 2: Bulk fetch from database for misses
+  if (missedKeys.length > 0) {
+    try {
+      const fetchedItems = await bulkFetchFn(missedKeys)
+
+      // Group fetched items by key
+      const fetchedByKey = new Map<TKey, TResult[]>()
+      for (const key of missedKeys) {
+        fetchedByKey.set(key, [])
+      }
+      for (const item of fetchedItems) {
+        const key = groupByKey(item)
+        const existing = fetchedByKey.get(key)
+        if (existing) {
+          existing.push(item)
+        }
+      }
+
+      // Add to results and write to cache
+      for (const [key, items] of fetchedByKey) {
+        results.set(key, items)
+
+        // Write to cache (fire-and-forget)
+        const suffix = config.keyFn(key)
+        const fullKey = `${config.namespace}:${suffix}`
+        const dependencies = config.dependenciesFn(key)
+
+        try {
+          await redisClient.set(fullKey, JSON.stringify(items), {
+            ex: ttl,
+          })
+          await registerDependencies(fullKey, dependencies)
+        } catch (writeError) {
+          // Log but don't fail
+          logger.error('Bulk cache write error', {
+            key: fullKey,
+            error:
+              writeError instanceof Error
+                ? writeError.message
+                : String(writeError),
+          })
+        }
+      }
+    } catch (fetchError) {
+      // If bulk fetch fails, we don't have data for missed keys
+      // Return empty arrays for them
+      const errorMessage =
+        fetchError instanceof Error
+          ? fetchError.message
+          : String(fetchError)
+      logger.error('Bulk fetch error', {
+        missedKeys: missedKeys.length,
+        error: errorMessage,
+      })
+      for (const key of missedKeys) {
+        if (!results.has(key)) {
+          results.set(key, [])
+        }
+      }
+      throw fetchError // Re-throw so caller knows the fetch failed
+    }
+  }
+
+  // Ensure all keys have entries (empty array for keys with no items)
+  for (const key of keys) {
+    if (!results.has(key)) {
+      results.set(key, [])
+    }
+  }
+
+  return results
+}
+
+/**
  * Invalidate all cache entries that depend on the given dependency keys.
  *
  * This is the core invalidation function. It:

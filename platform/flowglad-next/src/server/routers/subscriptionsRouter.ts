@@ -162,8 +162,10 @@ const adjustSubscriptionProcedure = protectedProcedure
     } = adjustmentResult
 
     // Invalidate caches after transaction committed (fire-and-forget)
+    // Deduplicate to reduce unnecessary Redis operations
     if (cacheInvalidations.length > 0) {
-      void invalidateDependencies(cacheInvalidations)
+      const uniqueInvalidations = [...new Set(cacheInvalidations)]
+      void invalidateDependencies(uniqueInvalidations)
     }
 
     // Step 2: If there's a pending billing run, wait for it to complete

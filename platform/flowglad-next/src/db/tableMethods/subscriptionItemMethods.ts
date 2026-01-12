@@ -26,7 +26,11 @@ import {
   richSubscriptionClientSelectSchema,
 } from '@/subscriptions/schemas'
 import type { SubscriptionStatus } from '@/types'
-import { CacheDependency, cached } from '@/utils/cache'
+import {
+  CacheDependency,
+  cached,
+  cachedBulkLookup,
+} from '@/utils/cache'
 import core from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'
 import {
@@ -378,6 +382,66 @@ export const selectSubscriptionItemsWithPricesBySubscriptionId =
     )
   }
 
+/** Type alias for subscription item with price result */
+type SubscriptionItemWithPrice = {
+  subscriptionItem: SubscriptionItem.Record
+  price: Price.ClientRecord | null
+}
+
+/**
+ * Bulk fetch subscription items with prices for multiple subscriptions.
+ * Uses optimized cache strategy:
+ * 1. Single MGET to Redis for all subscription cache keys
+ * 2. Single DB query for all cache misses
+ * 3. Individual cache writes for each miss
+ *
+ * This provides both fine-grained invalidation AND efficient bulk operations.
+ *
+ * @param subscriptionIds - Array of subscription IDs to fetch items for
+ * @param transaction - Database transaction
+ * @param livemode - Required for cache key scoping
+ * @returns Array of subscription items with their prices (flat, not grouped)
+ */
+export const selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached =
+  async (
+    subscriptionIds: string[],
+    transaction: DbTransaction,
+    livemode: boolean
+  ): Promise<SubscriptionItemWithPrice[]> => {
+    if (subscriptionIds.length === 0) {
+      return []
+    }
+
+    const resultsMap = await cachedBulkLookup<
+      string,
+      SubscriptionItemWithPrice
+    >(
+      {
+        namespace: RedisKeyNamespace.ItemsBySubscription,
+        keyFn: (subscriptionId: string) =>
+          `${subscriptionId}:${livemode}`,
+        schema: subscriptionItemWithPriceSchema.array(),
+        dependenciesFn: (subscriptionId: string) => [
+          CacheDependency.subscriptionItems(subscriptionId),
+        ],
+      },
+      subscriptionIds,
+      // Bulk fetch function for cache misses
+      async (missedSubscriptionIds: string[]) => {
+        return selectSubscriptionItemsWithPricesBySubscriptionIds(
+          missedSubscriptionIds,
+          transaction
+        )
+      },
+      // Group by key - extract subscription ID from each item
+      (item: SubscriptionItemWithPrice) =>
+        item.subscriptionItem.subscriptionId
+    )
+
+    // Flatten the results map into a single array
+    return Array.from(resultsMap.values()).flat()
+  }
+
 /**
  * Processes subscription and item data to build the rich subscriptions map.
  * This helper function handles:
@@ -482,18 +546,14 @@ export const selectRichSubscriptionsAndActiveItems = async (
     return []
   }
 
-  // Step 2: Fetch subscription items with prices - use cache per subscription
-  const itemsWithPrices = (
-    await Promise.all(
-      subscriptionIds.map((id) =>
-        selectSubscriptionItemsWithPricesBySubscriptionId(
-          id,
-          transaction,
-          livemode
-        )
-      )
+  // Step 2: Fetch subscription items with prices using optimized bulk cache lookup
+  // This uses MGET for cache lookups + single DB query for misses
+  const itemsWithPrices =
+    await selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached(
+      subscriptionIds,
+      transaction,
+      livemode
     )
-  ).flat()
 
   // Step 3: Build the rich subscriptions map
   const richSubscriptionsMap = buildRichSubscriptionsMap(
