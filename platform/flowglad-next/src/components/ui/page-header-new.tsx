@@ -1,6 +1,7 @@
 import { ChevronLeft, MoreHorizontal } from 'lucide-react'
 import type { ReactNode } from 'react'
 import React from 'react'
+import { LAYOUT_TOKENS } from '@/components/charts/constants'
 import { cn } from '@/lib/utils'
 import { Button } from './button'
 import {
@@ -98,7 +99,8 @@ export function PageHeaderNew({
       className={cn(
         'flex flex-col items-start justify-center w-full',
         !hideBorder && 'border-b border-dashed border-border',
-        'px-6 pt-20 pb-2',
+        LAYOUT_TOKENS.page.class,
+        'pt-20 pb-2',
         className
       )}
     >
