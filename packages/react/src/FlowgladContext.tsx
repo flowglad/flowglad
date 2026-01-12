@@ -619,7 +619,8 @@ const isDevModeProps = (
   return '__devMode' in props
 }
 
-const fetchCustomerBilling = async ({
+// Export for testing
+export const fetchCustomerBilling = async ({
   baseURL,
   betterAuthBasePath,
   requestConfig,
