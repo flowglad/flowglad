@@ -67,6 +67,27 @@ describe('organizationsRouter notification preferences', () => {
   })
 
   describe('getNotificationPreferences', () => {
+    it('throws NOT_FOUND when user has no membership in the organization', async () => {
+      // Setup a second organization to get a user without membership in the first org
+      const secondOrgSetup = await setupOrg()
+      const secondUserSetup = await setupUserAndApiKey({
+        organizationId: secondOrgSetup.organization.id,
+        livemode: true,
+      })
+
+      // Create caller with secondUser but targeting the first organization
+      // This user has no membership in the first organization
+      const caller = createCaller(
+        organization,
+        apiKeyToken,
+        secondUserSetup.user
+      )
+
+      await expect(
+        caller.getNotificationPreferences()
+      ).rejects.toThrow('Membership not found')
+    })
+
     it('returns default preferences for new membership', async () => {
       const caller = createCaller(organization, apiKeyToken, user)
 
@@ -117,6 +138,28 @@ describe('organizationsRouter notification preferences', () => {
   })
 
   describe('updateNotificationPreferences', () => {
+    it('throws NOT_FOUND when user has no membership in the organization', async () => {
+      // Setup a second organization to get a user without membership in the first org
+      const secondOrgSetup = await setupOrg()
+      const secondUserSetup = await setupUserAndApiKey({
+        organizationId: secondOrgSetup.organization.id,
+        livemode: true,
+      })
+
+      // Create caller with secondUser but targeting the first organization
+      const caller = createCaller(
+        organization,
+        apiKeyToken,
+        secondUserSetup.user
+      )
+
+      await expect(
+        caller.updateNotificationPreferences({
+          preferences: { testModeNotifications: true },
+        })
+      ).rejects.toThrow('Membership not found')
+    })
+
     it('updates specified preferences while preserving unspecified ones', async () => {
       // First set some initial preferences
       await adminTransaction(async ({ transaction }) => {
