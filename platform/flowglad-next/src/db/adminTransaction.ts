@@ -1,6 +1,9 @@
 import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
-import type { AdminTransactionParams } from '@/db/types'
+import type {
+  AdminTransactionParams,
+  TransactionEffects,
+} from '@/db/types'
 import {
   type CacheDependencyKey,
   invalidateDependencies,
@@ -9,9 +12,9 @@ import { isNil } from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
 import { processLedgerCommand } from './ledgerManager/ledgerManager'
+import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 import type { Event } from './schema/events'
 import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
-// New imports for ledger and transaction output types
 import type { TransactionOutput } from './transactionEnhacementTypes'
 
 interface AdminTransactionOptions {
@@ -46,7 +49,25 @@ const executeComprehensiveAdminTransaction = async <T>(
   ) => Promise<TransactionOutput<T>>,
   effectiveLivemode: boolean
 ): Promise<TransactionOutput<T>> => {
-  // Collect cache invalidations to process after commit
+  // Create effects accumulator - shared across all nested function calls
+  const effects: TransactionEffects = {
+    cacheInvalidations: [],
+    eventsToInsert: [],
+    ledgerCommands: [],
+  }
+
+  // Helper functions that push to the effects arrays
+  const invalidateCache = (...keys: CacheDependencyKey[]) => {
+    effects.cacheInvalidations.push(...keys)
+  }
+  const emitEvent = (...events: Event.Insert[]) => {
+    effects.eventsToInsert.push(...events)
+  }
+  const enqueueLedgerCommand = (...commands: LedgerCommand[]) => {
+    effects.ledgerCommands.push(...commands)
+  }
+
+  // Collect cache invalidations to process after commit (from both effects and output)
   let cacheInvalidations: CacheDependencyKey[] = []
 
   const output = await db.transaction(async (transaction) => {
@@ -60,11 +81,15 @@ const executeComprehensiveAdminTransaction = async <T>(
       transaction,
       userId: 'ADMIN',
       livemode: effectiveLivemode,
+      effects,
+      invalidateCache,
+      emitEvent,
+      enqueueLedgerCommand,
     }
 
     const output = await fn(paramsForFn)
 
-    // Validate that only one of ledgerCommand or ledgerCommands is provided
+    // Validate that only one of ledgerCommand or ledgerCommands is provided in output
     if (
       output.ledgerCommand &&
       output.ledgerCommands &&
@@ -75,33 +100,32 @@ const executeComprehensiveAdminTransaction = async <T>(
       )
     }
 
+    // Merge effects with output - effects accumulator takes precedence for arrays
+    const allEvents = [
+      ...effects.eventsToInsert,
+      ...(output.eventsToInsert ?? []),
+    ]
+    const allLedgerCommands = [
+      ...effects.ledgerCommands,
+      ...(output.ledgerCommand ? [output.ledgerCommand] : []),
+      ...(output.ledgerCommands ?? []),
+    ]
+
     // Process events if any
-    if (output.eventsToInsert && output.eventsToInsert.length > 0) {
-      await bulkInsertOrDoNothingEventsByHash(
-        output.eventsToInsert,
-        transaction
-      )
+    if (allEvents.length > 0) {
+      await bulkInsertOrDoNothingEventsByHash(allEvents, transaction)
     }
 
     // Process ledger commands if any
-    if (output.ledgerCommand) {
-      await processLedgerCommand(output.ledgerCommand, transaction)
-    } else if (
-      output.ledgerCommands &&
-      output.ledgerCommands.length > 0
-    ) {
-      for (const command of output.ledgerCommands) {
-        await processLedgerCommand(command, transaction)
-      }
+    for (const command of allLedgerCommands) {
+      await processLedgerCommand(command, transaction)
     }
 
-    // Collect cache invalidations (don't process yet - wait for commit)
-    if (
-      output.cacheInvalidations &&
-      output.cacheInvalidations.length > 0
-    ) {
-      cacheInvalidations = output.cacheInvalidations
-    }
+    // Collect cache invalidations from both sources (don't process yet - wait for commit)
+    cacheInvalidations = [
+      ...effects.cacheInvalidations,
+      ...(output.cacheInvalidations ?? []),
+    ]
 
     // Return the full output so tracing can extract metrics
     return output
