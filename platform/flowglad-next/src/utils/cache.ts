@@ -223,6 +223,11 @@ export function cached<TArgs extends unknown[], TResult>(
               key: fullKey,
               latency_ms: latencyMs,
             })
+            logger.info('cache_stats', {
+              namespace: config.namespace,
+              hit: true,
+              latency_ms: latencyMs,
+            })
             return parsed.data
           } else {
             // Schema validation failed - treat as cache miss
@@ -232,11 +237,22 @@ export function cached<TArgs extends unknown[], TResult>(
               key: fullKey,
               error: parsed.error.message,
             })
+            logger.info('cache_stats', {
+              namespace: config.namespace,
+              hit: false,
+              validation_failed: true,
+              latency_ms: latencyMs,
+            })
           }
         } else {
           span?.setAttribute('cache.hit', false)
           logger.debug('Cache miss', {
             key: fullKey,
+            latency_ms: latencyMs,
+          })
+          logger.info('cache_stats', {
+            namespace: config.namespace,
+            hit: false,
             latency_ms: latencyMs,
           })
         }
@@ -249,6 +265,11 @@ export function cached<TArgs extends unknown[], TResult>(
         logger.error('Cache read error', {
           key: fullKey,
           error: errorMessage,
+        })
+        logger.info('cache_stats', {
+          namespace: config.namespace,
+          hit: false,
+          error: true,
         })
       }
 
