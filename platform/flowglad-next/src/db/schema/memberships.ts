@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
+import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import * as R from 'ramda'
 import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
@@ -31,6 +31,9 @@ export const memberships = pgTable(
       organizations
     ),
     focused: boolean('focused').notNull().default(false),
+    notificationPreferences: jsonb(
+      'notification_preferences'
+    ).default({}),
   },
   (table) => {
     return [
@@ -63,6 +66,41 @@ export const memberships = pgTable(
   }
 ).enableRLS()
 
+/**
+ * Zod schema for notification preferences stored in the JSONB column.
+ * Each preference defaults to true except testModeNotifications which defaults to false.
+ */
+export const notificationPreferencesSchema = z.object({
+  testModeNotifications: z.boolean().default(false),
+  subscriptionCreated: z.boolean().default(true),
+  subscriptionAdjusted: z.boolean().default(true),
+  subscriptionCanceled: z.boolean().default(true),
+  subscriptionCancellationScheduled: z.boolean().default(true),
+  paymentFailed: z.boolean().default(true),
+  onboardingCompleted: z.boolean().default(true),
+  payoutsEnabled: z.boolean().default(true),
+})
+
+export type NotificationPreferences = z.infer<
+  typeof notificationPreferencesSchema
+>
+
+/**
+ * Default notification preferences for new memberships.
+ * Test mode defaults to OFF, all notification types default to ON.
+ */
+export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences =
+  {
+    testModeNotifications: false,
+    subscriptionCreated: true,
+    subscriptionAdjusted: true,
+    subscriptionCanceled: true,
+    subscriptionCancellationScheduled: true,
+    paymentFailed: true,
+    onboardingCompleted: true,
+    payoutsEnabled: true,
+  }
+
 // Build server and client schemas using the shared builder
 export const {
   select: membershipsSelectSchema,
@@ -73,6 +111,12 @@ export const {
     update: membershipsClientUpdateSchema,
   },
 } = buildSchemas(memberships, {
+  refine: {
+    notificationPreferences: notificationPreferencesSchema
+      .partial()
+      .nullable()
+      .optional(),
+  },
   selectRefine: {
     ...newBaseZodSelectSchemaColumns,
   },

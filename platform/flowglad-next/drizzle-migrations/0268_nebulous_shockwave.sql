@@ -1,0 +1,1 @@
+ALTER TABLE "memberships" ADD COLUMN "notification_preferences" jsonb DEFAULT '{}'::jsonb;
