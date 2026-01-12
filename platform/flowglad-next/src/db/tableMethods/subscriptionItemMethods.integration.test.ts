@@ -23,7 +23,10 @@ import {
   invalidateDependencies,
 } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
-import { selectSubscriptionItemsWithPricesBySubscriptionId } from './subscriptionItemMethods'
+import {
+  selectSubscriptionItemsWithPricesBySubscriptionId,
+  selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached,
+} from './subscriptionItemMethods'
 
 /**
  * Integration tests for cached subscription item methods.
@@ -212,6 +215,225 @@ describeIfRedisKey(
             livemode
           )
         expect(result).toEqual([])
+      })
+    })
+  }
+)
+
+describeIfRedisKey(
+  'selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached Integration Tests',
+  () => {
+    let organization: Organization.Record
+    let price: Price.Record
+    let customer: Customer.Record
+    let paymentMethod: PaymentMethod.Record
+    let subscription1: Subscription.Record
+    let subscription2: Subscription.Record
+    let subscriptionItem1: SubscriptionItem.Record
+    let subscriptionItem2: SubscriptionItem.Record
+    let keysToCleanup: string[] = []
+
+    beforeEach(async () => {
+      const orgData = await setupOrg()
+      organization = orgData.organization
+      price = orgData.price
+
+      customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+
+      subscription1 = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+      })
+
+      subscription2 = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+      })
+
+      subscriptionItem1 = await setupSubscriptionItem({
+        subscriptionId: subscription1.id,
+        name: 'Item for Subscription 1',
+        quantity: 1,
+        unitPrice: 1000,
+        priceId: price.id,
+      })
+
+      subscriptionItem2 = await setupSubscriptionItem({
+        subscriptionId: subscription2.id,
+        name: 'Item for Subscription 2',
+        quantity: 2,
+        unitPrice: 2000,
+        priceId: price.id,
+      })
+
+      // Track cache keys for cleanup
+      const cacheKey1 = `${RedisKeyNamespace.ItemsBySubscription}:${subscription1.id}:true`
+      const cacheKey2 = `${RedisKeyNamespace.ItemsBySubscription}:${subscription2.id}:true`
+      const dep1Key = CacheDependency.subscriptionItems(
+        subscription1.id
+      )
+      const dep2Key = CacheDependency.subscriptionItems(
+        subscription2.id
+      )
+      keysToCleanup = [
+        cacheKey1,
+        cacheKey2,
+        `cacheDeps:${dep1Key}`,
+        `cacheDeps:${dep2Key}`,
+      ]
+    })
+
+    afterEach(async () => {
+      const client = getRedisTestClient()
+      await cleanupRedisTestKeys(client, keysToCleanup)
+    })
+
+    it('fetches items for multiple subscriptions in a single bulk call and caches each separately', async () => {
+      const client = getRedisTestClient()
+      const cacheKey1 = `${RedisKeyNamespace.ItemsBySubscription}:${subscription1.id}:true`
+      const cacheKey2 = `${RedisKeyNamespace.ItemsBySubscription}:${subscription2.id}:true`
+
+      await adminTransaction(async ({ transaction, livemode }) => {
+        const results =
+          await selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached(
+            [subscription1.id, subscription2.id],
+            transaction,
+            livemode
+          )
+
+        // Should return items for both subscriptions (flattened)
+        expect(results.length).toBe(2)
+        const ids = results.map((r) => r.subscriptionItem.id)
+        expect(ids).toContain(subscriptionItem1.id)
+        expect(ids).toContain(subscriptionItem2.id)
+      })
+
+      // Verify both subscriptions are cached separately
+      const cached1 = await client.get(cacheKey1)
+      const cached2 = await client.get(cacheKey2)
+      expect(Array.isArray(cached1)).toBe(true)
+      expect(Array.isArray(cached2)).toBe(true)
+      expect((cached1 as unknown[]).length).toBe(1)
+      expect((cached2 as unknown[]).length).toBe(1)
+    })
+
+    it('returns cached results for cache hits and fetches only misses', async () => {
+      const client = getRedisTestClient()
+      const cacheKey1 = `${RedisKeyNamespace.ItemsBySubscription}:${subscription1.id}:true`
+
+      // Pre-populate cache for subscription1 using the single function
+      await adminTransaction(async ({ transaction, livemode }) => {
+        await selectSubscriptionItemsWithPricesBySubscriptionId(
+          subscription1.id,
+          transaction,
+          livemode
+        )
+      })
+
+      // Verify subscription1 is cached
+      const cached1Before = await client.get(cacheKey1)
+      expect(Array.isArray(cached1Before)).toBe(true)
+
+      // Now call bulk function for both - subscription1 should be a cache hit
+      await adminTransaction(async ({ transaction, livemode }) => {
+        const results =
+          await selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached(
+            [subscription1.id, subscription2.id],
+            transaction,
+            livemode
+          )
+
+        expect(results.length).toBe(2)
+        const ids = results.map((r) => r.subscriptionItem.id)
+        expect(ids).toContain(subscriptionItem1.id)
+        expect(ids).toContain(subscriptionItem2.id)
+      })
+    })
+
+    it('returns empty array when given empty subscription IDs array', async () => {
+      await adminTransaction(async ({ transaction, livemode }) => {
+        const results =
+          await selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached(
+            [],
+            transaction,
+            livemode
+          )
+
+        expect(results).toEqual([])
+      })
+    })
+
+    it('respects cache invalidation for individual subscriptions', async () => {
+      const client = getRedisTestClient()
+      const cacheKey1 = `${RedisKeyNamespace.ItemsBySubscription}:${subscription1.id}:true`
+      const cacheKey2 = `${RedisKeyNamespace.ItemsBySubscription}:${subscription2.id}:true`
+
+      await adminTransaction(async ({ transaction, livemode }) => {
+        // Populate cache for both subscriptions
+        await selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached(
+          [subscription1.id, subscription2.id],
+          transaction,
+          livemode
+        )
+
+        // Verify both are cached
+        const cached1Before = await client.get(cacheKey1)
+        const cached2Before = await client.get(cacheKey2)
+        expect(Array.isArray(cached1Before)).toBe(true)
+        expect(Array.isArray(cached2Before)).toBe(true)
+
+        // Add item to subscription1
+        await setupSubscriptionItem({
+          subscriptionId: subscription1.id,
+          name: 'New Item for Subscription 1',
+          quantity: 3,
+          unitPrice: 3000,
+          priceId: price.id,
+        })
+
+        // Invalidate only subscription1's cache
+        await invalidateDependencies([
+          CacheDependency.subscriptionItems(subscription1.id),
+        ])
+
+        // Verify subscription1 cache is cleared but subscription2 is still cached
+        const cached1After = await client.get(cacheKey1)
+        const cached2After = await client.get(cacheKey2)
+        expect(cached1After).toBeNull()
+        expect(Array.isArray(cached2After)).toBe(true)
+
+        // Bulk fetch again - should get fresh data for subscription1 (2 items)
+        // and cached data for subscription2 (1 item)
+        const results =
+          await selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached(
+            [subscription1.id, subscription2.id],
+            transaction,
+            livemode
+          )
+
+        // subscription1 now has 2 items, subscription2 has 1 item
+        expect(results.length).toBe(3)
+        const sub1Items = results.filter(
+          (r) =>
+            r.subscriptionItem.subscriptionId === subscription1.id
+        )
+        const sub2Items = results.filter(
+          (r) =>
+            r.subscriptionItem.subscriptionId === subscription2.id
+        )
+        expect(sub1Items.length).toBe(2)
+        expect(sub2Items.length).toBe(1)
       })
     })
   }

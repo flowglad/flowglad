@@ -458,8 +458,8 @@ export async function cachedBulkLookup<TKey, TResult>(
         }
       }
     } catch (fetchError) {
-      // If bulk fetch fails, we don't have data for missed keys
-      // Return empty arrays for them
+      // Database fetch errors are critical - re-throw
+      // (Unlike cache read errors which fail-open, we can't serve stale data for misses)
       const errorMessage =
         fetchError instanceof Error
           ? fetchError.message
@@ -468,12 +468,7 @@ export async function cachedBulkLookup<TKey, TResult>(
         missedKeys: missedKeys.length,
         error: errorMessage,
       })
-      for (const key of missedKeys) {
-        if (!results.has(key)) {
-          results.set(key, [])
-        }
-      }
-      throw fetchError // Re-throw so caller knows the fetch failed
+      throw fetchError
     }
   }
 
