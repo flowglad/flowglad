@@ -404,7 +404,6 @@ async function cachedBulkLookupImpl<TKey, TResult>(
   groupByKey: (item: TResult) => TKey,
   span: ReturnType<ReturnType<typeof trace.getTracer>['startSpan']>
 ): Promise<Map<TKey, TResult[]>> {
-  const redisClient = redis()
   const ttl = getTtlForNamespace(config.namespace)
 
   // Build cache keys for all input keys
@@ -422,6 +421,7 @@ async function cachedBulkLookupImpl<TKey, TResult>(
 
   // Step 1: Bulk fetch from cache using MGET
   try {
+    const redisClient = redis()
     const startTime = Date.now()
     const cachedValues = (await redisClient.mget(
       ...fullCacheKeys
@@ -542,6 +542,7 @@ async function cachedBulkLookupImpl<TKey, TResult>(
         const dependencies = config.dependenciesFn(key)
 
         try {
+          const redisClient = redis()
           await redisClient.set(fullKey, JSON.stringify(items), {
             ex: ttl,
           })
