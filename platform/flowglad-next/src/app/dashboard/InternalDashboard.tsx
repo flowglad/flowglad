@@ -1,7 +1,9 @@
 'use client'
+
 import { startOfDay, subMonths } from 'date-fns'
 import { useEffect, useState } from 'react'
 import { ActiveSubscribersChart } from '@/components/ActiveSubscribersChart'
+import { ChartDivider, ChartGrid } from '@/components/charts'
 import PageContainer from '@/components/PageContainer'
 import { RecurringRevenueChart } from '@/components/RecurringRevenueChart'
 import { RevenueChart } from '@/components/RevenueChart'
@@ -12,21 +14,6 @@ import { useAuthContext } from '@/contexts/authContext'
 import { RevenueChartIntervalUnit } from '@/types'
 import { getIntervalConfig } from '@/utils/chartIntervalUtils'
 
-const ChartContainer = ({
-  children,
-}: {
-  children: React.ReactNode
-}) => {
-  return (
-    <div className="w-full relative flex flex-col">{children}</div>
-  )
-}
-
-const ChartDivider = () => {
-  return (
-    <div className="w-full border-t border-dashed border-border" />
-  )
-}
 export interface DashboardPageProps {
   organizationCreatedAt: Date
 }
@@ -56,13 +43,10 @@ function InternalDashboardPage({
   // Auto-correct interval when date range changes if it becomes invalid
   useEffect(() => {
     const config = getIntervalConfig(range.from, range.to)
-    const isCurrentIntervalInvalid =
-      !config.options.includes(interval)
-
-    if (isCurrentIntervalInvalid) {
-      setInterval(config.default)
-    }
-  }, [range, interval])
+    setInterval((prev) =>
+      config.options.includes(prev) ? prev : config.default
+    )
+  }, [range.from, range.to])
 
   return (
     <PageContainer>
@@ -90,30 +74,40 @@ function InternalDashboardPage({
           </div>
         }
       />
-      <div className="w-full flex flex-col gap-6 pt-4 pb-16">
-        <ChartContainer>
+      {/* 
+        Content container uses edge-to-edge divider pattern:
+        - NO gap between items
+        - Padding on individual sections for spacing
+        - Allows ChartDivider to span full width while content is inset
+      */}
+      <div className="w-full flex flex-col pb-16">
+        {/* Primary Chart - Full Size with bottom padding */}
+        <div className="py-6">
           <RevenueChart
             fromDate={range.from}
             toDate={range.to}
             interval={interval}
+            size="lg"
           />
-        </ChartContainer>
+        </div>
+
         <ChartDivider />
-        <ChartContainer>
+
+        {/* Secondary Charts - Compact Grid with top padding */}
+        <ChartGrid>
           <RecurringRevenueChart
             fromDate={range.from}
             toDate={range.to}
             interval={interval}
+            size="sm"
           />
-        </ChartContainer>
-        <ChartDivider />
-        <ChartContainer>
           <ActiveSubscribersChart
             fromDate={range.from}
             toDate={range.to}
             interval={interval}
+            size="sm"
           />
-        </ChartContainer>
+        </ChartGrid>
       </div>
     </PageContainer>
   )

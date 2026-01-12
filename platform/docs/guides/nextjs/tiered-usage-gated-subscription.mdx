@@ -1,0 +1,157 @@
+---
+title: Tiered Usage-Gated Subscription
+description: Learn how to implement tiered usage-gated subscription billing in Next.js with Flowglad.
+---
+
+A subscription model with multiple tiers where different features have monthly usage limits. Common for AI chat platforms like ChatGPT.
+
+<Note>
+View the complete source code on [GitHub](https://github.com/flowglad/examples/tree/main/nextjs/tiered-usage-gated-subscription).
+</Note>
+
+## Prerequisites
+
+- Flowglad account with API key
+- Next.js 15+ with App Router
+- PostgreSQL database
+
+## Project Structure
+
+```
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── flowglad/[...path]/route.ts  # Flowglad API handler
+│   │   ├── pricing/page.tsx                 # Pricing page
+│   │   └── home-client.tsx                  # Main UI component
+│   └── lib/
+│       ├── billing-helpers.ts               # Usage & pricing utilities
+│       └── flowglad.ts                      # Flowglad server setup
+├── pricing.yaml                             # Pricing configuration
+└── package.json
+```
+
+## Key Concepts
+
+This pricing model combines subscription tiers with per-feature usage limits:
+
+1. **Toggle features** - Binary access to capabilities (e.g., "GPT-5 Thinking", "Agent Mode")
+2. **Usage credit grants** - Monthly limits on specific features (e.g., 400 o3 messages/month)
+3. **Unlimited vs. limited access** - Features can be gated by toggle only, or by both toggle and usage limit
+
+The key distinction from generation-based billing: here, different features have separate usage pools. A Pro user might have 400 agent messages but unlimited o3 access. This creates natural upgrade paths as users hit limits on specific features.
+
+## Implementation
+
+### Pricing Configuration
+
+The `pricing.yaml` defines features as toggles or usage credit grants. See the [full configuration](https://github.com/flowglad/examples/blob/main/nextjs/tiered-usage-gated-subscription/pricing.yaml) in the repository.
+
+<img 
+  className="block dark:hidden" 
+  src="/images/example-diagrams/light/tiered-usage-gated-diagram.svg" 
+  alt="Pricing model diagram showing usage meters, toggle features, usage credit grants, and subscription tiers"
+/>
+
+<img 
+  className="hidden dark:block" 
+  src="/images/example-diagrams/dark/tiered-usage-gated-diagram.svg" 
+  alt="Pricing model diagram showing usage meters, toggle features, usage credit grants, and subscription tiers"
+/>
+
+The key distinction in this model: features combine **toggles** (binary access) with **usage credit grants** (monthly limits). Products reference feature slugs to compose each tier's capabilities.
+
+### Checking Feature Access
+
+Use `checkFeatureAccess` to determine if a user has access to a feature. Use `checkUsageBalance` to get their remaining credits on a usage meter.
+
+```tsx src/app/example.tsx
+const billing = useBilling();
+
+// Check toggle access
+const hasO3Access = billing.checkFeatureAccess('o3_access');
+
+// Check usage balance
+const o3Balance = billing.checkUsageBalance('o3_messages');
+// o3Balance.availableBalance - credits remaining
+```
+
+For features with both a toggle and usage limit, you need to check both. A user might have access to a feature but have exhausted their monthly limit.
+
+### Gating UI Based on Access
+
+Combine feature access and usage balance checks to determine button states.
+
+```tsx src/app/home-client.tsx
+const hasFeature = billing.checkFeatureAccess('o3_access');
+const balance = billing.checkUsageBalance('o3_messages');
+const hasCredits = (balance?.availableBalance ?? 0) > 0;
+
+// Disable if: no feature access, OR has feature but no credits
+const isDisabled = !hasFeature || !hasCredits;
+```
+
+For unlimited features (toggle only, no usage meter), checking feature access is sufficient.
+
+### Recording Usage Events
+
+When a user consumes a limited feature, record the usage event. The SDK's `createUsageEvent` method on the `useBilling()` hook handles the server communication automatically.
+
+```tsx src/app/home-client.tsx
+const billing = useBilling();
+
+const result = await billing.createUsageEvent({
+  usageMeterSlug: 'o3_messages',
+  amount: 1,
+});
+
+if ('error' in result) {
+  throw new Error(result.error.json?.error || 'Failed to create usage event');
+}
+```
+
+The SDK auto-resolves the `subscriptionId` from the customer's current subscription. It defaults `amount` to 1 if not provided.
+
+### Helper Functions
+
+The example includes helpers to work with usage meters and pricing data.
+
+```ts src/lib/billing-helpers.ts
+// Get total credits for a meter from the subscription
+export function computeUsageTotal(
+  usageMeterSlug: string,
+  currentSubscription: Subscription,
+  pricingModel: PricingModel
+): number {
+  const featureItems = currentSubscription.experimental?.featureItems ?? [];
+  // Sum up usage_credit_grant amounts for this meter
+  // ...
+}
+
+// Find a usage meter by slug
+export function findUsageMeterBySlug(
+  usageMeterSlug: string,
+  pricingModel: PricingModel
+): UsageMeter | null {
+  return pricingModel.usageMeters.find(m => m.slug === usageMeterSlug);
+}
+```
+
+These helpers are useful for displaying usage breakdowns or finding meter info from slugs.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="View Source Code" icon="github" href="https://github.com/flowglad/examples/tree/main/nextjs/tiered-usage-gated-subscription">
+    Browse the complete example implementation
+  </Card>
+  <Card title="Next.js SDK" icon="book" href="/sdks/nextjs">
+    Full Next.js SDK documentation
+  </Card>
+  <Card title="Feature Access & Usage" icon="gauge" href="/sdks/feature-access-usage">
+    Learn more about usage-based billing
+  </Card>
+  <Card title="Pricing Models" icon="tags" href="/guides/pricing-models">
+    Compare different pricing model patterns
+  </Card>
+</CardGroup>

@@ -42,6 +42,10 @@ import {
   UsageCreditStatus,
   UsageCreditType,
 } from '@/types'
+import {
+  CacheDependency,
+  type CacheDependencyKey,
+} from '@/utils/cache'
 import { calculateSplitInBillingPeriodBasedOnAdjustmentDate } from './adjustSubscription'
 import { createSubscriptionFeatureItems } from './subscriptionItemFeatureHelpers'
 
@@ -433,6 +437,7 @@ export const handleSubscriptionItemAdjustment = async (params: {
   createdFeatures: SubscriptionItemFeature.Record[]
   usageCredits: UsageCredit.Record[]
   ledgerEntries: LedgerEntry.CreditGrantRecognizedRecord[]
+  cacheInvalidations: CacheDependencyKey[]
 }> => {
   const {
     subscriptionId,
@@ -591,5 +596,8 @@ export const handleSubscriptionItemAdjustment = async (params: {
     createdFeatures,
     usageCredits,
     ledgerEntries,
+    cacheInvalidations: [
+      CacheDependency.subscriptionItems(subscriptionId),
+    ],
   }
 }

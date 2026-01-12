@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
+import { IntervalPicker } from '@/components/ui/interval-picker'
+import { RevenueChartIntervalUnit } from '@/types'
+import { getIntervalConfig } from '@/utils/chartIntervalUtils'
 import { RevenueChart } from './RevenueChart'
 
 const DateRangeRevenueChart = ({
@@ -19,10 +22,22 @@ const DateRangeRevenueChart = ({
     to: new Date(),
   })
 
+  const [interval, setInterval] = useState<RevenueChartIntervalUnit>(
+    () => getIntervalConfig(range.from, range.to).default
+  )
+
+  // Auto-correct interval when date range changes if it becomes invalid
+  useEffect(() => {
+    const config = getIntervalConfig(range.from, range.to)
+    if (!config.options.includes(interval)) {
+      setInterval(config.default)
+    }
+  }, [range, interval])
+
   return (
     <>
       <div
-        className={`flex ${
+        className={`flex gap-2 ${
           alignDatePicker === 'right' ? 'justify-end' : ''
         }`}
       >
@@ -36,11 +51,18 @@ const DateRangeRevenueChart = ({
             }
           }}
         />
+        <IntervalPicker
+          value={interval}
+          onValueChange={setInterval}
+          fromDate={range.from}
+          toDate={range.to}
+        />
       </div>
       <RevenueChart
         fromDate={range.from}
         toDate={range.to}
         productId={productId}
+        interval={interval}
       />
     </>
   )

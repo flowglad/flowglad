@@ -50,10 +50,10 @@ export const getFlowgladRoute = (
     // Better Auth routes are under {basePath}/flowglad
     return `${sanitizedPath}/flowglad`
   }
-  if (baseURL) {
-    // Remove whitespace and trailing slashes to prevent malformed URLs like https://x.com//api/flowglad
-    const sanitizedBaseURL = baseURL.trim().replace(/\/+$/, '')
-    return `${sanitizedBaseURL}/api/flowglad`
+  const sanitizedBaseURL = baseURL?.trim() ?? ''
+  if (sanitizedBaseURL !== '') {
+    // Remove trailing slashes to prevent malformed URLs like https://x.com//api/flowglad
+    return `${sanitizedBaseURL.replace(/\/+$/, '')}/api/flowglad`
   }
   return '/api/flowglad'
 }

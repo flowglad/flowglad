@@ -9,7 +9,7 @@ import {
   constructIndex,
   hiddenColumnsForClientSchema,
   idInputSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   ommittedColumnsForInsertSchema,
@@ -49,17 +49,14 @@ export const apiKeys = pgTable(
     ),
     hashText: text('hash_text'),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      merchantPolicy('Enable all actions for own organizations', {
-        as: 'permissive',
-        for: 'all',
-        using: orgIdEqualsCurrentSQL(),
-      }),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    merchantPolicy('Enable all actions for own organizations', {
+      as: 'permissive',
+      for: 'all',
+      using: orgIdEqualsCurrentSQL(),
+    }),
+  ])
 ).enableRLS()
 
 const columnRefinements = {

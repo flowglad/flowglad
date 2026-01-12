@@ -16,7 +16,7 @@ import {
   constructUniqueIndex,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   metadataSchema,
   notNullStringForeignKey,
@@ -77,31 +77,28 @@ const columns = {
 export const subscriptionItems = pgTable(
   TABLE_NAME,
   columns,
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.subscriptionId]),
-      constructIndex(TABLE_NAME, [table.priceId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      constructUniqueIndex(TABLE_NAME, [table.externalId]),
-      // constructIndex(TABLE_NAME, [table.usageMeterId]),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"subscription_id" in (select "id" from "subscriptions")`,
-        }
-      ),
-      merchantPolicy(
-        'Enable actions for own organizations via subscriptions',
-        {
-          as: 'permissive',
-          to: 'merchant',
-          for: 'all',
-          using: sql`"subscriptionId" in (select "id" from "Subscriptions")`,
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table, livemodeIndex) => [
+    livemodeIndex([table.subscriptionId]),
+    constructIndex(TABLE_NAME, [table.priceId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    constructUniqueIndex(TABLE_NAME, [table.externalId]),
+    // constructIndex(TABLE_NAME, [table.usageMeterId]),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"subscription_id" in (select "id" from "subscriptions")`,
+      }
+    ),
+    merchantPolicy(
+      'Enable actions for own organizations via subscriptions',
+      {
+        as: 'permissive',
+        to: 'merchant',
+        for: 'all',
+        using: sql`"subscriptionId" in (select "id" from "Subscriptions")`,
+      }
+    ),
+  ])
 ).enableRLS()
 
 const baseColumnRefinements = {
