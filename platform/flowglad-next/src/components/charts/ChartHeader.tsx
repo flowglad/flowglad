@@ -2,13 +2,7 @@
 
 import React from 'react'
 import { ChartInfoTooltip } from '@/components/ui/chart-info-tooltip'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { GhostSelect } from '@/components/ui/ghost-select'
 import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
 import { getIntervalSelectOptions } from '@/utils/chartIntervalUtils'
@@ -81,24 +75,15 @@ export function ChartHeader({
       >
         <p className="whitespace-nowrap">{title}</p>
         {showInlineSelector && interval && onIntervalChange && (
-          <Select
+          <GhostSelect
             value={interval}
             onValueChange={(value) =>
               onIntervalChange(value as RevenueChartIntervalUnit)
             }
-          >
-            <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground shadow-none h-auto py-0 gap-0 text-base">
-              <span className="text-muted-foreground">by&nbsp;</span>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {intervalOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            options={intervalOptions}
+            prefix="by "
+            className="text-base text-muted-foreground"
+          />
         )}
         <ChartInfoTooltip content={infoTooltip} />
       </div>
