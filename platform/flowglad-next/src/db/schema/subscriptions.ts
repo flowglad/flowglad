@@ -121,7 +121,8 @@ const columns = {
 
 export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
   return [
-    constructIndex(TABLE_NAME, [table.customerId]),
+    // Composite index for customer queries - RLS always adds livemode filter via livemodePolicy
+    constructIndex(TABLE_NAME, [table.customerId, table.livemode]),
     constructIndex(TABLE_NAME, [table.priceId]),
     constructIndex(TABLE_NAME, [table.status]),
     constructIndex(TABLE_NAME, [table.replacedBySubscriptionId]),

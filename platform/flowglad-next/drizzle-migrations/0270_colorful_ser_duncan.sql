@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS "subscriptions_customer_id_idx";--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "subscriptions_customer_id_livemode_idx" ON "subscriptions" USING btree ("customer_id","livemode");
