@@ -201,7 +201,7 @@ describe('resourceClaimHelpers', () => {
       ).rejects.toThrow('No available capacity')
     })
 
-    it('when quantity is provided, creates that many cattle claims with externalId=null and returns accurate usage', async () => {
+    it('when quantity is provided, creates that many anonymous claims with externalId=null and returns accurate usage', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
           return claimResourceTransaction(
@@ -226,14 +226,16 @@ describe('resourceClaimHelpers', () => {
       expect(result.claims.every((c) => c.releasedAt === null)).toBe(
         true
       )
-      expect(result.usage).toEqual({
+      expect(result.usage).toMatchObject({
+        resourceSlug: 'seats',
         capacity: 5,
         claimed: 3,
         available: 2,
       })
+      expect(result.usage.resourceId).toBe(resource.id)
     })
 
-    it('when externalId is provided, creates a single pet claim with that externalId', async () => {
+    it('when externalId is provided, creates a single named claim with that externalId', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
           return claimResourceTransaction(
@@ -253,11 +255,13 @@ describe('resourceClaimHelpers', () => {
 
       expect(result.claims.length).toBe(1)
       expect(result.claims[0].externalId).toBe('user_123')
-      expect(result.usage).toEqual({
+      expect(result.usage).toMatchObject({
+        resourceSlug: 'seats',
         capacity: 5,
         claimed: 1,
         available: 4,
       })
+      expect(result.usage.resourceId).toBe(resource.id)
     })
 
     it('when claiming with an already active externalId, returns the existing claim without creating a duplicate (idempotent)', async () => {
@@ -299,10 +303,16 @@ describe('resourceClaimHelpers', () => {
 
       expect(secondResult.claims.length).toBe(1)
       expect(secondResult.claims[0].id).toBe(firstResult.claims[0].id)
-      expect(secondResult.usage.claimed).toBe(1) // Not 2
+      expect(secondResult.usage).toMatchObject({
+        resourceSlug: 'seats',
+        capacity: 5,
+        claimed: 1, // Not 2
+        available: 4,
+      })
+      expect(secondResult.usage.resourceId).toBe(resource.id)
     })
 
-    it('when externalIds are provided, creates multiple pet claims, and existing claims are returned idempotently', async () => {
+    it('when externalIds are provided, creates multiple named claims, and existing claims are returned idempotently', async () => {
       // Create one claim first
       await adminTransaction(async ({ transaction }) => {
         return claimResourceTransaction(
@@ -345,13 +355,19 @@ describe('resourceClaimHelpers', () => {
       expect(result.claims.map((c) => c.externalId).sort()).toEqual(
         ['existing_user', 'new_user_1', 'new_user_2'].sort()
       )
-      expect(result.usage.claimed).toBe(3)
+      expect(result.usage).toMatchObject({
+        resourceSlug: 'seats',
+        capacity: 5,
+        claimed: 3,
+        available: 2,
+      })
+      expect(result.usage.resourceId).toBe(resource.id)
     })
   })
 
   describe('releaseResourceTransaction', () => {
-    it('when quantity is provided, releases only cattle claims (FIFO) and ignores pet claims', async () => {
-      // Create 3 cattle claims
+    it('when quantity is provided, releases only anonymous claims (FIFO) and ignores named claims', async () => {
+      // Create 3 anonymous claims
       await adminTransaction(async ({ transaction }) => {
         return claimResourceTransaction(
           {
@@ -367,7 +383,7 @@ describe('resourceClaimHelpers', () => {
         )
       })
 
-      // Create 2 pet claims
+      // Create 2 named claims
       await adminTransaction(async ({ transaction }) => {
         return claimResourceTransaction(
           {
@@ -376,14 +392,14 @@ describe('resourceClaimHelpers', () => {
             input: {
               resourceSlug: 'seats',
               subscriptionId: subscription.id,
-              externalIds: ['pet_user_1', 'pet_user_2'],
+              externalIds: ['named_user_1', 'named_user_2'],
             },
           },
           transaction
         )
       })
 
-      // Release 2 cattle claims
+      // Release 2 anonymous claims
       const result = await adminTransaction(
         async ({ transaction }) => {
           return releaseResourceTransaction(
@@ -409,10 +425,16 @@ describe('resourceClaimHelpers', () => {
         result.releasedClaims.every((c) => c.releasedAt !== null)
       ).toBe(true)
 
-      // Verify remaining claims: 1 cattle + 2 pet = 3 total
-      expect(result.usage.claimed).toBe(3)
+      // Verify remaining claims: 1 anonymous + 2 named = 3 total
+      expect(result.usage).toMatchObject({
+        resourceSlug: 'seats',
+        capacity: 5,
+        claimed: 3,
+        available: 2,
+      })
+      expect(result.usage.resourceId).toBe(resource.id)
 
-      // Verify the pet claims are still active
+      // Verify the named claims are still active
       const activeClaims = await adminTransaction(
         async ({ transaction }) => {
           return selectActiveResourceClaims(
@@ -421,14 +443,14 @@ describe('resourceClaimHelpers', () => {
           )
         }
       )
-      const petClaims = activeClaims.filter(
+      const namedClaims = activeClaims.filter(
         (c) => c.externalId !== null
       )
-      expect(petClaims.length).toBe(2)
+      expect(namedClaims.length).toBe(2)
     })
 
-    it('when trying to release more cattle claims than exist, throws an error', async () => {
-      // Create only 2 cattle claims
+    it('when trying to release more anonymous claims than exist, throws an error', async () => {
+      // Create only 2 anonymous claims
       await adminTransaction(async ({ transaction }) => {
         return claimResourceTransaction(
           {
@@ -465,8 +487,8 @@ describe('resourceClaimHelpers', () => {
       )
     })
 
-    it('when externalId is provided, releases the specific pet claim and sets releaseReason to released', async () => {
-      // Create a pet claim
+    it('when externalId is provided, releases the specific named claim and sets releaseReason to released', async () => {
+      // Create a named claim
       await adminTransaction(async ({ transaction }) => {
         return claimResourceTransaction(
           {
@@ -504,7 +526,13 @@ describe('resourceClaimHelpers', () => {
         'user_to_release'
       )
       expect(result.releasedClaims[0].releaseReason).toBe('released')
-      expect(result.usage.claimed).toBe(0)
+      expect(result.usage).toMatchObject({
+        resourceSlug: 'seats',
+        capacity: 5,
+        claimed: 0,
+        available: 5,
+      })
+      expect(result.usage.resourceId).toBe(resource.id)
     })
 
     it('when releasing a non-existent externalId, throws an error', async () => {
@@ -528,7 +556,7 @@ describe('resourceClaimHelpers', () => {
 
     it('when claimIds are provided, releases those specific claims regardless of type', async () => {
       // Create mixed claims
-      const cattleResult = await adminTransaction(
+      const anonymousResult = await adminTransaction(
         async ({ transaction }) => {
           return claimResourceTransaction(
             {
@@ -545,7 +573,7 @@ describe('resourceClaimHelpers', () => {
         }
       )
 
-      const petResult = await adminTransaction(
+      const namedResult = await adminTransaction(
         async ({ transaction }) => {
           return claimResourceTransaction(
             {
@@ -554,7 +582,7 @@ describe('resourceClaimHelpers', () => {
               input: {
                 resourceSlug: 'seats',
                 subscriptionId: subscription.id,
-                externalId: 'pet_user',
+                externalId: 'named_user',
               },
             },
             transaction
@@ -562,10 +590,10 @@ describe('resourceClaimHelpers', () => {
         }
       )
 
-      // Release one cattle and one pet by ID
+      // Release one anonymous and one named by ID
       const claimIdsToRelease = [
-        cattleResult.claims[0].id,
-        petResult.claims[0].id,
+        anonymousResult.claims[0].id,
+        namedResult.claims[0].id,
       ]
 
       const result = await adminTransaction(
@@ -586,7 +614,13 @@ describe('resourceClaimHelpers', () => {
       )
 
       expect(result.releasedClaims.length).toBe(2)
-      expect(result.usage.claimed).toBe(1) // One cattle claim remains
+      expect(result.usage).toMatchObject({
+        resourceSlug: 'seats',
+        capacity: 5,
+        claimed: 1, // One anonymous claim remains
+        available: 4,
+      })
+      expect(result.usage.resourceId).toBe(resource.id)
     })
   })
 
@@ -662,8 +696,8 @@ describe('resourceClaimHelpers', () => {
   })
 
   describe('releaseAllResourceClaimsForSubscription', () => {
-    it('releases all active claims for a subscription with the given reason, including both cattle and pet claims', async () => {
-      // Create mixed claims: 3 cattle + 2 pet = 5 total
+    it('releases all active claims for a subscription with the given reason, including both anonymous and named claims', async () => {
+      // Create mixed claims: 3 anonymous + 2 named = 5 total
       await adminTransaction(async ({ transaction }) => {
         return claimResourceTransaction(
           {
@@ -687,7 +721,7 @@ describe('resourceClaimHelpers', () => {
             input: {
               resourceSlug: 'seats',
               subscriptionId: subscription.id,
-              externalIds: ['pet_1', 'pet_2'],
+              externalIds: ['named_1', 'named_2'],
             },
           },
           transaction
@@ -736,7 +770,7 @@ describe('resourceClaimHelpers', () => {
 
   describe('releaseAllResourceClaimsForSubscriptionItemFeature', () => {
     it('releases all active claims for a subscription item feature with the given reason and returns accurate count', async () => {
-      // Create mixed claims: 2 cattle + 2 pet = 4 total
+      // Create mixed claims: 2 anonymous + 2 named = 4 total
       await adminTransaction(async ({ transaction }) => {
         return claimResourceTransaction(
           {
@@ -863,6 +897,87 @@ describe('resourceClaimHelpers', () => {
     })
   })
 
+  describe('selectActiveResourceClaims with array filtering', () => {
+    it('when filtering by subscriptionId and resourceId array, returns all active claims for those resources', async () => {
+      // Create 2 anonymous claims and 1 named claim
+      await adminTransaction(async ({ transaction }) => {
+        return claimResourceTransaction(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            input: {
+              resourceSlug: 'seats',
+              subscriptionId: subscription.id,
+              quantity: 2,
+            },
+          },
+          transaction
+        )
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        return claimResourceTransaction(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            input: {
+              resourceSlug: 'seats',
+              subscriptionId: subscription.id,
+              externalId: 'named_user_1',
+            },
+          },
+          transaction
+        )
+      })
+
+      // Fetch claims using array-based resourceId filtering (as the router does)
+      const claims = await adminTransaction(
+        async ({ transaction }) => {
+          return selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: [resource.id],
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(claims.length).toBe(3)
+      expect(
+        claims.every((c) => c.subscriptionId === subscription.id)
+      ).toBe(true)
+      expect(claims.every((c) => c.resourceId === resource.id)).toBe(
+        true
+      )
+
+      // Verify we have both anonymous and named claims
+      const anonymousClaims = claims.filter(
+        (c) => c.externalId === null
+      )
+      const namedClaims = claims.filter((c) => c.externalId !== null)
+      expect(anonymousClaims.length).toBe(2)
+      expect(namedClaims.length).toBe(1)
+      expect(namedClaims[0].externalId).toBe('named_user_1')
+    })
+
+    it('when no claims exist for the specified resources, returns an empty array', async () => {
+      const claims = await adminTransaction(
+        async ({ transaction }) => {
+          return selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: [resource.id],
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(claims).toEqual([])
+    })
+  })
+
   describe('claimResourceTransaction - additional coverage', () => {
     it('when metadata is provided, persists metadata to the created claims', async () => {
       const result = await adminTransaction(
@@ -946,8 +1061,8 @@ describe('resourceClaimHelpers', () => {
   })
 
   describe('releaseResourceTransaction - additional coverage', () => {
-    it('when externalIds array is provided, releases all matching pet claims and returns accurate usage', async () => {
-      // Create 3 pet claims
+    it('when externalIds array is provided, releases all matching named claims and returns accurate usage', async () => {
+      // Create 3 named claims
       await adminTransaction(async ({ transaction }) => {
         return claimResourceTransaction(
           {
@@ -985,8 +1100,13 @@ describe('resourceClaimHelpers', () => {
       expect(
         result.releasedClaims.map((c) => c.externalId).sort()
       ).toEqual(['user_1', 'user_3'].sort())
-      expect(result.usage.claimed).toBe(1)
-      expect(result.usage.available).toBe(4)
+      expect(result.usage).toMatchObject({
+        resourceSlug: 'seats',
+        capacity: 5,
+        claimed: 1,
+        available: 4,
+      })
+      expect(result.usage.resourceId).toBe(resource.id)
 
       // Verify user_2 is still active
       const activeClaims = await adminTransaction(
@@ -1002,7 +1122,7 @@ describe('resourceClaimHelpers', () => {
     })
 
     it('when releasing with externalIds array and one externalId is not found, throws an error', async () => {
-      // Create only 2 pet claims
+      // Create only 2 named claims
       await adminTransaction(async ({ transaction }) => {
         return claimResourceTransaction(
           {
