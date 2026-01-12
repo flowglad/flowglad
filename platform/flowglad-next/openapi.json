@@ -3188,10 +3188,6 @@
                             "description": {
                               "type": "string"
                             },
-                            "resourceId": {
-                              "type": "null",
-                              "const": null
-                            },
                             "active": {
                               "type": "boolean"
                             }
@@ -3232,10 +3228,6 @@
                               "type": "string",
                               "enum": ["once", "every_billing_period"]
                             },
-                            "resourceId": {
-                              "type": "null",
-                              "const": null
-                            },
                             "active": {
                               "type": "boolean"
                             },
@@ -3252,6 +3244,48 @@
                             "amount",
                             "renewalFrequency",
                             "usageMeterSlug"
+                          ]
+                        },
+                        {
+                          "description": "A resource grant feature that allocates a specific amount of a resource.",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "resource"
+                            },
+                            "slug": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 255
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "amount": {
+                              "description": "A positive integer",
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "active": {
+                              "type": "boolean"
+                            },
+                            "resourceSlug": {
+                              "description": "The slug of the resource to grant. Must be a valid slug for a resource in this pricing model.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "slug",
+                            "name",
+                            "description",
+                            "amount",
+                            "resourceSlug"
                           ]
                         }
                       ],
@@ -3610,6 +3644,31 @@
                         }
                       },
                       "required": ["name", "slug"]
+                    }
+                  },
+                  "resources": {
+                    "type": "array",
+                    "items": {
+                      "description": "A resource that can be claimed by subscriptions via resource features.",
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "description": "The slug of the resource",
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 255
+                        },
+                        "name": {
+                          "description": "The name of the resource",
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 255
+                        },
+                        "active": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": ["slug", "name"]
                     }
                   }
                 },
