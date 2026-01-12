@@ -259,7 +259,7 @@ describe('setupPricingModelTransaction (integration)', () => {
     )
 
     // PricingModel
-    expect(result.pricingModel.id).toBeDefined()
+    expect(typeof result.pricingModel.id).toBe('string')
     expect(result.pricingModel.name).toEqual(input.name)
     expect(result.pricingModel.livemode).toEqual(false)
     expect(result.pricingModel.organizationId).toEqual(

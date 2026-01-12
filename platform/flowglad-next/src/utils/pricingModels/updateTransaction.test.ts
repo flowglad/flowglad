@@ -1730,7 +1730,7 @@ describe('updatePricingModelTransaction', () => {
       const proDeactivated = updateResult.products.deactivated.find(
         (p) => p.slug === 'pro'
       )
-      expect(proDeactivated).not.toBeUndefined()
+      expect(typeof proDeactivated).toBe('object')
 
       // Starter price changed
       expect(

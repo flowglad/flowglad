@@ -81,7 +81,6 @@ describe('innerInviteUserToOrganizationHandler', () => {
 
       await adminTransaction(async ({ transaction }) => {
         const [newUser] = await selectUsers({ email }, transaction)
-        expect(newUser).toBeDefined()
         expect(newUser.name).toBe(input.name)
 
         const newMemberships = await selectMemberships(

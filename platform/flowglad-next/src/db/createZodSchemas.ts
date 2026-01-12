@@ -66,7 +66,9 @@ function epochRefineForInsert<TTable extends PgTable>(
     if (col.getSQLType() === 'timestamptz') {
       // @ts-expect-error - zodPipe not expected to be in refine
       out[k as EpochInsertKeys<TTable>] = col.notNull
-        ? zodEpochMs
+        ? col.hasDefault
+          ? zodEpochMs.optional()
+          : zodEpochMs
         : zodEpochMs.nullable().optional()
     }
   }

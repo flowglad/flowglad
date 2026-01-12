@@ -17,13 +17,13 @@ jobs:
         working-directory: platform/flowglad-next
     steps:
       - name: Checkout repository
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup Node.js
         uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v3
         with:
           node-version: '18'
       - name: Setup Bun
-        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+        uses: oven-sh/setup-bun@b7a1c7ccf290d58743029c4f6903da283811b979 # v2.1.0
         with:
           bun-version: '1.3.1'
       - name: Install dependencies
@@ -45,7 +45,7 @@ jobs:
         working-directory: platform/flowglad-next
     steps:
       - name: Checkout repository
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v2
       - name: Build Docker image
@@ -58,6 +58,47 @@ jobs:
       - name: Run Docker container
         run: docker run -d -p 3000:3000 --name flowglad-next-app flowglad-next:latest
 
+  flowglad-next-stripe-integration-tests:
+    name: "flowglad-next: Stripe Integration Tests"
+    # Only run in the merge queue as a final pre-merge check
+    if: github.event_name == 'merge_group'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform/flowglad-next
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - name: Setup Node.js
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v3
+        with:
+          node-version: '18'
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@b7a1c7ccf290d58743029c4f6903da283811b979 # v2.1.0
+        with:
+          bun-version: '1.3.1'
+      - name: Install dependencies
+        run: bun run install-packages --no-progress
+      - name: Set up Docker Build
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v2
+      - name: Set up Docker Compose
+        uses: ndeloof/install-compose-action@4a33bc31f327b8231c4f343f6fba704fedc0fa23 # v0.0.1
+      - name: Setup Docker for tests
+        run: |
+          set -euo pipefail
+          docker-compose -f docker-compose.test.yml down --volumes || true
+          docker-compose -f docker-compose.test.yml up --build -d
+          docker-compose -f docker-compose.test.yml ps
+      - name: Run test setup
+        run: bun run test:setup
+      - name: Run integration tests
+        env:
+          STRIPE_TEST_MODE_SECRET_KEY: ${{ secrets.STRIPE_TEST_MODE_SECRET_KEY }}
+        run: bun run test:integration
+      - name: Run test teardown
+        if: always()
+        run: bun run test:teardown
+
   packages-build-and-lint:
     name: "packages: bun run check (build only on merge queue)"
     runs-on: ubuntu-latest
@@ -66,13 +107,13 @@ jobs:
         working-directory: .
     steps:
       - name: Checkout repository
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup Node.js
         uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v3
         with:
           node-version: '18'
       - name: Setup Bun
-        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+        uses: oven-sh/setup-bun@b7a1c7ccf290d58743029c4f6903da283811b979 # v2.1.0
         with:
           bun-version: '1.3.1'
       - name: Install dependencies
@@ -89,13 +130,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup Node.js
         uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v3
         with:
           node-version: '18'
       - name: Setup Bun
-        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+        uses: oven-sh/setup-bun@b7a1c7ccf290d58743029c4f6903da283811b979 # v2.1.0
         with:
           bun-version: '1.3.1'
       - name: Install dependencies
@@ -120,7 +161,7 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install ripgrep
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Run todo check
         run: ./ci/check_todo.sh
 
@@ -131,7 +172,7 @@ jobs:
     steps:
       - name: Install yq (for YAML parsing)
         run: go install github.com/mikefarah/yq/v4@latest
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Run dependency check
         run: ./ci/check_job_dependencies.sh
 
@@ -142,13 +183,13 @@ jobs:
         working-directory: platform/flowglad-next
     steps:
       - name: Checkout repository
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup Node.js
         uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v3
         with:
           node-version: '18'
       - name: Setup Bun
-        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+        uses: oven-sh/setup-bun@b7a1c7ccf290d58743029c4f6903da283811b979 # v2.1.0
         with:
           bun-version: '1.3.1'
       - name: Install dependencies
@@ -171,7 +212,7 @@ jobs:
       # https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks#handling-skipped-but-required-checks
       if: failure()
       runs-on: ubuntu-latest
-      needs: [flowglad-next-lint, flowglad-next-unit-tests, flowglad-next-integration-tests, packages-build-and-lint, packages-test, check-todo, check-job-dependencies, check-openapi-diff]
+      needs: [flowglad-next-lint, flowglad-next-unit-tests, flowglad-next-integration-tests, flowglad-next-stripe-integration-tests, packages-build-and-lint, packages-test, check-todo, check-job-dependencies, check-openapi-diff]
       steps:
         - name: Mark the job as failed
           run: exit 1

@@ -263,8 +263,7 @@ describe('usage_events RLS policies', () => {
     )
 
     // Should successfully insert usage event
-    expect(result).toBeDefined()
-    expect(result.id).toBeDefined()
+    expect(typeof result.id).toBe('string')
     expect(result.amount).toBe(100)
   })
 

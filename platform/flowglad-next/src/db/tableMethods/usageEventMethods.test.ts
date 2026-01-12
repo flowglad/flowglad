@@ -270,7 +270,7 @@ describe('selectUsageEventsPaginated', () => {
     // Should return exactly 3 usage events (limited by parameter)
     expect(result.total).toBe(10)
     expect(result.hasMore).toBe(true)
-    expect(result.nextCursor).toBeDefined()
+    expect(typeof result.nextCursor).toBe('string')
 
     // Verify returned events are from our created events
     const returnedEventIds = result.data.map((event) => event.id)
@@ -335,7 +335,7 @@ describe('selectUsageEventsPaginated', () => {
 
     // First call should return first 3 events
     expect(firstResult.hasNextPage).toBe(true)
-    expect(firstResult.endCursor).toBeDefined()
+    expect(typeof firstResult.endCursor).toBe('string')
 
     // Second call should return next 3 events
     expect(secondResult.hasNextPage).toBe(true)

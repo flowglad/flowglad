@@ -10,10 +10,8 @@ const projectDir = process.cwd()
 // To load env vars in a script
 loadEnvConfig(projectDir)
 
-const TEST_DB_URL = 'postgresql://test:test@localhost:5432/test_db'
-
 const dbUrl = core.IS_TEST
-  ? TEST_DB_URL
+  ? core.TEST_DB_URL
   : core.envVariable('DATABASE_URL')
 
 const client = postgres(dbUrl, {

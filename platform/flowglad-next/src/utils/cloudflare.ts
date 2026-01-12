@@ -3,6 +3,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import axios from 'axios'
 import { createHmac } from 'crypto'
 import core from './core'
+import { r2Traced } from './tracing'
 
 const cloudflareAccountID = core.envVariable('CLOUDFLARE_ACCOUNT_ID')
 const cloudflareAccessKeyID = core.envVariable(
@@ -29,7 +30,14 @@ interface PutFileParams {
   contentType: string
 }
 
-const putFile = async ({ body, key, contentType }: PutFileParams) => {
+/**
+ * Core putFile logic without tracing.
+ */
+const putFileCore = async ({
+  body,
+  key,
+  contentType,
+}: PutFileParams): Promise<void> => {
   const s3Params = {
     Bucket: cloudflareBucket,
     Key: key,
@@ -39,12 +47,31 @@ const putFile = async ({ body, key, contentType }: PutFileParams) => {
   await s3.putObject(s3Params)
 }
 
+const putFile = r2Traced(
+  'putObject',
+  ({ body, key, contentType }: PutFileParams) => ({
+    'r2.key': key,
+    'r2.content_type': contentType,
+    'r2.size_bytes':
+      typeof body === 'string'
+        ? Buffer.byteLength(body, 'utf8')
+        : body.byteLength,
+  }),
+  putFileCore
+)
+
 interface PutImageParams {
   imageURL: string
   key: string
 }
 
-const putImage = async ({ imageURL, key }: PutImageParams) => {
+/**
+ * Core putImage logic without tracing.
+ */
+const putImageCore = async ({
+  imageURL,
+  key,
+}: PutImageParams): Promise<string> => {
   try {
     const response = await axios.get(imageURL, {
       responseType: 'arraybuffer',
@@ -63,12 +90,24 @@ const putImage = async ({ imageURL, key }: PutImageParams) => {
   }
 }
 
+const putImage = r2Traced(
+  'putImage',
+  ({ key }: PutImageParams) => ({ 'r2.key': key }),
+  putImageCore
+)
+
 interface PutCsvParams {
   body: string
   key: string
 }
 
-const putCsv = async ({ body, key }: PutCsvParams) => {
+/**
+ * Core putCsv logic without tracing.
+ */
+const putCsvCore = async ({
+  body,
+  key,
+}: PutCsvParams): Promise<void> => {
   try {
     await putFile({ body, key, contentType: 'text/csv' })
   } catch (error) {
@@ -78,13 +117,24 @@ const putCsv = async ({ body, key }: PutCsvParams) => {
   }
 }
 
-const putPDF = async ({
-  body,
-  key,
-}: {
+const putCsv = r2Traced(
+  'putCsv',
+  ({ key }: PutCsvParams) => ({ 'r2.key': key }),
+  putCsvCore
+)
+
+interface PutPdfParams {
   body: Buffer
   key: string
-}) => {
+}
+
+/**
+ * Core putPDF logic without tracing.
+ */
+const putPDFCore = async ({
+  body,
+  key,
+}: PutPdfParams): Promise<void> => {
   try {
     await putFile({ body, key, contentType: 'application/pdf' })
   } catch (error) {
@@ -94,6 +144,15 @@ const putPDF = async ({
   }
 }
 
+const putPDF = r2Traced(
+  'putPdf',
+  ({ body, key }: PutPdfParams) => ({
+    'r2.key': key,
+    'r2.size_bytes': body.byteLength,
+  }),
+  putPDFCore
+)
+
 interface PresignedURLParams {
   directory: string
   key: string
@@ -101,15 +160,23 @@ interface PresignedURLParams {
   organizationId: string
 }
 
-const getPresignedURL = async ({
+/**
+ * Core getPresignedURL logic without tracing.
+ */
+const getPresignedURLCore = async ({
   directory,
   key,
   contentType,
   organizationId,
-}: PresignedURLParams) => {
+}: PresignedURLParams): Promise<{
+  objectKey: string
+  presignedURL: string
+  publicURL: string
+}> => {
   const keyWithOrganizationNamespace = organizationId
     ? `${organizationId}/${directory}/${key}`
     : `${directory}/${key}`
+
   const presignedURL = await getSignedUrl(
     s3,
     new PutObjectCommand({
@@ -133,9 +200,26 @@ const getPresignedURL = async ({
   }
 }
 
+const getPresignedURL = r2Traced(
+  'getPresignedUrl',
+  ({ directory, key, organizationId }: PresignedURLParams) => {
+    const keyWithOrganizationNamespace = organizationId
+      ? `${organizationId}/${directory}/${key}`
+      : `${directory}/${key}`
+    return {
+      'r2.key': keyWithOrganizationNamespace,
+      'r2.directory': directory,
+    }
+  },
+  getPresignedURLCore
+)
+
 const BUCKET_PUBLIC_URL = process.env.NEXT_PUBLIC_CDN_URL as string
 
-export const deleteObject = async (key: string): Promise<void> => {
+/**
+ * Core deleteObject logic without tracing.
+ */
+const deleteObjectCore = async (key: string): Promise<void> => {
   try {
     await s3.deleteObject({
       Bucket: cloudflareBucket,
@@ -149,7 +233,16 @@ export const deleteObject = async (key: string): Promise<void> => {
   }
 }
 
-export const getObject = async (key: string) => {
+export const deleteObject = r2Traced(
+  'deleteObject',
+  (key: string) => ({ 'r2.key': key }),
+  deleteObjectCore
+)
+
+/**
+ * Core getObject logic without tracing.
+ */
+const getObjectCore = async (key: string) => {
   try {
     const response = await s3.getObject({
       Bucket: cloudflareBucket,
@@ -164,13 +257,28 @@ export const getObject = async (key: string) => {
   }
 }
 
-export const getHeadObject = async (key: string) => {
+export const getObject = r2Traced(
+  'getObject',
+  (key: string) => ({ 'r2.key': key }),
+  getObjectCore
+)
+
+/**
+ * Core getHeadObject logic without tracing.
+ */
+const getHeadObjectCore = async (key: string) => {
   const response = await s3.headObject({
     Bucket: cloudflareBucket,
     Key: key,
   })
   return response
 }
+
+export const getHeadObject = r2Traced(
+  'headObject',
+  (key: string) => ({ 'r2.key': key }),
+  getHeadObjectCore
+)
 
 export const keyFromCDNUrl = (cdnUrl: string) => {
   const parsedUrl = new URL(cdnUrl)
@@ -179,13 +287,18 @@ export const keyFromCDNUrl = (cdnUrl: string) => {
   return key
 }
 
-const putTextFile = async ({
-  body,
-  key,
-}: {
+interface PutTextFileParams {
   body: string
   key: string
-}) => {
+}
+
+/**
+ * Core putTextFile logic without tracing.
+ */
+const putTextFileCore = async ({
+  body,
+  key,
+}: PutTextFileParams): Promise<void> => {
   try {
     await putFile({ body, key, contentType: 'text/plain' })
   } catch (error) {
@@ -194,6 +307,12 @@ const putTextFile = async ({
     throw Error(errorMessage)
   }
 }
+
+const putTextFile = r2Traced(
+  'putText',
+  ({ key }: PutTextFileParams) => ({ 'r2.key': key }),
+  putTextFileCore
+)
 
 /**
  * Generates an unguessable hash using the organization's securitySalt
@@ -213,33 +332,49 @@ export const generateContentHash = ({
     .digest('hex')
 }
 
-/**
- * Stores markdown content in Cloudflare R2 with a hashed key
- * Returns the content hash for storage/retrieval purposes
- */
-export const putMarkdownFile = async ({
-  organizationId,
-  key,
-  markdown,
-}: {
+interface PutMarkdownFileParams {
   organizationId: string
   key: string
   markdown: string
-}): Promise<void> => {
+}
+
+/**
+ * Core putMarkdownFile logic without tracing.
+ */
+const putMarkdownFileCore = async ({
+  organizationId,
+  key,
+  markdown,
+}: PutMarkdownFileParams): Promise<void> => {
   const fullKey = `${organizationId}/${key}`
   await putTextFile({ body: markdown, key: fullKey })
 }
 
 /**
- * Retrieves markdown content from Cloudflare R2 by key
+ * Stores markdown content in Cloudflare R2 with a hashed key
+ * Returns the content hash for storage/retrieval purposes
  */
-export const getMarkdownFile = async ({
-  organizationId,
-  key,
-}: {
+export const putMarkdownFile = r2Traced(
+  'putMarkdown',
+  ({ organizationId, key }: PutMarkdownFileParams) => {
+    const fullKey = `${organizationId}/${key}`
+    return { 'r2.key': fullKey, 'r2.org_id': organizationId }
+  },
+  putMarkdownFileCore
+)
+
+interface GetMarkdownFileParams {
   organizationId: string
   key: string
-}): Promise<string | null> => {
+}
+
+/**
+ * Core getMarkdownFile logic without tracing.
+ */
+const getMarkdownFileCore = async ({
+  organizationId,
+  key,
+}: GetMarkdownFileParams): Promise<string | null> => {
   const fullKey = `${organizationId}/${key}`
   try {
     // Call s3.getObject directly to preserve AWS error properties for proper error handling
@@ -280,6 +415,18 @@ export const getMarkdownFile = async ({
     throw error
   }
 }
+
+/**
+ * Retrieves markdown content from Cloudflare R2 by key
+ */
+export const getMarkdownFile = r2Traced(
+  'getMarkdown',
+  ({ organizationId, key }: GetMarkdownFileParams) => {
+    const fullKey = `${organizationId}/${key}`
+    return { 'r2.key': fullKey, 'r2.org_id': organizationId }
+  },
+  getMarkdownFileCore
+)
 
 const cloudflareMethods = {
   getPresignedURL,

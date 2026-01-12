@@ -16,8 +16,6 @@ import {
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@/db/tableUtils'
-import { confirmCheckoutSession } from '@/server/mutations/confirmCheckoutSession'
-import { editCheckoutSession } from '@/server/mutations/editCheckoutSession'
 import { protectedProcedure, router } from '@/server/trpc'
 import { PurchaseStatus } from '@/types'
 import { generateOpenApiMetas } from '@/utils/openapi'
@@ -65,10 +63,6 @@ const getTableRows = protectedProcedure
 export const purchasesRouter = router({
   // Get single purchase
   get: getPurchaseProcedure,
-  // Create purchase
-  // Purchase session management
-  updateSession: editCheckoutSession,
-  confirmSession: confirmCheckoutSession,
   // Table rows for internal UI
   getTableRows,
 })

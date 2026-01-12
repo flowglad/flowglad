@@ -326,6 +326,87 @@ export const bulkInsertUsageEventsTransaction = async (
     })
   }
 
+  // Validate price IDs that were provided directly (not resolved from slug)
+  // They must exist in the customer's pricing model
+  // Note: Events with priceSlug already validated during slug resolution (lines 156-199)
+  const eventsWithDirectPriceIds = resolvedUsageEvents
+    .map((usageEvent, index) => ({
+      usageEvent,
+      index,
+    }))
+    .filter(({ usageEvent, index }) => {
+      // Only validate events that have a priceId AND were NOT resolved from a slug
+      // Check if this event originally had a priceSlug by checking the original input
+      const originalEvent = input.usageEvents[index]
+      return (
+        usageEvent.priceId !== null &&
+        !originalEvent.priceSlug &&
+        !originalEvent.usageMeterSlug
+      )
+    })
+
+  if (eventsWithDirectPriceIds.length > 0) {
+    // Group by customer to batch pricing model lookups
+    const customerPriceEventsMap = new Map<
+      string,
+      Array<{ priceId: string; index: number }>
+    >()
+
+    eventsWithDirectPriceIds.forEach(({ usageEvent, index }) => {
+      const subscription = subscriptionsMap.get(
+        usageEvent.subscriptionId
+      )
+      if (!subscription) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Subscription ${usageEvent.subscriptionId} not found for usage event at index ${index}`,
+        })
+      }
+      const customerId = subscription.customerId
+
+      const customerEvents = customerPriceEventsMap.get(customerId)
+      if (customerEvents) {
+        customerEvents.push({
+          priceId: usageEvent.priceId!,
+          index,
+        })
+      } else {
+        customerPriceEventsMap.set(customerId, [
+          {
+            priceId: usageEvent.priceId!,
+            index,
+          },
+        ])
+      }
+    })
+
+    // Batch validate for each customer using cached pricing models
+    for (const [
+      customerId,
+      events,
+    ] of customerPriceEventsMap.entries()) {
+      const pricingModel =
+        await getPricingModelForCustomer(customerId)
+
+      // Build a set of allowed price IDs from the customer's pricing model
+      const pricingModelPriceIds = new Set<string>()
+      for (const product of pricingModel.products) {
+        for (const price of product.prices) {
+          pricingModelPriceIds.add(price.id)
+        }
+      }
+
+      for (const { priceId, index } of events) {
+        if (!pricingModelPriceIds.has(priceId)) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Price ${priceId} not found for this customer's pricing model at index ${index}`,
+          })
+        }
+      }
+    }
+  }
+
   // Collect all usage meter IDs (from prices and direct usage meter identifiers)
   const usageMeterIdsFromPrices = Array.from(pricesMap.values())
     .map((price) => price.usageMeterId)
@@ -466,7 +547,21 @@ export const bulkInsertUsageEventsTransaction = async (
         })
       }
 
-      // Check if usage meter requires billing period (CountDistinctProperties)
+      /**
+       * Validation for CountDistinctProperties aggregation type.
+       *
+       * This aggregation type counts unique property combinations within a billing period.
+       * For example, if tracking unique users who performed an action, each event must include
+       * a properties object like `{ user_id: '123' }` to identify the distinct entity.
+       *
+       * Requirements:
+       * 1. A billing period must exist - deduplication is scoped to billing periods
+       * 2. Properties must be non-empty - without properties, all events would be treated as
+       *    having the same "empty" combination, causing incorrect deduplication where only
+       *    the first event generates a ledger transaction (leading to underbilling)
+       *
+       * @see https://docs.flowglad.com/usage-based-billing/aggregation-types
+       */
       const usageMeter = usageMetersMap.get(finalUsageMeterId)
       if (
         usageMeter?.aggregationType ===
@@ -476,6 +571,17 @@ export const bulkInsertUsageEventsTransaction = async (
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message: `Billing period is required for usage meter "${usageMeter.name}" at index ${index} because it uses "count_distinct_properties" aggregation. This aggregation type requires a billing period for deduplication.`,
+          })
+        }
+
+        // Validate that properties are provided and non-empty for count_distinct_properties meters
+        if (
+          !usageEvent.properties ||
+          Object.keys(usageEvent.properties).length === 0
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Properties are required for usage meter "${usageMeter.name}" at index ${index} because it uses "count_distinct_properties" aggregation. Each usage event must have a non-empty properties object to identify the distinct combination being counted.`,
           })
         }
       }

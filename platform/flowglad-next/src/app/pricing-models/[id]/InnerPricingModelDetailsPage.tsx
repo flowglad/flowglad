@@ -11,7 +11,9 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import { CustomersDataTable } from '@/app/customers/data-table'
+import { ResourcesDataTable } from '@/app/resources/data-table'
 import { UsageMetersDataTable } from '@/app/usage-meters/data-table'
+import CreateResourceModal from '@/components/components/CreateResourceModal'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 import { ExpandSection } from '@/components/ExpandSection'
 import { FeaturesDataTable } from '@/components/features/data-table'
@@ -22,8 +24,8 @@ import CreateProductModal from '@/components/forms/CreateProductModal'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import { PricingModelIntegrationGuideModal } from '@/components/forms/PricingModelIntegrationGuideModal'
 import SetPricingModelAsDefaultModal from '@/components/forms/SetPricingModelAsDefaultModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import { MoreIcon } from '@/components/icons/MoreIcon'
+import PageContainer from '@/components/PageContainer'
 import PopoverMenu, {
   type PopoverMenuItem,
 } from '@/components/PopoverMenu'
@@ -63,6 +65,8 @@ function InnerPricingModelDetailsPage({
     isCreateUsageMeterModalOpen,
     setIsCreateUsageMeterModalOpen,
   ] = useState(false)
+  const [isCreateResourceModalOpen, setIsCreateResourceModalOpen] =
+    useState(false)
   const [activeProductFilter, setActiveProductFilter] =
     useState<string>('active')
   const [activeFeatureFilter, setActiveFeatureFilter] =
@@ -189,7 +193,7 @@ function InnerPricingModelDetailsPage({
   ]
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title={pricingModel.name}
@@ -291,6 +295,19 @@ function InnerPricingModelDetailsPage({
           />
         </ExpandSection>
         <ExpandSection
+          title="Resources"
+          defaultExpanded={false}
+          contentPadding={false}
+        >
+          <ResourcesDataTable
+            filters={{ pricingModelId: pricingModel.id }}
+            onCreateResource={() =>
+              setIsCreateResourceModalOpen(true)
+            }
+            buttonVariant="secondary"
+          />
+        </ExpandSection>
+        <ExpandSection
           title="Customers"
           defaultExpanded={false}
           contentPadding={false}
@@ -332,6 +349,12 @@ function InnerPricingModelDetailsPage({
         defaultPricingModelId={pricingModel.id}
         hidePricingModelSelect={true}
       />
+      <CreateResourceModal
+        isOpen={isCreateResourceModalOpen}
+        setIsOpen={setIsCreateResourceModalOpen}
+        defaultPricingModelId={pricingModel.id}
+        hidePricingModelSelect={true}
+      />
       <PricingModelIntegrationGuideModal
         isOpen={isGetIntegrationGuideModalOpen}
         setIsOpen={setIsGetIntegrationGuideModalOpen}
@@ -347,7 +370,7 @@ function InnerPricingModelDetailsPage({
         setIsOpen={setIsSetDefaultOpen}
         pricingModel={pricingModel}
       />
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

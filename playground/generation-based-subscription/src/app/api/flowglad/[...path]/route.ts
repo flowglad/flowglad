@@ -1,8 +1,8 @@
 // /api/flowglad/[...path]/route.ts
 import { nextRouteHandler } from '@flowglad/nextjs/server'
-import { flowglad } from '@/lib/flowglad'
-import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
+import { auth } from '@/lib/auth'
+import { flowglad } from '@/lib/flowglad'
 
 export const { GET, POST } = nextRouteHandler({
   flowglad,

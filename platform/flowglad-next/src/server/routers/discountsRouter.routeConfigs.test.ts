@@ -21,7 +21,7 @@ describe('discountsRouteConfigs', () => {
     it('should map POST /discounts to discounts.create procedure', () => {
       const routeConfig = findRouteConfig('POST /discounts')
 
-      expect(routeConfig).toBeDefined()
+      expect(typeof routeConfig).toBe('object')
       expect(routeConfig.procedure).toBe('discounts.create')
       expect(routeConfig.pattern.test('discounts')).toBe(true)
 
@@ -34,7 +34,7 @@ describe('discountsRouteConfigs', () => {
     it('should map PUT /discounts/:id to discounts.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /discounts/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(typeof routeConfig).toBe('object')
       expect(routeConfig.procedure).toBe('discounts.update')
       expect(routeConfig.pattern.test('discounts/test-id')).toBe(true)
 
@@ -50,7 +50,7 @@ describe('discountsRouteConfigs', () => {
     it('should map GET /discounts/:id to discounts.get procedure', () => {
       const routeConfig = findRouteConfig('GET /discounts/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(typeof routeConfig).toBe('object')
       expect(routeConfig.procedure).toBe('discounts.get')
       expect(routeConfig.pattern.test('discounts/test-id')).toBe(true)
 
@@ -62,7 +62,7 @@ describe('discountsRouteConfigs', () => {
     it('should map GET /discounts to discounts.list procedure', () => {
       const routeConfig = findRouteConfig('GET /discounts')
 
-      expect(routeConfig).toBeDefined()
+      expect(typeof routeConfig).toBe('object')
       expect(routeConfig.procedure).toBe('discounts.list')
       expect(routeConfig.pattern.test('discounts')).toBe(true)
 
@@ -102,7 +102,7 @@ describe('discountsRouteConfigs', () => {
       // Test discount get pattern extraction
       const getConfig = findRouteConfig('GET /discounts/:id')
       const getMatches = getConfig.pattern.exec('discounts/test-id')
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test discount update pattern extraction
@@ -110,19 +110,19 @@ describe('discountsRouteConfigs', () => {
       const updateMatches = updateConfig.pattern.exec(
         'discounts/discount-456'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('discount-456') // First capture group
 
       // Test discount list pattern (no captures)
       const listConfig = findRouteConfig('GET /discounts')
       const listMatches = listConfig.pattern.exec('discounts')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test discount create pattern (no captures)
       const createConfig = findRouteConfig('POST /discounts')
       const createMatches = createConfig.pattern.exec('discounts')
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })

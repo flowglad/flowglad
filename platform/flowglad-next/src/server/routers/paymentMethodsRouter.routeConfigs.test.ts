@@ -25,7 +25,9 @@ describe('paymentMethodsRouteConfigs', () => {
     it('should map POST /payment-methods to paymentMethods.create procedure', () => {
       const routeConfig = findRouteConfig('POST /payment-methods')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'paymentMethods.create',
+      })
       expect(routeConfig!.procedure).toBe('paymentMethods.create')
       expect(routeConfig!.pattern.test('payment-methods')).toBe(true)
 
@@ -38,7 +40,9 @@ describe('paymentMethodsRouteConfigs', () => {
     it('should map PUT /payment-methods/:id to paymentMethods.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /payment-methods/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'paymentMethods.update',
+      })
       expect(routeConfig!.procedure).toBe('paymentMethods.update')
       expect(
         routeConfig!.pattern.test('payment-methods/test-id')
@@ -56,7 +60,9 @@ describe('paymentMethodsRouteConfigs', () => {
     it('should map GET /payment-methods/:id to paymentMethods.get procedure', () => {
       const routeConfig = findRouteConfig('GET /payment-methods/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'paymentMethods.get',
+      })
       expect(routeConfig!.procedure).toBe('paymentMethods.get')
       expect(
         routeConfig!.pattern.test('payment-methods/test-id')
@@ -70,7 +76,9 @@ describe('paymentMethodsRouteConfigs', () => {
     it('should map GET /payment-methods to paymentMethods.list procedure', () => {
       const routeConfig = findRouteConfig('GET /payment-methods')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'paymentMethods.list',
+      })
       expect(routeConfig!.procedure).toBe('paymentMethods.list')
       expect(routeConfig!.pattern.test('payment-methods')).toBe(true)
 
@@ -84,7 +92,9 @@ describe('paymentMethodsRouteConfigs', () => {
         'DELETE /payment-methods/:id'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'paymentMethods.delete',
+      })
       expect(routeConfig!.procedure).toBe('paymentMethods.delete')
       expect(
         routeConfig!.pattern.test('payment-methods/test-id')
@@ -149,7 +159,7 @@ describe('paymentMethodsRouteConfigs', () => {
       const getMatches = getConfig!.pattern.exec(
         'payment-methods/test-id'
       )
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test Payment Methods update pattern extraction
@@ -157,7 +167,7 @@ describe('paymentMethodsRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'payment-methods/test-id'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test Payment Methods delete pattern extraction
@@ -167,20 +177,20 @@ describe('paymentMethodsRouteConfigs', () => {
       const deleteMatches = deleteConfig!.pattern.exec(
         'payment-methods/test-id'
       )
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test Payment Methods list pattern (no captures)
       const listConfig = findRouteConfig('GET /payment-methods')
       const listMatches = listConfig!.pattern.exec('payment-methods')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test Payment Methods create pattern (no captures)
       const createConfig = findRouteConfig('POST /payment-methods')
       const createMatches =
         createConfig!.pattern.exec('payment-methods')
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })

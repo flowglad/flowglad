@@ -21,6 +21,7 @@ import {
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import core, { safeZodSanitizedString } from '@/utils/core'
 import { pricingModels } from './pricingModels'
+import { resources } from './resources'
 
 const TABLE_NAME = 'features'
 
@@ -54,6 +55,7 @@ export const features = pgTable(
       'pricing_model_id',
       pricingModels
     ),
+    resourceId: nullableStringForeignKey('resource_id', resources),
     active: boolean('active').notNull().default(true),
   },
   (table) => [
@@ -65,6 +67,7 @@ export const features = pgTable(
       table.pricingModelId,
     ]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
+    constructIndex(TABLE_NAME, [table.resourceId]),
     merchantPolicy(
       `Enable read for own organizations (${TABLE_NAME})`,
       {
@@ -91,6 +94,7 @@ const toggleFeatureSharedColumns = {
   amount: z.literal(null).optional(),
   usageMeterId: z.literal(null).optional(),
   renewalFrequency: z.literal(null).optional(),
+  resourceId: z.literal(null).optional(),
   slug: safeZodSanitizedString,
 }
 
@@ -126,6 +130,7 @@ const usageCreditGrantFeatureSharedColumns = {
   renewalFrequency: core.createSafeZodEnum(
     FeatureUsageGrantFrequency
   ),
+  resourceId: z.literal(null).optional(),
   slug: safeZodSanitizedString,
 }
 
@@ -152,21 +157,58 @@ export const {
 })
 
 /*
+ * Resource Feature schemas via buildSchemas
+ */
+const resourceFeatureSharedColumns = {
+  type: z.literal(FeatureType.Resource),
+  amount: core.safeZodPositiveInteger,
+  usageMeterId: z.literal(null).optional(),
+  renewalFrequency: z.literal(null).optional(),
+  resourceId: z.string(),
+  slug: safeZodSanitizedString,
+}
+
+export const {
+  insert: resourceFeatureInsertSchema,
+  select: resourceFeatureSelectSchema,
+  update: resourceFeatureUpdateSchema,
+  client: {
+    insert: resourceFeatureClientInsertSchema,
+    select: resourceFeatureClientSelectSchema,
+    update: resourceFeatureClientUpdateSchema,
+  },
+} = buildSchemas(features, {
+  discriminator: 'type',
+  refine: resourceFeatureSharedColumns,
+  updateRefine: {
+    slug: safeZodSanitizedString.optional(),
+  },
+  client: {
+    hiddenColumns: hiddenColumnsForClientSchema,
+    readOnlyColumns: { organizationId: true, livemode: true },
+  },
+  entityName: 'ResourceFeature',
+})
+
+/*
  * Combined discriminated union schemas (internal)
  */
 export const featuresInsertSchema = z.discriminatedUnion('type', [
   toggleFeatureInsertSchema,
   usageCreditGrantFeatureInsertSchema,
+  resourceFeatureInsertSchema,
 ])
 
 export const featuresSelectSchema = z.discriminatedUnion('type', [
   toggleFeatureSelectSchema,
   usageCreditGrantFeatureSelectSchema,
+  resourceFeatureSelectSchema,
 ])
 
 export const featuresUpdateSchema = z.discriminatedUnion('type', [
   toggleFeatureUpdateSchema,
   usageCreditGrantFeatureUpdateSchema,
+  resourceFeatureUpdateSchema,
 ])
 
 const sharedHiddenClientColumns = {
@@ -180,6 +222,7 @@ export const featuresClientInsertSchema = z
   .discriminatedUnion('type', [
     toggleFeatureClientInsertSchema,
     usageCreditGrantFeatureClientInsertSchema,
+    resourceFeatureClientInsertSchema,
   ])
   .meta({
     id: 'FeatureInsert',
@@ -189,6 +232,7 @@ export const featuresClientSelectSchema = z
   .discriminatedUnion('type', [
     toggleFeatureClientSelectSchema,
     usageCreditGrantFeatureClientSelectSchema,
+    resourceFeatureClientSelectSchema,
   ])
   .meta({
     id: 'FeatureRecord',
@@ -198,6 +242,7 @@ export const featuresClientUpdateSchema = z
   .discriminatedUnion('type', [
     toggleFeatureClientUpdateSchema,
     usageCreditGrantFeatureClientUpdateSchema,
+    resourceFeatureClientUpdateSchema,
   ])
   .meta({
     id: 'FeatureUpdate',
@@ -251,6 +296,26 @@ export namespace Feature {
   export type UsageCreditGrantClientRecord = z.infer<
     typeof usageCreditGrantFeatureClientSelectSchema
   >
+
+  // Resource subtypes
+  export type ResourceInsert = z.infer<
+    typeof resourceFeatureInsertSchema
+  >
+  export type ResourceUpdate = z.infer<
+    typeof resourceFeatureUpdateSchema
+  >
+  export type ResourceRecord = z.infer<
+    typeof resourceFeatureSelectSchema
+  >
+  export type ResourceClientInsert = z.infer<
+    typeof resourceFeatureClientInsertSchema
+  >
+  export type ResourceClientUpdate = z.infer<
+    typeof resourceFeatureClientUpdateSchema
+  >
+  export type ResourceClientRecord = z.infer<
+    typeof resourceFeatureClientSelectSchema
+  >
 }
 
 export const createFeatureSchema = z.object({
@@ -277,6 +342,7 @@ export const toggleFeatureDefaultColumns: Pick<
   amount: null,
   usageMeterId: null,
   renewalFrequency: null,
+  resourceId: null,
 }
 
 export const usageCreditGrantFeatureDefaultColumns: Pick<
@@ -290,4 +356,21 @@ export const usageCreditGrantFeatureDefaultColumns: Pick<
   amount: 0,
   usageMeterId: '',
   renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
+  resourceId: null,
+}
+
+export const resourceFeatureDefaultColumns: Pick<
+  Feature.ResourceInsert,
+  /**
+   * Note: ommitting slug and resourceId from default columns to avoid unexpected client side values
+   */
+  keyof Omit<
+    typeof resourceFeatureSharedColumns,
+    'slug' | 'resourceId'
+  >
+> = {
+  type: FeatureType.Resource,
+  amount: 0,
+  usageMeterId: null,
+  renewalFrequency: null,
 }

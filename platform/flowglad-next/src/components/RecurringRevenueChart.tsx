@@ -1,48 +1,53 @@
 'use client'
-import { differenceInHours, format } from 'date-fns'
+
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
-import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
-import { RevenueTooltip } from '@/components/RevenueTooltip'
+import { ChartDataTooltip } from '@/components/ChartDataTooltip'
+import {
+  ChartBody,
+  ChartHeader,
+  ChartValueDisplay,
+  LineChart,
+} from '@/components/charts'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { RevenueChartIntervalUnit } from '@/types'
-import core from '@/utils/core'
+import { useChartInterval } from '@/hooks/useChartInterval'
+import { useChartTooltip } from '@/hooks/useChartTooltip'
+import { CurrencyCode, RevenueChartIntervalUnit } from '@/types'
+import { formatDateUTC } from '@/utils/chart/dateFormatting'
+import { createChartTooltipMetadata } from '@/utils/chart/types'
 import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
 } from '@/utils/stripe'
-import { LineChart } from './charts/LineChart'
-import { Skeleton } from './ui/skeleton'
+
+interface RecurringRevenueChartProps {
+  fromDate: Date
+  toDate: Date
+  productId?: string
+  /** Optional controlled interval. When provided, the chart uses this value. */
+  interval?: RevenueChartIntervalUnit
+}
 
 /**
- * Two dots make a graph principle: this is the minimum range duration required
- * in hours, required to display a multi-point graph
- */
-const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
-  [RevenueChartIntervalUnit.Year]: 24 * 365 * 2,
-  [RevenueChartIntervalUnit.Month]: 24 * 30 * 2,
-  [RevenueChartIntervalUnit.Week]: 24 * 7 * 2,
-  [RevenueChartIntervalUnit.Day]: 24 * 2,
-  [RevenueChartIntervalUnit.Hour]: 1 * 2,
-} as const
-
-/**
- * Component for displaying Monthly Recurring Revenue (MRR) data in a chart
+ * Component for displaying Monthly Recurring Revenue (MRR) data in a chart.
+ * Shows the last MRR value by default, individual period value on hover.
  */
 export const RecurringRevenueChart = ({
   fromDate,
   toDate,
   productId,
-}: {
-  fromDate: Date
-  toDate: Date
-  productId?: string
-}) => {
+  interval: controlledInterval,
+}: RecurringRevenueChartProps) => {
   const { organization } = useAuthenticatedContext()
-  const [interval, setInterval] =
-    React.useState<RevenueChartIntervalUnit>(
-      RevenueChartIntervalUnit.Month
-    )
+
+  // Use shared hooks for tooltip and interval management
+  const { tooltipData, tooltipCallback } = useChartTooltip()
+  const { interval } = useChartInterval({
+    fromDate,
+    toDate,
+    controlledInterval,
+    // No onIntervalChange - MRR chart doesn't have inline selector
+  })
 
   const { data: mrrData, isLoading } =
     trpc.organizations.getMRR.useQuery({
@@ -50,28 +55,13 @@ export const RecurringRevenueChart = ({
       endDate: toDate,
       granularity: interval,
     })
-  const [tooltipData, setTooltipData] =
-    React.useState<TooltipCallbackProps | null>(null)
 
-  // Use useRef to store tooltip data during render, then update state after render
-  const pendingTooltipData =
-    React.useRef<TooltipCallbackProps | null>(null)
-
-  // Use useEffect to safely update tooltip state after render
-
-  // FIXME(FG-384): Fix this warning:
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  React.useEffect(() => {
-    if (pendingTooltipData.current !== null) {
-      setTooltipData(pendingTooltipData.current)
-      pendingTooltipData.current = null
-    }
-  })
   const defaultCurrency = organization?.defaultCurrency
+
   const chartData = React.useMemo(() => {
     if (!mrrData) return []
     if (!defaultCurrency) return []
-    return mrrData.map((item) => {
+    return mrrData.map((item, index) => {
       const formattedRevenue =
         stripeCurrencyAmountToHumanReadableCurrencyAmount(
           defaultCurrency,
@@ -79,14 +69,22 @@ export const RecurringRevenueChart = ({
         )
       const dateObj = new Date(item.month)
       return {
-        date: format(dateObj, 'd MMM'),
-        // Store the ISO date string for the tooltip to use for proper year formatting
-        isoDate: dateObj.toISOString(),
+        // Use UTC formatting to match PostgreSQL's date_trunc behavior
+        date: formatDateUTC(dateObj, interval),
+        // Tooltip metadata for consistent date/period formatting
+        ...createChartTooltipMetadata({
+          date: dateObj,
+          intervalUnit: interval,
+          rangeStart: fromDate,
+          rangeEnd: toDate,
+          index,
+          totalPoints: mrrData.length,
+        }),
         formattedRevenue,
         revenue: Number(item.amount).toFixed(2),
       }
     })
-  }, [mrrData, defaultCurrency])
+  }, [mrrData, defaultCurrency, interval, fromDate, toDate])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data
@@ -95,23 +93,21 @@ export const RecurringRevenueChart = ({
     const max = Math.max(...mrrData.map((item) => item.amount))
     return max
   }, [mrrData])
+
   const firstPayloadValue = tooltipData?.payload?.[0]?.value
+
   const formattedMRRValue = React.useMemo(() => {
     if (!mrrData?.length || !defaultCurrency) {
       return '0.00'
     }
-    /**
-     * If the tooltip is active, we use the value from the tooltip
-     */
+    // If the tooltip is active, use the value from the tooltip
     if (firstPayloadValue) {
       return stripeCurrencyAmountToHumanReadableCurrencyAmount(
         defaultCurrency,
         firstPayloadValue
       )
     }
-    /**
-     * If the tooltip is not active, we use the last value in the chart
-     */
+    // If the tooltip is not active, use the last value in the chart
     const amount = mrrData[mrrData.length - 1].amount
     return stripeCurrencyAmountToHumanReadableCurrencyAmount(
       defaultCurrency,
@@ -119,41 +115,23 @@ export const RecurringRevenueChart = ({
     )
   }, [mrrData, defaultCurrency, firstPayloadValue])
 
-  const timespanInHours = differenceInHours(toDate, fromDate)
-  const tooltipLabel = tooltipData?.label
-  let isTooltipLabelDate: boolean = false
-  if (tooltipLabel) {
-    try {
-      new Date(tooltipLabel as string).toISOString()
-      isTooltipLabelDate = true
-    } catch {
-      isTooltipLabelDate = false
-    }
-  }
+  const currencyForFormatter = defaultCurrency ?? CurrencyCode.USD
+
   return (
     <div className="w-full h-full">
-      <div className="flex flex-row gap-2 justify-between px-4">
-        <div className="text-foreground w-fit flex items-center flex-row min-h-6">
-          <p className="whitespace-nowrap">
-            Monthly Recurring Revenue
-          </p>
-        </div>
-      </div>
+      <ChartHeader
+        title="Monthly recurring revenue"
+        infoTooltip="The normalized monthly value of all active recurring subscriptions. Calculated as the sum of subscription amounts adjusted to a monthly rate."
+        // No inline selector for MRR chart
+        showInlineSelector={false}
+      />
 
-      <div className="px-4 mt-1">
-        {isLoading ? (
-          <Skeleton className="w-36 h-7" />
-        ) : (
-          <p className="text-xl font-semibold text-foreground">
-            {formattedMRRValue}
-          </p>
-        )}
-      </div>
-      {isLoading ? (
-        <div className="-mb-2 mt-2 flex items-center">
-          <Skeleton className="h-80 w-full" />
-        </div>
-      ) : (
+      <ChartValueDisplay
+        value={formattedMRRValue}
+        isLoading={isLoading}
+      />
+
+      <ChartBody isLoading={isLoading}>
         <LineChart
           data={chartData}
           index="date"
@@ -161,38 +139,39 @@ export const RecurringRevenueChart = ({
           className="-mb-2 mt-2"
           colors={['foreground']}
           fill="gradient"
-          customTooltip={RevenueTooltip}
+          customTooltip={(props) => (
+            <ChartDataTooltip
+              {...props}
+              valueFormatter={(value) =>
+                stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  currencyForFormatter,
+                  value
+                )
+              }
+            />
+          )}
           maxValue={maxValue}
           autoMinValue={false}
           minValue={0}
           startEndOnly={true}
           startEndOnlyYAxis={true}
           showYAxis={false}
+          intervalUnit={interval}
           valueFormatter={(value: number) =>
             stripeCurrencyAmountToHumanReadableCurrencyAmount(
-              organization?.defaultCurrency!,
+              currencyForFormatter,
               value
             )
           }
           yAxisValueFormatter={(value: number) =>
             stripeCurrencyAmountToShortReadableCurrencyAmount(
-              organization?.defaultCurrency!,
+              currencyForFormatter,
               value
             )
           }
-          tooltipCallback={(props: any) => {
-            // Store tooltip data in ref during render, useEffect will update state safely
-            if (props.active) {
-              // Only update if the data is different to prevent unnecessary re-renders
-              if (tooltipData?.label !== props.label) {
-                pendingTooltipData.current = props
-              }
-            } else {
-              pendingTooltipData.current = null
-            }
-          }}
+          tooltipCallback={tooltipCallback}
         />
-      )}
+      </ChartBody>
     </div>
   )
 }

@@ -1,9 +1,6 @@
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import type { Invoice } from '@/db/schema/invoices'
 import type { Price } from '@/db/schema/prices'
 import type { Purchase } from '@/db/schema/purchases'
 import {
@@ -23,7 +20,6 @@ import {
 } from '@/types'
 import {
   createPaymentIntentForCheckoutSession,
-  createPaymentIntentForInvoiceCheckoutSession,
   createSetupIntentForCheckoutSession,
 } from '@/utils/stripe'
 import core from './core'
@@ -38,10 +34,6 @@ const purchaseCheckoutSessionCookieNameParamsSchema = z.object({
   purchaseId: z.string(),
 })
 
-const invoiceCheckoutSessionCookieNameParamsSchema = z.object({
-  type: z.literal('invoice'),
-  invoiceId: z.string(),
-})
 /**
  * SUBTLE CODE ALERT:
  * The order of z.union matters here!
@@ -59,7 +51,6 @@ export const checkoutSessionCookieNameParamsSchema =
   z.discriminatedUnion('type', [
     purchaseCheckoutSessionCookieNameParamsSchema,
     productCheckoutSessionCookieNameParamsSchema,
-    invoiceCheckoutSessionCookieNameParamsSchema,
   ])
 
 export const setCheckoutSessionCookieParamsSchema = idInputSchema.and(
@@ -87,8 +78,6 @@ const checkoutSessionName = (
       return base + params.productId
     case CheckoutSessionType.Purchase:
       return base + params.purchaseId
-    case CheckoutSessionType.Invoice:
-      return base + params.invoiceId
     default:
       throw new Error('Invalid purchase session type: ' + params.type)
   }
@@ -146,15 +135,6 @@ export const findProductCheckoutSession = async (
 ) => {
   return findCheckoutSession(
     { productId, type: CheckoutSessionType.Product },
-    transaction
-  )
-}
-export const findInvoiceCheckoutSession = async (
-  invoiceId: string,
-  transaction: DbTransaction
-) => {
-  return findCheckoutSession(
-    { invoiceId, type: CheckoutSessionType.Invoice },
     transaction
   )
 }
@@ -341,93 +321,6 @@ export const findOrCreateCheckoutSession = async (
   return checkoutSession
 }
 
-const createInvoiceCheckoutSession = async (
-  {
-    invoice,
-    invoiceLineItems,
-    feeCalculation,
-  }: {
-    invoice: Invoice.Record
-    invoiceLineItems: InvoiceLineItem.Record[]
-    feeCalculation?: FeeCalculation.Record
-  },
-  transaction: DbTransaction
-) => {
-  const customer = await selectCustomerById(
-    invoice.customerId,
-    transaction
-  )
-  const checkoutSession = await insertCheckoutSession(
-    {
-      status: CheckoutSessionStatus.Open,
-      type: CheckoutSessionType.Invoice,
-      invoiceId: invoice.id,
-      organizationId: invoice.organizationId,
-      customerId: invoice.customerId,
-      customerEmail: customer.email,
-      customerName: customer.name,
-      livemode: invoice.livemode,
-      purchaseId: null,
-      priceId: null,
-      outputMetadata: null,
-      targetSubscriptionId: null,
-      automaticallyUpdateSubscriptions: null,
-      pricingModelId: invoice.pricingModelId,
-    },
-    transaction
-  )
-  const organization = await selectOrganizationById(
-    invoice.organizationId,
-    transaction
-  )
-  const paymentIntent =
-    await createPaymentIntentForInvoiceCheckoutSession({
-      invoice,
-      organization,
-      checkoutSession,
-      invoiceLineItems: invoiceLineItems,
-      feeCalculation: feeCalculation,
-      stripeCustomerId: customer.stripeCustomerId!,
-    })
-  const updatedCheckoutSession = await updateCheckoutSession(
-    {
-      ...checkoutSession,
-      stripePaymentIntentId: paymentIntent.id,
-    },
-    transaction
-  )
-  return updatedCheckoutSession
-}
-
-export const findOrCreateInvoiceCheckoutSession = async (
-  {
-    invoice,
-    invoiceLineItems,
-    feeCalculation,
-  }: {
-    invoice: Invoice.Record
-    invoiceLineItems: InvoiceLineItem.Record[]
-    feeCalculation?: FeeCalculation.Record
-  },
-  transaction: DbTransaction
-) => {
-  const checkoutSession = await findCheckoutSession(
-    {
-      invoiceId: invoice.id,
-      type: CheckoutSessionType.Invoice,
-    },
-    transaction
-  )
-  if (checkoutSession) {
-    return checkoutSession
-  }
-
-  return createInvoiceCheckoutSession(
-    { invoice, invoiceLineItems, feeCalculation },
-    transaction
-  )
-}
-
 type SetCheckoutSessionCookieParams = {
   id: string
 } & CheckoutSessionCookieNameParams
@@ -449,7 +342,6 @@ export const setCheckoutSessionCookie = async (
 export const deleteCheckoutSessionCookie = async (params: {
   productId?: string
   purchaseId?: string
-  invoiceId?: string
 }) => {
   const cookieStore = await cookies()
   if ('productId' in params && params.productId) {
@@ -465,15 +357,6 @@ export const deleteCheckoutSessionCookie = async (params: {
       checkoutSessionName({
         purchaseId: params.purchaseId,
         type: CheckoutSessionType.Purchase,
-      })
-    )
-  }
-
-  if ('invoiceId' in params && params.invoiceId) {
-    await cookieStore.delete(
-      checkoutSessionName({
-        invoiceId: params.invoiceId,
-        type: CheckoutSessionType.Invoice,
       })
     )
   }

@@ -48,8 +48,6 @@ const CHECKOUT_SESSIONS_BASE_DESCRIPTION =
   'A checkout session record, which describes a checkout process that can be used to complete purchases, invoices, or product orders. Each session has a specific type that determines its behavior and required fields.'
 const PURCHASE_CHECKOUT_SESSION_DESCRIPTION =
   'A checkout session for a customized purchase, which will complete the purchase record and (if for a subscription price) a subscription upon successful completion.'
-const INVOICE_CHECKOUT_SESSION_DESCRIPTION =
-  'A checkout session for an invoice, which will only create a payment record associated with the invoice upon successful completion. It will not create a subscription or purchase.'
 const PRODUCT_CHECKOUT_SESSION_DESCRIPTION =
   'A checkout session for a product, which will create a purchase record and (if for a subscription price) a subscription upon successful completion.'
 const PAYMENT_METHOD_CREATION_CHECKOUT_SESSION_DESCRIPTION =
@@ -180,26 +178,6 @@ const purchaseCheckoutSessionRefinement = {
   preserveBillingCycleAnchor: z.literal(false).optional(),
 }
 
-const invoiceCheckoutSessionRefinement = {
-  invoiceId: z.string(),
-  priceId: core.safeZodNullOrUndefined,
-  purchaseId: core.safeZodNullOrUndefined,
-  automaticallyUpdateSubscriptions: core.safeZodNullOrUndefined,
-  targetSubscriptionId: core.safeZodNullOrUndefined,
-  type: z.literal(CheckoutSessionType.Invoice),
-  outputMetadata: core.safeZodNullOrUndefined,
-  preserveBillingCycleAnchor: z.literal(false).optional(),
-}
-
-export const invoiceCheckoutSessionNulledColumns = {
-  priceId: null,
-  purchaseId: null,
-  outputMetadata: null,
-  automaticallyUpdateSubscriptions: null,
-  preserveBillingCycleAnchor: false,
-  targetSubscriptionId: null,
-} as const
-
 const preserveBillingCycleAnchorSchema = z
   .boolean()
   .optional()
@@ -291,26 +269,6 @@ export const {
 })
 
 export const {
-  insert: invoiceCheckoutSessionsInsertSchema,
-  select: invoiceCheckoutSessionsSelectSchema,
-  update: invoiceCheckoutSessionUpdateSchema,
-  client: {
-    insert: invoiceCheckoutSessionClientInsertSchema,
-    select: invoiceCheckoutSessionClientSelectSchemaBase,
-    update: invoiceCheckoutSessionClientUpdateSchemaBase,
-  },
-} = buildSchemas(checkoutSessions, {
-  discriminator: 'type',
-  refine: {
-    ...commonRefinement,
-    ...invoiceCheckoutSessionRefinement,
-  },
-  insertRefine,
-  client: clientRefinements,
-  entityName: 'InvoiceCheckoutSession',
-})
-
-export const {
   insert: productCheckoutSessionsInsertSchema,
   select: productCheckoutSessionsSelectSchema,
   update: productCheckoutSessionUpdateSchema,
@@ -370,7 +328,6 @@ export const {
 export const checkoutSessionsSelectSchema = z
   .discriminatedUnion('type', [
     purchaseCheckoutSessionsSelectSchema,
-    invoiceCheckoutSessionsSelectSchema,
     productCheckoutSessionsSelectSchema,
     addPaymentMethodCheckoutSessionsSelectSchema,
     activateSubscriptionCheckoutSessionsSelectSchema,
@@ -380,7 +337,6 @@ export const checkoutSessionsSelectSchema = z
 export const checkoutSessionsInsertSchema = z
   .discriminatedUnion('type', [
     purchaseCheckoutSessionsInsertSchema,
-    invoiceCheckoutSessionsInsertSchema,
     productCheckoutSessionsInsertSchema,
     addPaymentMethodCheckoutSessionsInsertSchema,
     activateSubscriptionCheckoutSessionsInsertSchema,
@@ -393,7 +349,6 @@ export const checkoutSessionsInsertSchema = z
 export const checkoutSessionsUpdateSchema = z
   .discriminatedUnion('type', [
     purchaseCheckoutSessionUpdateSchema,
-    invoiceCheckoutSessionUpdateSchema,
     productCheckoutSessionUpdateSchema,
     addPaymentMethodCheckoutSessionUpdateSchema,
     activateSubscriptionCheckoutSessionUpdateSchema,
@@ -404,10 +359,6 @@ export const checkoutSessionsUpdateSchema = z
 export const purchaseCheckoutSessionClientUpdateSchema =
   purchaseCheckoutSessionClientUpdateSchemaBase.meta({
     id: 'PurchaseCheckoutSessionUpdate',
-  })
-export const invoiceCheckoutSessionClientUpdateSchema =
-  invoiceCheckoutSessionClientUpdateSchemaBase.meta({
-    id: 'InvoiceCheckoutSessionUpdate',
   })
 export const productCheckoutSessionClientUpdateSchema =
   productCheckoutSessionClientUpdateSchemaBase.meta({
@@ -425,7 +376,6 @@ export const activateSubscriptionCheckoutSessionClientUpdateSchema =
 const checkoutSessionClientUpdateSchema = z
   .discriminatedUnion('type', [
     purchaseCheckoutSessionClientUpdateSchema,
-    invoiceCheckoutSessionClientUpdateSchema,
     productCheckoutSessionClientUpdateSchema,
     addPaymentMethodCheckoutSessionClientUpdateSchema,
     activateSubscriptionCheckoutSessionClientUpdateSchema,
@@ -451,10 +401,6 @@ export const purchaseCheckoutSessionClientSelectSchema =
   purchaseCheckoutSessionClientSelectSchemaBase.meta({
     id: 'PurchaseCheckoutSessionRecord',
   })
-export const invoiceCheckoutSessionClientSelectSchema =
-  invoiceCheckoutSessionClientSelectSchemaBase.meta({
-    id: 'InvoiceCheckoutSessionRecord',
-  })
 export const productCheckoutSessionClientSelectSchema =
   productCheckoutSessionClientSelectSchemaBase.meta({
     id: 'ProductCheckoutSessionRecord',
@@ -471,7 +417,6 @@ export const activateSubscriptionCheckoutSessionClientSelectSchema =
 export const checkoutSessionClientSelectSchema = z
   .discriminatedUnion('type', [
     purchaseCheckoutSessionClientSelectSchema,
-    invoiceCheckoutSessionClientSelectSchema,
     productCheckoutSessionClientSelectSchema,
     addPaymentMethodCheckoutSessionClientSelectSchema,
     activateSubscriptionCheckoutSessionClientSelectSchema,
@@ -488,8 +433,6 @@ const feeReadyColumns = {
 
 export const feeReadyPurchaseCheckoutSessionSelectSchema =
   purchaseCheckoutSessionClientSelectSchema.extend(feeReadyColumns)
-export const feeReadyInvoiceCheckoutSessionSelectSchema =
-  invoiceCheckoutSessionClientSelectSchema.extend(feeReadyColumns)
 export const feeReadyProductCheckoutSessionSelectSchema =
   productCheckoutSessionClientSelectSchema.extend(feeReadyColumns)
 export const feeReadyAddPaymentMethodCheckoutSessionSelectSchema =
@@ -507,7 +450,6 @@ const FEE_READY_CHECKOUT_SESSION_SELECT_SCHEMA_DESCRIPTION =
 export const feeReadyCheckoutSessionSelectSchema = z
   .discriminatedUnion('type', [
     feeReadyPurchaseCheckoutSessionSelectSchema,
-    feeReadyInvoiceCheckoutSessionSelectSchema,
     feeReadyProductCheckoutSessionSelectSchema,
     feeReadyAddPaymentMethodCheckoutSessionSelectSchema,
     feeReadyActivateSubscriptionCheckoutSessionSelectSchema,
@@ -525,9 +467,6 @@ export namespace CheckoutSession {
   export type PurchaseInsert = z.infer<
     typeof purchaseCheckoutSessionsInsertSchema
   >
-  export type InvoiceInsert = z.infer<
-    typeof invoiceCheckoutSessionsInsertSchema
-  >
   export type ProductInsert = z.infer<
     typeof productCheckoutSessionsInsertSchema
   >
@@ -540,9 +479,6 @@ export namespace CheckoutSession {
   export type PurchaseUpdate = z.infer<
     typeof purchaseCheckoutSessionUpdateSchema
   >
-  export type InvoiceUpdate = z.infer<
-    typeof invoiceCheckoutSessionUpdateSchema
-  >
   export type ProductUpdate = z.infer<
     typeof productCheckoutSessionUpdateSchema
   >
@@ -552,9 +488,6 @@ export namespace CheckoutSession {
 
   export type PurchaseRecord = z.infer<
     typeof purchaseCheckoutSessionsSelectSchema
-  >
-  export type InvoiceRecord = z.infer<
-    typeof invoiceCheckoutSessionsSelectSchema
   >
   export type ProductRecord = z.infer<
     typeof productCheckoutSessionsSelectSchema
@@ -571,10 +504,6 @@ export namespace CheckoutSession {
     typeof purchaseCheckoutSessionClientSelectSchema
   >
 
-  export type InvoiceClientRecord = z.infer<
-    typeof invoiceCheckoutSessionClientSelectSchema
-  >
-
   export type ProductClientRecord = z.infer<
     typeof productCheckoutSessionClientSelectSchema
   >
@@ -589,10 +518,6 @@ export namespace CheckoutSession {
 
   export type PurchaseClientUpdate = z.infer<
     typeof purchaseCheckoutSessionClientUpdateSchema
-  >
-
-  export type InvoiceClientUpdate = z.infer<
-    typeof invoiceCheckoutSessionClientUpdateSchema
   >
 
   export type ProductClientUpdate = z.infer<

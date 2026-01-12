@@ -46,6 +46,7 @@ import {
   PurchaseStatus,
   SubscriptionStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import {
   IntentMetadataType,
   StripeIntentMetadata,
@@ -134,11 +135,6 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
       transaction
     )
 
-    if (checkoutSession.type === CheckoutSessionType.Invoice) {
-      throw new Error(
-        `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Invoice checkout flow not supported (checkout session id: ${checkoutSession.id})`
-      )
-    }
     if (
       checkoutSession.type === CheckoutSessionType.AddPaymentMethod
     ) {
@@ -549,7 +545,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     }
   }
 
-interface ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult {
+export interface ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult {
   type: CheckoutSessionType.ActivateSubscription
   checkoutSession: CheckoutSession.Record
   organization: Organization.Record
@@ -587,6 +583,8 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
         `processActivateSubscriptionCheckoutSessionSetupIntentSucceeded: Subscription not found for checkout session ${checkoutSession.id}`
       )
     }
+
+    // Fetch customer and payment method (needed in all paths)
     const customer = await selectCustomerById(
       result.subscription.customerId,
       transaction
@@ -597,15 +595,52 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
         customer,
         transaction
       )
+
+    // Defense-in-depth: Check if this exact setup intent was already processed
+    // (outer idempotency check should catch this, but this provides additional safety)
+    if (result.subscription.stripeSetupIntentId === setupIntent.id) {
+      return {
+        type: CheckoutSessionType.ActivateSubscription as const,
+        checkoutSession,
+        organization: await selectOrganizationById(
+          checkoutSession.organizationId,
+          transaction
+        ),
+        customer,
+        paymentMethod,
+        billingRun: null,
+        subscription: result.subscription,
+        purchase: null,
+      }
+    }
+
+    // Set stripeSetupIntentId BEFORE activateSubscription to prevent race conditions
+    // This ensures concurrent webhook deliveries will fail the idempotency check
+    const updatedSubscription = await updateSubscription(
+      {
+        id: result.subscription.id,
+        stripeSetupIntentId: setupIntent.id,
+        renews: result.subscription.renews,
+      },
+      transaction
+    )
+
     const { billingRun } = await activateSubscription(
       {
-        subscription: result.subscription,
+        subscription: updatedSubscription,
         subscriptionItems: result.subscriptionItems,
         defaultPaymentMethod: paymentMethod,
         autoStart: true,
       },
       transaction
     )
+
+    // Fetch the subscription again to get the updated status after activation
+    const activatedSubscription = await selectSubscriptionById(
+      updatedSubscription.id,
+      transaction
+    )
+
     return {
       type: CheckoutSessionType.ActivateSubscription as const,
       checkoutSession,
@@ -628,7 +663,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
         transaction
       ),
       billingRun,
-      subscription: result.subscription,
+      subscription: activatedSubscription,
       purchase: null,
     }
   }
@@ -701,11 +736,6 @@ export const processSetupIntentSucceeded = async (
         },
         eventsToInsert: [],
       }
-    }
-    if (checkoutSession.type === CheckoutSessionType.Invoice) {
-      throw new Error(
-        `processSetupIntentSucceeded: Invoice checkout flow not supported (checkout session id: ${checkoutSession.id})`
-      )
     }
     if (checkoutSession.type === CheckoutSessionType.Purchase) {
       throw new Error(
@@ -790,6 +820,9 @@ export const processSetupIntentSucceeded = async (
     return {
       result,
       eventsToInsert: [],
+      cacheInvalidations: [
+        CacheDependency.customerSubscriptions(result.customer.id),
+      ],
     }
   }
 

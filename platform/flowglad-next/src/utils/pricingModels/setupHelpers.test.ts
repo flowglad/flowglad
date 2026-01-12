@@ -230,13 +230,13 @@ describe('getPricingModelSetupData', () => {
     const toggleFeature = fetchedData.features.find(
       (f) => f.type === FeatureType.Toggle
     )
-    expect(toggleFeature).toBeDefined()
+    expect(toggleFeature).toMatchObject({ slug: 'basic-feature' })
     expect(toggleFeature?.slug).toBe('basic-feature')
 
     const creditFeature = fetchedData.features.find(
       (f) => f.type === FeatureType.UsageCreditGrant
     )
-    expect(creditFeature).toBeDefined()
+    expect(typeof creditFeature).toBe('object')
     if (creditFeature?.type === FeatureType.UsageCreditGrant) {
       expect(creditFeature.usageMeterSlug).toBe('api-calls')
       expect(creditFeature.amount).toBe(1000)
@@ -248,7 +248,7 @@ describe('getPricingModelSetupData', () => {
     const starterProduct = fetchedData.products.find(
       (p) => p.product.slug === 'starter'
     )
-    expect(starterProduct).toBeDefined()
+    expect(typeof starterProduct).toBe('object')
     expect(starterProduct?.product.name).toBe('Starter Plan')
     expect(starterProduct?.product.description).toBe(
       'Perfect for getting started'
@@ -260,7 +260,7 @@ describe('getPricingModelSetupData', () => {
     expect(starterProduct?.product.pluralQuantityLabel).toBe('seats')
 
     // Verify price on starter product
-    expect(starterProduct?.price).toBeDefined()
+    expect(typeof starterProduct?.price).toBe('object')
     const starterPrice = starterProduct?.price
     expect(starterPrice?.type).toBe(PriceType.Subscription)
     if (starterPrice?.type === PriceType.Subscription) {
@@ -275,14 +275,14 @@ describe('getPricingModelSetupData', () => {
     const proProduct = fetchedData.products.find(
       (p) => p.product.slug === 'pro'
     )
-    expect(proProduct).toBeDefined()
+    expect(typeof proProduct).toBe('object')
     expect(proProduct?.price?.type).toBe(PriceType.Subscription)
 
     // Verify API Usage product
     const apiUsageProduct = fetchedData.products.find(
       (p) => p.product.slug === 'api-usage'
     )
-    expect(apiUsageProduct).toBeDefined()
+    expect(typeof apiUsageProduct).toBe('object')
     const apiUsagePrice = apiUsageProduct?.price
     expect(apiUsagePrice?.type).toBe(PriceType.Usage)
     if (apiUsagePrice?.type === PriceType.Usage) {
@@ -311,7 +311,7 @@ describe('getPricingModelSetupData', () => {
     const addonProduct = fetchedData.products.find(
       (p) => p.product.slug === 'addon'
     )
-    expect(addonProduct).toBeDefined()
+    expect(typeof addonProduct).toBe('object')
     const singlePaymentPrice = addonProduct?.price
     expect(singlePaymentPrice?.type).toBe(PriceType.SinglePayment)
 
@@ -444,7 +444,7 @@ describe('getPricingModelSetupData', () => {
     const fetchedProduct = fetchedData.products.find(
       (p) => p.product.slug === 'test-product'
     )
-    expect(fetchedProduct).toBeDefined()
+    expect(typeof fetchedProduct).toBe('object')
 
     // Verify only the active default price is included
     expect(fetchedProduct?.price?.slug).toBe('active-default-price')
@@ -583,7 +583,7 @@ describe('getPricingModelSetupData', () => {
     const testProduct = fetchedData.products.find(
       (p) => p.product.slug === 'test-product-inactive-features'
     )
-    expect(testProduct).toBeDefined()
+    expect(typeof testProduct).toBe('object')
     expect(testProduct?.features).toHaveLength(2)
     expect(testProduct?.features).toContain('active-toggle')
     expect(testProduct?.features).toContain('active-credit')
@@ -670,7 +670,7 @@ describe('getPricingModelSetupData', () => {
       const featureBAssociation = productFeaturesResult.find(
         (pf) => pf.feature.slug === 'feature-b'
       )
-      expect(featureBAssociation).toBeDefined()
+      expect(typeof featureBAssociation).toBe('object')
 
       if (featureBAssociation) {
         await updateProductFeature(
@@ -707,7 +707,7 @@ describe('getPricingModelSetupData', () => {
     const testProduct = fetchedData.products.find(
       (p) => p.product.slug === 'test-product-associations'
     )
-    expect(testProduct).toBeDefined()
+    expect(typeof testProduct).toBe('object')
     expect(testProduct?.features).toHaveLength(2)
     expect(testProduct?.features).toContain('feature-a')
     expect(testProduct?.features).toContain('feature-c')
