@@ -966,7 +966,18 @@ export const FlowgladContextProvider = (
 
 export const useBilling = () => useContext(FlowgladContext)
 
+/**
+ * @deprecated useCatalog is deprecated and will be removed in a future version.
+ * Access catalog data directly from useBilling() instead:
+ * const { catalog } = useBilling()
+ */
 export const useCatalog = () => {
+  if (typeof console !== 'undefined') {
+    console.warn(
+      '[Flowglad] useCatalog() is deprecated and will be removed in a future version. ' +
+        'Use useBilling() and access catalog directly: const { catalog } = useBilling()'
+    )
+  }
   const { catalog } = useBilling()
   return catalog
 }
