@@ -1199,7 +1199,7 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
           } as any,
         })
 
-      expect(result.price).toBeDefined()
+      expect(result.price.id).toMatch(/^prc_/)
       expect(result.price.type).toBe(PriceType.Usage)
       expect(result.price.productId).toBeNull()
       expect(result.price.usageMeterId).toBe(usageMeterId)

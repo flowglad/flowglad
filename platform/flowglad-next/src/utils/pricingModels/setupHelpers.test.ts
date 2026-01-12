@@ -219,7 +219,7 @@ describe('getPricingModelSetupData', () => {
     const apiCallsMeter = fetchedData.usageMeters.find(
       (m) => m.usageMeter.slug === 'api-calls'
     )
-    expect(apiCallsMeter).toBeDefined()
+    expect(apiCallsMeter?.usageMeter.slug).toBe('api-calls')
     expect(apiCallsMeter?.prices).toHaveLength(1)
     expect(apiCallsMeter?.prices?.[0].slug).toBe('api-usage-price')
     expect(apiCallsMeter?.prices?.[0].unitPrice).toBe(10)
@@ -228,7 +228,7 @@ describe('getPricingModelSetupData', () => {
     const storageMeter = fetchedData.usageMeters.find(
       (m) => m.usageMeter.slug === 'storage'
     )
-    expect(storageMeter).toBeDefined()
+    expect(storageMeter?.usageMeter.slug).toBe('storage')
     expect(storageMeter?.prices).toHaveLength(1)
     expect(storageMeter?.prices?.[0].slug).toBe('storage-usage-price')
     expect(storageMeter?.prices?.[0].unitPrice).toBe(5)

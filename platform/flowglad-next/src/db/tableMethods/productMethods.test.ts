@@ -868,8 +868,8 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
       (item) => item.product.name
     )
     expect(productNames).toContain('Subscription Product')
-    // Default product from setupOrg should also be included
-    expect(productNames.length).toBeGreaterThanOrEqual(2)
+    // Default product from setupOrg is also included (setupOrg creates one default product)
+    expect(productNames).toHaveLength(2)
 
     // Query without excludeUsageProducts filter (should return same results)
     const resultWithoutExclusion = await adminTransaction(

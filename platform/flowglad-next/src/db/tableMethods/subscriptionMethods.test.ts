@@ -7,6 +7,7 @@ import {
   setupPrice,
   setupProduct,
   setupSubscription,
+  setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { Customer } from '@/db/schema/customers'
@@ -1225,6 +1226,77 @@ describe('selectSubscriptionsTableRowData', () => {
         expect(resultWithFilters.items.length).toBe(1)
         expect(resultWithFilters.total).toBe(1)
         expect(resultWithFilters.hasNextPage).toBe(false)
+      })
+    })
+  })
+
+  describe('usage price handling', () => {
+    it('returns subscription with null product when price is a usage price (which has null productId)', async () => {
+      // Setup a new organization with a usage meter and usage price
+      const { organization: org, pricingModel: pm } = await setupOrg()
+      const usageMeter = await setupUsageMeter({
+        organizationId: org.id,
+        pricingModelId: pm.id,
+        name: 'API Calls Meter',
+      })
+
+      // Create usage price (usage prices have null productId)
+      const usagePrice = await setupPrice({
+        type: PriceType.Usage,
+        name: 'Usage Price',
+        unitPrice: 10,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        usageMeterId: usageMeter.id,
+      })
+
+      const usageCustomer = await setupCustomer({
+        organizationId: org.id,
+        name: 'Usage Customer',
+        email: 'usage@example.com',
+      })
+
+      const usagePaymentMethod = await setupPaymentMethod({
+        organizationId: org.id,
+        customerId: usageCustomer.id,
+      })
+
+      // Create subscription with usage price
+      const usageSubscription = await setupSubscription({
+        organizationId: org.id,
+        customerId: usageCustomer.id,
+        paymentMethodId: usagePaymentMethod.id,
+        priceId: usagePrice.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectSubscriptionsTableRowData({
+          input: {
+            pageSize: 10,
+            filters: { organizationId: org.id },
+          },
+          transaction,
+        })
+
+        // Find the subscription with usage price
+        const usageSubRow = result.items.find(
+          (item) => item.subscription.id === usageSubscription.id
+        )
+
+        // Verify the subscription is returned
+        expect(usageSubRow).not.toBeNull()
+        expect(usageSubRow!.subscription.id).toBe(
+          usageSubscription.id
+        )
+        expect(usageSubRow!.subscription.priceId).toBe(usagePrice.id)
+        expect(usageSubRow!.price.id).toBe(usagePrice.id)
+        expect(usageSubRow!.price.type).toBe(PriceType.Usage)
+        // Usage prices have null product
+        expect(usageSubRow!.product).toBeNull()
+        expect(usageSubRow!.customer.id).toBe(usageCustomer.id)
       })
     })
   })

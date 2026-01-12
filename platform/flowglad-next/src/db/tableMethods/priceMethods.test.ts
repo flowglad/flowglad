@@ -675,7 +675,7 @@ describe('priceMethods.ts', () => {
           },
           transaction
         )
-        expect(insertedPrice).toBeDefined()
+        expect(insertedPrice.id).toMatch(/^prc_/)
         expect(insertedPrice.slug).toBe(slug2)
         expect(insertedPrice.active).toBe(true)
       })
@@ -742,10 +742,9 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        expect(updateResult).toBeDefined()
+        expect(updateResult.id).toBe(price1.id)
         expect(updateResult.slug).toBe(updatedSlug)
         // Ensure no collision or constraint thrown, and price2 untouched
-        expect(updateResult.id).toBe(price1.id)
         expect(price2.slug).toBe('slug-other')
       })
     })

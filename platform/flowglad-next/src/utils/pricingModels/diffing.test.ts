@@ -1105,34 +1105,39 @@ describe('diffUsageMeterPrices', () => {
     expect(result.toUpdate[0].proposed.unitPrice).toBe(300)
   })
 
-  it('returns empty diff arrays when both inputs are undefined or empty, identifies prices to create when existing is undefined, and identifies prices to remove when proposed is undefined', () => {
-    // Both undefined
-    const resultUndefined = diffUsageMeterPrices(undefined, undefined)
-    expect(resultUndefined.toRemove).toEqual([])
-    expect(resultUndefined.toCreate).toEqual([])
-    expect(resultUndefined.toUpdate).toEqual([])
+  it('returns empty diff arrays when both inputs are undefined', () => {
+    const result = diffUsageMeterPrices(undefined, undefined)
+    expect(result.toRemove).toEqual([])
+    expect(result.toCreate).toEqual([])
+    expect(result.toUpdate).toEqual([])
+  })
 
-    // Empty arrays
-    const resultEmpty = diffUsageMeterPrices([], [])
-    expect(resultEmpty.toRemove).toEqual([])
-    expect(resultEmpty.toCreate).toEqual([])
-    expect(resultEmpty.toUpdate).toEqual([])
+  it('returns empty diff arrays when both inputs are empty arrays', () => {
+    const result = diffUsageMeterPrices([], [])
+    expect(result.toRemove).toEqual([])
+    expect(result.toCreate).toEqual([])
+    expect(result.toUpdate).toEqual([])
+  })
 
-    // Existing undefined, proposed has prices
-    const resultCreateFromUndefined = diffUsageMeterPrices(
-      undefined,
-      [createUsagePrice({ slug: 'new-price' })]
-    )
-    expect(resultCreateFromUndefined.toCreate).toHaveLength(1)
-    expect(resultCreateFromUndefined.toRemove).toEqual([])
+  it('identifies prices to create when existing is undefined', () => {
+    const result = diffUsageMeterPrices(undefined, [
+      createUsagePrice({ slug: 'new-price' }),
+    ])
+    expect(result.toCreate).toHaveLength(1)
+    expect(result.toCreate[0].slug).toBe('new-price')
+    expect(result.toRemove).toEqual([])
+    expect(result.toUpdate).toEqual([])
+  })
 
-    // Existing has prices, proposed undefined
-    const resultRemoveToUndefined = diffUsageMeterPrices(
+  it('identifies prices to remove when proposed is undefined', () => {
+    const result = diffUsageMeterPrices(
       [createUsagePrice({ slug: 'old-price' })],
       undefined
     )
-    expect(resultRemoveToUndefined.toRemove).toHaveLength(1)
-    expect(resultRemoveToUndefined.toCreate).toEqual([])
+    expect(result.toRemove).toHaveLength(1)
+    expect(result.toRemove[0].slug).toBe('old-price')
+    expect(result.toCreate).toEqual([])
+    expect(result.toUpdate).toEqual([])
   })
 })
 
@@ -1294,13 +1299,13 @@ describe('validateUsagePriceChange', () => {
     usageEventsPerUnit: 1,
   })
 
-  it('returns without error when both prices are undefined, when creating a new price (existing undefined), when removing a price (proposed undefined), and when prices are identical', () => {
-    // Both undefined
+  it('returns without error when both prices are undefined', () => {
     expect(() =>
       validateUsagePriceChange(undefined, undefined, 'meter-slug')
     ).not.toThrow()
+  })
 
-    // Creating a new price (existing undefined)
+  it('returns without error when creating a new price (existing undefined)', () => {
     expect(() =>
       validateUsagePriceChange(
         undefined,
@@ -1308,8 +1313,9 @@ describe('validateUsagePriceChange', () => {
         'meter-slug'
       )
     ).not.toThrow()
+  })
 
-    // Removing a price (proposed undefined)
+  it('returns without error when removing a price (proposed undefined)', () => {
     expect(() =>
       validateUsagePriceChange(
         baseUsagePrice,
@@ -1317,8 +1323,9 @@ describe('validateUsagePriceChange', () => {
         'meter-slug'
       )
     ).not.toThrow()
+  })
 
-    // Prices are identical
+  it('returns without error when prices are identical', () => {
     expect(() =>
       validateUsagePriceChange(
         baseUsagePrice,
@@ -1850,23 +1857,25 @@ describe('validatePriceChange', () => {
     slug: 'one-time-price',
   })
 
-  it('returns without error when both prices are undefined, when creating a new price (existing undefined), when removing a price (proposed undefined), and when prices are identical', () => {
-    // Both undefined
+  it('returns without error when both prices are undefined', () => {
     expect(() =>
       validatePriceChange(undefined, undefined)
     ).not.toThrow()
+  })
 
-    // Creating a new price (existing undefined)
+  it('returns without error when creating a new price (existing undefined)', () => {
     expect(() =>
       validatePriceChange(undefined, baseSubscriptionPrice)
     ).not.toThrow()
+  })
 
-    // Removing a price (proposed undefined)
+  it('returns without error when removing a price (proposed undefined)', () => {
     expect(() =>
       validatePriceChange(baseSubscriptionPrice, undefined)
     ).not.toThrow()
+  })
 
-    // Prices are identical
+  it('returns without error when prices are identical', () => {
     expect(() =>
       validatePriceChange(
         baseSubscriptionPrice,
