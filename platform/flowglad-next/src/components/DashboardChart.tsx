@@ -80,14 +80,22 @@ export function DashboardChart({
   const { organization } = useAuthenticatedContext()
   const config = CHART_SIZE_CONFIG[size]
 
-  // Metric selection state
+  // Metric selection state - ensure initial value is valid
   const [selectedMetric, setSelectedMetric] =
-    React.useState<MetricType>(defaultMetric)
+    React.useState<MetricType>(() =>
+      availableMetrics.includes(defaultMetric)
+        ? defaultMetric
+        : availableMetrics[0]
+    )
 
-  // Reset to default metric if current selection is no longer available
+  // Reset to a valid metric if current selection is no longer available
   React.useEffect(() => {
     if (!availableMetrics.includes(selectedMetric)) {
-      setSelectedMetric(defaultMetric)
+      // Prefer defaultMetric if valid, otherwise fall back to first available
+      const resetMetric = availableMetrics.includes(defaultMetric)
+        ? defaultMetric
+        : availableMetrics[0]
+      setSelectedMetric(resetMetric)
     }
   }, [availableMetrics, selectedMetric, defaultMetric])
 
