@@ -4,7 +4,7 @@ import { z } from 'zod'
 import {
   constructIndex,
   constructUniqueIndex,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   nullableStringForeignKey,
   orgIdEqualsCurrentSQL,
@@ -64,37 +64,31 @@ export const events = pgTable(
       organizations
     ).notNull(),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.type]),
-      // constructIndex(TABLE_NAME, [table.eventCategory]),
-      // constructIndex(TABLE_NAME, [table.eventRetentionPolicy]),
-      // constructIndex(TABLE_NAME, [table.subjectEntity]),
-      constructIndex(TABLE_NAME, [table.objectEntity]),
-      // constructIndex(TABLE_NAME, [
-      //   table.subjectEntity,
-      //   table.subjectId,
-      // ]),
-      constructIndex(TABLE_NAME, [
-        table.objectEntity,
-        table.objectId,
-      ]),
-      constructUniqueIndex(TABLE_NAME, [table.hash]),
-      livemodePolicy(TABLE_NAME),
-      merchantPolicy('Enable insert for own organizations', {
-        as: 'permissive',
-        to: 'merchant',
-        for: 'insert',
-        withCheck: orgIdEqualsCurrentSQL(),
-      }),
-      merchantPolicy('Enable all actions for own organization', {
-        as: 'permissive',
-        to: 'merchant',
-        for: 'select',
-        using: orgIdEqualsCurrentSQL(),
-      }),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.type]),
+    // constructIndex(TABLE_NAME, [table.eventCategory]),
+    // constructIndex(TABLE_NAME, [table.eventRetentionPolicy]),
+    // constructIndex(TABLE_NAME, [table.subjectEntity]),
+    constructIndex(TABLE_NAME, [table.objectEntity]),
+    // constructIndex(TABLE_NAME, [
+    //   table.subjectEntity,
+    //   table.subjectId,
+    // ]),
+    constructIndex(TABLE_NAME, [table.objectEntity, table.objectId]),
+    constructUniqueIndex(TABLE_NAME, [table.hash]),
+    merchantPolicy('Enable insert for own organizations', {
+      as: 'permissive',
+      to: 'merchant',
+      for: 'insert',
+      withCheck: orgIdEqualsCurrentSQL(),
+    }),
+    merchantPolicy('Enable all actions for own organization', {
+      as: 'permissive',
+      to: 'merchant',
+      for: 'select',
+      using: orgIdEqualsCurrentSQL(),
+    }),
+  ])
 ).enableRLS()
 
 export const eventPayloadSchema = z.object({

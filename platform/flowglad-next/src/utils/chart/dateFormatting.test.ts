@@ -11,13 +11,13 @@ describe('formatDateUTC', () => {
     ).toBe('2025')
   })
 
-  it('should format Hour granularity as time only (LemonSqueezy style)', () => {
+  it('should format Hour granularity as time only', () => {
     expect(
       formatDateUTC(testDate, RevenueChartIntervalUnit.Hour)
     ).toBe('10:30')
   })
 
-  it('should format Month granularity as month name only (LemonSqueezy style)', () => {
+  it('should format Month granularity as month name only', () => {
     expect(
       formatDateUTC(testDate, RevenueChartIntervalUnit.Month)
     ).toBe('Jan')

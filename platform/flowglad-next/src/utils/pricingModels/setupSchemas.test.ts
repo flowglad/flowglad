@@ -708,17 +708,17 @@ describe('validateSetupPricingModelInput', () => {
           active: true,
         },
       ]
-      // Intentionally omitting 'amount' to test schema rejection of invalid Resource feature
-      input.features = [
-        {
-          type: FeatureType.Resource,
-          slug: 'resource-feature',
-          name: 'Resource Feature',
-          description: 'Test Description',
-          resourceSlug: 'test-resource',
-          active: true,
-        } as (typeof input.features)[number],
-      ]
+      const invalidResourceFeature = {
+        type: FeatureType.Resource,
+        slug: 'resource-feature',
+        name: 'Resource Feature',
+        description: 'Test Description',
+        resourceSlug: 'test-resource',
+        active: true,
+        // intentionally omitting required 'amount' field to test schema validation
+      }
+      // @ts-expect-error - invalidResourceFeature is missing required 'amount' field
+      input.features = [invalidResourceFeature]
       input.products[0].features = ['resource-feature']
 
       const result = setupPricingModelSchema.safeParse(input)

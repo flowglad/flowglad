@@ -1,0 +1,70 @@
+<svg viewBox="0 0 800 620" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, sans-serif; max-width: 100%;">
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ffc898"/>
+    </marker>
+  </defs>
+
+  <!-- Usage Meters Section -->
+  <g>
+    <rect x="50" y="20" width="700" height="90" rx="6" fill="#3f3935" stroke="#ffc898" stroke-width="1.5"/>
+    <text x="400" y="45" text-anchor="middle" font-weight="600" font-size="14" fill="#fbfaf4">USAGE METERS</text>
+    <!-- Meter boxes -->
+    <rect x="120" y="55" width="200" height="45" rx="4" fill="#45403d" stroke="#ffc898"/>
+    <text x="220" y="75" text-anchor="middle" font-size="12" fill="#fbfaf4">fast_generations</text>
+    <text x="220" y="90" text-anchor="middle" font-size="10" fill="#ccc2a9">(sum aggregation)</text>
+    <rect x="480" y="55" width="200" height="45" rx="4" fill="#45403d" stroke="#ffc898"/>
+    <text x="580" y="75" text-anchor="middle" font-size="12" fill="#fbfaf4">hd_video_minutes</text>
+    <text x="580" y="90" text-anchor="middle" font-size="10" fill="#ccc2a9">(sum aggregation)</text>
+  </g>
+
+  <!-- Arrows from meters -->
+  <path d="M250 110 L250 140 L220 170" stroke="#ffc898" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M550 110 L550 140 L580 170" stroke="#ffc898" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Subscription Tiers Section -->
+  <g>
+    <rect x="50" y="170" width="340" height="430" rx="6" fill="#3f3935" stroke="#ffc898" stroke-width="1.5"/>
+    <text x="220" y="195" text-anchor="middle" font-weight="600" font-size="14" fill="#fbfaf4">SUBSCRIPTION TIERS</text>
+    <text x="220" y="212" text-anchor="middle" font-size="10" fill="#ccc2a9">(renews every billing period)</text>
+    <!-- Free tier -->
+    <rect x="70" y="225" width="300" height="45" rx="4" fill="#45403d" stroke="#ffc898"/>
+    <text x="220" y="248" text-anchor="middle" font-weight="600" font-size="12" fill="#fbfaf4">Free $0/mo</text>
+    <text x="220" y="263" text-anchor="middle" font-size="10" fill="#ccc2a9">No credits</text>
+    <!-- Basic tier -->
+    <rect x="70" y="280" width="300" height="45" rx="4" fill="#45403d" stroke="#ffc898"/>
+    <text x="220" y="303" text-anchor="middle" font-weight="600" font-size="12" fill="#fbfaf4">Basic $10/mo</text>
+    <text x="220" y="318" text-anchor="middle" font-size="10" fill="#ccc2a9">200 fast generations</text>
+    <!-- Standard tier -->
+    <rect x="70" y="335" width="300" height="60" rx="4" fill="#45403d" stroke="#ffc898"/>
+    <text x="220" y="355" text-anchor="middle" font-weight="600" font-size="12" fill="#fbfaf4">Standard $30/mo</text>
+    <text x="220" y="370" text-anchor="middle" font-size="10" fill="#ccc2a9">360 fast generations, 30 HD video minutes</text>
+    <text x="220" y="385" text-anchor="middle" font-size="10" fill="#ccc2a9">+ Unlimited Relaxed</text>
+    <!-- Pro tier -->
+    <rect x="70" y="405" width="300" height="60" rx="4" fill="#45403d" stroke="#ffc898"/>
+    <text x="220" y="425" text-anchor="middle" font-weight="600" font-size="12" fill="#fbfaf4">Pro $60/mo</text>
+    <text x="220" y="440" text-anchor="middle" font-size="10" fill="#ccc2a9">750 fast generations, 60 HD video minutes</text>
+    <text x="220" y="455" text-anchor="middle" font-size="10" fill="#ccc2a9">+ Stealth Mode</text>
+    <!-- Mega tier -->
+    <rect x="70" y="475" width="300" height="60" rx="4" fill="#45403d" stroke="#ffc898"/>
+    <text x="220" y="495" text-anchor="middle" font-weight="600" font-size="12" fill="#fbfaf4">Mega $120/mo</text>
+    <text x="220" y="510" text-anchor="middle" font-size="10" fill="#ccc2a9">900+ fast generations, 120 HD video minutes</text>
+    <text x="220" y="525" text-anchor="middle" font-size="10" fill="#ccc2a9">+ All features</text>
+  </g>
+
+  <!-- Top-ups Section -->
+  <g>
+    <rect x="410" y="170" width="340" height="180" rx="6" fill="#3f3935" stroke="#ffc898" stroke-width="1.5"/>
+    <text x="580" y="195" text-anchor="middle" font-weight="600" font-size="14" fill="#fbfaf4">TOP-UPS</text>
+    <text x="580" y="212" text-anchor="middle" font-size="10" fill="#ccc2a9">(one-time purchase)</text>
+    <!-- Fast generations top-up -->
+    <rect x="430" y="225" width="300" height="50" rx="4" fill="#45403d" stroke="#ffc898"/>
+    <text x="580" y="248" text-anchor="middle" font-weight="600" font-size="12" fill="#fbfaf4">Fast Generations $4</text>
+    <text x="580" y="265" text-anchor="middle" font-size="10" fill="#ccc2a9">+80 credits</text>
+    <!-- HD video minutes top-up -->
+    <rect x="430" y="285" width="300" height="50" rx="4" fill="#45403d" stroke="#ffc898"/>
+    <text x="580" y="308" text-anchor="middle" font-weight="600" font-size="12" fill="#fbfaf4">HD Video Minutes $10</text>
+    <text x="580" y="325" text-anchor="middle" font-size="10" fill="#ccc2a9">+10 minutes</text>
+  </g>
+</svg>

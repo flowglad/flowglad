@@ -4,14 +4,15 @@ import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { ChartDataTooltip } from '@/components/ChartDataTooltip'
 import {
-  ChartBody,
-  ChartHeader,
-  ChartValueDisplay,
+  CHART_SIZE_CONFIG,
+  ChartLayout,
+  type ChartSize,
+  DASHBOARD_LINE_CHART_DEFAULTS,
   LineChart,
 } from '@/components/charts'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { useChartInterval } from '@/hooks/useChartInterval'
 import { useChartTooltip } from '@/hooks/useChartTooltip'
+import { cn } from '@/lib/utils'
 import { CurrencyCode, RevenueChartIntervalUnit } from '@/types'
 import { formatDateUTC } from '@/utils/chart/dateFormatting'
 import { createChartTooltipMetadata } from '@/utils/chart/types'
@@ -24,8 +25,10 @@ interface RecurringRevenueChartProps {
   fromDate: Date
   toDate: Date
   productId?: string
-  /** Optional controlled interval. When provided, the chart uses this value. */
-  interval?: RevenueChartIntervalUnit
+  /** Controlled interval from parent (global selector) */
+  interval: RevenueChartIntervalUnit
+  /** Chart size variant - 'lg' for primary, 'sm' for secondary */
+  size?: ChartSize
 }
 
 /**
@@ -36,18 +39,14 @@ export const RecurringRevenueChart = ({
   fromDate,
   toDate,
   productId,
-  interval: controlledInterval,
+  interval,
+  size = 'lg',
 }: RecurringRevenueChartProps) => {
   const { organization } = useAuthenticatedContext()
+  const config = CHART_SIZE_CONFIG[size]
 
-  // Use shared hooks for tooltip and interval management
+  // Use shared hooks for tooltip management
   const { tooltipData, tooltipCallback } = useChartTooltip()
-  const { interval } = useChartInterval({
-    fromDate,
-    toDate,
-    controlledInterval,
-    // No onIntervalChange - MRR chart doesn't have inline selector
-  })
 
   const { data: mrrData, isLoading } =
     trpc.organizations.getMRR.useQuery({
@@ -98,7 +97,10 @@ export const RecurringRevenueChart = ({
 
   const formattedMRRValue = React.useMemo(() => {
     if (!mrrData?.length || !defaultCurrency) {
-      return '0.00'
+      return stripeCurrencyAmountToHumanReadableCurrencyAmount(
+        defaultCurrency ?? CurrencyCode.USD,
+        0
+      )
     }
     // If the tooltip is active, use the value from the tooltip
     if (firstPayloadValue) {
@@ -118,60 +120,48 @@ export const RecurringRevenueChart = ({
   const currencyForFormatter = defaultCurrency ?? CurrencyCode.USD
 
   return (
-    <div className="w-full h-full">
-      <ChartHeader
-        title="Monthly recurring revenue"
-        infoTooltip="The normalized monthly value of all active recurring subscriptions. Calculated as the sum of subscription amounts adjusted to a monthly rate."
-        // No inline selector for MRR chart
-        showInlineSelector={false}
+    <ChartLayout
+      title="Monthly recurring revenue"
+      infoTooltip="The normalized monthly value of all active recurring subscriptions. Calculated as the sum of subscription amounts adjusted to a monthly rate."
+      value={formattedMRRValue}
+      isLoading={isLoading}
+      size={size}
+    >
+      <LineChart
+        {...DASHBOARD_LINE_CHART_DEFAULTS}
+        data={chartData}
+        index="date"
+        categories={['revenue']}
+        className={cn('mt-3', config.height)}
+        showGridLines={config.showGridLines}
+        horizontalMargin={config.chartMargin}
+        maxValue={maxValue}
+        intervalUnit={interval}
+        customTooltip={(props) => (
+          <ChartDataTooltip
+            {...props}
+            valueFormatter={(value) =>
+              stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                currencyForFormatter,
+                value
+              )
+            }
+          />
+        )}
+        valueFormatter={(value: number) =>
+          stripeCurrencyAmountToHumanReadableCurrencyAmount(
+            currencyForFormatter,
+            value
+          )
+        }
+        yAxisValueFormatter={(value: number) =>
+          stripeCurrencyAmountToShortReadableCurrencyAmount(
+            currencyForFormatter,
+            value
+          )
+        }
+        tooltipCallback={tooltipCallback}
       />
-
-      <ChartValueDisplay
-        value={formattedMRRValue}
-        isLoading={isLoading}
-      />
-
-      <ChartBody isLoading={isLoading}>
-        <LineChart
-          data={chartData}
-          index="date"
-          categories={['revenue']}
-          className="-mb-2 mt-2"
-          colors={['foreground']}
-          fill="gradient"
-          customTooltip={(props) => (
-            <ChartDataTooltip
-              {...props}
-              valueFormatter={(value) =>
-                stripeCurrencyAmountToHumanReadableCurrencyAmount(
-                  currencyForFormatter,
-                  value
-                )
-              }
-            />
-          )}
-          maxValue={maxValue}
-          autoMinValue={false}
-          minValue={0}
-          startEndOnly={true}
-          startEndOnlyYAxis={true}
-          showYAxis={false}
-          intervalUnit={interval}
-          valueFormatter={(value: number) =>
-            stripeCurrencyAmountToHumanReadableCurrencyAmount(
-              currencyForFormatter,
-              value
-            )
-          }
-          yAxisValueFormatter={(value: number) =>
-            stripeCurrencyAmountToShortReadableCurrencyAmount(
-              currencyForFormatter,
-              value
-            )
-          }
-          tooltipCallback={tooltipCallback}
-        />
-      </ChartBody>
-    </div>
+    </ChartLayout>
   )
 }

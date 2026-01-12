@@ -1,0 +1,58 @@
+<svg viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, sans-serif; max-width: 100%;">
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#dd7d29"/>
+    </marker>
+  </defs>
+
+  <!-- Usage Meter Section -->
+  <g>
+    <rect x="50" y="20" width="700" height="90" rx="6" fill="#f1f0e9" stroke="#dd7d29" stroke-width="1.5"/>
+    <text x="400" y="45" text-anchor="middle" font-weight="600" font-size="14" fill="#141312">USAGE METER</text>
+    <!-- Meter box -->
+    <rect x="200" y="55" width="400" height="45" rx="4" fill="#ffffff" stroke="#dd7d29"/>
+    <text x="400" y="75" text-anchor="middle" font-size="12" fill="#141312">fast_premium_requests</text>
+    <text x="400" y="90" text-anchor="middle" font-size="10" fill="#656359">(sum aggregation)</text>
+  </g>
+
+  <!-- Arrows from meter -->
+  <path d="M300 110 L300 140 L220 170" stroke="#dd7d29" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M500 110 L500 140 L580 170" stroke="#dd7d29" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Subscription Tiers Section -->
+  <g>
+    <rect x="50" y="175" width="340" height="290" rx="6" fill="#f1f0e9" stroke="#dd7d29" stroke-width="1.5"/>
+    <text x="220" y="200" text-anchor="middle" font-weight="600" font-size="14" fill="#141312">SUBSCRIPTION TIERS</text>
+    <text x="220" y="217" text-anchor="middle" font-size="10" fill="#656359">(renews every billing period)</text>
+    <!-- Hobby tier -->
+    <rect x="70" y="230" width="300" height="45" rx="4" fill="#ffffff" stroke="#dd7d29"/>
+    <text x="220" y="250" text-anchor="middle" font-weight="600" font-size="11" fill="#141312">Hobby $0/mo (14-day trial)</text>
+    <text x="220" y="265" text-anchor="middle" font-size="10" fill="#656359">250 fast requests</text>
+    <!-- Pro tier -->
+    <rect x="70" y="282" width="300" height="55" rx="4" fill="#ffffff" stroke="#dd7d29"/>
+    <text x="220" y="302" text-anchor="middle" font-weight="600" font-size="11" fill="#141312">Pro $20/mo</text>
+    <text x="220" y="317" text-anchor="middle" font-size="10" fill="#656359">500 fast requests + Unlimited Slow</text>
+    <text x="220" y="330" text-anchor="middle" font-size="10" fill="#656359">+ Background Agents</text>
+    <!-- Pro+ tier -->
+    <rect x="70" y="344" width="300" height="45" rx="4" fill="#ffffff" stroke="#dd7d29"/>
+    <text x="220" y="364" text-anchor="middle" font-weight="600" font-size="11" fill="#141312">Pro+ $60/mo</text>
+    <text x="220" y="379" text-anchor="middle" font-size="10" fill="#656359">1,500 fast requests + All Pro features</text>
+    <!-- Ultra tier -->
+    <rect x="70" y="396" width="300" height="55" rx="4" fill="#ffffff" stroke="#dd7d29"/>
+    <text x="220" y="416" text-anchor="middle" font-weight="600" font-size="11" fill="#141312">Ultra $200/mo</text>
+    <text x="220" y="431" text-anchor="middle" font-size="10" fill="#656359">10,000 fast requests + All Pro+ features</text>
+    <text x="220" y="444" text-anchor="middle" font-size="10" fill="#656359">+ Priority Access</text>
+  </g>
+
+  <!-- Overage Section -->
+  <g>
+    <rect x="410" y="175" width="340" height="130" rx="6" fill="#f1f0e9" stroke="#dd7d29" stroke-width="1.5"/>
+    <text x="580" y="200" text-anchor="middle" font-weight="600" font-size="14" fill="#141312">OVERAGE</text>
+    <text x="580" y="217" text-anchor="middle" font-size="10" fill="#656359">(billed per request)</text>
+    <!-- Overage box -->
+    <rect x="430" y="230" width="300" height="55" rx="4" fill="#ffffff" stroke="#dd7d29"/>
+    <text x="580" y="253" text-anchor="middle" font-weight="600" font-size="12" fill="#141312">Fast Request Overage $0.10</text>
+    <text x="580" y="273" text-anchor="middle" font-size="10" fill="#656359">per request after limit</text>
+  </g>
+</svg>

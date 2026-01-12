@@ -4,13 +4,14 @@ import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { ChartDataTooltip } from '@/components/ChartDataTooltip'
 import {
-  ChartBody,
-  ChartHeader,
-  ChartValueDisplay,
+  CHART_SIZE_CONFIG,
+  ChartLayout,
+  type ChartSize,
+  DASHBOARD_LINE_CHART_DEFAULTS,
   LineChart,
 } from '@/components/charts'
-import { useChartInterval } from '@/hooks/useChartInterval'
 import { useChartTooltip } from '@/hooks/useChartTooltip'
+import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
 import { formatDateUTC } from '@/utils/chart/dateFormatting'
 import { createChartTooltipMetadata } from '@/utils/chart/types'
@@ -19,11 +20,10 @@ interface ActiveSubscribersChartProps {
   fromDate: Date
   toDate: Date
   // TODO: Add productId prop when global dashboard product filter is implemented
-  /** Optional controlled interval. When provided, the chart uses this value
-   *  and hides its inline interval selector. */
-  interval?: RevenueChartIntervalUnit
-  /** Optional callback for controlled mode interval changes. */
-  onIntervalChange?: (interval: RevenueChartIntervalUnit) => void
+  /** Controlled interval from parent (global selector) */
+  interval: RevenueChartIntervalUnit
+  /** Chart size variant - 'lg' for primary, 'sm' for secondary */
+  size?: ChartSize
 }
 
 /**
@@ -33,18 +33,13 @@ interface ActiveSubscribersChartProps {
 export const ActiveSubscribersChart = ({
   fromDate,
   toDate,
-  interval: controlledInterval,
-  onIntervalChange,
+  interval,
+  size = 'lg',
 }: ActiveSubscribersChartProps) => {
-  // Use shared hooks for tooltip and interval management
+  const config = CHART_SIZE_CONFIG[size]
+
+  // Use shared hooks for tooltip management
   const { tooltipData, tooltipCallback } = useChartTooltip()
-  const { interval, handleIntervalChange, showInlineSelector } =
-    useChartInterval({
-      fromDate,
-      toDate,
-      controlledInterval,
-      onIntervalChange,
-    })
 
   const { data: subscriberData, isLoading } =
     trpc.organizations.getActiveSubscribers.useQuery({
@@ -98,47 +93,32 @@ export const ActiveSubscribersChart = ({
   }, [subscriberData, firstPayloadValue])
 
   return (
-    <div className="w-full h-full">
-      <ChartHeader
-        title="Active subscribers"
-        infoTooltip="The number of customers with active paid subscriptions at each point in time."
-        showInlineSelector={showInlineSelector}
-        interval={interval}
-        onIntervalChange={handleIntervalChange}
-        fromDate={fromDate}
-        toDate={toDate}
+    <ChartLayout
+      title="Active subscribers"
+      infoTooltip="The number of customers with active paid subscriptions at each point in time."
+      value={formattedSubscriberValue}
+      isLoading={isLoading}
+      size={size}
+    >
+      <LineChart
+        {...DASHBOARD_LINE_CHART_DEFAULTS}
+        data={chartData}
+        index="date"
+        categories={['subscribers']}
+        className={cn('mt-3', config.height)}
+        showGridLines={config.showGridLines}
+        horizontalMargin={config.chartMargin}
+        maxValue={maxValue}
+        intervalUnit={interval}
+        customTooltip={(props) => (
+          <ChartDataTooltip
+            {...props}
+            valueFormatter={(value) => value.toLocaleString()}
+          />
+        )}
+        valueFormatter={(value: number) => value.toString()}
+        tooltipCallback={tooltipCallback}
       />
-
-      <ChartValueDisplay
-        value={formattedSubscriberValue}
-        isLoading={isLoading}
-      />
-
-      <ChartBody isLoading={isLoading}>
-        <LineChart
-          data={chartData}
-          index="date"
-          categories={['subscribers']}
-          className="-mb-2 mt-2"
-          colors={['foreground']}
-          fill="gradient"
-          customTooltip={(props) => (
-            <ChartDataTooltip
-              {...props}
-              valueFormatter={(value) => value.toLocaleString()}
-            />
-          )}
-          maxValue={maxValue}
-          autoMinValue={false}
-          minValue={0}
-          startEndOnly={true}
-          startEndOnlyYAxis={true}
-          showYAxis={false}
-          intervalUnit={interval}
-          valueFormatter={(value: number) => value.toString()}
-          tooltipCallback={tooltipCallback}
-        />
-      </ChartBody>
-    </div>
+    </ChartLayout>
   )
 }
