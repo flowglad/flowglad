@@ -21,9 +21,9 @@ import type {
  * margin={{ left: LAYOUT_TOKENS.page.value, right: LAYOUT_TOKENS.page.value }}
  */
 export const LAYOUT_TOKENS = {
-  /** Standard page horizontal inset (24px) */
+  /** Standard page horizontal inset (32px) */
   page: {
-    value: 24,
+    value: 32,
     class: 'px-page',
   } as LayoutToken,
 } as const

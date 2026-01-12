@@ -83,9 +83,9 @@ function InternalDashboardPage({
         - Padding on individual sections for spacing
         - Allows ChartDivider to span full width while content is inset
       */}
-      <div className="w-full flex flex-col pt-4 pb-16">
+      <div className="w-full flex flex-col pb-16">
         {/* Primary Chart - Full Size with bottom padding */}
-        <div className="pb-6">
+        <div className="py-6">
           <RevenueChart
             fromDate={range.from}
             toDate={range.to}
@@ -98,19 +98,6 @@ function InternalDashboardPage({
 
         {/* Secondary Charts - Compact Grid with top padding */}
         <ChartGrid>
-          <RecurringRevenueChart
-            fromDate={range.from}
-            toDate={range.to}
-            interval={interval}
-            size="sm"
-          />
-          <ActiveSubscribersChart
-            fromDate={range.from}
-            toDate={range.to}
-            interval={interval}
-            size="sm"
-          />
-          {/* TODO: Remove these preview placeholder charts */}
           <RecurringRevenueChart
             fromDate={range.from}
             toDate={range.to}
