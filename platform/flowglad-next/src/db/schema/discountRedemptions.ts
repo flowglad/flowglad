@@ -18,7 +18,7 @@ import {
   constructUniqueIndex,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -74,30 +74,27 @@ export const discountRedemptions = pgTable(
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.discountId]),
-      constructIndex(TABLE_NAME, [table.purchaseId]),
-      constructUniqueIndex(TABLE_NAME, [table.purchaseId]),
-      constructIndex(TABLE_NAME, [table.subscriptionId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      livemodePolicy(TABLE_NAME),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"subscription_id" in (select "id" from "subscriptions")`,
-        }
-      ),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          to: 'all',
-          using: sql`"discount_id" in (select "id" from "discounts" where "organization_id"=current_organization_id())`,
-        }
-      ),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.discountId]),
+    constructIndex(TABLE_NAME, [table.purchaseId]),
+    constructUniqueIndex(TABLE_NAME, [table.purchaseId]),
+    constructIndex(TABLE_NAME, [table.subscriptionId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"subscription_id" in (select "id" from "subscriptions")`,
+      }
+    ),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        to: 'all',
+        using: sql`"discount_id" in (select "id" from "discounts" where "organization_id"=current_organization_id())`,
+      }
+    ),
+  ])
 ).enableRLS()
 
 const columnRefinements = {
