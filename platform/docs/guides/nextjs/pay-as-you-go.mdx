@@ -1,0 +1,140 @@
+---
+title: Pay As You Go
+description: Learn how to implement pay-as-you-go billing in Next.js with Flowglad.
+---
+
+Pure usage-based billing where customers purchase credit packs and consume them over time. No recurring subscriptions required.
+
+<Note>
+View the complete source code on [GitHub](https://github.com/flowglad/examples/tree/main/nextjs/pay-as-you-go).
+</Note>
+
+## Prerequisites
+
+- Flowglad account with API key
+- Next.js 15+ with App Router
+- PostgreSQL database
+
+## Project Structure
+
+```
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── flowglad/[...path]/route.ts  # Flowglad API handler
+│   │   └── home-client.tsx                  # Main UI component
+│   └── lib/
+│       ├── billing-helpers.ts               # Usage & pricing utilities
+│       └── flowglad.ts                      # Flowglad server setup
+├── pricing.yaml                             # Pricing configuration
+└── package.json
+```
+
+## Key Concepts
+
+This pricing model has no recurring charges. Customers start on a free plan and purchase credit packs when they need them. Credits never expire and are consumed one-by-one as the customer uses your product.
+
+This model works well for products with unpredictable usage patterns or where customers prefer not to commit to a subscription. Common examples include API platforms, AI tools, and marketplace credits.
+
+## Implementation
+
+### Pricing Configuration
+
+The `pricing.yaml` file defines the free plan, usage meter, and credit top-up product. See the [full configuration](https://github.com/flowglad/examples/blob/main/nextjs/pay-as-you-go/pricing.yaml) in the repository.
+
+<img 
+  className="block dark:hidden" 
+  src="/images/example-diagrams/light/pay-as-you-go-diagram.svg" 
+  alt="Pricing model diagram showing usage meter, free plan, and top-up"
+/>
+
+<img 
+  className="hidden dark:block" 
+  src="/images/example-diagrams/dark/pay-as-you-go-diagram.svg" 
+  alt="Pricing model diagram showing usage meter, free plan, and top-up"
+/>
+
+The key distinction from subscription models: there is no `renewalFrequency: "every_billing_period"`. All credits use `renewalFrequency: "once"`, meaning they persist until consumed.
+
+### Checking Credit Balance
+
+Use `checkUsageBalance` to display remaining credits and determine if the customer can perform actions.
+
+```tsx src/app/home-client.tsx
+const billing = useBilling();
+const balance = billing.checkUsageBalance('message_credits');
+
+const creditsRemaining = balance?.availableBalance ?? 0;
+const hasCredits = creditsRemaining > 0;
+```
+
+The balance returns `null` if the customer has never purchased credits. Once they purchase a top-up, it returns an object that includes `availableBalance`.
+
+### Recording Usage
+
+When a customer uses a credit, record the usage event. This decrements their balance. The SDK's `createUsageEvent` method on the `useBilling()` hook handles the server communication automatically.
+
+```tsx src/app/home-client.tsx
+const billing = useBilling();
+
+const result = await billing.createUsageEvent({
+  usageMeterSlug: 'message_credits',
+  amount: 1,
+});
+
+if ('error' in result) {
+  throw new Error(result.error.json?.message || 'Failed to create usage event');
+}
+```
+
+The SDK auto-resolves the `subscriptionId` from the customer's current subscription and defaults `amount` to 1 if not provided.
+
+### Purchasing Credits
+
+When customers run out of credits (or want to stock up), let them purchase a top-up.
+
+```tsx src/app/home-client.tsx
+const handlePurchaseTopUp = async () => {
+  const price = billing.getPrice('message_topup');
+
+  await billing.createCheckoutSession({
+    priceId: price.id,
+    successUrl: window.location.href,
+    cancelUrl: window.location.href,
+    quantity: 1,
+    autoRedirect: true,
+  });
+};
+```
+
+After successful payment, credits are immediately added to the customer's balance. Call `billing.reload()` to refresh the UI.
+
+### Gating Actions on Credit Balance
+
+Block actions when the customer has no credits remaining.
+
+```tsx src/app/home-client.tsx
+<Button
+  onClick={handleGenerateMessage}
+  disabled={creditsRemaining === 0 || isGenerating}
+>
+  {isGenerating ? 'Generating...' : 'Generate'}
+</Button>
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="View Source Code" icon="github" href="https://github.com/flowglad/examples/tree/main/nextjs/pay-as-you-go">
+    Browse the complete example implementation
+  </Card>
+  <Card title="Next.js SDK" icon="book" href="/sdks/nextjs">
+    Full Next.js SDK documentation
+  </Card>
+  <Card title="Feature Access & Usage" icon="gauge" href="/sdks/feature-access-usage">
+    Learn more about usage-based billing
+  </Card>
+  <Card title="Checkout Sessions" icon="credit-card" href="/sdks/checkout-sessions">
+    Configure checkout flows
+  </Card>
+</CardGroup>
