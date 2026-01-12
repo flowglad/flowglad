@@ -164,7 +164,7 @@ export const setupPricingModelTransaction = async (
         const resource = resourcesBySlug.get(feature.resourceSlug)
         if (!resource) {
           throw new Error(
-            `Resource ${feature.resourceSlug} not found`
+            `Resource with slug ${feature.resourceSlug} does not exist`
           )
         }
         return {

@@ -652,7 +652,14 @@ describe('validateSetupPricingModelInput', () => {
 
     it('should throw when Resource feature references a non-existent resource slug', () => {
       const input = createMinimalValidInput()
-      input.resources = []
+      // Provide a resource with a different slug than what the feature references
+      input.resources = [
+        {
+          slug: 'existing-resource',
+          name: 'Existing Resource',
+          active: true,
+        },
+      ]
       input.features = [
         {
           type: FeatureType.Resource,
@@ -671,6 +678,27 @@ describe('validateSetupPricingModelInput', () => {
       )
     })
 
+    it('should throw early when Resource features exist but resources array is empty', () => {
+      const input = createMinimalValidInput()
+      input.resources = []
+      input.features = [
+        {
+          type: FeatureType.Resource,
+          slug: 'resource-feature',
+          name: 'Resource Feature',
+          description: 'Test Description',
+          resourceSlug: 'any-resource',
+          amount: 5,
+          active: true,
+        },
+      ]
+      input.products[0].features = ['resource-feature']
+
+      expect(() => validateSetupPricingModelInput(input)).toThrow(
+        'Resource features are defined but no resources array was provided'
+      )
+    })
+
     it('should reject Resource feature without amount', () => {
       const input = createMinimalValidInput()
       input.resources = [
@@ -680,6 +708,7 @@ describe('validateSetupPricingModelInput', () => {
           active: true,
         },
       ]
+      // Intentionally omitting 'amount' to test schema rejection of invalid Resource feature
       input.features = [
         {
           type: FeatureType.Resource,
@@ -688,7 +717,7 @@ describe('validateSetupPricingModelInput', () => {
           description: 'Test Description',
           resourceSlug: 'test-resource',
           active: true,
-        } as any,
+        } as (typeof input.features)[number],
       ]
       input.products[0].features = ['resource-feature']
 
