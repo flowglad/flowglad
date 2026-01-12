@@ -8,6 +8,7 @@ import {
 import {
   membershipsClientSelectSchema,
   membershipsTableRowDataSchema,
+  type NotificationPreferences,
   notificationPreferencesSchema,
 } from '@/db/schema/memberships'
 import {
@@ -496,10 +497,8 @@ const updateNotificationPreferences = protectedProcedure
           })
         }
         const currentPrefs =
-          (membership.notificationPreferences as Record<
-            string,
-            boolean
-          >) ?? {}
+          (membership.notificationPreferences as Partial<NotificationPreferences>) ??
+          {}
         const updatedPrefs = { ...currentPrefs, ...input.preferences }
         await updateMembership(
           {
