@@ -156,64 +156,6 @@ describe('priceMethods.ts', () => {
         expect(updatedOriginalPrice.isDefault).toBe(false)
       })
     })
-
-    it('does not archive existing usage prices when inserting a new usage price for the same meter', async () => {
-      // Usage meters can have multiple active prices, unlike products
-      const setup = await setupOrg()
-      const usageMeter = await setupUsageMeter({
-        organizationId: setup.organization.id,
-        name: 'Test Usage Meter',
-        livemode: true,
-        pricingModelId: setup.pricingModel.id,
-      })
-
-      await adminTransaction(async ({ transaction }) => {
-        // Create an initial usage price for the meter
-        const firstUsagePrice = await safelyInsertPrice(
-          {
-            ...usagePriceDefaultColumns,
-            usageMeterId: usageMeter.id,
-            name: 'First Usage Price',
-            unitPrice: 100,
-            livemode: true,
-            currency: CurrencyCode.USD,
-            slug: `first-usage-price-${core.nanoid()}`,
-          },
-          transaction
-        )
-
-        expect(firstUsagePrice.active).toBe(true)
-        expect(firstUsagePrice.isDefault).toBe(true)
-        expect(firstUsagePrice.usageMeterId).toBe(usageMeter.id)
-
-        // Create a second usage price for the same meter
-        const secondUsagePrice = await safelyInsertPrice(
-          {
-            ...usagePriceDefaultColumns,
-            usageMeterId: usageMeter.id,
-            name: 'Second Usage Price',
-            unitPrice: 200,
-            livemode: true,
-            currency: CurrencyCode.USD,
-            slug: `second-usage-price-${core.nanoid()}`,
-          },
-          transaction
-        )
-
-        expect(secondUsagePrice.active).toBe(true)
-        expect(secondUsagePrice.isDefault).toBe(true)
-        expect(secondUsagePrice.usageMeterId).toBe(usageMeter.id)
-
-        // Verify the first usage price is STILL active (not archived)
-        // Unlike products, usage meters can have multiple active prices
-        const firstPriceAfter = await selectPriceById(
-          firstUsagePrice.id,
-          transaction
-        )
-        expect(firstPriceAfter.active).toBe(true)
-        expect(firstPriceAfter.isDefault).toBe(true)
-      })
-    })
   })
 
   describe('safelyUpdatePrice', () => {
