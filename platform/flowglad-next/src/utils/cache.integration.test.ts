@@ -1205,8 +1205,8 @@ describeIfRedisKey(
         },
       ] = featureData
 
-      // Track the cache key for cleanup
-      const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:${subscriptionItem.id}`
+      // Track the cache key for cleanup (livemode is true)
+      const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:${subscriptionItem.id}:true`
       const depKey = CacheDependency.subscriptionItemFeatures(
         subscriptionItem.id
       )
@@ -1233,7 +1233,8 @@ describeIfRedisKey(
         const features1 =
           await selectSubscriptionItemFeaturesWithFeatureSlug(
             subscriptionItem.id,
-            transaction
+            transaction,
+            true // livemode
           )
 
         expect(features1.length).toBe(1)
@@ -1252,7 +1253,8 @@ describeIfRedisKey(
         const features2 =
           await selectSubscriptionItemFeaturesWithFeatureSlug(
             subscriptionItem.id,
-            transaction
+            transaction,
+            true // livemode
           )
 
         // Verify the cached result has the same key properties
@@ -1344,7 +1346,8 @@ describeIfRedisKey(
         const features =
           await selectSubscriptionItemFeaturesWithFeatureSlug(
             subscriptionItem.id,
-            transaction
+            transaction,
+            true // livemode
           )
         expect(features.length).toBe(1)
       })
@@ -1365,7 +1368,8 @@ describeIfRedisKey(
         const features =
           await selectSubscriptionItemFeaturesWithFeatureSlug(
             subscriptionItem.id,
-            transaction
+            transaction,
+            true // livemode
           )
         // Should still return the feature (from DB, not cache)
         expect(features.length).toBe(1)
