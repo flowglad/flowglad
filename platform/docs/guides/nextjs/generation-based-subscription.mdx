@@ -21,8 +21,7 @@ View the complete source code on [GitHub](https://github.com/flowglad/examples/t
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── flowglad/[...path]/route.ts  # Flowglad API handler
-│   │   │   └── usage-events/route.ts        # Records usage events
+│   │   │   └── flowglad/[...path]/route.ts  # Flowglad API handler
 │   │   ├── pricing/page.tsx                 # Pricing page
 │   │   └── home-client.tsx                  # Main UI component
 │   └── lib/
@@ -78,22 +77,22 @@ The balance includes both subscription credits and any purchased top-ups. Flowgl
 
 ### Recording Usage
 
-When a customer generates content, record the usage event server-side. This decrements their credit balance.
+When a customer generates content, record the usage event. This decrements their credit balance. The SDK's `createUsageEvent` method on the `useBilling()` hook handles the server communication automatically.
 
-```ts src/app/api/usage-events/route.ts
-const flowgladServer = flowglad(userId);
-const billing = await flowgladServer.getBilling();
-const subscription = billing.currentSubscriptions?.[0];
+```tsx src/app/home-client.tsx
+const billing = useBilling();
 
-await flowgladServer.createUsageEvent({
-  subscriptionId: subscription.id,
-  priceSlug: 'fast_generation_usage',
-  amount: 1,
-  transactionId: 'unique-id-for-idempotency',
+const result = await billing.createUsageEvent({
+  usageMeterSlug: 'fast_generations',
+  amount: 3,
 });
+
+if ('error' in result) {
+  throw new Error(result.error.json?.error || 'Failed to create usage event');
+}
 ```
 
-The `transactionId` parameter ensures idempotency (generated and sent from the client). If the same event is sent twice (e.g., due to a retry), it won't double-count usage.
+The SDK auto-resolves the `subscriptionId` from the customer's current subscription.
 
 ### Checking Feature Access
 

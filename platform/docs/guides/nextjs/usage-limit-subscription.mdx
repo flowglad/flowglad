@@ -21,8 +21,7 @@ View the complete source code on [GitHub](https://github.com/flowglad/examples/t
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── flowglad/[...path]/route.ts  # Flowglad API handler
-│   │   │   └── usage-events/route.ts        # Records usage events
+│   │   │   └── flowglad/[...path]/route.ts  # Flowglad API handler
 │   │   ├── pricing/page.tsx                 # Pricing page
 │   │   └── home-client.tsx                  # Main UI component
 │   └── lib/
@@ -78,28 +77,22 @@ The balance reflects both included subscription credits and any overage allowanc
 
 ### Recording Usage Events
 
-When a customer uses a metered resource, record the event server-side. This decrements their balance and, if credits are exhausted, triggers overage billing.
+When a customer uses a metered resource, record the event. This decrements their balance and, if credits are exhausted, triggers overage billing. The SDK's `createUsageEvent` method on the `useBilling()` hook handles the server communication automatically.
 
-```ts src/app/api/usage-events/route.ts
-const flowgladServer = flowglad(userId);
-const billing = await flowgladServer.getBilling();
-const subscription = billing.currentSubscriptions?.[0];
+```tsx src/app/home-client.tsx
+const billing = useBilling();
 
-// Find the usage price for this meter (see billing-helpers.ts)
-const usagePrice = findUsagePriceByMeterSlug(
-  'fast_premium_requests', 
-  billing.pricingModel
-)
-
-await flowgladServer.createUsageEvent({
-  subscriptionId: subscription.id,
-  priceId: usagePrice.id,
+const result = await billing.createUsageEvent({
+  usageMeterSlug: 'fast_premium_requests',
   amount: 1,
-  transactionId: 'unique-id-for-idempotency',
 });
+
+if ('error' in result) {
+  throw new Error(result.error.json?.error || 'Failed to create usage event');
+}
 ```
 
-The `transactionId` parameter ensures idempotency (generated and sent from the client). If the same event is sent twice (e.g., due to a retry), it won't double-count usage.
+The SDK auto-resolves the `subscriptionId` from the customer's current subscription. It defaults `amount` to 1 if not provided.
 
 ### Checking Feature Access
 

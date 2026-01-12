@@ -21,8 +21,7 @@ View the complete source code on [GitHub](https://github.com/flowglad/examples/t
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── flowglad/[...path]/route.ts  # Flowglad API handler
-│   │   │   └── usage-events/route.ts        # Records usage events
+│   │   │   └── flowglad/[...path]/route.ts  # Flowglad API handler
 │   │   └── home-client.tsx                  # Main UI component
 │   └── lib/
 │       ├── billing-helpers.ts               # Usage & pricing utilities
@@ -73,22 +72,22 @@ The balance returns `null` if the customer has never purchased credits. Once the
 
 ### Recording Usage
 
-When a customer uses a credit, record the usage event server-side. This decrements their balance.
+When a customer uses a credit, record the usage event. This decrements their balance. The SDK's `createUsageEvent` method on the `useBilling()` hook handles the server communication automatically.
 
-```ts src/app/api/usage-events/route.ts
-const flowgladServer = flowglad(userId);
-const billing = await flowgladServer.getBilling();
-const subscription = billing.currentSubscriptions?.[0];
+```tsx src/app/home-client.tsx
+const billing = useBilling();
 
-await flowgladServer.createUsageEvent({
-  subscriptionId: subscription.id,
-  priceSlug: 'message_credits',
+const result = await billing.createUsageEvent({
+  usageMeterSlug: 'message_credits',
   amount: 1,
-  transactionId: finalTransactionId,
 });
+
+if ('error' in result) {
+  throw new Error(result.error.json?.message || 'Failed to create usage event');
+}
 ```
 
-The `transactionId` parameter ensures idempotency. Generate it client-side before making the request so retries do not double-count usage.
+The SDK auto-resolves the `subscriptionId` from the customer's current subscription and defaults `amount` to 1 if not provided.
 
 ### Purchasing Credits
 

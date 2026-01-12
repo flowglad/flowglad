@@ -21,8 +21,7 @@ View the complete source code on [GitHub](https://github.com/flowglad/examples/t
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── flowglad/[...path]/route.ts  # Flowglad API handler
-│   │   │   └── usage-events/route.ts        # Records usage events
+│   │   │   └── flowglad/[...path]/route.ts  # Flowglad API handler
 │   │   ├── pricing/page.tsx                 # Pricing page
 │   │   └── home-client.tsx                  # Main UI component
 │   └── lib/
@@ -96,22 +95,22 @@ For unlimited features (toggle only, no usage meter), checking feature access is
 
 ### Recording Usage Events
 
-When a user consumes a limited feature, record the usage server-side.
+When a user consumes a limited feature, record the usage event. The SDK's `createUsageEvent` method on the `useBilling()` hook handles the server communication automatically.
 
-```ts src/app/api/usage-events/route.ts
-const flowgladServer = flowglad(userId);
-const billing = await flowgladServer.getBilling();
-const subscription = billing.currentSubscriptions?.[0];
+```tsx src/app/home-client.tsx
+const billing = useBilling();
 
-await flowgladServer.createUsageEvent({
-  subscriptionId: subscription.id,
-  priceSlug: 'o3_tracking',
+const result = await billing.createUsageEvent({
+  usageMeterSlug: 'o3_messages',
   amount: 1,
-  transactionId: 'unique-id-for-idempotency',
 });
+
+if ('error' in result) {
+  throw new Error(result.error.json?.error || 'Failed to create usage event');
+}
 ```
 
-The `priceSlug` references a usage tracking product that maps to the appropriate usage meter. The `transactionId` ensures idempotency (sent from client).
+The SDK auto-resolves the `subscriptionId` from the customer's current subscription. It defaults `amount` to 1 if not provided.
 
 ### Helper Functions
 
