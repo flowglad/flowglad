@@ -26,10 +26,7 @@ const createWrapper = (mockFetch: MockFetch) => {
   const queryClient = createQueryClient()
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <FlowgladContextProvider
-        requestConfig={{ fetch: mockFetch }}
-        loadBilling={false}
-      >
+      <FlowgladContextProvider requestConfig={{ fetch: mockFetch }}>
         {children}
       </FlowgladContextProvider>
     </QueryClientProvider>

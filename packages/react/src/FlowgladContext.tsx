@@ -24,7 +24,14 @@ import {
 } from '@flowglad/shared'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type React from 'react'
-import { createContext, useContext } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { devError } from './lib/utils'
 import type { FlowgladHookData } from './types'
 import { validateUrl } from './utils'
@@ -234,6 +241,27 @@ const PricingContext = createContext<PricingContextValues>({
   isRefetchingPricing: false,
   errorPricing: null,
   refetchPricing: () => {},
+})
+
+/**
+ * Internal context for billing lazy loading state
+ */
+interface BillingContextValues {
+  billing: CustomerBillingRouteResponse | null
+  isPendingBilling: boolean
+  isRefetchingBilling: boolean
+  errorBilling: Error | null
+  refetchBilling: () => void
+  triggerBillingLoad: () => void
+}
+
+const BillingContext = createContext<BillingContextValues>({
+  billing: null,
+  isPendingBilling: false,
+  isRefetchingBilling: false,
+  errorBilling: null,
+  refetchBilling: () => {},
+  triggerBillingLoad: () => {},
 })
 
 type CheckoutSessionParamsBase = {
@@ -703,17 +731,27 @@ export const FlowgladContextProvider = (
   const devModeProps = isDevModeProps(props) ? props : null
   const coreProps = isDevModeProps(props) ? null : props
   const isDevMode = devModeProps !== null
+
+  // Lazy billing loading state - triggered when useBilling() is first called
+  const [billingRequested, setBillingRequested] = useState(false)
+  const triggerBillingLoad = useCallback(
+    () => setBillingRequested(true),
+    []
+  )
+
   // In a perfect world, this would be a useMutation hook rather than useQuery.
   // Because technically, billing fetch requests run a "find or create" operation on
   // the customer. But useQuery allows us to execute the call using `enabled`
   // which allows us to avoid maintaining a useEffect hook.
   const {
     isPending: isPendingBilling,
+    isRefetching: isRefetchingBilling,
     error: errorBilling,
     data: billing,
+    refetch: refetchBilling,
   } = useQuery<CustomerBillingRouteResponse | null>({
     queryKey: [FlowgladActionKey.GetCustomerBilling],
-    enabled: Boolean(coreProps?.loadBilling),
+    enabled: billingRequested,
     queryFn: coreProps
       ? () =>
           fetchCustomerBilling({
@@ -915,19 +953,30 @@ export const FlowgladContextProvider = (
           pricingModel: billingData.pricingModel,
         }}
       >
-        <PricingContext.Provider
+        <BillingContext.Provider
           value={{
-            pricingData: billingData.pricingModel
-              ? { data: { pricingModel: billingData.pricingModel } }
-              : null,
-            isPendingPricing: false,
-            isRefetchingPricing: false,
-            errorPricing: null,
-            refetchPricing: () => {},
+            billing: { data: billingData },
+            isPendingBilling: false,
+            isRefetchingBilling: false,
+            errorBilling: null,
+            refetchBilling: () => {},
+            triggerBillingLoad: () => {},
           }}
         >
-          {props.children}
-        </PricingContext.Provider>
+          <PricingContext.Provider
+            value={{
+              pricingData: billingData.pricingModel
+                ? { data: { pricingModel: billingData.pricingModel } }
+                : null,
+              isPendingPricing: false,
+              isRefetchingPricing: false,
+              errorPricing: null,
+              refetchPricing: () => {},
+            }}
+          >
+            {props.children}
+          </PricingContext.Provider>
+        </BillingContext.Provider>
       </FlowgladContext.Provider>
     )
   }
@@ -1090,16 +1139,54 @@ export const FlowgladContextProvider = (
     refetchPricing,
   }
 
+  const billingContextValue: BillingContextValues = {
+    billing: billing ?? null,
+    isPendingBilling,
+    isRefetchingBilling,
+    errorBilling,
+    refetchBilling,
+    triggerBillingLoad,
+  }
+
   return (
     <FlowgladContext.Provider value={value}>
-      <PricingContext.Provider value={pricingContextValue}>
-        {props.children}
-      </PricingContext.Provider>
+      <BillingContext.Provider value={billingContextValue}>
+        <PricingContext.Provider value={pricingContextValue}>
+          {props.children}
+        </PricingContext.Provider>
+      </BillingContext.Provider>
     </FlowgladContext.Provider>
   )
 }
 
-export const useBilling = () => useContext(FlowgladContext)
+/**
+ * Hook to access customer billing data.
+ * Triggers a lazy fetch on first call and returns standardized hook data.
+ *
+ * @returns FlowgladHookData containing billing data, loading states, and refetch function
+ */
+export const useBilling =
+  (): FlowgladHookData<CustomerBillingRouteResponse> => {
+    const context = useContext(BillingContext)
+    const hasTriggeredRef = useRef(false)
+
+    useEffect(() => {
+      if (!hasTriggeredRef.current && context.triggerBillingLoad) {
+        hasTriggeredRef.current = true
+        context.triggerBillingLoad()
+      }
+    }, [context.triggerBillingLoad])
+
+    return {
+      data: context.billing ?? null,
+      isPending: context.isPendingBilling,
+      isRefetching: context.isRefetchingBilling,
+      error: context.errorBilling
+        ? { message: context.errorBilling.message }
+        : (context.billing?.error ?? null),
+      refetch: context.refetchBilling,
+    }
+  }
 
 /**
  * Hook to access public pricing data.
@@ -1121,7 +1208,11 @@ export const usePricing = (): FlowgladHookData<PricingModel> => {
   }
 }
 
+/**
+ * @deprecated useCatalog is deprecated and will be removed in a future version.
+ * Use usePricing() or useBilling() instead.
+ */
 export const useCatalog = () => {
-  const { catalog } = useBilling()
-  return catalog
+  const { data } = useBilling()
+  return data?.data?.catalog ?? null
 }
