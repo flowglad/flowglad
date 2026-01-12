@@ -1,3 +1,4 @@
+import { inArray } from 'drizzle-orm'
 import { afterEach, beforeEach, expect, it } from 'vitest'
 import { z } from 'zod'
 import {
@@ -1135,16 +1136,28 @@ describeIfRedisKey(
   'selectSubscriptionItemFeaturesWithFeatureSlug Integration Tests',
   () => {
     let keysToCleanup: string[] = []
+    let subscriptionItemIdsToCleanup: string[] = []
 
-    beforeEach(async () => {
-      // Clear the subscription item features table for isolation
-      await db.delete(subscriptionItemFeatures)
+    beforeEach(() => {
       keysToCleanup = []
+      subscriptionItemIdsToCleanup = []
     })
 
     afterEach(async () => {
       const client = getRedisTestClient()
       await cleanupRedisTestKeys(client, keysToCleanup)
+
+      // Clean up only the subscription item features created by this test
+      if (subscriptionItemIdsToCleanup.length > 0) {
+        await db
+          .delete(subscriptionItemFeatures)
+          .where(
+            inArray(
+              subscriptionItemFeatures.subscriptionItemId,
+              subscriptionItemIdsToCleanup
+            )
+          )
+      }
     })
 
     it('caches subscription item features and returns from cache on subsequent calls', async () => {
@@ -1199,7 +1212,8 @@ describeIfRedisKey(
         },
       ] = featureData
 
-      // Track the cache key for cleanup (livemode is true)
+      // Track the subscription item and cache key for cleanup
+      subscriptionItemIdsToCleanup.push(subscriptionItem.id)
       const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:${subscriptionItem.id}:true`
       const depKey = CacheDependency.subscriptionItemFeatures(
         subscriptionItem.id
@@ -1312,7 +1326,8 @@ describeIfRedisKey(
         },
       ] = featureData
 
-      // Track the cache key for cleanup (livemode is true)
+      // Track the subscription item and cache key for cleanup
+      subscriptionItemIdsToCleanup.push(subscriptionItem.id)
       const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:${subscriptionItem.id}:true`
       const depKey = CacheDependency.subscriptionItemFeatures(
         subscriptionItem.id
