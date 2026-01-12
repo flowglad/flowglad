@@ -774,7 +774,7 @@ describeIfRedisKey(
 
       // Verify data is in Redis
       const cachedValue = await client.get(cacheKey)
-      expect(typeof cachedValue).toBe('object')
+      expect(typeof cachedValue).toBe('string')
 
       // Second call - should return cached result
       const result2 = await adminTransaction(
@@ -822,12 +822,9 @@ describeIfRedisKey(
       expect(result).toEqual([])
 
       // Verify the empty array is cached
-      const cachedValue = await client.get(cacheKey)
-      expect(typeof cachedValue).toBe('object')
-      const parsedValue =
-        typeof cachedValue === 'string'
-          ? JSON.parse(cachedValue)
-          : cachedValue
+      const cachedValue = await client.get<string>(cacheKey)
+      expect(typeof cachedValue).toBe('string')
+      const parsedValue = JSON.parse(cachedValue!)
       expect(parsedValue).toEqual([])
     })
 
@@ -885,7 +882,7 @@ describeIfRedisKey(
 
       // Verify cache is populated
       const beforeInvalidation = await client.get(cacheKey)
-      expect(typeof beforeInvalidation).toBe('object')
+      expect(typeof beforeInvalidation).toBe('string')
 
       // Verify dependency is registered
       const registeredKeys = await client.smembers(registryKey)
@@ -1374,7 +1371,7 @@ describeIfRedisKey(
 
       // Cache should be repopulated
       const cachedRepopulated = await client.get(cacheKey)
-      expect(typeof cachedRepopulated).toBe('object')
+      expect(typeof cachedRepopulated).toBe('string')
     })
   }
 )
