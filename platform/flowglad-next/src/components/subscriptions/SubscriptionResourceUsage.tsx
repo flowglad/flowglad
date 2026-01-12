@@ -28,7 +28,7 @@ const ResourceUsageItem = ({
   available,
 }: ResourceUsageItemProps) => {
   const usagePercentage =
-    capacity > 0 ? (claimed / capacity) * 100 : 0
+    capacity > 0 ? Math.min((claimed / capacity) * 100, 100) : 0
 
   return (
     <div className="flex flex-col gap-2 p-3 rounded-md border border-border bg-card">

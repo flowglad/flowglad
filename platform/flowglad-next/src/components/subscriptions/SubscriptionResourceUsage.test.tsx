@@ -233,4 +233,34 @@ describe('SubscriptionResourceUsage', () => {
     // expectation: custom class is applied to the root element
     expect(container.firstChild).toHaveClass('custom-class')
   })
+
+  it('caps progress bar at 100% when resource is over-claimed', async () => {
+    // setup: mock getUsage with over-claimed resource (claimed > capacity)
+    vi.mocked(trpc.resourceClaims.getUsage.useQuery).mockReturnValue({
+      data: {
+        usage: [
+          {
+            resourceSlug: 'seats',
+            resourceId: 'res_123',
+            capacity: 5,
+            claimed: 7,
+            available: -2,
+          },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof trpc.resourceClaims.getUsage.useQuery>)
+
+    render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
+
+    // expectation: displays actual claimed/capacity values
+    expect(screen.getByText('seats')).toBeInTheDocument()
+    expect(screen.getByText('7 / 5 claimed')).toBeInTheDocument()
+    expect(screen.getByText('-2 available')).toBeInTheDocument()
+    // expectation: progress bar and percentage text are capped at 100%
+    expect(screen.getByText('100% used')).toBeInTheDocument()
+    const progressBar = screen.getByRole('progressbar')
+    expect(progressBar).toHaveAttribute('aria-valuenow', '100')
+  })
 })
