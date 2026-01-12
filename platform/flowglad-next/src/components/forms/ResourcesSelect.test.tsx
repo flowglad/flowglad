@@ -34,8 +34,18 @@ const TestWrapper = ({
 describe('ResourcesSelect', () => {
   const mockResources = [
     { id: 'resource_1', name: 'Seats', slug: 'seats', active: true },
-    { id: 'resource_2', name: 'API Keys', slug: 'api-keys', active: true },
-    { id: 'resource_3', name: 'Projects', slug: 'projects', active: true },
+    {
+      id: 'resource_2',
+      name: 'API Keys',
+      slug: 'api-keys',
+      active: true,
+    },
+    {
+      id: 'resource_3',
+      name: 'Projects',
+      slug: 'projects',
+      active: true,
+    },
   ]
 
   beforeEach(() => {
