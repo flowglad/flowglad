@@ -93,7 +93,7 @@ export const createColumns = (
       const resource = row.original.resource
       return (
         <div
-          className="w-8 flex justify-center"
+          className="w-8 flex flex-shrink-0 justify-center"
           onClick={(e) => e.stopPropagation()}
         >
           <ResourceActionsMenu resource={resource} onEdit={onEdit} />
