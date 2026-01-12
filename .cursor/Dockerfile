@@ -42,7 +42,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
   else \
     DOCKER_COMPOSE_ARCH="x86_64"; \
   fi && \
-  curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${DOCKER_COMPOSE_ARCH}" -o /usr/local/bin/docker-compose && \
+  curl -fSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${DOCKER_COMPOSE_ARCH}" -o /usr/local/bin/docker-compose && \
   chmod +x /usr/local/bin/docker-compose
 
 # Install ast-grep (required by development rules)
