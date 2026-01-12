@@ -156,10 +156,12 @@ describe('flowgladPlugin', () => {
     expect(plugin.hooks.after).toHaveLength(2)
 
     // Verify matchers exist and work correctly
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // The matchers accept HookEndpointContext but only use the path property,
+    // so we can safely test with a minimal { path } object
     const matchers = plugin.hooks.after.map(
-      (hook) => hook.matcher
-    ) as ((ctx: { path: string }) => boolean)[]
+      (hook) => (ctx: { path: string }) =>
+        hook.matcher(ctx as Parameters<typeof hook.matcher>[0])
+    )
     expect(matchers[0]({ path: '/sign-up' })).toBe(true)
     expect(matchers[0]({ path: '/sign-up/email' })).toBe(true)
     expect(matchers[0]({ path: '/login' })).toBe(false)
