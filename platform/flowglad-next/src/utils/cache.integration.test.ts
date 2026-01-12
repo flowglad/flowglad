@@ -8,7 +8,10 @@ import {
   setupProduct,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import { selectSubscriptionsByCustomerId } from '@/db/tableMethods/subscriptionMethods'
 import {
   cleanupRedisTestKeys,
@@ -883,6 +886,234 @@ describeIfRedisKey(
       // Verify cache is cleared
       const afterInvalidation = await client.get(cacheKey)
       expect(afterInvalidation).toBeNull()
+    })
+  }
+)
+
+describeIfRedisKey(
+  'invalidateCache callback Integration Tests',
+  () => {
+    let keysToCleanup: string[] = []
+
+    afterEach(async () => {
+      const client = getRedisTestClient()
+      await cleanupRedisTestKeys(client, keysToCleanup)
+      keysToCleanup = []
+    })
+
+    it('comprehensiveAdminTransaction invalidateCache callback clears cache after transaction commits', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data
+      const { organization } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      // Track keys for cleanup
+      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
+      const dependencyKey = CacheDependency.customerSubscriptions(
+        customer.id
+      )
+      const registryKey = `cacheDeps:${dependencyKey}`
+      keysToCleanup.push(cacheKey, registryKey)
+
+      // Pre-populate cache with subscription data
+      await client.set(
+        cacheKey,
+        JSON.stringify([{ id: 'sub_123', customerId: customer.id }])
+      )
+      await client.sadd(registryKey, cacheKey)
+
+      // Verify cache is populated
+      const beforeTransaction = await client.get(cacheKey)
+      expect(typeof beforeTransaction).toBe('object')
+
+      // Call comprehensiveAdminTransaction with a function that uses invalidateCache
+      await comprehensiveAdminTransaction(
+        async ({ invalidateCache }) => {
+          // Simulate what a workflow function does - call invalidateCache with dependency key
+          // Non-null assertion: comprehensiveAdminTransaction always provides invalidateCache
+          invalidateCache!(dependencyKey)
+          return { result: 'success' }
+        }
+      )
+
+      // Wait for fire-and-forget cache invalidation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      // Verify cache is cleared after transaction commits
+      const afterTransaction = await client.get(cacheKey)
+      expect(afterTransaction).toBeNull()
+    })
+
+    it('invalidateCache callback accumulates multiple keys and invalidates all after commit', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data - two customers
+      const { organization } = await setupOrg()
+      const customer1 = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const customer2 = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      // Track keys for cleanup
+      const cacheKey1 = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer1.id}:true`
+      const cacheKey2 = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer2.id}:true`
+      const depKey1 = CacheDependency.customerSubscriptions(
+        customer1.id
+      )
+      const depKey2 = CacheDependency.customerSubscriptions(
+        customer2.id
+      )
+      const registryKey1 = `cacheDeps:${depKey1}`
+      const registryKey2 = `cacheDeps:${depKey2}`
+      keysToCleanup.push(
+        cacheKey1,
+        cacheKey2,
+        registryKey1,
+        registryKey2
+      )
+
+      // Pre-populate both caches
+      await client.set(
+        cacheKey1,
+        JSON.stringify([{ id: 'sub_1', customerId: customer1.id }])
+      )
+      await client.set(
+        cacheKey2,
+        JSON.stringify([{ id: 'sub_2', customerId: customer2.id }])
+      )
+      await client.sadd(registryKey1, cacheKey1)
+      await client.sadd(registryKey2, cacheKey2)
+
+      // Verify both caches are populated
+      expect(typeof (await client.get(cacheKey1))).toBe('object')
+      expect(typeof (await client.get(cacheKey2))).toBe('object')
+
+      // Call comprehensiveAdminTransaction with multiple invalidateCache calls
+      await comprehensiveAdminTransaction(
+        async ({ invalidateCache }) => {
+          invalidateCache!(depKey1)
+          invalidateCache!(depKey2)
+          return { result: 'success' }
+        }
+      )
+
+      // Wait for fire-and-forget cache invalidation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      // Verify both caches are cleared
+      expect(await client.get(cacheKey1)).toBeNull()
+      expect(await client.get(cacheKey2)).toBeNull()
+    })
+
+    it('invalidateCache callback deduplicates keys before invalidating', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data
+      const { organization } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      // Track keys for cleanup
+      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
+      const dependencyKey = CacheDependency.customerSubscriptions(
+        customer.id
+      )
+      const registryKey = `cacheDeps:${dependencyKey}`
+      keysToCleanup.push(cacheKey, registryKey)
+
+      // Pre-populate cache
+      await client.set(
+        cacheKey,
+        JSON.stringify([{ id: 'sub_123', customerId: customer.id }])
+      )
+      await client.sadd(registryKey, cacheKey)
+
+      // Call with duplicate invalidation keys (simulating nested function calls)
+      await comprehensiveAdminTransaction(
+        async ({ invalidateCache }) => {
+          // Same key called multiple times - should be deduplicated
+          invalidateCache!(dependencyKey)
+          invalidateCache!(dependencyKey)
+          invalidateCache!(dependencyKey)
+          return { result: 'success' }
+        }
+      )
+
+      // Wait for fire-and-forget cache invalidation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      // Cache should still be cleared (deduplication shouldn't break anything)
+      expect(await client.get(cacheKey)).toBeNull()
+    })
+
+    it('invalidateCache callback combined with cacheInvalidations return value invalidates all keys', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data - two customers
+      const { organization } = await setupOrg()
+      const customer1 = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const customer2 = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      // Track keys for cleanup
+      const cacheKey1 = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer1.id}:true`
+      const cacheKey2 = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer2.id}:true`
+      const depKey1 = CacheDependency.customerSubscriptions(
+        customer1.id
+      )
+      const depKey2 = CacheDependency.customerSubscriptions(
+        customer2.id
+      )
+      const registryKey1 = `cacheDeps:${depKey1}`
+      const registryKey2 = `cacheDeps:${depKey2}`
+      keysToCleanup.push(
+        cacheKey1,
+        cacheKey2,
+        registryKey1,
+        registryKey2
+      )
+
+      // Pre-populate both caches
+      await client.set(
+        cacheKey1,
+        JSON.stringify([{ id: 'sub_1', customerId: customer1.id }])
+      )
+      await client.set(
+        cacheKey2,
+        JSON.stringify([{ id: 'sub_2', customerId: customer2.id }])
+      )
+      await client.sadd(registryKey1, cacheKey1)
+      await client.sadd(registryKey2, cacheKey2)
+
+      // Use callback for one key and return value for another
+      // This tests the merge behavior in comprehensiveAdminTransaction
+      await comprehensiveAdminTransaction(
+        async ({ invalidateCache }) => {
+          // Use callback for first key
+          invalidateCache!(depKey1)
+          // Return second key in cacheInvalidations array
+          return {
+            result: 'success',
+            cacheInvalidations: [depKey2],
+          }
+        }
+      )
+
+      // Wait for fire-and-forget cache invalidation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      // Both caches should be cleared
+      expect(await client.get(cacheKey1)).toBeNull()
+      expect(await client.get(cacheKey2)).toBeNull()
     })
   }
 )

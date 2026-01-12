@@ -33,7 +33,8 @@ import type { CacheDependencyKey } from '@/utils/cache'
 const cancelSubscriptionForMigration = async (
   subscription: Subscription.Record,
   customer: Customer.Record,
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  invalidateCache?: (...keys: CacheDependencyKey[]) => void
 ): Promise<TransactionOutput<Subscription.Record>> => {
   return cancelSubscriptionImmediately(
     {
@@ -43,7 +44,8 @@ const cancelSubscriptionForMigration = async (
       skipReassignDefaultSubscription: true,
       cancellationReason: CancellationReason.PricingModelMigration,
     },
-    transaction
+    transaction,
+    invalidateCache
   )
 }
 
@@ -70,7 +72,8 @@ export interface MigratePricingModelForCustomerResult {
  */
 export const migratePricingModelForCustomer = async (
   params: MigratePricingModelForCustomerParams,
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  invalidateCache?: (...keys: CacheDependencyKey[]) => void
 ): Promise<
   TransactionOutput<MigratePricingModelForCustomerResult>
 > => {
@@ -117,7 +120,8 @@ export const migratePricingModelForCustomer = async (
       } = await createDefaultSubscriptionOnPricingModel(
         customer,
         newPricingModelId,
-        transaction
+        transaction,
+        invalidateCache
       )
 
       // Update customer with new pricing model ID
@@ -172,7 +176,8 @@ export const migratePricingModelForCustomer = async (
       const created = await createDefaultSubscriptionOnPricingModel(
         customer,
         newPricingModelId,
-        transaction
+        transaction,
+        invalidateCache
       )
       defaultFreeSubscription = created.newSubscription
       if (created.eventsToInsert) {
@@ -249,7 +254,8 @@ export const migratePricingModelForCustomer = async (
     } = await cancelSubscriptionForMigration(
       subscription,
       customer,
-      transaction
+      transaction,
+      invalidateCache
     )
     canceledSubscriptions.push(canceledSubscription)
     if (cancelEvents) {
@@ -268,7 +274,8 @@ export const migratePricingModelForCustomer = async (
   } = await createDefaultSubscriptionOnPricingModel(
     customer,
     newPricingModelId,
-    transaction
+    transaction,
+    invalidateCache
   )
   if (createEvents) {
     eventsToInsert.push(...createEvents)
@@ -304,7 +311,8 @@ export const migratePricingModelForCustomer = async (
 async function createDefaultSubscriptionOnPricingModel(
   customer: Customer.Record,
   pricingModelId: string,
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  invalidateCache?: (...keys: CacheDependencyKey[]) => void
 ): Promise<{
   newSubscription: Subscription.Record
   eventsToInsert: Event.Insert[]
@@ -372,7 +380,7 @@ async function createDefaultSubscriptionOnPricingModel(
       autoStart: true,
       name: `${defaultProduct.name} Subscription`,
     },
-    { transaction }
+    { transaction, invalidateCache }
   )
 
   return {
@@ -402,6 +410,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
     input,
     transaction,
     organizationId,
+    invalidateCache,
   }: MigrateCustomerPricingModelProcedureParams): Promise<
     TransactionOutput<{
       customer: Customer.ClientRecord
@@ -469,7 +478,8 @@ export const migrateCustomerPricingModelProcedureTransaction =
           oldPricingModelId: customer.pricingModelId,
           newPricingModelId,
         },
-        transaction
+        transaction,
+        invalidateCache
       )
 
     return {
