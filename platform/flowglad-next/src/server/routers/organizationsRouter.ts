@@ -6,6 +6,7 @@ import {
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
   membershipsClientSelectSchema,
   membershipsTableRowDataSchema,
   type NotificationPreferences,
@@ -473,7 +474,7 @@ const updateNotificationPreferencesInputSchema = z.object({
 })
 
 const updateNotificationPreferencesOutputSchema = z.object({
-  preferences: z.record(z.string(), z.boolean()),
+  preferences: notificationPreferencesSchema,
 })
 
 /**
@@ -507,7 +508,13 @@ const updateNotificationPreferences = protectedProcedure
           },
           transaction
         )
-        return { preferences: updatedPrefs }
+        // Return full preferences merged with defaults to ensure all fields are present
+        return {
+          preferences: {
+            ...DEFAULT_NOTIFICATION_PREFERENCES,
+            ...updatedPrefs,
+          },
+        }
       }
     )
   )
