@@ -20,7 +20,7 @@ import { usageEvents } from '@/db/schema/usageEvents'
 import { usageMeters } from '@/db/schema/usageMeters'
 import {
   constructIndex,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -141,7 +141,7 @@ export const ledgerEntries = pgTable(
       pricingModels
     ),
   },
-  (table) => [
+  livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [
       table.subscriptionId,
       table.entryTimestamp,
@@ -173,8 +173,7 @@ export const ledgerEntries = pgTable(
         using: orgIdEqualsCurrentSQL(),
       }
     ),
-    livemodePolicy(TABLE_NAME),
-  ]
+  ])
 ).enableRLS()
 
 const columnRefinements = {

@@ -15,6 +15,7 @@ import { ResourcesDataTable } from '@/app/resources/data-table'
 import { UsageMetersDataTable } from '@/app/usage-meters/data-table'
 import CreateResourceModal from '@/components/components/CreateResourceModal'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
+import EditResourceModal from '@/components/components/EditResourceModal'
 import { ExpandSection } from '@/components/ExpandSection'
 import { FeaturesDataTable } from '@/components/features/data-table'
 import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
@@ -38,6 +39,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Resource } from '@/db/schema/resources'
 
 export type InnerPricingModelDetailsPageProps = {
   pricingModel: PricingModel.ClientRecord
@@ -67,6 +69,10 @@ function InnerPricingModelDetailsPage({
   ] = useState(false)
   const [isCreateResourceModalOpen, setIsCreateResourceModalOpen] =
     useState(false)
+  const [isEditResourceModalOpen, setIsEditResourceModalOpen] =
+    useState(false)
+  const [resourceToEdit, setResourceToEdit] =
+    useState<Resource.ClientRecord | null>(null)
   const [activeProductFilter, setActiveProductFilter] =
     useState<string>('active')
   const [activeFeatureFilter, setActiveFeatureFilter] =
@@ -304,6 +310,10 @@ function InnerPricingModelDetailsPage({
             onCreateResource={() =>
               setIsCreateResourceModalOpen(true)
             }
+            onEditResource={(resource) => {
+              setResourceToEdit(resource)
+              setIsEditResourceModalOpen(true)
+            }}
             buttonVariant="secondary"
           />
         </ExpandSection>
@@ -355,6 +365,13 @@ function InnerPricingModelDetailsPage({
         defaultPricingModelId={pricingModel.id}
         hidePricingModelSelect={true}
       />
+      {resourceToEdit && (
+        <EditResourceModal
+          isOpen={isEditResourceModalOpen}
+          setIsOpen={setIsEditResourceModalOpen}
+          resource={resourceToEdit}
+        />
+      )}
       <PricingModelIntegrationGuideModal
         isOpen={isGetIntegrationGuideModalOpen}
         setIsOpen={setIsGetIntegrationGuideModalOpen}

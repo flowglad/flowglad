@@ -13,7 +13,7 @@ import {
   createSupabaseWebhookSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   orgIdEqualsCurrentSQL,
@@ -61,33 +61,30 @@ export const discounts = pgTable(
     numberOfPayments: integer('number_of_payments'),
     // externalId: text('external_id').notNull(),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.code]),
-      constructUniqueIndex(TABLE_NAME, [
-        table.code,
-        table.organizationId,
-        table.livemode,
-      ]),
-      livemodePolicy(TABLE_NAME),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"organization_id" = current_organization_id() and "active" = true`,
-        }
-      ),
-      merchantPolicy(
-        'Enable all actions for discounts in own organization',
-        {
-          as: 'permissive',
-          to: 'all',
-          for: 'all',
-          using: orgIdEqualsCurrentSQL(),
-        }
-      ),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.code]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.code,
+      table.organizationId,
+      table.livemode,
+    ]),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"organization_id" = current_organization_id() and "active" = true`,
+      }
+    ),
+    merchantPolicy(
+      'Enable all actions for discounts in own organization',
+      {
+        as: 'permissive',
+        to: 'all',
+        for: 'all',
+        using: orgIdEqualsCurrentSQL(),
+      }
+    ),
+  ])
 ).enableRLS()
 
 const columnRefinements = {

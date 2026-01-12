@@ -72,7 +72,7 @@ function getEndOfDayUTC(date: Date): Date {
  *
  * NOTE: The "Today" preset uses UTC dates to ensure hourly charts display
  * 00:00-23:00 consistently, matching the backend's UTC-based processing.
- * This is the same approach used by LemonSqueezy and other analytics platforms.
+ * This is a common approach used by analytics platforms.
  */
 function createDefaultPresets(): DateRangePreset[] {
   const now = new Date()

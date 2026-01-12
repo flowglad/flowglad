@@ -4,14 +4,15 @@ import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { ChartDataTooltip } from '@/components/ChartDataTooltip'
 import {
-  ChartBody,
-  ChartHeader,
-  ChartValueDisplay,
+  CHART_SIZE_CONFIG,
+  ChartLayout,
+  type ChartSize,
+  DASHBOARD_LINE_CHART_DEFAULTS,
   LineChart,
 } from '@/components/charts'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { useChartInterval } from '@/hooks/useChartInterval'
 import { useChartTooltip } from '@/hooks/useChartTooltip'
+import { cn } from '@/lib/utils'
 import { CurrencyCode, RevenueChartIntervalUnit } from '@/types'
 import { formatDateUTC } from '@/utils/chart/dateFormatting'
 import { createChartTooltipMetadata } from '@/utils/chart/types'
@@ -24,11 +25,10 @@ interface RevenueChartProps {
   fromDate: Date
   toDate: Date
   productId?: string
-  /** Optional controlled interval. When provided, the chart uses this value
-   *  and hides its inline interval selector. */
-  interval?: RevenueChartIntervalUnit
-  /** Optional callback for controlled mode interval changes. */
-  onIntervalChange?: (interval: RevenueChartIntervalUnit) => void
+  /** Controlled interval from parent (global selector) */
+  interval: RevenueChartIntervalUnit
+  /** Chart size variant - 'lg' for primary, 'sm' for secondary */
+  size?: ChartSize
 }
 
 /**
@@ -44,20 +44,14 @@ export function RevenueChart({
   fromDate,
   toDate,
   productId,
-  interval: controlledInterval,
-  onIntervalChange,
+  interval,
+  size = 'lg',
 }: RevenueChartProps) {
   const { organization } = useAuthenticatedContext()
+  const config = CHART_SIZE_CONFIG[size]
 
-  // Use shared hooks for tooltip and interval management
+  // Use shared hooks for tooltip management
   const { tooltipData, tooltipCallback } = useChartTooltip()
-  const { interval, handleIntervalChange, showInlineSelector } =
-    useChartInterval({
-      fromDate,
-      toDate,
-      controlledInterval,
-      onIntervalChange,
-    })
 
   const { data: revenueData, isLoading } =
     trpc.organizations.getRevenue.useQuery({
@@ -91,7 +85,7 @@ export function RevenueChart({
           totalPoints: revenueData.length,
         }),
         formattedRevenue,
-        revenue: Number(item.revenue).toFixed(2),
+        revenue: Math.round(Number(item.revenue) * 100) / 100,
       }
     })
   }, [
@@ -141,63 +135,48 @@ export function RevenueChart({
     organization?.defaultCurrency ?? CurrencyCode.USD
 
   return (
-    <div className="w-full h-full">
-      <ChartHeader
-        title="All revenue"
-        infoTooltip="Total revenue collected from all payments in the selected period, including one-time purchases and subscription payments."
-        showInlineSelector={showInlineSelector}
-        interval={interval}
-        onIntervalChange={handleIntervalChange}
-        fromDate={fromDate}
-        toDate={toDate}
+    <ChartLayout
+      title="All revenue"
+      infoTooltip="Total revenue collected from all payments in the selected period, including one-time purchases and subscription payments."
+      value={formattedRevenueValue}
+      isLoading={isLoading}
+      size={size}
+    >
+      <LineChart
+        {...DASHBOARD_LINE_CHART_DEFAULTS}
+        data={chartData}
+        index="date"
+        categories={['revenue']}
+        className={cn('mt-3', config.height)}
+        showGridLines={config.showGridLines}
+        horizontalMargin={config.chartMargin}
+        maxValue={maxValue}
+        intervalUnit={interval}
+        customTooltip={(props) => (
+          <ChartDataTooltip
+            {...props}
+            valueFormatter={(value) =>
+              stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                defaultCurrency,
+                value
+              )
+            }
+          />
+        )}
+        valueFormatter={(value: number) =>
+          stripeCurrencyAmountToHumanReadableCurrencyAmount(
+            defaultCurrency,
+            value
+          )
+        }
+        yAxisValueFormatter={(value: number) =>
+          stripeCurrencyAmountToShortReadableCurrencyAmount(
+            defaultCurrency,
+            value
+          )
+        }
+        tooltipCallback={tooltipCallback}
       />
-
-      <ChartValueDisplay
-        value={formattedRevenueValue}
-        isLoading={isLoading}
-      />
-
-      <ChartBody isLoading={isLoading}>
-        <LineChart
-          data={chartData}
-          index="date"
-          categories={['revenue']}
-          className="-mb-2 mt-2"
-          colors={['foreground']}
-          fill="gradient"
-          customTooltip={(props) => (
-            <ChartDataTooltip
-              {...props}
-              valueFormatter={(value) =>
-                stripeCurrencyAmountToHumanReadableCurrencyAmount(
-                  defaultCurrency,
-                  value
-                )
-              }
-            />
-          )}
-          maxValue={maxValue}
-          autoMinValue={false}
-          minValue={0}
-          startEndOnly={true}
-          startEndOnlyYAxis={true}
-          showYAxis={false}
-          intervalUnit={interval}
-          valueFormatter={(value: number) =>
-            stripeCurrencyAmountToHumanReadableCurrencyAmount(
-              defaultCurrency,
-              value
-            )
-          }
-          yAxisValueFormatter={(value: number) =>
-            stripeCurrencyAmountToShortReadableCurrencyAmount(
-              defaultCurrency,
-              value
-            )
-          }
-          tooltipCallback={tooltipCallback}
-        />
-      </ChartBody>
-    </div>
+    </ChartLayout>
   )
 }

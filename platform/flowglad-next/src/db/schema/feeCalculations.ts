@@ -25,7 +25,7 @@ import {
   createSupabaseWebhookSchema,
   hiddenColumnsForClientSchema,
   idInputSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -112,22 +112,19 @@ export const feeCalculations = pgTable(
     }).notNull(),
     internalNotes: text('internalNotes'),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      constructIndex(TABLE_NAME, [table.checkoutSessionId]),
-      constructIndex(TABLE_NAME, [table.purchaseId]),
-      constructIndex(TABLE_NAME, [table.discountId]),
-      livemodePolicy(TABLE_NAME),
-      merchantPolicy('Enable select for own organization', {
-        as: 'permissive',
-        to: 'merchant',
-        for: 'select',
-        using: orgIdEqualsCurrentSQL(),
-      }),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    constructIndex(TABLE_NAME, [table.checkoutSessionId]),
+    constructIndex(TABLE_NAME, [table.purchaseId]),
+    constructIndex(TABLE_NAME, [table.discountId]),
+    merchantPolicy('Enable select for own organization', {
+      as: 'permissive',
+      to: 'merchant',
+      for: 'select',
+      using: orgIdEqualsCurrentSQL(),
+    }),
+  ])
 ).enableRLS()
 
 const columnRefinements = {
