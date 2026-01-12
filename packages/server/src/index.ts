@@ -7,5 +7,8 @@ export {
   type RequestHandlerOutput,
   requestHandler,
 } from './requestHandler'
-export { routeToHandlerMap } from './subrouteHandlers'
+export {
+  publicRouteToHandlerMap,
+  routeToHandlerMap,
+} from './subrouteHandlers'
 export { verifyWebhook, WebhookVerificationError } from './webhook'

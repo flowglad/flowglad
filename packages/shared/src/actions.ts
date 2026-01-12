@@ -465,4 +465,24 @@ export const flowgladActionValidators = {
     method: HTTPMethod.POST,
     inputValidator: clientCreateUsageEventSchema,
   },
+  [FlowgladActionKey.GetDefaultPricingModel]: {
+    method: HTTPMethod.GET,
+    inputValidator: z.object({}),
+  },
 } as const satisfies FlowgladActionValidatorMap
+
+/**
+ * Set of action keys that do not require authentication.
+ * These routes can be accessed without a customer ID.
+ */
+export const publicActionKeys: Set<FlowgladActionKey> = new Set([
+  FlowgladActionKey.GetDefaultPricingModel,
+])
+
+/**
+ * Type guard to check if an action key is a public action.
+ * @param key - The action key to check
+ * @returns True if the action key is a public action
+ */
+export const isPublicActionKey = (key: FlowgladActionKey): boolean =>
+  publicActionKeys.has(key)
