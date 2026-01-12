@@ -445,7 +445,7 @@ describe('syncProductFeatures', () => {
           product,
           desiredFeatureIds,
         },
-        transaction
+        { transaction }
       )
     })
 
@@ -495,7 +495,7 @@ describe('syncProductFeatures', () => {
           product,
           desiredFeatureIds: [],
         },
-        transaction
+        { transaction }
       )
     })
 
@@ -532,7 +532,7 @@ describe('syncProductFeatures', () => {
           product,
           desiredFeatureIds: [featureA.id, featureB.id],
         },
-        transaction
+        { transaction }
       )
     })
     // - The function should return an array of the two now-active `ProductFeature.Record`s.
@@ -578,7 +578,7 @@ describe('syncProductFeatures', () => {
           product,
           desiredFeatureIds: [featureA.id, featureC.id, featureD.id],
         },
-        transaction
+        { transaction }
       )
     })
 
@@ -630,7 +630,7 @@ describe('syncProductFeatures', () => {
           product,
           desiredFeatureIds: [featureA.id],
         },
-        transaction
+        { transaction }
       )
     })
 

@@ -92,13 +92,13 @@ export const updateFeature = protectedProcedure
   .output(z.object({ feature: featuresClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transaction, invalidateCache }) => {
         const feature = await updateFeatureTransaction(
           {
             ...input.feature,
             id: input.id,
           },
-          transaction
+          { transaction, invalidateCache }
         )
         return { feature }
       }

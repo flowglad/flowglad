@@ -296,7 +296,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: FeatureType.Toggle,
             active: false,
           },
-          transaction
+          { transaction }
         )
 
         // Verify productFeature is now expired
@@ -341,7 +341,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: FeatureType.Toggle,
             active: false,
           },
-          transaction
+          { transaction }
         )
 
         // Verify subscriptionItemFeature is detached but preserved
@@ -371,7 +371,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: FeatureType.Toggle,
             active: false,
           },
-          transaction
+          { transaction }
         )
 
         // Try to create subscription features for a new subscription item
@@ -405,7 +405,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: FeatureType.Toggle,
             active: false,
           },
-          transaction
+          { transaction }
         )
       })
     })
@@ -426,7 +426,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: FeatureType.Toggle,
             active: true,
           },
-          transaction
+          { transaction }
         )
 
         // Verify productFeature is now unexpired
@@ -450,7 +450,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: FeatureType.Toggle,
             active: true,
           },
-          transaction
+          { transaction }
         )
 
         // Create subscription features for a new subscription item
@@ -502,7 +502,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: FeatureType.Toggle,
             active: true,
           },
-          transaction
+          { transaction }
         )
 
         // Verify the old subscription item still doesn't have it
@@ -535,7 +535,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             name: 'Updated Name',
             description: 'Updated description',
           },
-          transaction
+          { transaction }
         )
 
         // Verify productFeature expiredAt hasn't changed

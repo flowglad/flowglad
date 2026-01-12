@@ -228,7 +228,12 @@ export const createProductTransaction = async (
     prices: CreateProductPriceInput[]
     featureIds?: string[]
   },
-  { userId, transaction, livemode }: AuthenticatedTransactionParams
+  {
+    userId,
+    transaction,
+    livemode,
+    invalidateCache,
+  }: AuthenticatedTransactionParams
 ) => {
   // Validate that usage prices are not created with featureIds
   if (payload.featureIds && payload.featureIds.length > 0) {
@@ -285,7 +290,7 @@ export const createProductTransaction = async (
         product: createdProduct,
         desiredFeatureIds: payload.featureIds,
       },
-      transaction
+      { transaction, invalidateCache }
     )
   }
   const pricesWithSafelyDefaultPrice = payload.prices.some(
@@ -327,7 +332,7 @@ export const editProductTransaction = async (
     transaction,
     livemode,
     organizationId,
-    userId,
+    invalidateCache,
   }: AuthenticatedTransactionParams
 ) => {
   const { product, featureIds, price } = payload
@@ -392,7 +397,7 @@ export const editProductTransaction = async (
         product: updatedProduct,
         desiredFeatureIds: featureIds,
       },
-      transaction
+      { transaction, invalidateCache }
     )
   }
   /**

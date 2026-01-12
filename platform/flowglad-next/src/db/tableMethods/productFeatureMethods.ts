@@ -18,7 +18,10 @@ import {
   type ORMMethodCreatorConfig,
   whereClauseFromObject,
 } from '@/db/tableUtils'
-import type { DbTransaction } from '@/db/types'
+import type {
+  AuthenticatedTransactionParams,
+  DbTransaction,
+} from '@/db/types'
 import {
   CacheDependency,
   type CacheDependencyKey,
@@ -320,9 +323,13 @@ export const syncProductFeatures = async (
     >
     desiredFeatureIds: string[]
   },
-  transaction: DbTransaction
+  transactionParams: Pick<
+    AuthenticatedTransactionParams,
+    'transaction' | 'invalidateCache'
+  >
 ) => {
   const { product, desiredFeatureIds } = params
+  const { transaction, invalidateCache } = transactionParams
 
   // Early return if no features to sync
   if (!desiredFeatureIds || desiredFeatureIds.length === 0) {
@@ -336,10 +343,12 @@ export const syncProductFeatures = async (
         (pf) => !pf.expiredAt
       )
       if (activeFeatures.length > 0) {
-        await expireProductFeaturesByFeatureId(
-          activeFeatures.map((pf) => pf.id),
-          transaction
-        )
+        const { cacheInvalidations } =
+          await expireProductFeaturesByFeatureId(
+            activeFeatures.map((pf) => pf.id),
+            transaction
+          )
+        invalidateCache?.(...cacheInvalidations)
       }
     }
     return []
@@ -363,10 +372,12 @@ export const syncProductFeatures = async (
 
   // Only call expire if there are features to expire
   if (productFeaturesToExpire.length > 0) {
-    await expireProductFeaturesByFeatureId(
-      productFeaturesToExpire.map((pf) => pf.id),
-      transaction
-    )
+    const { cacheInvalidations } =
+      await expireProductFeaturesByFeatureId(
+        productFeaturesToExpire.map((pf) => pf.id),
+        transaction
+      )
+    invalidateCache?.(...cacheInvalidations)
   }
 
   const featureIdsToUnexpire = allProductFeaturesForProduct
