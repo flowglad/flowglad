@@ -55,7 +55,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
   else \
     AST_GREP_ARCH="x86_64-unknown-linux-gnu"; \
   fi && \
-  curl -L "https://github.com/ast-grep/ast-grep/releases/latest/download/app-${AST_GREP_ARCH}.zip" -o /tmp/ast-grep.zip && \
+  curl -fSL "https://github.com/ast-grep/ast-grep/releases/latest/download/app-${AST_GREP_ARCH}.zip" -o /tmp/ast-grep.zip && \
   unzip -q /tmp/ast-grep.zip -d /tmp && \
   mv /tmp/ast-grep /usr/local/bin/ast-grep && \
   chmod +x /usr/local/bin/ast-grep && \
