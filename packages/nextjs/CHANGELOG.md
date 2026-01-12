@@ -115,9 +115,9 @@
   **After:**
 
   ```typescript
-  import { nextRouteHandler } from "@flowglad/nextjs";
+  import { nextRouteHandler } from "@flowglad/nextjs/server";
   // or
-  import { pagesRouteHandler } from "@flowglad/nextjs";
+  import { pagesRouteHandler } from "@flowglad/nextjs/server";
   // Use with getCustomerExternalId and flowglad factory
   ```
 
