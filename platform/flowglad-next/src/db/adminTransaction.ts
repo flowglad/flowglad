@@ -41,14 +41,18 @@ export async function adminTransaction<T>(
 
 /**
  * Core comprehensive admin transaction logic without tracing.
- * Returns the full TransactionOutput so the traced wrapper can extract metrics.
+ * Returns the full TransactionOutput plus processed counts so the traced wrapper can extract accurate metrics.
  */
 const executeComprehensiveAdminTransaction = async <T>(
   fn: (
     params: AdminTransactionParams
   ) => Promise<TransactionOutput<T>>,
   effectiveLivemode: boolean
-): Promise<TransactionOutput<T>> => {
+): Promise<{
+  output: TransactionOutput<T>
+  processedEventsCount: number
+  processedLedgerCommandsCount: number
+}> => {
   // Create effects accumulator - shared across all nested function calls
   const effects: TransactionEffects = {
     cacheInvalidations: [],
@@ -69,6 +73,10 @@ const executeComprehensiveAdminTransaction = async <T>(
 
   // Collect cache invalidations to process after commit (from both effects and output)
   let cacheInvalidations: CacheDependencyKey[] = []
+
+  // Track processed counts for observability
+  let processedEventsCount = 0
+  let processedLedgerCommandsCount = 0
 
   const output = await db.transaction(async (transaction) => {
     // Set up transaction context (e.g., clearing previous JWT claims)
@@ -111,6 +119,10 @@ const executeComprehensiveAdminTransaction = async <T>(
       ...(output.ledgerCommands ?? []),
     ]
 
+    // Record counts for observability (before processing)
+    processedEventsCount = allEvents.length
+    processedLedgerCommandsCount = allLedgerCommands.length
+
     // Process events if any
     if (allEvents.length > 0) {
       await bulkInsertOrDoNothingEventsByHash(allEvents, transaction)
@@ -139,7 +151,11 @@ const executeComprehensiveAdminTransaction = async <T>(
     void invalidateDependencies(uniqueInvalidations)
   }
 
-  return output
+  return {
+    output,
+    processedEventsCount,
+    processedLedgerCommandsCount,
+  }
 }
 
 /**
@@ -172,7 +188,11 @@ export async function comprehensiveAdminTransaction<T>(
   const { livemode = true } = options
   const effectiveLivemode = isNil(livemode) ? true : livemode
 
-  const output = await traced(
+  const {
+    output,
+    processedEventsCount,
+    processedLedgerCommandsCount,
+  } = await traced(
     {
       options: {
         spanName: 'db.comprehensiveAdminTransaction',
@@ -184,11 +204,10 @@ export async function comprehensiveAdminTransaction<T>(
           'db.livemode': effectiveLivemode,
         },
       },
-      extractResultAttributes: (output: TransactionOutput<T>) => ({
-        'db.events_count': output.eventsToInsert?.length ?? 0,
-        'db.ledger_commands_count': output.ledgerCommand
-          ? 1
-          : (output.ledgerCommands?.length ?? 0),
+      extractResultAttributes: (data) => ({
+        // Use the actual processed counts, which include both effects callbacks and output
+        'db.events_count': data.processedEventsCount,
+        'db.ledger_commands_count': data.processedLedgerCommandsCount,
       }),
     },
     () => executeComprehensiveAdminTransaction(fn, effectiveLivemode)

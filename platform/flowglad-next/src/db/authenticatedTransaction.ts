@@ -47,7 +47,7 @@ export async function authenticatedTransaction<T>(
 
 /**
  * Core comprehensive authenticated transaction logic without tracing.
- * Returns the full TransactionOutput plus auth info so the traced wrapper can extract metrics.
+ * Returns the full TransactionOutput plus auth info and processed counts so the traced wrapper can extract accurate metrics.
  */
 const executeComprehensiveAuthenticatedTransaction = async <T>(
   fn: (
@@ -59,6 +59,8 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
   userId: string
   organizationId?: string
   livemode: boolean
+  processedEventsCount: number
+  processedLedgerCommandsCount: number
 }> => {
   const { apiKey, __testOnlyOrganizationId, customerId } =
     options ?? {}
@@ -94,6 +96,10 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
 
   // Collect cache invalidations to process after commit (from both effects and output)
   let cacheInvalidations: CacheDependencyKey[] = []
+
+  // Track processed counts for observability
+  let processedEventsCount = 0
+  let processedLedgerCommandsCount = 0
 
   const output = await db.transaction(async (transaction) => {
     if (!jwtClaim) {
@@ -160,6 +166,10 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       ...(output.ledgerCommands ?? []),
     ]
 
+    // Record counts for observability (before processing)
+    processedEventsCount = allEvents.length
+    processedLedgerCommandsCount = allLedgerCommands.length
+
     // Process events if any
     if (allEvents.length > 0) {
       await bulkInsertOrDoNothingEventsByHash(allEvents, transaction)
@@ -196,6 +206,8 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
     userId,
     organizationId: jwtClaim?.organization_id,
     livemode,
+    processedEventsCount,
+    processedLedgerCommandsCount,
   }
 }
 
@@ -210,7 +222,11 @@ export async function comprehensiveAuthenticatedTransaction<T>(
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
   // Static attributes are set at span creation for debugging failed transactions
-  const { output } = await traced(
+  const {
+    output,
+    processedEventsCount,
+    processedLedgerCommandsCount,
+  } = await traced(
     {
       options: {
         spanName: 'db.comprehensiveAuthenticatedTransaction',
@@ -224,10 +240,9 @@ export async function comprehensiveAuthenticatedTransaction<T>(
         'db.user_id': data.userId,
         'db.organization_id': data.organizationId,
         'db.livemode': data.livemode,
-        'db.events_count': data.output.eventsToInsert?.length ?? 0,
-        'db.ledger_commands_count': data.output.ledgerCommand
-          ? 1
-          : (data.output.ledgerCommands?.length ?? 0),
+        // Use the actual processed counts, which include both effects callbacks and output
+        'db.events_count': data.processedEventsCount,
+        'db.ledger_commands_count': data.processedLedgerCommandsCount,
       }),
     },
     () => executeComprehensiveAuthenticatedTransaction(fn, options)
