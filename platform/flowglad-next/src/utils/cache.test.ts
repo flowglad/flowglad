@@ -359,8 +359,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
     expect(JSON.parse(mockRedis.store[key3])).toEqual({ entry: 3 })
   })
 
-  it('handles invalidation of non-existent dependencies gracefully', async () => {
-    // Should not throw
+  it('resolves without error when invalidating non-existent dependencies', async () => {
     await expect(
       invalidateDependencies([
         'dep:nonexistent',
