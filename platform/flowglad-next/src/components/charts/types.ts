@@ -37,3 +37,41 @@ export interface ChartConstants {
   /** Tailwind text size class for value display (same for all chart sizes) */
   valueText: string
 }
+
+/**
+ * Available chart color keys from the Tremor color palette.
+ */
+export type ChartColorKey =
+  | 'foreground'
+  | 'primary'
+  | 'blue'
+  | 'emerald'
+  | 'violet'
+  | 'amber'
+  | 'gray'
+  | 'cyan'
+  | 'pink'
+  | 'lime'
+  | 'fuchsia'
+  | 'stone'
+
+/**
+ * Default LineChart props shared across all dashboard charts.
+ * These settings are common to Revenue, MRR, Subscribers, and other dashboard charts.
+ */
+export interface DashboardLineChartDefaults {
+  /** Line/area colors - uses foreground for consistent theme */
+  colors: ChartColorKey[]
+  /** Fill style for the area under the line */
+  fill: 'gradient' | 'solid' | 'none'
+  /** Disable auto min value calculation */
+  autoMinValue: boolean
+  /** Minimum Y-axis value (0 for positive-only metrics) */
+  minValue: number
+  /** Only show first and last X-axis labels */
+  startEndOnly: boolean
+  /** Only show first and last Y-axis labels */
+  startEndOnlyYAxis: boolean
+  /** Hide Y-axis (values shown in header instead) */
+  showYAxis: boolean
+}

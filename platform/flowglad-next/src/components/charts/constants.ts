@@ -2,7 +2,32 @@ import type {
   ChartConstants,
   ChartSize,
   ChartSizeConfig,
+  DashboardLineChartDefaults,
 } from './types'
+
+/**
+ * Default props for LineChart used in dashboard charts.
+ * These are the common settings shared across all dashboard chart components.
+ * Spread these into LineChart and override only what differs per chart.
+ *
+ * @example
+ * <LineChart
+ *   {...DASHBOARD_LINE_CHART_DEFAULTS}
+ *   data={chartData}
+ *   categories={['revenue']}
+ *   // ... chart-specific props
+ * />
+ */
+export const DASHBOARD_LINE_CHART_DEFAULTS: DashboardLineChartDefaults =
+  {
+    colors: ['foreground'],
+    fill: 'gradient',
+    autoMinValue: false,
+    minValue: 0,
+    startEndOnly: true,
+    startEndOnlyYAxis: true,
+    showYAxis: false,
+  }
 
 /**
  * Chart constants that are the same across all chart sizes.
@@ -14,7 +39,7 @@ import type {
  */
 export const CHART_CONSTANTS: ChartConstants = {
   headerText: 'text-base',
-  valueText: 'text-lg',
+  valueText: 'text-xl',
 } as const
 
 /**

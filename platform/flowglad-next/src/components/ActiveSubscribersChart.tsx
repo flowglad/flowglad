@@ -5,10 +5,9 @@ import { trpc } from '@/app/_trpc/client'
 import { ChartDataTooltip } from '@/components/ChartDataTooltip'
 import {
   CHART_SIZE_CONFIG,
-  ChartBody,
-  ChartHeader,
+  ChartLayout,
   type ChartSize,
-  ChartValueDisplay,
+  DASHBOARD_LINE_CHART_DEFAULTS,
   LineChart,
 } from '@/components/charts'
 import { useChartTooltip } from '@/hooks/useChartTooltip'
@@ -37,7 +36,6 @@ export const ActiveSubscribersChart = ({
   interval,
   size = 'lg',
 }: ActiveSubscribersChartProps) => {
-  const compact = size === 'sm'
   const config = CHART_SIZE_CONFIG[size]
 
   // Use shared hooks for tooltip management
@@ -95,46 +93,31 @@ export const ActiveSubscribersChart = ({
   }, [subscriberData, firstPayloadValue])
 
   return (
-    <div className="w-full h-full">
-      <ChartHeader
-        title="Active subscribers"
-        infoTooltip="The number of customers with active paid subscriptions at each point in time."
-        showInlineSelector={false}
-        compact={compact}
+    <ChartLayout
+      title="Active subscribers"
+      infoTooltip="The number of customers with active paid subscriptions at each point in time."
+      value={formattedSubscriberValue}
+      isLoading={isLoading}
+      size={size}
+    >
+      <LineChart
+        {...DASHBOARD_LINE_CHART_DEFAULTS}
+        data={chartData}
+        index="date"
+        categories={['subscribers']}
+        className={cn('-mb-2 mt-2', config.height)}
+        showGridLines={config.showGridLines}
+        maxValue={maxValue}
+        intervalUnit={interval}
+        customTooltip={(props) => (
+          <ChartDataTooltip
+            {...props}
+            valueFormatter={(value) => value.toLocaleString()}
+          />
+        )}
+        valueFormatter={(value: number) => value.toString()}
+        tooltipCallback={tooltipCallback}
       />
-
-      <ChartValueDisplay
-        value={formattedSubscriberValue}
-        isLoading={isLoading}
-        compact={compact}
-      />
-
-      <ChartBody isLoading={isLoading} compact={compact}>
-        <LineChart
-          data={chartData}
-          index="date"
-          categories={['subscribers']}
-          className={cn('-mb-2 mt-2', config.height)}
-          colors={['foreground']}
-          fill="gradient"
-          customTooltip={(props) => (
-            <ChartDataTooltip
-              {...props}
-              valueFormatter={(value) => value.toLocaleString()}
-            />
-          )}
-          maxValue={maxValue}
-          autoMinValue={false}
-          minValue={0}
-          startEndOnly={true}
-          startEndOnlyYAxis={true}
-          showYAxis={false}
-          showGridLines={config.showGridLines}
-          intervalUnit={interval}
-          valueFormatter={(value: number) => value.toString()}
-          tooltipCallback={tooltipCallback}
-        />
-      </ChartBody>
-    </div>
+    </ChartLayout>
   )
 }

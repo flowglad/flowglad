@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
 import { getIntervalSelectOptions } from '@/utils/chartIntervalUtils'
 import { CHART_CONSTANTS, CHART_SIZE_CONFIG } from './constants'
+import type { ChartSize } from './types'
 
 interface ChartHeaderProps {
   /** Chart title displayed in header */
@@ -29,8 +30,8 @@ interface ChartHeaderProps {
   fromDate?: Date
   /** Date range end for computing interval options */
   toDate?: Date
-  /** Compact mode for secondary charts - smaller text, reduced padding */
-  compact?: boolean
+  /** Chart size variant - 'lg' for primary, 'sm' for secondary */
+  size?: ChartSize
 }
 
 /**
@@ -45,7 +46,7 @@ interface ChartHeaderProps {
  *   onIntervalChange={handleIntervalChange}
  *   fromDate={fromDate}
  *   toDate={toDate}
- *   compact={false}
+ *   size="lg"
  * />
  */
 export function ChartHeader({
@@ -56,9 +57,9 @@ export function ChartHeader({
   onIntervalChange,
   fromDate,
   toDate,
-  compact = false,
+  size = 'lg',
 }: ChartHeaderProps) {
-  const config = CHART_SIZE_CONFIG[compact ? 'sm' : 'lg']
+  const config = CHART_SIZE_CONFIG[size]
 
   const intervalOptions = React.useMemo(() => {
     if (!fromDate || !toDate) return []

@@ -3,28 +3,29 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { CHART_CONSTANTS, CHART_SIZE_CONFIG } from './constants'
+import type { ChartSize } from './types'
 
 interface ChartValueDisplayProps {
   /** Formatted value to display (e.g., "$1,234.56" or "42") */
   value: string
   /** Whether data is loading */
   isLoading: boolean
-  /** Compact mode for secondary charts - smaller text */
-  compact?: boolean
+  /** Chart size variant - 'lg' for primary, 'sm' for secondary */
+  size?: ChartSize
 }
 
 /**
  * Shared chart value display component with loading skeleton.
  *
  * @example
- * <ChartValueDisplay value="$1,234.56" isLoading={isLoading} compact={false} />
+ * <ChartValueDisplay value="$1,234.56" isLoading={isLoading} size="lg" />
  */
 export function ChartValueDisplay({
   value,
   isLoading,
-  compact = false,
+  size = 'lg',
 }: ChartValueDisplayProps) {
-  const config = CHART_SIZE_CONFIG[compact ? 'sm' : 'lg']
+  const config = CHART_SIZE_CONFIG[size]
 
   return (
     <div className={cn('mt-1', config.padding)}>

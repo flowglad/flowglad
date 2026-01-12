@@ -3,14 +3,15 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { CHART_SIZE_CONFIG } from './constants'
+import type { ChartSize } from './types'
 
 interface ChartBodyProps {
   /** Whether data is loading */
   isLoading: boolean
   /** Chart content (usually a LineChart or AreaChart) */
   children: React.ReactNode
-  /** Compact mode for secondary charts - shorter skeleton */
-  compact?: boolean
+  /** Chart size variant - 'lg' for primary, 'sm' for secondary */
+  size?: ChartSize
 }
 
 /**
@@ -18,16 +19,16 @@ interface ChartBodyProps {
  * Renders a skeleton during loading, chart content otherwise.
  *
  * @example
- * <ChartBody isLoading={isLoading} compact={false}>
+ * <ChartBody isLoading={isLoading} size="lg">
  *   <LineChart {...chartProps} />
  * </ChartBody>
  */
 export function ChartBody({
   isLoading,
   children,
-  compact = false,
+  size = 'lg',
 }: ChartBodyProps) {
-  const config = CHART_SIZE_CONFIG[compact ? 'sm' : 'lg']
+  const config = CHART_SIZE_CONFIG[size]
 
   if (isLoading) {
     return (
