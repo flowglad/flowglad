@@ -8,6 +8,7 @@ import {
 import {
   membershipsClientSelectSchema,
   membershipsTableRowDataSchema,
+  notificationPreferencesSchema,
 } from '@/db/schema/memberships'
 import {
   createOrganizationSchema,
@@ -16,8 +17,10 @@ import {
 } from '@/db/schema/organizations'
 import { getRevenueDataInputSchema } from '@/db/schema/payments'
 import {
+  getMembershipNotificationPreferences,
   selectFocusedMembershipAndOrganization,
   selectMembershipAndOrganizationsByBetterAuthUserId,
+  selectMemberships,
   selectMembershipsAndOrganizationsByMembershipWhere,
   selectMembershipsAndUsersByMembershipWhere,
   selectMembershipsTableRowData,
@@ -440,6 +443,75 @@ const getMembersTableRowData = protectedProcedure
     })
   })
 
+const getNotificationPreferences = protectedProcedure
+  .output(notificationPreferencesSchema)
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ transaction, userId, ctx }) => {
+        if (!ctx.organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'organizationId is required',
+          })
+        }
+        const [membership] = await selectMemberships(
+          { userId, organizationId: ctx.organizationId },
+          transaction
+        )
+        if (!membership) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Membership not found',
+          })
+        }
+        return getMembershipNotificationPreferences(membership)
+      }
+    )
+  )
+
+const updateNotificationPreferencesInputSchema = z.object({
+  preferences: notificationPreferencesSchema.partial(),
+})
+
+const updateNotificationPreferences = protectedProcedure
+  .input(updateNotificationPreferencesInputSchema)
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction, userId, ctx }) => {
+        if (!ctx.organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'organizationId is required',
+          })
+        }
+        const [membership] = await selectMemberships(
+          { userId, organizationId: ctx.organizationId },
+          transaction
+        )
+        if (!membership) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Membership not found',
+          })
+        }
+        const currentPrefs =
+          (membership.notificationPreferences as Record<
+            string,
+            boolean
+          >) ?? {}
+        const updatedPrefs = { ...currentPrefs, ...input.preferences }
+        await updateMembership(
+          {
+            id: membership.id,
+            notificationPreferences: updatedPrefs,
+          },
+          transaction
+        )
+        return { preferences: updatedPrefs }
+      }
+    )
+  )
+
 export const organizationsRouter = router({
   create: createOrganization,
   update: updateOrganization,
@@ -462,4 +534,7 @@ export const organizationsRouter = router({
   getActiveSubscribers: getActiveSubscribers,
   getSubscriberBreakdown: getSubscriberBreakdown,
   getCurrentSubscribers: getCurrentSubscribers,
+  // Notification preferences
+  getNotificationPreferences: getNotificationPreferences,
+  updateNotificationPreferences: updateNotificationPreferences,
 })
