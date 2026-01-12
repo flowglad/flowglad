@@ -105,16 +105,16 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           SubscriptionStatus.Active
         )
         expect(
-          result.subscription.currentBillingPeriodStart
-        ).toBeDefined()
+          typeof result.subscription.currentBillingPeriodStart
+        ).toBe('number')
         expect(
-          result.subscription.currentBillingPeriodEnd
-        ).toBeDefined()
+          typeof result.subscription.currentBillingPeriodEnd
+        ).toBe('number')
         expect(result.subscription.interval).toBe(IntervalUnit.Month)
         expect(result.subscription.intervalCount).toBe(1)
         expect(
-          result.subscription.billingCycleAnchorDate
-        ).toBeDefined()
+          typeof result.subscription.billingCycleAnchorDate
+        ).toBe('number')
       })
 
       it('should create billing period for renewing subscriptions', async () => {
@@ -142,7 +142,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         )
 
         // Verify billing period was created
-        expect(result.billingPeriod).toBeDefined()
+        expect(result.billingPeriod).toMatchObject({})
         expect(result.billingPeriod!.startDate).toBe(
           result.subscription.currentBillingPeriodStart!
         )
@@ -179,11 +179,11 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         )
 
         // Verify billing run was created
-        expect(result.billingRun).toBeDefined()
+        expect(result.billingRun).toMatchObject({})
         expect(result.billingRun!.status).toBe(
           BillingRunStatus.Scheduled
         )
-        expect(result.billingRun!.scheduledFor).toBeDefined()
+        expect(result.billingRun!.scheduledFor).toMatchObject({})
       })
 
       it('should create trial subscription with renews: true when trialEnd is provided', async () => {
@@ -221,7 +221,9 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           SubscriptionStatus.Trialing
         )
         expect(result.subscription.trialEnd).toBe(trialEnd.getTime())
-        expect(result.billingPeriod).toBeDefined()
+        expect(result.billingPeriod).toMatchObject({
+          trialPeriod: true,
+        })
         expect(result.billingPeriod!.trialPeriod).toBe(true)
       })
     })
@@ -466,7 +468,11 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           expect(billingRuns[0].status).toBe(
             BillingRunStatus.Scheduled
           )
-          expect(billingRuns[0].scheduledFor).toBeDefined()
+          expect(typeof billingRuns[0].scheduledFor).toBe('number')
+          // scheduledFor should be at or after the end date of the expired period
+          expect(billingRuns[0].scheduledFor).toBeGreaterThanOrEqual(
+            endDate
+          )
         })
       })
 
@@ -565,7 +571,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         expect(result.subscription.status).toBe(
           SubscriptionStatus.Canceled
         )
-        expect(result.subscription.canceledAt).toBeDefined()
+        expect(result.subscription.canceledAt).toMatchObject({})
 
         // Verify no new billing period was created
         await adminTransaction(async ({ transaction }) => {
@@ -1016,7 +1022,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         )
 
         // Verify billing run was created
-        expect(result.billingRun).toBeDefined()
+        expect(result.billingRun).toMatchObject({})
         expect(result.billingRun!.status).toBe(
           BillingRunStatus.Scheduled
         )

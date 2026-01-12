@@ -1510,7 +1510,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1548,7 +1548,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1597,7 +1597,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1637,14 +1637,81 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
       })
 
-      // Note: Test for "customer with NULL pricing model" was removed because
-      // pricingModelId is now a required field on customers (NOT NULL constraint).
+      it('should prevent checkout when customer has NULL pricing model', async () => {
+        // Create a customer with NULL pricing model
+        const nullPricingModelCustomer = await setupCustomer({
+          organizationId: org1.id,
+          email: `null_pm_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+
+        const nullPricingModelUser = await adminTransaction(
+          async ({ transaction }) => {
+            const user = await insertUser(
+              {
+                id: `usr_${core.nanoid()}`,
+                email: nullPricingModelCustomer.email,
+                name: 'Null PM Customer',
+                betterAuthId: `bau_${core.nanoid()}`,
+              },
+              transaction
+            )
+
+            await updateCustomer(
+              {
+                id: nullPricingModelCustomer.id,
+                userId: user.id,
+                pricingModelId: null, // Explicitly set to null
+              },
+              transaction
+            )
+
+            return user
+          }
+        )
+
+        let error: Error | null = null
+
+        try {
+          await authenticatedCustomerTransaction(
+            nullPricingModelCustomer,
+            nullPricingModelUser,
+            org1,
+            async ({ transaction }) => {
+              // Customer with null pricing model shouldn't be able to checkout any price
+              await insertCheckoutSession(
+                {
+                  organizationId: org1.id,
+                  customerId: nullPricingModelCustomer.id,
+                  priceId: priceInModelA.id,
+                  type: CheckoutSessionType.Product,
+                  status: CheckoutSessionStatus.Open,
+                  quantity: 1,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
+                },
+                transaction
+              )
+            }
+          )
+        } catch (err: any) {
+          error = err
+        }
+
+        expect(error).toBeInstanceOf(Error)
+        expect(error?.message).toMatch(
+          /Failed to insert|violates row-level security|permission denied|No prices found with id/i
+        )
+      })
 
       it('should prevent checkout with price from different organization', async () => {
         let error: Error | null = null
@@ -1678,7 +1745,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1743,7 +1810,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1780,7 +1847,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1843,7 +1910,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -2011,7 +2078,7 @@ describe('Customer Role RLS Policies', () => {
       }
 
       // Customer creation should have failed (RLS prevents inserts for customer role)
-      expect(newCustomerError).toBeTruthy()
+      expect(typeof newCustomerError).toBe('string')
       expect(newCustomerError).toMatch(
         /Failed to insert|row-level security|violates/
       )
@@ -2091,7 +2158,6 @@ describe('Customer Role RLS Policies', () => {
         }
       )
 
-      expect(result).toBeDefined()
       expect(result.id).toBe(defaultPricingModel.id)
       expect(result.isDefault).toBe(true)
     })

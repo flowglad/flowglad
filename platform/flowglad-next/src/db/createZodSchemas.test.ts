@@ -71,9 +71,9 @@ describe('createZodSchemas/buildSchemas - server schemas', () => {
       (update as any).shape ?? (update as any)._def.shape()
 
     // eventAt: required on select/insert; optional on update
-    expect(selectShape.eventAt).toBeDefined()
-    expect(insertShape.eventAt).toBeDefined()
-    expect(updateShape.eventAt).toBeDefined()
+    expect(selectShape.eventAt).toHaveProperty('parse')
+    expect(insertShape.eventAt).toHaveProperty('parse')
+    expect(updateShape.eventAt).toHaveProperty('parse')
 
     // Parse acceptance for epoch/date/string
     const date = new Date('2020-01-01T00:00:00.000Z')
@@ -86,7 +86,7 @@ describe('createZodSchemas/buildSchemas - server schemas', () => {
     )
 
     // optionalHappenedAt: nullable/optional on select/insert; optional on update
-    expect(selectShape.optionalHappenedAt).toBeDefined()
+    expect(selectShape.optionalHappenedAt).toHaveProperty('safeParse')
     // select accepts undefined and null
     expect(
       selectShape.optionalHappenedAt.safeParse(undefined).success

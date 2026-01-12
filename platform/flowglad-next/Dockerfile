@@ -35,6 +35,7 @@ COPY platform/flowglad-next/package.json platform/flowglad-next/bun.lock platfor
 
 # Copy Biome config files from root (needed for bun run check)
 COPY biome.json .biomeignore ./
+COPY plugins/ ./plugins/
 
 # Prepare a minimal env file so prebuild step using dotenvx doesn't fail
 RUN touch .env.local

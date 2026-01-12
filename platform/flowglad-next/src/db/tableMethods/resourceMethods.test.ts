@@ -39,7 +39,6 @@ describe('resourceMethods', () => {
     pricingModelId: params?.pricingModelId ?? pricingModel.id,
     slug: params?.slug ?? 'seats',
     name: params?.name ?? 'Seats',
-    description: 'User seats for the application',
     livemode: true,
     active: true,
   })
@@ -55,9 +54,6 @@ describe('resourceMethods', () => {
         expect(inserted.id).toMatch(/^resource_/)
         expect(inserted.slug).toBe('seats')
         expect(inserted.name).toBe('Seats')
-        expect(inserted.description).toBe(
-          'User seats for the application'
-        )
         expect(inserted.organizationId).toBe(organization.id)
         expect(inserted.pricingModelId).toBe(pricingModel.id)
         expect(inserted.active).toBe(true)
@@ -389,7 +385,6 @@ describe('resourceMethods', () => {
           (item) => item.resource.id === resource2.id
         )
 
-        expect(foundResource1).not.toBeUndefined()
         expect(foundResource1!.resource.slug).toBe(
           'table-row-resource-1'
         )
@@ -398,7 +393,6 @@ describe('resourceMethods', () => {
           pricingModel.name
         )
 
-        expect(foundResource2).not.toBeUndefined()
         expect(foundResource2!.resource.slug).toBe(
           'table-row-resource-2'
         )
@@ -442,7 +436,6 @@ describe('resourceMethods', () => {
         const matchingItem = result.items.find(
           (item) => item.resource.name === 'Searchable Seats Resource'
         )
-        expect(matchingItem).not.toBeUndefined()
         expect(matchingItem!.resource.slug).toBe('searchable-seats')
       })
     })

@@ -426,7 +426,7 @@ describe('subscriptionItemHelpers', () => {
           const expiredItem = allItems.find(
             (item) => item.id === subscriptionItem.id
           )
-          expect(expiredItem).toBeDefined()
+          expect(expiredItem).toMatchObject({ expiredAt: now })
           expect(expiredItem!.expiredAt).toBe(now)
 
           // Check that new item was created
@@ -580,7 +580,9 @@ describe('subscriptionItemHelpers', () => {
           const stillActiveManualItem = activeItems.find(
             (item) => item.id === manualItem.id
           )
-          expect(stillActiveManualItem).toBeDefined()
+          expect(stillActiveManualItem).toMatchObject({
+            manuallyCreated: true,
+          })
           expect(stillActiveManualItem!.manuallyCreated).toBe(true)
           expect(stillActiveManualItem!.expiredAt).toBeNull()
         })
@@ -618,7 +620,7 @@ describe('subscriptionItemHelpers', () => {
           const expiredItem = allItems.find(
             (item) => item.id === subscriptionItem.id
           )
-          expect(expiredItem).toBeDefined()
+          expect(expiredItem).toMatchObject({ expiredAt: now })
           expect(expiredItem!.expiredAt).toBe(now)
           expect(expiredItem!.id).toBe(subscriptionItem.id)
 
@@ -777,7 +779,9 @@ describe('subscriptionItemHelpers', () => {
           const planItem = activeItems.find(
             (item) => item.priceId === price.id
           )
-          expect(planItem).not.toBeNull()
+          expect(planItem).toMatchObject({
+            name: 'Plan Item With Feature',
+          })
           expect(planItem!.name).toBe('Plan Item With Feature')
           expect(planItem!.quantity).toBe(1)
 
@@ -803,7 +807,9 @@ describe('subscriptionItemHelpers', () => {
           const expiredManualFeature = allManualFeatures.find(
             (f) => f.id === manualFeature.id
           )
-          expect(expiredManualFeature).not.toBeNull()
+          expect(expiredManualFeature).toMatchObject({
+            expiredAt: now,
+          })
           expect(expiredManualFeature!.expiredAt).toBe(now)
           expect(expiredManualFeature!.featureId).toBe(feature.id)
 
@@ -971,7 +977,7 @@ describe('subscriptionItemHelpers', () => {
           const usageCreditFeature = result.createdFeatures.find(
             (f) => f.type === FeatureType.UsageCreditGrant
           )
-          expect(usageCreditFeature).toBeDefined()
+          expect(usageCreditFeature).toMatchObject({})
 
           // Verify original item was expired (no id passed = new item, old expired)
           const itemsAfter =
@@ -1143,7 +1149,7 @@ describe('subscriptionItemHelpers', () => {
               f.featureId === onceFeature.id &&
               f.renewalFrequency === FeatureUsageGrantFrequency.Once
           )
-          expect(onceFeatureCreated).toBeDefined()
+          expect(typeof onceFeatureCreated).toBe('object')
 
           // Check for credits from the Once feature
           const onceCredits = await selectUsageCredits(
@@ -1315,7 +1321,7 @@ describe('subscriptionItemHelpers', () => {
           const expiredItem = allItems.find(
             (item) => item.id === subscriptionItem.id
           )
-          expect(expiredItem).toBeDefined()
+          expect(expiredItem).toMatchObject({ expiredAt: now })
           expect(expiredItem!.expiredAt).toBe(now)
         })
       })
@@ -1427,7 +1433,7 @@ describe('subscriptionItemHelpers', () => {
           const preservedItem = activeItems.find(
             (item) => item.id === item2.id
           )
-          expect(preservedItem).toBeDefined()
+          expect(typeof preservedItem).toBe('object')
 
           // item1 and item3 should be expired (their ids were not in newSubscriptionItems)
           const allItems = await selectSubscriptionItems(
@@ -1671,7 +1677,8 @@ describe('subscriptionItemHelpers', () => {
               result2.createdFeatures.find(
                 (f) => f.featureId === feature.id
               )?.id
-            expect(secondSubItemFeatureId).toBeDefined()
+            expect(typeof secondSubItemFeatureId).toBe('string')
+            expect(secondSubItemFeatureId!.length).toBeGreaterThan(0)
             expect(secondSubItemFeatureId).not.toBe(
               firstSubItemFeatureId
             )
@@ -1822,7 +1829,8 @@ describe('subscriptionItemHelpers', () => {
               originalCredit.sourceReferenceId
 
             // Verify the original credit is linked to a subscription_item_feature
-            expect(originalSourceRefId).toBeDefined()
+            expect(typeof originalSourceRefId).toBe('string')
+            expect(originalSourceRefId!.length).toBeGreaterThan(0)
 
             // Second adjustment creates sub_feature_BBB (different ID)
             const secondAdjustmentItems: SubscriptionItem.Insert[] = [
@@ -1852,7 +1860,7 @@ describe('subscriptionItemHelpers', () => {
             const newFeature = result2.createdFeatures.find(
               (f) => f.featureId === feature.id
             )
-            expect(newFeature).toBeDefined()
+            expect(typeof newFeature).toBe('object')
             expect(newFeature!.id).not.toBe(originalSourceRefId)
 
             // Verify the only credit still references the original subscription_item_feature
@@ -2716,6 +2724,144 @@ describe('subscriptionItemHelpers', () => {
             )
             expect(allCredits.length).toBe(1)
             expect(allCredits[0].issuedAmount).toBe(50) // Original amount unchanged
+          })
+        })
+
+        it('calculates delta correctly when multiple features share the same usageMeterId (no double-subtraction)', async () => {
+          // This test verifies the fix for the bug where existing credits were subtracted
+          // from each feature individually when multiple features share the same meter,
+          // causing UNDER-granting of credits.
+          //
+          // Bug scenario (BEFORE fix) - double subtraction caused under-granting:
+          // - Feature A prorates to 50 credits for meter M, Feature B prorates to 100 for meter M
+          // - Existing credits for meter M: 50
+          // - Feature A delta: 50 - 50 = 0 (filtered out)
+          // - Feature B delta: 100 - 50 = 50
+          // - Total granted: 50 (WRONG - should be 100, under-granted by 50!)
+          //
+          // Correct behavior (AFTER fix):
+          // - Total new prorated for meter M: 50 + 100 = 150
+          // - Delta for meter M: 150 - 50 = 100
+          // - Total granted: 100 (correct - existing credits subtracted once per meter)
+          //
+          // Note: When multiple features share a usageMeterId, the allocation logic may
+          // produce 1 or 2 ManualAdjustment credits depending on feature iteration order.
+          // The assertions below validate totals rather than exact credit count.
+
+          // Create a second feature that uses the SAME usage meter
+          const feature2 = await setupUsageCreditGrantFeature({
+            organizationId: orgData.organization.id,
+            name: 'Second Feature Same Meter',
+            usageMeterId: usageMeter.id, // Same meter as the first feature
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+            livemode: true,
+            amount: 200, // First feature has 100, this one has 200
+            pricingModelId: orgData.pricingModel.id,
+          })
+
+          // Link second feature to the same product
+          await setupProductFeature({
+            organizationId: orgData.organization.id,
+            productId: product.id,
+            featureId: feature2.id,
+          })
+
+          // Setup existing credits from BillingPeriodTransition (50 credits)
+          const existingCreditAmount = 50
+          await setupUsageCredit({
+            organizationId: orgData.organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            billingPeriodId: billingPeriod.id,
+            issuedAmount: existingCreditAmount,
+            creditType: UsageCreditType.Grant,
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.BillingPeriodTransition,
+            status: UsageCreditStatus.Posted,
+          })
+
+          await adminTransaction(async ({ transaction }) => {
+            const midPeriodDate =
+              billingPeriodStartDate + 15 * oneDayInMs // 50% through
+
+            // Feature 1: 100 credits * 0.5 = 50 prorated
+            // Feature 2: 200 credits * 0.5 = 100 prorated
+            // Total new prorated for meter: 50 + 100 = 150
+            // Existing credits: 50
+            // Correct delta: 150 - 50 = 100 credits total
+            //
+            // BUG would have calculated:
+            // Feature 1: 50 - 50 = 0 (filtered out)
+            // Feature 2: 100 - 50 = 50
+            // Total: 50 (wrong!)
+
+            const result = await handleSubscriptionItemAdjustment({
+              subscriptionId: subscription.id,
+              newSubscriptionItems: [
+                {
+                  subscriptionId: subscription.id,
+                  name: 'Adjustment With Both Features',
+                  quantity: 1,
+                  unitPrice: price.unitPrice,
+                  priceId: price.id,
+                  livemode: true,
+                  addedDate: midPeriodDate,
+                  type: SubscriptionItemType.Static,
+                },
+              ],
+              adjustmentDate: midPeriodDate,
+              transaction,
+            })
+
+            // Should create 2 features (one for each feature definition)
+            const usageCreditGrantFeatures =
+              result.createdFeatures.filter(
+                (f) => f.type === FeatureType.UsageCreditGrant
+              )
+            expect(usageCreditGrantFeatures.length).toBe(2)
+
+            // Total delta of 100 credits is distributed across features.
+            // Depending on iteration order, this may result in 1 or 2 ManualAdjustment credits.
+            // We validate the total granted amount rather than the exact credit count.
+            const totalGrantedCredits = result.usageCredits.reduce(
+              (sum, c) => sum + c.issuedAmount,
+              0
+            )
+            expect(totalGrantedCredits).toBe(100) // Correct delta
+
+            // Verify the total credits in the database
+            const allCredits = await selectUsageCredits(
+              {
+                subscriptionId: subscription.id,
+                billingPeriodId: billingPeriod.id,
+                usageMeterId: usageMeter.id,
+              },
+              transaction
+            )
+
+            // Should have 2-3 credits total: 1 BillingPeriodTransition + 1 or 2 ManualAdjustment
+            // (allocation may produce 1 or 2 ManualAdjustment credits depending on iteration order)
+            const totalCreditAmount = allCredits.reduce(
+              (sum, c) => sum + c.issuedAmount,
+              0
+            )
+            // Total should be: 50 (existing) + 100 (delta) = 150 (the prorated amount)
+            expect(totalCreditAmount).toBe(150)
+
+            // Verify we granted the correct delta (the bug would have under-granted,
+            // granting only 50 instead of 100 due to double-subtraction of existing credits)
+            const manualAdjustmentCredits = allCredits.filter(
+              (c) =>
+                c.sourceReferenceType ===
+                UsageCreditSourceReferenceType.ManualAdjustment
+            )
+            const manualAdjustmentTotal =
+              manualAdjustmentCredits.reduce(
+                (sum, c) => sum + c.issuedAmount,
+                0
+              )
+            expect(manualAdjustmentTotal).toBe(100) // Exactly the delta amount
           })
         })
       })

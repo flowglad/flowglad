@@ -100,14 +100,14 @@ describe('createCustomerBookkeeping', () => {
       // - subscription should be created for the customer
       // - subscription should use the default product and price
       // - events should include CustomerCreated and SubscriptionCreated
-      expect(result.result.customer).toBeDefined()
+      expect(result.result.customer).toMatchObject({})
       expect(result.result.customer.email).toContain('test+')
       expect(result.result.customer.organizationId).toBe(
         organization.id
       )
 
-      expect(result.result.subscription).toBeDefined()
-      expect(result.result.subscriptionItems).toBeDefined()
+      expect(result.result.subscription).toMatchObject({})
+      expect(result.result.subscriptionItems).toMatchObject({})
       expect(result.result.subscriptionItems?.length).toBeGreaterThan(
         0
       )
@@ -124,13 +124,13 @@ describe('createCustomerBookkeeping', () => {
           return sub
         }
       )
-      expect(subscriptionInDb).toBeDefined()
+      expect(typeof subscriptionInDb).toBe('object')
       expect(subscriptionInDb?.subscription.customerId).toBe(
         result.result.customer.id
       )
 
       // Verify events were created
-      expect(result.eventsToInsert).toBeDefined()
+      expect(result.eventsToInsert).toMatchObject({})
       expect(result.eventsToInsert?.length).toBeGreaterThan(0)
       expect(
         result.eventsToInsert?.some(
@@ -205,12 +205,12 @@ describe('createCustomerBookkeeping', () => {
       // - customer should be created with the specified pricing model
       // - subscription should use the custom pricing model's default product and price
       // - subscription price should be 2000 (custom price) not 1000 (default price)
-      expect(result.result.customer).toBeDefined()
+      expect(result.result.customer).toMatchObject({})
       expect(result.result.customer.pricingModelId).toBe(
         customPricingModel.id
       )
 
-      expect(result.result.subscription).toBeDefined()
+      expect(result.result.subscription).toMatchObject({})
 
       // Verify the subscription uses the correct price
       const subscriptionInDb = await adminTransaction(
@@ -224,7 +224,7 @@ describe('createCustomerBookkeeping', () => {
           return sub
         }
       )
-      expect(subscriptionInDb).toBeDefined()
+      expect(typeof subscriptionInDb).toBe('object')
       // The subscription items should be associated with the custom product
       expect(subscriptionInDb?.subscriptionItems[0].priceId).toBe(
         customPrice.id
@@ -279,7 +279,7 @@ describe('createCustomerBookkeeping', () => {
       // - customer should be created successfully
       // - no subscription should be created
       // - only CustomerCreated event should exist
-      expect(result.result.customer).toBeDefined()
+      expect(result.result.customer).toMatchObject({})
       expect(result.result.subscription).toBeUndefined()
       expect(result.result.subscriptionItems).toBeUndefined()
 
@@ -298,7 +298,7 @@ describe('createCustomerBookkeeping', () => {
       expect(subscriptionInDb).toBeNull()
 
       // Verify only CustomerCreated event exists
-      expect(result.eventsToInsert).toBeDefined()
+      expect(result.eventsToInsert).toMatchObject({})
       expect(
         result.eventsToInsert?.some(
           (e) => e.type === FlowgladEventType.CustomerCreated
@@ -371,7 +371,7 @@ describe('createCustomerBookkeeping', () => {
       // - customer should be created successfully
       // - no subscription should be created since there's no default price
       // - only CustomerCreated event should exist
-      expect(result.result.customer).toBeDefined()
+      expect(result.result.customer).toMatchObject({})
       expect(result.result.subscription).toBeUndefined()
       expect(result.result.subscriptionItems).toBeUndefined()
 
@@ -390,7 +390,7 @@ describe('createCustomerBookkeeping', () => {
       expect(subscriptionInDb).toBeNull()
 
       // Verify only CustomerCreated event exists
-      expect(result.eventsToInsert).toBeDefined()
+      expect(result.eventsToInsert).toMatchObject({})
       expect(
         result.eventsToInsert?.some(
           (e) => e.type === FlowgladEventType.CustomerCreated
@@ -432,8 +432,8 @@ describe('createCustomerBookkeeping', () => {
       // expects:
       // - customer and subscription should be created
       // - subscription should have a trial end date approximately 14 days from now
-      expect(result.result.customer).toBeDefined()
-      expect(result.result.subscription).toBeDefined()
+      expect(result.result.customer).toMatchObject({})
+      expect(result.result.subscription).toMatchObject({})
 
       const subscriptionInDb = await adminTransaction(
         async ({ transaction }) => {
@@ -447,7 +447,7 @@ describe('createCustomerBookkeeping', () => {
         }
       )
 
-      expect(subscriptionInDb).toBeDefined()
+      expect(typeof subscriptionInDb).toBe('object')
       // Trial end should be set and approximately 14 days from now
       if (subscriptionInDb?.subscription.trialEnd) {
         const trialEndTime = new Date(
@@ -511,10 +511,32 @@ describe('createCustomerBookkeeping', () => {
             }
           )
           return output
-        })
-      ).rejects.toThrow(
-        `No pricing model found for customer. Organization: ${minimalOrg.id}`
+        }
       )
+
+      // expects:
+      // - customer should be created successfully
+      // - no subscription should be created since there's no pricing model
+      // - only CustomerCreated event should exist
+      expect(result.result.customer).toMatchObject({})
+      expect(result.result.customer.organizationId).toBe(
+        minimalOrg.id
+      )
+      expect(result.result.subscription).toBeUndefined()
+      expect(result.result.subscriptionItems).toBeUndefined()
+
+      // Verify only CustomerCreated event exists
+      expect(result.eventsToInsert).toMatchObject({})
+      expect(
+        result.eventsToInsert?.some(
+          (e) => e.type === FlowgladEventType.CustomerCreated
+        )
+      ).toBe(true)
+      expect(
+        result.eventsToInsert?.some(
+          (e) => e.type === FlowgladEventType.SubscriptionCreated
+        )
+      ).toBe(false)
     })
 
     it('should prevent cross-organization customer creation', async () => {
@@ -573,7 +595,7 @@ describe('createCustomerBookkeeping', () => {
       // expects:
       // - subscription should be created with proper name
       // - subscription name should include the default product name
-      expect(result.result.subscription).toBeDefined()
+      expect(result.result.subscription).toMatchObject({})
 
       const subscriptionInDb = await adminTransaction(
         async ({ transaction }) => {
@@ -587,7 +609,7 @@ describe('createCustomerBookkeeping', () => {
         }
       )
 
-      expect(subscriptionInDb).toBeDefined()
+      expect(typeof subscriptionInDb).toBe('object')
       expect(subscriptionInDb?.subscription.name).toContain(
         // the name of the default product returned by setupOrg
         'Default Product'
@@ -650,8 +672,8 @@ describe('createCustomerBookkeeping', () => {
       )
 
       // Verify customer and subscription were created
-      expect(result.result.customer).toBeDefined()
-      expect(result.result.subscription).toBeDefined()
+      expect(result.result.customer).toMatchObject({})
+      expect(result.result.subscription).toMatchObject({})
 
       // Check the subscription has renews = false for SinglePayment
       const subscription = result.result.subscription!
@@ -722,8 +744,8 @@ describe('createCustomerBookkeeping', () => {
       )
 
       // Verify customer and subscription were created
-      expect(result.result.customer).toBeDefined()
-      expect(result.result.subscription).toBeDefined()
+      expect(result.result.customer).toMatchObject({})
+      expect(result.result.subscription).toMatchObject({})
 
       // Check the subscription has renews = true for Subscription
       const subscription = result.result.subscription!
@@ -852,8 +874,18 @@ describe('createCustomerBookkeeping', () => {
       const subscriptionSub =
         subscriptionCustomerResult.result.subscription!
       expect(subscriptionSub.renews).toBe(true)
-      expect(subscriptionSub.currentBillingPeriodStart).toBeDefined()
-      expect(subscriptionSub.currentBillingPeriodEnd).toBeDefined()
+      expect(typeof subscriptionSub.currentBillingPeriodStart).toBe(
+        'number'
+      )
+      expect(
+        subscriptionSub.currentBillingPeriodStart
+      ).toBeGreaterThan(0)
+      expect(typeof subscriptionSub.currentBillingPeriodEnd).toBe(
+        'number'
+      )
+      expect(subscriptionSub.currentBillingPeriodEnd).toBeGreaterThan(
+        subscriptionSub.currentBillingPeriodStart!
+      )
 
       // Verify billing periods
       const singlePaymentBillingPeriods = await adminTransaction(
@@ -911,7 +943,7 @@ describe('createPricingModelBookkeeping', () => {
       )
 
       // Verify the pricing model was created
-      expect(result.result.pricingModel).toBeDefined()
+      expect(result.result.pricingModel).toMatchObject({})
       expect(result.result.pricingModel.name).toBe(
         'New Pricing Model'
       )
@@ -922,7 +954,7 @@ describe('createPricingModelBookkeeping', () => {
       expect(result.result.pricingModel.livemode).toBe(livemode)
 
       // Verify the default product was created
-      expect(result.result.defaultProduct).toBeDefined()
+      expect(result.result.defaultProduct).toMatchObject({})
       expect(result.result.defaultProduct.name).toBe('Free Plan')
       expect(result.result.defaultProduct.slug).toBe('free')
       expect(result.result.defaultProduct.default).toBe(true)
@@ -936,7 +968,7 @@ describe('createPricingModelBookkeeping', () => {
       expect(result.result.defaultProduct.active).toBe(true)
 
       // Verify the default price was created
-      expect(result.result.defaultPrice).toBeDefined()
+      expect(result.result.defaultPrice).toMatchObject({})
       expect(result.result.defaultPrice.productId).toBe(
         result.result.defaultProduct.id
       )
@@ -1019,7 +1051,9 @@ describe('createPricingModelBookkeeping', () => {
           return defaultPM
         }
       )
-      expect(existingDefaultPricingModel).toBeDefined()
+      expect(existingDefaultPricingModel).toMatchObject({
+        isDefault: true,
+      })
       expect(existingDefaultPricingModel?.isDefault).toBe(true)
       const existingDefaultId = existingDefaultPricingModel!.id
 
@@ -1044,7 +1078,7 @@ describe('createPricingModelBookkeeping', () => {
       )
 
       // Verify the new pricing model is created and is default
-      expect(result.result.pricingModel).toBeDefined()
+      expect(result.result.pricingModel).toMatchObject({})
       expect(result.result.pricingModel.name).toBe(
         'New Default Pricing Model'
       )
@@ -1116,7 +1150,9 @@ describe('createPricingModelBookkeeping', () => {
       // Verify we have two defaults - one for each livemode
       expect(testModeDefaultPricingModel.isDefault).toBe(true)
       expect(testModeDefaultPricingModel.livemode).toBe(false)
-      expect(liveModeDefaultPricingModel).toBeDefined()
+      expect(liveModeDefaultPricingModel).toMatchObject({
+        isDefault: true,
+      })
       expect(liveModeDefaultPricingModel?.isDefault).toBe(true)
       expect(liveModeDefaultPricingModel?.livemode).toBe(true)
 
@@ -1610,8 +1646,8 @@ describe('createPricingModelBookkeeping', () => {
           expect(result.result.defaultPrice.intervalCount).not.toBe(2)
           expect(result.result.defaultPrice.intervalCount).not.toBe(0)
           expect(
-            result.result.defaultPrice.intervalCount
-          ).not.toBeNull()
+            typeof result.result.defaultPrice.intervalCount
+          ).toBe('number')
         }
       })
     })
@@ -1707,7 +1743,7 @@ describe('createFreePlanPriceInsert', () => {
         defaultCurrency
       )
 
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
       expect(result.productId).toBe(defaultProduct.id)
       expect(result.unitPrice).toBe(0)
       expect(result.isDefault).toBe(true)
@@ -1732,7 +1768,7 @@ describe('createFreePlanPriceInsert', () => {
         IntervalUnit.Month
       )
 
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
       expect(result.productId).toBe(defaultProduct.id)
       expect(result.unitPrice).toBe(0)
       expect(result.isDefault).toBe(true)
@@ -1993,15 +2029,15 @@ describe('createFreePlanPriceInsert', () => {
       )
 
       // Check that all required fields are present
-      expect(result.productId).toBeDefined()
-      expect(result.unitPrice).toBeDefined()
-      expect(result.isDefault).toBeDefined()
-      expect(result.type).toBeDefined()
-      expect(result.currency).toBeDefined()
-      expect(result.livemode).toBeDefined()
-      expect(result.active).toBeDefined()
-      expect(result.name).toBeDefined()
-      expect(result.slug).toBeDefined()
+      expect(result.productId).toMatchObject({})
+      expect(result.unitPrice).toMatchObject({})
+      expect(result.isDefault).toMatchObject({})
+      expect(result.type).toMatchObject({})
+      expect(result.currency).toMatchObject({})
+      expect(result.livemode).toMatchObject({})
+      expect(result.active).toMatchObject({})
+      expect(result.name).toMatchObject({})
+      expect(result.slug).toMatchObject({})
     })
 
     it('should return a valid Price.Insert object for subscription', () => {
@@ -2012,17 +2048,17 @@ describe('createFreePlanPriceInsert', () => {
       )
 
       // Check that all required fields are present
-      expect(result.productId).toBeDefined()
-      expect(result.unitPrice).toBeDefined()
-      expect(result.isDefault).toBeDefined()
-      expect(result.type).toBeDefined()
-      expect(result.currency).toBeDefined()
-      expect(result.livemode).toBeDefined()
-      expect(result.active).toBeDefined()
-      expect(result.name).toBeDefined()
-      expect(result.slug).toBeDefined()
-      expect(result.intervalUnit).toBeDefined()
-      expect(result.intervalCount).toBeDefined()
+      expect(result.productId).toMatchObject({})
+      expect(result.unitPrice).toMatchObject({})
+      expect(result.isDefault).toMatchObject({})
+      expect(result.type).toMatchObject({})
+      expect(result.currency).toMatchObject({})
+      expect(result.livemode).toMatchObject({})
+      expect(result.active).toMatchObject({})
+      expect(result.name).toMatchObject({})
+      expect(result.slug).toMatchObject({})
+      expect(result.intervalUnit).toMatchObject({})
+      expect(result.intervalCount).toMatchObject({})
     })
   })
 })

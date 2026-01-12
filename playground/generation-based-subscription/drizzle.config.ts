@@ -1,5 +1,5 @@
-import { defineConfig } from 'drizzle-kit'
 import dotenv from 'dotenv'
+import { defineConfig } from 'drizzle-kit'
 
 // Prefer .env.local for local development (Next.js convention)
 dotenv.config({ path: '.env.local' })

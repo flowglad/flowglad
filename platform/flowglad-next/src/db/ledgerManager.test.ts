@@ -516,7 +516,9 @@ describe('Ledger Management System', async () => {
 
           const result = extractLedgerManagerIdempotencyKey(command)
 
-          expect(result).not.toBeNull()
+          expect(result).toMatchObject({
+            initiatingSourceId: usageEventId,
+          })
           expect(result?.initiatingSourceType).toBe(
             LedgerTransactionInitiatingSourceType.UsageEvent
           )
@@ -557,7 +559,9 @@ describe('Ledger Management System', async () => {
 
           const result = extractLedgerManagerIdempotencyKey(command)
 
-          expect(result).not.toBeNull()
+          expect(result).toMatchObject({
+            initiatingSourceId: billingPeriodId,
+          })
           expect(result?.initiatingSourceType).toBe(
             LedgerTransactionType.BillingPeriodTransition
           )
@@ -579,7 +583,9 @@ describe('Ledger Management System', async () => {
 
           const result = extractLedgerManagerIdempotencyKey(command)
 
-          expect(result).not.toBeNull()
+          expect(result).toMatchObject({
+            initiatingSourceId: subscription.id,
+          })
           expect(result?.initiatingSourceType).toBe(
             LedgerTransactionType.BillingPeriodTransition
           )
@@ -625,7 +631,9 @@ describe('Ledger Management System', async () => {
 
           const result = extractLedgerManagerIdempotencyKey(command)
 
-          expect(result).not.toBeNull()
+          expect(result).toMatchObject({
+            initiatingSourceId: usageCreditId,
+          })
           expect(result?.initiatingSourceType).toBe(
             LedgerTransactionType.CreditGrantRecognized
           )
@@ -705,7 +713,9 @@ describe('Ledger Management System', async () => {
 
           const result = extractLedgerManagerIdempotencyKey(command)
 
-          expect(result).not.toBeNull()
+          expect(result).toMatchObject({
+            initiatingSourceId: invoiceId,
+          })
           expect(result?.initiatingSourceType).toBe(
             LedgerTransactionInitiatingSourceType.InvoiceSettlement
           )
@@ -746,7 +756,9 @@ describe('Ledger Management System', async () => {
 
           const result = extractLedgerManagerIdempotencyKey(command)
 
-          expect(result).not.toBeNull()
+          expect(result).toMatchObject({
+            initiatingSourceId: adjustmentId,
+          })
           expect(result?.initiatingSourceType).toBe(
             LedgerTransactionType.AdminCreditAdjusted
           )
@@ -793,7 +805,7 @@ describe('Ledger Management System', async () => {
 
           const result = extractLedgerManagerIdempotencyKey(command)
 
-          expect(result).not.toBeNull()
+          expect(result).toMatchObject({})
           expect(result?.initiatingSourceType).toBe(
             LedgerTransactionType.CreditGrantExpired
           )
@@ -839,7 +851,9 @@ describe('Ledger Management System', async () => {
 
           const result = extractLedgerManagerIdempotencyKey(command)
 
-          expect(result).not.toBeNull()
+          expect(result).toMatchObject({
+            initiatingSourceId: refundId,
+          })
           expect(result?.initiatingSourceType).toBe(
             LedgerTransactionType.PaymentRefunded
           )
@@ -878,7 +892,6 @@ describe('Ledger Management System', async () => {
               transaction
             )
 
-            expect(firstResult.ledgerTransaction).toBeDefined()
             expect(firstResult.ledgerTransaction.type).toBe(
               LedgerTransactionType.UsageEventProcessed
             )
@@ -960,7 +973,6 @@ describe('Ledger Management System', async () => {
               transaction
             )
 
-            expect(firstResult.ledgerTransaction).toBeDefined()
             expect(firstResult.ledgerTransaction.type).toBe(
               LedgerTransactionType.BillingPeriodTransition
             )
@@ -1037,7 +1049,6 @@ describe('Ledger Management System', async () => {
               transaction
             )
 
-            expect(firstResult.ledgerTransaction).toBeDefined()
             expect(
               firstResult.ledgerTransaction.initiatingSourceId
             ).toBe(newBillingPeriod.id)
@@ -1073,7 +1084,6 @@ describe('Ledger Management System', async () => {
             )
 
             // Should create a new transaction (different billing period)
-            expect(secondResult.ledgerTransaction).toBeDefined()
             expect(
               secondResult.ledgerTransaction.initiatingSourceId
             ).toBe(secondBillingPeriod.id)

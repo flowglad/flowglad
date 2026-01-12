@@ -106,38 +106,95 @@ export type SubscriptionAdjustmentTiming =
   (typeof subscriptionAdjustmentTiming)[keyof typeof subscriptionAdjustmentTiming]
 
 /**
- * Options for the terse adjustSubscription SDK method.
- * The subscriptionId is optional - it auto-resolves if the customer has exactly 1 subscription.
+ * Terse subscription item for multi-item adjustments.
+ * Must provide exactly one of priceId or priceSlug.
  */
-export const adjustSubscriptionOptionsSchema = z.object({
+const terseSubscriptionItemWithPriceId = z.object({
+  priceId: z.string(),
+  priceSlug: z.never().optional(),
+  quantity: z.number().int().positive().optional().default(1),
+})
+
+const terseSubscriptionItemWithPriceSlug = z.object({
+  priceSlug: z.string(),
+  priceId: z.never().optional(),
+  quantity: z.number().int().positive().optional().default(1),
+})
+
+export const terseSubscriptionItemSchema = z.union([
+  terseSubscriptionItemWithPriceId,
+  terseSubscriptionItemWithPriceSlug,
+])
+
+export type TerseSubscriptionItem = z.input<
+  typeof terseSubscriptionItemSchema
+>
+
+/**
+ * Common options for all adjustment types.
+ */
+const adjustmentCommonOptions = {
   subscriptionId: z.string().optional(),
-  quantity: z.number().int().positive().optional(),
   timing: z
     .enum([
       subscriptionAdjustmentTiming.Immediately,
       subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
       subscriptionAdjustmentTiming.Auto,
     ])
-    .optional(),
+    .optional()
+    .default(subscriptionAdjustmentTiming.Auto),
   prorate: z.boolean().optional(),
-})
-
-export type AdjustSubscriptionOptions = z.infer<
-  typeof adjustSubscriptionOptionsSchema
->
+}
 
 /**
- * Schema for the terse adjustSubscription SDK method input.
- * The SDK method accepts (priceIdOrSlug, options?) where options.subscriptionId
- * is optional and auto-resolves if the customer has exactly 1 subscription.
+ * Adjust to a specific price by slug (simplest form).
  */
-export const adjustSubscriptionSchema = z.object({
-  priceIdOrSlug: z.string(),
-  options: adjustSubscriptionOptionsSchema.optional(),
+const adjustSubscriptionByPriceSlugSchema = z.object({
+  priceSlug: z.string(),
+  priceId: z.never().optional(),
+  subscriptionItems: z.never().optional(),
+  quantity: z.number().int().positive().optional().default(1),
+  ...adjustmentCommonOptions,
 })
 
-export type AdjustSubscriptionParams = z.infer<
-  typeof adjustSubscriptionSchema
+/**
+ * Adjust to a specific price by ID.
+ */
+const adjustSubscriptionByPriceIdSchema = z.object({
+  priceId: z.string(),
+  priceSlug: z.never().optional(),
+  subscriptionItems: z.never().optional(),
+  quantity: z.number().int().positive().optional().default(1),
+  ...adjustmentCommonOptions,
+})
+
+/**
+ * Complex adjustment with explicit subscription items.
+ */
+const adjustSubscriptionByItemsSchema = z.object({
+  subscriptionItems: z.array(terseSubscriptionItemSchema).min(1),
+  priceId: z.never().optional(),
+  priceSlug: z.never().optional(),
+  quantity: z.never().optional(),
+  ...adjustmentCommonOptions,
+})
+
+/**
+ * Schema for the adjustSubscription SDK method input.
+ *
+ * Three mutually exclusive forms:
+ * 1. { priceSlug, quantity?, ... } - Adjust to a price by slug
+ * 2. { priceId, quantity?, ... } - Adjust to a price by ID
+ * 3. { subscriptionItems, ... } - Complex multi-item adjustment
+ */
+export const adjustSubscriptionParamsSchema = z.union([
+  adjustSubscriptionByPriceSlugSchema,
+  adjustSubscriptionByPriceIdSchema,
+  adjustSubscriptionByItemsSchema,
+])
+
+export type AdjustSubscriptionParams = z.input<
+  typeof adjustSubscriptionParamsSchema
 >
 
 const baseUsageEventFields = z.object({
@@ -394,7 +451,7 @@ export const flowgladActionValidators = {
   },
   [FlowgladActionKey.AdjustSubscription]: {
     method: HTTPMethod.POST,
-    inputValidator: adjustSubscriptionSchema,
+    inputValidator: adjustSubscriptionParamsSchema,
   },
   [FlowgladActionKey.CreateSubscription]: {
     method: HTTPMethod.POST,

@@ -117,7 +117,7 @@ describe('cached combinator', () => {
         keyFn: (customerId: string) => customerId,
         schema: testSchema,
         dependenciesFn: (customerId: string) => [
-          CacheDependency.customer(customerId),
+          CacheDependency.customerSubscriptions(customerId),
         ],
       },
       wrappedFn
@@ -399,23 +399,23 @@ describe('dependency-based invalidation (Redis-backed)', () => {
 })
 
 describe('CacheDependency helpers', () => {
-  it('creates consistent customer dependency keys', () => {
-    const key = CacheDependency.customer('cust_123')
-    expect(key).toBe('customer:cust_123')
+  it('creates consistent customerSubscriptions dependency keys', () => {
+    const key = CacheDependency.customerSubscriptions('cust_123')
+    expect(key).toBe('customerSubscriptions:cust_123')
   })
 
-  it('creates consistent subscription dependency keys', () => {
-    const key = CacheDependency.subscription('sub_456')
-    expect(key).toBe('subscription:sub_456')
+  it('creates consistent subscriptionItems dependency keys', () => {
+    const key = CacheDependency.subscriptionItems('sub_456')
+    expect(key).toBe('subscriptionItems:sub_456')
   })
 
-  it('creates consistent subscriptionItem dependency keys', () => {
-    const key = CacheDependency.subscriptionItem('si_789')
-    expect(key).toBe('subscriptionItem:si_789')
+  it('creates consistent subscriptionItemFeatures dependency keys', () => {
+    const key = CacheDependency.subscriptionItemFeatures('si_789')
+    expect(key).toBe('subscriptionItemFeatures:si_789')
   })
 
-  it('creates consistent ledger dependency keys', () => {
+  it('creates consistent subscriptionLedger dependency keys', () => {
     const key = CacheDependency.subscriptionLedger('sub_456')
-    expect(key).toBe('ledger:sub_456')
+    expect(key).toBe('subscriptionLedger:sub_456')
   })
 })

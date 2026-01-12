@@ -1,0 +1,37 @@
+engine biome(1.0)
+language js
+
+// Detect weak matcher calls in test files
+// These matchers are too weak - tests should have more detailed assertions
+// that make explicit the expectation of specific values.
+//
+// Bad:  expect(result).toBeDefined()
+// Good: expect(result).toEqual({ id: 'abc', name: 'test' })
+//
+// Bad:  expect(user.isActive).toBeTruthy()
+// Good: expect(user.isActive).toBe(true)
+//
+// Bad:  expect(value).not.toBeNull()
+// Good: expect(value).toEqual('expected-value')
+//
+// Bad:  expect(value).not.toBeUndefined()
+// Good: expect(value).toBe(42)
+
+or {
+  // Match .toBeDefined() calls
+  `$x.toBeDefined()` as $call where {
+    register_diagnostic(span=$call, message="Avoid toBeDefined() - use more precise assertions like toEqual(), toBe(), or toMatchObject() that verify the actual expected value.", severity="error")
+  },
+  // Match .toBeTruthy() calls
+  `$x.toBeTruthy()` as $call where {
+    register_diagnostic(span=$call, message="Avoid toBeTruthy() - use more precise assertions like toBe(true), toEqual(), or explicit value checks that verify the actual expected value.", severity="error")
+  },
+  // Match .not.toBeNull() calls
+  `$x.not.toBeNull()` as $call where {
+    register_diagnostic(span=$call, message="Avoid not.toBeNull() - use more precise assertions like toEqual(), toBe(), or toMatchObject() that verify the actual expected value.", severity="error")
+  },
+  // Match .not.toBeUndefined() calls
+  `$x.not.toBeUndefined()` as $call where {
+    register_diagnostic(span=$call, message="Avoid not.toBeUndefined() - use more precise assertions like toEqual(), toBe(), or toMatchObject() that verify the actual expected value.", severity="error")
+  }
+}

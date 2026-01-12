@@ -86,7 +86,13 @@ export function getTtlForNamespace(
 
 export interface CacheConfig<TArgs extends unknown[], TResult> {
   namespace: RedisKeyNamespace
-  /** Extract cache key from function arguments */
+  /**
+   * Extract a unique identifier suffix from function arguments.
+   * This is combined with namespace to form the full cache key: `${namespace}:${keyFn(args)}`
+   *
+   * The namespace provides semantic context (e.g., "subscriptionsByCustomer"),
+   * while keyFn provides the unique identifier (e.g., "cust_123:true").
+   */
   keyFn: (...args: TArgs) => string
   /** Zod schema for validating cached data */
   schema: z.ZodType<TResult>
@@ -98,6 +104,33 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
    * declare dependencies: ["subscription:sub_123", "subscriptionItems:sub_123"]
    */
   dependenciesFn: (...args: TArgs) => CacheDependencyKey[]
+}
+
+export interface CacheOptions {
+  /** Skip cache lookup and always execute the underlying function. Defaults to false. */
+  ignoreCache?: boolean
+}
+
+/**
+ * Extract CacheOptions and function arguments from a combined args array.
+ * The cached combinator accepts an optional CacheOptions as the last argument,
+ * so we need to detect and separate it from the actual function arguments.
+ */
+function extractCacheArgs<TArgs extends unknown[]>(
+  args: [...TArgs, CacheOptions?]
+): { fnArgs: TArgs; options: CacheOptions } {
+  const lastArg = args[args.length - 1]
+  const hasOptions =
+    lastArg !== null &&
+    typeof lastArg === 'object' &&
+    'ignoreCache' in lastArg
+  const fnArgs = (hasOptions
+    ? args.slice(0, -1)
+    : args) as unknown as TArgs
+  const options: CacheOptions = hasOptions
+    ? (lastArg as CacheOptions)
+    : {}
+  return { fnArgs, options }
 }
 
 /**
@@ -117,6 +150,7 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
  *   - cache.validation_failed: boolean (when cached data fails schema)
  *   - cache.error: string (when Redis operation fails)
  *   - cache.dependencies: string[] (dependency keys registered)
+ *   - cache.ignored: boolean (when cache was bypassed via options)
  * - Logging:
  *   - Debug: cache hit/miss with key
  *   - Warn: schema validation failure (includes key, indicates data corruption)
@@ -125,29 +159,45 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
  * Error handling:
  * - Fails open: Redis errors result in cache miss, not request failure
  * - Schema validation failures treated as cache miss
+ *
+ * @param config - Cache configuration (namespace, key function, schema, dependencies)
+ * @param fn - The underlying function to cache
+ * @returns A cached version of the function that accepts an optional CacheOptions as the last argument
  */
 export function cached<TArgs extends unknown[], TResult>(
   config: CacheConfig<TArgs, TResult>,
   fn: (...args: TArgs) => Promise<TResult>
-): (...args: TArgs) => Promise<TResult> {
+): (...args: [...TArgs, CacheOptions?]) => Promise<TResult> {
   return traced(
     {
-      options: (...args: TArgs) => ({
-        spanName: `cache.${config.namespace}`,
-        tracerName: 'cache',
-        kind: SpanKind.CLIENT,
-        attributes: {
-          'cache.namespace': config.namespace,
-          'cache.key': config.keyFn(...args),
-        },
-      }),
+      options: (...args: [...TArgs, CacheOptions?]) => {
+        const { fnArgs } = extractCacheArgs<TArgs>(args)
+        return {
+          spanName: `cache.${config.namespace}`,
+          tracerName: 'cache',
+          kind: SpanKind.CLIENT,
+          attributes: {
+            'cache.namespace': config.namespace,
+            'cache.key': config.keyFn(...fnArgs),
+          },
+        }
+      },
       extractResultAttributes: () => ({}),
     },
-    async (...args: TArgs): Promise<TResult> => {
-      const key = config.keyFn(...args)
+    async (...args: [...TArgs, CacheOptions?]): Promise<TResult> => {
+      const { fnArgs, options } = extractCacheArgs<TArgs>(args)
+
+      const key = config.keyFn(...fnArgs)
       const fullKey = `${config.namespace}:${key}`
-      const dependencies = config.dependenciesFn(...args)
+      const dependencies = config.dependenciesFn(...fnArgs)
       const span = trace.getActiveSpan()
+
+      // If ignoreCache is set, skip cache lookup entirely
+      if (options.ignoreCache) {
+        span?.setAttribute('cache.ignored', true)
+        logger.debug('Cache ignored', { key: fullKey })
+        return fn(...fnArgs)
+      }
 
       // Try to get from cache
       try {
@@ -203,7 +253,7 @@ export function cached<TArgs extends unknown[], TResult>(
       }
 
       // Cache miss - call wrapped function
-      const result = await fn(...args)
+      const result = await fn(...fnArgs)
 
       // Store in cache and register dependencies (fire-and-forget)
       try {
@@ -238,6 +288,210 @@ export function cached<TArgs extends unknown[], TResult>(
       return result
     }
   )
+}
+
+/**
+ * Configuration for bulk cache operations.
+ */
+export interface BulkCacheConfig<TKey, TResult> {
+  namespace: RedisKeyNamespace
+  /** Convert a key to its cache key suffix */
+  keyFn: (key: TKey) => string
+  /** Zod schema for validating cached data */
+  schema: z.ZodType<TResult>
+  /** Get dependencies for a single key */
+  dependenciesFn: (key: TKey) => CacheDependencyKey[]
+}
+
+/**
+ * Bulk cache lookup with fallback to a single database query for misses.
+ *
+ * This optimizes the N+1 cache lookup pattern by:
+ * 1. Using Redis MGET to fetch all cache keys in one round-trip
+ * 2. Identifying cache misses
+ * 3. Calling the bulk fetch function once for all misses
+ * 4. Writing back individual cache entries for each miss
+ *
+ * This provides the best of both worlds:
+ * - Fine-grained cache invalidation (per-key)
+ * - Efficient bulk database queries (single query for all misses)
+ * - Single Redis round-trip for cache lookups
+ *
+ * @param config - Cache configuration
+ * @param keys - Array of keys to look up
+ * @param bulkFetchFn - Function to fetch all missing items in one query
+ * @param groupByKey - Function to extract the key from a result item (for grouping bulk results)
+ * @returns Map of key -> result (empty array if no items for that key)
+ */
+export async function cachedBulkLookup<TKey, TResult>(
+  config: BulkCacheConfig<TKey, TResult[]>,
+  keys: TKey[],
+  bulkFetchFn: (keys: TKey[]) => Promise<TResult[]>,
+  groupByKey: (item: TResult) => TKey
+): Promise<Map<TKey, TResult[]>> {
+  if (keys.length === 0) {
+    return new Map()
+  }
+
+  const span = trace.getActiveSpan()
+  const redisClient = redis()
+  const ttl = getTtlForNamespace(config.namespace)
+
+  // Build cache keys for all input keys
+  const cacheKeyMap = new Map<string, TKey>()
+  const fullCacheKeys: string[] = []
+  for (const key of keys) {
+    const suffix = config.keyFn(key)
+    const fullKey = `${config.namespace}:${suffix}`
+    cacheKeyMap.set(fullKey, key)
+    fullCacheKeys.push(fullKey)
+  }
+
+  const results = new Map<TKey, TResult[]>()
+  const missedKeys: TKey[] = []
+
+  // Step 1: Bulk fetch from cache using MGET
+  try {
+    const startTime = Date.now()
+    const cachedValues = (await redisClient.mget(
+      ...fullCacheKeys
+    )) as (TResult[] | null)[]
+    const latencyMs = Date.now() - startTime
+
+    span?.setAttribute('cache.bulk_lookup_count', keys.length)
+    span?.setAttribute('cache.bulk_latency_ms', latencyMs)
+
+    // Process cached values
+    let hitCount = 0
+    for (let i = 0; i < fullCacheKeys.length; i++) {
+      const fullKey = fullCacheKeys[i]
+      const key = cacheKeyMap.get(fullKey)!
+      const cachedValue = cachedValues[i]
+
+      if (cachedValue !== null) {
+        try {
+          // Parse and validate
+          const jsonValue =
+            typeof cachedValue === 'string'
+              ? JSON.parse(cachedValue)
+              : cachedValue
+
+          const parsed = config.schema.safeParse(jsonValue)
+          if (parsed.success) {
+            results.set(key, parsed.data)
+            hitCount++
+          } else {
+            // Schema validation failed - treat as miss
+            logger.warn('Bulk cache schema validation failed', {
+              key: fullKey,
+              error: parsed.error.message,
+            })
+            missedKeys.push(key)
+          }
+        } catch (parseError) {
+          // JSON.parse failed - treat as miss (corrupted cache data)
+          logger.warn('Bulk cache JSON parse failed', {
+            key: fullKey,
+            error:
+              parseError instanceof Error
+                ? parseError.message
+                : String(parseError),
+          })
+          missedKeys.push(key)
+        }
+      } else {
+        missedKeys.push(key)
+      }
+    }
+
+    span?.setAttribute('cache.bulk_hit_count', hitCount)
+    span?.setAttribute('cache.bulk_miss_count', missedKeys.length)
+
+    logger.debug('Bulk cache lookup', {
+      namespace: config.namespace,
+      totalKeys: keys.length,
+      hits: hitCount,
+      misses: missedKeys.length,
+      latency_ms: latencyMs,
+    })
+  } catch (error) {
+    // Fail open - all keys become misses
+    const errorMessage =
+      error instanceof Error ? error.message : String(error)
+    span?.setAttribute('cache.bulk_error', errorMessage)
+    logger.error('Bulk cache read error', {
+      namespace: config.namespace,
+      error: errorMessage,
+    })
+    missedKeys.push(...keys)
+  }
+
+  // Step 2: Bulk fetch from database for misses
+  if (missedKeys.length > 0) {
+    try {
+      const fetchedItems = await bulkFetchFn(missedKeys)
+
+      // Group fetched items by key
+      const fetchedByKey = new Map<TKey, TResult[]>()
+      for (const key of missedKeys) {
+        fetchedByKey.set(key, [])
+      }
+      for (const item of fetchedItems) {
+        const key = groupByKey(item)
+        const existing = fetchedByKey.get(key)
+        if (existing) {
+          existing.push(item)
+        }
+      }
+
+      // Add to results and write to cache
+      for (const [key, items] of fetchedByKey) {
+        results.set(key, items)
+
+        // Write to cache (fire-and-forget)
+        const suffix = config.keyFn(key)
+        const fullKey = `${config.namespace}:${suffix}`
+        const dependencies = config.dependenciesFn(key)
+
+        try {
+          await redisClient.set(fullKey, JSON.stringify(items), {
+            ex: ttl,
+          })
+          await registerDependencies(fullKey, dependencies)
+        } catch (writeError) {
+          // Log but don't fail
+          logger.error('Bulk cache write error', {
+            key: fullKey,
+            error:
+              writeError instanceof Error
+                ? writeError.message
+                : String(writeError),
+          })
+        }
+      }
+    } catch (fetchError) {
+      // Database fetch errors are critical - re-throw
+      // (Unlike cache read errors which fail-open, we can't serve stale data for misses)
+      const errorMessage =
+        fetchError instanceof Error
+          ? fetchError.message
+          : String(fetchError)
+      logger.error('Bulk fetch error', {
+        missedKeys: missedKeys.length,
+        error: errorMessage,
+      })
+      throw fetchError
+    }
+  }
+
+  // Ensure all keys have entries (empty array for keys with no items)
+  for (const key of keys) {
+    if (!results.has(key)) {
+      results.set(key, [])
+    }
+  }
+
+  return results
 }
 
 /**
@@ -292,15 +546,26 @@ export async function invalidateDependencies(
 /**
  * Helper to create standard dependency keys.
  * Ensures consistent naming across the codebase.
+ *
+ * Dependencies should be semantically precise - describing what data is being cached,
+ * not just what entity owns it. This allows for granular invalidation:
+ * - `customerSubscriptions:cust_123` invalidates when subscriptions for this customer change
+ * - `subscriptionItems:sub_456` invalidates when items for this subscription change
+ * - etc.
  */
 export const CacheDependency = {
-  customer: (customerId: string): CacheDependencyKey =>
-    `customer:${customerId}`,
-  subscription: (subscriptionId: string): CacheDependencyKey =>
-    `subscription:${subscriptionId}`,
-  subscriptionItem: (
+  /** Invalidate when subscriptions for this customer change (create/update/delete) */
+  customerSubscriptions: (customerId: string): CacheDependencyKey =>
+    `customerSubscriptions:${customerId}`,
+  /** Invalidate when items for this subscription change */
+  subscriptionItems: (subscriptionId: string): CacheDependencyKey =>
+    `subscriptionItems:${subscriptionId}`,
+  /** Invalidate when features for this subscription item change */
+  subscriptionItemFeatures: (
     subscriptionItemId: string
-  ): CacheDependencyKey => `subscriptionItem:${subscriptionItemId}`,
+  ): CacheDependencyKey =>
+    `subscriptionItemFeatures:${subscriptionItemId}`,
+  /** Invalidate when ledger entries for this subscription change */
   subscriptionLedger: (subscriptionId: string): CacheDependencyKey =>
-    `ledger:${subscriptionId}`,
+    `subscriptionLedger:${subscriptionId}`,
 } as const

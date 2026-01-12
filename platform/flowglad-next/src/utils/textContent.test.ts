@@ -63,7 +63,6 @@ describe('saveOrganizationCodebaseMarkdown', () => {
         return selectOrganizationById(organization.id, transaction)
       }
     )
-    expect(updatedOrg?.codebaseMarkdownHash).toBeDefined()
     expect(updatedOrg?.codebaseMarkdownHash).toBe(
       putCall.key.replace('codebase-', '').replace('.md', '')
     )
@@ -133,7 +132,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
         return selectOrganizationById(organization.id, transaction)
       }
     )
-    expect(updatedOrg?.codebaseMarkdownHash).toBeDefined()
+    expect(typeof updatedOrg?.codebaseMarkdownHash).toBe('string')
   })
 
   it('should generate different hashes for different markdown content', async () => {
@@ -153,7 +152,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
       }
     )
     const firstHash = orgAfterFirst?.codebaseMarkdownHash
-    expect(firstHash).toBeDefined()
+    expect(typeof firstHash).toBe('string')
 
     const firstPutCall = vi.mocked(putMarkdownFile).mock.calls[0][0]
     expect(firstPutCall.key).toBe(`codebase-${firstHash}.md`)
@@ -171,7 +170,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
       }
     )
     const secondHash = orgAfterSecond?.codebaseMarkdownHash
-    expect(secondHash).toBeDefined()
+    expect(typeof secondHash).toBe('string')
     expect(secondHash).not.toBe(firstHash)
 
     const secondPutCall = vi.mocked(putMarkdownFile).mock.calls[0][0]
@@ -330,7 +329,9 @@ describe('savePricingModelIntegrationMarkdown', () => {
         return selectPricingModelById(pricingModel.id, transaction)
       }
     )
-    expect(updatedPricingModel?.integrationGuideHash).toBeDefined()
+    expect(typeof updatedPricingModel?.integrationGuideHash).toBe(
+      'string'
+    )
     const hashFromKey = putCall.key
       .replace(
         `pricing-models/${pricingModel.id}/integration-guide-`,

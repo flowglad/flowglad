@@ -232,7 +232,7 @@ describe('subscriptionItemFeatureMethods', () => {
           },
           transaction
         )
-        expect(inserted.id).toBeDefined()
+        expect(typeof inserted.id).toBe('string')
         expect(inserted.type).toBe(FeatureType.Toggle)
         expect(inserted.usageMeterId).toBeNull()
         expect(inserted.productFeatureId).toBe(
@@ -285,7 +285,6 @@ describe('subscriptionItemFeatureMethods', () => {
           { ...inserted, expiredAt: now.getTime() },
           transaction
         )
-        expect(updated.expiredAt).not.toBeNull()
         expect(updated.expiredAt).toBe(now.getTime())
       })
     })
@@ -328,7 +327,6 @@ describe('subscriptionItemFeatureMethods', () => {
           )
         expect(updated.length).toBe(2)
         updated.forEach((u: SubscriptionItemFeature.Record) => {
-          expect(u.expiredAt).not.toBeNull()
           expect(u.expiredAt).toBe(date.getTime())
         })
       })
@@ -428,7 +426,7 @@ describe('subscriptionItemFeatureMethods', () => {
             },
             transaction
           )
-        expect(up.id).toBeDefined()
+        expect(typeof up.id).toBe('string')
       })
     })
 
@@ -489,7 +487,7 @@ describe('subscriptionItemFeatureMethods', () => {
           now,
           transaction
         )
-        expect(updated.expiredAt).not.toBeNull()
+        expect(typeof updated.expiredAt).toBe('number')
         expect(updated.expiredAt).toBe(now.getTime())
       })
     })

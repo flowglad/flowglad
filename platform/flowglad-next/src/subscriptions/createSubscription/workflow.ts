@@ -23,6 +23,7 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import { calculateTrialEligibility } from '@/utils/checkoutHelpers'
 import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
 import { logger } from '@/utils/logger'
@@ -386,5 +387,10 @@ export const createSubscriptionWorkflow = async (
     result: transactionResult,
     ledgerCommand,
     eventsToInsert: eventInserts,
+    cacheInvalidations: [
+      CacheDependency.customerSubscriptions(
+        updatedSubscription.customerId
+      ),
+    ],
   }
 }

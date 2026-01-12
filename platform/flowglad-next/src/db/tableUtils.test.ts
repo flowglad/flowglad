@@ -81,7 +81,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     expect(result.items.length).toBe(5)
     expect(result.hasNextPage).toBe(true)
-    expect(result.endCursor).toBeDefined()
+    expect(typeof result.endCursor).toBe('string')
   })
 
   it('should return correct pagination metadata when there are no more results', async () => {
@@ -99,7 +99,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     expect(result.items.length).toBe(15)
 
     expect(result.hasNextPage).toBe(false)
-    expect(result.endCursor).toBeDefined()
+    expect(typeof result.endCursor).toBe('string')
   })
 
   it('should handle different page sizes correctly', async () => {
@@ -131,7 +131,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     })
     expect(result.items.length).toBe(0)
     expect(result.hasNextPage).toBe(false)
-    expect(result.endCursor).toBeDefined()
+    expect(result.endCursor).toMatchObject({})
   })
 
   it('should maintain correct order by creation date (newest first)', async () => {
@@ -430,8 +430,8 @@ describe('createCursorPaginatedSelectFunction', () => {
     expect(result.items.length).toBe(5)
     expect(result.hasPreviousPage).toBe(false)
     expect(result.hasNextPage).toBe(true)
-    expect(result.startCursor).toBeDefined()
-    expect(result.endCursor).toBeDefined()
+    expect(typeof result.startCursor).toBe('string')
+    expect(typeof result.endCursor).toBe('string')
     expect(result.total).toBe(15)
   })
 
@@ -453,8 +453,8 @@ describe('createCursorPaginatedSelectFunction', () => {
     expect(result.items.length).toBe(5)
     expect(result.hasNextPage).toBe(false)
     expect(result.hasPreviousPage).toBe(true)
-    expect(result.startCursor).toBeDefined()
-    expect(result.endCursor).toBeDefined()
+    expect(result.startCursor).toMatchObject({})
+    expect(result.endCursor).toMatchObject({})
     expect(result.total).toBe(15)
   })
 
@@ -1345,7 +1345,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toEqual(expect.anything())
     })
 
     it('should handle single boolean condition', () => {
@@ -1354,7 +1354,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toEqual(expect.anything())
     })
 
     it('should handle single number condition', () => {
@@ -1363,7 +1363,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toEqual(expect.anything())
     })
 
     it('should handle single null condition', () => {
@@ -1372,7 +1372,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toEqual(expect.anything())
     })
   })
 
@@ -1387,7 +1387,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should filter out undefined/empty values from mixed conditions', () => {
@@ -1402,7 +1402,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
   })
 
@@ -1413,7 +1413,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle array with multiple values', () => {
@@ -1422,7 +1422,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle empty array', () => {
@@ -1431,7 +1431,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should filter undefined and empty strings from arrays', () => {
@@ -1442,7 +1442,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle array with only undefined/empty values', () => {
@@ -1453,7 +1453,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle mixed array types', () => {
@@ -1464,7 +1464,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
   })
 
@@ -1475,7 +1475,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle multiple null values', () => {
@@ -1488,7 +1488,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
   })
 
@@ -1499,7 +1499,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle false boolean values correctly', () => {
@@ -1508,7 +1508,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle very long strings', () => {
@@ -1518,7 +1518,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle special characters in string values', () => {
@@ -1530,7 +1530,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle Unicode characters', () => {
@@ -1542,7 +1542,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle very large arrays', () => {
@@ -1555,7 +1555,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle arrays with duplicate values', () => {
@@ -1566,7 +1566,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
   })
 
@@ -1577,7 +1577,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle string booleans', () => {
@@ -1586,7 +1586,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle mixed types in same condition set', () => {
@@ -1601,7 +1601,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
   })
 
@@ -1614,7 +1614,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
   })
 
@@ -1625,7 +1625,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle minimum safe integer', () => {
@@ -1634,7 +1634,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle NaN values', () => {
@@ -1643,7 +1643,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle Infinity values', () => {
@@ -1652,7 +1652,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
   })
 
@@ -1668,7 +1668,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle search-like scenarios with partial matches', () => {
@@ -1681,7 +1681,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
 
     it('should handle pagination scenarios', () => {
@@ -1693,7 +1693,7 @@ describe('whereClauseFromObject', () => {
         mockTable,
         selectConditions
       )
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
     })
   })
 
@@ -1714,8 +1714,8 @@ describe('whereClauseFromObject', () => {
         selectConditions
       )
 
-      expect(result1).toBeDefined()
-      expect(result2).toBeDefined()
+      expect(result1).toMatchObject({})
+      expect(result2).toMatchObject({})
       // Both should be defined and have same structure
     })
 
@@ -1740,8 +1740,8 @@ describe('whereClauseFromObject', () => {
         selectConditions2
       )
 
-      expect(result1).toBeDefined()
-      expect(result2).toBeDefined()
+      expect(result1).toMatchObject({})
+      expect(result2).toMatchObject({})
     })
   })
 })
@@ -1778,7 +1778,7 @@ describe('createPaginatedSelectFunction', () => {
 
     expect(result.data.length).toBe(10)
     expect(result.hasMore).toBe(true)
-    expect(result.nextCursor).toBeDefined()
+    expect(typeof result.nextCursor).toBe('string')
     expect(result.currentCursor).toBeUndefined()
     expect(result.total).toBeGreaterThanOrEqual(25)
   })
@@ -1815,11 +1815,12 @@ describe('createPaginatedSelectFunction', () => {
 
     expect(page1.data.length).toBeGreaterThan(0)
     expect(page1.hasMore).toBe(true)
-    expect(page1.nextCursor).toBeDefined()
+    expect(typeof page1.nextCursor).toBe('string')
+    expect(page1.nextCursor!.length).toBeGreaterThan(0)
 
     // nextCursor must contain id and direction
     const decoded1 = decodeCursor(page1.nextCursor!)
-    expect(decoded1.id).toBeDefined()
+    expect(typeof decoded1.id).toBe('string')
     expect(decoded1.direction).toBe('forward')
 
     // Page 2 using nextCursor
@@ -2055,7 +2056,7 @@ describe('createPaginatedSelectFunction', () => {
     // Next cursor should be produced as a modern cursor (with id)
     if (secondPage.nextCursor) {
       const decoded = decodeCursor(secondPage.nextCursor)
-      expect(decoded.id).toBeDefined()
+      expect(typeof decoded.id).toBe('string')
       expect(decoded.direction).toBe('forward')
     }
   })

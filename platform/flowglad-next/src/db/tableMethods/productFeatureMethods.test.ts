@@ -186,7 +186,7 @@ describe('unexpireProductFeatures', () => {
     const featureBModel = allFeatures.find(
       (pf) => pf.featureId === featureB.id
     )
-    expect(featureBModel?.expiredAt).not.toBeNull()
+    expect(typeof featureBModel?.expiredAt).toBe('number')
   })
 
   it('should return an empty array when an empty featureIds list is provided', async () => {
@@ -252,7 +252,7 @@ describe('unexpireProductFeatures', () => {
           transaction
         )
     )
-    expect(originalFeature?.expiredAt).not.toBeNull()
+    expect(typeof originalFeature?.expiredAt).toBe('number')
   })
 })
 
@@ -649,7 +649,7 @@ describe('syncProductFeatures', () => {
       (pf) => pf.featureId === featureB.id
     )
     expect(featureAState?.expiredAt).toBeNull()
-    expect(featureBState?.expiredAt).not.toBeNull()
+    expect(typeof featureBState?.expiredAt).toBe('number')
   })
 })
 

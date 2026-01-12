@@ -186,7 +186,7 @@ describe('productsRouter - Default Product Constraints', () => {
         }
       )
 
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
       expect(result.default).toBe(false)
     })
   })
@@ -258,7 +258,7 @@ describe('productsRouter - Default Product Constraints', () => {
         }
       )
 
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
       expect(result.name).toBe('Updated Base Plan Name')
       expect(result.description).toBe('Updated description')
       expect(result.default).toBe(true) // Should remain default
@@ -328,7 +328,7 @@ describe('productsRouter - Default Product Constraints', () => {
         }
       )
 
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
       expect(result.name).toBe('Updated Regular Product')
       expect(result.active).toBe(false)
     })

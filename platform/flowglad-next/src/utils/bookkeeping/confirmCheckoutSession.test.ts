@@ -224,7 +224,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.confirmResult.result.customer).toBeDefined()
+      expect(result.confirmResult.result.customer).toMatchObject({})
       // Verify that createFeeCalculationForCheckoutSession was not called
       expect(result.feeCalculations.length).toBe(0)
     })
@@ -260,7 +260,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer?.id).toEqual(customer.id)
     })
 
@@ -287,7 +287,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer?.id).toEqual(customer.id)
     })
 
@@ -323,7 +323,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer?.email).toEqual(
         'newcustomer@example.com'
       )
@@ -379,7 +379,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       )
 
       // Verify customer was created with proper attributes
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer.email).toEqual('newcustomer@example.com')
       expect(result.customer.name).toEqual('Test Customer')
       expect(result.customer.stripeCustomerId).toEqual(
@@ -397,7 +397,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       })
 
       // Verify pricing model was associated with the correct default pricing model
-      expect(result.customer.pricingModelId).toBeDefined()
+      expect(result.customer.pricingModelId).toMatchObject({})
       expect(result.customer.pricingModelId).toEqual(pricingModel.id)
     })
 
@@ -468,7 +468,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       )
 
       // Verify customer was created
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer.email).toEqual('newcustomer@example.com')
 
       // Check for events in the database
@@ -486,9 +486,11 @@ describe('confirmCheckoutSessionTransaction', () => {
       const customerCreatedEvent = dbEvents.find(
         (e) => e.type === FlowgladEventType.CustomerCreated
       )
-      expect(customerCreatedEvent).toBeDefined()
+      expect(typeof customerCreatedEvent).toBe('object')
       expect(customerCreatedEvent!.payload.object).toEqual('customer')
-      expect(customerCreatedEvent!.payload.customer).toBeDefined()
+      expect(typeof customerCreatedEvent!.payload.customer).toBe(
+        'object'
+      )
 
       // Assert customer payload details
       const customerPayload = customerCreatedEvent!.payload.customer!
@@ -501,7 +503,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       const subscriptionCreatedEvent = dbEvents.find(
         (e) => e.type === FlowgladEventType.SubscriptionCreated
       )
-      expect(subscriptionCreatedEvent).toBeDefined()
+      expect(typeof subscriptionCreatedEvent).toBe('object')
       expect(subscriptionCreatedEvent?.payload.object).toEqual(
         'subscription'
       )
@@ -559,7 +561,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       )
 
       // Verify customer was created with Stripe customer ID
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer.stripeCustomerId).toEqual(
         mockStripeCustomer.id
       )
@@ -623,7 +625,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       )
 
       // Verify customer was created with correct billing address
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer.billingAddress).toEqual(
         testBillingAddress
       )
@@ -681,7 +683,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.confirmResult.result.customer).toBeDefined()
+      expect(result.confirmResult.result.customer).toMatchObject({})
       expect(
         result.confirmResult.result.customer?.stripeCustomerId
       ).toEqual(result.updatedCustomer.stripeCustomerId)
@@ -717,7 +719,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer?.stripeCustomerId).toEqual(
         mockStripeCustomer.id
       )
@@ -819,7 +821,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       // Verify that updateSetupIntent was called
       expect(updateSetupIntent).toHaveBeenCalledWith(
         updatedCheckoutSession.stripeSetupIntentId,
@@ -891,7 +893,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       // Verify that updateSetupIntent was not called
       expect(updateSetupIntent).not.toHaveBeenCalled()
     })
@@ -927,7 +929,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent was called with the correct parameters
       // Application fee includes payment method fee (59 cents) + Flowglad fee (0.65% of $10 = 7 cents) = 66 cents
       expect(updatePaymentIntent).toHaveBeenCalledWith(
@@ -970,7 +972,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent was called with the correct parameters
       // Application fee includes payment method fee (59 cents) + Flowglad fee (0.65% of $10 = 7 cents) = 66 cents
       expect(updatePaymentIntent).toHaveBeenCalledWith(
@@ -1012,7 +1014,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent was not called
       expect(updatePaymentIntent).not.toHaveBeenCalled()
     })
@@ -1119,7 +1121,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer?.id).toEqual(customer.id)
     })
 
@@ -1149,7 +1151,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent and updateSetupIntent were not called
       expect(updatePaymentIntent).not.toHaveBeenCalled()
       expect(updateSetupIntent).not.toHaveBeenCalled()
@@ -1167,7 +1169,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toBeDefined()
+      expect(result.customer).toMatchObject({})
       expect(result.customer?.id).toEqual(customer.id)
       expect(result.customer?.email).toEqual(customer.email)
       expect(result.customer?.stripeCustomerId).toEqual(

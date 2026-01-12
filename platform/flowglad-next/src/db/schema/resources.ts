@@ -33,7 +33,6 @@ export const resources = pgTable(
     ),
     slug: text('slug').notNull(),
     name: text('name').notNull(),
-    description: text('description').notNull(),
     active: boolean('active').notNull().default(true),
   },
   (table) => [

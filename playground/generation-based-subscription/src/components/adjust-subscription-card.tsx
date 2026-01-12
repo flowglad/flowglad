@@ -1,7 +1,10 @@
 'use client'
 
-import { Check, ArrowUp, ArrowDown, Minus } from 'lucide-react'
 import { useBilling } from '@flowglad/nextjs'
+import { ArrowDown, ArrowUp, Check, Minus } from 'lucide-react'
+import type { PricingPlan } from '@/components/pricing-card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -10,11 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { isDefaultPlanBySlug } from '@/lib/billing-helpers'
-import type { PricingPlan } from '@/components/pricing-card'
+import { cn } from '@/lib/utils'
 
 interface AdjustSubscriptionCardProps {
   plan: PricingPlan

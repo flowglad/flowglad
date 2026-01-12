@@ -5,6 +5,9 @@ import {
   setupPrice,
   setupPricingModel,
   setupProduct,
+  setupProductFeature,
+  setupResource,
+  setupResourceFeature,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
@@ -24,6 +27,8 @@ import {
   selectPriceBySlugAndCustomerId,
   selectPriceBySlugForDefaultPricingModel,
   selectPricesAndProductByProductId,
+  selectResourceFeaturesForPrice,
+  selectResourceFeaturesForPrices,
   updatePrice,
 } from './priceMethods'
 import { updatePricingModel } from './pricingModelMethods'
@@ -667,7 +672,6 @@ describe('priceMethods.ts', () => {
           },
           transaction
         )
-        expect(insertedPrice).toBeDefined()
         expect(insertedPrice.slug).toBe(slug2)
         expect(insertedPrice.active).toBe(true)
       })
@@ -734,7 +738,6 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        expect(updateResult).toBeDefined()
         expect(updateResult.slug).toBe(updatedSlug)
         // Ensure no collision or constraint thrown, and price2 untouched
         expect(updateResult.id).toBe(price1.id)
@@ -1148,7 +1151,7 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        expect(result).not.toBeNull()
+        expect(result).toMatchObject({ id: price.id })
         expect(result?.id).toBe(price.id)
         expect(result?.slug).toBe('test-price-slug')
         expect(result?.name).toBe('Test Price')
@@ -1242,7 +1245,7 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        expect(result).not.toBeNull()
+        expect(result).toMatchObject({ id: customPrice.id })
         expect(result?.id).toBe(customPrice.id)
         expect(result?.slug).toBe('custom-price-slug')
 
@@ -1309,7 +1312,7 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        expect(result).not.toBeNull()
+        expect(result).toMatchObject({ id: activePrice.id })
         expect(result?.id).toBe(activePrice.id)
         expect(result?.active).toBe(true)
       })
@@ -1362,7 +1365,7 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        expect(result).not.toBeNull()
+        expect(result).toMatchObject({ id: price.id })
         expect(result?.id).toBe(price.id)
         expect(result?.slug).toBe('test-price-slug')
         expect(result?.name).toBe('Test Price')
@@ -1422,7 +1425,7 @@ describe('priceMethods.ts', () => {
             transaction
           )
 
-        expect(livemodeResult).not.toBeNull()
+        expect(livemodeResult).toMatchObject({ id: price.id })
         expect(livemodeResult?.id).toBe(price.id)
 
         // Should return null when searching in test mode (livemode: false)
@@ -1548,7 +1551,7 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        expect(result).not.toBeNull()
+        expect(result).toMatchObject({ id: activePrice.id })
         expect(result?.id).toBe(activePrice.id)
         expect(result?.active).toBe(true)
       })
@@ -1790,6 +1793,468 @@ describe('priceMethods.ts', () => {
         expect(prices[1]!.pricingModelId).toBe(
           product2.pricingModelId
         )
+      })
+    })
+  })
+
+  describe('selectResourceFeaturesForPrice', () => {
+    it('returns resource features linked to the price via productFeatures', async () => {
+      const setup = await setupOrg()
+      const organization = setup.organization
+
+      // Create a resource
+      const resource = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: setup.pricingModel.id,
+        name: 'Seats',
+        slug: `seats-${core.nanoid()}`,
+      })
+
+      // Create a resource feature
+      const resourceFeature = await setupResourceFeature({
+        organizationId: organization.id,
+        name: 'Seat Feature',
+        resourceId: resource.id,
+        livemode: true,
+        amount: 5,
+        slug: `seat-feature-${core.nanoid()}`,
+      })
+
+      // Create a product
+      const product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        livemode: true,
+        pricingModelId: setup.pricingModel.id,
+      })
+
+      // Link the feature to the product
+      await setupProductFeature({
+        productId: product.id,
+        featureId: resourceFeature.id,
+        organizationId: organization.id,
+      })
+
+      // Create a price for the product
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Test Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const features = await selectResourceFeaturesForPrice(
+          price.id,
+          transaction
+        )
+
+        expect(features).toHaveLength(1)
+        expect(features[0].id).toBe(resourceFeature.id)
+        expect(features[0].resourceId).toBe(resource.id)
+        expect(features[0].amount).toBe(5)
+        expect(features[0].type).toBe('resource')
+      })
+    })
+
+    it('returns empty array when price has no resource features', async () => {
+      const setup = await setupOrg()
+
+      const product = await setupProduct({
+        organizationId: setup.organization.id,
+        name: 'Test Product',
+        livemode: true,
+        pricingModelId: setup.pricingModel.id,
+      })
+
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Test Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const features = await selectResourceFeaturesForPrice(
+          price.id,
+          transaction
+        )
+
+        expect(features).toHaveLength(0)
+      })
+    })
+
+    it('excludes expired productFeatures', async () => {
+      const setup = await setupOrg()
+      const organization = setup.organization
+
+      const resource = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: setup.pricingModel.id,
+        name: 'Seats',
+        slug: `seats-${core.nanoid()}`,
+      })
+
+      const resourceFeature = await setupResourceFeature({
+        organizationId: organization.id,
+        name: 'Seat Feature',
+        resourceId: resource.id,
+        livemode: true,
+        amount: 5,
+        slug: `seat-feature-${core.nanoid()}`,
+      })
+
+      const product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        livemode: true,
+        pricingModelId: setup.pricingModel.id,
+      })
+
+      // Link the feature to the product with an expired timestamp
+      await setupProductFeature({
+        productId: product.id,
+        featureId: resourceFeature.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 10000, // Expired 10 seconds ago
+      })
+
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Test Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const features = await selectResourceFeaturesForPrice(
+          price.id,
+          transaction
+        )
+
+        expect(features).toHaveLength(0)
+      })
+    })
+
+    it('returns multiple resource features when product has multiple linked', async () => {
+      const setup = await setupOrg()
+      const organization = setup.organization
+
+      // Create two resources
+      const resource1 = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: setup.pricingModel.id,
+        name: 'Seats',
+        slug: `seats-${core.nanoid()}`,
+      })
+
+      const resource2 = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: setup.pricingModel.id,
+        name: 'API Keys',
+        slug: `api-keys-${core.nanoid()}`,
+      })
+
+      // Create two resource features
+      const resourceFeature1 = await setupResourceFeature({
+        organizationId: organization.id,
+        name: 'Seat Feature',
+        resourceId: resource1.id,
+        livemode: true,
+        amount: 5,
+        slug: `seat-feature-${core.nanoid()}`,
+      })
+
+      const resourceFeature2 = await setupResourceFeature({
+        organizationId: organization.id,
+        name: 'API Key Feature',
+        resourceId: resource2.id,
+        livemode: true,
+        amount: 10,
+        slug: `api-key-feature-${core.nanoid()}`,
+      })
+
+      const product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        livemode: true,
+        pricingModelId: setup.pricingModel.id,
+      })
+
+      // Link both features to the product
+      await setupProductFeature({
+        productId: product.id,
+        featureId: resourceFeature1.id,
+        organizationId: organization.id,
+      })
+
+      await setupProductFeature({
+        productId: product.id,
+        featureId: resourceFeature2.id,
+        organizationId: organization.id,
+      })
+
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Test Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const features = await selectResourceFeaturesForPrice(
+          price.id,
+          transaction
+        )
+
+        expect(features).toHaveLength(2)
+        const featureIds = features.map((f) => f.id).sort()
+        expect(featureIds).toEqual(
+          [resourceFeature1.id, resourceFeature2.id].sort()
+        )
+      })
+    })
+  })
+
+  describe('selectResourceFeaturesForPrices', () => {
+    it('returns a map of priceId to resource features for multiple prices', async () => {
+      const setup = await setupOrg()
+      const organization = setup.organization
+
+      // Create a resource
+      const resource = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: setup.pricingModel.id,
+        name: 'Seats',
+        slug: `seats-${core.nanoid()}`,
+      })
+
+      // Create a resource feature
+      const resourceFeature = await setupResourceFeature({
+        organizationId: organization.id,
+        name: 'Seat Feature',
+        resourceId: resource.id,
+        livemode: true,
+        amount: 5,
+        slug: `seat-feature-${core.nanoid()}`,
+      })
+
+      // Create two products
+      const product1 = await setupProduct({
+        organizationId: organization.id,
+        name: 'Product 1',
+        livemode: true,
+        pricingModelId: setup.pricingModel.id,
+      })
+
+      const product2 = await setupProduct({
+        organizationId: organization.id,
+        name: 'Product 2',
+        livemode: true,
+        pricingModelId: setup.pricingModel.id,
+      })
+
+      // Link feature to product1 only
+      await setupProductFeature({
+        productId: product1.id,
+        featureId: resourceFeature.id,
+        organizationId: organization.id,
+      })
+
+      // Create prices for both products
+      const price1 = await setupPrice({
+        productId: product1.id,
+        name: 'Price 1',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+      })
+
+      const price2 = await setupPrice({
+        productId: product2.id,
+        name: 'Price 2',
+        type: PriceType.Subscription,
+        unitPrice: 2000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const featureMap = await selectResourceFeaturesForPrices(
+          [price1.id, price2.id],
+          transaction
+        )
+
+        expect(featureMap.size).toBe(2)
+
+        // Price1 should have the resource feature
+        const price1Features = featureMap.get(price1.id) ?? []
+        expect(price1Features).toHaveLength(1)
+        expect(price1Features[0].id).toBe(resourceFeature.id)
+
+        // Price2 should have no resource features
+        const price2Features = featureMap.get(price2.id) ?? []
+        expect(price2Features).toHaveLength(0)
+      })
+    })
+
+    it('returns empty map when passed empty array', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const featureMap = await selectResourceFeaturesForPrices(
+          [],
+          transaction
+        )
+
+        expect(featureMap.size).toBe(0)
+      })
+    })
+
+    it('returns identical resource features for multiple prices of the same product', async () => {
+      const setup = await setupOrg()
+      const organization = setup.organization
+
+      const resource = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: setup.pricingModel.id,
+        name: 'Seats',
+        slug: `seats-${core.nanoid()}`,
+      })
+
+      const resourceFeature = await setupResourceFeature({
+        organizationId: organization.id,
+        name: 'Seat Feature',
+        resourceId: resource.id,
+        livemode: true,
+        amount: 5,
+        slug: `seat-feature-${core.nanoid()}`,
+      })
+
+      const product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Product',
+        livemode: true,
+        pricingModelId: setup.pricingModel.id,
+      })
+
+      await setupProductFeature({
+        productId: product.id,
+        featureId: resourceFeature.id,
+        organizationId: organization.id,
+      })
+
+      // Create two prices for the same product
+      const price1 = await setupPrice({
+        productId: product.id,
+        name: 'Monthly Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+      })
+
+      const price2 = await setupPrice({
+        productId: product.id,
+        name: 'Annual Price',
+        type: PriceType.Subscription,
+        unitPrice: 10000,
+        intervalUnit: IntervalUnit.Year,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const featureMap = await selectResourceFeaturesForPrices(
+          [price1.id, price2.id],
+          transaction
+        )
+
+        expect(featureMap.size).toBe(2)
+
+        // Both prices should have the same resource features
+        const price1Features = featureMap.get(price1.id) ?? []
+        const price2Features = featureMap.get(price2.id) ?? []
+
+        expect(price1Features).toHaveLength(1)
+        expect(price2Features).toHaveLength(1)
+        expect(price1Features[0].id).toBe(resourceFeature.id)
+        expect(price2Features[0].id).toBe(resourceFeature.id)
+      })
+    })
+
+    it('returns empty arrays for prices that do not exist', async () => {
+      const setup = await setupOrg()
+
+      const product = await setupProduct({
+        organizationId: setup.organization.id,
+        name: 'Product',
+        livemode: true,
+        pricingModelId: setup.pricingModel.id,
+      })
+
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+      })
+
+      const nonExistentPriceId = `price_${core.nanoid()}`
+
+      await adminTransaction(async ({ transaction }) => {
+        const featureMap = await selectResourceFeaturesForPrices(
+          [price.id, nonExistentPriceId],
+          transaction
+        )
+
+        expect(featureMap.size).toBe(2)
+        expect(featureMap.get(price.id)).toHaveLength(0)
+        expect(featureMap.get(nonExistentPriceId)).toHaveLength(0)
       })
     })
   })

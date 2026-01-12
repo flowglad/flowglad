@@ -1,10 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
 import { useBilling } from '@flowglad/nextjs'
+import { useMemo, useState } from 'react'
 import { AdjustSubscriptionCard } from '@/components/adjust-subscription-card'
 import type { PricingPlan } from '@/components/pricing-card'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { Card, CardFooter, CardHeader } from '@/components/ui/card'
 import {
   Dialog,
@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface AdjustSubscriptionGridProps {
   onSuccess?: () => void
@@ -200,7 +200,9 @@ export function AdjustSubscriptionGrid({
 
     try {
       // The API is atomic - it waits for any billing run to complete before returning
-      await billing.adjustSubscription(selectedPlan.slug)
+      await billing.adjustSubscription({
+        priceSlug: selectedPlan.slug,
+      })
 
       // Reload billing data to get the updated subscription
       if (billing.reload) {

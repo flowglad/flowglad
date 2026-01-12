@@ -55,6 +55,7 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
+import { CacheDependency } from '@/utils/cache'
 
 describe('Pricing Model Migration Test Suite', async () => {
   const { organization, price: orgDefaultPrice } = await setupOrg()
@@ -164,7 +165,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       ).toBe(CancellationReason.PricingModelMigration)
 
       // Verify new subscription was created
-      expect(result.result.newSubscription).toBeDefined()
+      expect(result.result.newSubscription).toMatchObject({})
       expect(result.result.newSubscription.customerId).toBe(
         customer.id
       )
@@ -370,7 +371,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       }
 
       // Verify only one new subscription was created
-      expect(result.result.newSubscription).toBeDefined()
+      expect(result.result.newSubscription).toMatchObject({})
       expect(result.result.newSubscription.priceId).toBe(price2.id)
     })
 
@@ -398,7 +399,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       expect(result.result.canceledSubscriptions).toHaveLength(0)
 
       // Verify new subscription was created
-      expect(result.result.newSubscription).toBeDefined()
+      expect(result.result.newSubscription).toMatchObject({})
       expect(result.result.newSubscription.priceId).toBe(price2.id)
       expect(result.result.newSubscription.status).toBe(
         SubscriptionStatus.Active
@@ -596,7 +597,7 @@ describe('Pricing Model Migration Test Suite', async () => {
         (s) => s.id === paidSubscription.id
       )
 
-      expect(oldFreeSubscription).toBeDefined()
+      expect(typeof oldFreeSubscription).toBe('object')
       expect(oldFreeSubscription!.status).toBe(
         SubscriptionStatus.Canceled
       )
@@ -604,7 +605,7 @@ describe('Pricing Model Migration Test Suite', async () => {
         CancellationReason.PricingModelMigration
       )
 
-      expect(oldPaidSubscription).toBeDefined()
+      expect(typeof oldPaidSubscription).toBe('object')
       expect(oldPaidSubscription!.status).toBe(
         SubscriptionStatus.Canceled
       )
@@ -800,7 +801,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       const newProduct = billingState.pricingModel.products.find(
         (p) => p.id === product2.id
       )
-      expect(newProduct).toBeDefined()
+      expect(typeof newProduct).toBe('object')
       expect(newProduct!.features).toHaveLength(1)
       expect(newProduct!.features[0].id).toBe(feature2.id)
 
@@ -923,7 +924,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       expect(currentSub.priceId).toBe(price2.id)
 
       // Verify experimental field exists and contains the right structure
-      expect(currentSub.experimental).toBeDefined()
+      expect(typeof currentSub.experimental).toBe('object')
 
       // Verify experimental.featureItems only contains features from new pricing model
       if (
@@ -955,7 +956,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       const oldSubInHistory = billingState.subscriptions.find(
         (s) => s.id === oldSubscription.id
       )
-      expect(oldSubInHistory).toBeDefined()
+      expect(typeof oldSubInHistory).toBe('object')
       expect(oldSubInHistory!.status).toBe(
         SubscriptionStatus.Canceled
       )
@@ -1499,7 +1500,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       const canceledSubscription = allSubscriptions.find(
         (s) => s.id === subscription.id
       )
-      expect(canceledSubscription).toBeDefined()
+      expect(typeof canceledSubscription).toBe('object')
       expect(canceledSubscription!.status).toBe(
         SubscriptionStatus.Canceled
       )
@@ -1559,6 +1560,125 @@ describe('Pricing Model Migration Test Suite', async () => {
       expect(otherCustomerSubs[0].id).toBe(otherSubscription.id)
       expect(otherCustomerSubs[0].status).toBe(
         SubscriptionStatus.Active
+      )
+    })
+  })
+
+  describe('Cache Invalidations', () => {
+    it('should return customerSubscriptions cache invalidation when migrating with subscriptions', async () => {
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Should have cache invalidations for the customer's subscriptions
+      expect(result.cacheInvalidations).toContain(
+        CacheDependency.customerSubscriptions(customer.id)
+      )
+    })
+
+    it('should return customerSubscriptions cache invalidation when migrating with no existing subscriptions', async () => {
+      // Customer with no subscriptions
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Should still have cache invalidation from the new subscription creation
+      expect(result.cacheInvalidations).toContain(
+        CacheDependency.customerSubscriptions(customer.id)
+      )
+    })
+
+    it('should return correct customerSubscriptions cache invalidation for the specific customer', async () => {
+      // Create another customer
+      const otherCustomer = await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
+      })
+
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Should invalidate the migrated customer's cache
+      expect(result.cacheInvalidations).toContain(
+        CacheDependency.customerSubscriptions(customer.id)
+      )
+      // Should NOT invalidate the other customer's cache
+      expect(result.cacheInvalidations).not.toContain(
+        CacheDependency.customerSubscriptions(otherCustomer.id)
+      )
+    })
+
+    it('should return cache invalidations from procedure transaction', async () => {
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return await migrateCustomerPricingModelProcedureTransaction(
+            {
+              input: {
+                externalId: customer.externalId,
+                newPricingModelId: pricingModel2.id,
+              },
+              transaction,
+              ctx: { apiKey: undefined },
+              livemode: false,
+              userId: 'test-user-id',
+              organizationId: organization.id,
+            }
+          )
+        }
+      )
+
+      // Verify cache invalidations are returned from procedure transaction
+      expect(result.cacheInvalidations).toContain(
+        CacheDependency.customerSubscriptions(customer.id)
       )
     })
   })

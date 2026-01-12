@@ -949,7 +949,7 @@ describe('Procedure Wrapper Functions', () => {
         async ({ input, ctx, transaction, userId }) => {
           expect(input).toEqual(testInput)
           expect(ctx).toEqual(testContext)
-          expect(userId).toBeDefined()
+          expect(typeof userId).toBe('string')
 
           // Verify we can use transaction
           const organizations = await selectOrganizations(
@@ -1060,12 +1060,16 @@ describe('Edge Cases', () => {
       )
 
       // Document the current behavior - may succeed or fail depending on RLS implementation
-      expect(result).toBeDefined()
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: expect.any(Boolean),
+        })
+      )
       if (result.success) {
         expect(result.memberships).toBeGreaterThanOrEqual(0)
         expect(result.organizations).toBeGreaterThanOrEqual(0)
       } else {
-        expect(result.error).toBeDefined()
+        expect(typeof result.error).toBe('string')
       }
     })
   })

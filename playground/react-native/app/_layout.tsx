@@ -1,7 +1,7 @@
-import { Stack } from 'expo-router'
-import { authClient } from '@/lib/auth-client'
 import { FlowgladProvider } from '@flowglad/react'
+import { Stack } from 'expo-router'
 import { useMemo } from 'react'
+import { authClient } from '@/lib/auth-client'
 
 export default function RootLayout() {
   const { data: session } = authClient.useSession()

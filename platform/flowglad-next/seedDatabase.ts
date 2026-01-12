@@ -2742,8 +2742,6 @@ export const setupResource = async (params: {
         pricingModelId: params.pricingModelId,
         slug: params.slug ?? 'seats',
         name: params.name ?? 'Seats',
-        description:
-          params.description ?? 'Resource seats for the application',
         livemode: true,
         active: params.active ?? true,
       },
@@ -2775,5 +2773,49 @@ export const setupResourceClaim = async (params: {
       },
       transaction
     )
+  })
+}
+
+export const setupResourceFeature = async (
+  params: Partial<Omit<Feature.ResourceInsert, 'type'>> & {
+    organizationId: string
+    name: string
+    resourceId: string
+    livemode: boolean
+  }
+): Promise<Feature.ResourceRecord> => {
+  return adminTransaction(async ({ transaction }) => {
+    const resolvedPricingModelId =
+      params.pricingModelId ??
+      (
+        await selectDefaultPricingModel(
+          {
+            organizationId: params.organizationId,
+            livemode: params.livemode,
+          },
+          transaction
+        )
+      )?.id
+    if (!resolvedPricingModelId) {
+      throw new Error(
+        'setupResourceFeature: No pricingModelId provided and no default pricing model found'
+      )
+    }
+    const { resourceId, pricingModelId: _, ...restParams } = params
+    const insert: Feature.ResourceInsert = {
+      ...restParams,
+      type: FeatureType.Resource,
+      description: params.description ?? '',
+      slug: params.slug ?? `resource-feature-${core.nanoid()}`,
+      amount: params.amount ?? 5,
+      usageMeterId: null,
+      renewalFrequency: null,
+      pricingModelId: resolvedPricingModelId,
+      resourceId,
+    }
+    return insertFeature(
+      insert,
+      transaction
+    ) as Promise<Feature.ResourceRecord>
   })
 }
