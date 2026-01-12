@@ -48,6 +48,14 @@ Please use the following guidelines when implementing new tests:
 - Do not use toBeDefined - instead opt for tests to have more detailed assertions that make explicit the expectation of specific values
 - Each it should have a specific, well articulated statement of what outcome it will expect (e.g. no "it should handle .... correctly" or "should handle [condition]").
 
+### Test Types
+
+**Unit Tests** - Test individual functions or modules in isolation. Good for pure functions, business logic validation, edge cases, and fast feedback during development.
+
+**Integration Tests** - Test how multiple components work together against real infrastructure (database, APIs). Good for verifying database operations, testing specific scenarios end-to-end, and confirming API contracts.
+
+**Behavior Tests** - Test behaviors across the cartesian product of dependency implementations, asserting universal invariants. Good for ensuring behavior is consistent across all valid configurations, catching regressions when new implementations are added, and reducing test boilerplate when the same behavior must hold for many variants. See `src/test/behaviorTest/` for the framework.
+
 
 ## After Finishing Edits
 
