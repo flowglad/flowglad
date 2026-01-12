@@ -12,7 +12,7 @@ import {
 import { cn } from '@/lib/utils'
 import { RevenueChartIntervalUnit } from '@/types'
 import { getIntervalSelectOptions } from '@/utils/chartIntervalUtils'
-import { CHART_SIZE_CONFIG } from './constants'
+import { CHART_CONSTANTS, CHART_SIZE_CONFIG } from './constants'
 
 interface ChartHeaderProps {
   /** Chart title displayed in header */
@@ -75,7 +75,7 @@ export function ChartHeader({
       <div
         className={cn(
           'text-foreground w-fit flex items-center flex-row gap-0.5',
-          config.headerText
+          CHART_CONSTANTS.headerText
         )}
       >
         <p className="whitespace-nowrap">{title}</p>

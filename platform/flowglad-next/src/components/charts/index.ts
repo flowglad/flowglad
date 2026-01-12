@@ -9,7 +9,11 @@ export { ChartGrid } from './ChartGrid'
 export { ChartHeader } from './ChartHeader'
 export { ChartValueDisplay } from './ChartValueDisplay'
 // Constants
-export { CHART_SIZE_CONFIG } from './constants'
+export { CHART_CONSTANTS, CHART_SIZE_CONFIG } from './constants'
 export { LineChart, type TooltipProps } from './LineChart'
 // Types
-export type { ChartSize, ChartSizeConfig } from './types'
+export type {
+  ChartConstants,
+  ChartSize,
+  ChartSizeConfig,
+} from './types'

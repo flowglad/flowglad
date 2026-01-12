@@ -2,7 +2,7 @@
 
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import { CHART_SIZE_CONFIG } from './constants'
+import { CHART_CONSTANTS, CHART_SIZE_CONFIG } from './constants'
 
 interface ChartValueDisplayProps {
   /** Formatted value to display (e.g., "$1,234.56" or "42") */
@@ -36,7 +36,7 @@ export function ChartValueDisplay({
         <p
           className={cn(
             'font-medium text-foreground',
-            config.valueText
+            CHART_CONSTANTS.valueText
           )}
         >
           {value}

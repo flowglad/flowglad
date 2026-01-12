@@ -4,14 +4,16 @@ import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { ChartDataTooltip } from '@/components/ChartDataTooltip'
 import {
+  CHART_SIZE_CONFIG,
   ChartBody,
   ChartHeader,
+  type ChartSize,
   ChartValueDisplay,
   LineChart,
 } from '@/components/charts'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { useChartInterval } from '@/hooks/useChartInterval'
 import { useChartTooltip } from '@/hooks/useChartTooltip'
+import { cn } from '@/lib/utils'
 import { CurrencyCode, RevenueChartIntervalUnit } from '@/types'
 import { formatDateUTC } from '@/utils/chart/dateFormatting'
 import { createChartTooltipMetadata } from '@/utils/chart/types'
@@ -24,8 +26,10 @@ interface RecurringRevenueChartProps {
   fromDate: Date
   toDate: Date
   productId?: string
-  /** Optional controlled interval. When provided, the chart uses this value. */
-  interval?: RevenueChartIntervalUnit
+  /** Controlled interval from parent (global selector) */
+  interval: RevenueChartIntervalUnit
+  /** Chart size variant - 'lg' for primary, 'sm' for secondary */
+  size?: ChartSize
 }
 
 /**
@@ -36,18 +40,15 @@ export const RecurringRevenueChart = ({
   fromDate,
   toDate,
   productId,
-  interval: controlledInterval,
+  interval,
+  size = 'lg',
 }: RecurringRevenueChartProps) => {
   const { organization } = useAuthenticatedContext()
+  const compact = size === 'sm'
+  const config = CHART_SIZE_CONFIG[size]
 
-  // Use shared hooks for tooltip and interval management
+  // Use shared hooks for tooltip management
   const { tooltipData, tooltipCallback } = useChartTooltip()
-  const { interval } = useChartInterval({
-    fromDate,
-    toDate,
-    controlledInterval,
-    // No onIntervalChange - MRR chart doesn't have inline selector
-  })
 
   const { data: mrrData, isLoading } =
     trpc.organizations.getMRR.useQuery({
@@ -122,21 +123,22 @@ export const RecurringRevenueChart = ({
       <ChartHeader
         title="Monthly recurring revenue"
         infoTooltip="The normalized monthly value of all active recurring subscriptions. Calculated as the sum of subscription amounts adjusted to a monthly rate."
-        // No inline selector for MRR chart
         showInlineSelector={false}
+        compact={compact}
       />
 
       <ChartValueDisplay
         value={formattedMRRValue}
         isLoading={isLoading}
+        compact={compact}
       />
 
-      <ChartBody isLoading={isLoading}>
+      <ChartBody isLoading={isLoading} compact={compact}>
         <LineChart
           data={chartData}
           index="date"
           categories={['revenue']}
-          className="-mb-2 mt-2"
+          className={cn('-mb-2 mt-2', config.height)}
           colors={['foreground']}
           fill="gradient"
           customTooltip={(props) => (
@@ -156,6 +158,7 @@ export const RecurringRevenueChart = ({
           startEndOnly={true}
           startEndOnlyYAxis={true}
           showYAxis={false}
+          showGridLines={config.showGridLines}
           intervalUnit={interval}
           valueFormatter={(value: number) =>
             stripeCurrencyAmountToHumanReadableCurrencyAmount(
