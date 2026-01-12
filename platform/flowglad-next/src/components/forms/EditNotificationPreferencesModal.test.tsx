@@ -4,11 +4,25 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import type { ReactNode } from 'react'
+import type { DefaultValues, FieldValues } from 'react-hook-form'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { trpc } from '@/app/_trpc/client'
+import type { NotificationPreferences } from '@/db/schema/memberships'
 import EditNotificationPreferencesModal from './EditNotificationPreferencesModal'
 
-// Mock tRPC
+interface FormModalMockProps<T extends FieldValues> {
+  children: ReactNode
+  onSubmit: (data: T) => Promise<void> | void
+  defaultValues: DefaultValues<T>
+  setIsOpen: (open: boolean) => void
+}
+
+interface EditNotificationPreferencesInput {
+  preferences: Partial<NotificationPreferences>
+}
+
+// Mock tRPC - network calls need to be mocked per testing guidelines
 vi.mock('@/app/_trpc/client', () => ({
   trpc: {
     organizations: {
@@ -21,17 +35,16 @@ vi.mock('@/app/_trpc/client', () => ({
 }))
 
 // Mock the form modal and wrap children with FormProvider
+// This mock is consistent with the established pattern in other modal tests (e.g., EditDiscountModal.test.tsx)
 vi.mock('@/components/forms/FormModal', async () => {
   // biome-ignore lint/plugin: dynamic import required for vi.mock factory
-  const React = await import('react')
-  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const { useForm, FormProvider } = await import('react-hook-form')
-  function FormModalMock({
+  function FormModalMock<T extends FieldValues>({
     children,
     onSubmit,
     defaultValues,
     setIsOpen,
-  }: any) {
+  }: FormModalMockProps<T>) {
     const form = useForm({ defaultValues })
     return (
       <FormProvider {...form}>
@@ -41,8 +54,9 @@ vi.mock('@/components/forms/FormModal', async () => {
           </div>
           <button
             data-testid="submit-button"
+            type="button"
             onClick={() => {
-              const mockInput = {
+              const mockInput: EditNotificationPreferencesInput = {
                 preferences: {
                   testModeNotifications: true,
                   subscriptionCreated: false,
@@ -50,18 +64,18 @@ vi.mock('@/components/forms/FormModal', async () => {
                   paymentFailed: false,
                 },
               }
-              const maybePromise = onSubmit(mockInput)
+              const maybePromise = onSubmit(mockInput as unknown as T)
               if (
                 maybePromise &&
                 typeof maybePromise.then === 'function'
               ) {
                 maybePromise
-                  .then(() => setIsOpen?.(false))
+                  .then(() => setIsOpen(false))
                   .catch(() => {
                     // Swallow rejection to avoid unhandled errors during tests
                   })
               } else {
-                setIsOpen?.(false)
+                setIsOpen(false)
               }
             }}
           >
@@ -76,6 +90,7 @@ vi.mock('@/components/forms/FormModal', async () => {
 })
 
 // Mock the notification preferences form fields
+// This mock is consistent with the established pattern in other modal tests
 vi.mock('./NotificationPreferencesFormFields', () => ({
   default: () => (
     <div data-testid="notification-preferences-form-fields">
@@ -85,7 +100,7 @@ vi.mock('./NotificationPreferencesFormFields', () => ({
 }))
 
 describe('EditNotificationPreferencesModal', () => {
-  const mockCurrentPreferences = {
+  const mockCurrentPreferences: NotificationPreferences = {
     testModeNotifications: false,
     subscriptionCreated: true,
     subscriptionAdjusted: true,
@@ -108,16 +123,20 @@ describe('EditNotificationPreferencesModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(trpc.useUtils).mockReturnValue(mockUtils as any)
+    vi.mocked(trpc.useUtils).mockReturnValue(
+      mockUtils as unknown as ReturnType<typeof trpc.useUtils>
+    )
     vi.mocked(
       trpc.organizations.updateNotificationPreferences.useMutation
     ).mockReturnValue({
       mutateAsync: mockMutateAsync,
-    } as any)
+    } as unknown as ReturnType<
+      typeof trpc.organizations.updateNotificationPreferences.useMutation
+    >)
   })
 
   describe('Modal Rendering', () => {
-    it('should render the modal with correct props', () => {
+    it('renders the modal with form fields when open', () => {
       render(
         <EditNotificationPreferencesModal
           isOpen={true}
@@ -132,7 +151,7 @@ describe('EditNotificationPreferencesModal', () => {
       ).toBeInTheDocument()
     })
 
-    it('should render with correct default values', () => {
+    it('passes current preferences as default values to the form', () => {
       render(
         <EditNotificationPreferencesModal
           isOpen={true}
@@ -151,7 +170,7 @@ describe('EditNotificationPreferencesModal', () => {
   })
 
   describe('Form Submission', () => {
-    it('should call updateNotificationPreferences mutation with correct data', async () => {
+    it('calls updateNotificationPreferences mutation with submitted preferences', async () => {
       mockMutateAsync.mockResolvedValue({ success: true })
 
       render(
@@ -177,7 +196,7 @@ describe('EditNotificationPreferencesModal', () => {
       })
     })
 
-    it('should invalidate getNotificationPreferences query on successful submission', async () => {
+    it('invalidates getNotificationPreferences query on successful submission', async () => {
       mockMutateAsync.mockResolvedValue({ success: true })
 
       render(
@@ -198,16 +217,17 @@ describe('EditNotificationPreferencesModal', () => {
   })
 
   describe('Error Handling', () => {
-    it('should handle mutation errors gracefully', async () => {
+    it('does not close modal when mutation fails', async () => {
       const mockError = new Error(
         'Failed to update notification preferences'
       )
       mockMutateAsync.mockRejectedValue(mockError)
+      const mockSetIsOpen = vi.fn()
 
       render(
         <EditNotificationPreferencesModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mockSetIsOpen}
           currentPreferences={mockCurrentPreferences}
         />
       )
@@ -218,11 +238,14 @@ describe('EditNotificationPreferencesModal', () => {
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalled()
       })
+
+      // Modal should not close on error (setIsOpen(false) not called)
+      expect(mockSetIsOpen).not.toHaveBeenCalledWith(false)
     })
   })
 
   describe('Modal State Management', () => {
-    it('should call setIsOpen(false) after successful submit', async () => {
+    it('closes modal after successful submission', async () => {
       mockMutateAsync.mockResolvedValue({ success: true })
       const mockSetIsOpen = vi.fn()
 
@@ -234,7 +257,6 @@ describe('EditNotificationPreferencesModal', () => {
         />
       )
 
-      expect(screen.getByTestId('form-modal')).toBeInTheDocument()
       fireEvent.click(screen.getByTestId('submit-button'))
 
       await waitFor(() => {
@@ -244,8 +266,8 @@ describe('EditNotificationPreferencesModal', () => {
   })
 
   describe('Current Preferences Props', () => {
-    it('should handle preferences with all notifications enabled', () => {
-      const allEnabledPreferences = {
+    it('initializes form with all notifications enabled when passed', () => {
+      const allEnabledPreferences: NotificationPreferences = {
         testModeNotifications: true,
         subscriptionCreated: true,
         subscriptionAdjusted: true,
@@ -270,8 +292,8 @@ describe('EditNotificationPreferencesModal', () => {
       expect(defaultValues.preferences).toEqual(allEnabledPreferences)
     })
 
-    it('should handle preferences with all notifications disabled', () => {
-      const allDisabledPreferences = {
+    it('initializes form with all notifications disabled when passed', () => {
+      const allDisabledPreferences: NotificationPreferences = {
         testModeNotifications: false,
         subscriptionCreated: false,
         subscriptionAdjusted: false,
@@ -298,8 +320,8 @@ describe('EditNotificationPreferencesModal', () => {
       )
     })
 
-    it('should handle mixed notification preferences', () => {
-      const mixedPreferences = {
+    it('initializes form with mixed notification preferences when passed', () => {
+      const mixedPreferences: NotificationPreferences = {
         testModeNotifications: true,
         subscriptionCreated: false,
         subscriptionAdjusted: true,
@@ -326,7 +348,7 @@ describe('EditNotificationPreferencesModal', () => {
   })
 
   describe('TRPC Integration', () => {
-    it('should use correct TRPC mutation hook', () => {
+    it('uses updateNotificationPreferences mutation hook', () => {
       render(
         <EditNotificationPreferencesModal
           isOpen={true}
@@ -340,7 +362,7 @@ describe('EditNotificationPreferencesModal', () => {
       ).toHaveBeenCalled()
     })
 
-    it('should pass onSuccess callback to mutation hook', () => {
+    it('configures mutation with onSuccess callback that invalidates preferences query', () => {
       render(
         <EditNotificationPreferencesModal
           isOpen={true}
@@ -356,9 +378,7 @@ describe('EditNotificationPreferencesModal', () => {
 
       const firstCallArgs = mutationCalls[0]?.[0]
       expect(firstCallArgs).toHaveProperty('onSuccess')
-      if (firstCallArgs) {
-        expect(typeof firstCallArgs.onSuccess).toBe('function')
-      }
+      expect(typeof firstCallArgs?.onSuccess).toBe('function')
     })
   })
 })

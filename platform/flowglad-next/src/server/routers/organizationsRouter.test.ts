@@ -22,7 +22,7 @@ const createCaller = (
   organization: Organization.Record,
   user: User.Record
 ) => {
-  return organizationsRouter.createCaller({
+  const context: TRPCContext = {
     organizationId: organization.id,
     organization,
     user,
@@ -31,10 +31,22 @@ const createCaller = (
     isApi: false,
     path: '',
     apiKey: undefined,
-    session: {
-      user: { id: user.betterAuthId! },
-    } as any,
-  } as TRPCContext)
+  }
+  return organizationsRouter.createCaller(context)
+}
+
+const createCallerWithoutOrg = (user: User.Record) => {
+  const context: TRPCContext = {
+    organizationId: undefined,
+    organization: undefined,
+    user,
+    livemode: true,
+    environment: 'live' as const,
+    isApi: false,
+    path: '',
+    apiKey: undefined,
+  }
+  return organizationsRouter.createCaller(context)
 }
 
 describe('organizationsRouter - notification preferences', () => {
@@ -71,7 +83,7 @@ describe('organizationsRouter - notification preferences', () => {
   })
 
   describe('getNotificationPreferences', () => {
-    it('should return default notification preferences when none are set', async () => {
+    it('returns default notification preferences when none are set', async () => {
       const caller = createCaller(organization, user)
 
       const result = await caller.getNotificationPreferences()
@@ -87,16 +99,15 @@ describe('organizationsRouter - notification preferences', () => {
       expect(result.payoutsEnabled).toBe(true)
     })
 
-    it('should return stored notification preferences merged with defaults', async () => {
-      // Set custom preferences
+    it('returns stored notification preferences merged with defaults', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const [membership] = await selectMemberships(
+        const [membershipRecord] = await selectMemberships(
           { userId: user.id, organizationId: organization.id },
           transaction
         )
         await updateMembership(
           {
-            id: membership.id,
+            id: membershipRecord.id,
             notificationPreferences: {
               testModeNotifications: true,
               subscriptionCreated: false,
@@ -111,26 +122,13 @@ describe('organizationsRouter - notification preferences', () => {
 
       expect(result.testModeNotifications).toBe(true)
       expect(result.subscriptionCreated).toBe(false)
-      // Other fields should have defaults
       expect(result.subscriptionAdjusted).toBe(true)
       expect(result.subscriptionCanceled).toBe(true)
       expect(result.paymentFailed).toBe(true)
     })
 
-    it('should throw BAD_REQUEST when organizationId is missing', async () => {
-      const callerWithoutOrg = organizationsRouter.createCaller({
-        organizationId: undefined,
-        organization: undefined,
-        user,
-        livemode: true,
-        environment: 'live' as const,
-        isApi: false,
-        path: '',
-        apiKey: undefined,
-        session: {
-          user: { id: user.betterAuthId! },
-        } as any,
-      } as TRPCContext)
+    it('throws BAD_REQUEST when organizationId is missing', async () => {
+      const callerWithoutOrg = createCallerWithoutOrg(user)
 
       const error = await callerWithoutOrg
         .getNotificationPreferences()
@@ -141,8 +139,7 @@ describe('organizationsRouter - notification preferences', () => {
       expect(error.message).toBe('organizationId is required')
     })
 
-    it('should throw NOT_FOUND when membership does not exist', async () => {
-      // Create a user without any membership
+    it('throws NOT_FOUND when membership does not exist', async () => {
       const nanoid = Date.now().toString()
       const userWithoutMembership = await adminTransaction(
         async ({ transaction }) => {
@@ -170,7 +167,7 @@ describe('organizationsRouter - notification preferences', () => {
   })
 
   describe('updateNotificationPreferences', () => {
-    it('should update notification preferences and return normalized result', async () => {
+    it('updates notification preferences and returns normalized result', async () => {
       const caller = createCaller(organization, user)
 
       const result = await caller.updateNotificationPreferences({
@@ -182,20 +179,17 @@ describe('organizationsRouter - notification preferences', () => {
 
       expect(result.preferences.testModeNotifications).toBe(true)
       expect(result.preferences.subscriptionCreated).toBe(false)
-      // Other fields should have defaults
       expect(result.preferences.subscriptionAdjusted).toBe(true)
       expect(result.preferences.subscriptionCanceled).toBe(true)
       expect(result.preferences.paymentFailed).toBe(true)
 
-      // Verify preferences were persisted
       const getResult = await caller.getNotificationPreferences()
       expect(getResult).toEqual(result.preferences)
     })
 
-    it('should merge partial updates with existing preferences', async () => {
+    it('merges partial updates with existing preferences', async () => {
       const caller = createCaller(organization, user)
 
-      // First update
       await caller.updateNotificationPreferences({
         preferences: {
           testModeNotifications: true,
@@ -203,7 +197,6 @@ describe('organizationsRouter - notification preferences', () => {
         },
       })
 
-      // Second update (partial)
       const result = await caller.updateNotificationPreferences({
         preferences: {
           paymentFailed: false,
@@ -213,11 +206,10 @@ describe('organizationsRouter - notification preferences', () => {
       expect(result.preferences.testModeNotifications).toBe(true)
       expect(result.preferences.subscriptionCreated).toBe(false)
       expect(result.preferences.paymentFailed).toBe(false)
-      // Other fields should still have defaults
       expect(result.preferences.subscriptionAdjusted).toBe(true)
     })
 
-    it('should return all notification preference fields with defaults', async () => {
+    it('returns all notification preference fields with defaults', async () => {
       const caller = createCaller(organization, user)
 
       const result = await caller.updateNotificationPreferences({
@@ -226,7 +218,6 @@ describe('organizationsRouter - notification preferences', () => {
         },
       })
 
-      // Verify all fields are present (normalized with defaults)
       const expectedKeys = [
         'testModeNotifications',
         'subscriptionCreated',
@@ -243,20 +234,8 @@ describe('organizationsRouter - notification preferences', () => {
       }
     })
 
-    it('should throw BAD_REQUEST when organizationId is missing', async () => {
-      const callerWithoutOrg = organizationsRouter.createCaller({
-        organizationId: undefined,
-        organization: undefined,
-        user,
-        livemode: true,
-        environment: 'live' as const,
-        isApi: false,
-        path: '',
-        apiKey: undefined,
-        session: {
-          user: { id: user.betterAuthId! },
-        } as any,
-      } as TRPCContext)
+    it('throws BAD_REQUEST when organizationId is missing', async () => {
+      const callerWithoutOrg = createCallerWithoutOrg(user)
 
       const error = await callerWithoutOrg
         .updateNotificationPreferences({
@@ -269,8 +248,7 @@ describe('organizationsRouter - notification preferences', () => {
       expect(error.message).toBe('organizationId is required')
     })
 
-    it('should throw NOT_FOUND when membership does not exist', async () => {
-      // Create a user without any membership
+    it('throws NOT_FOUND when membership does not exist', async () => {
       const nanoid = Date.now().toString()
       const userWithoutMembership = await adminTransaction(
         async ({ transaction }) => {
@@ -298,7 +276,7 @@ describe('organizationsRouter - notification preferences', () => {
       expect(error.message).toBe('Membership not found')
     })
 
-    it('should handle updates with all preferences disabled', async () => {
+    it('handles updates with all preferences disabled', async () => {
       const caller = createCaller(organization, user)
 
       const result = await caller.updateNotificationPreferences({
@@ -314,13 +292,12 @@ describe('organizationsRouter - notification preferences', () => {
         },
       })
 
-      // All should be false
       for (const value of Object.values(result.preferences)) {
         expect(value).toBe(false)
       }
     })
 
-    it('should handle updates with all preferences enabled', async () => {
+    it('handles updates with all preferences enabled', async () => {
       const caller = createCaller(organization, user)
 
       const result = await caller.updateNotificationPreferences({
@@ -336,7 +313,6 @@ describe('organizationsRouter - notification preferences', () => {
         },
       })
 
-      // All should be true
       for (const value of Object.values(result.preferences)) {
         expect(value).toBe(true)
       }
