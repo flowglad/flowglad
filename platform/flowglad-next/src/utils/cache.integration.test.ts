@@ -106,12 +106,9 @@ describeIfRedisKey('Cache Integration Tests', () => {
     expect(callCount).toBe(1)
 
     // Verify the value is stored in Redis
-    const storedValue = await client.get(fullCacheKey)
-    expect(typeof storedValue).toBe('object')
-    const parsedStoredValue =
-      typeof storedValue === 'string'
-        ? JSON.parse(storedValue)
-        : storedValue
+    const storedValue = await client.get<string>(fullCacheKey)
+    expect(typeof storedValue).toBe('string')
+    const parsedStoredValue = JSON.parse(storedValue!)
     expect(parsedStoredValue).toEqual({
       id: 'customer_123',
       name: 'Test Customer',
@@ -1247,7 +1244,7 @@ describeIfRedisKey(
 
         // Verify the result is stored in Redis
         const storedValue = await client.get(cacheKey)
-        expect(typeof storedValue).toBe('object')
+        expect(typeof storedValue).toBe('string')
 
         // Second call - should return from cache
         const features2 =
