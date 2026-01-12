@@ -15,7 +15,7 @@ import {
   createPaginatedTableRowOutputSchema,
   createSupabaseWebhookSchema,
   enableCustomerReadPolicy,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -59,8 +59,10 @@ const columns = {
   ),
 }
 
-export const customers = pgTable(TABLE_NAME, columns, (table) => {
-  return [
+export const customers = pgTable(
+  TABLE_NAME,
+  columns,
+  livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructIndex(TABLE_NAME, [
       table.email,
@@ -110,9 +112,8 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
       for: 'delete',
       using: sql`false`,
     }),
-    livemodePolicy(TABLE_NAME),
-  ]
-}).enableRLS()
+  ])
+).enableRLS()
 
 const readOnlyColumns = {
   livemode: true,

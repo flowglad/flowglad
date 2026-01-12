@@ -19,7 +19,7 @@ import {
   constructIndex,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -91,44 +91,41 @@ export const subscriptionMeterPeriodCalculations = pgTable(
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.subscriptionId]),
-      constructIndex(TABLE_NAME, [table.usageMeterId]),
-      constructIndex(TABLE_NAME, [table.billingPeriodId]),
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.status]),
-      constructIndex(TABLE_NAME, [table.billingRunId]),
-      constructIndex(TABLE_NAME, [table.supersededByCalculationId]),
-      constructIndex(TABLE_NAME, [table.sourceInvoiceId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      //   constructIndex(TABLE_NAME, [table.sourceCreditNoteId]),
-      foreignKey({
-        columns: [table.supersededByCalculationId],
-        foreignColumns: [table.id],
-        name: `${TABLE_NAME}_superseded_by_id_fk`,
-      }),
-      uniqueIndex(`${TABLE_NAME}_active_calculation_uq`)
-        .on(
-          table.subscriptionId,
-          table.usageMeterId,
-          table.billingPeriodId,
-          table.status
-        )
-        .where(
-          sql`${table.status} = ${SubscriptionMeterPeriodCalculationStatus.Active}`
-        ),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          to: 'all',
-          using: orgIdEqualsCurrentSQL(),
-        }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.subscriptionId]),
+    constructIndex(TABLE_NAME, [table.usageMeterId]),
+    constructIndex(TABLE_NAME, [table.billingPeriodId]),
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.status]),
+    constructIndex(TABLE_NAME, [table.billingRunId]),
+    constructIndex(TABLE_NAME, [table.supersededByCalculationId]),
+    constructIndex(TABLE_NAME, [table.sourceInvoiceId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    //   constructIndex(TABLE_NAME, [table.sourceCreditNoteId]),
+    foreignKey({
+      columns: [table.supersededByCalculationId],
+      foreignColumns: [table.id],
+      name: `${TABLE_NAME}_superseded_by_id_fk`,
+    }),
+    uniqueIndex(`${TABLE_NAME}_active_calculation_uq`)
+      .on(
+        table.subscriptionId,
+        table.usageMeterId,
+        table.billingPeriodId,
+        table.status
+      )
+      .where(
+        sql`${table.status} = ${SubscriptionMeterPeriodCalculationStatus.Active}`
       ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        to: 'all',
+        using: orgIdEqualsCurrentSQL(),
+      }
+    ),
+  ])
 ).enableRLS()
 
 // Zod Schemas

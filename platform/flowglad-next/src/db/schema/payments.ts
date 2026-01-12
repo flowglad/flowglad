@@ -16,7 +16,7 @@ import {
   createPaginatedSelectSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -109,39 +109,36 @@ export const payments = pgTable(
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.invoiceId]),
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.paymentMethod]),
-      constructIndex(TABLE_NAME, [table.customerId]),
-      constructIndex(TABLE_NAME, [table.status]),
-      constructIndex(TABLE_NAME, [table.currency]),
-      constructIndex(TABLE_NAME, [table.purchaseId]),
-      constructUniqueIndex(TABLE_NAME, [table.stripeChargeId]),
-      constructIndex(TABLE_NAME, [table.subscriptionId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"customer_id" in (select "id" from "customers")`,
-        }
-      ),
-      merchantPolicy('Enable select for own organization', {
-        as: 'permissive',
-        to: 'merchant',
-        for: 'select',
-        using: orgIdEqualsCurrentSQL(),
-      }),
-      merchantPolicy('Enable update for own organization', {
-        as: 'permissive',
-        to: 'merchant',
-        for: 'update',
-        using: orgIdEqualsCurrentSQL(),
-      }),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.invoiceId]),
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.paymentMethod]),
+    constructIndex(TABLE_NAME, [table.customerId]),
+    constructIndex(TABLE_NAME, [table.status]),
+    constructIndex(TABLE_NAME, [table.currency]),
+    constructIndex(TABLE_NAME, [table.purchaseId]),
+    constructUniqueIndex(TABLE_NAME, [table.stripeChargeId]),
+    constructIndex(TABLE_NAME, [table.subscriptionId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"customer_id" in (select "id" from "customers")`,
+      }
+    ),
+    merchantPolicy('Enable select for own organization', {
+      as: 'permissive',
+      to: 'merchant',
+      for: 'select',
+      using: orgIdEqualsCurrentSQL(),
+    }),
+    merchantPolicy('Enable update for own organization', {
+      as: 'permissive',
+      to: 'merchant',
+      for: 'update',
+      using: orgIdEqualsCurrentSQL(),
+    }),
+  ])
 ).enableRLS()
 
 const columnEnhancements = {

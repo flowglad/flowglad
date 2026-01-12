@@ -21,6 +21,7 @@ import {
 import {
   bigserial,
   boolean,
+  type ForeignKeyBuilder,
   type IndexBuilder,
   type IndexBuilderOn,
   type IndexColumn,
@@ -716,7 +717,7 @@ export const taxSchemaColumns = {
   taxType: core.createSafeZodEnum(TaxType).nullable(),
 }
 
-export const livemodePolicy = (tableName: string) =>
+const livemodePolicy = (tableName: string) =>
   pgPolicy(`Check mode (${tableName})`, {
     as: 'restrictive',
     to: merchantRole,
@@ -726,9 +727,9 @@ export const livemodePolicy = (tableName: string) =>
 
 /**
  * Type for table extras that can be returned by pgTable callbacks.
- * This includes policies, indexes, and unique indexes.
+ * This includes policies, indexes, unique indexes, and foreign keys.
  */
-export type TableExtra = PgPolicy | IndexBuilder
+export type TableExtra = PgPolicy | IndexBuilder | ForeignKeyBuilder
 
 /**
  * Type for the livemode index helper function provided to livemodePolicyTable callbacks.
