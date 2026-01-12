@@ -55,6 +55,10 @@ export interface WorkflowTransactionContext {
    * Use CacheDependency helpers to construct keys.
    */
   invalidateCache?: (...keys: CacheDependencyKey[]) => void
+  /**
+   * Queue events to be inserted before the transaction commits.
+   */
+  emitEvent?: (...events: Event.Insert[]) => void
 }
 
 /**
@@ -75,7 +79,7 @@ export const createSubscriptionWorkflow = async (
   >
 > => {
   // Destructure context for cleaner code below
-  const { transaction, invalidateCache } = ctx
+  const { transaction, invalidateCache, emitEvent } = ctx
 
   // FIXME: Re-enable this once usage prices are fully deprecated
   if (
@@ -409,9 +413,11 @@ export const createSubscriptionWorkflow = async (
     )
   )
 
+  // Emit subscription created event via effects context
+  emitEvent?.(...eventInserts)
+
   return {
     result: transactionResult,
     ledgerCommand,
-    eventsToInsert: eventInserts,
   }
 }

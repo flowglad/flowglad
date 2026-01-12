@@ -240,7 +240,8 @@ export interface CancelSubscriptionImmediatelyParams {
 export const cancelSubscriptionImmediately = async (
   params: CancelSubscriptionImmediatelyParams,
   transaction: DbTransaction,
-  invalidateCache?: (...keys: CacheDependencyKey[]) => void
+  invalidateCache?: (...keys: CacheDependencyKey[]) => void,
+  emitEvent?: (...events: Event.Insert[]) => void
 ): Promise<TransactionOutput<Subscription.Record>> => {
   const {
     subscription,
@@ -259,14 +260,11 @@ export const cancelSubscriptionImmediately = async (
   )
 
   if (isSubscriptionInTerminalState(subscription.status)) {
+    emitEvent?.(
+      constructSubscriptionCanceledEventInsert(subscription, customer)
+    )
     return {
       result: subscription,
-      eventsToInsert: [
-        constructSubscriptionCanceledEventInsert(
-          subscription,
-          customer
-        ),
-      ],
     }
   }
   if (
@@ -278,14 +276,14 @@ export const cancelSubscriptionImmediately = async (
       SubscriptionStatus.Canceled,
       transaction
     )
+    emitEvent?.(
+      constructSubscriptionCanceledEventInsert(
+        updatedSubscription,
+        customer
+      )
+    )
     return {
       result: updatedSubscription,
-      eventsToInsert: [
-        constructSubscriptionCanceledEventInsert(
-          updatedSubscription,
-          customer
-        ),
-      ],
     }
   }
   const endDate = Date.now()
@@ -435,14 +433,14 @@ export const cancelSubscriptionImmediately = async (
     }
   }
 
+  emitEvent?.(
+    constructSubscriptionCanceledEventInsert(
+      updatedSubscription,
+      customer
+    )
+  )
   return {
     result: updatedSubscription,
-    eventsToInsert: [
-      constructSubscriptionCanceledEventInsert(
-        updatedSubscription,
-        customer
-      ),
-    ],
   }
 }
 
@@ -612,6 +610,7 @@ export const cancelSubscriptionProcedureTransaction = async ({
   input,
   transaction,
   invalidateCache,
+  emitEvent,
 }: CancelSubscriptionProcedureParams): Promise<
   TransactionOutput<{ subscription: Subscription.ClientRecord }>
 > => {
@@ -643,13 +642,14 @@ export const cancelSubscriptionProcedureTransaction = async ({
     SubscriptionCancellationArrangement.Immediately
   ) {
     // Note: subscription is already fetched above, can reuse it
-    const { result: updatedSubscription, eventsToInsert } =
+    const { result: updatedSubscription } =
       await cancelSubscriptionImmediately(
         {
           subscription,
         },
         transaction,
-        invalidateCache
+        invalidateCache,
+        emitEvent
       )
     return {
       result: {
@@ -661,7 +661,6 @@ export const cancelSubscriptionProcedureTransaction = async ({
           ),
         },
       },
-      eventsToInsert,
     }
   }
   const updatedSubscription = await scheduleSubscriptionCancellation(
@@ -684,7 +683,6 @@ export const cancelSubscriptionProcedureTransaction = async ({
         ),
       },
     },
-    eventsToInsert: [],
   }
 }
 
@@ -839,7 +837,6 @@ export const uncancelSubscription = async (
   if (isSubscriptionInTerminalState(subscription.status)) {
     return {
       result: subscription,
-      eventsToInsert: [],
     }
   }
 
@@ -849,7 +846,6 @@ export const uncancelSubscription = async (
   ) {
     return {
       result: subscription,
-      eventsToInsert: [],
     }
   }
 
@@ -869,7 +865,6 @@ export const uncancelSubscription = async (
   ) {
     return {
       result: subscription,
-      eventsToInsert: [],
     }
   }
 
@@ -915,7 +910,6 @@ export const uncancelSubscription = async (
   // Note: No events are emitted for uncancel
   return {
     result: updatedSubscription,
-    eventsToInsert: [],
   }
 }
 
@@ -963,6 +957,5 @@ export const uncancelSubscriptionProcedureTransaction = async ({
         ),
       },
     },
-    eventsToInsert: [],
   }
 }
