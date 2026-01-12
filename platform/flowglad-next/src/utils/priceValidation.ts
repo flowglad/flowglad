@@ -13,7 +13,7 @@ type RawPriceInput = {
 }
 
 /**
- * Type guard to extract raw productId value from a price input.
+ * Helper function to extract raw productId value from a price input.
  * Works with both parsed Price.ClientInsert and raw input objects.
  */
 const getRawProductId = (

@@ -847,6 +847,8 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
     // Query with excludeUsageProducts=true
     // Since usage prices no longer have products (productId is null),
     // this filter has no effect - all products are returned
+    // Note: excludeUsageProducts is an additional runtime filter not part of the typed schema,
+    // so type assertion is necessary here.
     const resultWithExclusion = await adminTransaction(
       async ({ transaction }) => {
         return selectProductsCursorPaginated({
@@ -890,7 +892,13 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
     )
     expect(allProductNames).toContain('Subscription Product')
     // Both queries return the same products since the filter is obsolete
-    expect(allProductNames.length).toBe(productNames.length)
+    const idsWith = resultWithExclusion.items
+      .map((i) => i.product.id)
+      .sort()
+    const idsWithout = resultWithoutExclusion.items
+      .map((i) => i.product.id)
+      .sort()
+    expect(idsWithout).toEqual(idsWith)
   })
 
   it('includes all products when excludeUsageProducts=false', async () => {

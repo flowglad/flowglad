@@ -898,15 +898,16 @@ const setupSubscriptionPriceSchema = baseSetupPriceSchema.extend({
 })
 
 // Usage prices do NOT have productId - they belong to usage meters
-const setupUsagePriceSchema =
-  baseSetupPriceSchemaWithoutProductId.extend({
-    type: z.literal(PriceType.Usage),
-    intervalUnit: z.nativeEnum(IntervalUnit).optional(),
-    intervalCount: z.number().optional(),
-    usageMeterId: z.string(), // Required for Usage prices - replaces productId
-    trialPeriodDays: z.never().optional(), // Usage prices don't have trial periods
-    productId: z.never().optional(), // Usage prices do NOT have productId
-  })
+// Extends baseSetupPriceSchema (same as other price types) to enable proper
+// TypeScript discriminated union narrowing, then overrides productId to z.never().
+const setupUsagePriceSchema = baseSetupPriceSchema.extend({
+  type: z.literal(PriceType.Usage),
+  intervalUnit: z.nativeEnum(IntervalUnit).optional(),
+  intervalCount: z.number().optional(),
+  usageMeterId: z.string(), // Required for Usage prices - replaces productId
+  trialPeriodDays: z.never().optional(), // Usage prices don't have trial periods
+  productId: z.never().optional(), // Override: Usage prices do NOT have productId
+})
 
 const setupPriceInputSchema = z.discriminatedUnion('type', [
   setupSinglePaymentPriceSchema,

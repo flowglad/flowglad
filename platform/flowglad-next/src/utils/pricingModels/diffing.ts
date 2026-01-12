@@ -334,11 +334,12 @@ const getUsagePriceSlug = (
   if (price.slug) {
     return price.slug
   }
-  // Fallback: generate a unique key from identifying fields to avoid collisions.
-  // Include currency and name to differentiate prices with same unitPrice/usageEventsPerUnit.
+  // Fallback: generate a unique key from immutable identifying fields.
+  // Note: `name` is intentionally excluded because it's a mutable display field.
+  // Including `name` would cause price updates (name change only) to be treated
+  // as replacements (delete + create) instead of updates, breaking price IDs.
   const currency = price.currency ?? 'USD'
-  const name = price.name ?? ''
-  return `__generated__${price.unitPrice}_${price.usageEventsPerUnit}_${currency}_${name}`
+  return `__generated__${price.unitPrice}_${price.usageEventsPerUnit}_${currency}`
 }
 
 /**

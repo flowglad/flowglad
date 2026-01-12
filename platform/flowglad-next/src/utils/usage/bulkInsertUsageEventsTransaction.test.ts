@@ -26,16 +26,6 @@ import {
 } from '@/types'
 import { bulkInsertUsageEventsTransaction } from './bulkInsertUsageEventsTransaction'
 
-// FIXME: TypeScript is failing to narrow the zod discriminated union correctly for usage prices.
-// The discriminated union in setupPriceInputSchema should allow PriceType.Usage, but TypeScript
-// incorrectly narrows it to PriceType.Subscription. This type assertion is a workaround.
-// We should investigate why the discriminated union isn't working properly - possibly related
-// to zod 4.x or how the schemas are structured (setupUsagePriceSchema extends a different base).
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const asUsagePriceInput = (
-  input: any
-): Parameters<typeof setupPrice>[0] => input
-
 describe('bulkInsertUsageEventsTransaction', () => {
   let organization: Organization.Record
   let pricingModelId: string
@@ -298,19 +288,17 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
       const otherPrice = await adminTransaction(
         async ({ transaction }) =>
-          setupPrice(
-            asUsagePriceInput({
-              name: 'Other Usage Price',
-              type: PriceType.Usage,
-              unitPrice: 10,
-              intervalUnit: IntervalUnit.Day,
-              intervalCount: 1,
-              livemode: true,
-              isDefault: false,
-              currency: CurrencyCode.USD,
-              usageMeterId: otherUsageMeter.id,
-            })
-          )
+          setupPrice({
+            name: 'Other Usage Price',
+            type: PriceType.Usage,
+            unitPrice: 10,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            currency: CurrencyCode.USD,
+            usageMeterId: otherUsageMeter.id,
+          })
       )
 
       // Try to create a usage event for our customer's subscription using a priceId
@@ -353,19 +341,17 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Create a usage price for the count distinct meter
       const countDistinctPrice = await adminTransaction(
         async ({ transaction }) =>
-          setupPrice(
-            asUsagePriceInput({
-              name: 'Count Distinct Price',
-              type: PriceType.Usage,
-              unitPrice: 10,
-              intervalUnit: IntervalUnit.Day,
-              intervalCount: 1,
-              livemode: true,
-              isDefault: false,
-              currency: CurrencyCode.USD,
-              usageMeterId: countDistinctMeter.id,
-            })
-          )
+          setupPrice({
+            name: 'Count Distinct Price',
+            type: PriceType.Usage,
+            unitPrice: 10,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            currency: CurrencyCode.USD,
+            usageMeterId: countDistinctMeter.id,
+          })
       )
 
       // Create subscription without billing period (no billing period record exists for this subscription)
