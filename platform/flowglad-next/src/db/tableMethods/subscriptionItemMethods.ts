@@ -320,19 +320,27 @@ const subscriptionItemWithPriceSchema = z.object({
 
 /**
  * Internal cached implementation for single subscription lookup.
+ * Cache key includes livemode to prevent mixing live/test data.
  */
 const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
   cached(
     {
       namespace: RedisKeyNamespace.ItemsBySubscription,
-      keyFn: (subscriptionId: string, _transaction: DbTransaction) =>
-        subscriptionId,
+      keyFn: (
+        subscriptionId: string,
+        _transaction: DbTransaction,
+        livemode: boolean
+      ) => `${subscriptionId}:${livemode}`,
       schema: subscriptionItemWithPriceSchema.array(),
       dependenciesFn: (subscriptionId: string) => [
         CacheDependency.subscriptionItems(subscriptionId),
       ],
     },
-    async (subscriptionId: string, transaction: DbTransaction) => {
+    async (
+      subscriptionId: string,
+      transaction: DbTransaction,
+      _livemode: boolean
+    ) => {
       return selectSubscriptionItemsWithPricesBySubscriptionIds(
         [subscriptionId],
         transaction
@@ -346,6 +354,7 @@ const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
  *
  * @param subscriptionId - The subscription ID to fetch items for
  * @param transaction - Database transaction
+ * @param livemode - Required for cache key scoping to prevent mixing live/test data
  * @param options.ignoreCache - If true, bypasses cache and fetches directly from database
  * @returns Array of subscription items with their prices
  */
@@ -353,6 +362,7 @@ export const selectSubscriptionItemsWithPricesBySubscriptionId =
   async (
     subscriptionId: string,
     transaction: DbTransaction,
+    livemode: boolean,
     options: { ignoreCache?: boolean } = {}
   ) => {
     if (options.ignoreCache) {
@@ -363,7 +373,8 @@ export const selectSubscriptionItemsWithPricesBySubscriptionId =
     }
     return selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal(
       subscriptionId,
-      transaction
+      transaction,
+      livemode
     )
   }
 
@@ -477,7 +488,8 @@ export const selectRichSubscriptionsAndActiveItems = async (
       subscriptionIds.map((id) =>
         selectSubscriptionItemsWithPricesBySubscriptionId(
           id,
-          transaction
+          transaction,
+          livemode
         )
       )
     )

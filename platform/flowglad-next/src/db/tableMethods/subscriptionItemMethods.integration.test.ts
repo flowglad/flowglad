@@ -76,8 +76,8 @@ describeIfRedisKey(
         priceId: price.id,
       })
 
-      // Track cache keys for cleanup
-      const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}`
+      // Track cache keys for cleanup (livemode is true by default in admin transactions)
+      const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}:true`
       const dependencyKey = CacheDependency.subscriptionItems(
         subscription.id
       )
@@ -92,18 +92,20 @@ describeIfRedisKey(
 
     it('selectSubscriptionItemsWithPricesBySubscriptionId populates cache, returns cached result on subsequent calls, and registers subscription dependency', async () => {
       const client = getRedisTestClient()
-      const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}`
+      // Cache key includes livemode (true by default in admin transactions)
+      const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}:true`
       const dependencyKey = CacheDependency.subscriptionItems(
         subscription.id
       )
       const registryKey = `cacheDeps:${dependencyKey}`
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         // First call - should populate cache
         const result1 =
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
-            transaction
+            transaction,
+            livemode
           )
 
         // Verify correct data returned
@@ -113,9 +115,17 @@ describeIfRedisKey(
         )
         expect(result1[0].price?.id).toBe(price.id)
 
-        // Verify the value is stored in Redis
+        // Verify the value is stored in Redis and has expected structure
         const storedValue = await client.get(cacheKey)
-        expect(typeof storedValue).toBe('object')
+        expect(Array.isArray(storedValue)).toBe(true)
+        const storedArray = storedValue as Array<{
+          subscriptionItem: { id: string }
+          price: { id: string } | null
+        }>
+        expect(storedArray.length).toBe(1)
+        expect(storedArray[0].subscriptionItem.id).toBe(
+          subscriptionItem.id
+        )
 
         // Verify the dependency registry contains our cache key
         const registeredKeys = await client.smembers(registryKey)
@@ -125,7 +135,8 @@ describeIfRedisKey(
         const result2 =
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
-            transaction
+            transaction,
+            livemode
           )
 
         expect(result2.length).toBe(1)
@@ -137,20 +148,23 @@ describeIfRedisKey(
 
     it('cache returns fresh data after invalidateDependencies is called with subscription dependency', async () => {
       const client = getRedisTestClient()
-      const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}`
+      // Cache key includes livemode (true by default in admin transactions)
+      const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}:true`
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         // First call - populate cache with 1 item
         const result1 =
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
-            transaction
+            transaction,
+            livemode
           )
         expect(result1.length).toBe(1)
 
-        // Verify cache is populated
+        // Verify cache is populated with expected structure
         const cachedBefore = await client.get(cacheKey)
-        expect(typeof cachedBefore).toBe('object')
+        expect(Array.isArray(cachedBefore)).toBe(true)
+        expect((cachedBefore as unknown[]).length).toBe(1)
 
         // Add a new subscription item (outside the cache)
         await setupSubscriptionItem({
@@ -174,7 +188,8 @@ describeIfRedisKey(
         const result2 =
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
-            transaction
+            transaction,
+            livemode
           )
         expect(result2.length).toBe(2)
       })
@@ -182,17 +197,19 @@ describeIfRedisKey(
 
     it('cache returns empty array for non-existent subscription', async () => {
       const nonExistentId = 'sub_nonexistent_12345'
-      const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${nonExistentId}`
+      // Cache key includes livemode (true by default in admin transactions)
+      const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${nonExistentId}:true`
       const dependencyKey =
         CacheDependency.subscriptionItems(nonExistentId)
       const registryKey = `cacheDeps:${dependencyKey}`
       keysToCleanup.push(cacheKey, registryKey)
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         const result =
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             nonExistentId,
-            transaction
+            transaction,
+            livemode
           )
         expect(result).toEqual([])
       })
