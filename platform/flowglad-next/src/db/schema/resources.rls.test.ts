@@ -139,7 +139,7 @@ describe('resources RLS - merchant role sequence permissions', () => {
         { apiKey: apiKey.token }
       )
 
-      expect(resources.length).toBeGreaterThanOrEqual(2)
+      expect(resources.length).toBe(2)
       const slugs = resources.map((r) => r.slug)
       expect(slugs).toContain('resource-1')
       expect(slugs).toContain('resource-2')
