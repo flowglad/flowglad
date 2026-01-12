@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@flowglad/javascript",
@@ -68,6 +67,7 @@
         "postcss": "^8.4.35",
         "tailwindcss": "^3.4.1",
         "typescript": "5.8.2",
+        "vitest": "3.0.5",
       },
       "peerDependencies": {
         "react": "^19.0.0 || ^18.0.0",
