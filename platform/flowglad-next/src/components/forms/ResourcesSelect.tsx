@@ -1,5 +1,10 @@
 import { useEffect } from 'react'
-import { type Control, useFormContext } from 'react-hook-form'
+import {
+  type Control,
+  type FieldPath,
+  type FieldValues,
+  useFormContext,
+} from 'react-hook-form'
 import { trpc } from '@/app/_trpc/client'
 import {
   FormControl,
@@ -17,19 +22,19 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 
-interface ResourcesSelectProps {
-  name: string
-  control: Control<any>
+interface ResourcesSelectProps<T extends FieldValues = FieldValues> {
+  name: FieldPath<T>
+  control: Control<T>
   disabled?: boolean
   pricingModelId?: string
 }
 
-const ResourcesSelect = ({
+const ResourcesSelect = <T extends FieldValues = FieldValues>({
   name,
   control,
   disabled,
   pricingModelId,
-}: ResourcesSelectProps) => {
+}: ResourcesSelectProps<T>) => {
   const { data, isLoading: isLoadingResources } =
     trpc.resources.list.useQuery(
       { pricingModelId: pricingModelId! },
@@ -42,14 +47,16 @@ const ResourcesSelect = ({
   const resources = data?.resources
   const form = useFormContext()
   const { watch, setValue } = form
-  const resourceId = watch(name)
+  // Cast name to string since useFormContext returns an untyped form
+  const nameAsString = name as string
+  const resourceId = watch(nameAsString)
 
   // Validate and reset selection when filtered data changes
   useEffect(() => {
     // If no resources available, clear the selection
     if (!resources?.length) {
       if (resourceId) {
-        setValue(name, '')
+        setValue(nameAsString, '')
       }
       return
     }
@@ -61,9 +68,9 @@ const ResourcesSelect = ({
 
     if (!isCurrentResourceValid) {
       // Reset to first resource when current selection is invalid
-      setValue(name, resources[0].id)
+      setValue(nameAsString, resources[0].id)
     }
-  }, [name, resourceId, resources, setValue])
+  }, [nameAsString, resourceId, resources, setValue])
 
   const hasNoResources =
     !isLoadingResources && (!resources || resources.length === 0)
