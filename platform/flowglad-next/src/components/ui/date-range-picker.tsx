@@ -438,9 +438,11 @@ export function DateRangePicker({
         <PopoverTrigger asChild>
           <Button
             id="date"
-            variant="secondary"
-            size="sm"
-            className={cn(!fromDate && 'text-muted-foreground')}
+            variant="ghost"
+            className={cn(
+              'text-foreground',
+              !fromDate && 'text-muted-foreground'
+            )}
             disabled={disabled}
           >
             {formatDateRange()}
