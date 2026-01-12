@@ -230,14 +230,14 @@ export const selectSubscriptionsTableRowData =
         .map((subscription) => subscription.customerId)
         .filter((id): id is string => id !== null)
 
-      // Query 1: Get prices with products
+      // Query 1: Get prices with products (leftJoin allows usage prices with null productId)
       const priceResults = await transaction
         .select({
           price: prices,
           product: products,
         })
         .from(prices)
-        .innerJoin(products, eq(products.id, prices.productId))
+        .leftJoin(products, eq(products.id, prices.productId))
         .where(inArray(prices.id, priceIds))
 
       // Query 2: Get customers
@@ -249,11 +249,11 @@ export const selectSubscriptionsTableRowData =
       const pricesById = new Map(
         priceResults.map((result) => [result.price.id, result.price])
       )
+      // Filter out null products (usage prices have no product)
       const productsById = new Map(
-        priceResults.map((result) => [
-          result.product.id,
-          result.product,
-        ])
+        priceResults
+          .filter((result) => result.product !== null)
+          .map((result) => [result.product!.id, result.product!])
       )
       const customersById = new Map(
         customerResults.map((customer) => [customer.id, customer])

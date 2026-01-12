@@ -231,7 +231,9 @@ const InnerSubscriptionPage = ({
                     variant="subscription"
                     quantity={item.quantity}
                     renewalDate={renewalDate}
-                    href={`/products/${productId}`}
+                    href={
+                      productId ? `/products/${productId}` : undefined
+                    }
                   />
                 )
               })}
