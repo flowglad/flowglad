@@ -727,6 +727,14 @@ const fetchPricingModel = async ({
 export const FlowgladContextProvider = (
   props: FlowgladContextProviderProps
 ) => {
+  // Emit deprecation warning if loadBilling is passed
+  if (!isDevModeProps(props) && 'loadBilling' in props) {
+    console.warn(
+      'FlowgladProvider: loadBilling prop is deprecated and no longer needed. ' +
+        'Billing now loads lazily when useBilling() is called.'
+    )
+  }
+
   const queryClient = useQueryClient()
   const devModeProps = isDevModeProps(props) ? props : null
   const coreProps = isDevModeProps(props) ? null : props

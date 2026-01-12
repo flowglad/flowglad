@@ -13,7 +13,7 @@ import { validateUrl } from './utils'
 
 const queryClient = new QueryClient()
 
-export interface LoadedFlowgladProviderProps {
+export interface FlowgladProviderProps {
   children: React.ReactNode
   requestConfig?: RequestConfig
   baseURL?: string
@@ -23,17 +23,28 @@ export interface LoadedFlowgladProviderProps {
   loadBilling?: boolean
 }
 
+/** @deprecated Use FlowgladProviderProps instead */
+export type LoadedFlowgladProviderProps = FlowgladProviderProps
+
 interface DevModeFlowgladProviderProps {
   __devMode: true
   billingMocks: CustomerBillingDetails
   children: React.ReactNode
 }
 
-export type FlowgladProviderProps =
-  | LoadedFlowgladProviderProps
+export type FlowgladProviderAllProps =
+  | FlowgladProviderProps
   | DevModeFlowgladProviderProps
 
-export const FlowgladProvider = (props: FlowgladProviderProps) => {
+export const FlowgladProvider = (props: FlowgladProviderAllProps) => {
+  // Emit deprecation warning if loadBilling is passed
+  if (!('__devMode' in props) && 'loadBilling' in props) {
+    console.warn(
+      'FlowgladProvider: loadBilling prop is deprecated and no longer needed. ' +
+        'Billing now loads lazily when useBilling() is called.'
+    )
+  }
+
   if ('__devMode' in props) {
     return (
       <QueryClientProvider client={queryClient}>
@@ -48,7 +59,7 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
   }
 
   const { baseURL, requestConfig, children } =
-    props as LoadedFlowgladProviderProps
+    props as FlowgladProviderProps
   if (baseURL) {
     validateUrl(baseURL, 'baseURL', true)
   }
