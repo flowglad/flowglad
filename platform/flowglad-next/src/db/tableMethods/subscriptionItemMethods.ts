@@ -282,39 +282,39 @@ export const expireSubscriptionItems = async (
 }
 
 /**
- * Selects subscription items with their associated prices for the given subscription IDs.
- * This is a decomposed query that can be cached independently.
+ * Internal function to select subscription items with their associated prices.
+ * This is the raw database query without caching.
  *
  * @param subscriptionIds - Array of subscription IDs to fetch items for
  * @param transaction - Database transaction
  * @returns Array of subscription items with their prices
  */
-export const selectSubscriptionItemsWithPricesBySubscriptionIds =
-  async (subscriptionIds: string[], transaction: DbTransaction) => {
-    if (subscriptionIds.length === 0) {
-      return []
-    }
-
-    const rows = await transaction
-      .select({
-        subscriptionItem: subscriptionItems,
-        price: prices,
-      })
-      .from(subscriptionItems)
-      .leftJoin(prices, eq(subscriptionItems.priceId, prices.id))
-      .where(
-        inArray(subscriptionItems.subscriptionId, subscriptionIds)
-      )
-
-    return rows.map((row) => ({
-      subscriptionItem: subscriptionItemsSelectSchema.parse(
-        row.subscriptionItem
-      ),
-      price: row.price
-        ? pricesClientSelectSchema.parse(row.price)
-        : null,
-    }))
+const selectSubscriptionItemsWithPricesInternal = async (
+  subscriptionIds: string[],
+  transaction: DbTransaction
+) => {
+  if (subscriptionIds.length === 0) {
+    return []
   }
+
+  const rows = await transaction
+    .select({
+      subscriptionItem: subscriptionItems,
+      price: prices,
+    })
+    .from(subscriptionItems)
+    .leftJoin(prices, eq(subscriptionItems.priceId, prices.id))
+    .where(inArray(subscriptionItems.subscriptionId, subscriptionIds))
+
+  return rows.map((row) => ({
+    subscriptionItem: subscriptionItemsSelectSchema.parse(
+      row.subscriptionItem
+    ),
+    price: row.price
+      ? pricesClientSelectSchema.parse(row.price)
+      : null,
+  }))
+}
 
 /** Schema for validating cached subscription items with prices */
 const subscriptionItemWithPriceSchema = z.object({
@@ -345,7 +345,7 @@ const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
       transaction: DbTransaction,
       _livemode: boolean
     ) => {
-      return selectSubscriptionItemsWithPricesBySubscriptionIds(
+      return selectSubscriptionItemsWithPricesInternal(
         [subscriptionId],
         transaction
       )
@@ -370,7 +370,7 @@ export const selectSubscriptionItemsWithPricesBySubscriptionId =
     options: { ignoreCache?: boolean } = {}
   ) => {
     if (options.ignoreCache) {
-      return selectSubscriptionItemsWithPricesBySubscriptionIds(
+      return selectSubscriptionItemsWithPricesInternal(
         [subscriptionId],
         transaction
       )
@@ -389,27 +389,32 @@ type SubscriptionItemWithPrice = {
 }
 
 /**
- * Bulk fetch subscription items with prices for multiple subscriptions.
- * Uses optimized cache strategy:
- * 1. Single MGET to Redis for all subscription cache keys
- * 2. Single DB query for all cache misses
- * 3. Individual cache writes for each miss
- *
- * This provides both fine-grained invalidation AND efficient bulk operations.
+ * Selects subscription items with their associated prices for multiple subscriptions.
+ * Results are cached by default using Redis with dependency-based invalidation.
  *
  * @param subscriptionIds - Array of subscription IDs to fetch items for
  * @param transaction - Database transaction
- * @param livemode - Required for cache key scoping
+ * @param livemode - Required for cache key scoping to prevent mixing live/test data
+ * @param options.ignoreCache - If true, bypasses cache and fetches directly from database
  * @returns Array of subscription items with their prices (flat, not grouped)
  */
-export const selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached =
+export const selectSubscriptionItemsWithPricesBySubscriptionIds =
   async (
     subscriptionIds: string[],
     transaction: DbTransaction,
-    livemode: boolean
+    livemode: boolean,
+    options: { ignoreCache?: boolean } = {}
   ): Promise<SubscriptionItemWithPrice[]> => {
     if (subscriptionIds.length === 0) {
       return []
+    }
+
+    // If ignoreCache is set, bypass the cache entirely
+    if (options.ignoreCache) {
+      return selectSubscriptionItemsWithPricesInternal(
+        subscriptionIds,
+        transaction
+      )
     }
 
     const resultsMap = await cachedBulkLookup<
@@ -428,7 +433,7 @@ export const selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached =
       subscriptionIds,
       // Bulk fetch function for cache misses
       async (missedSubscriptionIds: string[]) => {
-        return selectSubscriptionItemsWithPricesBySubscriptionIds(
+        return selectSubscriptionItemsWithPricesInternal(
           missedSubscriptionIds,
           transaction
         )
@@ -549,7 +554,7 @@ export const selectRichSubscriptionsAndActiveItems = async (
   // Step 2: Fetch subscription items with prices using optimized bulk cache lookup
   // This uses MGET for cache lookups + single DB query for misses
   const itemsWithPrices =
-    await selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached(
+    await selectSubscriptionItemsWithPricesBySubscriptionIds(
       subscriptionIds,
       transaction,
       livemode

@@ -25,7 +25,7 @@ import {
 import { RedisKeyNamespace } from '@/utils/redis'
 import {
   selectSubscriptionItemsWithPricesBySubscriptionId,
-  selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached,
+  selectSubscriptionItemsWithPricesBySubscriptionIds,
 } from './subscriptionItemMethods'
 
 /**
@@ -221,7 +221,7 @@ describeIfRedisKey(
 )
 
 describeIfRedisKey(
-  'selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached Integration Tests',
+  'selectSubscriptionItemsWithPricesBySubscriptionIds Integration Tests',
   () => {
     let organization: Organization.Record
     let price: Price.Record
@@ -306,7 +306,7 @@ describeIfRedisKey(
 
       await adminTransaction(async ({ transaction, livemode }) => {
         const results =
-          await selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached(
+          await selectSubscriptionItemsWithPricesBySubscriptionIds(
             [subscription1.id, subscription2.id],
             transaction,
             livemode
@@ -348,7 +348,7 @@ describeIfRedisKey(
       // Now call bulk function for both - subscription1 should be a cache hit
       await adminTransaction(async ({ transaction, livemode }) => {
         const results =
-          await selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached(
+          await selectSubscriptionItemsWithPricesBySubscriptionIds(
             [subscription1.id, subscription2.id],
             transaction,
             livemode
@@ -364,7 +364,7 @@ describeIfRedisKey(
     it('returns empty array when given empty subscription IDs array', async () => {
       await adminTransaction(async ({ transaction, livemode }) => {
         const results =
-          await selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached(
+          await selectSubscriptionItemsWithPricesBySubscriptionIds(
             [],
             transaction,
             livemode
@@ -381,7 +381,7 @@ describeIfRedisKey(
 
       await adminTransaction(async ({ transaction, livemode }) => {
         // Populate cache for both subscriptions
-        await selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached(
+        await selectSubscriptionItemsWithPricesBySubscriptionIds(
           [subscription1.id, subscription2.id],
           transaction,
           livemode
@@ -416,7 +416,7 @@ describeIfRedisKey(
         // Bulk fetch again - should get fresh data for subscription1 (2 items)
         // and cached data for subscription2 (1 item)
         const results =
-          await selectSubscriptionItemsWithPricesBySubscriptionIdsBulkCached(
+          await selectSubscriptionItemsWithPricesBySubscriptionIds(
             [subscription1.id, subscription2.id],
             transaction,
             livemode
