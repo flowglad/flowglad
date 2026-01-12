@@ -373,13 +373,13 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
     return (
       <div
         ref={mergeRefs([ref, containerRef])}
-        className={cn('h-80 w-full', className)}
+        className={cn('h-60 w-full', className)}
         tremor-id="tremor-raw"
         {...other}
       >
         {/*
          * Chart Sizing Mechanism:
-         * 1. The outer div is set to h-80 (20rem) and w-full by default, making it fill its parent's width
+         * 1. The outer div is set to h-60 (15rem) and w-full by default, making it fill its parent's width
          * 2. ResponsiveContainer wraps the chart and is set to 100% width and height, so it fills the outer div
          * 3. useContainerSize hook uses ResizeObserver to track the actual pixel dimensions of the outer div
          * 4. These dimensions (width & height) are passed to RechartsLineChart, which uses them for internal calculations

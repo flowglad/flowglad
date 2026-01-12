@@ -73,13 +73,13 @@ export const CHART_CONSTANTS: ChartConstants = {
  *
  * @example
  * const config = CHART_SIZE_CONFIG['lg']
- * // config.height === 'h-80'
+ * // config.height === 'h-60'
  * // config.padding === 'px-page'
  * // config.chartMargin === 24
  */
 export const CHART_SIZE_CONFIG: Record<ChartSize, ChartSizeConfig> = {
   lg: {
-    height: 'h-80', // 320px
+    height: 'h-60', // 240px
     padding: LAYOUT_TOKENS.page.class,
     chartMargin: LAYOUT_TOKENS.page.value,
     skeletonWidth: 'w-36',
@@ -87,7 +87,7 @@ export const CHART_SIZE_CONFIG: Record<ChartSize, ChartSizeConfig> = {
     showGridLines: true,
   },
   sm: {
-    height: 'h-40', // 160px
+    height: 'h-28', // 112px
     padding: LAYOUT_TOKENS.page.class,
     chartMargin: LAYOUT_TOKENS.page.value,
     skeletonWidth: 'w-24',

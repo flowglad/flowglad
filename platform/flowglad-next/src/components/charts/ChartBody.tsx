@@ -32,7 +32,7 @@ export function ChartBody({
 
   if (isLoading) {
     return (
-      <div className="-mb-2 mt-2 flex items-center">
+      <div className="mt-3 flex items-center">
         <Skeleton className={cn('w-full', config.height)} />
       </div>
     )
