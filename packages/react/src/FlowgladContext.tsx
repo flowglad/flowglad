@@ -645,7 +645,10 @@ const fetchCustomerBilling = async ({
         flowgladActionValidators[FlowgladActionKey.GetCustomerBilling]
           .method,
       body: JSON.stringify({}),
-      headers: requestConfig?.headers,
+      headers: {
+        'Content-Type': 'application/json',
+        ...requestConfig?.headers,
+      },
     }
   )
 
