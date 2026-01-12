@@ -254,13 +254,9 @@ export const cancelSubscriptionImmediately = async (
     (await selectCustomerById(subscription.customerId, transaction))
 
   // Cache invalidation for this customer's subscriptions
-  const cacheKey = CacheDependency.customerSubscriptions(
-    subscription.customerId
+  invalidateCache?.(
+    CacheDependency.customerSubscriptions(subscription.customerId)
   )
-  // Queue via effects context if available
-  invalidateCache?.(cacheKey)
-  // Also return for backward compatibility
-  const cacheInvalidations = [cacheKey]
 
   if (isSubscriptionInTerminalState(subscription.status)) {
     return {
@@ -271,7 +267,6 @@ export const cancelSubscriptionImmediately = async (
           customer
         ),
       ],
-      cacheInvalidations,
     }
   }
   if (
@@ -291,7 +286,6 @@ export const cancelSubscriptionImmediately = async (
           customer
         ),
       ],
-      cacheInvalidations,
     }
   }
   const endDate = Date.now()
@@ -449,7 +443,6 @@ export const cancelSubscriptionImmediately = async (
         customer
       ),
     ],
-    cacheInvalidations,
   }
 }
 
@@ -650,17 +643,14 @@ export const cancelSubscriptionProcedureTransaction = async ({
     SubscriptionCancellationArrangement.Immediately
   ) {
     // Note: subscription is already fetched above, can reuse it
-    const {
-      result: updatedSubscription,
-      eventsToInsert,
-      cacheInvalidations,
-    } = await cancelSubscriptionImmediately(
-      {
-        subscription,
-      },
-      transaction,
-      invalidateCache
-    )
+    const { result: updatedSubscription, eventsToInsert } =
+      await cancelSubscriptionImmediately(
+        {
+          subscription,
+        },
+        transaction,
+        invalidateCache
+      )
     return {
       result: {
         subscription: {
@@ -672,7 +662,6 @@ export const cancelSubscriptionProcedureTransaction = async ({
         },
       },
       eventsToInsert,
-      cacheInvalidations,
     }
   }
   const updatedSubscription = await scheduleSubscriptionCancellation(
@@ -680,10 +669,11 @@ export const cancelSubscriptionProcedureTransaction = async ({
     transaction
   )
   // Queue cache invalidation via effects context
-  const cacheKey = CacheDependency.customerSubscriptions(
-    updatedSubscription.customerId
+  invalidateCache?.(
+    CacheDependency.customerSubscriptions(
+      updatedSubscription.customerId
+    )
   )
-  invalidateCache?.(cacheKey)
   return {
     result: {
       subscription: {
@@ -695,7 +685,6 @@ export const cancelSubscriptionProcedureTransaction = async ({
       },
     },
     eventsToInsert: [],
-    cacheInvalidations: [cacheKey],
   }
 }
 
@@ -842,20 +831,15 @@ export const uncancelSubscription = async (
   invalidateCache?: (...keys: CacheDependencyKey[]) => void
 ): Promise<TransactionOutput<Subscription.Record>> => {
   // Cache invalidation for this customer's subscriptions
-  const cacheKey = CacheDependency.customerSubscriptions(
-    subscription.customerId
+  invalidateCache?.(
+    CacheDependency.customerSubscriptions(subscription.customerId)
   )
-  // Queue via effects context if available
-  invalidateCache?.(cacheKey)
-  // For backward compatibility with callers that don't pass invalidateCache
-  const cacheInvalidations = [cacheKey]
 
   // Idempotent behavior: If subscription is in terminal state, silently succeed
   if (isSubscriptionInTerminalState(subscription.status)) {
     return {
       result: subscription,
       eventsToInsert: [],
-      cacheInvalidations,
     }
   }
 
@@ -866,7 +850,6 @@ export const uncancelSubscription = async (
     return {
       result: subscription,
       eventsToInsert: [],
-      cacheInvalidations,
     }
   }
 
@@ -887,7 +870,6 @@ export const uncancelSubscription = async (
     return {
       result: subscription,
       eventsToInsert: [],
-      cacheInvalidations,
     }
   }
 
@@ -934,7 +916,6 @@ export const uncancelSubscription = async (
   return {
     result: updatedSubscription,
     eventsToInsert: [],
-    cacheInvalidations,
   }
 }
 
@@ -966,12 +947,11 @@ export const uncancelSubscriptionProcedureTransaction = async ({
     transaction
   )
 
-  const { result: updatedSubscription, cacheInvalidations } =
-    await uncancelSubscription(
-      subscription,
-      transaction,
-      invalidateCache
-    )
+  const { result: updatedSubscription } = await uncancelSubscription(
+    subscription,
+    transaction,
+    invalidateCache
+  )
 
   return {
     result: {
@@ -984,6 +964,5 @@ export const uncancelSubscriptionProcedureTransaction = async ({
       },
     },
     eventsToInsert: [],
-    cacheInvalidations,
   }
 }

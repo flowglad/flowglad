@@ -409,16 +409,9 @@ export const createSubscriptionWorkflow = async (
     )
   )
 
-  // Also return cacheInvalidations for backward compatibility with callers
-  // that don't pass the effects context (the transaction wrapper will deduplicate)
   return {
     result: transactionResult,
     ledgerCommand,
     eventsToInsert: eventInserts,
-    cacheInvalidations: [
-      CacheDependency.customerSubscriptions(
-        updatedSubscription.customerId
-      ),
-    ],
   }
 }
