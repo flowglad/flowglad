@@ -66,18 +66,32 @@ export const endpointKeyToActionKey: Record<
 /**
  * Compile-time exhaustiveness check for endpointKeyToActionKey.
  *
- * This assignment will cause a TypeScript compile error if any FlowgladActionKey
- * value is missing from endpointKeyToActionKey. This ensures that when new action
- * keys are added to the enum, developers are forced to add corresponding endpoint
- * mappings, preventing runtime gaps in API coverage.
+ * This object uses `satisfies` to cause a TypeScript compile error if any
+ * FlowgladActionKey value is missing. Unlike `as`, `satisfies` validates
+ * without bypassing type checking.
  *
- * The variable is intentionally unused (prefixed with _) as its only purpose is
- * to trigger the type check at compile time.
+ * When a new FlowgladActionKey is added:
+ * 1. TypeScript will error here until you add the mapping
+ * 2. The mapping must point to a key that exists in endpointKeyToActionKey
  */
-const _endpointKeyExhaustiveCheck: Record<FlowgladActionKey, string> =
-  Object.fromEntries(
-    Object.entries(endpointKeyToActionKey).map(([k, v]) => [v, k])
-  ) as Record<FlowgladActionKey, string>
+const _actionKeyToEndpointKey = {
+  [FlowgladActionKey.GetCustomerBilling]: 'getCustomerBilling',
+  [FlowgladActionKey.FindOrCreateCustomer]: 'findOrCreateCustomer',
+  [FlowgladActionKey.CreateCheckoutSession]: 'createCheckoutSession',
+  [FlowgladActionKey.CreateAddPaymentMethodCheckoutSession]:
+    'createAddPaymentMethodCheckoutSession',
+  [FlowgladActionKey.CreateActivateSubscriptionCheckoutSession]:
+    'createActivateSubscriptionCheckoutSession',
+  [FlowgladActionKey.CancelSubscription]: 'cancelSubscription',
+  [FlowgladActionKey.UncancelSubscription]: 'uncancelSubscription',
+  [FlowgladActionKey.AdjustSubscription]: 'adjustSubscription',
+  [FlowgladActionKey.CreateSubscription]: 'createSubscription',
+  [FlowgladActionKey.UpdateCustomer]: 'updateCustomer',
+  [FlowgladActionKey.CreateUsageEvent]: 'createUsageEvent',
+} satisfies Record<
+  FlowgladActionKey,
+  keyof typeof endpointKeyToActionKey
+>
 
 /**
  * Error response format for Better Auth endpoints.

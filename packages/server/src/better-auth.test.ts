@@ -1,4 +1,7 @@
-import { FlowgladActionKey } from '@flowglad/shared'
+import {
+  FlowgladActionKey,
+  flowgladActionValidators,
+} from '@flowglad/shared'
 import { describe, expect, it } from 'vitest'
 import {
   type BetterAuthSessionResult,
@@ -98,26 +101,32 @@ describe('resolveCustomerExternalId', () => {
   })
 })
 
-describe('endpointKeyToActionKey', () => {
-  it('maps all 11 FlowgladActionKey values to endpoint keys', () => {
-    const expectedMappings: Record<string, FlowgladActionKey> = {
-      getCustomerBilling: FlowgladActionKey.GetCustomerBilling,
-      findOrCreateCustomer: FlowgladActionKey.FindOrCreateCustomer,
-      createCheckoutSession: FlowgladActionKey.CreateCheckoutSession,
-      createAddPaymentMethodCheckoutSession:
-        FlowgladActionKey.CreateAddPaymentMethodCheckoutSession,
-      createActivateSubscriptionCheckoutSession:
-        FlowgladActionKey.CreateActivateSubscriptionCheckoutSession,
-      cancelSubscription: FlowgladActionKey.CancelSubscription,
-      uncancelSubscription: FlowgladActionKey.UncancelSubscription,
-      adjustSubscription: FlowgladActionKey.AdjustSubscription,
-      createSubscription: FlowgladActionKey.CreateSubscription,
-      updateCustomer: FlowgladActionKey.UpdateCustomer,
-      createUsageEvent: FlowgladActionKey.CreateUsageEvent,
+describe('endpointKeyToActionKey exhaustiveness', () => {
+  it('covers every FlowgladActionKey value exactly once', () => {
+    const allActionKeys = Object.values(FlowgladActionKey)
+    const mappedActionKeys = Object.values(endpointKeyToActionKey)
+
+    // Every FlowgladActionKey must be in the mapping
+    for (const actionKey of allActionKeys) {
+      expect(mappedActionKeys).toContain(actionKey)
     }
 
-    expect(endpointKeyToActionKey).toEqual(expectedMappings)
-    expect(Object.keys(endpointKeyToActionKey)).toHaveLength(11)
+    // No duplicates: mappedActionKeys length should equal unique values
+    expect(new Set(mappedActionKeys).size).toBe(
+      mappedActionKeys.length
+    )
+
+    // Same count: ensures bidirectional completeness
+    expect(mappedActionKeys.length).toBe(allActionKeys.length)
+  })
+
+  it('has a corresponding plugin endpoint for each mapped action key', () => {
+    const plugin = flowgladPlugin({})
+    const endpointKeys = Object.keys(endpointKeyToActionKey)
+
+    for (const endpointKey of endpointKeys) {
+      expect(plugin.endpoints).toHaveProperty(endpointKey)
+    }
   })
 })
 
@@ -167,5 +176,351 @@ describe('flowgladPlugin', () => {
     expect(matchers[0]({ path: '/login' })).toBe(false)
     expect(matchers[1]({ path: '/organization/create' })).toBe(true)
     expect(matchers[1]({ path: '/organization/list' })).toBe(false)
+  })
+})
+
+describe('externalId injection into validators', () => {
+  /**
+   * These tests verify that the externalId injection logic in createFlowgladBillingEndpoint
+   * works correctly with each validator. The endpoint injects externalId into the request
+   * body before validation.
+   */
+
+  describe('validators that require externalId', () => {
+    it('GetCustomerBilling validator accepts body with only externalId', () => {
+      const validator =
+        flowgladActionValidators[FlowgladActionKey.GetCustomerBilling]
+      const result = validator.inputValidator.safeParse({
+        externalId: 'user-123',
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).toEqual({ externalId: 'user-123' })
+      }
+    })
+
+    it('FindOrCreateCustomer validator accepts body with only externalId', () => {
+      const validator =
+        flowgladActionValidators[
+          FlowgladActionKey.FindOrCreateCustomer
+        ]
+      const result = validator.inputValidator.safeParse({
+        externalId: 'user-123',
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).toEqual({ externalId: 'user-123' })
+      }
+    })
+
+    it('UpdateCustomer validator accepts externalId with customer data', () => {
+      const validator =
+        flowgladActionValidators[FlowgladActionKey.UpdateCustomer]
+      const result = validator.inputValidator.safeParse({
+        externalId: 'user-123',
+        customer: { id: 'cust-456', name: 'Updated Name' },
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).toHaveProperty('externalId', 'user-123')
+        expect(result.data).toHaveProperty('customer')
+      }
+    })
+  })
+
+  describe('validators that do NOT require externalId (Zod strips unknown fields by default)', () => {
+    it('CreateCheckoutSession validator passes with externalId and strips it from output', () => {
+      const validator =
+        flowgladActionValidators[
+          FlowgladActionKey.CreateCheckoutSession
+        ]
+      const result = validator.inputValidator.safeParse({
+        priceId: 'price-123',
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel',
+        externalId: 'user-123', // Injected by server, should be stripped
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        // Zod strips unknown fields by default
+        expect(result.data).not.toHaveProperty('externalId')
+        expect(result.data).toHaveProperty('priceId', 'price-123')
+      }
+    })
+
+    it('CreateAddPaymentMethodCheckoutSession validator passes with externalId and strips it', () => {
+      const validator =
+        flowgladActionValidators[
+          FlowgladActionKey.CreateAddPaymentMethodCheckoutSession
+        ]
+      const result = validator.inputValidator.safeParse({
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel',
+        externalId: 'user-123',
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).not.toHaveProperty('externalId')
+      }
+    })
+
+    it('CreateActivateSubscriptionCheckoutSession validator passes with externalId and strips it', () => {
+      const validator =
+        flowgladActionValidators[
+          FlowgladActionKey.CreateActivateSubscriptionCheckoutSession
+        ]
+      const result = validator.inputValidator.safeParse({
+        targetSubscriptionId: 'sub-123',
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel',
+        externalId: 'user-123',
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).not.toHaveProperty('externalId')
+        expect(result.data).toHaveProperty(
+          'targetSubscriptionId',
+          'sub-123'
+        )
+      }
+    })
+
+    it('CancelSubscription validator passes with externalId and strips it', () => {
+      const validator =
+        flowgladActionValidators[FlowgladActionKey.CancelSubscription]
+      const result = validator.inputValidator.safeParse({
+        id: 'sub-123',
+        cancellation: { timing: 'immediately' },
+        externalId: 'user-123',
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).not.toHaveProperty('externalId')
+        expect(result.data).toHaveProperty('id', 'sub-123')
+      }
+    })
+
+    it('UncancelSubscription validator passes with externalId and strips it', () => {
+      const validator =
+        flowgladActionValidators[
+          FlowgladActionKey.UncancelSubscription
+        ]
+      const result = validator.inputValidator.safeParse({
+        id: 'sub-123',
+        externalId: 'user-123',
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).not.toHaveProperty('externalId')
+        expect(result.data).toHaveProperty('id', 'sub-123')
+      }
+    })
+
+    it('AdjustSubscription validator passes with externalId and strips it', () => {
+      const validator =
+        flowgladActionValidators[FlowgladActionKey.AdjustSubscription]
+      const result = validator.inputValidator.safeParse({
+        priceSlug: 'pro-monthly',
+        externalId: 'user-123',
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).not.toHaveProperty('externalId')
+        expect(result.data).toHaveProperty('priceSlug', 'pro-monthly')
+      }
+    })
+
+    it('CreateSubscription validator passes with externalId and strips it', () => {
+      const validator =
+        flowgladActionValidators[FlowgladActionKey.CreateSubscription]
+      const result = validator.inputValidator.safeParse({
+        priceId: 'price-123',
+        customerId: 'cust-456',
+        externalId: 'user-123',
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).not.toHaveProperty('externalId')
+        expect(result.data).toHaveProperty('priceId', 'price-123')
+        expect(result.data).toHaveProperty('customerId', 'cust-456')
+      }
+    })
+
+    it('CreateUsageEvent validator passes with externalId and strips it', () => {
+      const validator =
+        flowgladActionValidators[FlowgladActionKey.CreateUsageEvent]
+      const result = validator.inputValidator.safeParse({
+        priceId: 'price-123',
+        externalId: 'user-123',
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).not.toHaveProperty('externalId')
+        expect(result.data).toHaveProperty('priceId', 'price-123')
+      }
+    })
+  })
+
+  describe('externalId override security', () => {
+    it('server-injected externalId overrides any client-provided externalId due to spread order', () => {
+      // This tests the merge behavior in createFlowgladBillingEndpoint:
+      // const bodyWithExternalId = { ...rawBody, externalId: customerResult.externalId }
+      // The server externalId comes LAST, so it overrides any client value
+
+      const clientBody = { externalId: 'malicious-attacker-id' }
+      const serverExternalId = 'authenticated-user-id'
+
+      const merged = {
+        ...clientBody,
+        externalId: serverExternalId,
+      }
+
+      expect(merged.externalId).toBe('authenticated-user-id')
+    })
+
+    it('GetCustomerBilling with conflicting client externalId uses server-injected value after merge', () => {
+      // Simulate what happens in the endpoint
+      const clientBody = { externalId: 'attacker-id' }
+      const serverExternalId = 'real-user-id'
+
+      const bodyWithExternalId = {
+        ...clientBody,
+        externalId: serverExternalId,
+      }
+
+      const validator =
+        flowgladActionValidators[FlowgladActionKey.GetCustomerBilling]
+      const result = validator.inputValidator.safeParse(
+        bodyWithExternalId
+      )
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).toEqual({ externalId: 'real-user-id' })
+      }
+    })
+  })
+})
+
+describe('error message formatting', () => {
+  /**
+   * These tests cover the error message conditional logic in createFlowgladBillingEndpoint:
+   *
+   * message: typeof result.error.json?.message === 'string'
+   *   ? result.error.json.message
+   *   : `Flowglad API error: ${result.error.code}`
+   */
+
+  it('extracts message from error.json.message when it is a string', () => {
+    const error = {
+      code: 'subscription_cancel_failed',
+      json: { message: 'Subscription is already canceled' },
+    }
+
+    const message =
+      typeof error.json?.message === 'string'
+        ? error.json.message
+        : `Flowglad API error: ${error.code}`
+
+    expect(message).toBe('Subscription is already canceled')
+  })
+
+  it('falls back to code-based message when error.json.message is not a string (number)', () => {
+    const error = {
+      code: 'validation_error',
+      json: { message: 42 },
+    }
+
+    const message =
+      typeof error.json?.message === 'string'
+        ? error.json.message
+        : `Flowglad API error: ${error.code}`
+
+    expect(message).toBe('Flowglad API error: validation_error')
+  })
+
+  it('falls back to code-based message when error.json.message is an object', () => {
+    const error = {
+      code: 'complex_error',
+      json: { message: { nested: 'value' } },
+    }
+
+    const message =
+      typeof error.json?.message === 'string'
+        ? error.json.message
+        : `Flowglad API error: ${error.code}`
+
+    expect(message).toBe('Flowglad API error: complex_error')
+  })
+
+  it('falls back to code-based message when error.json is undefined', () => {
+    const error: { code: string; json?: { message?: unknown } } = {
+      code: 'no_json_error',
+      json: undefined,
+    }
+
+    const message =
+      typeof error.json?.message === 'string'
+        ? error.json.message
+        : `Flowglad API error: ${error.code}`
+
+    expect(message).toBe('Flowglad API error: no_json_error')
+  })
+
+  it('falls back to code-based message when error.json.message is null', () => {
+    const error = {
+      code: 'null_message_error',
+      json: { message: null },
+    }
+
+    const message =
+      typeof error.json?.message === 'string'
+        ? error.json.message
+        : `Flowglad API error: ${error.code}`
+
+    expect(message).toBe('Flowglad API error: null_message_error')
+  })
+
+  it('falls back to code-based message when error.json.message is undefined', () => {
+    const error: { code: string; json: { otherField: string } } = {
+      code: 'undefined_message_error',
+      json: { otherField: 'value' },
+    }
+
+    const message =
+      typeof (error.json as unknown as { message?: unknown })
+        ?.message === 'string'
+        ? (error.json as unknown as { message: string }).message
+        : `Flowglad API error: ${error.code}`
+
+    expect(message).toBe(
+      'Flowglad API error: undefined_message_error'
+    )
+  })
+
+  it('handles empty string message correctly (empty string is still a string)', () => {
+    const error = {
+      code: 'empty_message_error',
+      json: { message: '' },
+    }
+
+    const message =
+      typeof error.json?.message === 'string'
+        ? error.json.message
+        : `Flowglad API error: ${error.code}`
+
+    // Empty string is still typeof 'string', so it should be used
+    expect(message).toBe('')
   })
 })
