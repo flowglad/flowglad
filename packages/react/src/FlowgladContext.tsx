@@ -37,13 +37,16 @@ import { validateUrl } from './utils'
  * When only `baseURL` is provided (or neither), routes use the standalone handler:
  * - e.g., `/api/flowglad/customers/billing`
  */
-const getFlowgladRoute = (
+// Export for testing
+export const getFlowgladRoute = (
   baseURL?: string,
   betterAuthBasePath?: string
 ): string => {
   if (betterAuthBasePath) {
+    // Remove trailing slash to prevent malformed URLs like /api/auth//flowglad
+    const sanitizedPath = betterAuthBasePath.replace(/\/+$/, '')
     // Better Auth routes are under {basePath}/flowglad
-    return `${betterAuthBasePath}/flowglad`
+    return `${sanitizedPath}/flowglad`
   }
   return baseURL ? `${baseURL}/api/flowglad` : '/api/flowglad'
 }

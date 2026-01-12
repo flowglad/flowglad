@@ -24,7 +24,8 @@ type InnerSession = {
  * The session type returned by getSessionFromCtx in Better Auth.
  * Contains both session and user information.
  */
-type BetterAuthSessionResult = {
+// Export for testing
+export type BetterAuthSessionResult = {
   session: {
     id: string
     userId: string
@@ -76,7 +77,8 @@ interface FlowgladEndpointError {
  * Resolves the customer external ID from a Better Auth session.
  * Returns an error if organization billing is configured but no active organization exists.
  */
-const resolveCustomerExternalId = (
+// Export for testing
+export const resolveCustomerExternalId = (
   options: FlowgladBetterAuthPluginOptions,
   session: BetterAuthSessionResult
 ): { externalId: string } | { error: FlowgladEndpointError } => {

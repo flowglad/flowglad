@@ -63,6 +63,9 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
   if (baseURL) {
     validateUrl(baseURL, 'baseURL', true)
   }
+  if (betterAuthBasePath) {
+    validateUrl(betterAuthBasePath, 'betterAuthBasePath', true)
+  }
   return (
     <QueryClientProvider client={queryClient}>
       <FlowgladContextProvider
