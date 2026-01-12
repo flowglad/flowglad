@@ -1,5 +1,8 @@
 'use client'
-import type { Flowglad } from '@flowglad/node'
+import type {
+  Flowglad,
+  Flowglad as FlowgladNode,
+} from '@flowglad/node'
 import {
   type AdjustSubscriptionParams,
   type BillingWithChecks,
@@ -16,13 +19,18 @@ import {
   constructHasPurchased,
   FlowgladActionKey,
   flowgladActionValidators,
+  HTTPMethod,
   type UncancelSubscriptionParams,
 } from '@flowglad/shared'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type React from 'react'
 import { createContext, useContext } from 'react'
 import { devError } from './lib/utils'
+import type { FlowgladHookData } from './types'
 import { validateUrl } from './utils'
+
+type PricingModel =
+  FlowgladNode.PricingModels.PricingModelRetrieveDefaultResponse['pricingModel']
 
 const getFlowgladRoute = (baseURL?: string): string => {
   return baseURL ? `${baseURL}/api/flowglad` : '/api/flowglad'
@@ -207,6 +215,25 @@ const FlowgladContext = createContext<FlowgladContextValues>({
   loadBilling: false,
   errors: null,
   ...notPresentContextValues,
+})
+
+/**
+ * Internal context for pricing state - kept separate from billing for independence
+ */
+interface PricingContextValues {
+  pricingData: PricingModelRouteResponse | null
+  isPendingPricing: boolean
+  isRefetchingPricing: boolean
+  errorPricing: Error | null
+  refetchPricing: () => void
+}
+
+const PricingContext = createContext<PricingContextValues>({
+  pricingData: null,
+  isPendingPricing: false,
+  isRefetchingPricing: false,
+  errorPricing: null,
+  refetchPricing: () => {},
 })
 
 type CheckoutSessionParamsBase = {
@@ -601,6 +628,74 @@ const fetchCustomerBilling = async ({
   }
 }
 
+type PricingModelRouteResponse = {
+  data?: { pricingModel: PricingModel } | null
+  error?: { message: string } | null
+}
+
+const fetchPricingModel = async ({
+  baseURL,
+  requestConfig,
+}: Pick<
+  CoreFlowgladContextProviderProps,
+  'baseURL' | 'requestConfig'
+>): Promise<PricingModelRouteResponse> => {
+  const fetchImpl =
+    requestConfig?.fetch ??
+    (typeof fetch !== 'undefined' ? fetch : undefined)
+  if (!fetchImpl) {
+    throw new Error(
+      'fetch is not available. In React Native environments, provide a fetch implementation via requestConfig.fetch'
+    )
+  }
+
+  const flowgladRoute = getFlowgladRoute(baseURL)
+  try {
+    const response = await fetchImpl(
+      `${flowgladRoute}/${FlowgladActionKey.GetDefaultPricingModel}`,
+      {
+        method: HTTPMethod.GET,
+        headers: requestConfig?.headers,
+      }
+    )
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      const errorMessage =
+        errorData?.error?.message ?? `HTTP error: ${response.status}`
+      return {
+        data: null,
+        error: { message: errorMessage },
+      }
+    }
+
+    const data: unknown = await response.json()
+    if (
+      typeof data === 'object' &&
+      data !== null &&
+      ('data' in data || 'error' in data)
+    ) {
+      return data as PricingModelRouteResponse
+    }
+    return {
+      data: null,
+      error: { message: 'Unexpected pricing response shape' },
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Flowglad: Error fetching pricing:', error)
+    }
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : 'Failed to fetch pricing'
+    return {
+      data: null,
+      error: { message: errorMessage },
+    }
+  }
+}
+
 export const FlowgladContextProvider = (
   props: FlowgladContextProviderProps
 ) => {
@@ -626,6 +721,24 @@ export const FlowgladContextProvider = (
             requestConfig: coreProps.requestConfig,
           })
       : async () => null,
+  })
+
+  // Pricing query - fetches public pricing data without authentication
+  const {
+    isPending: isPendingPricing,
+    isRefetching: isRefetchingPricing,
+    error: errorPricing,
+    data: pricingData,
+    refetch: refetchPricing,
+  } = useQuery<PricingModelRouteResponse | null>({
+    queryKey: [FlowgladActionKey.GetDefaultPricingModel],
+    queryFn: () =>
+      fetchPricingModel({
+        baseURL: coreProps?.baseURL,
+        requestConfig: coreProps?.requestConfig,
+      }),
+    enabled: !isDevMode && typeof window !== 'undefined',
+    staleTime: 5 * 60 * 1000, // 5 minutes
   })
 
   if (isDevMode) {
@@ -802,7 +915,19 @@ export const FlowgladContextProvider = (
           pricingModel: billingData.pricingModel,
         }}
       >
-        {props.children}
+        <PricingContext.Provider
+          value={{
+            pricingData: billingData.pricingModel
+              ? { data: { pricingModel: billingData.pricingModel } }
+              : null,
+            isPendingPricing: false,
+            isRefetchingPricing: false,
+            errorPricing: null,
+            refetchPricing: () => {},
+          }}
+        >
+          {props.children}
+        </PricingContext.Provider>
       </FlowgladContext.Provider>
     )
   }
@@ -957,14 +1082,44 @@ export const FlowgladContextProvider = (
     }
   }
 
+  const pricingContextValue: PricingContextValues = {
+    pricingData: pricingData ?? null,
+    isPendingPricing,
+    isRefetchingPricing,
+    errorPricing,
+    refetchPricing,
+  }
+
   return (
     <FlowgladContext.Provider value={value}>
-      {props.children}
+      <PricingContext.Provider value={pricingContextValue}>
+        {props.children}
+      </PricingContext.Provider>
     </FlowgladContext.Provider>
   )
 }
 
 export const useBilling = () => useContext(FlowgladContext)
+
+/**
+ * Hook to access public pricing data.
+ * Fetches the default pricing model without requiring authentication.
+ *
+ * @returns FlowgladHookData containing pricing model data, loading states, and refetch function
+ */
+export const usePricing = (): FlowgladHookData<PricingModel> => {
+  const context = useContext(PricingContext)
+
+  return {
+    data: context.pricingData?.data?.pricingModel ?? null,
+    isPending: context.isPendingPricing,
+    isRefetching: context.isRefetchingPricing,
+    error: context.errorPricing
+      ? { message: context.errorPricing.message }
+      : (context.pricingData?.error ?? null),
+    refetch: context.refetchPricing,
+  }
+}
 
 export const useCatalog = () => {
   const { catalog } = useBilling()
