@@ -65,6 +65,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
 ENV BUN_INSTALL=/home/ubuntu/.bun
 RUN curl -fsSL https://bun.sh/install | bash && \
   ln -sf /home/ubuntu/.bun/bin/bun /usr/local/bin/bun && \
+  ln -sf /home/ubuntu/.bun/bin/bunx /usr/local/bin/bunx && \
   chown -R ubuntu:ubuntu /home/ubuntu/.bun
 ENV PATH="${BUN_INSTALL}/bin:${PATH}"
 

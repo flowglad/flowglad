@@ -7,7 +7,7 @@
   "engines": {
     "node": ">=18.18.0"
   },
-  "preinstall": "bunx --bun only-allow bun",
+  "preinstall": "bun x only-allow bun",
   "scripts": {
     "dev": "next dev",
     "start": "next start",
