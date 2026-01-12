@@ -1,6 +1,6 @@
 {
-  "id": "751b89f4-8f16-4836-ada5-27d0a981710d",
-  "prevId": "c84b9483-ce3b-4975-a524-41261d84289b",
+  "id": "f5a50646-1cbe-4e22-8b0f-124c2414e2a7",
+  "prevId": "751b89f4-8f16-4836-ada5-27d0a981710d",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -5428,6 +5428,13 @@
           "for": "SELECT",
           "to": ["merchant"],
           "using": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id() AND (current_auth_type() = 'api_key' OR \"focused\" = true)"
+        },
+        "Enable update for own membership in current organization": {
+          "name": "Enable update for own membership in current organization",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": ["merchant"],
+          "using": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id()"
         }
       },
       "checkConstraints": {},

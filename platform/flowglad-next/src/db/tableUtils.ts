@@ -913,7 +913,8 @@ export const constructGinIndex = (
   tableName: string,
   column: Parameters<IndexBuilderOn['on']>[0]
 ) => {
-  const indexName = createIndexName(tableName, [column], false)
+  const indexName =
+    createIndexName(tableName, [column], false) + '_gin'
   return index(indexName).using(
     'gin',
     sql`to_tsvector('english', ${column})`
