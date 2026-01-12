@@ -1,6 +1,14 @@
-import { FlowgladActionKey, type HTTPMethod } from '@flowglad/shared'
+import {
+  FlowgladActionKey,
+  type HTTPMethod,
+  isPublicActionKey,
+} from '@flowglad/shared'
 import type { FlowgladServer } from './FlowgladServer'
-import { routeToHandlerMap } from './subrouteHandlers'
+import type { FlowgladServerAdmin } from './FlowgladServerAdmin'
+import {
+  publicRouteToHandlerMap,
+  routeToHandlerMap,
+} from './subrouteHandlers'
 import type { SubRouteHandler } from './subrouteHandlers/types'
 
 /**
@@ -64,6 +72,14 @@ export interface RequestHandlerOptions<TRequest> {
     customerExternalId: string
   ) => Promise<FlowgladServer> | FlowgladServer
   /**
+   * Optional function that returns a FlowgladServerAdmin instance for public routes.
+   * Required when using public routes (e.g., GetDefaultPricingModel).
+   * If not provided, public routes will return a 501 Not Implemented error.
+   *
+   * @returns A FlowgladServerAdmin instance
+   */
+  flowgladAdmin?: () => FlowgladServerAdmin
+  /**
    * Function to run when an error occurs during request handling.
    */
   onError?: (error: unknown) => void
@@ -98,6 +114,7 @@ export const requestHandler = <TRequest = unknown>(
   const {
     getCustomerExternalId,
     flowglad,
+    flowgladAdmin,
     onError,
     beforeRequest,
     afterRequest,
@@ -112,9 +129,6 @@ export const requestHandler = <TRequest = unknown>(
         await beforeRequest()
       }
 
-      const customerExternalId = await getCustomerExternalId(request)
-      const flowgladServer = await flowglad(customerExternalId)
-
       const joinedPath = input.path.join('/') as FlowgladActionKey
 
       if (!Object.values(FlowgladActionKey).includes(joinedPath)) {
@@ -124,7 +138,58 @@ export const requestHandler = <TRequest = unknown>(
         )
       }
 
-      const handler = routeToHandlerMap[joinedPath]
+      // Handle public routes (no authentication required)
+      if (isPublicActionKey(joinedPath)) {
+        if (!flowgladAdmin) {
+          throw new RequestHandlerError(
+            'Public routes require flowgladAdmin option',
+            501
+          )
+        }
+
+        const admin = flowgladAdmin()
+        const publicHandler =
+          publicRouteToHandlerMap[
+            joinedPath as keyof typeof publicRouteToHandlerMap
+          ]
+
+        if (!publicHandler) {
+          throw new RequestHandlerError(
+            `"${joinedPath}" is not a valid Flowglad API path`,
+            404
+          )
+        }
+
+        const data = input.method === 'GET' ? input.query : input.body
+        const result = await publicHandler(
+          {
+            method: input.method,
+            data: data ?? {},
+          },
+          admin
+        )
+
+        if (afterRequest) {
+          await afterRequest()
+        }
+
+        return {
+          status: result.status,
+          data: result.data,
+          error: result.error,
+        }
+      }
+
+      // Handle authenticated routes
+      const customerExternalId = await getCustomerExternalId(request)
+      const flowgladServer = await flowglad(customerExternalId)
+
+      // Type assertion needed because TypeScript cannot narrow after isPublicActionKey check
+      const authenticatedPath = joinedPath as Exclude<
+        FlowgladActionKey,
+        FlowgladActionKey.GetDefaultPricingModel
+      >
+      const handler = routeToHandlerMap[authenticatedPath]
       if (!handler) {
         throw new RequestHandlerError(
           `"${joinedPath}" is not a valid Flowglad API path`,
@@ -135,10 +200,10 @@ export const requestHandler = <TRequest = unknown>(
       const data = input.method === 'GET' ? input.query : input.body
 
       // We need to use a type assertion here because TypeScript cannot narrow the type
-      // of joinedPath to a specific FlowgladActionKey at compile time, even though
+      // of authenticatedPath to a specific FlowgladActionKey at compile time, even though
       // we've validated it at runtime
       const result = await (
-        handler as SubRouteHandler<typeof joinedPath>
+        handler as SubRouteHandler<typeof authenticatedPath>
       )(
         {
           method: input.method as any,

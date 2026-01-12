@@ -1,4 +1,8 @@
-import { type FlowgladServer, requestHandler } from '@flowglad/server'
+import {
+  type FlowgladServer,
+  type FlowgladServerAdmin,
+  requestHandler,
+} from '@flowglad/server'
 import type { HTTPMethod } from '@flowglad/shared'
 import { type NextRequest, NextResponse } from 'next/server'
 
@@ -23,6 +27,14 @@ export interface NextRouteHandlerOptions {
   flowglad: (
     customerExternalId: string
   ) => Promise<FlowgladServer> | FlowgladServer
+  /**
+   * Optional function that returns a FlowgladServerAdmin instance for public routes.
+   * Required when using public routes (e.g., GetDefaultPricingModel).
+   * If not provided, public routes will return a 501 Not Implemented error.
+   *
+   * @returns A FlowgladServerAdmin instance
+   */
+  flowgladAdmin?: () => FlowgladServerAdmin
   /**
    * Function to run when an error occurs.
    */
@@ -102,6 +114,7 @@ export const nextRouteHandler = (
   const {
     getCustomerExternalId,
     flowglad,
+    flowgladAdmin,
     onError,
     beforeRequest,
     afterRequest,
@@ -118,6 +131,7 @@ export const nextRouteHandler = (
       const handler = requestHandler({
         getCustomerExternalId,
         flowglad,
+        flowgladAdmin,
         onError,
         beforeRequest,
         afterRequest,

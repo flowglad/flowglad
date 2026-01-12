@@ -9,6 +9,7 @@ import {
   getCustomerBilling,
   updateCustomer,
 } from './customerHandlers'
+import { getDefaultPricingModel } from './pricingHandlers'
 import {
   adjustSubscription,
   cancelSubscription,
@@ -18,7 +19,10 @@ import type { SubRouteHandler } from './types'
 import { createUsageEvent } from './usageEventHandlers'
 
 export const routeToHandlerMap: {
-  [K in FlowgladActionKey]: SubRouteHandler<K>
+  [K in Exclude<
+    FlowgladActionKey,
+    FlowgladActionKey.GetDefaultPricingModel
+  >]: SubRouteHandler<K>
 } = {
   [FlowgladActionKey.GetCustomerBilling]: getCustomerBilling,
   [FlowgladActionKey.FindOrCreateCustomer]: findOrCreateCustomer,
@@ -42,4 +46,12 @@ export const routeToHandlerMap: {
     }
   },
   [FlowgladActionKey.CreateUsageEvent]: createUsageEvent,
+}
+
+/**
+ * Map of public routes (routes that don't require authentication) to their handlers.
+ * These handlers receive a FlowgladServerAdmin instance instead of a scoped FlowgladServer.
+ */
+export const publicRouteToHandlerMap = {
+  [FlowgladActionKey.GetDefaultPricingModel]: getDefaultPricingModel,
 }

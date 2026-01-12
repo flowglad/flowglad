@@ -3,6 +3,7 @@
 // Otherwise consumers will import from this file into their server-only code
 // which will cause client modules to be included in the server bundle,
 // and will break their server code.
+
 export type {
   ErrorFlowgladContextValues,
   FlowgladContextValues,
@@ -11,4 +12,6 @@ export type {
   NotLoadedFlowgladContextValues,
 } from '@flowglad/react'
 export { FlowgladProvider, useBilling } from '@flowglad/react'
+// Re-export FlowgladServerAdmin for convenience when configuring public routes
+export { FlowgladServerAdmin } from '@flowglad/server'
 export type * from '@flowglad/shared'
