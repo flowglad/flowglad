@@ -110,17 +110,17 @@ products:
       active: true
       default: false
       slug: "basic_monthly"
-    prices:
-      - intervalUnit: "month"
-        name: "Basic Plan (Monthly)"
-        intervalCount: 1
-        type: "subscription"
-        isDefault: true
-        unitPrice: 1000
-        usageEventsPerUnit: null
-        active: true
-        slug: "basic_monthly"
-        usageMeterId: null
+    price:
+      intervalUnit: "month"
+      name: "Basic Plan (Monthly)"
+      intervalCount: 1
+      type: "subscription"
+      isDefault: true
+      unitPrice: 1000
+      usageEventsPerUnit: null
+      active: true
+      slug: "basic_monthly"
+      usageMeterId: null
     features:
       - "basic_fast_generations"
       - "general_commercial_terms"
@@ -132,18 +132,18 @@ products:
       active: true
       default: false
       slug: "fast_generation_top_ups"
-    prices:
-      - intervalUnit: null
-        name: "Fast Generation Top-Up"
-        intervalCount: null
-        type: "single_payment"
-        trialPeriodDays: null
-        isDefault: true
-        unitPrice: 400
-        usageEventsPerUnit: null
-        active: true
-        slug: "fast_generation_top_up"
-        usageMeterId: null
+    price:
+      intervalUnit: null
+      name: "Fast Generation Top-Up"
+      intervalCount: null
+      type: "single_payment"
+      trialPeriodDays: null
+      isDefault: true
+      unitPrice: 400
+      usageEventsPerUnit: null
+      active: true
+      slug: "fast_generation_top_up"
+      usageMeterId: null
     features:
       - "fast_generation_top_up_credit"
   - product:
@@ -152,35 +152,35 @@ products:
       active: true
       default: false
       slug: "fast_generation_usage_price"
-    prices:
-      - intervalUnit: "month"
-        name: "Fast Generation Usage"
-        intervalCount: 1
-        type: "usage"
-        trialPeriodDays: null
-        isDefault: true
-        unitPrice: 5
-        usageEventsPerUnit: 1
-        active: true
-        slug: "fast_generation_usage"
-        usageMeterSlug: "fast_generations"
+    price:
+      intervalUnit: "month"
+      name: "Fast Generation Usage"
+      intervalCount: 1
+      type: "usage"
+      trialPeriodDays: null
+      isDefault: true
+      unitPrice: 5
+      usageEventsPerUnit: 1
+      active: true
+      slug: "fast_generation_usage"
+      usageMeterSlug: "fast_generations"
     features: []
   - product:
       name: "Free Plan"
       active: true
       default: true
       slug: "free"
-    prices:
-      - intervalUnit: "month"
-        name: "Free Plan"
-        intervalCount: 1
-        type: "subscription"
-        isDefault: true
-        unitPrice: 0
-        usageEventsPerUnit: null
-        active: true
-        slug: "free"
-        usageMeterId: null
+    price:
+      intervalUnit: "month"
+      name: "Free Plan"
+      intervalCount: 1
+      type: "subscription"
+      isDefault: true
+      unitPrice: 0
+      usageEventsPerUnit: null
+      active: true
+      slug: "free"
+      usageMeterId: null
     features: []
   - product:
       name: "HD Video Minute Top-Ups"
@@ -188,18 +188,18 @@ products:
       active: true
       default: false
       slug: "hd_video_minute_top_ups"
-    prices:
-      - intervalUnit: null
-        name: "HD Video Minute Top-Up"
-        intervalCount: null
-        type: "single_payment"
-        trialPeriodDays: null
-        isDefault: true
-        unitPrice: 1000
-        usageEventsPerUnit: null
-        active: true
-        slug: "hd_video_minute_top_up"
-        usageMeterId: null
+    price:
+      intervalUnit: null
+      name: "HD Video Minute Top-Up"
+      intervalCount: null
+      type: "single_payment"
+      trialPeriodDays: null
+      isDefault: true
+      unitPrice: 1000
+      usageEventsPerUnit: null
+      active: true
+      slug: "hd_video_minute_top_up"
+      usageMeterId: null
     features:
       - "hd_video_minute_top_up_credit"
   - product:
@@ -208,18 +208,18 @@ products:
       active: true
       default: false
       slug: "hd_video_minute_usage_price"
-    prices:
-      - intervalUnit: "month"
-        name: "HD Video Minute Usage"
-        intervalCount: 1
-        type: "usage"
-        trialPeriodDays: null
-        isDefault: true
-        unitPrice: 100
-        usageEventsPerUnit: 1
-        active: true
-        slug: "hd_video_minute_usage"
-        usageMeterSlug: "hd_video_minutes"
+    price:
+      intervalUnit: "month"
+      name: "HD Video Minute Usage"
+      intervalCount: 1
+      type: "usage"
+      trialPeriodDays: null
+      isDefault: true
+      unitPrice: 100
+      usageEventsPerUnit: 1
+      active: true
+      slug: "hd_video_minute_usage"
+      usageMeterSlug: "hd_video_minutes"
     features: []
   - product:
       name: "Mega"
@@ -227,17 +227,17 @@ products:
       active: true
       default: false
       slug: "mega_monthly"
-    prices:
-      - intervalUnit: "month"
-        name: "Mega Plan (Monthly)"
-        intervalCount: 1
-        type: "subscription"
-        isDefault: true
-        unitPrice: 12000
-        usageEventsPerUnit: null
-        active: true
-        slug: "mega_monthly"
-        usageMeterId: null
+    price:
+      intervalUnit: "month"
+      name: "Mega Plan (Monthly)"
+      intervalCount: 1
+      type: "subscription"
+      isDefault: true
+      unitPrice: 12000
+      usageEventsPerUnit: null
+      active: true
+      slug: "mega_monthly"
+      usageMeterId: null
     features:
       - "mega_fast_generations"
       - "mega_hd_video_minutes"
@@ -253,17 +253,17 @@ products:
       active: true
       default: false
       slug: "pro_monthly"
-    prices:
-      - intervalUnit: "month"
-        name: "Pro Plan (Monthly)"
-        intervalCount: 1
-        type: "subscription"
-        isDefault: true
-        unitPrice: 6000
-        usageEventsPerUnit: null
-        active: true
-        slug: "pro_monthly"
-        usageMeterId: null
+    price:
+      intervalUnit: "month"
+      name: "Pro Plan (Monthly)"
+      intervalCount: 1
+      type: "subscription"
+      isDefault: true
+      unitPrice: 6000
+      usageEventsPerUnit: null
+      active: true
+      slug: "pro_monthly"
+      usageMeterId: null
     features:
       - "pro_fast_generations"
       - "pro_hd_video_minutes"
@@ -279,17 +279,17 @@ products:
       active: true
       default: false
       slug: "standard_monthly"
-    prices:
-      - intervalUnit: "month"
-        name: "Standard Plan (Monthly)"
-        intervalCount: 1
-        type: "subscription"
-        isDefault: true
-        unitPrice: 3000
-        usageEventsPerUnit: null
-        active: true
-        slug: "standard_monthly"
-        usageMeterId: null
+    price:
+      intervalUnit: "month"
+      name: "Standard Plan (Monthly)"
+      intervalCount: 1
+      type: "subscription"
+      isDefault: true
+      unitPrice: 3000
+      usageEventsPerUnit: null
+      active: true
+      slug: "standard_monthly"
+      usageMeterId: null
     features:
       - "standard_fast_generations"
       - "standard_hd_video_minutes"

@@ -20,6 +20,7 @@ import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
 import {
   CacheDependency,
   cached,
+  cachedBulkLookup,
   invalidateDependencies,
 } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
@@ -431,6 +432,260 @@ describeIfRedisKey('Cache Integration Tests', () => {
     // Third call - should fetch fresh data (version 2)
     const result3 = await cachedFn(customerId)
     expect(result3.version).toBe(2)
+  })
+})
+
+describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
+  let testKeyPrefix: string
+  let keysToCleanup: string[] = []
+
+  beforeEach(() => {
+    testKeyPrefix = generateTestKeyPrefix()
+    keysToCleanup = []
+  })
+
+  afterEach(async () => {
+    const client = getRedisTestClient()
+    await cleanupRedisTestKeys(client, keysToCleanup)
+  })
+
+  it('performs MGET for multiple keys and returns cached values for hits while fetching misses', async () => {
+    const client = getRedisTestClient()
+
+    // Pre-populate cache for key1
+    const key1CacheKey = `${TEST_NAMESPACE}:${testKeyPrefix}_key1`
+    const key1Data = [
+      { id: 'item1', name: 'Cached Item 1', groupKey: 'key1' },
+    ]
+    await client.set(key1CacheKey, JSON.stringify(key1Data))
+
+    const key2CacheKey = `${TEST_NAMESPACE}:${testKeyPrefix}_key2`
+    const key3CacheKey = `${TEST_NAMESPACE}:${testKeyPrefix}_key3`
+    const dep1Key = `${testKeyPrefix}_dep_key1`
+    const dep2Key = `${testKeyPrefix}_dep_key2`
+    const dep3Key = `${testKeyPrefix}_dep_key3`
+
+    keysToCleanup.push(
+      key1CacheKey,
+      key2CacheKey,
+      key3CacheKey,
+      `cacheDeps:${dep1Key}`,
+      `cacheDeps:${dep2Key}`,
+      `cacheDeps:${dep3Key}`
+    )
+
+    let fetchCallCount = 0
+    let fetchedKeys: string[] = []
+
+    const itemSchema = z.object({
+      id: z.string(),
+      name: z.string(),
+      groupKey: z.string(),
+    })
+
+    const results = await cachedBulkLookup(
+      {
+        namespace: TEST_NAMESPACE,
+        keyFn: (key: string) => `${testKeyPrefix}_${key}`,
+        schema: itemSchema.array(),
+        dependenciesFn: (key: string) => [
+          `${testKeyPrefix}_dep_${key}`,
+        ],
+      },
+      ['key1', 'key2', 'key3'],
+      async (keys: string[]) => {
+        fetchCallCount++
+        fetchedKeys = keys
+        // Return items for key2 and key3 (key1 should be a cache hit)
+        return [
+          { id: 'item2', name: 'Fetched Item 2', groupKey: 'key2' },
+          { id: 'item3', name: 'Fetched Item 3', groupKey: 'key3' },
+        ]
+      },
+      (item) => item.groupKey
+    )
+
+    // key1 should be from cache, key2 and key3 from fetch
+    expect(fetchCallCount).toBe(1)
+    expect(fetchedKeys).toEqual(['key2', 'key3'])
+
+    expect(results.get('key1')).toEqual([
+      { id: 'item1', name: 'Cached Item 1', groupKey: 'key1' },
+    ])
+    expect(results.get('key2')).toEqual([
+      { id: 'item2', name: 'Fetched Item 2', groupKey: 'key2' },
+    ])
+    expect(results.get('key3')).toEqual([
+      { id: 'item3', name: 'Fetched Item 3', groupKey: 'key3' },
+    ])
+  })
+
+  it('returns empty map when given empty keys array', async () => {
+    const results = await cachedBulkLookup(
+      {
+        namespace: TEST_NAMESPACE,
+        keyFn: (key: string) => key,
+        schema: z.string().array(),
+        dependenciesFn: () => [],
+      },
+      [],
+      async () => [],
+      (item) => item
+    )
+
+    expect(results.size).toBe(0)
+  })
+
+  it('caches fetched results and registers dependencies for each key', async () => {
+    const client = getRedisTestClient()
+
+    const key1CacheKey = `${TEST_NAMESPACE}:${testKeyPrefix}_key1`
+    const key2CacheKey = `${TEST_NAMESPACE}:${testKeyPrefix}_key2`
+    const dep1Key = `${testKeyPrefix}_dep_key1`
+    const dep2Key = `${testKeyPrefix}_dep_key2`
+    const registry1Key = `cacheDeps:${dep1Key}`
+    const registry2Key = `cacheDeps:${dep2Key}`
+
+    keysToCleanup.push(
+      key1CacheKey,
+      key2CacheKey,
+      registry1Key,
+      registry2Key
+    )
+
+    const itemSchema = z.object({
+      id: z.string(),
+      groupKey: z.string(),
+    })
+
+    await cachedBulkLookup(
+      {
+        namespace: TEST_NAMESPACE,
+        keyFn: (key: string) => `${testKeyPrefix}_${key}`,
+        schema: itemSchema.array(),
+        dependenciesFn: (key: string) => [
+          `${testKeyPrefix}_dep_${key}`,
+        ],
+      },
+      ['key1', 'key2'],
+      async () => [
+        { id: 'item1', groupKey: 'key1' },
+        { id: 'item2', groupKey: 'key2' },
+      ],
+      (item) => item.groupKey
+    )
+
+    // Verify both keys are cached
+    const cached1 = await client.get(key1CacheKey)
+    const cached2 = await client.get(key2CacheKey)
+    expect(Array.isArray(cached1)).toBe(true)
+    expect(Array.isArray(cached2)).toBe(true)
+
+    // Verify dependencies are registered
+    const deps1 = await client.smembers(registry1Key)
+    const deps2 = await client.smembers(registry2Key)
+    expect(deps1).toContain(key1CacheKey)
+    expect(deps2).toContain(key2CacheKey)
+  })
+
+  it('returns empty array for keys with no items from fetch', async () => {
+    const key1CacheKey = `${TEST_NAMESPACE}:${testKeyPrefix}_empty_key1`
+    const dep1Key = `${testKeyPrefix}_dep_empty_key1`
+
+    keysToCleanup.push(key1CacheKey, `cacheDeps:${dep1Key}`)
+
+    type TestItem = { id: string; groupKey: string }
+
+    const itemSchema = z.object({
+      id: z.string(),
+      groupKey: z.string(),
+    })
+
+    const results = await cachedBulkLookup(
+      {
+        namespace: TEST_NAMESPACE,
+        keyFn: (key: string) => `${testKeyPrefix}_${key}`,
+        schema: itemSchema.array(),
+        dependenciesFn: (key: string) => [
+          `${testKeyPrefix}_dep_${key}`,
+        ],
+      },
+      ['empty_key1'],
+      async (): Promise<TestItem[]> => [], // Fetch returns no items
+      (item) => item.groupKey
+    )
+
+    // Should have an empty array for the key
+    expect(results.get('empty_key1')).toEqual([])
+  })
+
+  it('invalidates cached entries when dependencies are invalidated', async () => {
+    const client = getRedisTestClient()
+
+    const key1CacheKey = `${TEST_NAMESPACE}:${testKeyPrefix}_inv_key1`
+    const dep1Key = `${testKeyPrefix}_dep_inv_key1`
+    const registry1Key = `cacheDeps:${dep1Key}`
+
+    keysToCleanup.push(key1CacheKey, registry1Key)
+
+    type TestItem = { id: string; groupKey: string }
+    let fetchCount = 0
+
+    const fetchFn = async (): Promise<TestItem[]> => {
+      fetchCount++
+      return [{ id: `item_v${fetchCount}`, groupKey: 'inv_key1' }]
+    }
+
+    const itemSchema = z.object({
+      id: z.string(),
+      groupKey: z.string(),
+    })
+
+    const config = {
+      namespace: TEST_NAMESPACE,
+      keyFn: (key: string) => `${testKeyPrefix}_${key}`,
+      schema: itemSchema.array(),
+      dependenciesFn: (key: string) => [
+        `${testKeyPrefix}_dep_${key}`,
+      ],
+    }
+
+    // First call - populates cache with v1
+    const results1 = await cachedBulkLookup(
+      config,
+      ['inv_key1'],
+      fetchFn,
+      (item) => item.groupKey
+    )
+    expect(results1.get('inv_key1')?.[0]?.id).toBe('item_v1')
+    expect(fetchCount).toBe(1)
+
+    // Second call - should return cached v1
+    const results2 = await cachedBulkLookup(
+      config,
+      ['inv_key1'],
+      fetchFn,
+      (item) => item.groupKey
+    )
+    expect(results2.get('inv_key1')?.[0]?.id).toBe('item_v1')
+    expect(fetchCount).toBe(1) // No new fetch
+
+    // Invalidate the dependency
+    await invalidateDependencies([dep1Key])
+
+    // Verify cache is cleared
+    const cachedAfter = await client.get(key1CacheKey)
+    expect(cachedAfter).toBeNull()
+
+    // Third call - should fetch fresh data (v2)
+    const results3 = await cachedBulkLookup(
+      config,
+      ['inv_key1'],
+      fetchFn,
+      (item) => item.groupKey
+    )
+    expect(results3.get('inv_key1')?.[0]?.id).toBe('item_v2')
+    expect(fetchCount).toBe(2)
   })
 })
 

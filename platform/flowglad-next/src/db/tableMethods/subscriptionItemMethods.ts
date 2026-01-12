@@ -1,4 +1,5 @@
 import { and, eq, inArray, lte } from 'drizzle-orm'
+import { z } from 'zod'
 import {
   type SubscriptionItem,
   subscriptionItems,
@@ -25,7 +26,13 @@ import {
   richSubscriptionClientSelectSchema,
 } from '@/subscriptions/schemas'
 import type { SubscriptionStatus } from '@/types'
+import {
+  CacheDependency,
+  cached,
+  cachedBulkLookup,
+} from '@/utils/cache'
 import core from '@/utils/core'
+import { RedisKeyNamespace } from '@/utils/redis'
 import {
   type Price,
   prices,
@@ -275,38 +282,169 @@ export const expireSubscriptionItems = async (
 }
 
 /**
- * Selects subscription items with their associated prices for the given subscription IDs.
- * This is a decomposed query that can be cached independently.
+ * Internal function to select subscription items with their associated prices.
+ * This is the raw database query without caching.
  *
  * @param subscriptionIds - Array of subscription IDs to fetch items for
  * @param transaction - Database transaction
  * @returns Array of subscription items with their prices
  */
+const selectSubscriptionItemsWithPricesInternal = async (
+  subscriptionIds: string[],
+  transaction: DbTransaction
+) => {
+  if (subscriptionIds.length === 0) {
+    return []
+  }
+
+  const rows = await transaction
+    .select({
+      subscriptionItem: subscriptionItems,
+      price: prices,
+    })
+    .from(subscriptionItems)
+    .leftJoin(prices, eq(subscriptionItems.priceId, prices.id))
+    .where(inArray(subscriptionItems.subscriptionId, subscriptionIds))
+
+  return rows.map((row) => ({
+    subscriptionItem: subscriptionItemsSelectSchema.parse(
+      row.subscriptionItem
+    ),
+    price: row.price
+      ? pricesClientSelectSchema.parse(row.price)
+      : null,
+  }))
+}
+
+/** Schema for validating cached subscription items with prices */
+const subscriptionItemWithPriceSchema = z.object({
+  subscriptionItem: subscriptionItemsSelectSchema,
+  price: pricesClientSelectSchema.nullable(),
+})
+
+/**
+ * Internal cached implementation for single subscription lookup.
+ * Cache key includes livemode to prevent mixing live/test data.
+ */
+const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
+  cached(
+    {
+      namespace: RedisKeyNamespace.ItemsBySubscription,
+      keyFn: (
+        subscriptionId: string,
+        _transaction: DbTransaction,
+        livemode: boolean
+      ) => `${subscriptionId}:${livemode}`,
+      schema: subscriptionItemWithPriceSchema.array(),
+      dependenciesFn: (subscriptionId: string) => [
+        CacheDependency.subscriptionItems(subscriptionId),
+      ],
+    },
+    async (
+      subscriptionId: string,
+      transaction: DbTransaction,
+      _livemode: boolean
+    ) => {
+      return selectSubscriptionItemsWithPricesInternal(
+        [subscriptionId],
+        transaction
+      )
+    }
+  )
+
+/**
+ * Selects subscription items with their associated prices for a single subscription.
+ * Results are cached by default using Redis with dependency-based invalidation.
+ *
+ * @param subscriptionId - The subscription ID to fetch items for
+ * @param transaction - Database transaction
+ * @param livemode - Required for cache key scoping to prevent mixing live/test data
+ * @param options.ignoreCache - If true, bypasses cache and fetches directly from database
+ * @returns Array of subscription items with their prices
+ */
+export const selectSubscriptionItemsWithPricesBySubscriptionId =
+  async (
+    subscriptionId: string,
+    transaction: DbTransaction,
+    livemode: boolean,
+    options: { ignoreCache?: boolean } = {}
+  ) => {
+    if (options.ignoreCache) {
+      return selectSubscriptionItemsWithPricesInternal(
+        [subscriptionId],
+        transaction
+      )
+    }
+    return selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal(
+      subscriptionId,
+      transaction,
+      livemode
+    )
+  }
+
+/** Type alias for subscription item with price result */
+type SubscriptionItemWithPrice = {
+  subscriptionItem: SubscriptionItem.Record
+  price: Price.ClientRecord | null
+}
+
+/**
+ * Selects subscription items with their associated prices for multiple subscriptions.
+ * Results are cached by default using Redis with dependency-based invalidation.
+ *
+ * @param subscriptionIds - Array of subscription IDs to fetch items for
+ * @param transaction - Database transaction
+ * @param livemode - Required for cache key scoping to prevent mixing live/test data
+ * @param options.ignoreCache - If true, bypasses cache and fetches directly from database
+ * @returns Array of subscription items with their prices (flat, not grouped)
+ */
 export const selectSubscriptionItemsWithPricesBySubscriptionIds =
-  async (subscriptionIds: string[], transaction: DbTransaction) => {
+  async (
+    subscriptionIds: string[],
+    transaction: DbTransaction,
+    livemode: boolean,
+    options: { ignoreCache?: boolean } = {}
+  ): Promise<SubscriptionItemWithPrice[]> => {
     if (subscriptionIds.length === 0) {
       return []
     }
 
-    const rows = await transaction
-      .select({
-        subscriptionItem: subscriptionItems,
-        price: prices,
-      })
-      .from(subscriptionItems)
-      .leftJoin(prices, eq(subscriptionItems.priceId, prices.id))
-      .where(
-        inArray(subscriptionItems.subscriptionId, subscriptionIds)
+    // If ignoreCache is set, bypass the cache entirely
+    if (options.ignoreCache) {
+      return selectSubscriptionItemsWithPricesInternal(
+        subscriptionIds,
+        transaction
       )
+    }
 
-    return rows.map((row) => ({
-      subscriptionItem: subscriptionItemsSelectSchema.parse(
-        row.subscriptionItem
-      ),
-      price: row.price
-        ? pricesClientSelectSchema.parse(row.price)
-        : null,
-    }))
+    const resultsMap = await cachedBulkLookup<
+      string,
+      SubscriptionItemWithPrice
+    >(
+      {
+        namespace: RedisKeyNamespace.ItemsBySubscription,
+        keyFn: (subscriptionId: string) =>
+          `${subscriptionId}:${livemode}`,
+        schema: subscriptionItemWithPriceSchema.array(),
+        dependenciesFn: (subscriptionId: string) => [
+          CacheDependency.subscriptionItems(subscriptionId),
+        ],
+      },
+      subscriptionIds,
+      // Bulk fetch function for cache misses
+      async (missedSubscriptionIds: string[]) => {
+        return selectSubscriptionItemsWithPricesInternal(
+          missedSubscriptionIds,
+          transaction
+        )
+      },
+      // Group by key - extract subscription ID from each item
+      (item: SubscriptionItemWithPrice) =>
+        item.subscriptionItem.subscriptionId
+    )
+
+    // Flatten the results map into a single array
+    return Array.from(resultsMap.values()).flat()
   }
 
 /**
@@ -413,11 +551,13 @@ export const selectRichSubscriptionsAndActiveItems = async (
     return []
   }
 
-  // Step 2: Fetch subscription items with prices (cacheable by subscription IDs)
+  // Step 2: Fetch subscription items with prices using optimized bulk cache lookup
+  // This uses MGET for cache lookups + single DB query for misses
   const itemsWithPrices =
     await selectSubscriptionItemsWithPricesBySubscriptionIds(
       subscriptionIds,
-      transaction
+      transaction,
+      livemode
     )
 
   // Step 3: Build the rich subscriptions map
