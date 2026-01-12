@@ -475,6 +475,7 @@ const updateNotificationPreferencesInputSchema = z.object({
 
 const updateNotificationPreferences = protectedProcedure
   .input(updateNotificationPreferencesInputSchema)
+  .output(z.object({ preferences: notificationPreferencesSchema }))
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction, userId, ctx }) => {
