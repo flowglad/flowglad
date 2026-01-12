@@ -44,11 +44,18 @@ export const getFlowgladRoute = (
 ): string => {
   if (betterAuthBasePath) {
     // Remove trailing slash to prevent malformed URLs like /api/auth//flowglad
-    const sanitizedPath = betterAuthBasePath.replace(/\/+$/, '')
+    const sanitizedPath = betterAuthBasePath
+      .trim()
+      .replace(/\/+$/, '')
     // Better Auth routes are under {basePath}/flowglad
     return `${sanitizedPath}/flowglad`
   }
-  return baseURL ? `${baseURL}/api/flowglad` : '/api/flowglad'
+  if (baseURL) {
+    // Remove whitespace and trailing slashes to prevent malformed URLs like https://x.com//api/flowglad
+    const sanitizedBaseURL = baseURL.trim().replace(/\/+$/, '')
+    return `${sanitizedBaseURL}/api/flowglad`
+  }
+  return '/api/flowglad'
 }
 
 export type FrontendProductCreateCheckoutSessionParams =

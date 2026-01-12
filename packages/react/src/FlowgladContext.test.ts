@@ -22,6 +22,31 @@ describe('getFlowgladRoute', () => {
       const result = getFlowgladRoute('https://myapp.com', undefined)
       expect(result).toBe('https://myapp.com/api/flowglad')
     })
+
+    it('sanitizes trailing slash from baseURL to prevent double-slash in URL', () => {
+      const result = getFlowgladRoute('https://example.com/')
+      expect(result).toBe('https://example.com/api/flowglad')
+    })
+
+    it('sanitizes multiple trailing slashes from baseURL', () => {
+      const result = getFlowgladRoute('https://example.com///')
+      expect(result).toBe('https://example.com/api/flowglad')
+    })
+
+    it('trims leading whitespace from baseURL', () => {
+      const result = getFlowgladRoute('  https://example.com')
+      expect(result).toBe('https://example.com/api/flowglad')
+    })
+
+    it('trims trailing whitespace from baseURL', () => {
+      const result = getFlowgladRoute('https://example.com  ')
+      expect(result).toBe('https://example.com/api/flowglad')
+    })
+
+    it('trims whitespace and sanitizes trailing slashes from baseURL simultaneously', () => {
+      const result = getFlowgladRoute('  https://example.com/  ')
+      expect(result).toBe('https://example.com/api/flowglad')
+    })
   })
 
   describe('Better Auth mode (betterAuthBasePath provided)', () => {
