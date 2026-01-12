@@ -131,12 +131,8 @@
           "name": "api_keys_organization_id_organizations_id_fk",
           "tableFrom": "api_keys",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -146,9 +142,7 @@
         "api_keys_id_unique": {
           "name": "api_keys_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -156,18 +150,14 @@
           "name": "Enable all actions for own organizations",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (api_keys)": {
           "name": "Check mode (api_keys)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -263,12 +253,8 @@
           "name": "better_auth_account_user_id_better_auth_user_id_fk",
           "tableFrom": "better_auth_account",
           "tableTo": "better_auth_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -338,12 +324,8 @@
           "name": "better_auth_session_user_id_better_auth_user_id_fk",
           "tableFrom": "better_auth_session",
           "tableTo": "better_auth_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -353,9 +335,7 @@
         "better_auth_session_token_unique": {
           "name": "better_auth_session_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -429,9 +409,7 @@
         "better_auth_user_email_unique": {
           "name": "better_auth_user_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -637,12 +615,8 @@
           "name": "billing_period_items_billing_period_id_billing_periods_id_fk",
           "tableFrom": "billing_period_items",
           "tableTo": "billing_periods",
-          "columnsFrom": [
-            "billing_period_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["billing_period_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -650,12 +624,8 @@
           "name": "billing_period_items_discount_redemption_id_discount_redemptions_id_fk",
           "tableFrom": "billing_period_items",
           "tableTo": "discount_redemptions",
-          "columnsFrom": [
-            "discount_redemption_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["discount_redemption_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -663,12 +633,8 @@
           "name": "billing_period_items_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "billing_period_items",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -678,9 +644,7 @@
         "billing_period_items_id_unique": {
           "name": "billing_period_items_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -688,18 +652,14 @@
           "name": "Enable read for own organizations (billing_period_items)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"billing_period_id\" in (select \"id\" from \"billing_periods\" where \"subscription_id\" in (select \"id\" from \"subscriptions\" where \"organization_id\"=current_organization_id()))"
         },
         "Check mode (billing_period_items)": {
           "name": "Check mode (billing_period_items)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -852,12 +812,8 @@
           "name": "billing_periods_subscription_id_subscriptions_id_fk",
           "tableFrom": "billing_periods",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -865,12 +821,8 @@
           "name": "billing_periods_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "billing_periods",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -880,9 +832,7 @@
         "billing_periods_id_unique": {
           "name": "billing_periods_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -890,18 +840,14 @@
           "name": "Enable read for own organizations (billing_periods)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"subscription_id\" in (select \"id\" from \"subscriptions\" where \"organization_id\"=current_organization_id())"
         },
         "Check mode (billing_periods)": {
           "name": "Check mode (billing_periods)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -1090,12 +1036,8 @@
           "name": "billing_runs_billing_period_id_billing_periods_id_fk",
           "tableFrom": "billing_runs",
           "tableTo": "billing_periods",
-          "columnsFrom": [
-            "billing_period_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["billing_period_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1103,12 +1045,8 @@
           "name": "billing_runs_subscription_id_subscriptions_id_fk",
           "tableFrom": "billing_runs",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1116,12 +1054,8 @@
           "name": "billing_runs_payment_method_id_payment_methods_id_fk",
           "tableFrom": "billing_runs",
           "tableTo": "payment_methods",
-          "columnsFrom": [
-            "payment_method_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["payment_method_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1129,12 +1063,8 @@
           "name": "billing_runs_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "billing_runs",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1144,9 +1074,7 @@
         "billing_runs_id_unique": {
           "name": "billing_runs_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -1154,18 +1082,14 @@
           "name": "Enable read for own organizations (billing_runs)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"billing_period_id\" in (select \"id\" from \"billing_periods\" where \"subscription_id\" in (select \"id\" from \"subscriptions\" where \"organization_id\"=current_organization_id()))"
         },
         "Check mode (billing_runs)": {
           "name": "Check mode (billing_runs)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -1512,12 +1436,8 @@
           "name": "checkout_sessions_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "checkout_sessions",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1525,12 +1445,8 @@
           "name": "checkout_sessions_price_id_prices_id_fk",
           "tableFrom": "checkout_sessions",
           "tableTo": "prices",
-          "columnsFrom": [
-            "price_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["price_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1538,12 +1454,8 @@
           "name": "checkout_sessions_purchase_id_purchases_id_fk",
           "tableFrom": "checkout_sessions",
           "tableTo": "purchases",
-          "columnsFrom": [
-            "purchase_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["purchase_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1551,12 +1463,8 @@
           "name": "checkout_sessions_invoice_id_invoices_id_fk",
           "tableFrom": "checkout_sessions",
           "tableTo": "invoices",
-          "columnsFrom": [
-            "invoice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invoice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1564,12 +1472,8 @@
           "name": "checkout_sessions_organization_id_organizations_id_fk",
           "tableFrom": "checkout_sessions",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1577,12 +1481,8 @@
           "name": "checkout_sessions_customer_id_customers_id_fk",
           "tableFrom": "checkout_sessions",
           "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1590,12 +1490,8 @@
           "name": "checkout_sessions_discount_id_discounts_id_fk",
           "tableFrom": "checkout_sessions",
           "tableTo": "discounts",
-          "columnsFrom": [
-            "discount_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["discount_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1605,9 +1501,7 @@
         "checkout_sessions_id_unique": {
           "name": "checkout_sessions_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -1615,27 +1509,21 @@
           "name": "Enable all actions for checkout_sessions in own organization",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Enable select for customer": {
           "name": "Enable select for customer",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"customer_id\" in (select id from \"customers\") and \"organization_id\" = current_organization_id()"
         },
         "Check mode (checkout_sessions)": {
           "name": "Check mode (checkout_sessions)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -1735,23 +1623,17 @@
         "countries_id_unique": {
           "name": "countries_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         },
         "countries_name_unique": {
           "name": "countries_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         },
         "countries_code_unique": {
           "name": "countries_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {
@@ -1759,18 +1641,14 @@
           "name": "Enable read",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "true"
         },
         "Enable read for customers (countries)": {
           "name": "Enable read for customers (countries)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "true"
         }
       },
@@ -2095,12 +1973,8 @@
           "name": "customers_organization_id_organizations_id_fk",
           "tableFrom": "customers",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2108,12 +1982,8 @@
           "name": "customers_user_id_users_id_fk",
           "tableFrom": "customers",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2121,12 +1991,8 @@
           "name": "customers_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "customers",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2136,9 +2002,7 @@
         "customers_id_unique": {
           "name": "customers_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -2146,36 +2010,28 @@
           "name": "Enable all actions for own organizations",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Enable read for customers (customers)": {
           "name": "Enable read for customers (customers)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id()"
         },
         "Disallow deletion": {
           "name": "Disallow deletion",
           "as": "RESTRICTIVE",
           "for": "DELETE",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "false"
         },
         "Check mode (customers)": {
           "name": "Check mode (customers)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -2382,12 +2238,8 @@
           "name": "discount_redemptions_discount_id_discounts_id_fk",
           "tableFrom": "discount_redemptions",
           "tableTo": "discounts",
-          "columnsFrom": [
-            "discount_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["discount_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2395,12 +2247,8 @@
           "name": "discount_redemptions_purchase_id_purchases_id_fk",
           "tableFrom": "discount_redemptions",
           "tableTo": "purchases",
-          "columnsFrom": [
-            "purchase_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["purchase_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2408,12 +2256,8 @@
           "name": "discount_redemptions_subscription_id_subscriptions_id_fk",
           "tableFrom": "discount_redemptions",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2421,12 +2265,8 @@
           "name": "discount_redemptions_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "discount_redemptions",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2436,9 +2276,7 @@
         "discount_redemptions_id_unique": {
           "name": "discount_redemptions_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -2446,27 +2284,21 @@
           "name": "Check mode (discount_redemptions)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         },
         "Enable read for customers (discount_redemptions)": {
           "name": "Enable read for customers (discount_redemptions)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"subscription_id\" in (select \"id\" from \"subscriptions\")"
         },
         "Enable read for own organizations (discount_redemptions)": {
           "name": "Enable read for own organizations (discount_redemptions)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"discount_id\" in (select \"id\" from \"discounts\" where \"organization_id\"=current_organization_id())"
         }
       },
@@ -2637,12 +2469,8 @@
           "name": "discounts_organization_id_organizations_id_fk",
           "tableFrom": "discounts",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2652,9 +2480,7 @@
         "discounts_id_unique": {
           "name": "discounts_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -2662,27 +2488,21 @@
           "name": "Check mode (discounts)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         },
         "Enable read for customers (discounts)": {
           "name": "Enable read for customers (discounts)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"organization_id\" = current_organization_id() and \"active\" = true"
         },
         "Enable all actions for discounts in own organization": {
           "name": "Enable all actions for discounts in own organization",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         }
       },
@@ -2873,12 +2693,8 @@
           "name": "events_organization_id_organizations_id_fk",
           "tableFrom": "events",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2888,16 +2704,12 @@
         "events_id_unique": {
           "name": "events_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         },
         "events_hash_unique": {
           "name": "events_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "hash"
-          ]
+          "columns": ["hash"]
         }
       },
       "policies": {
@@ -2905,27 +2717,21 @@
           "name": "Check mode (events)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         },
         "Enable insert for own organizations": {
           "name": "Enable insert for own organizations",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "withCheck": "\"organization_id\" = current_organization_id()"
         },
         "Enable all actions for own organization": {
           "name": "Enable all actions for own organization",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         }
       },
@@ -3144,12 +2950,8 @@
           "name": "features_organization_id_organizations_id_fk",
           "tableFrom": "features",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3157,12 +2959,8 @@
           "name": "features_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "features",
           "tableTo": "usage_meters",
-          "columnsFrom": [
-            "usage_meter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["usage_meter_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3170,12 +2968,8 @@
           "name": "features_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "features",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3183,12 +2977,8 @@
           "name": "features_resource_id_resources_id_fk",
           "tableFrom": "features",
           "tableTo": "resources",
-          "columnsFrom": [
-            "resource_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resource_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3198,9 +2988,7 @@
         "features_id_unique": {
           "name": "features_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -3208,27 +2996,21 @@
           "name": "Enable read for own organizations (features)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Enable read for customers (features)": {
           "name": "Enable read for customers (features)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"organization_id\" = current_organization_id() and \"active\" = true"
         },
         "Check mode (features)": {
           "name": "Check mode (features)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -3502,12 +3284,8 @@
           "name": "fee_calculations_organization_id_organizations_id_fk",
           "tableFrom": "fee_calculations",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3515,12 +3293,8 @@
           "name": "fee_calculations_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "fee_calculations",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3528,12 +3302,8 @@
           "name": "fee_calculations_checkout_session_id_checkout_sessions_id_fk",
           "tableFrom": "fee_calculations",
           "tableTo": "checkout_sessions",
-          "columnsFrom": [
-            "checkout_session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["checkout_session_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3541,12 +3311,8 @@
           "name": "fee_calculations_purchase_id_purchases_id_fk",
           "tableFrom": "fee_calculations",
           "tableTo": "purchases",
-          "columnsFrom": [
-            "purchase_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["purchase_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3554,12 +3320,8 @@
           "name": "fee_calculations_discount_id_discounts_id_fk",
           "tableFrom": "fee_calculations",
           "tableTo": "discounts",
-          "columnsFrom": [
-            "discount_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["discount_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3567,12 +3329,8 @@
           "name": "fee_calculations_price_id_prices_id_fk",
           "tableFrom": "fee_calculations",
           "tableTo": "prices",
-          "columnsFrom": [
-            "price_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["price_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3580,12 +3338,8 @@
           "name": "fee_calculations_billing_period_id_billing_periods_id_fk",
           "tableFrom": "fee_calculations",
           "tableTo": "billing_periods",
-          "columnsFrom": [
-            "billing_period_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["billing_period_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3595,9 +3349,7 @@
         "fee_calculations_id_unique": {
           "name": "fee_calculations_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -3605,18 +3357,14 @@
           "name": "Check mode (fee_calculations)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         },
         "Enable select for own organization": {
           "name": "Enable select for own organization",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         }
       },
@@ -3815,12 +3563,8 @@
           "name": "invoice_line_items_invoice_id_invoices_id_fk",
           "tableFrom": "invoice_line_items",
           "tableTo": "invoices",
-          "columnsFrom": [
-            "invoice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invoice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3828,12 +3572,8 @@
           "name": "invoice_line_items_price_id_prices_id_fk",
           "tableFrom": "invoice_line_items",
           "tableTo": "prices",
-          "columnsFrom": [
-            "price_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["price_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3841,12 +3581,8 @@
           "name": "invoice_line_items_billing_run_id_billing_runs_id_fk",
           "tableFrom": "invoice_line_items",
           "tableTo": "billing_runs",
-          "columnsFrom": [
-            "billing_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["billing_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3854,12 +3590,8 @@
           "name": "invoice_line_items_ledger_account_id_ledger_accounts_id_fk",
           "tableFrom": "invoice_line_items",
           "tableTo": "ledger_accounts",
-          "columnsFrom": [
-            "ledger_account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["ledger_account_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3867,12 +3599,8 @@
           "name": "invoice_line_items_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "invoice_line_items",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3882,9 +3610,7 @@
         "invoice_line_items_id_unique": {
           "name": "invoice_line_items_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -3892,18 +3618,14 @@
           "name": "Enable read for customers (invoice_line_items)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"invoice_id\" in (select \"id\" from \"invoices\")"
         },
         "Check mode (invoice_line_items)": {
           "name": "Check mode (invoice_line_items)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -4274,12 +3996,8 @@
           "name": "invoices_purchase_id_purchases_id_fk",
           "tableFrom": "invoices",
           "tableTo": "purchases",
-          "columnsFrom": [
-            "purchase_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["purchase_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4287,12 +4005,8 @@
           "name": "invoices_billing_period_id_billing_periods_id_fk",
           "tableFrom": "invoices",
           "tableTo": "billing_periods",
-          "columnsFrom": [
-            "billing_period_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["billing_period_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4300,12 +4014,8 @@
           "name": "invoices_customer_id_customers_id_fk",
           "tableFrom": "invoices",
           "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4313,12 +4023,8 @@
           "name": "invoices_organization_id_organizations_id_fk",
           "tableFrom": "invoices",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4326,12 +4032,8 @@
           "name": "invoices_subscription_id_subscriptions_id_fk",
           "tableFrom": "invoices",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4339,12 +4041,8 @@
           "name": "invoices_billing_run_id_billing_runs_id_fk",
           "tableFrom": "invoices",
           "tableTo": "billing_runs",
-          "columnsFrom": [
-            "billing_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["billing_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4352,12 +4050,8 @@
           "name": "invoices_owner_membership_id_memberships_id_fk",
           "tableFrom": "invoices",
           "tableTo": "memberships",
-          "columnsFrom": [
-            "owner_membership_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_membership_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4365,12 +4059,8 @@
           "name": "invoices_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "invoices",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4380,16 +4070,12 @@
         "invoices_id_unique": {
           "name": "invoices_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         },
         "invoices_invoice_number_unique": {
           "name": "invoices_invoice_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "invoice_number"
-          ]
+          "columns": ["invoice_number"]
         }
       },
       "policies": {
@@ -4397,27 +4083,21 @@
           "name": "Check mode (invoices)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         },
         "Enable read for customers (invoices)": {
           "name": "Enable read for customers (invoices)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"customer_id\" in (select \"id\" from \"customers\")"
         },
         "Enable read for own organizations (invoices)": {
           "name": "Enable read for own organizations (invoices)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         }
       },
@@ -4625,12 +4305,8 @@
           "name": "ledger_accounts_organization_id_organizations_id_fk",
           "tableFrom": "ledger_accounts",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4638,12 +4314,8 @@
           "name": "ledger_accounts_subscription_id_subscriptions_id_fk",
           "tableFrom": "ledger_accounts",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4651,12 +4323,8 @@
           "name": "ledger_accounts_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "ledger_accounts",
           "tableTo": "usage_meters",
-          "columnsFrom": [
-            "usage_meter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["usage_meter_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4664,12 +4332,8 @@
           "name": "ledger_accounts_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "ledger_accounts",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4679,9 +4343,7 @@
         "ledger_accounts_id_unique": {
           "name": "ledger_accounts_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -4689,18 +4351,14 @@
           "name": "Enable read for own organizations (ledger_accounts)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (ledger_accounts)": {
           "name": "Check mode (ledger_accounts)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -5154,12 +4812,8 @@
           "name": "ledger_entries_ledger_account_id_ledger_accounts_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "ledger_accounts",
-          "columnsFrom": [
-            "ledger_account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["ledger_account_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5167,12 +4821,8 @@
           "name": "ledger_entries_ledger_transaction_id_ledger_transactions_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "ledger_transactions",
-          "columnsFrom": [
-            "ledger_transaction_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["ledger_transaction_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5180,12 +4830,8 @@
           "name": "ledger_entries_subscription_id_subscriptions_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5193,12 +4839,8 @@
           "name": "ledger_entries_source_usage_event_id_usage_events_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "usage_events",
-          "columnsFrom": [
-            "source_usage_event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_usage_event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5206,12 +4848,8 @@
           "name": "ledger_entries_source_usage_credit_id_usage_credits_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "usage_credits",
-          "columnsFrom": [
-            "source_usage_credit_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_usage_credit_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5219,12 +4857,8 @@
           "name": "ledger_entries_source_credit_application_id_usage_credit_applications_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "usage_credit_applications",
-          "columnsFrom": [
-            "source_credit_application_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_credit_application_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5232,12 +4866,8 @@
           "name": "ledger_entries_source_credit_balance_adjustment_id_usage_credit_balance_adjustments_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "usage_credit_balance_adjustments",
-          "columnsFrom": [
-            "source_credit_balance_adjustment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_credit_balance_adjustment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5245,12 +4875,8 @@
           "name": "ledger_entries_source_refund_id_refunds_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "refunds",
-          "columnsFrom": [
-            "source_refund_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_refund_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5258,12 +4884,8 @@
           "name": "ledger_entries_billing_period_id_billing_periods_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "billing_periods",
-          "columnsFrom": [
-            "billing_period_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["billing_period_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5271,12 +4893,8 @@
           "name": "ledger_entries_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "usage_meters",
-          "columnsFrom": [
-            "usage_meter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["usage_meter_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5284,12 +4902,8 @@
           "name": "ledger_entries_expired_at_ledger_transaction_id_ledger_transactions_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "ledger_transactions",
-          "columnsFrom": [
-            "expired_at_ledger_transaction_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["expired_at_ledger_transaction_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5297,12 +4911,8 @@
           "name": "ledger_entries_claimed_by_billing_run_id_billing_runs_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "billing_runs",
-          "columnsFrom": [
-            "claimed_by_billing_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["claimed_by_billing_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5310,12 +4920,8 @@
           "name": "ledger_entries_organization_id_organizations_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5323,12 +4929,8 @@
           "name": "ledger_entries_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5338,9 +4940,7 @@
         "ledger_entries_id_unique": {
           "name": "ledger_entries_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -5348,18 +4948,14 @@
           "name": "Enable read for own organizations (ledger_entries)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (ledger_entries)": {
           "name": "Check mode (ledger_entries)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -5603,12 +5199,8 @@
           "name": "ledger_transactions_organization_id_organizations_id_fk",
           "tableFrom": "ledger_transactions",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5616,12 +5208,8 @@
           "name": "ledger_transactions_subscription_id_subscriptions_id_fk",
           "tableFrom": "ledger_transactions",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5629,12 +5217,8 @@
           "name": "ledger_transactions_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "ledger_transactions",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5644,9 +5228,7 @@
         "ledger_transactions_id_unique": {
           "name": "ledger_transactions_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -5654,18 +5236,14 @@
           "name": "Enable read for own organizations (ledger_transactions)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (ledger_transactions)": {
           "name": "Check mode (ledger_transactions)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -5826,12 +5404,8 @@
           "name": "memberships_user_id_users_id_fk",
           "tableFrom": "memberships",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5839,12 +5413,8 @@
           "name": "memberships_organization_id_organizations_id_fk",
           "tableFrom": "memberships",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5854,9 +5424,7 @@
         "memberships_id_unique": {
           "name": "memberships_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -5864,18 +5432,14 @@
           "name": "Enable read for own organizations where focused is true",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id() AND (current_auth_type() = 'api_key' OR \"focused\" = true)"
         },
         "Enable update for own membership in current organization": {
           "name": "Enable update for own membership in current organization",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id()"
         }
       },
@@ -6143,12 +5707,8 @@
           "name": "organizations_country_id_countries_id_fk",
           "tableFrom": "organizations",
           "tableTo": "countries",
-          "columnsFrom": [
-            "country_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["country_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6158,37 +5718,27 @@
         "organizations_id_unique": {
           "name": "organizations_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         },
         "organizations_stripe_account_id_unique": {
           "name": "organizations_stripe_account_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripe_account_id"
-          ]
+          "columns": ["stripe_account_id"]
         },
         "organizations_domain_unique": {
           "name": "organizations_domain_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "domain"
-          ]
+          "columns": ["domain"]
         },
         "organizations_subdomain_slug_unique": {
           "name": "organizations_subdomain_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "subdomain_slug"
-          ]
+          "columns": ["subdomain_slug"]
         },
         "organizations_external_id_unique": {
           "name": "organizations_external_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "external_id"
-          ]
+          "columns": ["external_id"]
         }
       },
       "policies": {
@@ -6196,9 +5746,7 @@
           "name": "Enable read for own organizations (organizations)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "id IN ( SELECT memberships.organization_id\n   FROM memberships\n  WHERE (memberships.user_id = requesting_user_id() and memberships.organization_id = current_organization_id()))"
         }
       },
@@ -6356,12 +5904,8 @@
           "name": "payment_methods_customer_id_customers_id_fk",
           "tableFrom": "payment_methods",
           "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6371,9 +5915,7 @@
         "payment_methods_id_unique": {
           "name": "payment_methods_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -6381,27 +5923,21 @@
           "name": "Enable read for customers (payment_methods)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"customer_id\" in (select \"id\" from \"customers\")"
         },
         "Enable read for own organizations via customer": {
           "name": "Enable read for own organizations via customer",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"customerId\" in (select \"id\" from \"customers\")"
         },
         "Check mode (payment_methods)": {
           "name": "Check mode (payment_methods)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -6818,12 +6354,8 @@
           "name": "payments_invoice_id_invoices_id_fk",
           "tableFrom": "payments",
           "tableTo": "invoices",
-          "columnsFrom": [
-            "invoice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invoice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6831,12 +6363,8 @@
           "name": "payments_organization_id_organizations_id_fk",
           "tableFrom": "payments",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6844,12 +6372,8 @@
           "name": "payments_customer_id_customers_id_fk",
           "tableFrom": "payments",
           "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6857,12 +6381,8 @@
           "name": "payments_purchase_id_purchases_id_fk",
           "tableFrom": "payments",
           "tableTo": "purchases",
-          "columnsFrom": [
-            "purchase_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["purchase_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6870,12 +6390,8 @@
           "name": "payments_subscription_id_subscriptions_id_fk",
           "tableFrom": "payments",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6883,12 +6399,8 @@
           "name": "payments_payment_method_id_payment_methods_id_fk",
           "tableFrom": "payments",
           "tableTo": "payment_methods",
-          "columnsFrom": [
-            "payment_method_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["payment_method_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6896,12 +6408,8 @@
           "name": "payments_billing_period_id_billing_periods_id_fk",
           "tableFrom": "payments",
           "tableTo": "billing_periods",
-          "columnsFrom": [
-            "billing_period_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["billing_period_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6909,12 +6417,8 @@
           "name": "payments_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "payments",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6924,9 +6428,7 @@
         "payments_id_unique": {
           "name": "payments_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -6934,36 +6436,28 @@
           "name": "Enable read for customers (payments)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"customer_id\" in (select \"id\" from \"customers\")"
         },
         "Enable select for own organization": {
           "name": "Enable select for own organization",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Enable update for own organization": {
           "name": "Enable update for own organization",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (payments)": {
           "name": "Check mode (payments)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -7217,12 +6711,8 @@
           "name": "prices_product_id_products_id_fk",
           "tableFrom": "prices",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7230,12 +6720,8 @@
           "name": "prices_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "prices",
           "tableTo": "usage_meters",
-          "columnsFrom": [
-            "usage_meter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["usage_meter_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7243,12 +6729,8 @@
           "name": "prices_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "prices",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7258,9 +6740,7 @@
         "prices_id_unique": {
           "name": "prices_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -7268,36 +6748,28 @@
           "name": "Enable read for customers (prices)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"product_id\" in (select \"id\" from \"products\") and \"active\" = true"
         },
         "On update, ensure usage meter belongs to same organization as product": {
           "name": "On update, ensure usage meter belongs to same organization as product",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "withCheck": "\"usage_meter_id\" IS NULL OR \"usage_meter_id\" IN (\n  SELECT \"id\" FROM \"usage_meters\"\n  WHERE \"usage_meters\".\"organization_id\" = (\n    SELECT \"organization_id\" FROM \"products\" \n    WHERE \"products\".\"id\" = \"prices\".\"product_id\"\n  )\n)"
         },
         "Ensure organization integrity with products parent table": {
           "name": "Ensure organization integrity with products parent table",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"product_id\" in (select \"id\" from \"products\")"
         },
         "Check mode (prices)": {
           "name": "Check mode (prices)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -7415,12 +6887,8 @@
           "name": "pricing_models_organization_id_organizations_id_fk",
           "tableFrom": "pricing_models",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7430,9 +6898,7 @@
         "pricing_models_id_unique": {
           "name": "pricing_models_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -7440,27 +6906,21 @@
           "name": "Enable read for customers (pricing_models)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"id\" in (select \"pricing_model_id\" from \"customers\") OR (\"is_default\" = true AND \"organization_id\" = current_organization_id())"
         },
         "Enable read for own organizations (pricing_models)": {
           "name": "Enable read for own organizations (pricing_models)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (pricing_models)": {
           "name": "Check mode (pricing_models)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -7619,12 +7079,8 @@
           "name": "product_features_product_id_products_id_fk",
           "tableFrom": "product_features",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7632,12 +7088,8 @@
           "name": "product_features_feature_id_features_id_fk",
           "tableFrom": "product_features",
           "tableTo": "features",
-          "columnsFrom": [
-            "feature_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["feature_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7645,12 +7097,8 @@
           "name": "product_features_organization_id_organizations_id_fk",
           "tableFrom": "product_features",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7658,12 +7106,8 @@
           "name": "product_features_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "product_features",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7673,9 +7117,7 @@
         "product_features_id_unique": {
           "name": "product_features_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -7683,54 +7125,42 @@
           "name": "Enable read for own organizations",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
         "Enable read for customers (product_features)": {
           "name": "Enable read for customers (product_features)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"product_id\" in (select \"id\" from \"products\")"
         },
         "Ensure organization integrity with products parent table": {
           "name": "Ensure organization integrity with products parent table",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"product_id\" in (select \"id\" from \"products\")"
         },
         "Enable read for own organizations (product_features)": {
           "name": "Enable read for own organizations (product_features)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Ensure organization integrity with features parent table": {
           "name": "Ensure organization integrity with features parent table",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"feature_id\" in (select \"id\" from \"features\")"
         },
         "Check mode (product_features)": {
           "name": "Check mode (product_features)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -7943,12 +7373,8 @@
           "name": "products_organization_id_organizations_id_fk",
           "tableFrom": "products",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7956,12 +7382,8 @@
           "name": "products_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "products",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7971,9 +7393,7 @@
         "products_id_unique": {
           "name": "products_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -7981,27 +7401,21 @@
           "name": "Enable read for customers (products)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"organization_id\" = current_organization_id() and \"active\" = true and \"pricing_model_id\" in (select \"pricing_model_id\" from \"customers\")"
         },
         "Enable read for own organizations (products)": {
           "name": "Enable read for own organizations (products)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (products)": {
           "name": "Check mode (products)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -8264,12 +7678,8 @@
           "name": "purchases_customer_id_customers_id_fk",
           "tableFrom": "purchases",
           "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8277,12 +7687,8 @@
           "name": "purchases_organization_id_organizations_id_fk",
           "tableFrom": "purchases",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8290,12 +7696,8 @@
           "name": "purchases_price_id_prices_id_fk",
           "tableFrom": "purchases",
           "tableTo": "prices",
-          "columnsFrom": [
-            "price_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["price_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8303,12 +7705,8 @@
           "name": "purchases_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "purchases",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8318,9 +7716,7 @@
         "purchases_id_unique": {
           "name": "purchases_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -8328,27 +7724,21 @@
           "name": "Check mode (purchases)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         },
         "Enable read for customers (purchases)": {
           "name": "Enable read for customers (purchases)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"customer_id\" in (select \"id\" from \"customers\")"
         },
         "Enable read for own organizations (purchases)": {
           "name": "Enable read for own organizations (purchases)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         }
       },
@@ -8545,12 +7935,8 @@
           "name": "refunds_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "refunds",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8558,12 +7944,8 @@
           "name": "refunds_payment_id_payments_id_fk",
           "tableFrom": "refunds",
           "tableTo": "payments",
-          "columnsFrom": [
-            "payment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["payment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8571,12 +7953,8 @@
           "name": "refunds_subscription_id_subscriptions_id_fk",
           "tableFrom": "refunds",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8584,12 +7962,8 @@
           "name": "refunds_organization_id_organizations_id_fk",
           "tableFrom": "refunds",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8599,9 +7973,7 @@
         "refunds_id_unique": {
           "name": "refunds_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -8609,27 +7981,21 @@
           "name": "Enable read for customers (refunds)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"payment_id\" in (select \"id\" from \"payments\")"
         },
         "Enable read for own organizations (refunds)": {
           "name": "Enable read for own organizations (refunds)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (refunds)": {
           "name": "Check mode (refunds)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -8878,12 +8244,8 @@
           "name": "resource_claims_organization_id_organizations_id_fk",
           "tableFrom": "resource_claims",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8891,12 +8253,8 @@
           "name": "resource_claims_subscription_item_feature_id_subscription_item_features_id_fk",
           "tableFrom": "resource_claims",
           "tableTo": "subscription_item_features",
-          "columnsFrom": [
-            "subscription_item_feature_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_item_feature_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8904,12 +8262,8 @@
           "name": "resource_claims_resource_id_resources_id_fk",
           "tableFrom": "resource_claims",
           "tableTo": "resources",
-          "columnsFrom": [
-            "resource_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resource_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8917,12 +8271,8 @@
           "name": "resource_claims_subscription_id_subscriptions_id_fk",
           "tableFrom": "resource_claims",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8930,12 +8280,8 @@
           "name": "resource_claims_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "resource_claims",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8945,9 +8291,7 @@
         "resource_claims_id_unique": {
           "name": "resource_claims_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -8955,27 +8299,21 @@
           "name": "Enable read for own organizations (resource_claims)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"subscription_id\" in (select \"id\" from \"subscriptions\")"
         },
         "Enable read for customers (resource_claims)": {
           "name": "Enable read for customers (resource_claims)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"subscription_id\" in (select \"id\" from \"subscriptions\")"
         },
         "Check mode (resource_claims)": {
           "name": "Check mode (resource_claims)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -9126,12 +8464,8 @@
           "name": "resources_organization_id_organizations_id_fk",
           "tableFrom": "resources",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9139,12 +8473,8 @@
           "name": "resources_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "resources",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9154,9 +8484,7 @@
         "resources_id_unique": {
           "name": "resources_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -9164,27 +8492,21 @@
           "name": "Enable read for own organizations (resources)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Enable read for customers (resources)": {
           "name": "Enable read for customers (resources)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"organization_id\" = current_organization_id() and \"active\" = true and \"pricing_model_id\" in (select \"pricing_model_id\" from \"customers\")"
         },
         "Check mode (resources)": {
           "name": "Check mode (resources)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -9439,12 +8761,8 @@
           "name": "subscription_item_features_subscription_item_id_subscription_items_id_fk",
           "tableFrom": "subscription_item_features",
           "tableTo": "subscription_items",
-          "columnsFrom": [
-            "subscription_item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_item_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9452,12 +8770,8 @@
           "name": "subscription_item_features_feature_id_features_id_fk",
           "tableFrom": "subscription_item_features",
           "tableTo": "features",
-          "columnsFrom": [
-            "feature_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["feature_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9465,12 +8779,8 @@
           "name": "subscription_item_features_product_feature_id_product_features_id_fk",
           "tableFrom": "subscription_item_features",
           "tableTo": "product_features",
-          "columnsFrom": [
-            "product_feature_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_feature_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9478,12 +8788,8 @@
           "name": "subscription_item_features_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "subscription_item_features",
           "tableTo": "usage_meters",
-          "columnsFrom": [
-            "usage_meter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["usage_meter_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9491,12 +8797,8 @@
           "name": "subscription_item_features_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "subscription_item_features",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9504,12 +8806,8 @@
           "name": "subscription_item_features_resource_id_resources_id_fk",
           "tableFrom": "subscription_item_features",
           "tableTo": "resources",
-          "columnsFrom": [
-            "resource_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resource_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9519,9 +8817,7 @@
         "subscription_item_features_id_unique": {
           "name": "subscription_item_features_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -9529,54 +8825,42 @@
           "name": "Ensure organization integrity with subscription_items parent table",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"subscription_item_id\" in (select \"id\" from \"subscription_items\")"
         },
         "Ensure organization integrity with features parent table": {
           "name": "Ensure organization integrity with features parent table",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"feature_id\" in (select \"id\" from \"features\")"
         },
         "Ensure organization integrity with usage_meters parent table": {
           "name": "Ensure organization integrity with usage_meters parent table",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"usage_meter_id\" in (select \"id\" from \"usage_meters\")"
         },
         "Enable read for customers (subscription_item_features)": {
           "name": "Enable read for customers (subscription_item_features)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"subscription_item_id\" in (select \"id\" from \"subscription_items\") and \"feature_id\" in (select \"id\" from \"features\")"
         },
         "Enable read for own organizations (subscription_item_features)": {
           "name": "Enable read for own organizations (subscription_item_features)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"subscription_item_id\" in (select \"id\" from \"subscription_items\")"
         },
         "Check mode (subscription_item_features)": {
           "name": "Check mode (subscription_item_features)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -9773,12 +9057,8 @@
           "name": "subscription_items_subscription_id_subscriptions_id_fk",
           "tableFrom": "subscription_items",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9786,12 +9066,8 @@
           "name": "subscription_items_price_id_prices_id_fk",
           "tableFrom": "subscription_items",
           "tableTo": "prices",
-          "columnsFrom": [
-            "price_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["price_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9799,12 +9075,8 @@
           "name": "subscription_items_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "subscription_items",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9814,9 +9086,7 @@
         "subscription_items_id_unique": {
           "name": "subscription_items_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -9824,27 +9094,21 @@
           "name": "Enable read for customers (subscription_items)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"subscription_id\" in (select \"id\" from \"subscriptions\")"
         },
         "Enable actions for own organizations via subscriptions": {
           "name": "Enable actions for own organizations via subscriptions",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"subscriptionId\" in (select \"id\" from \"Subscriptions\")"
         },
         "Check mode (subscription_items)": {
           "name": "Check mode (subscription_items)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -10163,12 +9427,8 @@
           "name": "subscription_meter_period_calculations_billing_run_id_billing_runs_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
           "tableTo": "billing_runs",
-          "columnsFrom": [
-            "billing_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["billing_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10176,12 +9436,8 @@
           "name": "subscription_meter_period_calculations_subscription_id_subscriptions_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10189,12 +9445,8 @@
           "name": "subscription_meter_period_calculations_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
           "tableTo": "usage_meters",
-          "columnsFrom": [
-            "usage_meter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["usage_meter_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10202,12 +9454,8 @@
           "name": "subscription_meter_period_calculations_billing_period_id_billing_periods_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
           "tableTo": "billing_periods",
-          "columnsFrom": [
-            "billing_period_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["billing_period_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10215,12 +9463,8 @@
           "name": "subscription_meter_period_calculations_organization_id_organizations_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10228,12 +9472,8 @@
           "name": "subscription_meter_period_calculations_source_invoice_id_invoices_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
           "tableTo": "invoices",
-          "columnsFrom": [
-            "source_invoice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_invoice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10241,12 +9481,8 @@
           "name": "subscription_meter_period_calculations_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10254,12 +9490,8 @@
           "name": "subscription_meter_period_calculations_superseded_by_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
           "tableTo": "subscription_meter_period_calculations",
-          "columnsFrom": [
-            "superseded_by_calculation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["superseded_by_calculation_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10269,9 +9501,7 @@
         "subscription_meter_period_calculations_id_unique": {
           "name": "subscription_meter_period_calculations_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -10279,18 +9509,14 @@
           "name": "Enable read for own organizations (subscription_meter_period_calculations)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (subscription_meter_period_calculations)": {
           "name": "Check mode (subscription_meter_period_calculations)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -10671,12 +9897,8 @@
           "name": "subscriptions_customer_id_customers_id_fk",
           "tableFrom": "subscriptions",
           "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10684,12 +9906,8 @@
           "name": "subscriptions_organization_id_organizations_id_fk",
           "tableFrom": "subscriptions",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10697,12 +9915,8 @@
           "name": "subscriptions_default_payment_method_id_payment_methods_id_fk",
           "tableFrom": "subscriptions",
           "tableTo": "payment_methods",
-          "columnsFrom": [
-            "default_payment_method_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["default_payment_method_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10710,12 +9924,8 @@
           "name": "subscriptions_backup_payment_method_id_payment_methods_id_fk",
           "tableFrom": "subscriptions",
           "tableTo": "payment_methods",
-          "columnsFrom": [
-            "backup_payment_method_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["backup_payment_method_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10723,12 +9933,8 @@
           "name": "subscriptions_price_id_prices_id_fk",
           "tableFrom": "subscriptions",
           "tableTo": "prices",
-          "columnsFrom": [
-            "price_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["price_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10736,12 +9942,8 @@
           "name": "subscriptions_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "subscriptions",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10751,9 +9953,7 @@
         "subscriptions_id_unique": {
           "name": "subscriptions_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -10761,36 +9961,28 @@
           "name": "Enable read for customers (subscriptions)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"customer_id\" in (select \"id\" from \"customers\")"
         },
         "Enable actions for own organizations via customer": {
           "name": "Enable actions for own organizations via customer",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"customer_id\" in (select \"id\" from \"customers\")"
         },
         "Forbid deletion": {
           "name": "Forbid deletion",
           "as": "RESTRICTIVE",
           "for": "DELETE",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "false"
         },
         "Check mode (subscriptions)": {
           "name": "Check mode (subscriptions)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -10933,12 +10125,8 @@
           "name": "usage_credit_applications_usage_credit_id_usage_credits_id_fk",
           "tableFrom": "usage_credit_applications",
           "tableTo": "usage_credits",
-          "columnsFrom": [
-            "usage_credit_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["usage_credit_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10946,12 +10134,8 @@
           "name": "usage_credit_applications_usage_event_id_usage_events_id_fk",
           "tableFrom": "usage_credit_applications",
           "tableTo": "usage_events",
-          "columnsFrom": [
-            "usage_event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["usage_event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10959,12 +10143,8 @@
           "name": "usage_credit_applications_target_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "usage_credit_applications",
           "tableTo": "usage_meters",
-          "columnsFrom": [
-            "target_usage_meter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["target_usage_meter_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10972,12 +10152,8 @@
           "name": "usage_credit_applications_organization_id_organizations_id_fk",
           "tableFrom": "usage_credit_applications",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10985,12 +10161,8 @@
           "name": "usage_credit_applications_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "usage_credit_applications",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -11000,9 +10172,7 @@
         "usage_credit_applications_id_unique": {
           "name": "usage_credit_applications_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -11010,27 +10180,21 @@
           "name": "Enable read for customers (usage_credit_applications)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"usage_credit_id\" in (select \"id\" from \"usage_credits\")"
         },
         "Enable read for own organizations (usage_credit_applications)": {
           "name": "Enable read for own organizations (usage_credit_applications)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (usage_credit_applications)": {
           "name": "Check mode (usage_credit_applications)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -11214,12 +10378,8 @@
           "name": "usage_credit_balance_adjustments_organization_id_organizations_id_fk",
           "tableFrom": "usage_credit_balance_adjustments",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11227,12 +10387,8 @@
           "name": "usage_credit_balance_adjustments_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "usage_credit_balance_adjustments",
           "tableTo": "usage_meters",
-          "columnsFrom": [
-            "usage_meter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["usage_meter_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11240,12 +10396,8 @@
           "name": "usage_credit_balance_adjustments_adjusted_usage_credit_id_usage_credits_id_fk",
           "tableFrom": "usage_credit_balance_adjustments",
           "tableTo": "usage_credits",
-          "columnsFrom": [
-            "adjusted_usage_credit_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["adjusted_usage_credit_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11253,12 +10405,8 @@
           "name": "usage_credit_balance_adjustments_adjusted_by_user_id_users_id_fk",
           "tableFrom": "usage_credit_balance_adjustments",
           "tableTo": "users",
-          "columnsFrom": [
-            "adjusted_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["adjusted_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11266,12 +10414,8 @@
           "name": "usage_credit_balance_adjustments_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "usage_credit_balance_adjustments",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -11281,9 +10425,7 @@
         "usage_credit_balance_adjustments_id_unique": {
           "name": "usage_credit_balance_adjustments_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -11291,27 +10433,21 @@
           "name": "Enable read for customers (usage_credit_balance_adjustments)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"adjusted_usage_credit_id\" in (select \"id\" from \"usage_credits\")"
         },
         "Enable read for own organizations (usage_credit_balance_adjustments)": {
           "name": "Enable read for own organizations (usage_credit_balance_adjustments)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (usage_credit_balance_adjustments)": {
           "name": "Check mode (usage_credit_balance_adjustments)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -11645,12 +10781,8 @@
           "name": "usage_credits_subscription_id_subscriptions_id_fk",
           "tableFrom": "usage_credits",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11658,12 +10790,8 @@
           "name": "usage_credits_organization_id_organizations_id_fk",
           "tableFrom": "usage_credits",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11671,12 +10799,8 @@
           "name": "usage_credits_billing_period_id_billing_periods_id_fk",
           "tableFrom": "usage_credits",
           "tableTo": "billing_periods",
-          "columnsFrom": [
-            "billing_period_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["billing_period_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11684,12 +10808,8 @@
           "name": "usage_credits_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "usage_credits",
           "tableTo": "usage_meters",
-          "columnsFrom": [
-            "usage_meter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["usage_meter_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11697,12 +10817,8 @@
           "name": "usage_credits_payment_id_payments_id_fk",
           "tableFrom": "usage_credits",
           "tableTo": "payments",
-          "columnsFrom": [
-            "payment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["payment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11710,12 +10826,8 @@
           "name": "usage_credits_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "usage_credits",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -11725,9 +10837,7 @@
         "usage_credits_id_unique": {
           "name": "usage_credits_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -11735,27 +10845,21 @@
           "name": "Enable read for customers (usage_credits)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"subscription_id\" in (select \"id\" from \"subscriptions\")"
         },
         "Enable read for own organizations (usage_credits)": {
           "name": "Enable read for own organizations (usage_credits)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (usage_credits)": {
           "name": "Check mode (usage_credits)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -11990,12 +11094,8 @@
           "name": "usage_events_customer_id_customers_id_fk",
           "tableFrom": "usage_events",
           "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12003,12 +11103,8 @@
           "name": "usage_events_subscription_id_subscriptions_id_fk",
           "tableFrom": "usage_events",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12016,12 +11112,8 @@
           "name": "usage_events_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "usage_events",
           "tableTo": "usage_meters",
-          "columnsFrom": [
-            "usage_meter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["usage_meter_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12029,12 +11121,8 @@
           "name": "usage_events_billing_period_id_billing_periods_id_fk",
           "tableFrom": "usage_events",
           "tableTo": "billing_periods",
-          "columnsFrom": [
-            "billing_period_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["billing_period_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12042,12 +11130,8 @@
           "name": "usage_events_price_id_prices_id_fk",
           "tableFrom": "usage_events",
           "tableTo": "prices",
-          "columnsFrom": [
-            "price_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["price_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12055,12 +11139,8 @@
           "name": "usage_events_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "usage_events",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -12070,9 +11150,7 @@
         "usage_events_id_unique": {
           "name": "usage_events_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -12080,81 +11158,63 @@
           "name": "Enable read for own organizations (usage_events)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"customer_id\" in (select \"id\" from \"customers\" where \"organization_id\"=current_organization_id())"
         },
         "On insert, only allow usage events for prices with matching usage meter": {
           "name": "On insert, only allow usage events for prices with matching usage meter",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "withCheck": "\"price_id\" IS NULL OR \"price_id\" in (select \"id\" from \"prices\" where \"prices\".\"usage_meter_id\" = \"usage_meter_id\")"
         },
         "On update, only allow usage events for prices with matching usage meter": {
           "name": "On update, only allow usage events for prices with matching usage meter",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"price_id\" IS NULL OR \"price_id\" in (select \"id\" from \"prices\" where \"prices\".\"usage_meter_id\" = \"usage_meter_id\")"
         },
         "On insert, only allow usage events for subscriptions with matching customer": {
           "name": "On insert, only allow usage events for subscriptions with matching customer",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "withCheck": "\"subscription_id\" in (select \"id\" from \"subscriptions\" where \"subscriptions\".\"customer_id\" = \"customer_id\")"
         },
         "On update, only allow usage events for subscriptions with matching customer": {
           "name": "On update, only allow usage events for subscriptions with matching customer",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "withCheck": "\"subscription_id\" in (select \"id\" from \"subscriptions\" where \"subscriptions\".\"customer_id\" = \"customer_id\")"
         },
         "On insert, only allow usage events for billing periods with matching subscription": {
           "name": "On insert, only allow usage events for billing periods with matching subscription",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "withCheck": "\"billing_period_id\" in (select \"id\" from \"billing_periods\" where \"billing_periods\".\"subscription_id\" = \"subscription_id\")"
         },
         "On update, only allow usage events for billing periods with matching subscription": {
           "name": "On update, only allow usage events for billing periods with matching subscription",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "withCheck": "\"billing_period_id\" in (select \"id\" from \"billing_periods\" where \"billing_periods\".\"subscription_id\" = \"subscription_id\")"
         },
         "Enable read for customers (usage_events)": {
           "name": "Enable read for customers (usage_events)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"customer_id\" in (select \"id\" from \"customers\")"
         },
         "Check mode (usage_events)": {
           "name": "Check mode (usage_events)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -12306,12 +11366,8 @@
           "name": "usage_meters_organization_id_organizations_id_fk",
           "tableFrom": "usage_meters",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12319,12 +11375,8 @@
           "name": "usage_meters_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "usage_meters",
           "tableTo": "pricing_models",
-          "columnsFrom": [
-            "pricing_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -12334,9 +11386,7 @@
         "usage_meters_id_unique": {
           "name": "usage_meters_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -12344,27 +11394,21 @@
           "name": "Enable read for customers (usage_meters)",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "customer"
-          ],
+          "to": ["customer"],
           "using": "\"pricing_model_id\" in (select \"pricing_model_id\" from \"customers\")"
         },
         "Enable read for own organizations (usage_meters)": {
           "name": "Enable read for own organizations (usage_meters)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (usage_meters)": {
           "name": "Check mode (usage_meters)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
@@ -12482,30 +11526,22 @@
         "users_id_unique": {
           "name": "users_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         },
         "users_clerk_id_unique": {
           "name": "users_clerk_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "clerk_id"
-          ]
+          "columns": ["clerk_id"]
         },
         "users_better_auth_id_unique": {
           "name": "users_better_auth_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "better_auth_id"
-          ]
+          "columns": ["better_auth_id"]
         },
         "users_stack_auth_id_unique": {
           "name": "users_stack_auth_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stack_auth_id"
-          ]
+          "columns": ["stack_auth_id"]
         }
       },
       "policies": {},
@@ -12629,12 +11665,8 @@
           "name": "webhooks_organization_id_organizations_id_fk",
           "tableFrom": "webhooks",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -12644,9 +11676,7 @@
         "webhooks_id_unique": {
           "name": "webhooks_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {
@@ -12654,18 +11684,14 @@
           "name": "Enable read for own organizations (webhooks)",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "\"organization_id\" = current_organization_id()"
         },
         "Check mode (webhooks)": {
           "name": "Check mode (webhooks)",
           "as": "RESTRICTIVE",
           "for": "ALL",
-          "to": [
-            "merchant"
-          ],
+          "to": ["merchant"],
           "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },

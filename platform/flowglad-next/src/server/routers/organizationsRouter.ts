@@ -501,7 +501,7 @@ const updateNotificationPreferences = protectedProcedure
           (membership.notificationPreferences as Partial<NotificationPreferences>) ??
           {}
         const updatedPrefs = { ...currentPrefs, ...input.preferences }
-        await updateMembership(
+        const updatedMembership = await updateMembership(
           {
             id: membership.id,
             notificationPreferences: updatedPrefs,
@@ -509,11 +509,10 @@ const updateNotificationPreferences = protectedProcedure
           transaction
         )
         // Return full preferences merged with defaults to ensure all fields are present
+        // Use the actual saved preferences from the database, not the computed values
         return {
-          preferences: {
-            ...DEFAULT_NOTIFICATION_PREFERENCES,
-            ...updatedPrefs,
-          },
+          preferences:
+            getMembershipNotificationPreferences(updatedMembership),
         }
       }
     )
