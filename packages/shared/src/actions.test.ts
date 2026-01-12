@@ -10,6 +10,8 @@ import {
   createSubscriptionSchema,
   createUsageEventSchema,
   flowgladActionValidators,
+  isPublicActionKey,
+  publicActionKeys,
   subscriptionAdjustmentTiming,
   terseSubscriptionItemSchema,
   updateCustomerInputSchema,
@@ -962,6 +964,7 @@ describe('flowgladActionValidators', () => {
       FlowgladActionKey.CreateSubscription,
       FlowgladActionKey.UpdateCustomer,
       FlowgladActionKey.CreateUsageEvent,
+      FlowgladActionKey.GetDefaultPricingModel,
     ]
 
     for (const key of expectedKeys) {
@@ -977,13 +980,19 @@ describe('flowgladActionValidators', () => {
     }
   })
 
-  it('all validators use POST method', () => {
+  it('most validators use POST method except GetDefaultPricingModel', () => {
     for (const key of Object.keys(
       flowgladActionValidators
     ) as FlowgladActionKey[]) {
-      expect(flowgladActionValidators[key].method).toBe(
-        HTTPMethod.POST
-      )
+      if (key === FlowgladActionKey.GetDefaultPricingModel) {
+        expect(flowgladActionValidators[key].method).toBe(
+          HTTPMethod.GET
+        )
+      } else {
+        expect(flowgladActionValidators[key].method).toBe(
+          HTTPMethod.POST
+        )
+      }
     }
   })
 
@@ -1048,5 +1057,73 @@ describe('flowgladActionValidators', () => {
       timing: 'immediately',
     })
     expect(result.success).toBe(true)
+  })
+
+  it('GetDefaultPricingModel validator accepts empty object', () => {
+    const validator =
+      flowgladActionValidators[
+        FlowgladActionKey.GetDefaultPricingModel
+      ].inputValidator
+    const result = validator.safeParse({})
+    expect(result.success).toBe(true)
+  })
+
+  it('GetDefaultPricingModel validator uses GET method', () => {
+    expect(
+      flowgladActionValidators[
+        FlowgladActionKey.GetDefaultPricingModel
+      ].method
+    ).toBe(HTTPMethod.GET)
+  })
+})
+
+describe('isPublicActionKey type guard', () => {
+  it('returns true for GetDefaultPricingModel', () => {
+    expect(
+      isPublicActionKey(FlowgladActionKey.GetDefaultPricingModel)
+    ).toBe(true)
+  })
+
+  it('returns false for GetCustomerBilling action key', () => {
+    expect(
+      isPublicActionKey(FlowgladActionKey.GetCustomerBilling)
+    ).toBe(false)
+  })
+
+  it('returns false for FindOrCreateCustomer action key', () => {
+    expect(
+      isPublicActionKey(FlowgladActionKey.FindOrCreateCustomer)
+    ).toBe(false)
+  })
+
+  it('returns false for all non-public action keys', () => {
+    const nonPublicKeys = [
+      FlowgladActionKey.GetCustomerBilling,
+      FlowgladActionKey.FindOrCreateCustomer,
+      FlowgladActionKey.CreateCheckoutSession,
+      FlowgladActionKey.CreateAddPaymentMethodCheckoutSession,
+      FlowgladActionKey.CreateActivateSubscriptionCheckoutSession,
+      FlowgladActionKey.CancelSubscription,
+      FlowgladActionKey.UncancelSubscription,
+      FlowgladActionKey.AdjustSubscription,
+      FlowgladActionKey.CreateSubscription,
+      FlowgladActionKey.UpdateCustomer,
+      FlowgladActionKey.CreateUsageEvent,
+    ]
+    for (const key of nonPublicKeys) {
+      expect(isPublicActionKey(key)).toBe(false)
+    }
+  })
+})
+
+describe('publicActionKeys', () => {
+  it('contains GetDefaultPricingModel', () => {
+    expect(
+      publicActionKeys.has(FlowgladActionKey.GetDefaultPricingModel)
+    ).toBe(true)
+  })
+
+  it('has exactly 1 public action key', () => {
+    expect(publicActionKeys.size).toBe(1)
   })
 })

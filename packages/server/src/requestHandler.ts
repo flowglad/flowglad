@@ -1,6 +1,14 @@
-import { FlowgladActionKey, type HTTPMethod } from '@flowglad/shared'
+import {
+  FlowgladActionKey,
+  type HTTPMethod,
+  isPublicActionKey,
+} from '@flowglad/shared'
 import type { FlowgladServer } from './FlowgladServer'
-import { routeToHandlerMap } from './subrouteHandlers'
+import type { FlowgladServerAdmin } from './FlowgladServerAdmin'
+import {
+  publicRouteToHandlerMap,
+  routeToHandlerMap,
+} from './subrouteHandlers'
 import type { SubRouteHandler } from './subrouteHandlers/types'
 
 /**
@@ -64,6 +72,14 @@ export interface RequestHandlerOptions<TRequest> {
     customerExternalId: string
   ) => Promise<FlowgladServer> | FlowgladServer
   /**
+   * Optional function that creates a FlowgladServerAdmin instance.
+   * Required for public routes (e.g., pricing endpoints) that don't require authentication.
+   * If not provided, public routes will return 501 Not Implemented.
+   *
+   * @returns A FlowgladServerAdmin instance
+   */
+  flowgladAdmin?: () => FlowgladServerAdmin
+  /**
    * Function to run when an error occurs during request handling.
    */
   onError?: (error: unknown) => void
@@ -98,6 +114,7 @@ export const requestHandler = <TRequest = unknown>(
   const {
     getCustomerExternalId,
     flowglad,
+    flowgladAdmin,
     onError,
     beforeRequest,
     afterRequest,
@@ -112,9 +129,6 @@ export const requestHandler = <TRequest = unknown>(
         await beforeRequest()
       }
 
-      const customerExternalId = await getCustomerExternalId(request)
-      const flowgladServer = await flowglad(customerExternalId)
-
       const joinedPath = input.path.join('/') as FlowgladActionKey
 
       if (!Object.values(FlowgladActionKey).includes(joinedPath)) {
@@ -124,7 +138,44 @@ export const requestHandler = <TRequest = unknown>(
         )
       }
 
-      const handler = routeToHandlerMap[joinedPath]
+      // Handle public routes before auth check
+      if (isPublicActionKey(joinedPath)) {
+        if (!flowgladAdmin) {
+          throw new RequestHandlerError(
+            'Public routes require flowgladAdmin option',
+            501
+          )
+        }
+        const admin = flowgladAdmin()
+        const publicHandler =
+          publicRouteToHandlerMap[
+            joinedPath as keyof typeof publicRouteToHandlerMap
+          ]
+        const data = input.method === 'GET' ? input.query : input.body
+        const result = await publicHandler(
+          { method: input.method, data },
+          admin
+        )
+
+        if (afterRequest) {
+          await afterRequest()
+        }
+
+        return {
+          status: result.status,
+          data: result.data,
+          error: result.error,
+        }
+      }
+
+      // Authenticated routes
+      const customerExternalId = await getCustomerExternalId(request)
+      const flowgladServer = await flowglad(customerExternalId)
+
+      const handler =
+        routeToHandlerMap[
+          joinedPath as keyof typeof routeToHandlerMap
+        ]
       if (!handler) {
         throw new RequestHandlerError(
           `"${joinedPath}" is not a valid Flowglad API path`,
@@ -138,7 +189,12 @@ export const requestHandler = <TRequest = unknown>(
       // of joinedPath to a specific FlowgladActionKey at compile time, even though
       // we've validated it at runtime
       const result = await (
-        handler as SubRouteHandler<typeof joinedPath>
+        handler as SubRouteHandler<
+          Exclude<
+            FlowgladActionKey,
+            FlowgladActionKey.GetDefaultPricingModel
+          >
+        >
       )(
         {
           method: input.method as any,

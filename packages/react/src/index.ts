@@ -8,3 +8,4 @@ export type {
 export { useBilling } from './FlowgladContext'
 export { FlowgladProvider } from './FlowgladProvider'
 export { humanReadableCurrencyAmount } from './lib/utils'
+export type { FlowgladError, FlowgladHookData } from './types'
