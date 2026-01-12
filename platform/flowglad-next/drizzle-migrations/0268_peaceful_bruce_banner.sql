@@ -70,6 +70,12 @@ SELECT DISTINCT
 FROM customers c
 INNER JOIN purchases p ON c.id = p.customer_id
 WHERE c.pricing_model_id != p.pricing_model_id
+  -- Skip cloning if a customer already exists with this (pricing_model_id, external_id) combination
+  AND NOT EXISTS (
+    SELECT 1 FROM customers existing
+    WHERE existing.pricing_model_id = p.pricing_model_id
+      AND existing.external_id = c.external_id
+  )
 
 UNION
 
@@ -97,6 +103,12 @@ SELECT DISTINCT
 FROM customers c
 INNER JOIN subscriptions s ON c.id = s.customer_id
 WHERE c.pricing_model_id != s.pricing_model_id
+  -- Skip cloning if a customer already exists with this (pricing_model_id, external_id) combination
+  AND NOT EXISTS (
+    SELECT 1 FROM customers existing
+    WHERE existing.pricing_model_id = s.pricing_model_id
+      AND existing.external_id = c.external_id
+  )
 
 UNION
 
@@ -123,7 +135,112 @@ SELECT DISTINCT
   i.pricing_model_id as transaction_pricing_model_id
 FROM customers c
 INNER JOIN invoices i ON c.id = i.customer_id
-WHERE c.pricing_model_id != i.pricing_model_id;
+WHERE c.pricing_model_id != i.pricing_model_id
+  -- Skip cloning if a customer already exists with this (pricing_model_id, external_id) combination
+  AND NOT EXISTS (
+    SELECT 1 FROM customers existing
+    WHERE existing.pricing_model_id = i.pricing_model_id
+      AND existing.external_id = c.external_id
+  )
+
+UNION
+
+SELECT DISTINCT
+  c.id as original_customer_id,
+  c.organization_id,
+  c.email,
+  c.name,
+  c.invoice_number_base,
+  c.archived,
+  c.stripe_customer_id,
+  c.tax_id,
+  c.logo_url,
+  c.icon_url,
+  c.domain,
+  c.billing_address,
+  c.external_id,
+  c.user_id,
+  c.livemode,
+  c.created_at,
+  c.updated_at,
+  c.pricing_model_id as original_pricing_model_id,
+  c.stack_auth_hosted_billing_user_id,
+  cs.pricing_model_id as transaction_pricing_model_id
+FROM customers c
+INNER JOIN checkout_sessions cs ON c.id = cs.customer_id
+WHERE c.pricing_model_id != cs.pricing_model_id
+  -- Skip cloning if a customer already exists with this (pricing_model_id, external_id) combination
+  AND NOT EXISTS (
+    SELECT 1 FROM customers existing
+    WHERE existing.pricing_model_id = cs.pricing_model_id
+      AND existing.external_id = c.external_id
+  )
+
+UNION
+
+SELECT DISTINCT
+  c.id as original_customer_id,
+  c.organization_id,
+  c.email,
+  c.name,
+  c.invoice_number_base,
+  c.archived,
+  c.stripe_customer_id,
+  c.tax_id,
+  c.logo_url,
+  c.icon_url,
+  c.domain,
+  c.billing_address,
+  c.external_id,
+  c.user_id,
+  c.livemode,
+  c.created_at,
+  c.updated_at,
+  c.pricing_model_id as original_pricing_model_id,
+  c.stack_auth_hosted_billing_user_id,
+  pay.pricing_model_id as transaction_pricing_model_id
+FROM customers c
+INNER JOIN payments pay ON c.id = pay.customer_id
+WHERE c.pricing_model_id != pay.pricing_model_id
+  -- Skip cloning if a customer already exists with this (pricing_model_id, external_id) combination
+  AND NOT EXISTS (
+    SELECT 1 FROM customers existing
+    WHERE existing.pricing_model_id = pay.pricing_model_id
+      AND existing.external_id = c.external_id
+  )
+
+UNION
+
+SELECT DISTINCT
+  c.id as original_customer_id,
+  c.organization_id,
+  c.email,
+  c.name,
+  c.invoice_number_base,
+  c.archived,
+  c.stripe_customer_id,
+  c.tax_id,
+  c.logo_url,
+  c.icon_url,
+  c.domain,
+  c.billing_address,
+  c.external_id,
+  c.user_id,
+  c.livemode,
+  c.created_at,
+  c.updated_at,
+  c.pricing_model_id as original_pricing_model_id,
+  c.stack_auth_hosted_billing_user_id,
+  ue.pricing_model_id as transaction_pricing_model_id
+FROM customers c
+INNER JOIN usage_events ue ON c.id = ue.customer_id
+WHERE c.pricing_model_id != ue.pricing_model_id
+  -- Skip cloning if a customer already exists with this (pricing_model_id, external_id) combination
+  AND NOT EXISTS (
+    SELECT 1 FROM customers existing
+    WHERE existing.pricing_model_id = ue.pricing_model_id
+      AND existing.external_id = c.external_id
+  );
 
 -- Step 7: Insert cloned customers with new IDs
 INSERT INTO customers (
@@ -166,6 +283,8 @@ JOIN customers c ON
   AND c.pricing_model_id = cpmc.transaction_pricing_model_id;
 
 -- Step 9: Clone payment methods for cloned customers
+DROP INDEX IF EXISTS "payment_methods_external_id_unique_idx";--> statement-breakpoint
+
 INSERT INTO payment_methods (
   id, customer_id, billing_details, type, "default", payment_method_data,
   metadata, stripe_payment_method_id, external_id, livemode, created_at,
@@ -180,17 +299,20 @@ SELECT
   pm.payment_method_data,
   pm.metadata,
   pm.stripe_payment_method_id, -- SHARED across clones
-  CASE
-    WHEN pm.external_id IS NOT NULL
-    THEN pm.external_id || '_pm_' || ccm.transaction_pricing_model_id
-    ELSE NULL
-  END as external_id,
+  pm.external_id, -- Keep original external_id
   pm.livemode,
   pm.created_at,
   pm.updated_at,
   ccm.transaction_pricing_model_id as pricing_model_id
 FROM payment_methods pm
-JOIN customer_clone_mapping ccm ON pm.customer_id = ccm.original_customer_id;
+JOIN customer_clone_mapping ccm ON pm.customer_id = ccm.original_customer_id
+-- Skip cloning if a payment method already exists with this (pricing_model_id, external_id) combination
+WHERE NOT EXISTS (
+  SELECT 1 FROM payment_methods existing
+  WHERE existing.pricing_model_id = ccm.transaction_pricing_model_id
+    AND existing.external_id = pm.external_id
+    AND pm.external_id IS NOT NULL
+);
 
 -- Step 10: Update foreign key references - purchases
 UPDATE purchases p
@@ -281,10 +403,67 @@ WHERE cs.customer_id = ccm.original_customer_id
 -- Step 18: Update foreign key references - usage_events
 UPDATE usage_events ue
 SET customer_id = ccm.new_customer_id
-FROM customer_clone_mapping ccm, usage_meters um
-WHERE ue.usage_meter_id = um.id
-  AND ue.customer_id = ccm.original_customer_id
-  AND um.pricing_model_id = ccm.transaction_pricing_model_id;
+FROM customer_clone_mapping ccm
+WHERE ue.customer_id = ccm.original_customer_id
+  AND ue.pricing_model_id = ccm.transaction_pricing_model_id;
+
+-- Step 19: Update transactions to existing customers (when cloning was skipped due to deduplication)
+-- These updates handle cases where a customer already exists with the target (pricing_model_id, external_id)
+-- so cloning was skipped, but we still need to update the transaction references
+
+-- Update purchases to existing customers
+UPDATE purchases p
+SET customer_id = existing_customer.id
+FROM customers original_customer, customers existing_customer
+WHERE p.customer_id = original_customer.id
+  AND p.pricing_model_id != original_customer.pricing_model_id
+  AND existing_customer.external_id = original_customer.external_id
+  AND existing_customer.pricing_model_id = p.pricing_model_id;
+
+-- Update subscriptions to existing customers
+UPDATE subscriptions s
+SET customer_id = existing_customer.id
+FROM customers original_customer, customers existing_customer
+WHERE s.customer_id = original_customer.id
+  AND s.pricing_model_id != original_customer.pricing_model_id
+  AND existing_customer.external_id = original_customer.external_id
+  AND existing_customer.pricing_model_id = s.pricing_model_id;
+
+-- Update invoices to existing customers
+UPDATE invoices i
+SET customer_id = existing_customer.id
+FROM customers original_customer, customers existing_customer
+WHERE i.customer_id = original_customer.id
+  AND i.pricing_model_id != original_customer.pricing_model_id
+  AND existing_customer.external_id = original_customer.external_id
+  AND existing_customer.pricing_model_id = i.pricing_model_id;
+
+-- Update payments to existing customers
+UPDATE payments p
+SET customer_id = existing_customer.id
+FROM customers original_customer, customers existing_customer
+WHERE p.customer_id = original_customer.id
+  AND p.pricing_model_id != original_customer.pricing_model_id
+  AND existing_customer.external_id = original_customer.external_id
+  AND existing_customer.pricing_model_id = p.pricing_model_id;
+
+-- Update checkout_sessions to existing customers
+UPDATE checkout_sessions cs
+SET customer_id = existing_customer.id
+FROM customers original_customer, customers existing_customer
+WHERE cs.customer_id = original_customer.id
+  AND cs.pricing_model_id != original_customer.pricing_model_id
+  AND existing_customer.external_id = original_customer.external_id
+  AND existing_customer.pricing_model_id = cs.pricing_model_id;
+
+-- Update usage_events to existing customers
+UPDATE usage_events ue
+SET customer_id = existing_customer.id
+FROM customers original_customer, customers existing_customer
+WHERE ue.customer_id = original_customer.id
+  AND ue.pricing_model_id != original_customer.pricing_model_id
+  AND existing_customer.external_id = original_customer.external_id
+  AND existing_customer.pricing_model_id = ue.pricing_model_id;
 
 -- ============================================================================
 -- VALIDATION CHECKS (before committing the transaction)
@@ -614,16 +793,13 @@ DROP TABLE IF EXISTS customer_clone_mapping;
 -- Step 19: Set payment_methods.pricing_model_id to NOT NULL
 ALTER TABLE "payment_methods" ALTER COLUMN "pricing_model_id" SET NOT NULL;--> statement-breakpoint
 
--- Step 20: Drop old unique constraint on payment_methods
-DROP INDEX IF EXISTS "payment_methods_external_id_unique_idx";--> statement-breakpoint
-
--- Step 21: Create new unique constraints on customers
+-- Step 20: Create new unique constraints on customers
 CREATE UNIQUE INDEX IF NOT EXISTS "customers_pricing_model_id_external_id_unique_idx" ON "customers" USING btree ("pricing_model_id", "external_id");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "customers_pricing_model_id_invoice_number_base_unique_idx" ON "customers" USING btree ("pricing_model_id", "invoice_number_base");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "customers_stripe_customer_id_pricing_model_id_unique_idx" ON "customers" USING btree ("stripe_customer_id", "pricing_model_id");--> statement-breakpoint
 
--- Step 22: Create new unique constraint on payment_methods
+-- Step 21: Create new unique constraint on payment_methods
 CREATE UNIQUE INDEX IF NOT EXISTS "payment_methods_external_id_pricing_model_id_unique_idx" ON "payment_methods" USING btree ("external_id", "pricing_model_id");--> statement-breakpoint
 
--- Step 23: Create index on payment_methods.pricing_model_id
+-- Step 22: Create index on payment_methods.pricing_model_id
 CREATE INDEX IF NOT EXISTS "payment_methods_pricing_model_id_idx" ON "payment_methods" USING btree ("pricing_model_id");
