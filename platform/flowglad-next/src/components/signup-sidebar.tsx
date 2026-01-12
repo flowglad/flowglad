@@ -12,7 +12,7 @@ export function SignupSideBar({
   return (
     <div
       className={cn(
-        'relative min-h-screen flex-col justify-center items-center overflow-hidden',
+        'relative min-h-screen overflow-hidden',
         'border-l border-dashed border-primary-foreground/20',
         'bg-primary',
         className
