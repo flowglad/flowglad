@@ -5,7 +5,7 @@
 /**
  * Chart size variant.
  * - 'lg': Primary chart (h-60, 240px) - full size with all features
- * - 'sm': Secondary chart (h-28, 112px) - compact sparkline view
+ * - 'sm': Secondary chart (h-32, 128px) - compact sparkline view
  */
 export type ChartSize = 'lg' | 'sm'
 
@@ -15,7 +15,7 @@ export type ChartSize = 'lg' | 'sm'
  * For properties that are constant across all sizes, see ChartConstants.
  */
 export interface ChartSizeConfig {
-  /** Tailwind height class (e.g., 'h-60', 'h-28') */
+  /** Tailwind height class (e.g., 'h-60', 'h-32') */
   height: string
   /** Tailwind padding class for horizontal spacing */
   padding: string

@@ -12,7 +12,7 @@ const config: Config = {
     extend: {
       /**
        * Layout spacing tokens for consistent page padding.
-       * Use this semantic name instead of raw values (e.g., px-page instead of px-6).
+       * Use this semantic name instead of raw values.
        */
       spacing: {
         page: '32px', // Standard page horizontal inset

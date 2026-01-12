@@ -70,12 +70,6 @@ export const CHART_CONSTANTS: ChartConstants = {
  * Use this for properties that SHOULD vary between lg and sm charts.
  *
  * Note: `chartMargin` should match `padding` to align chart content with text.
- *
- * @example
- * const config = CHART_SIZE_CONFIG['lg']
- * // config.height === 'h-60'
- * // config.padding === 'px-page'
- * // config.chartMargin === 24
  */
 export const CHART_SIZE_CONFIG: Record<ChartSize, ChartSizeConfig> = {
   lg: {
@@ -87,7 +81,7 @@ export const CHART_SIZE_CONFIG: Record<ChartSize, ChartSizeConfig> = {
     showGridLines: true,
   },
   sm: {
-    height: 'h-28', // 112px
+    height: 'h-32', // 128px
     padding: LAYOUT_TOKENS.page.class,
     chartMargin: LAYOUT_TOKENS.page.value,
     skeletonWidth: 'w-24',

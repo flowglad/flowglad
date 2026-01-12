@@ -78,9 +78,16 @@ export function ChartGrid({
         // For odd number of items, the last item is alone in left column
         const isAloneInLastRow = childCount % 2 === 1 && isLastItem
 
+        // Use stable key from child if available, otherwise fall back to index
+        // This ensures React can reconcile correctly if charts are reordered or conditionally rendered
+        const stableKey =
+          React.isValidElement(child) && child.key != null
+            ? child.key
+            : `chart-grid-item-${index}`
+
         return (
           <div
-            key={index}
+            key={stableKey}
             className={cn(
               // Cell padding for spacing (matches small chart internal rhythm)
               'py-6',
