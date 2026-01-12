@@ -76,7 +76,8 @@ const commonOrgInvariants = async (
 ) => {
   // Organization exists with correct format
   expect(result.organization.id).toMatch(/^org_/)
-  expect(result.organization.name).toBeTruthy()
+  expect(typeof result.organization.name).toBe('string')
+  expect(result.organization.name.length).toBeGreaterThan(0)
 
   // Organization has correct initial status
   expect(result.organization.onboardingStatus).toBe(

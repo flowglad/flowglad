@@ -365,18 +365,15 @@ behaviorTest({
       behavior: processPaymentSuccessBehavior,
       invariants: async (result) => {
         // === Purchase created ===
-        expect(result.purchase).not.toBeNull()
         expect(result.purchase.organizationId).toBe(
           result.organization.id
         )
         expect(result.purchase.status).toBe(PurchaseStatus.Open)
 
         // === Invoice created ===
-        expect(result.invoice).not.toBeNull()
         expect(result.invoice.purchaseId).toBe(result.purchase.id)
 
         // === Payment succeeded ===
-        expect(result.payment).not.toBeNull()
         expect(result.payment.status).toBe(PaymentStatus.Succeeded)
 
         // === Stripe charge succeeded ===
@@ -395,7 +392,7 @@ behaviorTest({
         )
 
         // Tax calculation was performed (NYC is a registered jurisdiction)
-        expect(fc.stripeTaxCalculationId).toBeTruthy()
+        expect(typeof fc.stripeTaxCalculationId).toBe('string')
 
         // Payment amount matches the calculated total
         const expectedTotal = calculateTotalDueAmount(fc)
@@ -436,18 +433,16 @@ behaviorTest({
       behavior: processPaymentSuccessBehavior,
       invariants: async (result) => {
         // === Purchase Assertions ===
-        expect(result.purchase).not.toBeNull()
         expect(result.purchase.status).toBe(PurchaseStatus.Open)
 
         // === Invoice Assertions ===
-        expect(result.invoice).not.toBeNull()
+        expect(result.invoice.purchaseId).toBe(result.purchase.id)
 
         // === Payment Assertions ===
-        expect(result.payment).not.toBeNull()
         expect(result.payment.status).toBe(PaymentStatus.Succeeded)
 
         // === Platform-Specific: No fee calculation ===
-        expect(result.finalFeeCalculation).toBeNull()
+        expect(result.finalFeeCalculation).toBe(null)
       },
     },
   ],

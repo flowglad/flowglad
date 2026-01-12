@@ -115,8 +115,12 @@ behaviorTest({
         )
 
         // MoR: Fee calculation MUST exist after billing address is provided
-        expect(result.feeCalculation).not.toBeNull()
-        const fc = result.feeCalculation!
+        const fc = result.feeCalculation
+        if (!fc) {
+          throw new Error(
+            'Fee calculation should exist for MoR checkout but was null'
+          )
+        }
 
         // Fee calculation is linked to the checkout session
         expect(fc.checkoutSessionId).toBe(
@@ -128,7 +132,7 @@ behaviorTest({
         expect(fc.currency).toBe(CurrencyCode.USD)
 
         // Tax calculation was performed
-        expect(fc.stripeTaxCalculationId).toBeTruthy()
+        expect(typeof fc.stripeTaxCalculationId).toBe('string')
 
         // Discount applied correctly
         const expectedDiscount = discountDep.expectedDiscountAmount(
@@ -251,9 +255,12 @@ behaviorTest({
         const customerResidencyDep = getDep(CustomerResidencyDep)
 
         // Fee calculation exists for MoR
-        expect(result.feeCalculation).not.toBeNull()
         const fc = result.feeCalculation
-        if (!fc) throw new Error('feeCalculation is null')
+        if (!fc) {
+          throw new Error(
+            'Fee calculation should exist for MoR checkout but was null'
+          )
+        }
 
         // Tax-registered jurisdiction: Flowglad is registered here
         expect(customerResidencyDep.isFlowgladRegistered).toBe(true)
@@ -262,7 +269,7 @@ behaviorTest({
         )
 
         // Tax calculation was performed
-        expect(fc.stripeTaxCalculationId).toBeTruthy()
+        expect(typeof fc.stripeTaxCalculationId).toBe('string')
 
         // Tax amount is greater than zero for registered jurisdictions with pretax amount
         expect(fc.pretaxTotal).toBeGreaterThan(0)
@@ -310,16 +317,19 @@ behaviorTest({
         const customerResidencyDep = getDep(CustomerResidencyDep)
 
         // Fee calculation exists for MoR
-        expect(result.feeCalculation).not.toBeNull()
         const fc = result.feeCalculation
-        if (!fc) throw new Error('feeCalculation is null')
+        if (!fc) {
+          throw new Error(
+            'Fee calculation should exist for MoR checkout but was null'
+          )
+        }
 
         // Tax-unregistered jurisdiction: Flowglad is NOT registered here
         expect(customerResidencyDep.isFlowgladRegistered).toBe(false)
         expect(customerResidencyDep.expectedTaxRate).toBe(0)
 
         // Tax calculation was still performed (returns zero)
-        expect(fc.stripeTaxCalculationId).toBeTruthy()
+        expect(typeof fc.stripeTaxCalculationId).toBe('string')
 
         // Tax amount is zero for unregistered jurisdictions
         expect(fc.taxAmountFixed).toBe(0)
