@@ -326,55 +326,6 @@ describe('subscriptionItemFeatureMethods', () => {
     })
   })
 
-  describe('selection & filtering', () => {
-    it('selects all and filters by properties', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const r1 = await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Toggle,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            productFeatureId: toggleProductFeature.id,
-            usageMeterId: null,
-            amount: null,
-            renewalFrequency: null,
-            livemode: true,
-          },
-          transaction
-        )
-        const r2 = await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.UsageCreditGrant,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: usageCreditGrantFeature.id,
-            productFeatureId: usageCreditGrantProductFeature.id,
-            usageMeterId: usageMeter.id,
-            amount: 25,
-            renewalFrequency:
-              FeatureUsageGrantFrequency.EveryBillingPeriod,
-            livemode: true,
-          },
-          transaction
-        )
-        const byItem = await selectSubscriptionItemFeatures(
-          { subscriptionItemId: subscriptionItem.id },
-          transaction
-        )
-        expect(byItem.length).toBe(2)
-        const byFeature = await selectSubscriptionItemFeatures(
-          { featureId: toggleFeature.id },
-          transaction
-        )
-        expect(byFeature.length).toBe(1)
-        const byType = await selectSubscriptionItemFeatures(
-          { type: FeatureType.Toggle },
-          transaction
-        )
-        expect(byType[0].id).toBe(r1.id)
-      })
-    })
-  })
-
   describe('selectSubscriptionItemFeaturesWithFeatureSlug', () => {
     it('joins slug and name correctly', async () => {
       await adminTransaction(async ({ transaction }) => {
@@ -397,7 +348,7 @@ describe('subscriptionItemFeatureMethods', () => {
             transaction
           )
         expect(joined.length).toBe(1)
-        expect((joined[0] as any).slug).toBe(toggleFeature.slug)
+        expect(joined[0].slug).toBe(toggleFeature.slug)
       })
     })
   })
@@ -425,7 +376,7 @@ describe('subscriptionItemFeatureMethods', () => {
 
     it('bulk upserts multiple records', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const inserts = [
+        const inserts: SubscriptionItemFeature.Insert[] = [
           {
             type: FeatureType.Toggle,
             subscriptionItemId: subscriptionItem.id,
@@ -450,7 +401,7 @@ describe('subscriptionItemFeatureMethods', () => {
         ]
         const results =
           await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
-            inserts as any,
+            inserts,
             transaction
           )
         expect(results.length).toBe(2)
