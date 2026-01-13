@@ -6,34 +6,13 @@ language js
 // to test pagination query combinators. Table-specific pagination tests
 // tend to be flaky and prone to leaking resource isolation.
 
+// Only match it() and describe() - test() is rarely used in this codebase
 or {
-  // Match it() calls where the description contains 'paginated' (2 args)
-  `it($desc, $body)` as $call where {
+  `it($desc, $_)` as $call where {
     $desc <: r".*paginated.*",
     register_diagnostic(span=$call, message="It looks like you are trying to write tests for pagination business logic - the only place this test logic should live is in tableUtils.test.ts, and it should test on our pagination query combinators. More table-specific pagination tends to be flaky and prone to leaking resource isolation so it is not allowed. If there is a specific parameter whose behavior you'd like to test, please add it to tableUtils.test.ts instead.", severity="error")
   },
-  // Match it() calls with 3 args (desc, options, body)
-  `it($desc, $opts, $body)` as $call where {
-    $desc <: r".*paginated.*",
-    register_diagnostic(span=$call, message="It looks like you are trying to write tests for pagination business logic - the only place this test logic should live is in tableUtils.test.ts, and it should test on our pagination query combinators. More table-specific pagination tends to be flaky and prone to leaking resource isolation so it is not allowed. If there is a specific parameter whose behavior you'd like to test, please add it to tableUtils.test.ts instead.", severity="error")
-  },
-  // Match test() calls where the description contains 'paginated' (2 args)
-  `test($desc, $body)` as $call where {
-    $desc <: r".*paginated.*",
-    register_diagnostic(span=$call, message="It looks like you are trying to write tests for pagination business logic - the only place this test logic should live is in tableUtils.test.ts, and it should test on our pagination query combinators. More table-specific pagination tends to be flaky and prone to leaking resource isolation so it is not allowed. If there is a specific parameter whose behavior you'd like to test, please add it to tableUtils.test.ts instead.", severity="error")
-  },
-  // Match test() calls with 3 args
-  `test($desc, $opts, $body)` as $call where {
-    $desc <: r".*paginated.*",
-    register_diagnostic(span=$call, message="It looks like you are trying to write tests for pagination business logic - the only place this test logic should live is in tableUtils.test.ts, and it should test on our pagination query combinators. More table-specific pagination tends to be flaky and prone to leaking resource isolation so it is not allowed. If there is a specific parameter whose behavior you'd like to test, please add it to tableUtils.test.ts instead.", severity="error")
-  },
-  // Match describe() calls where the description contains 'paginated'
-  `describe($desc, $body)` as $call where {
-    $desc <: r".*[pP]aginated.*",
-    register_diagnostic(span=$call, message="It looks like you are trying to write tests for pagination business logic - the only place this test logic should live is in tableUtils.test.ts, and it should test on our pagination query combinators. More table-specific pagination tends to be flaky and prone to leaking resource isolation so it is not allowed. If there is a specific parameter whose behavior you'd like to test, please add it to tableUtils.test.ts instead.", severity="error")
-  },
-  // Match describe() calls with 3 args
-  `describe($desc, $opts, $body)` as $call where {
+  `describe($desc, $_)` as $call where {
     $desc <: r".*[pP]aginated.*",
     register_diagnostic(span=$call, message="It looks like you are trying to write tests for pagination business logic - the only place this test logic should live is in tableUtils.test.ts, and it should test on our pagination query combinators. More table-specific pagination tends to be flaky and prone to leaking resource isolation so it is not allowed. If there is a specific parameter whose behavior you'd like to test, please add it to tableUtils.test.ts instead.", severity="error")
   }
