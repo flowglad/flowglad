@@ -58,24 +58,24 @@ export function useMetricData(
   )
 
   // MRR query - only enabled when metric === 'mrr'
-  // TODO: Backend productId support will be added in Patch 2
   const mrrQuery = trpc.organizations.getMRR.useQuery(
     {
       startDate: fromDate,
       endDate: toDate,
       granularity: interval,
+      productId: productId ?? undefined,
     },
     { enabled: metric === 'mrr' && !!organizationId }
   )
 
   // Subscribers query - only enabled when metric === 'subscribers'
-  // TODO: Backend productId support will be added in Patch 2
   const subscribersQuery =
     trpc.organizations.getActiveSubscribers.useQuery(
       {
         startDate: fromDate,
         endDate: toDate,
         granularity: interval,
+        productId: productId ?? undefined,
       },
       { enabled: metric === 'subscribers' && !!organizationId }
     )

@@ -15,6 +15,7 @@ import {
   type BillingPeriod,
   billingPeriods,
 } from '@/db/schema/billingPeriods'
+import { prices } from '@/db/schema/prices'
 import {
   type Subscription,
   subscriptions,
@@ -45,6 +46,7 @@ export interface RevenueCalculationOptions {
   endDate: Date
   granularity: RevenueChartIntervalUnit
   debug?: boolean // Optional debug flag, defaults to false
+  productId?: string // Optional product ID to filter MRR by
 }
 
 export interface BillingPeriodWithItems {
@@ -291,7 +293,7 @@ export async function calculateMRRByMonth(
   options: RevenueCalculationOptions,
   transaction: DbTransaction
 ): Promise<MonthlyRecurringRevenue[]> {
-  const { startDate, endDate, debug = false } = options
+  const { startDate, endDate, debug = false, productId } = options
 
   if (debug) {
     console.log('[MRR DEBUG] calculateMRRByMonth called with:', {
@@ -319,12 +321,63 @@ export async function calculateMRRByMonth(
   }
 
   // Get all billing periods that overlap with the date range
-  const billingPeriods = await getBillingPeriodsForDateRange(
+  let billingPeriodsData = await getBillingPeriodsForDateRange(
     organizationId,
     startDate,
     endDate,
     transaction
   )
+
+  // Filter by product if specified
+  if (productId) {
+    // Get all pricingModelIds for prices belonging to this product
+    const productPrices = await transaction
+      .select({ pricingModelId: prices.pricingModelId })
+      .from(prices)
+      .where(eq(prices.productId, productId))
+
+    if (productPrices.length === 0) {
+      // Product has no prices, return empty results
+      if (debug) {
+        console.log(
+          '[MRR DEBUG] Product has no prices, returning zero MRR for all months'
+        )
+      }
+      return months.map((month) => ({ month, amount: 0 }))
+    }
+
+    const validPricingModelIds = new Set(
+      productPrices.map((p) => p.pricingModelId)
+    )
+
+    if (debug) {
+      console.log(
+        '[MRR DEBUG] Filtering by productId:',
+        productId,
+        'valid pricingModelIds:',
+        Array.from(validPricingModelIds)
+      )
+    }
+
+    // Filter billing period items to only those matching the product's pricingModelIds
+    billingPeriodsData = billingPeriodsData
+      .map((bp) => ({
+        ...bp,
+        billingPeriodItems: bp.billingPeriodItems.filter((item) =>
+          validPricingModelIds.has(item.pricingModelId)
+        ),
+      }))
+      .filter((bp) => bp.billingPeriodItems.length > 0)
+
+    if (debug) {
+      console.log(
+        '[MRR DEBUG] After product filtering, remaining billing periods:',
+        billingPeriodsData.length
+      )
+    }
+  }
+
+  const billingPeriods = billingPeriodsData
 
   if (debug) {
     console.log(

@@ -76,6 +76,18 @@ export function ProductPicker({
 
   const displayText = selectedProduct?.product.name ?? 'All Products'
 
+  // Reset selection if selected product no longer exists (e.g., deleted)
+  React.useEffect(() => {
+    if (value && !isLoading && products.length > 0) {
+      const productExists = products.some(
+        (p) => p.product.id === value
+      )
+      if (!productExists) {
+        onValueChange(null)
+      }
+    }
+  }, [value, products, isLoading, onValueChange])
+
   const handleSelect = (productId: string | null) => {
     onValueChange(productId)
     setOpen(false)
