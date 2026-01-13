@@ -10,7 +10,6 @@ export type {
   ChartDataPoint,
   DisplayValueMode,
   MetricConfig,
-  MetricDataResult,
   MetricType,
 } from './types'
 

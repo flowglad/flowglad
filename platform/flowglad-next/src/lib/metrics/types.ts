@@ -1,5 +1,3 @@
-import type { ComponentType } from 'react'
-import type { TooltipProps } from '@/components/charts'
 import type { CurrencyCode, RevenueChartIntervalUnit } from '@/types'
 
 /**
@@ -43,14 +41,6 @@ export interface ChartDataPoint {
 }
 
 /**
- * Props passed to the valueFormatter function.
- */
-export interface ValueFormatterProps {
-  value: number
-  currency: CurrencyCode
-}
-
-/**
  * Configuration for a dashboard metric.
  * Defines how to fetch, transform, format, and display metric data.
  */
@@ -75,13 +65,6 @@ export interface MetricConfig {
    * @param currency - The organization's default currency
    */
   formatYAxisValue: (value: number, currency: CurrencyCode) => string
-  /**
-   * Custom tooltip component for this metric.
-   * Receives standard TooltipProps and valueFormatter.
-   */
-  Tooltip?: ComponentType<
-    TooltipProps & { valueFormatter: (value: number) => string }
-  >
 }
 
 /**
@@ -92,13 +75,4 @@ export interface ChartDataParams {
   toDate: Date
   interval: RevenueChartIntervalUnit
   organizationId: string
-}
-
-/**
- * Return type for useMetricData hook.
- */
-export interface MetricDataResult<T> {
-  data: T[] | undefined
-  isLoading: boolean
-  error: Error | null
 }

@@ -77,6 +77,13 @@ export function DashboardChart({
   availableMetrics = METRIC_TYPES,
   defaultMetric = DEFAULT_METRIC,
 }: DashboardChartProps) {
+  // Guard against empty availableMetrics - this is a programming error
+  if (availableMetrics.length === 0) {
+    throw new Error(
+      'DashboardChart: availableMetrics cannot be empty. At least one metric must be provided.'
+    )
+  }
+
   const { organization } = useAuthenticatedContext()
   const config = CHART_SIZE_CONFIG[size]
 
