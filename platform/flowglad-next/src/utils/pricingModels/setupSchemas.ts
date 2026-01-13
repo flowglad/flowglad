@@ -373,18 +373,12 @@ export const validateSetupPricingModelInput = (
       }
     })
 
-    // Implicit default: single price becomes default automatically
-    if (prices.length === 1 && prices[0].isDefault !== true) {
-      prices[0].isDefault = true
-    }
-
-    // Validate that at most one price is marked as default per meter
-    const defaultPrices = prices.filter((p) => p.isDefault === true)
-    if (defaultPrices.length > 1) {
-      throw new Error(
-        `Usage meter ${meterWithPrices.usageMeter.slug} has multiple default prices. Only one price per meter can be default.`
-      )
-    }
+    // Usage prices don't use isDefault - always set to false
+    // This avoids unique constraint issues and aligns with the data model where
+    // usage prices don't have a "default" concept (unlike product prices)
+    prices.forEach((price) => {
+      price.isDefault = false
+    })
   })
 
   return parsed

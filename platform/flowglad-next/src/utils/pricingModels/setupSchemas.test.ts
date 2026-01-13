@@ -216,7 +216,7 @@ describe('validateSetupPricingModelInput', () => {
       ).not.toThrow()
     })
 
-    it('should implicitly set isDefault=true for single price on meter', () => {
+    it('should set isDefault=false for all usage prices regardless of input', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [
         {
@@ -228,8 +228,9 @@ describe('validateSetupPricingModelInput', () => {
             {
               type: PriceType.Usage,
               slug: 'usage-price',
-              // isDefault explicitly set to false - should be implicitly changed to true
-              isDefault: false,
+              // isDefault explicitly set to true - should be changed to false
+              // because usage prices don't use the isDefault concept
+              isDefault: true,
               unitPrice: 100,
               intervalUnit: IntervalUnit.Month,
               intervalCount: 1,
@@ -242,7 +243,7 @@ describe('validateSetupPricingModelInput', () => {
       ]
 
       const result = validateSetupPricingModelInput(input)
-      expect(result.usageMeters[0].prices?.[0].isDefault).toBe(true)
+      expect(result.usageMeters[0].prices?.[0].isDefault).toBe(false)
     })
 
     // PR 5: Empty prices array is valid - usage meters can exist without prices

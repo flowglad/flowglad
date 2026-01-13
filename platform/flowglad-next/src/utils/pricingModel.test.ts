@@ -2645,7 +2645,8 @@ describe('createProductTransaction', () => {
     expect(price.usageMeterId).toBe(usageMeter.id)
     expect(price.usageEventsPerUnit).toBe(1)
     expect(price.unitPrice).toBe(50)
-    expect(price.isDefault).toBe(true)
+    // Usage prices always have isDefault=false (they don't use the default concept)
+    expect(price.isDefault).toBe(false)
     expect(price.active).toBe(true)
 
     // Verify no product features are associated (since featureIds was not provided)

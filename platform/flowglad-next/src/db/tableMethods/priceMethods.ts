@@ -869,7 +869,9 @@ export const safelyInsertPrice = async (
   }
   const priceInsert: Price.Insert = pricesInsertSchema.parse({
     ...price,
-    isDefault: true,
+    // Usage prices don't use isDefault (set to false to avoid unique constraint issues)
+    // Product prices always become the default when created via safelyInsertPrice
+    isDefault: price.type !== PriceType.Usage,
     active: true,
   })
   return dangerouslyInsertPrice(priceInsert, transaction)
