@@ -75,4 +75,6 @@ export interface ChartDataParams {
   toDate: Date
   interval: RevenueChartIntervalUnit
   organizationId: string
+  /** Optional product ID to filter metrics by a specific product */
+  productId?: string | null
 }

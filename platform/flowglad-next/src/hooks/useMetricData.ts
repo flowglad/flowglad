@@ -42,7 +42,8 @@ export function useMetricData(
   metric: MetricType,
   params: ChartDataParams
 ): UseMetricDataResult {
-  const { fromDate, toDate, interval, organizationId } = params
+  const { fromDate, toDate, interval, organizationId, productId } =
+    params
 
   // Revenue query - only enabled when metric === 'revenue'
   const revenueQuery = trpc.organizations.getRevenue.useQuery(
@@ -51,11 +52,13 @@ export function useMetricData(
       revenueChartIntervalUnit: interval,
       fromDate,
       toDate,
+      productId: productId ?? undefined, // Revenue already supports productId
     },
     { enabled: metric === 'revenue' && !!organizationId }
   )
 
   // MRR query - only enabled when metric === 'mrr'
+  // TODO: Backend productId support will be added in Patch 2
   const mrrQuery = trpc.organizations.getMRR.useQuery(
     {
       startDate: fromDate,
@@ -66,6 +69,7 @@ export function useMetricData(
   )
 
   // Subscribers query - only enabled when metric === 'subscribers'
+  // TODO: Backend productId support will be added in Patch 2
   const subscribersQuery =
     trpc.organizations.getActiveSubscribers.useQuery(
       {

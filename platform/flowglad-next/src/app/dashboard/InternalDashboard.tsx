@@ -8,6 +8,7 @@ import PageContainer from '@/components/PageContainer'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { IntervalPicker } from '@/components/ui/interval-picker'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
+import { ProductPicker } from '@/components/ui/product-picker'
 import { useAuthContext } from '@/contexts/authContext'
 import { RevenueChartIntervalUnit } from '@/types'
 import { getIntervalConfig } from '@/utils/chartIntervalUtils'
@@ -37,6 +38,9 @@ function InternalDashboardPage({
   const [interval, setInterval] = useState<RevenueChartIntervalUnit>(
     () => getIntervalConfig(range.from, range.to).default
   )
+
+  // Product filter state (local only, not persisted to URL)
+  const [productId, setProductId] = useState<string | null>(null)
 
   // Auto-correct interval when date range changes if it becomes invalid
   useEffect(() => {
@@ -69,6 +73,10 @@ function InternalDashboardPage({
               fromDate={range.from}
               toDate={range.to}
             />
+            <ProductPicker
+              value={productId}
+              onValueChange={setProductId}
+            />
           </div>
         }
       />
@@ -85,6 +93,7 @@ function InternalDashboardPage({
             fromDate={range.from}
             toDate={range.to}
             interval={interval}
+            productId={productId}
             size="lg"
             availableMetrics={['revenue', 'mrr', 'subscribers']}
             defaultMetric="revenue"
@@ -99,6 +108,7 @@ function InternalDashboardPage({
             fromDate={range.from}
             toDate={range.to}
             interval={interval}
+            productId={productId}
             size="sm"
             availableMetrics={['mrr', 'subscribers']}
             defaultMetric="mrr"
@@ -107,6 +117,7 @@ function InternalDashboardPage({
             fromDate={range.from}
             toDate={range.to}
             interval={interval}
+            productId={productId}
             size="sm"
             availableMetrics={['subscribers', 'mrr']}
             defaultMetric="subscribers"
