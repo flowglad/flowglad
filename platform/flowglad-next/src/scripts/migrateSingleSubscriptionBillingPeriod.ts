@@ -135,6 +135,7 @@ export const migrateSingleSubscriptionBillingPeriod = async (
       {
         organizationId: flowgladOrganizationId,
         livemode: true,
+        pricingModelId: customer.pricingModelId,
       },
       stripe
     )
