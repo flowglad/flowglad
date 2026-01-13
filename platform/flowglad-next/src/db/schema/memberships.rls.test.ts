@@ -39,7 +39,14 @@ import {
  * - Users can only UPDATE their own membership in their current organization
  * - Cross-organization and cross-user access is properly blocked
  */
-describe('memberships RLS - notificationPreferences', () => {
+/**
+ * NOTE: This test suite uses describe.sequential to prevent flaky failures.
+ * The RLS tests are sensitive to transaction isolation - when tests run in parallel,
+ * the PostgreSQL session settings (request.jwt.claims) can leak between connections
+ * in the connection pool, causing intermittent "NotFoundError" failures where
+ * UPDATE ... RETURNING returns nothing due to RLS policy violations.
+ */
+describe.sequential('memberships RLS - notificationPreferences', () => {
   // Organization 1 setup
   let org1: Organization.Record
   let org1User: User.Record
