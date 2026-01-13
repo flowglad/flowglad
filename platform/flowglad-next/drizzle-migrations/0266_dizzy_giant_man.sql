@@ -1,6 +1,7 @@
 DROP INDEX IF EXISTS "prices_external_id_product_id_unique_idx";--> statement-breakpoint
 DROP INDEX IF EXISTS "prices_product_id_is_default_unique_idx";--> statement-breakpoint
 ALTER TABLE "prices" ALTER COLUMN "product_id" DROP NOT NULL;--> statement-breakpoint
+UPDATE "prices" SET "is_default" = false WHERE "type" = 'usage';--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "prices_external_id_usage_meter_id_unique_idx" ON "prices" USING btree ("external_id","usage_meter_id") WHERE "prices"."type" = 'usage';--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "prices_usage_meter_is_default_unique_idx" ON "prices" USING btree ("usage_meter_id") WHERE "prices"."is_default" AND "prices"."type" = 'usage';--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "prices_external_id_product_id_unique_idx" ON "prices" USING btree ("external_id","product_id") WHERE "prices"."type" != 'usage';--> statement-breakpoint
