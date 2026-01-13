@@ -824,7 +824,7 @@ describe('validateSetupPricingModelInput', () => {
           prices: [
             {
               type: PriceType.Usage,
-              slug: 'no_charge_extra_price', // Contains _no_charge but not at end
+              slug: 'meter_no_charge_extra', // _no_charge in middle, not at end
               isDefault: true,
               unitPrice: 100,
               intervalUnit: IntervalUnit.Month,

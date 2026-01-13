@@ -312,6 +312,19 @@ export const replaceUsagePrice = protectedProcedure
           })
         }
 
+        // Validate reserved slug for usage prices
+        if (
+          input.newPrice.type === PriceType.Usage &&
+          input.newPrice.slug &&
+          isReservedPriceSlug(input.newPrice.slug)
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Usage price slugs ending with "_no_charge" are reserved for auto-generated fallback prices',
+          })
+        }
+
         // Create the new price
         const newPrice = await createPriceTransaction(
           { price: input.newPrice },

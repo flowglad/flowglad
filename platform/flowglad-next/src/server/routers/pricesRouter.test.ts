@@ -1493,11 +1493,11 @@ describe('pricesRouter - Reserved Slug Validation', () => {
           intervalCount: 1,
           name: 'No Charge Extra',
           usageEventsPerUnit: 1,
-          slug: 'no_charge_extra_price', // _no_charge not at end
+          slug: 'meter_no_charge_extra', // _no_charge in middle, not at end
         },
       })
 
-    expect(result.price.slug).toBe('no_charge_extra_price')
+    expect(result.price.slug).toBe('meter_no_charge_extra')
     expect(result.price.type).toBe(PriceType.Usage)
   })
 })
@@ -1863,5 +1863,40 @@ describe('pricesRouter.replaceUsagePrice', () => {
     expect(secondPriceAfter.active).toBe(true)
     expect(secondPriceAfter.unitPrice).toBe(500)
     expect(secondPriceAfter.usageEventsPerUnit).toBe(50)
+  })
+
+  it('throws BAD_REQUEST when new price has reserved _no_charge slug suffix', async () => {
+    const { apiKey, user } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    const ctx = {
+      organizationId,
+      apiKey: apiKey.token!,
+      livemode,
+      environment: 'live' as const,
+      path: '',
+      user,
+    }
+
+    // Attempt to replace with a reserved slug
+    await expect(
+      pricesRouter.createCaller(ctx).replaceUsagePrice({
+        newPrice: {
+          type: PriceType.Usage,
+          productId: null,
+          usageMeterId,
+          unitPrice: 200,
+          usageEventsPerUnit: 20,
+          isDefault: true,
+          name: 'Reserved Slug Price',
+          slug: 'meter_no_charge', // Reserved suffix
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          trialPeriodDays: null,
+        },
+        oldPriceId: usagePriceId,
+      })
+    ).rejects.toThrow('_no_charge')
   })
 })
