@@ -18,6 +18,7 @@ import {
   externalIdFromProductData,
   setupPricingModelTransaction,
 } from '@/utils/pricingModels/setupTransaction'
+import { getNoChargeSlugForMeter } from '@/utils/usage/noChargePriceHelpers'
 
 let organization: Organization.Record
 
@@ -280,19 +281,27 @@ describe('setupPricingModelTransaction (integration)', () => {
       result.products.every((p) => typeof p.externalId === 'string')
     ).toBe(true)
 
-    // Prices - should have product prices + usage prices + auto-generated default price
+    // Prices - should have product prices + usage prices + no_charge prices + auto-generated default price
     // PR 5: Usage prices now come from usage meters, not products
     const productPriceSlugs = input.products.map((p) => p.price.slug!)
     const usagePriceSlugs = input.usageMeters.flatMap(
       (m) => m.prices?.map((p) => p.slug!) ?? []
     )
-    const allPriceSlugs = [...productPriceSlugs, ...usagePriceSlugs]
+    const noChargePriceSlugs = input.usageMeters.map((m) =>
+      getNoChargeSlugForMeter(m.usageMeter.slug)
+    )
+    const allPriceSlugs = [
+      ...productPriceSlugs,
+      ...usagePriceSlugs,
+      ...noChargePriceSlugs,
+    ]
     expect(result.prices).toHaveLength(allPriceSlugs.length + 1) // +1 for auto-generated default
     const resultPriceSlugs = result.prices.map((pr) => pr.slug)
     expect(resultPriceSlugs).toEqual(
       expect.arrayContaining(allPriceSlugs)
     )
     expect(resultPriceSlugs).toContain('free') // Auto-generated default price
+    expect(resultPriceSlugs).toContain('um_no_charge') // Auto-generated no_charge price
 
     // ProductFeatures
     const totalFeatures = input.products.flatMap((p) => p.features)
@@ -685,6 +694,280 @@ describe('setupPricingModelTransaction (integration)', () => {
           )
         )
       ).rejects.toThrow(/Invalid option: expected one of/)
+    })
+  })
+
+  describe('No Charge Price Auto-Creation', () => {
+    it('creates no_charge prices for all usage meters in pricing model setup', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model with Usage Meters',
+        isDefault: false,
+        usageMeters: [
+          {
+            usageMeter: { slug: 'api_calls', name: 'API Calls' },
+            prices: [],
+          },
+          {
+            usageMeter: { slug: 'storage', name: 'Storage GB' },
+            prices: [],
+          },
+        ],
+        features: [],
+        products: [],
+      }
+
+      const result = await adminTransaction(async ({ transaction }) =>
+        setupPricingModelTransaction(
+          { input, organizationId: organization.id, livemode: false },
+          transaction
+        )
+      )
+
+      // Verify both usage meters were created
+      expect(result.usageMeters).toHaveLength(2)
+      expect(result.usageMeters.map((m) => m.slug)).toEqual(
+        expect.arrayContaining(['api_calls', 'storage'])
+      )
+
+      // Verify no_charge prices were created for both meters
+      const noChargePrices = result.prices.filter((p) =>
+        p.slug?.endsWith('_no_charge')
+      )
+      expect(noChargePrices).toHaveLength(2)
+
+      // Verify each no_charge price has correct properties
+      const apiCallsNoChargePrice = noChargePrices.find(
+        (p) => p.slug === getNoChargeSlugForMeter('api_calls')
+      )
+      expect(apiCallsNoChargePrice?.slug).toBe(
+        getNoChargeSlugForMeter('api_calls')
+      )
+      expect(apiCallsNoChargePrice?.unitPrice).toBe(0)
+      expect(apiCallsNoChargePrice?.usageEventsPerUnit).toBe(1)
+      expect(apiCallsNoChargePrice?.type).toBe(PriceType.Usage)
+      expect(apiCallsNoChargePrice?.productId).toBe(null)
+      expect(apiCallsNoChargePrice?.active).toBe(true)
+      expect(apiCallsNoChargePrice?.isDefault).toBe(true)
+
+      const storageNoChargePrice = noChargePrices.find(
+        (p) => p.slug === getNoChargeSlugForMeter('storage')
+      )
+      expect(storageNoChargePrice?.slug).toBe(
+        getNoChargeSlugForMeter('storage')
+      )
+      expect(storageNoChargePrice?.unitPrice).toBe(0)
+      expect(storageNoChargePrice?.usageEventsPerUnit).toBe(1)
+      expect(storageNoChargePrice?.type).toBe(PriceType.Usage)
+      expect(storageNoChargePrice?.productId).toBe(null)
+      expect(storageNoChargePrice?.active).toBe(true)
+      expect(storageNoChargePrice?.isDefault).toBe(true)
+    })
+
+    it('creates no_charge price with isDefault: false when user specifies a default price for the meter', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model with User Default Price',
+        isDefault: false,
+        usageMeters: [
+          {
+            usageMeter: { slug: 'api_calls', name: 'API Calls' },
+            prices: [
+              {
+                type: PriceType.Usage,
+                slug: 'api_calls_premium',
+                isDefault: true, // User sets this as default
+                name: 'Premium API Price',
+                usageEventsPerUnit: 1,
+                active: true,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                unitPrice: 100, // $1.00 per 100 events
+                trialPeriodDays: null,
+              },
+            ],
+          },
+        ],
+        features: [],
+        products: [],
+      }
+
+      const result = await adminTransaction(async ({ transaction }) =>
+        setupPricingModelTransaction(
+          { input, organizationId: organization.id, livemode: false },
+          transaction
+        )
+      )
+
+      // Verify the user's custom price exists and is default
+      const customPrice = result.prices.find(
+        (p) => p.slug === 'api_calls_premium'
+      )
+      expect(customPrice?.slug).toBe('api_calls_premium')
+      expect(customPrice?.isDefault).toBe(true)
+      expect(customPrice?.unitPrice).toBe(100)
+
+      // Verify the no_charge price exists but is NOT default
+      const noChargePrice = result.prices.find(
+        (p) => p.slug === getNoChargeSlugForMeter('api_calls')
+      )
+      expect(noChargePrice?.slug).toBe(
+        getNoChargeSlugForMeter('api_calls')
+      )
+      expect(noChargePrice?.isDefault).toBe(false)
+      expect(noChargePrice?.unitPrice).toBe(0)
+    })
+
+    it('creates no_charge price with isDefault: true when user price does not have isDefault', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model with Non-Default User Price',
+        isDefault: false,
+        usageMeters: [
+          {
+            usageMeter: { slug: 'api_calls', name: 'API Calls' },
+            prices: [
+              {
+                type: PriceType.Usage,
+                slug: 'api_calls_premium',
+                isDefault: false, // User does NOT set this as default
+                name: 'Premium API Price',
+                usageEventsPerUnit: 1,
+                active: true,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                unitPrice: 100,
+                trialPeriodDays: null,
+              },
+            ],
+          },
+        ],
+        features: [],
+        products: [],
+      }
+
+      const result = await adminTransaction(async ({ transaction }) =>
+        setupPricingModelTransaction(
+          { input, organizationId: organization.id, livemode: false },
+          transaction
+        )
+      )
+
+      // Verify the user's custom price exists and is NOT default
+      const customPrice = result.prices.find(
+        (p) => p.slug === 'api_calls_premium'
+      )
+      expect(customPrice?.slug).toBe('api_calls_premium')
+      expect(customPrice?.isDefault).toBe(false)
+
+      // Verify the no_charge price IS default
+      const noChargePrice = result.prices.find(
+        (p) => p.slug === getNoChargeSlugForMeter('api_calls')
+      )
+      expect(noChargePrice?.slug).toBe(
+        getNoChargeSlugForMeter('api_calls')
+      )
+      expect(noChargePrice?.isDefault).toBe(true)
+    })
+
+    it('creates no_charge price with correct pricingModelId and usageMeterId', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model',
+        isDefault: false,
+        usageMeters: [
+          {
+            usageMeter: { slug: 'messages', name: 'Messages' },
+            prices: [],
+          },
+        ],
+        features: [],
+        products: [],
+      }
+
+      const result = await adminTransaction(async ({ transaction }) =>
+        setupPricingModelTransaction(
+          { input, organizationId: organization.id, livemode: false },
+          transaction
+        )
+      )
+
+      const usageMeter = result.usageMeters.find(
+        (m) => m.slug === 'messages'
+      )
+      const noChargePrice = result.prices.find(
+        (p) => p.slug === getNoChargeSlugForMeter('messages')
+      )
+
+      expect(usageMeter?.slug).toBe('messages')
+      expect(noChargePrice?.slug).toBe(
+        getNoChargeSlugForMeter('messages')
+      )
+      expect(noChargePrice?.pricingModelId).toBe(
+        result.pricingModel.id
+      )
+      expect(noChargePrice?.usageMeterId).toBe(usageMeter?.id)
+    })
+
+    it('creates no_charge price with organization default currency', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model',
+        isDefault: false,
+        usageMeters: [
+          {
+            usageMeter: { slug: 'bandwidth', name: 'Bandwidth' },
+            prices: [],
+          },
+        ],
+        features: [],
+        products: [],
+      }
+
+      const result = await adminTransaction(async ({ transaction }) =>
+        setupPricingModelTransaction(
+          { input, organizationId: organization.id, livemode: false },
+          transaction
+        )
+      )
+
+      const noChargePrice = result.prices.find(
+        (p) => p.slug === getNoChargeSlugForMeter('bandwidth')
+      )
+      expect(noChargePrice?.slug).toBe(
+        getNoChargeSlugForMeter('bandwidth')
+      )
+      expect(noChargePrice?.currency).toBe(
+        organization.defaultCurrency
+      )
+    })
+
+    it('creates no_charge price with name derived from meter name', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model',
+        isDefault: false,
+        usageMeters: [
+          {
+            usageMeter: {
+              slug: 'compute_hours',
+              name: 'Compute Hours',
+            },
+            prices: [],
+          },
+        ],
+        features: [],
+        products: [],
+      }
+
+      const result = await adminTransaction(async ({ transaction }) =>
+        setupPricingModelTransaction(
+          { input, organizationId: organization.id, livemode: false },
+          transaction
+        )
+      )
+
+      const noChargePrice = result.prices.find(
+        (p) => p.slug === getNoChargeSlugForMeter('compute_hours')
+      )
+      expect(noChargePrice?.slug).toBe(
+        getNoChargeSlugForMeter('compute_hours')
+      )
+      expect(noChargePrice?.name).toBe('Compute Hours - No Charge')
     })
   })
 })

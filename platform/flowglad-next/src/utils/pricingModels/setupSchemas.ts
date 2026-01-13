@@ -382,12 +382,9 @@ export const validateSetupPricingModelInput = (
       }
     })
 
-    // Usage prices don't use isDefault - always set to false
-    // This avoids unique constraint issues and aligns with the data model where
-    // usage prices don't have a "default" concept (unlike product prices)
-    prices.forEach((price) => {
-      price.isDefault = false
-    })
+    // Usage prices can have isDefault=true for one price per meter
+    // When no user price has isDefault=true, the auto-generated no_charge price
+    // becomes the default. Users can specify which price should be default.
   })
 
   return parsed
