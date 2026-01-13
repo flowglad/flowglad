@@ -67,7 +67,19 @@ export function ProductPicker({
       }
     )
 
-  const products = productsData?.items ?? []
+  // Sort products by revenue (highest first), then by creation date (newest first)
+  const products = React.useMemo(() => {
+    const items = productsData?.items ?? []
+
+    return [...items].sort((a, b) => {
+      // 1. Revenue (desc) - products making money appear first
+      const revDiff = (b.totalRevenue ?? 0) - (a.totalRevenue ?? 0)
+      if (revDiff !== 0) return revDiff
+
+      // 2. Creation date tiebreaker (newer first)
+      return b.product.createdAt - a.product.createdAt
+    })
+  }, [productsData?.items])
 
   // Find selected product name (note: nested structure - item.product.id NOT item.id)
   const selectedProduct = value

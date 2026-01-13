@@ -1,6 +1,7 @@
-import { eq, inArray, notExists, sql } from 'drizzle-orm'
+import { and, eq, inArray, notExists, sql } from 'drizzle-orm'
 import * as R from 'ramda'
 import { z } from 'zod'
+import { payments } from '@/db/schema/payments'
 import {
   type Price,
   prices,
@@ -19,6 +20,7 @@ import {
   productsSelectSchema,
   productsUpdateSchema,
 } from '@/db/schema/products'
+import { purchases } from '@/db/schema/purchases'
 import {
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
@@ -32,7 +34,7 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
-import { PriceType } from '@/types'
+import { PaymentStatus, PriceType } from '@/types'
 import { groupBy } from '@/utils/core'
 import type { DbTransaction } from '../types'
 import { selectMembershipAndOrganizations } from './membershipMethods'
@@ -118,6 +120,47 @@ export interface ProductRow {
   prices: Price.ClientRecord[]
   product: Product.ClientRecord
   pricingModel?: PricingModel.ClientRecord
+}
+
+/**
+ * Aggregates total revenue per product.
+ *
+ * Join path: payments → purchases (via purchaseId) → prices (via priceId) → products (via productId)
+ *
+ * Only counts succeeded payments, subtracting any refunded amounts.
+ *
+ * @param productIds - Array of product IDs to aggregate revenue for
+ * @param transaction - Database transaction
+ * @returns Map of productId → totalRevenue (in cents)
+ */
+export const aggregateRevenueByProductIds = async (
+  productIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, number>> => {
+  if (productIds.length === 0) {
+    return new Map()
+  }
+
+  const results = await transaction
+    .select({
+      productId: prices.productId,
+      totalRevenue:
+        sql<number>`COALESCE(SUM(${payments.amount} - COALESCE(${payments.refundedAmount}, 0)), 0)`.mapWith(
+          Number
+        ),
+    })
+    .from(payments)
+    .innerJoin(purchases, eq(payments.purchaseId, purchases.id))
+    .innerJoin(prices, eq(purchases.priceId, prices.id))
+    .where(
+      and(
+        inArray(prices.productId, productIds),
+        eq(payments.status, PaymentStatus.Succeeded)
+      )
+    )
+    .groupBy(prices.productId)
+
+  return new Map(results.map((r) => [r.productId, r.totalRevenue]))
 }
 
 export const getProductTableRows = async (
@@ -219,18 +262,22 @@ export const selectProductsCursorPaginated =
     config,
     productsTableRowDataSchema,
     async (data, transaction) => {
-      const pricesForProducts = await selectPrices(
-        {
-          productId: data.map((product) => product.id),
-        },
-        transaction
-      )
-      const pricingModelsForProducts = await selectPricingModels(
-        {
-          id: data.map((product) => product.pricingModelId),
-        },
-        transaction
-      )
+      const productIds = data.map((product) => product.id)
+
+      // Fetch related data in parallel for efficiency
+      const [
+        pricesForProducts,
+        pricingModelsForProducts,
+        revenueByProduct,
+      ] = await Promise.all([
+        selectPrices({ productId: productIds }, transaction),
+        selectPricingModels(
+          { id: data.map((product) => product.pricingModelId) },
+          transaction
+        ),
+        aggregateRevenueByProductIds(productIds, transaction),
+      ])
+
       const pricesByProductId: Record<string, Price.ClientRecord[]> =
         groupBy((p) => p.productId, pricesForProducts)
       const pricingModelsById: Record<
@@ -238,11 +285,12 @@ export const selectProductsCursorPaginated =
         PricingModel.ClientRecord[]
       > = groupBy((c) => c.id, pricingModelsForProducts)
 
-      // Format products with prices and pricingModels
+      // Format products with prices, pricingModels, and revenue
       return data.map((product) => ({
         product,
         prices: pricesByProductId[product.id] ?? [],
         pricingModel: pricingModelsById[product.pricingModelId]?.[0],
+        totalRevenue: revenueByProduct.get(product.id) ?? 0,
       }))
     },
     // Searchable columns for ILIKE search on name and slug

@@ -9,13 +9,14 @@ import {
   startOfDay,
   startOfMonth,
 } from 'date-fns'
-import { and, between, eq, gte, lte, or } from 'drizzle-orm'
+import { and, between, eq, gte, inArray, lte, or } from 'drizzle-orm'
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import {
   type BillingPeriod,
   billingPeriods,
 } from '@/db/schema/billingPeriods'
 import { prices } from '@/db/schema/prices'
+import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import {
   type Subscription,
   subscriptions,
@@ -328,11 +329,12 @@ export async function calculateMRRByMonth(
     transaction
   )
 
-  // Filter by product if specified
+  // Filter by product if specified (subscription-chain join approach)
+  // Join path: productId → prices → subscriptionItems → subscriptions → billingPeriods
   if (productId) {
-    // Get all pricingModelIds for prices belonging to this product
+    // Step 1: Get all priceIds for this product
     const productPrices = await transaction
-      .select({ pricingModelId: prices.pricingModelId })
+      .select({ id: prices.id })
       .from(prices)
       .where(eq(prices.productId, productId))
 
@@ -346,28 +348,50 @@ export async function calculateMRRByMonth(
       return months.map((month) => ({ month, amount: 0 }))
     }
 
-    const validPricingModelIds = new Set(
-      productPrices.map((p) => p.pricingModelId)
-    )
+    const priceIds = productPrices.map((p) => p.id)
 
     if (debug) {
       console.log(
         '[MRR DEBUG] Filtering by productId:',
         productId,
-        'valid pricingModelIds:',
-        Array.from(validPricingModelIds)
+        'priceIds:',
+        priceIds
       )
     }
 
-    // Filter billing period items to only those matching the product's pricingModelIds
-    billingPeriodsData = billingPeriodsData
-      .map((bp) => ({
-        ...bp,
-        billingPeriodItems: bp.billingPeriodItems.filter((item) =>
-          validPricingModelIds.has(item.pricingModelId)
-        ),
-      }))
-      .filter((bp) => bp.billingPeriodItems.length > 0)
+    // Step 2: Get subscriptionIds that have subscriptionItems with those prices
+    const subItemsWithProduct = await transaction
+      .selectDistinct({
+        subscriptionId: subscriptionItems.subscriptionId,
+      })
+      .from(subscriptionItems)
+      .where(inArray(subscriptionItems.priceId, priceIds))
+
+    if (subItemsWithProduct.length === 0) {
+      // No subscriptions have this product
+      if (debug) {
+        console.log(
+          '[MRR DEBUG] No subscriptions have this product, returning zero MRR for all months'
+        )
+      }
+      return months.map((month) => ({ month, amount: 0 }))
+    }
+
+    const validSubscriptionIds = new Set(
+      subItemsWithProduct.map((s) => s.subscriptionId)
+    )
+
+    if (debug) {
+      console.log(
+        '[MRR DEBUG] Found subscriptions with product:',
+        Array.from(validSubscriptionIds)
+      )
+    }
+
+    // Step 3: Filter billingPeriods to only those for matching subscriptions
+    billingPeriodsData = billingPeriodsData.filter((bp) =>
+      validSubscriptionIds.has(bp.subscription.id)
+    )
 
     if (debug) {
       console.log(
