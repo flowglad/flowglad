@@ -380,8 +380,8 @@ export const createCustomerBookkeeping = async (
           },
           {
             transaction,
-            invalidateCache: invalidateCache!,
-            emitEvent: emitEvent!,
+            invalidateCache: invalidateCache ?? (() => {}),
+            emitEvent: emitEvent ?? (() => {}),
             enqueueLedgerCommand: enqueueLedgerCommand ?? (() => {}),
           }
         )
