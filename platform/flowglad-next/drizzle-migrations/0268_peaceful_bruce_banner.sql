@@ -44,6 +44,35 @@ UPDATE "payment_methods" SET "pricing_model_id" = (
 WHERE "pricing_model_id" IS NULL;
 
 -- Step 6: Clone customers based on cross-pricing-model transactions
+--
+-- PURPOSE: When a customer has transactions (purchases, subscriptions, invoices, etc.)
+-- in a pricing model different from their own, we need to create a "clone" of that
+-- customer in the target pricing model. This maintains the new invariant that
+-- transactions and their customers must share the same pricing_model_id.
+--
+-- DEDUPLICATION: If a customer already exists with the target (pricing_model_id, external_id)
+-- combination, we skip cloning and will update transaction references in Step 19 instead.
+--
+-- EXAMPLE - Before:
+--   customers:
+--     | id       | external_id | pricing_model_id |
+--     | cust_ABC | user_123    | pm_LIVE          |
+--
+--   purchases:
+--     | id       | customer_id | pricing_model_id |
+--     | pur_001  | cust_ABC    | pm_TEST          |  <-- customer is in pm_LIVE but purchase is in pm_TEST
+--
+-- EXAMPLE - After Step 6 (temp table created):
+--   customer_pricing_model_combinations:
+--     | original_customer_id | external_id | transaction_pricing_model_id |
+--     | cust_ABC             | user_123    | pm_TEST                      |
+--
+-- Then Step 7 will create:
+--   customers:
+--     | id       | external_id | pricing_model_id |
+--     | cust_ABC | user_123    | pm_LIVE          |  (original)
+--     | cust_XYZ | user_123    | pm_TEST          |  (clone - new ID, same external_id)
+--
 -- Create temporary table to track which customers need cloning
 CREATE TEMPORARY TABLE customer_pricing_model_combinations AS
 SELECT DISTINCT
@@ -283,6 +312,36 @@ JOIN customers c ON
   AND c.pricing_model_id = cpmc.transaction_pricing_model_id;
 
 -- Step 9: Clone payment methods for cloned customers
+--
+-- PURPOSE: For each cloned customer, we also need to clone their payment methods
+-- so the cloned customer has payment methods in the same pricing model.
+--
+-- KEY BEHAVIORS:
+-- 1. stripe_payment_method_id is SHARED across clones (Stripe doesn't know about pricing models)
+-- 2. external_id is preserved (uniqueness now scoped to pricing_model_id)
+-- 3. SKIP CLONING if a payment method already exists with target (pricing_model_id, external_id)
+--
+-- EXAMPLE - Before:
+--   payment_methods:
+--     | id     | customer_id | external_id | stripe_payment_method_id | pricing_model_id |
+--     | pm_AAA | cust_ABC    | card_123    | pm_stripe_XXX            | pm_LIVE          |
+--
+--   customer_clone_mapping (from Step 8):
+--     | original_customer_id | transaction_pricing_model_id | new_customer_id |
+--     | cust_ABC             | pm_TEST                      | cust_XYZ        |
+--
+-- EXAMPLE - After:
+--   payment_methods:
+--     | id     | customer_id | external_id | stripe_payment_method_id | pricing_model_id |
+--     | pm_AAA | cust_ABC    | card_123    | pm_stripe_XXX            | pm_LIVE          | (original)
+--     | pm_BBB | cust_XYZ    | card_123    | pm_stripe_XXX            | pm_TEST          | (clone)
+--                                          ^^^^^^^^^^^^^ SHARED      ^^^^^^^ different
+--
+-- SKIP CLONING SCENARIO:
+-- If payment_methods already has a row with (pricing_model_id=pm_TEST, external_id=card_123),
+-- we skip creating a clone. This handles cases where the payment method was already
+-- created in the target pricing model through normal application flow.
+--
 DROP INDEX IF EXISTS "payment_methods_external_id_unique_idx";--> statement-breakpoint
 
 INSERT INTO payment_methods (
@@ -408,8 +467,41 @@ WHERE ue.customer_id = ccm.original_customer_id
   AND ue.pricing_model_id = ccm.transaction_pricing_model_id;
 
 -- Step 19: Update transactions to existing customers (when cloning was skipped due to deduplication)
--- These updates handle cases where a customer already exists with the target (pricing_model_id, external_id)
--- so cloning was skipped, but we still need to update the transaction references
+--
+-- PURPOSE: This step handles the "skip cloning" scenario from Step 6. When a customer
+-- already existed with the target (pricing_model_id, external_id), we didn't create a clone.
+-- But we still need to update the transaction to point to that existing customer.
+--
+-- WHY THIS IS NEEDED:
+-- Step 6's NOT EXISTS clause prevented cloning when a matching customer already existed.
+-- Steps 10-18 only update transactions for CLONED customers (via customer_clone_mapping).
+-- This step catches the remaining transactions that weren't updated because their
+-- target customer already existed (wasn't cloned).
+--
+-- EXAMPLE SCENARIO:
+--   Before migration, database has:
+--     customers:
+--       | id       | external_id | pricing_model_id |
+--       | cust_AAA | user_123    | pm_LIVE          |  <-- original
+--       | cust_BBB | user_123    | pm_TEST          |  <-- already exists (created via app)
+--
+--     purchases:
+--       | id      | customer_id | pricing_model_id |
+--       | pur_001 | cust_AAA    | pm_TEST          |  <-- points to cust_AAA but should point to cust_BBB
+--
+--   Step 6 SKIPS cloning cust_AAA because cust_BBB already exists with (pm_TEST, user_123)
+--   Steps 10-18 DON'T update pur_001 because cust_AAA wasn't cloned (not in mapping table)
+--
+--   This step fixes pur_001:
+--     purchases:
+--       | id      | customer_id | pricing_model_id |
+--       | pur_001 | cust_BBB    | pm_TEST          |  <-- now points to correct customer
+--
+-- HOW IT WORKS:
+-- 1. Find transactions where customer_id's pricing_model doesn't match transaction's pricing_model
+-- 2. Find an existing customer with matching (external_id, pricing_model_id)
+-- 3. Update the transaction to point to that existing customer
+--
 
 -- Update purchases to existing customers
 UPDATE purchases p
@@ -790,16 +882,17 @@ DROP TABLE IF EXISTS customer_clone_mapping;
 -- PHASE 3: FINAL DDL (separate statements)
 -- ============================================================================
 
--- Step 19: Set payment_methods.pricing_model_id to NOT NULL
+-- Step 20: Set payment_methods.pricing_model_id to NOT NULL
 ALTER TABLE "payment_methods" ALTER COLUMN "pricing_model_id" SET NOT NULL;--> statement-breakpoint
 
--- Step 20: Create new unique constraints on customers
+-- Step 21: Create new unique constraints on customers
+-- Note: Uniqueness is now scoped to pricing_model_id instead of organization_id
 CREATE UNIQUE INDEX IF NOT EXISTS "customers_pricing_model_id_external_id_unique_idx" ON "customers" USING btree ("pricing_model_id", "external_id");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "customers_pricing_model_id_invoice_number_base_unique_idx" ON "customers" USING btree ("pricing_model_id", "invoice_number_base");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "customers_stripe_customer_id_pricing_model_id_unique_idx" ON "customers" USING btree ("stripe_customer_id", "pricing_model_id");--> statement-breakpoint
 
--- Step 21: Create new unique constraint on payment_methods
+-- Step 22: Create new unique constraint on payment_methods
 CREATE UNIQUE INDEX IF NOT EXISTS "payment_methods_external_id_pricing_model_id_unique_idx" ON "payment_methods" USING btree ("external_id", "pricing_model_id");--> statement-breakpoint
 
--- Step 22: Create index on payment_methods.pricing_model_id
+-- Step 23: Create index on payment_methods.pricing_model_id
 CREATE INDEX IF NOT EXISTS "payment_methods_pricing_model_id_idx" ON "payment_methods" USING btree ("pricing_model_id");
