@@ -425,12 +425,16 @@ export const provideBillingAddressBehavior = defineBehavior({
   dependencies: [CustomerResidencyDep],
   run: async (
     { customerResidencyDep },
-    prev: ApplyDiscountResult
+    prev: ApplyDiscountResult | InitiateCheckoutSessionResult
   ): Promise<ProvideBillingAddressResult> => {
     const billingAddress = customerResidencyDep.billingAddress
 
-    // Use the checkout session with discount (if any)
-    const checkoutSessionId = prev.checkoutSessionWithDiscount.id
+    // Use the checkout session with discount if available, otherwise use the base checkout session
+    // This allows the behavior to work both with and without the applyDiscountBehavior in the chain
+    const checkoutSessionId =
+      'checkoutSessionWithDiscount' in prev
+        ? prev.checkoutSessionWithDiscount.id
+        : prev.checkoutSession.id
 
     const result = await adminTransaction(async ({ transaction }) => {
       const {
@@ -450,10 +454,22 @@ export const provideBillingAddressBehavior = defineBehavior({
       }
     })
 
+    // Build the checkoutSessionWithDiscount value:
+    // - If we had a discount applied, use that session
+    // - Otherwise, use the updated checkout session (which has the billing address)
+    const checkoutSessionWithDiscount =
+      'checkoutSessionWithDiscount' in prev
+        ? prev.checkoutSessionWithDiscount
+        : result.updatedCheckoutSession
+
     return {
       ...prev,
       ...result,
       billingAddress,
+      // Ensure checkoutSessionWithDiscount is set for downstream behaviors
+      checkoutSessionWithDiscount,
+      // discount is null if not present in prev
+      discount: 'discount' in prev ? prev.discount : null,
     }
   },
 })
