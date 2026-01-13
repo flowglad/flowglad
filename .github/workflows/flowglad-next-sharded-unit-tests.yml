@@ -2,6 +2,10 @@
 # for flowglad-next in a sharded manner.
 # It runs the bun test command across 4 shards,
 # and then merges the reports together.
+#
+# RLS (Row Level Security) tests are run separately with fileParallelism disabled
+# because they share database connection pools and set session-level PostgreSQL
+# settings that can interfere with each other when run in parallel.
 name: Flowglad Next Unit Tests
 
 # This workflow is designed to be called by other workflows
@@ -10,8 +14,57 @@ on:
   workflow_call:
 
 jobs:
+  # RLS tests must run separately with fileParallelism: false
+  # to prevent database connection pool interference between test files.
+  # These tests set session-level PostgreSQL settings (RLS context) that can
+  # leak across pooled connections when tests run in parallel.
+  flowglad-next-rls-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
+    defaults:
+      run:
+        working-directory: platform/flowglad-next
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+      - name: Setup Node.js
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v3
+        with:
+          node-version: '18'
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.2.14'
+      - name: Install dependencies
+        run: bun run install-packages --no-progress
+      - name: Run database migrations
+        run: bun run migrations:push
+        env:
+          NODE_ENV: test
+      - name: Run RLS tests (sequential file execution)
+        run: bun run test:rls
+        env:
+          NODE_ENV: test
+
   # Main job that runs tests across multiple shards in parallel
   # Each shard runs a subset of tests to improve performance
+  # Note: RLS tests are excluded here (via vitest.config.ts) and run in flowglad-next-rls-tests
   flowglad-next-sharded-tests:
     runs-on: ubuntu-latest
     # Matrix strategy creates 4 parallel jobs (shards)
@@ -88,7 +141,7 @@ jobs:
   # This job runs after all shards complete and combines their results
   merge-reports:
     if: ${{ !cancelled() }}  # Only run if workflow wasn't cancelled
-    needs: [flowglad-next-sharded-tests]  # Wait for all shards to finish
+    needs: [flowglad-next-sharded-tests, flowglad-next-rls-tests]  # Wait for all test jobs to finish
     runs-on: ubuntu-latest
     defaults:
       run:
