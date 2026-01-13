@@ -95,7 +95,7 @@ export const subscriptionItems = pgTable(
         as: 'permissive',
         to: 'merchant',
         for: 'all',
-        using: sql`"subscriptionId" in (select "id" from "Subscriptions")`,
+        using: sql`"subscription_id" in (select "id" from "subscriptions")`,
       }
     ),
   ])

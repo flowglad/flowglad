@@ -59,6 +59,16 @@ export const memberships = pgTable(
           using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND (current_auth_type() = 'api_key' OR "focused" = true)`,
         }
       ),
+      merchantPolicy(
+        'Enable update for own membership in current organization',
+        {
+          as: 'permissive',
+          to: 'merchant',
+          for: 'update',
+          using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id()`,
+          withCheck: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id()`,
+        }
+      ),
       // no livemode policy for memberships, because memberships are used to determine access to
       // everything else.
       // livemodePolicy(TABLE_NAME),

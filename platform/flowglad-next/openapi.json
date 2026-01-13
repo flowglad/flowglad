@@ -9782,16 +9782,6 @@
                 "type": "null"
               }
             ]
-          },
-          "pricingModelId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
           }
         },
         "required": ["email", "name", "externalId"]
@@ -15274,14 +15264,7 @@
             ]
           },
           "pricingModelId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string"
           }
         },
         "required": [
@@ -18268,6 +18251,9 @@
           "customerId": {
             "type": "string"
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "billingDetails": {
             "type": "object",
             "properties": {
@@ -18473,6 +18459,7 @@
           "updatedAt",
           "livemode",
           "customerId",
+          "pricingModelId",
           "billingDetails",
           "type",
           "default",

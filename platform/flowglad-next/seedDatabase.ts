@@ -364,18 +364,35 @@ interface SetupCustomerParams {
 export const setupCustomer = async (params: SetupCustomerParams) => {
   return adminTransaction(async ({ transaction }) => {
     const email = params.email ?? `test+${core.nanoid()}@test.com`
+    const livemode = params.livemode ?? true
+
+    // Derive pricingModelId from default pricing model if not provided
+    let pricingModelId = params.pricingModelId
+    if (!pricingModelId) {
+      const defaultPricingModel = await selectDefaultPricingModel(
+        { organizationId: params.organizationId, livemode },
+        transaction
+      )
+      if (!defaultPricingModel) {
+        throw new Error(
+          `No default pricing model found for organization ${params.organizationId} with livemode=${livemode}`
+        )
+      }
+      pricingModelId = defaultPricingModel.id
+    }
+
     return insertCustomer(
       {
         organizationId: params.organizationId,
         email,
         name: params.name ?? email,
         externalId: params.externalId?.trim() || core.nanoid(),
-        livemode: params.livemode ?? true,
+        livemode,
         stripeCustomerId:
           params.stripeCustomerId ?? `cus_${core.nanoid()}`,
         invoiceNumberBase: params.invoiceNumberBase ?? core.nanoid(),
         userId: params.userId,
-        pricingModelId: params.pricingModelId,
+        pricingModelId,
       },
       transaction
     )
