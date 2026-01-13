@@ -367,8 +367,18 @@ export const updatePricingModelTransaction = async (
           active?: boolean
         }
         if (featureAsUnknown.type === FeatureType.Resource) {
+          if (!featureAsUnknown.resourceSlug) {
+            throw new Error(
+              `Resource feature ${coreParams.slug} requires resourceSlug`
+            )
+          }
+          if (typeof featureAsUnknown.amount !== 'number') {
+            throw new Error(
+              `Resource feature ${coreParams.slug} requires numeric amount`
+            )
+          }
           const resourceId = idMaps.resources.get(
-            featureAsUnknown.resourceSlug!
+            featureAsUnknown.resourceSlug
           )
           if (!resourceId) {
             throw new Error(
@@ -380,7 +390,7 @@ export const updatePricingModelTransaction = async (
             type: FeatureType.Resource,
             resourceId,
             usageMeterId: null,
-            amount: featureAsUnknown.amount!,
+            amount: featureAsUnknown.amount,
             renewalFrequency: null,
             active: featureAsUnknown.active ?? true,
           }
@@ -431,6 +441,11 @@ export const updatePricingModelTransaction = async (
 
       // Handle resourceSlug -> resourceId transformation
       if ('resourceSlug' in transformedUpdate) {
+        if (existing.type !== FeatureType.Resource) {
+          throw new Error(
+            `Feature ${existing.slug} has resourceSlug but is type ${existing.type}, not Resource`
+          )
+        }
         const newSlug = transformedUpdate.resourceSlug as string
         const newResourceId = idMaps.resources.get(newSlug)
         if (!newResourceId) {
