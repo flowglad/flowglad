@@ -477,7 +477,7 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     const product1Result = pricingModelResult.products.find(
       (p) => p.id === product1.id
     )
-    expect(product1Result).toBeDefined()
+    expect(product1Result?.id).toBe(product1.id)
     expect(product1Result?.features).toHaveLength(2)
     expect(product1Result?.features.map((f) => f.id)).toContain(
       feature1.id
@@ -490,7 +490,7 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     const product2Result = pricingModelResult.products.find(
       (p) => p.id === product2.id
     )
-    expect(product2Result).toBeDefined()
+    expect(product2Result?.id).toBe(product2.id)
     expect(product2Result?.features).toHaveLength(1)
     expect(product2Result?.features[0].id).toBe(feature3.id)
   })
@@ -533,8 +533,7 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     )
 
     // Verify it has an empty features array, not null or undefined
-    expect(productResult).toBeDefined()
-    expect(productResult?.features).toBeDefined()
+    expect(productResult?.id).toBe(productWithoutFeatures.id)
     expect(Array.isArray(productResult?.features)).toBe(true)
     expect(productResult?.features).toHaveLength(0)
   })
@@ -842,7 +841,7 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
       (p) => p.id === product.id
     )
 
-    expect(productResult).toBeDefined()
+    expect(productResult?.id).toBe(product.id)
     expect(productResult?.features).toHaveLength(2) // Only active and future-expired
 
     const featureIds = productResult?.features.map((f) => f.id) || []
@@ -885,7 +884,7 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
       (p) => p.id === product.id
     )
 
-    expect(productResult).toBeDefined()
+    expect(productResult?.id).toBe(product.id)
     expect(productResult?.features).toHaveLength(0) // All features expired
     expect(Array.isArray(productResult?.features)).toBe(true) // Should be empty array, not null
   })
@@ -908,7 +907,7 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
       (p) => p.id === product.id
     )
 
-    expect(productResult).toBeDefined()
+    expect(productResult?.id).toBe(product.id)
     expect(productResult?.features).toHaveLength(0)
     expect(Array.isArray(productResult?.features)).toBe(true)
   })
@@ -939,7 +938,7 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
       (p) => p.id === product.id
     )
 
-    expect(productResult).toBeDefined()
+    expect(productResult?.id).toBe(product.id)
     expect(productResult?.features).toHaveLength(0) // Feature expired exactly now should be filtered out
   })
 
@@ -1088,15 +1087,16 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
     const testProduct = result.products.find(
       (p) => p.id === product.id
     )
-    expect(testProduct).toBeDefined()
+    expect(testProduct?.id).toBe(product.id)
     expect(testProduct!.prices).toHaveLength(1) // Only the latest active price should remain
 
     const returnedPrices = testProduct!.prices
 
     // Verify only the latest active price is preserved
-    expect(
-      returnedPrices.find((p) => p.id === activePrice2.id)
-    ).toBeDefined()
+    const activePrice2InResult = returnedPrices.find(
+      (p) => p.id === activePrice2.id
+    )
+    expect(activePrice2InResult?.id).toBe(activePrice2.id)
 
     // Verify all returned prices are active
     returnedPrices.forEach((price) => {
@@ -1105,7 +1105,6 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
 
     // Verify default price relationship
     const defaultPrice = returnedPrices.find((p) => p.isDefault)
-    expect(defaultPrice).toBeDefined()
     expect(defaultPrice?.id).toBe(activePrice2.id)
   })
 
@@ -1244,13 +1243,14 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
     const testProduct = result.products.find(
       (p) => p.id === product.id
     )
-    expect(testProduct).toBeDefined()
+    expect(testProduct?.id).toBe(product.id)
     expect(testProduct!.prices).toHaveLength(1)
 
     const returnedPrices = testProduct!.prices
-    expect(
-      returnedPrices.find((p) => p.id === activePrice2.id)
-    ).toBeDefined()
+    const activePrice2InResult = returnedPrices.find(
+      (p) => p.id === activePrice2.id
+    )
+    expect(activePrice2InResult?.id).toBe(activePrice2.id)
 
     // Verify all returned prices are active
     returnedPrices.forEach((price) => {
@@ -1306,7 +1306,7 @@ describe('selectPricingModelSlugResolutionData', () => {
     const priceInResult = result[0].prices.find(
       (p) => p.id === price.id
     )
-    expect(priceInResult).toBeDefined()
+    expect(priceInResult?.id).toBe(price.id)
     expect(Object.keys(priceInResult!).sort()).toEqual([
       'active',
       'id',
@@ -1340,9 +1340,10 @@ describe('selectPricingModelSlugResolutionData', () => {
     const usageMeterInResult = result[0].usageMeters.find(
       (um) => um.id === usageMeter.id
     )
-    expect(usageMeterInResult).toBeDefined()
-    expect(Object.keys(usageMeterInResult!)).toEqual(['id', 'slug'])
-    expect(usageMeterInResult!.slug).toBe('test-usage-meter')
+    expect(usageMeterInResult).toEqual({
+      id: usageMeter.id,
+      slug: 'test-usage-meter',
+    })
   })
 
   it('should NOT fetch products or features', async () => {
