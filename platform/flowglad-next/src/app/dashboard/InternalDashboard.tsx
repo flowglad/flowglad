@@ -2,11 +2,9 @@
 
 import { startOfDay, subMonths } from 'date-fns'
 import { useEffect, useState } from 'react'
-import { ActiveSubscribersChart } from '@/components/ActiveSubscribersChart'
 import { ChartDivider, ChartGrid } from '@/components/charts'
+import { DashboardChart } from '@/components/DashboardChart'
 import PageContainer from '@/components/PageContainer'
-import { RecurringRevenueChart } from '@/components/RecurringRevenueChart'
-import { RevenueChart } from '@/components/RevenueChart'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { IntervalPicker } from '@/components/ui/interval-picker'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
@@ -54,7 +52,7 @@ function InternalDashboardPage({
         title={greeting}
         className="pb-2"
         description={
-          <div className="flex items-center gap-2">
+          <div className="-ml-4 flex items-center">
             <DateRangePicker
               fromDate={range.from}
               toDate={range.to}
@@ -81,31 +79,37 @@ function InternalDashboardPage({
         - Allows ChartDivider to span full width while content is inset
       */}
       <div className="w-full flex flex-col pb-16">
-        {/* Primary Chart - Full Size with bottom padding */}
+        {/* Primary Chart - Full Size with metric selector */}
         <div className="py-6">
-          <RevenueChart
+          <DashboardChart
             fromDate={range.from}
             toDate={range.to}
             interval={interval}
             size="lg"
+            availableMetrics={['revenue', 'mrr', 'subscribers']}
+            defaultMetric="revenue"
           />
         </div>
 
         <ChartDivider />
 
-        {/* Secondary Charts - Compact Grid with top padding */}
+        {/* Secondary Charts - Compact Grid with metric selectors */}
         <ChartGrid>
-          <RecurringRevenueChart
+          <DashboardChart
             fromDate={range.from}
             toDate={range.to}
             interval={interval}
             size="sm"
+            availableMetrics={['mrr', 'subscribers']}
+            defaultMetric="mrr"
           />
-          <ActiveSubscribersChart
+          <DashboardChart
             fromDate={range.from}
             toDate={range.to}
             interval={interval}
             size="sm"
+            availableMetrics={['subscribers', 'mrr']}
+            defaultMetric="subscribers"
           />
         </ChartGrid>
       </div>
