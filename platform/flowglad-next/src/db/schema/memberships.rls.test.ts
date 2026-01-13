@@ -40,11 +40,24 @@ import {
  * - Cross-organization and cross-user access is properly blocked
  */
 /**
- * NOTE: This test suite uses describe.sequential to prevent flaky failures.
- * The RLS tests are sensitive to transaction isolation - when tests run in parallel,
- * the PostgreSQL session settings (request.jwt.claims) can leak between connections
- * in the connection pool, causing intermittent "NotFoundError" failures where
- * UPDATE ... RETURNING returns nothing due to RLS policy violations.
+ * NOTE: This test suite uses describe.sequential to prevent flaky test failures.
+ *
+ * The flakiness occurs because:
+ * 1. Vitest runs tests in parallel by default within a describe block
+ * 2. All tests share the same postgres.js connection pool (max: 15 connections)
+ * 3. RLS tests set session-level PostgreSQL settings (request.jwt.claims, app.livemode, ROLE)
+ *    using SET LOCAL and set_config(..., true) which are transaction-scoped
+ * 4. When parallel tests interleave their transactions on pooled connections, the
+ *    UPDATE ... RETURNING clause may evaluate against a different RLS context than expected
+ * 5. This causes the RETURNING to return nothing, triggering a fallback SELECT that also
+ *    fails with NotFoundError due to stricter SELECT policy requirements
+ *
+ * Using describe.sequential ensures tests run one at a time, preventing RLS context
+ * interference between concurrent database transactions.
+ *
+ * For more context on RLS + connection pooling challenges, see:
+ * - https://github.com/drizzle-team/drizzle-orm/discussions/2450
+ * - https://github.com/drizzle-team/drizzle-orm/issues/4313
  */
 describe.sequential('memberships RLS - notificationPreferences', () => {
   // Organization 1 setup
