@@ -691,25 +691,31 @@ describe('selectPricingModelForCustomer', () => {
     expect(result.products.every((p) => p.active)).toBe(true)
   })
 
-  it('should throw error when no default pricing model exists', async () => {
-    // Simulate a scenario where no default pricing model exists by using a fake org ID
+  it('should throw error when customer has invalid pricingModelId and no default pricing model exists', async () => {
+    // Simulate a scenario where:
+    // 1. The customer's pricingModelId doesn't match any existing pricing model
+    // 2. There's no default pricing model for the (fake) organization
     const fakeOrgId = 'org_fake_no_default'
+    const fakePricingModelId = 'pricing_model_nonexistent'
 
     const customer = await setupCustomer({
       organizationId: organization.id, // Use real org for customer creation
       email: 'nodefault@example.com',
     })
 
-    // Override the organization ID to simulate missing default
-    const customerWithFakeOrg = {
+    // Override both organizationId and pricingModelId to simulate:
+    // - pricingModelId pointing to non-existent pricing model (causes fallback to default lookup)
+    // - organizationId pointing to org with no default pricing model (causes error)
+    const customerWithFakeOrgAndPricingModel = {
       ...customer,
       organizationId: fakeOrgId,
+      pricingModelId: fakePricingModelId,
     }
 
     await expect(async () => {
       await adminTransaction(async ({ transaction }) => {
         return selectPricingModelForCustomer(
-          customerWithFakeOrg,
+          customerWithFakeOrgAndPricingModel,
           transaction
         )
       })

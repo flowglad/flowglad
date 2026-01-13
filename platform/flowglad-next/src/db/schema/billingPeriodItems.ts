@@ -9,7 +9,7 @@ import {
   clientWriteOmitsConstructor,
   constructIndex,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -63,22 +63,19 @@ export const billingPeriodItems = pgTable(
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.billingPeriodId]),
-      constructIndex(TABLE_NAME, [table.discountRedemptionId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          for: 'all',
-          using: sql`"billing_period_id" in (select "id" from "billing_periods" where "subscription_id" in (select "id" from "subscriptions" where "organization_id"=current_organization_id()))`,
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.billingPeriodId]),
+    constructIndex(TABLE_NAME, [table.discountRedemptionId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        for: 'all',
+        using: sql`"billing_period_id" in (select "id" from "billing_periods" where "subscription_id" in (select "id" from "subscriptions" where "organization_id"=current_organization_id()))`,
+      }
+    ),
+  ])
 ).enableRLS()
 
 const baseColumnRefinements = {

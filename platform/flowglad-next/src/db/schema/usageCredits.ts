@@ -19,7 +19,7 @@ import {
   constructUniqueIndex,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   metadataSchema,
   notNullStringForeignKey,
@@ -88,41 +88,38 @@ export const usageCredits = pgTable(
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.subscriptionId]),
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.billingPeriodId]),
-      constructIndex(TABLE_NAME, [table.usageMeterId]),
-      constructIndex(TABLE_NAME, [table.expiresAt]),
-      constructIndex(TABLE_NAME, [table.creditType]),
-      constructIndex(TABLE_NAME, [table.status]),
-      constructIndex(TABLE_NAME, [table.paymentId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      constructIndex(TABLE_NAME, [table.sourceReferenceId]),
-      constructUniqueIndex(TABLE_NAME, [
-        table.paymentId,
-        table.subscriptionId,
-        table.usageMeterId,
-      ]),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"subscription_id" in (select "id" from "subscriptions")`,
-        }
-      ),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          to: 'merchant',
-          for: 'all',
-          using: orgIdEqualsCurrentSQL(),
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.subscriptionId]),
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.billingPeriodId]),
+    constructIndex(TABLE_NAME, [table.usageMeterId]),
+    constructIndex(TABLE_NAME, [table.expiresAt]),
+    constructIndex(TABLE_NAME, [table.creditType]),
+    constructIndex(TABLE_NAME, [table.status]),
+    constructIndex(TABLE_NAME, [table.paymentId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    constructIndex(TABLE_NAME, [table.sourceReferenceId]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.paymentId,
+      table.subscriptionId,
+      table.usageMeterId,
+    ]),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"subscription_id" in (select "id" from "subscriptions")`,
+      }
+    ),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        to: 'merchant',
+        for: 'all',
+        using: orgIdEqualsCurrentSQL(),
+      }
+    ),
+  ])
 )
 
 const columnRefinements = {

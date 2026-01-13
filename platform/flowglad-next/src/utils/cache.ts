@@ -1,4 +1,4 @@
-import { SpanKind, trace } from '@opentelemetry/api'
+import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import core from './core'
 import { logger } from './logger'
@@ -223,6 +223,13 @@ export function cached<TArgs extends unknown[], TResult>(
               key: fullKey,
               latency_ms: latencyMs,
             })
+            logger.info('cache_stats', {
+              namespace: config.namespace,
+              hit_count: 1,
+              miss_count: 0,
+              total_count: 1,
+              latency_ms: latencyMs,
+            })
             return parsed.data
           } else {
             // Schema validation failed - treat as cache miss
@@ -232,11 +239,26 @@ export function cached<TArgs extends unknown[], TResult>(
               key: fullKey,
               error: parsed.error.message,
             })
+            logger.info('cache_stats', {
+              namespace: config.namespace,
+              hit_count: 0,
+              miss_count: 1,
+              total_count: 1,
+              validation_failed: true,
+              latency_ms: latencyMs,
+            })
           }
         } else {
           span?.setAttribute('cache.hit', false)
           logger.debug('Cache miss', {
             key: fullKey,
+            latency_ms: latencyMs,
+          })
+          logger.info('cache_stats', {
+            namespace: config.namespace,
+            hit_count: 0,
+            miss_count: 1,
+            total_count: 1,
             latency_ms: latencyMs,
           })
         }
@@ -249,6 +271,13 @@ export function cached<TArgs extends unknown[], TResult>(
         logger.error('Cache read error', {
           key: fullKey,
           error: errorMessage,
+        })
+        logger.info('cache_stats', {
+          namespace: config.namespace,
+          hit_count: 0,
+          miss_count: 1,
+          total_count: 1,
+          error: true,
         })
       }
 
@@ -288,6 +317,267 @@ export function cached<TArgs extends unknown[], TResult>(
       return result
     }
   )
+}
+
+/**
+ * Configuration for bulk cache operations.
+ */
+export interface BulkCacheConfig<TKey, TResult> {
+  namespace: RedisKeyNamespace
+  /** Convert a key to its cache key suffix */
+  keyFn: (key: TKey) => string
+  /** Zod schema for validating cached data */
+  schema: z.ZodType<TResult>
+  /** Get dependencies for a single key */
+  dependenciesFn: (key: TKey) => CacheDependencyKey[]
+}
+
+/**
+ * Bulk cache lookup with fallback to a single database query for misses.
+ *
+ * This optimizes the N+1 cache lookup pattern by:
+ * 1. Using Redis MGET to fetch all cache keys in one round-trip
+ * 2. Identifying cache misses
+ * 3. Calling the bulk fetch function once for all misses
+ * 4. Writing back individual cache entries for each miss
+ *
+ * This provides the best of both worlds:
+ * - Fine-grained cache invalidation (per-key)
+ * - Efficient bulk database queries (single query for all misses)
+ * - Single Redis round-trip for cache lookups
+ *
+ * @param config - Cache configuration
+ * @param keys - Array of keys to look up
+ * @param bulkFetchFn - Function to fetch all missing items in one query
+ * @param groupByKey - Function to extract the key from a result item (for grouping bulk results)
+ * @returns Map of key -> result (empty array if no items for that key)
+ */
+export async function cachedBulkLookup<TKey, TResult>(
+  config: BulkCacheConfig<TKey, TResult[]>,
+  keys: TKey[],
+  bulkFetchFn: (keys: TKey[]) => Promise<TResult[]>,
+  groupByKey: (item: TResult) => TKey
+): Promise<Map<TKey, TResult[]>> {
+  if (keys.length === 0) {
+    return new Map()
+  }
+
+  const tracer = trace.getTracer('cache')
+  return tracer.startActiveSpan(
+    `cache.bulk.${config.namespace}`,
+    { kind: SpanKind.CLIENT },
+    async (span) => {
+      span.setAttribute('cache.namespace', config.namespace)
+      span.setAttribute('cache.bulk', true)
+      span.setAttribute('cache.key_count', keys.length)
+
+      const startTime = Date.now()
+      try {
+        const result = await cachedBulkLookupImpl(
+          config,
+          keys,
+          bulkFetchFn,
+          groupByKey,
+          span
+        )
+        span.setStatus({ code: SpanStatusCode.OK })
+        return result
+      } catch (error) {
+        span.recordException(error as Error)
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: (error as Error).message,
+        })
+        throw error
+      } finally {
+        span.setAttribute('duration_ms', Date.now() - startTime)
+        span.end()
+      }
+    }
+  )
+}
+
+async function cachedBulkLookupImpl<TKey, TResult>(
+  config: BulkCacheConfig<TKey, TResult[]>,
+  keys: TKey[],
+  bulkFetchFn: (keys: TKey[]) => Promise<TResult[]>,
+  groupByKey: (item: TResult) => TKey,
+  span: ReturnType<ReturnType<typeof trace.getTracer>['startSpan']>
+): Promise<Map<TKey, TResult[]>> {
+  const redisClient = redis()
+  const ttl = getTtlForNamespace(config.namespace)
+
+  // Build cache keys for all input keys
+  const cacheKeyMap = new Map<string, TKey>()
+  const fullCacheKeys: string[] = []
+  for (const key of keys) {
+    const suffix = config.keyFn(key)
+    const fullKey = `${config.namespace}:${suffix}`
+    cacheKeyMap.set(fullKey, key)
+    fullCacheKeys.push(fullKey)
+  }
+
+  const results = new Map<TKey, TResult[]>()
+  const missedKeys: TKey[] = []
+
+  // Step 1: Bulk fetch from cache using MGET
+  try {
+    const startTime = Date.now()
+    const cachedValues = (await redisClient.mget(
+      ...fullCacheKeys
+    )) as (TResult[] | null)[]
+    const latencyMs = Date.now() - startTime
+
+    span.setAttribute('cache.bulk_lookup_count', keys.length)
+    span.setAttribute('cache.bulk_latency_ms', latencyMs)
+
+    // Process cached values
+    let hitCount = 0
+    for (let i = 0; i < fullCacheKeys.length; i++) {
+      const fullKey = fullCacheKeys[i]
+      const key = cacheKeyMap.get(fullKey)!
+      const cachedValue = cachedValues[i]
+
+      if (cachedValue !== null) {
+        try {
+          // Parse and validate
+          const jsonValue =
+            typeof cachedValue === 'string'
+              ? JSON.parse(cachedValue)
+              : cachedValue
+
+          const parsed = config.schema.safeParse(jsonValue)
+          if (parsed.success) {
+            results.set(key, parsed.data)
+            hitCount++
+          } else {
+            // Schema validation failed - treat as miss
+            logger.warn('Bulk cache schema validation failed', {
+              key: fullKey,
+              error: parsed.error.message,
+            })
+            missedKeys.push(key)
+          }
+        } catch (parseError) {
+          // JSON.parse failed - treat as miss (corrupted cache data)
+          logger.warn('Bulk cache JSON parse failed', {
+            key: fullKey,
+            error:
+              parseError instanceof Error
+                ? parseError.message
+                : String(parseError),
+          })
+          missedKeys.push(key)
+        }
+      } else {
+        missedKeys.push(key)
+      }
+    }
+
+    span.setAttribute('cache.bulk_hit_count', hitCount)
+    span.setAttribute('cache.bulk_miss_count', missedKeys.length)
+
+    logger.debug('Bulk cache lookup', {
+      namespace: config.namespace,
+      totalKeys: keys.length,
+      hits: hitCount,
+      misses: missedKeys.length,
+      latency_ms: latencyMs,
+    })
+    logger.info('cache_stats', {
+      namespace: config.namespace,
+      bulk: true,
+      hit_count: hitCount,
+      miss_count: missedKeys.length,
+      total_count: keys.length,
+      latency_ms: latencyMs,
+    })
+  } catch (error) {
+    // Fail open - all keys become misses
+    const errorMessage =
+      error instanceof Error ? error.message : String(error)
+    span.setAttribute('cache.bulk_error', errorMessage)
+    logger.error('Bulk cache read error', {
+      namespace: config.namespace,
+      error: errorMessage,
+    })
+    logger.info('cache_stats', {
+      namespace: config.namespace,
+      bulk: true,
+      hit_count: 0,
+      miss_count: keys.length,
+      total_count: keys.length,
+      error: true,
+    })
+    missedKeys.push(...keys)
+  }
+
+  // Step 2: Bulk fetch from database for misses
+  if (missedKeys.length > 0) {
+    try {
+      const fetchedItems = await bulkFetchFn(missedKeys)
+
+      // Group fetched items by key
+      const fetchedByKey = new Map<TKey, TResult[]>()
+      for (const key of missedKeys) {
+        fetchedByKey.set(key, [])
+      }
+      for (const item of fetchedItems) {
+        const key = groupByKey(item)
+        const existing = fetchedByKey.get(key)
+        if (existing) {
+          existing.push(item)
+        }
+      }
+
+      // Add to results and write to cache
+      for (const [key, items] of fetchedByKey) {
+        results.set(key, items)
+
+        // Write to cache (fire-and-forget)
+        const suffix = config.keyFn(key)
+        const fullKey = `${config.namespace}:${suffix}`
+        const dependencies = config.dependenciesFn(key)
+
+        try {
+          await redisClient.set(fullKey, JSON.stringify(items), {
+            ex: ttl,
+          })
+          await registerDependencies(fullKey, dependencies)
+        } catch (writeError) {
+          // Log but don't fail
+          logger.error('Bulk cache write error', {
+            key: fullKey,
+            error:
+              writeError instanceof Error
+                ? writeError.message
+                : String(writeError),
+          })
+        }
+      }
+    } catch (fetchError) {
+      // Database fetch errors are critical - re-throw
+      // (Unlike cache read errors which fail-open, we can't serve stale data for misses)
+      const errorMessage =
+        fetchError instanceof Error
+          ? fetchError.message
+          : String(fetchError)
+      logger.error('Bulk fetch error', {
+        missedKeys: missedKeys.length,
+        error: errorMessage,
+      })
+      throw fetchError
+    }
+  }
+
+  // Ensure all keys have entries (empty array for keys with no items)
+  for (const key of keys) {
+    if (!results.has(key)) {
+      results.set(key, [])
+    }
+  }
+
+  return results
 }
 
 /**

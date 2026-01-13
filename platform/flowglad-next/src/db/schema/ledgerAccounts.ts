@@ -16,7 +16,7 @@ import { usageMeters } from '@/db/schema/usageMeters'
 import {
   constructIndex,
   constructUniqueIndex,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   merchantRole,
   notNullStringForeignKey,
@@ -74,27 +74,24 @@ export const ledgerAccounts = pgTable(
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.subscriptionId]),
-      constructUniqueIndex(TABLE_NAME, [
-        table.subscriptionId,
-        table.usageMeterId,
-        //   table.currency,
-      ]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          for: 'all',
-          using: orgIdEqualsCurrentSQL(),
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.subscriptionId]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.subscriptionId,
+      table.usageMeterId,
+      //   table.currency,
+    ]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        for: 'all',
+        using: orgIdEqualsCurrentSQL(),
+      }
+    ),
+  ])
 ).enableRLS()
 
 const columnRefinements = {

@@ -624,22 +624,26 @@ describe('subscriptionItemMethods', async () => {
 
   describe('selectSubscriptionItemsWithPricesBySubscriptionIds', () => {
     it('should return an empty array when given an empty array of subscription IDs', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         const results =
           await selectSubscriptionItemsWithPricesBySubscriptionIds(
             [],
-            transaction
+            transaction,
+            livemode,
+            { ignoreCache: true }
           )
         expect(results).toEqual([])
       })
     })
 
     it('should return subscription items with their associated prices for valid subscription IDs', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         const results =
           await selectSubscriptionItemsWithPricesBySubscriptionIds(
             [subscription.id],
-            transaction
+            transaction,
+            livemode,
+            { ignoreCache: true }
           )
 
         expect(results.length).toBe(1)
@@ -670,11 +674,13 @@ describe('subscriptionItemMethods', async () => {
         priceId: price.id,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         const results =
           await selectSubscriptionItemsWithPricesBySubscriptionIds(
             [subscription.id, secondSubscription.id],
-            transaction
+            transaction,
+            livemode,
+            { ignoreCache: true }
           )
 
         expect(results.length).toBe(2)
@@ -701,11 +707,13 @@ describe('subscriptionItemMethods', async () => {
     })
 
     it('should return an empty array when given non-existent subscription IDs', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         const results =
           await selectSubscriptionItemsWithPricesBySubscriptionIds(
             [core.nanoid(), core.nanoid()],
-            transaction
+            transaction,
+            livemode,
+            { ignoreCache: true }
           )
         expect(results).toEqual([])
       })

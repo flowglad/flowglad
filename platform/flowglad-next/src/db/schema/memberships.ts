@@ -59,12 +59,51 @@ export const memberships = pgTable(
           using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND (current_auth_type() = 'api_key' OR "focused" = true)`,
         }
       ),
+      merchantPolicy(
+        'Enable update for own membership in current organization',
+        {
+          as: 'permissive',
+          to: 'merchant',
+          for: 'update',
+          using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id()`,
+          withCheck: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id()`,
+        }
+      ),
       // no livemode policy for memberships, because memberships are used to determine access to
       // everything else.
       // livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()
+
+/**
+ * Zod schema for notification preferences stored in the JSONB column.
+ * Contains 8 fields:
+ * - testModeNotifications: Controls whether test mode emails are sent (defaults to false)
+ * - 7 notification type preferences: Each controls a specific notification type (all default to true)
+ */
+export const notificationPreferencesSchema = z.object({
+  testModeNotifications: z.boolean().default(false),
+  subscriptionCreated: z.boolean().default(true),
+  subscriptionAdjusted: z.boolean().default(true),
+  subscriptionCanceled: z.boolean().default(true),
+  subscriptionCancellationScheduled: z.boolean().default(true),
+  paymentFailed: z.boolean().default(true),
+  onboardingCompleted: z.boolean().default(true),
+  payoutsEnabled: z.boolean().default(true),
+})
+
+export type NotificationPreferences = z.infer<
+  typeof notificationPreferencesSchema
+>
+
+/**
+ * Default notification preferences for new memberships.
+ * Derived from the schema defaults by parsing an empty object.
+ * Test mode defaults to OFF, all notification types default to ON.
+ */
+export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences =
+  notificationPreferencesSchema.parse({})
 
 // Build server and client schemas using the shared builder
 export const {
@@ -76,6 +115,12 @@ export const {
     update: membershipsClientUpdateSchema,
   },
 } = buildSchemas(memberships, {
+  refine: {
+    notificationPreferences: notificationPreferencesSchema
+      .partial()
+      .nullable()
+      .optional(),
+  },
   selectRefine: {
     ...newBaseZodSelectSchemaColumns,
   },
@@ -102,42 +147,6 @@ export namespace Membership {
   >
   export type Where = SelectConditions<typeof memberships>
 }
-
-/**
- * Schema for notification preferences stored in the membership's notificationPreferences JSONB column.
- * Each preference controls whether a specific notification type is sent to the member.
- */
-export const notificationPreferencesSchema = z.object({
-  testModeNotifications: z.boolean().default(false),
-  subscriptionCreated: z.boolean().default(true),
-  subscriptionAdjusted: z.boolean().default(true),
-  subscriptionCanceled: z.boolean().default(true),
-  subscriptionCancellationScheduled: z.boolean().default(true),
-  paymentFailed: z.boolean().default(true),
-  onboardingCompleted: z.boolean().default(true),
-  payoutsEnabled: z.boolean().default(true),
-})
-
-export type NotificationPreferences = z.infer<
-  typeof notificationPreferencesSchema
->
-
-/**
- * Default notification preferences for new memberships.
- * Test mode notifications are disabled by default.
- * All other notification types are enabled by default for backwards compatibility.
- */
-export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences =
-  {
-    testModeNotifications: false,
-    subscriptionCreated: true,
-    subscriptionAdjusted: true,
-    subscriptionCanceled: true,
-    subscriptionCancellationScheduled: true,
-    paymentFailed: true,
-    onboardingCompleted: true,
-    payoutsEnabled: true,
-  }
 
 export const inviteUserToOrganizationSchema = z.object({
   email: z.email(),

@@ -5,7 +5,7 @@ import { subscriptions } from '@/db/schema/subscriptions'
 import {
   constructIndex,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   pgEnumColumn,
@@ -42,22 +42,19 @@ export const billingPeriods = pgTable(
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.subscriptionId]),
-      constructIndex(TABLE_NAME, [table.status]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          to: 'all',
-          using: sql`"subscription_id" in (select "id" from "subscriptions" where "organization_id"=current_organization_id())`,
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.subscriptionId]),
+    constructIndex(TABLE_NAME, [table.status]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        to: 'all',
+        using: sql`"subscription_id" in (select "id" from "subscriptions" where "organization_id"=current_organization_id())`,
+      }
+    ),
+  ])
 ).enableRLS()
 
 const columnRefinements = {

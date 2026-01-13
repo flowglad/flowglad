@@ -39,6 +39,8 @@ export const resourceClaimsRouteConfigs = [
 ]
 
 const resourceUsageOutputSchema = z.object({
+  resourceSlug: z.string(),
+  resourceId: z.string(),
   capacity: z.number().int(),
   claimed: z.number().int(),
   available: z.number().int(),
@@ -64,6 +66,7 @@ const getUsageOutputSchema = z.object({
       available: z.number().int(),
     })
   ),
+  claims: z.array(resourceClaimsClientSelectSchema),
 })
 
 const listClaimsInputSchema = z.object({
@@ -253,7 +256,7 @@ const getUsageProcedure = devOnlyProcedure
         )
 
         if (subscriptionItemsList.length === 0) {
-          return { usage: [] }
+          return { usage: [], claims: [] }
         }
 
         // Batch fetch all subscription item features for all items at once
@@ -275,7 +278,7 @@ const getUsageProcedure = devOnlyProcedure
         )
 
         if (resourceFeatures.length === 0) {
-          return { usage: [] }
+          return { usage: [], claims: [] }
         }
 
         // Collect unique resource IDs
@@ -355,7 +358,20 @@ const getUsageProcedure = devOnlyProcedure
             } => result !== null
           )
 
-        return { usage: usageResults }
+        // Fetch active claims for the resources being returned
+        const usageResourceIds = usageResults.map((u) => u.resourceId)
+        const claims =
+          usageResourceIds.length > 0
+            ? await selectActiveResourceClaims(
+                {
+                  subscriptionId: input.subscriptionId,
+                  resourceId: usageResourceIds,
+                },
+                transaction
+              )
+            : []
+
+        return { usage: usageResults, claims }
       }
     )
   )

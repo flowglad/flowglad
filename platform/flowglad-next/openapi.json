@@ -3188,10 +3188,6 @@
                             "description": {
                               "type": "string"
                             },
-                            "resourceId": {
-                              "type": "null",
-                              "const": null
-                            },
                             "active": {
                               "type": "boolean"
                             }
@@ -3232,10 +3228,6 @@
                               "type": "string",
                               "enum": ["once", "every_billing_period"]
                             },
-                            "resourceId": {
-                              "type": "null",
-                              "const": null
-                            },
                             "active": {
                               "type": "boolean"
                             },
@@ -3252,6 +3244,48 @@
                             "amount",
                             "renewalFrequency",
                             "usageMeterSlug"
+                          ]
+                        },
+                        {
+                          "description": "A resource grant feature that allocates a specific amount of a resource.",
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "resource"
+                            },
+                            "slug": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 255
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "amount": {
+                              "description": "A positive integer",
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "active": {
+                              "type": "boolean"
+                            },
+                            "resourceSlug": {
+                              "description": "The slug of the resource to grant. Must be a valid slug for a resource in this pricing model.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "slug",
+                            "name",
+                            "description",
+                            "amount",
+                            "resourceSlug"
                           ]
                         }
                       ],
@@ -3610,6 +3644,31 @@
                         }
                       },
                       "required": ["name", "slug"]
+                    }
+                  },
+                  "resources": {
+                    "type": "array",
+                    "items": {
+                      "description": "A resource that can be claimed by subscriptions via resource features.",
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "description": "The slug of the resource",
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 255
+                        },
+                        "name": {
+                          "description": "The name of the resource",
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 255
+                        },
+                        "active": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": ["slug", "name"]
                     }
                   }
                 },
@@ -8008,18 +8067,18 @@
                     "$ref": "#/components/schemas/Metadata"
                   },
                   "quantity": {
-                    "description": "Create N anonymous (cattle-style) claims. Each claim will have externalId = null.",
+                    "description": "Create N anonymous claims without external identifiers.",
                     "type": "integer",
                     "exclusiveMinimum": 0,
                     "maximum": 9007199254740991
                   },
                   "externalId": {
-                    "description": "Create a single pet-style claim with this external identifier.",
+                    "description": "Create a single named claim with this external identifier (idempotent).",
                     "type": "string",
                     "maxLength": 255
                   },
                   "externalIds": {
-                    "description": "Create multiple pet-style claims with these external identifiers.",
+                    "description": "Create multiple named claims with these external identifiers (idempotent per ID).",
                     "minItems": 1,
                     "type": "array",
                     "items": {
@@ -8050,6 +8109,12 @@
                     "usage": {
                       "type": "object",
                       "properties": {
+                        "resourceSlug": {
+                          "type": "string"
+                        },
+                        "resourceId": {
+                          "type": "string"
+                        },
                         "capacity": {
                           "type": "integer",
                           "minimum": -9007199254740991,
@@ -8067,6 +8132,8 @@
                         }
                       },
                       "required": [
+                        "resourceSlug",
+                        "resourceId",
                         "capacity",
                         "claimed",
                         "available"
@@ -8156,18 +8223,18 @@
                     "type": "string"
                   },
                   "quantity": {
-                    "description": "Release N anonymous (cattle-style) claims. Only releases claims where externalId IS NULL. Will not release pet-style claims with externalIds.",
+                    "description": "Release N anonymous claims (FIFO order). Only releases claims without external identifiers.",
                     "type": "integer",
                     "exclusiveMinimum": 0,
                     "maximum": 9007199254740991
                   },
                   "externalId": {
-                    "description": "Release a specific pet-style claim by its externalId",
+                    "description": "Release a specific named claim by its external identifier.",
                     "type": "string",
                     "maxLength": 255
                   },
                   "externalIds": {
-                    "description": "Release multiple pet-style claims by their externalIds",
+                    "description": "Release multiple named claims by their external identifiers.",
                     "minItems": 1,
                     "type": "array",
                     "items": {
@@ -8176,7 +8243,7 @@
                     }
                   },
                   "claimIds": {
-                    "description": "Release specific claims by their claim IDs (works for both cattle and pet claims)",
+                    "description": "Release specific claims by their claim IDs (works for both anonymous and named claims).",
                     "minItems": 1,
                     "type": "array",
                     "items": {
@@ -8206,6 +8273,12 @@
                     "usage": {
                       "type": "object",
                       "properties": {
+                        "resourceSlug": {
+                          "type": "string"
+                        },
+                        "resourceId": {
+                          "type": "string"
+                        },
                         "capacity": {
                           "type": "integer",
                           "minimum": -9007199254740991,
@@ -8223,6 +8296,8 @@
                         }
                       },
                       "required": [
+                        "resourceSlug",
+                        "resourceId",
                         "capacity",
                         "claimed",
                         "available"
@@ -8351,9 +8426,15 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "claims": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ResourceClaimClientSelectSchema"
+                      }
                     }
                   },
-                  "required": ["usage"],
+                  "required": ["usage", "claims"],
                   "additionalProperties": false
                 }
               }
@@ -9682,16 +9763,6 @@
             "type": "string"
           },
           "userId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "pricingModelId": {
             "anyOf": [
               {
                 "type": "string"
@@ -15180,14 +15251,7 @@
             ]
           },
           "pricingModelId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string"
           }
         },
         "required": [
@@ -18174,6 +18238,9 @@
           "customerId": {
             "type": "string"
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "billingDetails": {
             "type": "object",
             "properties": {
@@ -18379,6 +18446,7 @@
           "updatedAt",
           "livemode",
           "customerId",
+          "pricingModelId",
           "billingDetails",
           "type",
           "default",

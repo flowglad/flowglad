@@ -6,8 +6,10 @@ import {
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
   membershipsClientSelectSchema,
   membershipsTableRowDataSchema,
+  type NotificationPreferences,
   notificationPreferencesSchema,
 } from '@/db/schema/memberships'
 import {
@@ -443,6 +445,10 @@ const getMembersTableRowData = protectedProcedure
     })
   })
 
+/**
+ * Get notification preferences for the current user in their current organization.
+ * Returns the merged preferences (stored values + defaults).
+ */
 const getNotificationPreferences = protectedProcedure
   .output(notificationPreferencesSchema)
   .query(
@@ -469,13 +475,25 @@ const getNotificationPreferences = protectedProcedure
     )
   )
 
+/**
+ * Input schema for updating notification preferences.
+ * Uses partial to allow updating only specific fields.
+ */
 const updateNotificationPreferencesInputSchema = z.object({
   preferences: notificationPreferencesSchema.partial(),
 })
 
+const updateNotificationPreferencesOutputSchema = z.object({
+  preferences: notificationPreferencesSchema,
+})
+
+/**
+ * Update notification preferences for the current user in their current organization.
+ * Only updates the specified preferences, preserving unspecified ones.
+ */
 const updateNotificationPreferences = protectedProcedure
   .input(updateNotificationPreferencesInputSchema)
-  .output(z.object({ preferences: notificationPreferencesSchema }))
+  .output(updateNotificationPreferencesOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction, userId, ctx }) => {
@@ -501,14 +519,18 @@ const updateNotificationPreferences = protectedProcedure
           ...currentPrefs,
           ...input.preferences,
         })
-        await updateMembership(
+        const updatedMembership = await updateMembership(
           {
             id: membership.id,
             notificationPreferences: updatedPrefs,
           },
           transaction
         )
-        return { preferences: updatedPrefs }
+        // Return full preferences merged with defaults to ensure all fields are present
+        return {
+          preferences:
+            getMembershipNotificationPreferences(updatedMembership),
+        }
       }
     )
   )
@@ -525,6 +547,9 @@ export const organizationsRouter = router({
   inviteUser: inviteUserToOrganization,
   getCodebaseMarkdown: getCodebaseMarkdown,
   updateCodebaseMarkdown: updateCodebaseMarkdown,
+  // Notification preferences for the current user
+  getNotificationPreferences: getNotificationPreferences,
+  updateNotificationPreferences: updateNotificationPreferences,
   // Revenue is a sub-resource of organizations
   getRevenue: getRevenueData,
   // MRR-related endpoints for the billing dashboard
@@ -535,7 +560,4 @@ export const organizationsRouter = router({
   getActiveSubscribers: getActiveSubscribers,
   getSubscriberBreakdown: getSubscriberBreakdown,
   getCurrentSubscribers: getCurrentSubscribers,
-  // Notification preferences
-  getNotificationPreferences: getNotificationPreferences,
-  updateNotificationPreferences: updateNotificationPreferences,
 })
