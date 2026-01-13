@@ -425,8 +425,14 @@ export const provideBillingAddressBehavior = defineBehavior({
   ): Promise<ProvideBillingAddressResult> => {
     const billingAddress = customerResidencyDep.billingAddress
 
-    // Use the checkout session with discount (if any)
-    const checkoutSessionId = prev.checkoutSessionWithDiscount.id
+    // Use the checkout session with discount (if any), or fall back to the base checkout session
+    // This allows the behavior to work whether or not applyDiscountBehavior was included in the chain
+    const checkoutSessionId =
+      (
+        prev as {
+          checkoutSessionWithDiscount?: CheckoutSession.Record
+        }
+      ).checkoutSessionWithDiscount?.id ?? prev.checkoutSession.id
 
     const result = await adminTransaction(async ({ transaction }) => {
       const {

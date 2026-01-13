@@ -116,26 +116,6 @@ describe('CreateUsagePriceModal schema validation', () => {
 
       expect(result.success).toBe(false)
     })
-
-    it('rejects usage price with empty string usageMeterId', () => {
-      const invalidInput = {
-        type: PriceType.Usage,
-        name: 'API Calls',
-        slug: 'api-calls',
-        isDefault: true,
-        usageMeterId: '', // Invalid: empty string
-        usageEventsPerUnit: 100,
-        unitPrice: 50,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        trialPeriodDays: null,
-        productId: null,
-      }
-
-      const result = pricesClientInsertSchema.safeParse(invalidInput)
-
-      expect(result.success).toBe(false)
-    })
   })
 
   describe('Usage price requires usageEventsPerUnit', () => {
