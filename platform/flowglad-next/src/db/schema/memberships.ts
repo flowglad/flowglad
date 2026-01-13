@@ -66,6 +66,7 @@ export const memberships = pgTable(
           to: 'merchant',
           for: 'update',
           using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id()`,
+          withCheck: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id()`,
         }
       ),
       // no livemode policy for memberships, because memberships are used to determine access to

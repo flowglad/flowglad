@@ -1,5 +1,5 @@
 {
-  "id": "f5a50646-1cbe-4e22-8b0f-124c2414e2a7",
+  "id": "89da095b-06c9-4d77-b9b3-fa8dcb8d529c",
   "prevId": "751b89f4-8f16-4836-ada5-27d0a981710d",
   "version": "7",
   "dialect": "postgresql",
@@ -5434,7 +5434,8 @@
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": ["merchant"],
-          "using": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id()"
+          "using": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id()",
+          "withCheck": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id()"
         }
       },
       "checkConstraints": {},

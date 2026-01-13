@@ -1,1 +1,0 @@
-CREATE POLICY "Enable update for own membership in current organization" ON "memberships" AS PERMISSIVE FOR UPDATE TO "merchant" USING ("user_id" = requesting_user_id() AND "organization_id" = current_organization_id());
