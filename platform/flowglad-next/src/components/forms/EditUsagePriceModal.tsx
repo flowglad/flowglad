@@ -350,6 +350,7 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
               usageEventsPerUnit: input.usageEventsPerUnit,
               usageMeterId: usageMeterId,
               isDefault: price.isDefault,
+              active: input.price.active,
               name: input.price.name,
               slug: input.price.slug,
               intervalUnit: price.intervalUnit,

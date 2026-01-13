@@ -1165,7 +1165,7 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
             usageEventsPerUnit: 1,
           },
         })
-      ).rejects.toThrow() // Schema rejects with "expected null, received string"
+      ).rejects.toThrow(TRPCError)
     })
 
     it('creates usage price with null productId successfully (pricingModelId derived from usageMeterId)', async () => {
@@ -1203,6 +1203,7 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
       expect(result.price.type).toBe(PriceType.Usage)
       expect(result.price.productId).toBeNull()
       expect(result.price.usageMeterId).toBe(usageMeterId)
+      expect(result.price.pricingModelId).toBe(pricingModelId)
     })
 
     it('creates usage price when productId is omitted (pricingModelId derived from usageMeterId)', async () => {
@@ -1241,6 +1242,7 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
       expect(result.price.type).toBe(PriceType.Usage)
       expect(result.price.productId).toBeNull()
       expect(result.price.unitPrice).toBe(200)
+      expect(result.price.pricingModelId).toBe(pricingModelId)
     })
 
     it('creates subscription price with productId successfully', async () => {
