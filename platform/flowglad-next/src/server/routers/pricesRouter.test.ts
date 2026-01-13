@@ -13,6 +13,7 @@ import {
   selectProductById,
 } from '@/db/tableMethods/productMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
+import type { TRPCApiContext } from '@/server/trpcContext'
 import {
   CurrencyCode,
   IntervalUnit,
@@ -292,15 +293,17 @@ describe('pricesRouter - Default Price Constraints', () => {
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
+        isApi: true as const,
         path: '',
       }
       await expect(
-        pricesRouter.createCaller(ctx).update({
+        pricesRouter.createCaller(ctx as TRPCApiContext).update({
+          // @ts-expect-error - Intentionally providing minimal fields to test NOT_FOUND error path
           price: {
             id: 'price_missing_' + core.nanoid(),
             type: PriceType.Subscription,
-          } as any,
-        } as any)
+          },
+        })
       ).rejects.toThrow(TRPCError)
     })
 
@@ -314,6 +317,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
+        isApi: true as const,
         path: '',
       }
       // create another product with its own price
@@ -360,10 +364,12 @@ describe('pricesRouter - Default Price Constraints', () => {
           transaction
         )
         await expect(
-          productsRouter.createCaller(ctx).update({
+          productsRouter.createCaller(ctx as TRPCApiContext).update({
+            // @ts-expect-error - Intentionally providing minimal product object for cross-product price guard test
             product: { id: defaultProductId },
-            price: { id: otherPrice.id } as any,
-          } as any)
+            // @ts-expect-error - Intentionally providing minimal price object for cross-product price guard test
+            price: { id: otherPrice.id },
+          })
         ).rejects.toThrow(TRPCError)
       })
     })
@@ -507,12 +513,12 @@ describe('pricesRouter - Default Price Constraints', () => {
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
-        isApi: true as any,
+        isApi: true as const,
         path: '',
-      } as any
+      }
 
       await expect(
-        pricesRouter.createCaller(ctx).create({
+        pricesRouter.createCaller(ctx as TRPCApiContext).create({
           price: {
             productId: defaultProductId,
             unitPrice: 500, // Non-zero price for a non-default price on default product
@@ -531,7 +537,6 @@ describe('pricesRouter - Default Price Constraints', () => {
       )
     })
 
-    // FIXME: cleanup the types here
     it('should allow default prices on non-default products to have non-zero unitPrice', async () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
@@ -542,9 +547,9 @@ describe('pricesRouter - Default Price Constraints', () => {
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
-        isApi: true as any,
+        isApi: true as const,
         path: '',
-      } as any
+      }
 
       // First, create a new product without any prices in the same organization
       const newProduct = await adminTransaction(
@@ -586,20 +591,22 @@ describe('pricesRouter - Default Price Constraints', () => {
       )
 
       // This should succeed - default price on non-default product with non-zero price
-      const result = await pricesRouter.createCaller(ctx).create({
-        price: {
-          productId: newProduct.id,
-          unitPrice: 2500, // Non-zero price for a default price on non-default product
-          isDefault: true,
-          type: PriceType.Subscription,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          name: 'Premium Default Price',
-          trialPeriodDays: 0,
-          slug: 'premium-default',
-          active: true,
-        } as any,
-      } as any)
+      const result = await pricesRouter
+        .createCaller(ctx as TRPCApiContext)
+        .create({
+          price: {
+            productId: newProduct.id,
+            unitPrice: 2500, // Non-zero price for a default price on non-default product
+            isDefault: true,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            name: 'Premium Default Price',
+            trialPeriodDays: 0,
+            slug: 'premium-default',
+            active: true,
+          },
+        })
 
       expect(result.price).toMatchObject({})
       expect(result.price.unitPrice).toBe(2500)
@@ -1150,7 +1157,7 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
       // Attempt to create a usage price with a productId (should fail)
       // The zod schema enforces usage prices must have productId: null
       await expect(
-        pricesRouter.createCaller(ctx as any).create({
+        pricesRouter.createCaller(ctx as TRPCApiContext).create({
           // @ts-expect-error - Intentionally passing productId (should be null for usage prices)
           // to test that the schema rejects usage prices with a productId.
           price: {
@@ -1184,7 +1191,7 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
 
       // Create a usage price with productId: null (pricingModelId derived automatically from usageMeterId)
       const result = await pricesRouter
-        .createCaller(ctx as any)
+        .createCaller(ctx as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Usage,
@@ -1196,7 +1203,7 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
             intervalCount: 1,
             name: 'Usage Price No Product',
             usageEventsPerUnit: 1,
-          } as any,
+          },
         })
 
       expect(result.price.id).toMatch(/^prc_/)
@@ -1223,7 +1230,7 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
       // Create a usage price without productId field (should succeed, defaulting to null)
       // pricingModelId is derived automatically from usageMeterId
       const result = await pricesRouter
-        .createCaller(ctx as any)
+        .createCaller(ctx as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Usage,
@@ -1235,7 +1242,7 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
             intervalCount: 1,
             name: 'Usage Price Omitted Product',
             usageEventsPerUnit: 10,
-          } as any,
+          },
         })
 
       expect(result.price.type).toBe(PriceType.Usage)
@@ -1260,7 +1267,7 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
 
       // Create a subscription price with productId (should succeed)
       const result = await pricesRouter
-        .createCaller(ctx as any)
+        .createCaller(ctx as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Subscription,

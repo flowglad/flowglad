@@ -452,7 +452,16 @@ export const selectPurchasesTableRowData =
       }
 
       return purchasesResult.map((purchase) => {
-        const rawPrice = pricesById.get(purchase.priceId)!
+        const rawPrice = pricesById.get(purchase.priceId)
+        // Usage prices (with null productId) are filtered out by the innerJoin above.
+        // If a purchase references a usage price, this is a data integrity issue
+        // since purchases should only be created for product-backed prices.
+        if (!rawPrice) {
+          throw new Error(
+            `Purchase ${purchase.id} references price ${purchase.priceId} which was not found. ` +
+              `This may indicate a usage price was incorrectly associated with a purchase.`
+          )
+        }
         // Parse price early so Price.hasProductId type guard works.
         // This is needed because raw DB rows have type: string, but the type guard
         // expects the parsed Price.Record with narrowed type.

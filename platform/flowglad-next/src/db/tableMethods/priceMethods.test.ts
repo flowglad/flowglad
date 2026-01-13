@@ -26,6 +26,7 @@ import { updateCustomer } from './customerMethods'
 import {
   bulkInsertPrices,
   dangerouslyInsertPrice,
+  derivePricingModelIdForPrice,
   insertPrice,
   pricingModelIdsForPrices,
   safelyInsertPrice,
@@ -1646,7 +1647,7 @@ describe('priceMethods.ts', () => {
   })
 
   describe('insertPrice', () => {
-    it('should insert price and derive pricingModelId from product for subscription prices', async () => {
+    it('should insert price and derive pricingModelId from product for product-backed prices', async () => {
       await adminTransaction(async ({ transaction }) => {
         const newPrice = await insertPrice(
           {
@@ -2700,6 +2701,110 @@ describe('priceMethods.ts', () => {
         expect(featureMap.size).toBe(2)
         expect(featureMap.get(price.id)).toHaveLength(0)
         expect(featureMap.get(nonExistentPriceId)).toHaveLength(0)
+      })
+    })
+  })
+
+  describe('derivePricingModelIdForPrice', () => {
+    it('derives pricingModelId from productId when productId is provided', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const priceInsert = {
+          ...nulledPriceColumns,
+          productId: product.id,
+          name: 'Test Derive Price',
+          type: PriceType.Subscription,
+          unitPrice: 1000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          currency: CurrencyCode.USD,
+          slug: `derive-test-${core.nanoid()}`,
+          isDefault: false,
+        } as Price.Insert
+
+        const derivedPricingModelId =
+          await derivePricingModelIdForPrice(priceInsert, transaction)
+
+        expect(derivedPricingModelId).toBe(product.pricingModelId)
+      })
+    })
+
+    it('derives pricingModelId from usageMeterId when usageMeterId is provided', async () => {
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter for Derive',
+        livemode: true,
+        pricingModelId: product.pricingModelId,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const priceInsert = {
+          ...usagePriceDefaultColumns,
+          usageMeterId: usageMeter.id,
+          name: 'Test Derive Usage Price',
+          type: PriceType.Usage,
+          unitPrice: 100,
+          livemode: true,
+          currency: CurrencyCode.USD,
+          slug: `derive-usage-test-${core.nanoid()}`,
+          isDefault: false,
+        } as Price.Insert
+
+        const derivedPricingModelId =
+          await derivePricingModelIdForPrice(priceInsert, transaction)
+
+        expect(derivedPricingModelId).toBe(usageMeter.pricingModelId)
+      })
+    })
+
+    it('uses the provided pricingModelId when already set', async () => {
+      const explicitPricingModelId = product.pricingModelId
+
+      await adminTransaction(async ({ transaction }) => {
+        const priceInsert = {
+          ...nulledPriceColumns,
+          productId: product.id,
+          pricingModelId: explicitPricingModelId,
+          name: 'Test Explicit PricingModelId',
+          type: PriceType.Subscription,
+          unitPrice: 1000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          currency: CurrencyCode.USD,
+          slug: `explicit-pm-test-${core.nanoid()}`,
+          isDefault: false,
+        } as Price.Insert
+
+        const derivedPricingModelId =
+          await derivePricingModelIdForPrice(priceInsert, transaction)
+
+        expect(derivedPricingModelId).toBe(explicitPricingModelId)
+      })
+    })
+
+    it('throws an error when neither productId nor usageMeterId is provided and pricingModelId is not set', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const priceInsert = {
+          ...nulledPriceColumns,
+          productId: null,
+          usageMeterId: null,
+          name: 'Test No ID Price',
+          type: PriceType.Subscription,
+          unitPrice: 1000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          currency: CurrencyCode.USD,
+          slug: `no-id-test-${core.nanoid()}`,
+          isDefault: false,
+        } as unknown as Price.Insert
+
+        await expect(
+          derivePricingModelIdForPrice(priceInsert, transaction)
+        ).rejects.toThrow(
+          /Pricing model id must be provided or derivable from productId or usageMeterId/
+        )
       })
     })
   })
