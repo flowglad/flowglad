@@ -14,6 +14,8 @@ import {
 import {
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
+  createDerivePricingModelId,
+  createDerivePricingModelIds,
   createInsertFunction,
   createPaginatedSelectFunction,
   createSelectById,
@@ -61,6 +63,25 @@ export const selectCustomers = createSelectFunction(
   customersTable,
   config
 )
+
+/**
+ * Derives pricingModelId from a customer.
+ * Used for payment methods.
+ */
+export const derivePricingModelIdFromCustomer =
+  createDerivePricingModelId(
+    customersTable,
+    config,
+    selectCustomerById
+  )
+
+/**
+ * Batch fetch pricingModelIds for multiple customers.
+ * More efficient than calling derivePricingModelIdFromCustomer individually.
+ * Used by bulk insert operations in payment methods.
+ */
+export const pricingModelIdsForCustomers =
+  createDerivePricingModelIds(customersTable, config)
 
 export const insertCustomer = createInsertFunction(
   customersTable,

@@ -17,7 +17,7 @@ import {
   constructIndex,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   metadataSchema,
   notNullStringForeignKey,
@@ -57,7 +57,7 @@ export const resourceClaims = pgTable(
     releaseReason: text('release_reason'),
     metadata: jsonb('metadata'),
   },
-  (table) => [
+  livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.subscriptionId]),
     constructIndex(TABLE_NAME, [table.resourceId]),
     constructIndex(TABLE_NAME, [table.subscriptionItemFeatureId]),
@@ -87,8 +87,7 @@ export const resourceClaims = pgTable(
         using: sql`"subscription_id" in (select "id" from "subscriptions")`,
       }
     ),
-    livemodePolicy(TABLE_NAME),
-  ]
+  ])
 ).enableRLS()
 
 const readOnlyColumns = {

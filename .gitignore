@@ -21,7 +21,7 @@ dist
 
 generated/styles.ts
 .turbo
-.cursor
+.cursor/mcp.json
 
 # used to temporarily backup development routes in case of accidental deletion
 .dev-routes-backup

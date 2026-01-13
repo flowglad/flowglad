@@ -148,6 +148,7 @@
 
   :root {
     --radius: 0.625rem;
+    --spacing-page: 32px;
     --background: 51 47% 97%;
     --foreground: 30 5.3% 7.5%;
     --card: 0 0% 100%;

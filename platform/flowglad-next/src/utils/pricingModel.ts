@@ -50,7 +50,11 @@ import type {
   AuthenticatedTransactionParams,
   DbTransaction,
 } from '@/db/types'
-import { DestinationEnvironment } from '@/types'
+import {
+  DestinationEnvironment,
+  FeatureType,
+  PriceType,
+} from '@/types'
 import { validateDefaultProductUpdate } from '@/utils/defaultProductValidation'
 
 export const isPriceChanged = (
@@ -202,6 +206,22 @@ export const createPriceTransaction = async (
   return newPrice
 }
 
+/**
+ * Checks if any of the given feature IDs are toggle features.
+ * Used to validate that toggle features are not associated with single payment products.
+ */
+const checkForToggleFeatures = async (
+  featureIds: string[],
+  transaction: DbTransaction
+): Promise<boolean> => {
+  if (!featureIds.length) return false
+  const features = await selectFeatures(
+    { id: featureIds },
+    transaction
+  )
+  return features.some((f) => f.type === FeatureType.Toggle)
+}
+
 export const createProductTransaction = async (
   payload: {
     product: Product.ClientInsert
@@ -213,12 +233,28 @@ export const createProductTransaction = async (
   // Validate that usage prices are not created with featureIds
   if (payload.featureIds && payload.featureIds.length > 0) {
     const hasUsagePrice = payload.prices.some(
-      (price) => price.type === 'usage'
+      (price) => price.type === PriceType.Usage
     )
     if (hasUsagePrice) {
       throw new Error(
         'Cannot create usage prices with feature assignments. Usage prices must be associated with usage meters only.'
       )
+    }
+
+    // Validate that single payment products cannot have toggle features
+    const hasSinglePaymentPrice = payload.prices.some(
+      (price) => price.type === PriceType.SinglePayment
+    )
+    if (hasSinglePaymentPrice) {
+      const hasToggleFeatures = await checkForToggleFeatures(
+        payload.featureIds,
+        transaction
+      )
+      if (hasToggleFeatures) {
+        throw new Error(
+          'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+        )
+      }
     }
   }
 
@@ -331,6 +367,26 @@ export const editProductTransaction = async (
   }
 
   if (featureIds !== undefined) {
+    // Validate that single payment products cannot have toggle features
+    if (featureIds.length > 0) {
+      const productPrices = await selectPrices(
+        { productId: product.id },
+        transaction
+      )
+      const defaultPrice = productPrices.find((p) => p.isDefault)
+      if (defaultPrice?.type === PriceType.SinglePayment) {
+        const hasToggleFeatures = await checkForToggleFeatures(
+          featureIds,
+          transaction
+        )
+        if (hasToggleFeatures) {
+          throw new Error(
+            'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+          )
+        }
+      }
+    }
+
     await syncProductFeatures(
       {
         product: updatedProduct,

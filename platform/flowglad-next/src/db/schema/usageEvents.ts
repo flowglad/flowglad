@@ -12,7 +12,7 @@ import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   enableCustomerReadPolicy,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -66,90 +66,87 @@ export const usageEvents = pgTable(
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.customerId]),
-      constructIndex(TABLE_NAME, [table.usageMeterId]),
-      constructIndex(TABLE_NAME, [table.billingPeriodId]),
-      constructIndex(TABLE_NAME, [table.subscriptionId]),
-      constructIndex(TABLE_NAME, [table.priceId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      constructUniqueIndex(TABLE_NAME, [
-        table.transactionId,
-        table.usageMeterId,
-      ]),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'all',
-          using: sql`"customer_id" in (select "id" from "customers" where "organization_id"=current_organization_id())`,
-        }
-      ),
-      merchantPolicy(
-        'On insert, only allow usage events for prices with matching usage meter',
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'insert',
-          withCheck: usageEventPriceMustMatchUsageMeter,
-        }
-      ),
-      merchantPolicy(
-        'On update, only allow usage events for prices with matching usage meter',
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'update',
-          using: usageEventPriceMustMatchUsageMeter,
-        }
-      ),
-      merchantPolicy(
-        'On insert, only allow usage events for subscriptions with matching customer',
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'insert',
-          withCheck: usageEventSubscriptionMustMatchCustomer,
-        }
-      ),
-      merchantPolicy(
-        'On update, only allow usage events for subscriptions with matching customer',
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'update',
-          withCheck: usageEventSubscriptionMustMatchCustomer,
-        }
-      ),
-      merchantPolicy(
-        'On insert, only allow usage events for billing periods with matching subscription',
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'insert',
-          withCheck: usageEventBillingPeriodMustMatchSubscription,
-        }
-      ),
-      merchantPolicy(
-        'On update, only allow usage events for billing periods with matching subscription',
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'update',
-          withCheck: usageEventBillingPeriodMustMatchSubscription,
-        }
-      ),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"customer_id" in (select "id" from "customers")`,
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.customerId]),
+    constructIndex(TABLE_NAME, [table.usageMeterId]),
+    constructIndex(TABLE_NAME, [table.billingPeriodId]),
+    constructIndex(TABLE_NAME, [table.subscriptionId]),
+    constructIndex(TABLE_NAME, [table.priceId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.transactionId,
+      table.usageMeterId,
+    ]),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'all',
+        using: sql`"customer_id" in (select "id" from "customers" where "organization_id"=current_organization_id())`,
+      }
+    ),
+    merchantPolicy(
+      'On insert, only allow usage events for prices with matching usage meter',
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'insert',
+        withCheck: usageEventPriceMustMatchUsageMeter,
+      }
+    ),
+    merchantPolicy(
+      'On update, only allow usage events for prices with matching usage meter',
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'update',
+        using: usageEventPriceMustMatchUsageMeter,
+      }
+    ),
+    merchantPolicy(
+      'On insert, only allow usage events for subscriptions with matching customer',
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'insert',
+        withCheck: usageEventSubscriptionMustMatchCustomer,
+      }
+    ),
+    merchantPolicy(
+      'On update, only allow usage events for subscriptions with matching customer',
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'update',
+        withCheck: usageEventSubscriptionMustMatchCustomer,
+      }
+    ),
+    merchantPolicy(
+      'On insert, only allow usage events for billing periods with matching subscription',
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'insert',
+        withCheck: usageEventBillingPeriodMustMatchSubscription,
+      }
+    ),
+    merchantPolicy(
+      'On update, only allow usage events for billing periods with matching subscription',
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'update',
+        withCheck: usageEventBillingPeriodMustMatchSubscription,
+      }
+    ),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"customer_id" in (select "id" from "customers")`,
+      }
+    ),
+  ])
 ).enableRLS()
 
 const columnRefinements = {

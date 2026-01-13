@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { organizations } from '@/db/schema/organizations'
 import {
   constructIndex,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   orgIdEqualsCurrentSQL,
@@ -35,21 +35,18 @@ export const webhooks = pgTable(
     name: text('name').notNull(),
     active: boolean('active').notNull().default(true),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.active]),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          for: 'all',
-          using: orgIdEqualsCurrentSQL(),
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.active]),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        for: 'all',
+        using: orgIdEqualsCurrentSQL(),
+      }
+    ),
+  ])
 ).enableRLS()
 
 const columnRefinements = {

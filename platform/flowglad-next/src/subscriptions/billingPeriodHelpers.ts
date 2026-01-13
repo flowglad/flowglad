@@ -33,6 +33,7 @@ import {
   LedgerTransactionType,
   SubscriptionStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import { core } from '@/utils/core'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import { tracedTrigger } from '@/utils/triggerTracing'
@@ -273,6 +274,11 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
         updatedBillingPeriod,
       },
       eventsToInsert: [],
+      cacheInvalidations: [
+        CacheDependency.customerSubscriptions(
+          subscription.customerId
+        ),
+      ],
     }
   }
 
@@ -312,6 +318,11 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
         updatedBillingPeriod,
       },
       eventsToInsert: [],
+      cacheInvalidations: [
+        CacheDependency.customerSubscriptions(
+          subscription.customerId
+        ),
+      ],
     }
   }
   const newBillingPeriod = result.billingPeriod
@@ -430,6 +441,9 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       subscriptionId: subscription.id,
       payload: ledgerCommandPayload,
     },
+    cacheInvalidations: [
+      CacheDependency.customerSubscriptions(subscription.customerId),
+    ],
   }
 }
 

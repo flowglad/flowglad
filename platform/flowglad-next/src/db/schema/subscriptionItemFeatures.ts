@@ -22,7 +22,7 @@ import {
   constructIndex,
   constructUniqueIndex,
   enableCustomerReadPolicy,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -78,8 +78,8 @@ export const subscriptionItemFeatures = pgTable(
     ),
     resourceId: nullableStringForeignKey('resource_id', resources),
   },
-  (table) => [
-    constructIndex(TABLE_NAME, [table.subscriptionItemId]),
+  livemodePolicyTable(TABLE_NAME, (table, livemodeIndex) => [
+    livemodeIndex([table.subscriptionItemId]),
     constructIndex(TABLE_NAME, [table.featureId]),
     constructIndex(TABLE_NAME, [table.productFeatureId]),
     constructIndex(TABLE_NAME, [table.type]),
@@ -121,8 +121,7 @@ export const subscriptionItemFeatures = pgTable(
         using: sql`"subscription_item_id" in (select "id" from "subscription_items")`,
       }
     ),
-    livemodePolicy(TABLE_NAME),
-  ]
+  ])
 ).enableRLS()
 
 const columnRefinements = {

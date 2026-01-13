@@ -462,10 +462,11 @@ describe('createCustomerBookkeeping', () => {
       }
     })
 
-    it('should create customer without subscription when no pricing model exists at all', async () => {
+    it('should throw error when no pricing model exists for customer creation', async () => {
       // setup:
       // - create an organization without any pricing models
-      // - create a customer without specifying a pricing model
+      // - attempt to create a customer without specifying a pricing model
+      // - expect an error since pricingModelId is now required (NOT NULL)
 
       // Create a new org without default pricing model setup
       const minimalOrg = await adminTransaction(
@@ -491,10 +492,11 @@ describe('createCustomerBookkeeping', () => {
         }
       )
 
-      // Create customer for the minimal org
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          const output = await createCustomerBookkeeping(
+      // Attempt to create customer for the minimal org - should throw error
+      let error: Error | null = null
+      try {
+        await adminTransaction(async ({ transaction }) => {
+          await createCustomerBookkeeping(
             {
               customer: {
                 email: `test+${core.nanoid()}@example.com`,
@@ -509,33 +511,18 @@ describe('createCustomerBookkeeping', () => {
               livemode,
             }
           )
-          return output
-        }
-      )
+        })
+      } catch (err: any) {
+        error = err
+      }
 
       // expects:
-      // - customer should be created successfully
-      // - no subscription should be created since there's no pricing model
-      // - only CustomerCreated event should exist
-      expect(result.result.customer).toMatchObject({})
-      expect(result.result.customer.organizationId).toBe(
-        minimalOrg.id
+      // - an error should be thrown since pricingModelId is required
+      // - no customer should be created
+      expect(error).toBeInstanceOf(Error)
+      expect(error?.message).toMatch(
+        /No pricing model found for customer/i
       )
-      expect(result.result.subscription).toBeUndefined()
-      expect(result.result.subscriptionItems).toBeUndefined()
-
-      // Verify only CustomerCreated event exists
-      expect(result.eventsToInsert).toMatchObject({})
-      expect(
-        result.eventsToInsert?.some(
-          (e) => e.type === FlowgladEventType.CustomerCreated
-        )
-      ).toBe(true)
-      expect(
-        result.eventsToInsert?.some(
-          (e) => e.type === FlowgladEventType.SubscriptionCreated
-        )
-      ).toBe(false)
     })
 
     it('should prevent cross-organization customer creation', async () => {

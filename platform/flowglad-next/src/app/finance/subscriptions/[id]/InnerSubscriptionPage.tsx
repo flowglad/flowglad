@@ -10,6 +10,7 @@ import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
 import { ItemFeature } from '@/components/ItemFeature'
 import PageContainer from '@/components/PageContainer'
 import { ProductCard } from '@/components/ProductCard'
+import { SubscriptionResourceUsage } from '@/components/subscriptions/SubscriptionResourceUsage'
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import {
@@ -271,6 +272,11 @@ const InnerSubscriptionPage = ({
               )
             )}
           </div>
+        </ExpandSection>
+        <ExpandSection title="Resource Usage" defaultExpanded={false}>
+          <SubscriptionResourceUsage
+            subscriptionId={subscription.id}
+          />
         </ExpandSection>
         <BillingHistorySection
           subscriptionId={subscription.id}
