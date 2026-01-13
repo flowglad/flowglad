@@ -14,6 +14,10 @@ import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { createSubscriptionInputSchema } from '@/server/routers/subscriptionsRouter'
+import {
+  noopEmitEvent,
+  noopInvalidateCache,
+} from '@/test-utils/transactionCallbacks'
 import { idempotentSendCustomerSubscriptionCreatedNotification } from '@/trigger/notifications/send-customer-subscription-created-notification'
 import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
 import {
@@ -138,7 +142,11 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscription, subscriptionItems },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, { transaction })
+      return createSubscriptionWorkflow(params, {
+        transaction,
+        invalidateCache: noopInvalidateCache,
+        emitEvent: noopEmitEvent,
+      })
     })
 
     expect(subscriptionItems).toHaveLength(1)
@@ -175,7 +183,11 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscription },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, { transaction })
+      return createSubscriptionWorkflow(params, {
+        transaction,
+        invalidateCache: noopInvalidateCache,
+        emitEvent: noopEmitEvent,
+      })
     })
 
     expect(subscription.isFreePlan).toBe(false)
@@ -205,7 +217,11 @@ describe('doNotCharge subscription creation', () => {
     }
 
     await adminTransaction(async ({ transaction }) => {
-      await createSubscriptionWorkflow(params, { transaction })
+      await createSubscriptionWorkflow(params, {
+        transaction,
+        invalidateCache: noopInvalidateCache,
+        emitEvent: noopEmitEvent,
+      })
     })
 
     expect(
@@ -252,7 +268,11 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscription: newSubscription },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, { transaction })
+      return createSubscriptionWorkflow(params, {
+        transaction,
+        invalidateCache: noopInvalidateCache,
+        emitEvent: noopEmitEvent,
+      })
     })
 
     await adminTransaction(async ({ transaction }) => {
@@ -296,7 +316,11 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscriptionItems },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, { transaction })
+      return createSubscriptionWorkflow(params, {
+        transaction,
+        invalidateCache: noopInvalidateCache,
+        emitEvent: noopEmitEvent,
+      })
     })
 
     expect(subscriptionItems).toHaveLength(1)
@@ -329,7 +353,11 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscriptionItems },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, { transaction })
+      return createSubscriptionWorkflow(params, {
+        transaction,
+        invalidateCache: noopInvalidateCache,
+        emitEvent: noopEmitEvent,
+      })
     })
 
     expect(subscriptionItems).toHaveLength(1)
@@ -362,7 +390,11 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscriptionItems },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, { transaction })
+      return createSubscriptionWorkflow(params, {
+        transaction,
+        invalidateCache: noopInvalidateCache,
+        emitEvent: noopEmitEvent,
+      })
     })
 
     // All subscription items should have unitPrice 0
@@ -459,7 +491,11 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscription },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, { transaction })
+      return createSubscriptionWorkflow(params, {
+        transaction,
+        invalidateCache: noopInvalidateCache,
+        emitEvent: noopEmitEvent,
+      })
     })
 
     // Should be treated as paid plan (isFreePlan = false)
@@ -494,7 +530,11 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscription, subscriptionItems },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, { transaction })
+      return createSubscriptionWorkflow(params, {
+        transaction,
+        invalidateCache: noopInvalidateCache,
+        emitEvent: noopEmitEvent,
+      })
     })
 
     expect(subscriptionItems).toHaveLength(1)
@@ -534,7 +574,11 @@ describe('doNotCharge subscription creation', () => {
     const {
       result: { subscription },
     } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(params, { transaction })
+      return createSubscriptionWorkflow(params, {
+        transaction,
+        invalidateCache: noopInvalidateCache,
+        emitEvent: noopEmitEvent,
+      })
     })
 
     // Subscription should be Incomplete without payment method when doNotCharge is false
@@ -571,7 +615,11 @@ describe('doNotCharge subscription creation', () => {
       const {
         result: { billingRun },
       } = await adminTransaction(async ({ transaction }) => {
-        return createSubscriptionWorkflow(params, { transaction })
+        return createSubscriptionWorkflow(params, {
+          transaction,
+          invalidateCache: noopInvalidateCache,
+          emitEvent: noopEmitEvent,
+        })
       })
 
       // No billing run should be created when doNotCharge is true

@@ -85,7 +85,9 @@ export const abortScheduledBillingRuns = async (
  */
 export const reassignDefaultSubscription = async (
   canceledSubscription: Subscription.Record,
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  invalidateCache: (...keys: CacheDependencyKey[]) => void,
+  emitEvent: (...events: Event.Insert[]) => void
 ) => {
   // don't need to re-add default subscription when upgrading to a paid plan
   if (canceledSubscription.isFreePlan) {
@@ -180,7 +182,7 @@ export const reassignDefaultSubscription = async (
         autoStart: true,
         name: `${defaultProduct.name} Subscription`,
       },
-      { transaction }
+      { transaction, invalidateCache, emitEvent }
     )
   } catch (error) {
     console.error(
@@ -240,8 +242,8 @@ export interface CancelSubscriptionImmediatelyParams {
 export const cancelSubscriptionImmediately = async (
   params: CancelSubscriptionImmediatelyParams,
   transaction: DbTransaction,
-  invalidateCache?: (...keys: CacheDependencyKey[]) => void,
-  emitEvent?: (...events: Event.Insert[]) => void
+  invalidateCache: (...keys: CacheDependencyKey[]) => void,
+  emitEvent: (...events: Event.Insert[]) => void
 ): Promise<TransactionOutput<Subscription.Record>> => {
   const {
     subscription,
@@ -255,17 +257,15 @@ export const cancelSubscriptionImmediately = async (
     (await selectCustomerById(subscription.customerId, transaction))
 
   // Cache invalidation for this customer's subscriptions
-  invalidateCache?.(
+  invalidateCache(
     CacheDependency.customerSubscriptions(subscription.customerId)
   )
 
   if (isSubscriptionInTerminalState(subscription.status)) {
-    emitEvent?.(
+    emitEvent(
       constructSubscriptionCanceledEventInsert(subscription, customer)
     )
-    return {
-      result: subscription,
-    }
+    return { result: subscription }
   }
   if (
     subscription.canceledAt &&
@@ -276,15 +276,13 @@ export const cancelSubscriptionImmediately = async (
       SubscriptionStatus.Canceled,
       transaction
     )
-    emitEvent?.(
+    emitEvent(
       constructSubscriptionCanceledEventInsert(
         updatedSubscription,
         customer
       )
     )
-    return {
-      result: updatedSubscription,
-    }
+    return { result: updatedSubscription }
   }
   const endDate = Date.now()
   const status = SubscriptionStatus.Canceled
@@ -400,7 +398,9 @@ export const cancelSubscriptionImmediately = async (
   if (!skipReassignDefaultSubscription) {
     await reassignDefaultSubscription(
       updatedSubscription,
-      transaction
+      transaction,
+      invalidateCache,
+      emitEvent
     )
   }
 
@@ -433,15 +433,13 @@ export const cancelSubscriptionImmediately = async (
     }
   }
 
-  emitEvent?.(
+  emitEvent(
     constructSubscriptionCanceledEventInsert(
       updatedSubscription,
       customer
     )
   )
-  return {
-    result: updatedSubscription,
-  }
+  return { result: updatedSubscription }
 }
 
 // Schedule a subscription cancellation for the future
@@ -648,8 +646,8 @@ export const cancelSubscriptionProcedureTransaction = async ({
           subscription,
         },
         transaction,
-        invalidateCache,
-        emitEvent
+        invalidateCache!,
+        emitEvent!
       )
     return {
       result: {

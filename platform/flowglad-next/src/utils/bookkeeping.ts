@@ -245,6 +245,7 @@ export const createCustomerBookkeeping = async (
     organizationId,
     livemode,
     invalidateCache,
+    emitEvent,
   }: Omit<AuthenticatedTransactionParams, 'userId'>
 ): Promise<
   TransactionOutput<{
@@ -376,7 +377,11 @@ export const createCustomerBookkeeping = async (
             autoStart: true,
             name: `${defaultProduct.name} Subscription`,
           },
-          { transaction, invalidateCache }
+          {
+            transaction,
+            invalidateCache: invalidateCache!,
+            emitEvent: emitEvent!,
+          }
         )
 
         // Merge events from subscription creation

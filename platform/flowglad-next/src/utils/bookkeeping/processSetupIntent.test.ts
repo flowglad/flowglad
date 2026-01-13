@@ -45,6 +45,10 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import {
+  noopEmitEvent,
+  noopInvalidateCache,
+} from '@/test-utils/transactionCallbacks'
+import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PaymentMethodType,
@@ -798,7 +802,9 @@ describe('Process setup intent', async () => {
         adminTransaction(async ({ transaction }) => {
           return processSetupIntentSucceeded(
             invalidSetupIntent,
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         })
       ).rejects.toThrow('No metadata found')
@@ -812,7 +818,9 @@ describe('Process setup intent', async () => {
               checkoutSession.id,
               customer.stripeCustomerId!
             ),
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         })
       ).rejects.toThrow()
@@ -835,7 +843,9 @@ describe('Process setup intent', async () => {
         adminTransaction(async ({ transaction }) => {
           return processSetupIntentSucceeded(
             invalidSetupIntent,
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         })
       ).rejects.toThrow('Metadata type is not checkout_session')
@@ -867,7 +877,9 @@ describe('Process setup intent', async () => {
           )
           return processSetupIntentSucceeded(
             newSetupIntentSucceeded,
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         })
       ).rejects.toThrow(/^Attempting to process checkout session/)
@@ -945,7 +957,9 @@ describe('Process setup intent', async () => {
             async ({ transaction }) => {
               return processSetupIntentSucceeded(
                 setupIntent,
-                transaction
+                transaction,
+                noopInvalidateCache,
+                noopEmitEvent
               )
             }
           )
@@ -995,7 +1009,9 @@ describe('Process setup intent', async () => {
             async ({ transaction }) => {
               return processSetupIntentSucceeded(
                 setupIntent,
-                transaction
+                transaction,
+                noopInvalidateCache,
+                noopEmitEvent
               )
             }
           )
@@ -1100,7 +1116,9 @@ describe('Process setup intent', async () => {
             async ({ transaction }) => {
               return processSetupIntentSucceeded(
                 setupIntent1,
-                transaction
+                transaction,
+                noopInvalidateCache,
+                noopEmitEvent
               )
             }
           )
@@ -1145,7 +1163,9 @@ describe('Process setup intent', async () => {
             async ({ transaction }) => {
               return processSetupIntentSucceeded(
                 setupIntent1, // Same setup intent as before
-                transaction
+                transaction,
+                noopInvalidateCache,
+                noopEmitEvent
               )
             }
           )
@@ -1218,7 +1238,9 @@ describe('Process setup intent', async () => {
             )
             return processSetupIntentSucceeded(
               freshSetupIntentSucceeded,
-              transaction
+              transaction,
+              noopInvalidateCache,
+              noopEmitEvent
             )
           }
         )
@@ -1303,7 +1325,9 @@ describe('Process setup intent', async () => {
             )
             const { result } = await processSetupIntentSucceeded(
               localFirstSetupIntent,
-              transaction
+              transaction,
+              noopInvalidateCache,
+              noopEmitEvent
             )
             if (!('billingRun' in result)) {
               throw new Error('Billing run not found')
@@ -1370,7 +1394,9 @@ describe('Process setup intent', async () => {
                   ...initialResult,
                   setupIntent: localFirstSetupIntent,
                 },
-                transaction
+                transaction,
+                noopInvalidateCache,
+                noopEmitEvent
               )
             return {
               ...result,
@@ -1416,7 +1442,9 @@ describe('Process setup intent', async () => {
             )
             const { result } = await processSetupIntentSucceeded(
               newSetupIntent,
-              transaction
+              transaction,
+              noopInvalidateCache,
+              noopEmitEvent
             )
             if (!('billingRun' in result)) {
               throw new Error('Billing run not found')
@@ -1449,7 +1477,9 @@ describe('Process setup intent', async () => {
           adminTransaction(async ({ transaction }) => {
             return processSetupIntentSucceeded(
               succeededSetupIntent,
-              transaction
+              transaction,
+              noopInvalidateCache,
+              noopEmitEvent
             )
           })
         ).rejects.toThrow()
@@ -1469,7 +1499,9 @@ describe('Process setup intent', async () => {
           adminTransaction(async ({ transaction }) => {
             return processSetupIntentSucceeded(
               invalidSetupIntent,
-              transaction
+              transaction,
+              noopInvalidateCache,
+              noopEmitEvent
             )
           })
         ).rejects.toThrow()

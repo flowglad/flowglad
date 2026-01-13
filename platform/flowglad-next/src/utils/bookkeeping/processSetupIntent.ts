@@ -412,7 +412,8 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       setupIntent: CoreSripeSetupIntent
     },
     transaction: DbTransaction,
-    invalidateCache?: (...keys: CacheDependencyKey[]) => void
+    invalidateCache: (...keys: CacheDependencyKey[]) => void,
+    emitEvent: (...events: Event.Insert[]) => void
   ): Promise<
     TransactionOutput<ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult>
   > => {
@@ -494,7 +495,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         product,
         livemode: checkoutSession.livemode,
       },
-      { transaction, invalidateCache }
+      { transaction, invalidateCache, emitEvent }
     )
 
     const eventInserts: Event.Insert[] = []
@@ -673,7 +674,8 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
 export const processSetupIntentSucceeded = async (
   setupIntent: CoreSripeSetupIntent,
   transaction: DbTransaction,
-  invalidateCache?: (...keys: CacheDependencyKey[]) => void
+  invalidateCache: (...keys: CacheDependencyKey[]) => void,
+  emitEvent: (...events: Event.Insert[]) => void
 ): Promise<
   TransactionOutput<
     | ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult
@@ -844,6 +846,7 @@ export const processSetupIntentSucceeded = async (
   return await createSubscriptionFromSetupIntentableCheckoutSession(
     withSetupIntent,
     transaction,
-    invalidateCache
+    invalidateCache,
+    emitEvent
   )
 }

@@ -46,7 +46,7 @@ import type {
 
 /**
  * Transaction context for workflow functions.
- * Contains the database transaction and optional effect callbacks.
+ * Contains the database transaction and effect callbacks.
  */
 export interface WorkflowTransactionContext {
   transaction: DbTransaction
@@ -54,11 +54,11 @@ export interface WorkflowTransactionContext {
    * Queue cache dependency keys to be invalidated after the transaction commits.
    * Use CacheDependency helpers to construct keys.
    */
-  invalidateCache?: (...keys: CacheDependencyKey[]) => void
+  invalidateCache: (...keys: CacheDependencyKey[]) => void
   /**
    * Queue events to be inserted before the transaction commits.
    */
-  emitEvent?: (...events: Event.Insert[]) => void
+  emitEvent: (...events: Event.Insert[]) => void
 }
 
 /**
@@ -407,14 +407,14 @@ export const createSubscriptionWorkflow = async (
 
   // Invalidate customer subscriptions cache via effects context
   // This queues the invalidation to be processed after transaction commits
-  invalidateCache?.(
+  invalidateCache(
     CacheDependency.customerSubscriptions(
       updatedSubscription.customerId
     )
   )
 
   // Emit subscription created event via effects context
-  emitEvent?.(...eventInserts)
+  emitEvent(...eventInserts)
 
   return {
     result: transactionResult,

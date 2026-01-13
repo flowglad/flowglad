@@ -479,7 +479,13 @@ const createSubscriptionProcedure = protectedProcedure
   .output(z.object({ subscription: subscriptionClientSelectSchema }))
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transaction, ctx, invalidateCache }) => {
+      async ({
+        input,
+        transaction,
+        ctx,
+        invalidateCache,
+        emitEvent,
+      }) => {
         if (!ctx.organization) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
@@ -604,7 +610,11 @@ const createSubscriptionProcedure = protectedProcedure
             // FIXME: Uncomment if we decide to expose preserveBillingCycleAnchor in the API
             // preserveBillingCycleAnchor: input.preserveBillingCycleAnchor ?? false,
           },
-          { transaction, invalidateCache }
+          {
+            transaction,
+            invalidateCache: invalidateCache!,
+            emitEvent: emitEvent!,
+          }
         )
         const finalResult = {
           subscription: {

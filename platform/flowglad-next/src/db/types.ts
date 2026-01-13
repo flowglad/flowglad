@@ -100,10 +100,9 @@ export interface AuthenticatedTransactionParams {
   /**
    * Queue cache dependency keys to be invalidated after the transaction commits.
    * Use CacheDependency helpers to construct keys.
-   * Only available when using transaction wrappers (authenticatedTransaction, etc.).
    *
    * @example
-   * params.invalidateCache?.(
+   * params.invalidateCache(
    *   CacheDependency.subscriptionItemFeatures(itemId),
    *   CacheDependency.customerSubscriptions(customerId)
    * )
@@ -111,18 +110,16 @@ export interface AuthenticatedTransactionParams {
   invalidateCache?: (...keys: CacheDependencyKey[]) => void
   /**
    * Queue events to be inserted before the transaction commits.
-   * Only available when using transaction wrappers.
    *
    * @example
-   * params.emitEvent?.(createSubscriptionCreatedEvent(subscription))
+   * params.emitEvent(createSubscriptionCreatedEvent(subscription))
    */
   emitEvent?: (...events: Event.Insert[]) => void
   /**
    * Queue ledger commands to be processed before the transaction commits.
-   * Only available when using transaction wrappers.
    *
    * @example
-   * params.enqueueLedgerCommand?.(creditCommand)
+   * params.enqueueLedgerCommand(creditCommand)
    */
   enqueueLedgerCommand?: (...commands: LedgerCommand[]) => void
 }
@@ -139,17 +136,14 @@ export interface AdminTransactionParams {
   /**
    * Queue cache dependency keys to be invalidated after the transaction commits.
    * Use CacheDependency helpers to construct keys.
-   * Only available when using transaction wrappers.
    */
   invalidateCache?: (...keys: CacheDependencyKey[]) => void
   /**
    * Queue events to be inserted before the transaction commits.
-   * Only available when using transaction wrappers.
    */
   emitEvent?: (...events: Event.Insert[]) => void
   /**
    * Queue ledger commands to be processed before the transaction commits.
-   * Only available when using transaction wrappers.
    */
   enqueueLedgerCommand?: (...commands: LedgerCommand[]) => void
 }

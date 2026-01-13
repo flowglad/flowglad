@@ -38,6 +38,10 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { calculateSplitInBillingPeriodBasedOnAdjustmentDate } from '@/subscriptions/adjustSubscription'
 import {
+  noopEmitEvent,
+  noopInvalidateCache,
+} from '@/test-utils/transactionCallbacks'
+import {
   CancellationReason,
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -206,7 +210,12 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          transaction,
+          noopInvalidateCache,
+          noopEmitEvent
+        )
       })
 
       // Get the new subscription
@@ -260,7 +269,12 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          transaction,
+          noopInvalidateCache,
+          noopEmitEvent
+        )
       })
 
       // Get billing period items
@@ -314,7 +328,12 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          transaction,
+          noopInvalidateCache,
+          noopEmitEvent
+        )
       })
 
       const paidSubscription = await adminTransaction(
@@ -427,7 +446,12 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          transaction,
+          noopInvalidateCache,
+          noopEmitEvent
+        )
       })
 
       const paidSubscription = await adminTransaction(
@@ -470,7 +494,12 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          transaction,
+          noopInvalidateCache,
+          noopEmitEvent
+        )
       })
 
       const paidSubscription = await adminTransaction(
@@ -553,7 +582,12 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          transaction,
+          noopInvalidateCache,
+          noopEmitEvent
+        )
       })
 
       const paidSubscription = await adminTransaction(
@@ -667,7 +701,12 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          transaction,
+          noopInvalidateCache,
+          noopEmitEvent
+        )
       })
 
       const paidSubscription = await adminTransaction(
@@ -769,7 +808,12 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          transaction,
+          noopInvalidateCache,
+          noopEmitEvent
+        )
       })
 
       const paidSubscription = await adminTransaction(
@@ -871,7 +915,12 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          transaction,
+          noopInvalidateCache,
+          noopEmitEvent
+        )
       })
 
       const paidSubscription = await adminTransaction(
@@ -984,7 +1033,12 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          transaction,
+          noopInvalidateCache,
+          noopEmitEvent
+        )
       })
 
       const paidSubscription = await adminTransaction(

@@ -44,6 +44,10 @@ import {
   migratePricingModelForCustomer,
 } from '@/subscriptions/migratePricingModel'
 import {
+  noopEmitEvent,
+  noopInvalidateCache,
+} from '@/test-utils/transactionCallbacks'
+import {
   BillingPeriodStatus,
   BillingRunStatus,
   CancellationReason,
@@ -142,7 +146,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         }
       )
@@ -232,7 +238,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         }
       )
@@ -340,7 +348,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         }
       )
@@ -385,7 +395,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         }
       )
@@ -441,7 +453,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: emptyPricingModel.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         })
       ).rejects.toThrow('No default product found for pricing model')
@@ -477,7 +491,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel2.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         }
       )
@@ -543,7 +559,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         }
       )
@@ -644,7 +662,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         }
       )
@@ -771,7 +791,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         }
       )
@@ -895,7 +917,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         }
       )
@@ -1021,7 +1045,9 @@ describe('Pricing Model Migration Test Suite', async () => {
             oldPricingModelId: pricingModel1.id,
             newPricingModelId: pricingModel2.id,
           },
-          transaction
+          transaction,
+          noopInvalidateCache,
+          noopEmitEvent
         )
       })
 
@@ -1127,7 +1153,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
           return result.result.canceledSubscriptions[0].canceledAt
         }
@@ -1187,7 +1215,9 @@ describe('Pricing Model Migration Test Suite', async () => {
             oldPricingModelId: pricingModel1.id,
             newPricingModelId: pricingModel2.id,
           },
-          transaction
+          transaction,
+          noopInvalidateCache,
+          noopEmitEvent
         )
       })
 
@@ -1228,7 +1258,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: 'non-existent-id',
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         })
       ).rejects.toThrow('No pricing models found with id')
@@ -1250,7 +1282,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: otherPricingModel.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         })
       ).rejects.toThrow('does not belong to organization')
@@ -1483,7 +1517,9 @@ describe('Pricing Model Migration Test Suite', async () => {
             oldPricingModelId: pricingModel1.id,
             newPricingModelId: pricingModel2.id,
           },
-          transaction
+          transaction,
+          noopInvalidateCache,
+          noopEmitEvent
         )
       })
 
@@ -1539,7 +1575,9 @@ describe('Pricing Model Migration Test Suite', async () => {
             oldPricingModelId: pricingModel1.id,
             newPricingModelId: pricingModel2.id,
           },
-          transaction
+          transaction,
+          noopInvalidateCache,
+          noopEmitEvent
         )
       })
 
@@ -1581,7 +1619,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         }
       )
@@ -1602,7 +1642,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         }
       )
@@ -1635,7 +1677,9 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            transaction,
+            noopInvalidateCache,
+            noopEmitEvent
           )
         }
       )

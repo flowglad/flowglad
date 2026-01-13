@@ -219,7 +219,8 @@ const processAwaitingPaymentConfirmationNotifications = async (
 export const processOutcomeForBillingRun = async (
   params: ProcessOutcomeForBillingRunParams,
   transaction: DbTransaction,
-  invalidateCache?: (...keys: CacheDependencyKey[]) => void
+  invalidateCache: (...keys: CacheDependencyKey[]) => void,
+  emitEvent: (...events: Event.Insert[]) => void
 ): Promise<
   TransactionOutput<{
     invoice: Invoice.Record
@@ -547,8 +548,8 @@ export const processOutcomeForBillingRun = async (
   // Track cache invalidations from subscription item adjustments and status changes
   const customerSubscriptionsCacheKey =
     CacheDependency.customerSubscriptions(subscription.customerId)
-  // Queue via effects context if available
-  invalidateCache?.(customerSubscriptionsCacheKey)
+  // Queue via effects context
+  invalidateCache(customerSubscriptionsCacheKey)
   // Also return for backward compatibility
   const cacheInvalidations: CacheDependencyKey[] = [
     customerSubscriptionsCacheKey,
@@ -581,20 +582,12 @@ export const processOutcomeForBillingRun = async (
     // Do not cancel if first payment fails for free or default plans
     if (firstPayment && !subscription.isFreePlan) {
       // First payment failure - cancel subscription immediately
-      const {
-        result: canceledSubscription,
-        eventsToInsert: cancelEvents,
-      } = await cancelSubscriptionImmediately(
-        {
-          subscription,
-        },
+      await cancelSubscriptionImmediately(
+        { subscription },
         transaction,
-        invalidateCache
+        invalidateCache,
+        emitEvent
       )
-
-      if (cancelEvents && cancelEvents.length > 0) {
-        eventsToInsert.push(...cancelEvents)
-      }
     } else {
       // nth payment failures logic
       const maybeRetry = await scheduleBillingRunRetry(
