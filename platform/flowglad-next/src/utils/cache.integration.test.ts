@@ -934,7 +934,7 @@ describeIfRedisKey(
         async ({ invalidateCache }) => {
           // Simulate what a workflow function does - call invalidateCache with dependency key
           // Non-null assertion: comprehensiveAdminTransaction always provides invalidateCache
-          invalidateCache!(dependencyKey)
+          invalidateCache(dependencyKey)
           return { result: 'success' }
         }
       )
@@ -996,8 +996,8 @@ describeIfRedisKey(
       // Call comprehensiveAdminTransaction with multiple invalidateCache calls
       await comprehensiveAdminTransaction(
         async ({ invalidateCache }) => {
-          invalidateCache!(depKey1)
-          invalidateCache!(depKey2)
+          invalidateCache(depKey1)
+          invalidateCache(depKey2)
           return { result: 'success' }
         }
       )
@@ -1038,9 +1038,9 @@ describeIfRedisKey(
       await comprehensiveAdminTransaction(
         async ({ invalidateCache }) => {
           // Same key called multiple times - should be deduplicated
-          invalidateCache!(dependencyKey)
-          invalidateCache!(dependencyKey)
-          invalidateCache!(dependencyKey)
+          invalidateCache(dependencyKey)
+          invalidateCache(dependencyKey)
+          invalidateCache(dependencyKey)
           return { result: 'success' }
         }
       )
@@ -1099,7 +1099,7 @@ describeIfRedisKey(
       await comprehensiveAdminTransaction(
         async ({ invalidateCache }) => {
           // Use callback for first key
-          invalidateCache!(depKey1)
+          invalidateCache(depKey1)
           // Return second key in cacheInvalidations array
           return {
             result: 'success',

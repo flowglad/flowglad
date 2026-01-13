@@ -16,8 +16,8 @@ export const stripePaymentIntentRequiresActionTask = task({
           return await processOutcomeForBillingRun(
             { input: payload },
             transaction,
-            invalidateCache!,
-            emitEvent!
+            invalidateCache,
+            emitEvent
           )
         }
       )

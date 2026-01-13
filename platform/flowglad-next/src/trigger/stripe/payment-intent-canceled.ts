@@ -16,8 +16,8 @@ export const stripePaymentIntentCanceledTask = task({
           return await processOutcomeForBillingRun(
             { input: payload },
             transaction,
-            invalidateCache!,
-            emitEvent!
+            invalidateCache,
+            emitEvent
           )
         }
       )

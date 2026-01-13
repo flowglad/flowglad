@@ -78,12 +78,22 @@ export type PgTableWithIdAndPricingModelId = PgTable & {
 }
 
 /**
- * Accumulated side effects that are processed after the transaction commits.
- * Effects are collected via helper methods on transaction params.
+ * Accumulated side effects collected during a transaction.
+ * Effects are processed at different times relative to the transaction commit:
+ *
+ * **Before commit (inside transaction):**
+ * - `eventsToInsert` - Events are bulk inserted before commit to ensure atomicity
+ * - `ledgerCommands` - Ledger commands are processed before commit for consistency
+ *
+ * **After commit (outside transaction):**
+ * - `cacheInvalidations` - Cache keys are invalidated after commit to avoid stale reads
  */
 export interface TransactionEffects {
+  /** Cache keys to invalidate. Processed AFTER commit (fire-and-forget). */
   cacheInvalidations: CacheDependencyKey[]
+  /** Events to insert. Processed BEFORE commit (inside transaction). */
   eventsToInsert: Event.Insert[]
+  /** Ledger commands to process. Processed BEFORE commit (inside transaction). */
   ledgerCommands: LedgerCommand[]
 }
 
@@ -146,4 +156,33 @@ export interface AdminTransactionParams {
    * Queue ledger commands to be processed before the transaction commits.
    */
   enqueueLedgerCommand?: (...commands: LedgerCommand[]) => void
+}
+
+/**
+ * Stricter version of AuthenticatedTransactionParams used by comprehensiveAuthenticatedTransaction.
+ * All callback methods are required (not optional) since they're always provided at runtime.
+ */
+export interface ComprehensiveAuthenticatedTransactionParams {
+  transaction: DbTransaction
+  livemode: boolean
+  userId: string
+  organizationId: string
+  effects: TransactionEffects
+  invalidateCache: (...keys: CacheDependencyKey[]) => void
+  emitEvent: (...events: Event.Insert[]) => void
+  enqueueLedgerCommand: (...commands: LedgerCommand[]) => void
+}
+
+/**
+ * Stricter version of AdminTransactionParams used by comprehensiveAdminTransaction.
+ * All callback methods are required (not optional) since they're always provided at runtime.
+ */
+export interface ComprehensiveAdminTransactionParams {
+  transaction: DbTransaction
+  userId: 'ADMIN'
+  livemode: boolean
+  effects: TransactionEffects
+  invalidateCache: (...keys: CacheDependencyKey[]) => void
+  emitEvent: (...events: Event.Insert[]) => void
+  enqueueLedgerCommand: (...commands: LedgerCommand[]) => void
 }

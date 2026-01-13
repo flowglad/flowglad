@@ -979,8 +979,8 @@ export const executeBillingRun = async (
               adjustmentParams: adjustmentParams,
             },
             transaction,
-            invalidateCache!,
-            emitEvent!
+            invalidateCache,
+            emitEvent
           )
         }
       )

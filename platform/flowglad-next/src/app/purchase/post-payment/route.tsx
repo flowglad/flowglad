@@ -201,8 +201,8 @@ const processSetupIntent = async ({
       return processSetupIntentSucceeded(
         setupIntent,
         transaction,
-        invalidateCache!,
-        emitEvent!
+        invalidateCache,
+        emitEvent
       )
     }
   )

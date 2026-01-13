@@ -1756,6 +1756,14 @@ describe('Subscription Cancellation Test Suite', async () => {
             livemode: true,
             userId: '1',
             organizationId: organization.id,
+            effects: {
+              cacheInvalidations: [],
+              eventsToInsert: [],
+              ledgerCommands: [],
+            },
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
           }
         )
 
@@ -1797,6 +1805,14 @@ describe('Subscription Cancellation Test Suite', async () => {
             livemode: true,
             userId: '1',
             organizationId: organization.id,
+            effects: {
+              cacheInvalidations: [],
+              eventsToInsert: [],
+              ledgerCommands: [],
+            },
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
           }
         )
 
@@ -2403,6 +2419,14 @@ describe('Subscription Cancellation Test Suite', async () => {
             livemode: true,
             userId: '1',
             organizationId: organization.id,
+            effects: {
+              cacheInvalidations: [],
+              eventsToInsert: [],
+              ledgerCommands: [],
+            },
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
           })
         })
       ).rejects.toThrow(/Cannot cancel the default free plan/)
@@ -2461,6 +2485,14 @@ describe('Subscription Cancellation Test Suite', async () => {
             livemode: true,
             userId: '1',
             organizationId: organization.id,
+            effects: {
+              cacheInvalidations: [],
+              eventsToInsert: [],
+              ledgerCommands: [],
+            },
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
           })
         }
       )
@@ -2523,6 +2555,14 @@ describe('Subscription Cancellation Test Suite', async () => {
             livemode: true,
             userId: '1',
             organizationId: organization.id,
+            effects: {
+              cacheInvalidations: [],
+              eventsToInsert: [],
+              ledgerCommands: [],
+            },
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
           })
         })
       ).rejects.toThrow(/Cannot cancel the default free plan/)
@@ -3574,6 +3614,14 @@ describe('Subscription Cancellation Test Suite', async () => {
             livemode: true,
             userId: '1',
             organizationId: organization.id,
+            effects: {
+              cacheInvalidations: [],
+              eventsToInsert: [],
+              ledgerCommands: [],
+            },
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
           })
 
         expect(response.result.subscription.id).toBe(subscription.id)
@@ -3623,6 +3671,14 @@ describe('Subscription Cancellation Test Suite', async () => {
             livemode: true,
             userId: '1',
             organizationId: organization.id,
+            effects: {
+              cacheInvalidations: [],
+              eventsToInsert: [],
+              ledgerCommands: [],
+            },
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
           })
         ).rejects.toThrow(
           /Cannot uncancel paid subscription without an active payment method/
@@ -4086,6 +4142,14 @@ describe('Subscription cancellation cache invalidations', async () => {
             livemode: false,
             userId: 'test-user-id',
             organizationId: organization.id,
+            effects: {
+              cacheInvalidations: [],
+              eventsToInsert: [],
+              ledgerCommands: [],
+            },
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
           })
         }
       )

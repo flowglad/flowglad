@@ -12,8 +12,8 @@ export const setupIntentSucceededTask = task({
         return processSetupIntentSucceeded(
           payload.data.object,
           transaction,
-          invalidateCache!,
-          emitEvent!
+          invalidateCache,
+          emitEvent
         )
       }
     )

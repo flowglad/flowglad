@@ -2,6 +2,7 @@ import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
 import type {
   AuthenticatedTransactionParams,
+  ComprehensiveAuthenticatedTransactionParams,
   TransactionEffects,
 } from '@/db/types'
 import {
@@ -51,7 +52,7 @@ export async function authenticatedTransaction<T>(
  */
 const executeComprehensiveAuthenticatedTransaction = async <T>(
   fn: (
-    params: AuthenticatedTransactionParams
+    params: ComprehensiveAuthenticatedTransactionParams
   ) => Promise<TransactionOutput<T>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<{
@@ -131,7 +132,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       )}', TRUE);`
     )
 
-    const paramsForFn: AuthenticatedTransactionParams = {
+    const paramsForFn: ComprehensiveAuthenticatedTransactionParams = {
       transaction,
       userId,
       livemode,
@@ -217,7 +218,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
  */
 export async function comprehensiveAuthenticatedTransaction<T>(
   fn: (
-    params: AuthenticatedTransactionParams
+    params: ComprehensiveAuthenticatedTransactionParams
   ) => Promise<TransactionOutput<T>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
@@ -257,7 +258,7 @@ export async function comprehensiveAuthenticatedTransaction<T>(
  */
 export function eventfulAuthenticatedTransaction<T>(
   fn: (
-    params: AuthenticatedTransactionParams
+    params: ComprehensiveAuthenticatedTransactionParams
   ) => Promise<[T, Event.Insert[]]>,
   options: AuthenticatedTransactionOptions = {}
 ): Promise<T> {
@@ -281,6 +282,19 @@ export type AuthenticatedProcedureTransactionParams<
   TOutput,
   TContext extends { apiKey?: string; customerId?: string },
 > = AuthenticatedTransactionParams & {
+  input: TInput
+  ctx: TContext
+}
+
+/**
+ * Stricter version of AuthenticatedProcedureTransactionParams used by
+ * authenticatedProcedureComprehensiveTransaction.
+ * All callback methods are required (not optional) since they're always provided at runtime.
+ */
+export type ComprehensiveAuthenticatedProcedureTransactionParams<
+  TInput,
+  TContext extends { apiKey?: string; customerId?: string },
+> = ComprehensiveAuthenticatedTransactionParams & {
   input: TInput
   ctx: TContext
 }
@@ -328,9 +342,8 @@ export const authenticatedProcedureComprehensiveTransaction = <
   TContext extends { apiKey?: string; customerId?: string },
 >(
   handler: (
-    params: AuthenticatedProcedureTransactionParams<
+    params: ComprehensiveAuthenticatedProcedureTransactionParams<
       TInput,
-      TOutput,
       TContext
     >
   ) => Promise<TransactionOutput<TOutput>>

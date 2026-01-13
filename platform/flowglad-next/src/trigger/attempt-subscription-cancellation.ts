@@ -34,8 +34,8 @@ export const attemptSubscriptionCancellationTask = task({
             subscription,
           },
           transaction,
-          invalidateCache!,
-          emitEvent!
+          invalidateCache,
+          emitEvent
         )
       }
     )

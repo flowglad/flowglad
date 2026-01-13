@@ -2,6 +2,7 @@ import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
 import type {
   AdminTransactionParams,
+  ComprehensiveAdminTransactionParams,
   TransactionEffects,
 } from '@/db/types'
 import {
@@ -45,7 +46,7 @@ export async function adminTransaction<T>(
  */
 const executeComprehensiveAdminTransaction = async <T>(
   fn: (
-    params: AdminTransactionParams
+    params: ComprehensiveAdminTransactionParams
   ) => Promise<TransactionOutput<T>>,
   effectiveLivemode: boolean
 ): Promise<{
@@ -85,7 +86,7 @@ const executeComprehensiveAdminTransaction = async <T>(
     )
     // Admin transactions typically run with higher privileges, no specific role needs to be set via JWT claims normally.
 
-    const paramsForFn: AdminTransactionParams = {
+    const paramsForFn: ComprehensiveAdminTransactionParams = {
       transaction,
       userId: 'ADMIN',
       livemode: effectiveLivemode,
@@ -181,7 +182,7 @@ const executeComprehensiveAdminTransaction = async <T>(
  */
 export async function comprehensiveAdminTransaction<T>(
   fn: (
-    params: AdminTransactionParams
+    params: ComprehensiveAdminTransactionParams
   ) => Promise<TransactionOutput<T>>,
   options: AdminTransactionOptions = {}
 ): Promise<T> {
@@ -222,7 +223,7 @@ export async function comprehensiveAdminTransaction<T>(
  */
 export async function eventfulAdminTransaction<T>(
   fn: (
-    params: AdminTransactionParams
+    params: ComprehensiveAdminTransactionParams
   ) => Promise<[T, Event.Insert[]]>,
   options: AdminTransactionOptions = {}
 ): Promise<T> {

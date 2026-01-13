@@ -825,7 +825,7 @@ export const processSetupIntentSucceeded = async (
     const cacheKey = CacheDependency.customerSubscriptions(
       result.customer.id
     )
-    invalidateCache?.(cacheKey)
+    invalidateCache(cacheKey)
     return {
       result,
       eventsToInsert: [],

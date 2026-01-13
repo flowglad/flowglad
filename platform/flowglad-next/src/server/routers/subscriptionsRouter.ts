@@ -612,8 +612,8 @@ const createSubscriptionProcedure = protectedProcedure
           },
           {
             transaction,
-            invalidateCache: invalidateCache!,
-            emitEvent: emitEvent!,
+            invalidateCache,
+            emitEvent,
           }
         )
         const finalResult = {

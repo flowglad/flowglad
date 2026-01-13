@@ -1315,6 +1315,14 @@ describe('Pricing Model Migration Test Suite', async () => {
               livemode: false,
               userId: 'test-user-id',
               organizationId: organization.id,
+              effects: {
+                cacheInvalidations: [],
+                eventsToInsert: [],
+                ledgerCommands: [],
+              },
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: () => {},
             }
           )
         }
@@ -1355,6 +1363,14 @@ describe('Pricing Model Migration Test Suite', async () => {
               livemode: false,
               userId: 'test-user-id',
               organizationId: undefined as unknown as string,
+              effects: {
+                cacheInvalidations: [],
+                eventsToInsert: [],
+                ledgerCommands: [],
+              },
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: () => {},
             }
           )
         })
@@ -1375,6 +1391,14 @@ describe('Pricing Model Migration Test Suite', async () => {
               livemode: false,
               userId: 'test-user-id',
               organizationId: organization.id,
+              effects: {
+                cacheInvalidations: [],
+                eventsToInsert: [],
+                ledgerCommands: [],
+              },
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: () => {},
             }
           )
         })
@@ -1397,6 +1421,14 @@ describe('Pricing Model Migration Test Suite', async () => {
               livemode: false,
               userId: 'test-user-id',
               organizationId: organization.id,
+              effects: {
+                cacheInvalidations: [],
+                eventsToInsert: [],
+                ledgerCommands: [],
+              },
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: () => {},
             }
           )
         })
@@ -1424,6 +1456,14 @@ describe('Pricing Model Migration Test Suite', async () => {
               livemode: false,
               userId: 'test-user-id',
               organizationId: organization.id,
+              effects: {
+                cacheInvalidations: [],
+                eventsToInsert: [],
+                ledgerCommands: [],
+              },
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: () => {},
             }
           )
         })
@@ -1491,6 +1531,14 @@ describe('Pricing Model Migration Test Suite', async () => {
               livemode: false,
               userId: 'test-user-id',
               organizationId: organization.id,
+              effects: {
+                cacheInvalidations: [],
+                eventsToInsert: [],
+                ledgerCommands: [],
+              },
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: () => {},
             }
           )
         })
@@ -1715,6 +1763,14 @@ describe('Pricing Model Migration Test Suite', async () => {
               livemode: false,
               userId: 'test-user-id',
               organizationId: organization.id,
+              effects: {
+                cacheInvalidations: [],
+                eventsToInsert: [],
+                ledgerCommands: [],
+              },
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: () => {},
             }
           )
         }

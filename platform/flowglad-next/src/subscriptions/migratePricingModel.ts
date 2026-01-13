@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
+import type { ComprehensiveAuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Event } from '@/db/schema/events'
 import type { Subscription } from '@/db/schema/subscriptions'
@@ -358,13 +358,8 @@ async function createDefaultSubscriptionOnPricingModel(
  * Validates inputs, performs the migration, and updates the customer's pricing model ID.
  */
 type MigrateCustomerPricingModelProcedureParams =
-  AuthenticatedProcedureTransactionParams<
+  ComprehensiveAuthenticatedProcedureTransactionParams<
     { externalId: string; newPricingModelId: string },
-    {
-      customer: Customer.ClientRecord
-      canceledSubscriptions: Subscription.ClientRecord[]
-      newSubscription: Subscription.ClientRecord
-    },
     { apiKey?: string }
   >
 
@@ -442,8 +437,8 @@ export const migrateCustomerPricingModelProcedureTransaction =
         newPricingModelId,
       },
       transaction,
-      invalidateCache!,
-      emitEvent!
+      invalidateCache,
+      emitEvent
     )
 
     return {

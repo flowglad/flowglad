@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
+import type { ComprehensiveAuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { Event } from '@/db/schema/events'
@@ -580,9 +580,8 @@ export const scheduleSubscriptionCancellation = async (
 }
 
 type CancelSubscriptionProcedureParams =
-  AuthenticatedProcedureTransactionParams<
+  ComprehensiveAuthenticatedProcedureTransactionParams<
     ScheduleSubscriptionCancellationParams,
-    { subscription: Subscription.ClientRecord },
     { apiKey?: string }
   >
 
@@ -646,8 +645,8 @@ export const cancelSubscriptionProcedureTransaction = async ({
           subscription,
         },
         transaction,
-        invalidateCache!,
-        emitEvent!
+        invalidateCache,
+        emitEvent
       )
     return {
       result: {
@@ -912,9 +911,8 @@ export const uncancelSubscription = async (
 }
 
 type UncancelSubscriptionProcedureParams =
-  AuthenticatedProcedureTransactionParams<
+  ComprehensiveAuthenticatedProcedureTransactionParams<
     { id: string },
-    { subscription: Subscription.ClientRecord },
     { apiKey?: string }
   >
 
