@@ -193,8 +193,8 @@ export function DashboardChart({
               {metricConfig.label}
             </p>
           )}
-          <ChartInfoTooltip content={metricConfig.infoTooltip} />
         </div>
+        <ChartInfoTooltip content={metricConfig.infoTooltip} />
       </div>
 
       {/* Value display */}

@@ -1,4 +1,4 @@
-import { and, eq, inArray, notExists, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, notExists, sql } from 'drizzle-orm'
 import * as R from 'ramda'
 import { z } from 'zod'
 import { payments } from '@/db/schema/payments'
@@ -21,6 +21,7 @@ import {
   productsUpdateSchema,
 } from '@/db/schema/products'
 import { purchases } from '@/db/schema/purchases'
+import { subscriptions } from '@/db/schema/subscriptions'
 import {
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
@@ -123,11 +124,15 @@ export interface ProductRow {
 }
 
 /**
- * Aggregates total revenue per product.
+ * Aggregates total revenue per product from both purchases and subscriptions.
  *
- * Join path: payments → purchases (via purchaseId) → prices (via priceId) → products (via productId)
+ * Join paths:
+ * - Purchase-based: payments → purchases (via purchaseId) → prices (via priceId) → products (via productId)
+ * - Subscription-based: payments → subscriptions (via subscriptionId) → prices (via priceId) → products (via productId)
  *
  * Only counts succeeded payments, subtracting any refunded amounts.
+ * Subscription payments (where purchaseId is null) are included via the subscription path
+ * to avoid double-counting.
  *
  * @param productIds - Array of product IDs to aggregate revenue for
  * @param transaction - Database transaction
@@ -141,7 +146,8 @@ export const aggregateRevenueByProductIds = async (
     return new Map()
   }
 
-  const results = await transaction
+  // Query for purchase-based revenue (payments with purchaseId)
+  const purchaseRevenueResults = await transaction
     .select({
       productId: prices.productId,
       totalRevenue:
@@ -160,7 +166,43 @@ export const aggregateRevenueByProductIds = async (
     )
     .groupBy(prices.productId)
 
-  return new Map(results.map((r) => [r.productId, r.totalRevenue]))
+  // Query for subscription-based revenue (payments with subscriptionId but no purchaseId)
+  const subscriptionRevenueResults = await transaction
+    .select({
+      productId: prices.productId,
+      totalRevenue:
+        sql<number>`COALESCE(SUM(${payments.amount} - COALESCE(${payments.refundedAmount}, 0)), 0)`.mapWith(
+          Number
+        ),
+    })
+    .from(payments)
+    .innerJoin(
+      subscriptions,
+      eq(payments.subscriptionId, subscriptions.id)
+    )
+    .innerJoin(prices, eq(subscriptions.priceId, prices.id))
+    .where(
+      and(
+        inArray(prices.productId, productIds),
+        eq(payments.status, PaymentStatus.Succeeded),
+        isNull(payments.purchaseId) // Only count subscription payments not linked to a purchase
+      )
+    )
+    .groupBy(prices.productId)
+
+  // Combine results from both queries
+  const revenueMap = new Map<string, number>()
+
+  for (const row of purchaseRevenueResults) {
+    revenueMap.set(row.productId, row.totalRevenue)
+  }
+
+  for (const row of subscriptionRevenueResults) {
+    const existingRevenue = revenueMap.get(row.productId) ?? 0
+    revenueMap.set(row.productId, existingRevenue + row.totalRevenue)
+  }
+
+  return revenueMap
 }
 
 export const getProductTableRows = async (
