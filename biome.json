@@ -54,6 +54,24 @@
         "./plugins/no-dynamic-imports-in-tests.grit",
         "./plugins/no-toBeDefined-or-toBeTruthy-in-tests.grit"
       ]
+    },
+    {
+      "includes": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "!**/tableUtils.test.ts",
+        "!**/customerMethods.test.ts",
+        "!**/paymentMethods.test.ts",
+        "!**/productMethods.test.ts",
+        "!**/usageEventMethods.test.ts",
+        "!**/usageMeterMethods.test.ts",
+        "!**/customerBillingPortalRouter.flow.test.ts",
+        "!**/usageEventsRouter.test.ts",
+        "!**/resourceMethods.test.ts"
+      ],
+      "plugins": ["./plugins/no-paginated-in-tests.grit"]
     }
   ]
 }
