@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
 import { trpc } from '@/app/_trpc/client'
 import MultipleSelector from '@/components/forms/MultiSelect'
@@ -7,13 +7,16 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { CreateProductSchema } from '@/db/schema/prices'
 import { encodeCursor } from '@/db/tableUtils'
 import { cn } from '@/lib/utils'
+import { FeatureType, PriceType } from '@/types'
 
 export const ProductFeatureMultiSelect = ({
   pricingModelId,
   productId,
+  priceType,
 }: {
   pricingModelId: string
   productId?: string
+  priceType?: PriceType
 }) => {
   const { data: featuresData, isLoading: featuresLoading } =
     trpc.features.getFeaturesForPricingModel.useQuery(
@@ -77,6 +80,19 @@ export const ProductFeatureMultiSelect = ({
 
   const loading = productFeaturesLoading || featuresLoading
 
+  // Filter out toggle features for single payment products
+  const availableFeatures = useMemo(() => {
+    if (!featuresData?.features) return []
+    if (priceType === PriceType.SinglePayment) {
+      return featuresData.features.filter(
+        (feature) => feature.type !== FeatureType.Toggle
+      )
+    }
+    return featuresData.features
+  }, [featuresData?.features, priceType])
+
+  const isSinglePayment = priceType === PriceType.SinglePayment
+
   return (
     <>
       <label className="text-sm font-medium leading-none text-foreground">
@@ -90,12 +106,10 @@ export const ProductFeatureMultiSelect = ({
           name="featureIds"
           render={({ field }) => (
             <MultipleSelector
-              options={
-                featuresData?.features.map((feature) => ({
-                  label: feature.name,
-                  value: feature.id,
-                })) || []
-              }
+              options={availableFeatures.map((feature) => ({
+                label: feature.name,
+                value: feature.id,
+              }))}
               value={(field.value || []).map((id) => {
                 const feature = featuresData?.features.find(
                   (feat) => feat.id === id
@@ -113,6 +127,12 @@ export const ProductFeatureMultiSelect = ({
             />
           )}
         />
+      )}
+      {isSinglePayment && (
+        <p className="text-sm text-muted-foreground mt-2">
+          Toggle features cannot be attached to single payment
+          products
+        </p>
       )}
     </>
   )
