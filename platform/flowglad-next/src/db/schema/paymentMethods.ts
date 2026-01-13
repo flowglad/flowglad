@@ -66,7 +66,7 @@ export const paymentMethods = pgTable(
       as: 'permissive',
       to: 'all',
       for: 'all',
-      using: sql`"customerId" in (select "id" from "customers")`,
+      using: sql`"customer_id" in (select "id" from "customers")`,
     }),
   ])
 ).enableRLS()
