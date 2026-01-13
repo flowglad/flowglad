@@ -126,13 +126,31 @@ describe('EditNotificationPreferencesModal', () => {
     vi.mocked(trpc.useUtils).mockReturnValue(
       mockUtils as unknown as ReturnType<typeof trpc.useUtils>
     )
+    // Mock useMutation to capture the onSuccess callback and call it when mutateAsync resolves
     vi.mocked(
       trpc.organizations.updateNotificationPreferences.useMutation
-    ).mockReturnValue({
-      mutateAsync: mockMutateAsync,
-    } as unknown as ReturnType<
-      typeof trpc.organizations.updateNotificationPreferences.useMutation
-    >)
+    ).mockImplementation((options) => {
+      const onSuccess = options?.onSuccess
+      const mutateAsyncWithCallback = vi.fn(async (data) => {
+        const result = await mockMutateAsync(data)
+        if (onSuccess) {
+          // onSuccess signature: (data, variables, context, mutation)
+          // We pass undefined for context and mutation since we don't use them
+          onSuccess(
+            result,
+            data,
+            undefined as unknown as Parameters<typeof onSuccess>[2],
+            undefined as unknown as Parameters<typeof onSuccess>[3]
+          )
+        }
+        return result
+      })
+      return {
+        mutateAsync: mutateAsyncWithCallback,
+      } as unknown as ReturnType<
+        typeof trpc.organizations.updateNotificationPreferences.useMutation
+      >
+    })
   })
 
   describe('Modal Rendering', () => {

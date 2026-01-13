@@ -477,10 +477,22 @@ const getNotificationPreferences = protectedProcedure
 
 /**
  * Input schema for updating notification preferences.
- * Uses partial to allow updating only specific fields.
+ * Uses a schema WITHOUT defaults to allow partial updates.
+ * Only the fields explicitly provided will be updated.
  */
 const updateNotificationPreferencesInputSchema = z.object({
-  preferences: notificationPreferencesSchema.partial(),
+  preferences: z
+    .object({
+      testModeNotifications: z.boolean().optional(),
+      subscriptionCreated: z.boolean().optional(),
+      subscriptionAdjusted: z.boolean().optional(),
+      subscriptionCanceled: z.boolean().optional(),
+      subscriptionCancellationScheduled: z.boolean().optional(),
+      paymentFailed: z.boolean().optional(),
+      onboardingCompleted: z.boolean().optional(),
+      payoutsEnabled: z.boolean().optional(),
+    })
+    .partial(),
 })
 
 const updateNotificationPreferencesOutputSchema = z.object({
@@ -513,12 +525,12 @@ const updateNotificationPreferences = protectedProcedure
             message: 'Membership not found',
           })
         }
-        const currentPrefs =
-          getMembershipNotificationPreferences(membership)
-        const updatedPrefs = notificationPreferencesSchema.parse({
-          ...currentPrefs,
-          ...input.preferences,
-        })
+        // Get the raw stored preferences (partial object) to preserve existing values
+        const storedPrefs =
+          (membership.notificationPreferences as Partial<NotificationPreferences>) ??
+          {}
+        // Merge stored preferences with the new input preferences
+        const updatedPrefs = { ...storedPrefs, ...input.preferences }
         const updatedMembership = await updateMembership(
           {
             id: membership.id,
