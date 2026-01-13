@@ -368,7 +368,7 @@ describe('selectUsageEventsPaginated', () => {
     })
   }, 15_000)
 
-  it('should handle invalid cursor gracefully', async () => {
+  it('should handle invalid cursor gracefully by treating it as no cursor (returning first page)', async () => {
     // Create some usage events first
     const createdEvents = []
     for (let i = 0; i < 3; i++) {
@@ -385,21 +385,27 @@ describe('selectUsageEventsPaginated', () => {
       createdEvents.push(event)
     }
 
-    // Call selectUsageEventsPaginated with invalid cursor
-    await expect(
-      authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectUsageEventsPaginated(
-            {
-              cursor: 'eyJpbnZhbGlkIjogInZhbHVlIn0=', // base64 encoded '{"invalid": "value"}'
-              limit: 10,
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
-    ).rejects.toThrow()
+    // Call selectUsageEventsPaginated with invalid cursor - should treat as no cursor and return first page
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectUsageEventsPaginated(
+          {
+            cursor: 'eyJpbnZhbGlkIjogInZhbHVlIn0=', // base64 encoded '{"invalid": "value"}'
+            limit: 10,
+          },
+          transaction
+        )
+      },
+      { apiKey: org1ApiKeyToken }
+    )
+
+    // Should return results (treating invalid cursor as "no cursor" = first page)
+    expect(result.data.length).toBeGreaterThanOrEqual(3)
+    // All created events should be in the results
+    const resultIds = result.data.map((event) => event.id)
+    createdEvents.forEach((event) => {
+      expect(resultIds).toContain(event.id)
+    })
   })
 })
 

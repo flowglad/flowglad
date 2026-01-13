@@ -282,7 +282,7 @@ describe('usageEventsRouter', () => {
       // Should return exactly 3 usage events (limited by parameter)
       expect(result.total).toBe(10)
       expect(result.hasMore).toBe(true)
-      expect(result.nextCursor).toMatchObject({})
+      expect(typeof result.nextCursor).toBe('string')
 
       // Verify returned events are from our created events
       const returnedEventIds = result.items.map((event) => event.id)
