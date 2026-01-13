@@ -236,7 +236,9 @@ export const createFreePlanPriceInsert = (
 }
 export const createCustomerBookkeeping = async (
   payload: {
-    customer: Omit<Customer.Insert, 'livemode'>
+    customer: Omit<Customer.Insert, 'livemode' | 'pricingModelId'> & {
+      pricingModelId?: string
+    }
   },
   {
     transaction,
@@ -268,11 +270,18 @@ export const createCustomerBookkeeping = async (
         { organizationId: payload.customer.organizationId, livemode },
         transaction
       )
+
+  if (!pricingModel) {
+    throw new Error(
+      `No pricing model found for customer. Organization: ${payload.customer.organizationId}, livemode: ${livemode}`
+    )
+  }
+
   let customer = await insertCustomer(
     {
       ...payload.customer,
       livemode,
-      pricingModelId: pricingModel?.id ?? null,
+      pricingModelId: pricingModel.id,
     },
     transaction
   )
@@ -316,21 +325,11 @@ export const createCustomerBookkeeping = async (
     processedAt: null,
   })
 
-  const pricingModelToUse =
-    pricingModel ??
-    (await selectDefaultPricingModel(
-      {
-        organizationId: customer.organizationId,
-        livemode: customer.livemode,
-      },
-      transaction
-    ))
-
   // Create default subscription for the customer
   // Use customer's organizationId to ensure consistency
   try {
-    // Determine which pricing model to use
-    const pricingModelId = pricingModelToUse!.id
+    // Use the pricing model from customer creation
+    const pricingModelId = pricingModel.id
     // Get the default product for this pricing model
     const [product] = await selectPricesAndProductsByProductWhere(
       {

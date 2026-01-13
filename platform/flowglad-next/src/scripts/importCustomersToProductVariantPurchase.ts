@@ -9,6 +9,7 @@ import path from 'path'
 import { purchasesInsertSchema } from '@/db/schema/purchases'
 import { selectCustomersByOrganizationIdAndEmails } from '@/db/tableMethods/customerMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { bulkInsertPurchases } from '@/db/tableMethods/purchaseMethods'
 import {
   createManualPurchaseInsert,
@@ -30,10 +31,20 @@ const example = async (db: PostgresJsDatabase) => {
   )
   const csvContent = await fs.readFile(csvPath, 'utf-8')
   await db.transaction(async (transaction) => {
+    const defaultPricingModel = await selectDefaultPricingModel(
+      { organizationId: ORGANIZATION_ID, livemode: true },
+      transaction
+    )
+    if (!defaultPricingModel) {
+      throw new Error(
+        `No default pricing model found for organization ${ORGANIZATION_ID}`
+      )
+    }
     const { customerInserts } = await customerInsertsFromCSV(
       csvContent,
       ORGANIZATION_ID,
-      true
+      true,
+      defaultPricingModel.id
     )
 
     const price = await selectPriceById(VARIANT_ID, transaction)
