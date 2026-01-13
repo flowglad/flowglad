@@ -3,6 +3,7 @@ import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { customers } from '@/db/schema/customers'
+import { pricingModels } from '@/db/schema/pricingModels'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -27,6 +28,10 @@ const TABLE_NAME = 'payment_methods'
 const columns = {
   ...tableBase('pm'),
   customerId: notNullStringForeignKey('customer_id', customers),
+  pricingModelId: notNullStringForeignKey(
+    'pricing_model_id',
+    pricingModels
+  ),
   billingDetails: jsonb('billing_details').notNull(),
   type: pgEnumColumn({
     enumName: 'PaymentMethodType',
@@ -46,7 +51,11 @@ export const paymentMethods = pgTable(
   livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.customerId]),
     constructIndex(TABLE_NAME, [table.type]),
-    constructUniqueIndex(TABLE_NAME, [table.externalId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.externalId,
+      table.pricingModelId,
+    ]),
     enableCustomerReadPolicy(
       `Enable read for customers (${TABLE_NAME})`,
       {
@@ -92,6 +101,9 @@ export const {
   refine: {
     ...columnRefinements,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns: {
       stripePaymentMethodId: true,
@@ -100,6 +112,7 @@ export const {
     },
     readOnlyColumns: {
       livemode: true,
+      pricingModelId: true,
     },
     createOnlyColumns: {
       customerId: true,
