@@ -100,8 +100,9 @@ export interface TransactionEffects {
 /**
  * Callback function signatures for transaction side effects.
  * These are the methods used to queue cache invalidations, events, and ledger commands.
+ * @internal Not exported - use TransactionEffectsContext instead of individual callbacks.
  */
-export interface TransactionCallbacks {
+interface TransactionCallbacks {
   /**
    * Queue cache dependency keys to be invalidated after the transaction commits.
    * Use CacheDependency helpers to construct keys.
@@ -140,8 +141,9 @@ export interface BaseTransactionParams {
 /**
  * Effects fields with optional callbacks.
  * Used by standard transaction wrappers where callbacks may not be provided.
+ * @internal
  */
-export type OptionalEffectsFields = {
+type OptionalEffectsFields = {
   /**
    * Accumulated side effects. Only available when using transaction wrappers.
    * Prefer using the callback methods.
@@ -152,8 +154,9 @@ export type OptionalEffectsFields = {
 /**
  * Effects fields with required callbacks.
  * Used by comprehensive transaction wrappers that always provide callbacks.
+ * @internal
  */
-export type RequiredEffectsFields = {
+type RequiredEffectsFields = {
   effects: TransactionEffects
 } & TransactionCallbacks
 
