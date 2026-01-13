@@ -1,0 +1,316 @@
+---
+title: "Changelog"
+description: "Latest updates and changes to the Flowglad platform"
+rss: true
+---
+
+<Update label="November 18, 2025" description="Product Updates #13">
+  ## Highlights
+
+  - Import and export pricing models as YAML files for faster setup and easier sharing. [#657](https://github.com/flowglad/flowglad/pull/657), [#662](https://github.com/flowglad/flowglad/pull/662)
+  - Get automatic email notifications when subscriptions are created or upgraded. [#405](https://github.com/flowglad/flowglad/pull/405)
+  - Receive payout notifications when Stripe onboarding completes to streamline revenue flow. [#667](https://github.com/flowglad/flowglad/pull/667)
+
+  ## New Features
+
+  - Added YAML export for pricing models to download and share configurations. [#657](https://github.com/flowglad/flowglad/pull/657)
+  - Introduced YAML import for pricing models to quickly set up models from existing configurations. [#662](https://github.com/flowglad/flowglad/pull/662)
+  - Added customer subscription notification emails for created and upgraded subscriptions. [#405](https://github.com/flowglad/flowglad/pull/405)
+  - Implemented payout notification emails when Stripe onboarding completes. [#667](https://github.com/flowglad/flowglad/pull/667)
+  - Added clear test mode banners to all transactional emails to prevent confusion with production emails. [#664](https://github.com/flowglad/flowglad/pull/664)
+  - Added GET price endpoint to fetch price details by ID via the API. [#689](https://github.com/flowglad/flowglad/pull/689)
+
+  ## Improvements & Fixes
+
+  - Fixed invoice status handling to only mark as awaiting payment confirmation when payment intent is actually processing. [#685](https://github.com/flowglad/flowglad/pull/685)
+  - Fixed billing header to correctly display subscription intervals (daily, weekly, monthly, yearly) instead of defaulting to monthly. [#681](https://github.com/flowglad/flowglad/pull/681)
+  - Prevented negative inputs in product amount fields with validation. [#679](https://github.com/flowglad/flowglad/pull/679)
+  - Fixed customer billing portal to only consider live-mode customers, preventing test customer access issues. [#678](https://github.com/flowglad/flowglad/pull/678)
+  - Improved form modal UI with better overflow handling and consistency across all forms. [#677](https://github.com/flowglad/flowglad/pull/677)
+  - Fixed product images from stretching or getting cropped on checkout pages. [#676](https://github.com/flowglad/flowglad/pull/676)
+  - Fixed slug collision errors for usage meters with human-readable, specific error messages. [#668](https://github.com/flowglad/flowglad/pull/668)
+  - Fixed usage event ledger commands to only emit when properties are distinct within the billing period. [#665](https://github.com/flowglad/flowglad/pull/665)
+  - Improved revenue chart layout to clearly separate revenue value from the "Revenue by" selector. [#660](https://github.com/flowglad/flowglad/pull/660)
+  - Fixed list invoice line items endpoint to correctly return data. [#682](https://github.com/flowglad/flowglad/pull/682)
+</Update>
+
+<Update label="November 3, 2025" description="Product Updates #12">
+  ## Highlights
+
+  - Launch pricing models faster with our new template system and YAML import/export. [#631](https://github.com/flowglad/flowglad/pull/631)
+  - Get notified automatically when subscriptions are created or upgraded with new email templates. [#405](https://github.com/flowglad/flowglad/pull/405)
+  - Receive payout notifications when Stripe onboarding completes to streamline your revenue flow. [#667](https://github.com/flowglad/flowglad/pull/667)
+
+  ## New Features
+
+  - Added Pricing Model Templates with Figma-aligned UI for faster setup. [#631](https://github.com/flowglad/flowglad/pull/631)
+  - Introduced YAML import/export for pricing models to speed up configuration and sharing. [#657](https://github.com/flowglad/flowglad/pull/657), [#662](https://github.com/flowglad/flowglad/pull/662)
+  - Added customer subscription notification emails for created and upgraded subscriptions. [#405](https://github.com/flowglad/flowglad/pull/405)
+  - Implemented payout notification emails when Stripe onboarding completes. [#667](https://github.com/flowglad/flowglad/pull/667)
+  - Added clear test mode banners to all transactional emails to prevent confusion. [#664](https://github.com/flowglad/flowglad/pull/664)
+  - Added GET price endpoint to fetch price details by ID via API. [#689](https://github.com/flowglad/flowglad/pull/689)
+  - Updated price editing to create new immutable prices, preventing accidental changes to existing pricing. [#647](https://github.com/flowglad/flowglad/pull/647)
+
+  ## Improvements & Fixes
+
+  - Fixed invoice status handling to only mark as awaiting payment confirmation when payment intent is actually processing. [#685](https://github.com/flowglad/flowglad/pull/685)
+  - Fixed billing header to correctly display subscription intervals (daily, weekly, monthly, yearly) instead of defaulting to monthly. [#681](https://github.com/flowglad/flowglad/pull/681)
+  - Prevented negative inputs in product amount fields with validation. [#679](https://github.com/flowglad/flowglad/pull/679)
+  - Fixed customer billing portal to only consider live-mode customers, preventing test customer access issues. [#678](https://github.com/flowglad/flowglad/pull/678)
+  - Improved form modal UI with better overflow handling and consistency across all forms. [#677](https://github.com/flowglad/flowglad/pull/677)
+  - Fixed product images from stretching or getting cropped on checkout pages. [#676](https://github.com/flowglad/flowglad/pull/676)
+  - Fixed slug collision errors for usage meters with human-readable, specific error messages. [#668](https://github.com/flowglad/flowglad/pull/668)
+  - Fixed usage event ledger commands to only emit when properties are distinct within the billing period. [#665](https://github.com/flowglad/flowglad/pull/665)
+  - Improved revenue chart layout to clearly separate revenue value from the "Revenue by" selector. [#660](https://github.com/flowglad/flowglad/pull/660)
+  - Enhanced payment form validation with clearer error messages for missing required fields. [#622](https://github.com/flowglad/flowglad/pull/622)
+  - Fixed list invoice line items endpoint to correctly return data. [#682](https://github.com/flowglad/flowglad/pull/682)
+  - Ensured only active prices are displayed and used in billing calculations. [#646](https://github.com/flowglad/flowglad/pull/646)
+  - Added validation to require payment method selection before submitting checkout forms. [#648](https://github.com/flowglad/flowglad/pull/648)
+  - Updated SDK packages to version 0.11.0 with improved functionality. [#653](https://github.com/flowglad/flowglad/pull/653)
+</Update>
+
+<Update label="October 6, 2025" description="Product Updates #11">
+  ## Highlights
+
+  - Seamlessly upgrade from free to paid plans with proration support to preserve billing cycles. [#404](https://github.com/flowglad/flowglad/pull/404)
+  - Access your complete billing portal with subscription management, payment methods, and invoices. [#366](https://github.com/flowglad/flowglad/pull/366)
+  - Enjoy improved currency input formatting with better accuracy across all forms. [#408](https://github.com/flowglad/flowglad/pull/408)
+
+  ## Features
+
+  - Complete subscription upgrade system with cancel-and-replace strategy and proration logic. [#401](https://github.com/flowglad/flowglad/pull/401)
+  - Proration support for subscription upgrades to preserve original billing cycles. [#404](https://github.com/flowglad/flowglad/pull/404)
+  - New billing portal with tabbed interface for subscription management, payment methods, and invoices. [#366](https://github.com/flowglad/flowglad/pull/366)
+  - Enhanced analytics and reporting for subscription upgrades with separate MRR tracking. [#400](https://github.com/flowglad/flowglad/pull/400)
+  - Database schema updates to support subscription upgrades with cancellation reasons and upgrade tracking. [#398](https://github.com/flowglad/flowglad/pull/398)
+  - Destination environment selection for cloning pricing models across environments. [#397](https://github.com/flowglad/flowglad/pull/397)
+
+  ## Improvements
+
+  - Fixed currency input formatting and parsing across all forms with proper zero-decimal currency support. [#408](https://github.com/flowglad/flowglad/pull/408)
+  - Improved product feature editing with reliable add/remove functionality. [#393](https://github.com/flowglad/flowglad/pull/393)
+  - Fixed pricing model editing modal submission issues. [#391](https://github.com/flowglad/flowglad/pull/391)
+  - Resolved checkout session circular dependencies and improved payment flow stability. [#392](https://github.com/flowglad/flowglad/pull/392)
+  - Fixed membership selection procedure for proper user filtering. [#395](https://github.com/flowglad/flowglad/pull/395)
+  - Enhanced subscription upgrade implementation with better date filtering and timezone handling. [#402](https://github.com/flowglad/flowglad/pull/402)
+</Update>
+
+<Update label="September 22, 2025" description="Product Updates #10">
+  ## Highlights
+
+  - Enhanced billing portal with comprehensive subscription management, payment methods, and invoice handling. [#366](https://github.com/flowglad/flowglad/pull/366)
+  - Improved currency input formatting with better handling of zero-decimal currencies and locale-aware formatting. [#408](https://github.com/flowglad/flowglad/pull/408)
+  - Added automatic slug generation across all forms for better user experience and consistency. [#406](https://github.com/flowglad/flowglad/pull/406)
+
+  ## Features
+
+  - Launched comprehensive billing portal with tabbed interface for subscription management, payment methods, and invoices. [#366](https://github.com/flowglad/flowglad/pull/366)
+  - Implemented subscription upgrade logic with proration support for preserving billing cycles. [#404](https://github.com/flowglad/flowglad/pull/404), [#401](https://github.com/flowglad/flowglad/pull/401)
+  - Added automatic slug generation for products, prices, features, and usage meters with smart context awareness. [#406](https://github.com/flowglad/flowglad/pull/406)
+  - Integrated Featurebase messenger for in-app customer support. [#415](https://github.com/flowglad/flowglad/pull/415)
+  - Made usage meters available to all users by removing feature flag restrictions. [#413](https://github.com/flowglad/flowglad/pull/413)
+  - Added support for default plan interval units when creating pricing models. [#439](https://github.com/flowglad/flowglad/pull/439)
+  - Created new purchase API endpoint for fetching individual purchases. [#417](https://github.com/flowglad/flowglad/pull/417)
+
+  ## Improvements
+
+  - Enhanced currency input formatting with proper zero-decimal currency support and locale-aware validation. [#408](https://github.com/flowglad/flowglad/pull/408)
+  - Improved API key validation with Redis caching for better performance. [#430](https://github.com/flowglad/flowglad/pull/430)
+  - Enhanced API telemetry with comprehensive tracing, error categorization, and performance metrics. [#438](https://github.com/flowglad/flowglad/pull/438)
+  - Extended checkout session and fee calculation retention to 14 days for better data management. [#420](https://github.com/flowglad/flowglad/pull/420)
+  - Fixed trial input handling in product creation modal. [#412](https://github.com/flowglad/flowglad/pull/412)
+  - Improved anonymous checkout validation and event creation for payment processing. [#407](https://github.com/flowglad/flowglad/pull/407)
+  - Enhanced invoice payment flow by unifying through checkout sessions. [#385](https://github.com/flowglad/flowglad/pull/385)
+  - Added comprehensive route configuration tests for better API reliability. [#443](https://github.com/flowglad/flowglad/pull/443), [#442](https://github.com/flowglad/flowglad/pull/442), [#440](https://github.com/flowglad/flowglad/pull/440)
+  - Improved database constraints and default pricing model handling. [#422](https://github.com/flowglad/flowglad/pull/422)
+  - Enhanced API authentication with support for both Bearer token and raw API key formats. [#434](https://github.com/flowglad/flowglad/pull/434)
+</Update>
+
+<Update label="September 8, 2025" description="Product Updates #9">
+  ## Highlights
+
+  - Seamless customer billing portal with magic link authentication for a frictionless experience. [#347](https://github.com/flowglad/flowglad/pull/347)
+  - New customers automatically get subscriptions based on their pricing model. [#328](https://github.com/flowglad/flowglad/pull/328)
+  - Enhanced error handling with specific, user-friendly messages instead of generic database errors. [#337](https://github.com/flowglad/flowglad/pull/337)
+
+  ## Features
+
+  - Integrated customer billing portal with magic link authentication. [#347](https://github.com/flowglad/flowglad/pull/347)
+  - Automatic subscription creation for new customers based on pricing models. [#328](https://github.com/flowglad/flowglad/pull/328)
+  - Support for non-renewing subscriptions with proper billing logic. [#326](https://github.com/flowglad/flowglad/pull/326), [#327](https://github.com/flowglad/flowglad/pull/327)
+  - Responsive pricing table component with product toggle and tier selection. [#330](https://github.com/flowglad/flowglad/pull/330)
+  - Organization upfront processing credits for better cash flow management. [#325](https://github.com/flowglad/flowglad/pull/325)
+
+  ## Improvements
+
+  - Enhanced error handling with specific, user-friendly messages. [#337](https://github.com/flowglad/flowglad/pull/337)
+  - Fixed organization switching for users with multiple memberships. [#340](https://github.com/flowglad/flowglad/pull/340)
+  - Fixed usage-based checkout sessions and fee calculations. [#339](https://github.com/flowglad/flowglad/pull/339)
+  - Fixed product features not populating in edit modal. [#336](https://github.com/flowglad/flowglad/pull/336)
+  - Fixed event type mismatch in payment intent succeeded handler. [#334](https://github.com/flowglad/flowglad/pull/334)
+  - Updated pricing model labels to use proper sentence case. [#341](https://github.com/flowglad/flowglad/pull/341)
+  - Fixed corner rounding consistency on sign-up page. [#331](https://github.com/flowglad/flowglad/pull/331)
+  - Fixed ledger manager bugs for non-renewing subscriptions. [#329](https://github.com/flowglad/flowglad/pull/329)
+  - Renamed "Catalog" to "Pricing Model" for better clarity. [#327](https://github.com/flowglad/flowglad/pull/327)
+</Update>
+
+<Update label="August 26, 2025" description="Product Updates #8">
+  ## Highlights
+
+  - Streamlined authentication with Google sign-up and Better Auth migration for enhanced security. [#309](https://github.com/flowglad/flowglad/pull/309)
+  - Improved product management with drawer-based forms and feature multi-select. [#314](https://github.com/flowglad/flowglad/pull/314)
+  - Enhanced UI components with shadcn integration for better user experience. [#298](https://github.com/flowglad/flowglad/pull/298)
+
+  ## Features
+
+  - Added shadcn UI component registry and build system for consistent design. [#324](https://github.com/flowglad/flowglad/pull/324)
+  - Introduced Google sign-up with automatic onboarding flow. [#315](https://github.com/flowglad/flowglad/pull/315)
+  - Migrated to Better Auth for enhanced security and authentication. [#309](https://github.com/flowglad/flowglad/pull/309)
+  - Added automatic failure handling for stale payments. [#320](https://github.com/flowglad/flowglad/pull/320)
+  - Enhanced product forms with drawer interface and feature multi-select. [#314](https://github.com/flowglad/flowglad/pull/314)
+  - Added replyTo field for customer-facing email notifications. [#318](https://github.com/flowglad/flowglad/pull/318)
+
+  ## Improvements
+
+  - Fixed multi-organization user access with improved RLS policies. [#313](https://github.com/flowglad/flowglad/pull/313)
+  - Resolved onboarding 401 errors for smoother user experience. [#319](https://github.com/flowglad/flowglad/pull/319)
+  - Enhanced discount code input field stability. [#316](https://github.com/flowglad/flowglad/pull/316)
+  - Fixed date picker crashes and improved date handling. [#308](https://github.com/flowglad/flowglad/pull/308)
+  - Improved subscription endpoint with timestamp compatibility. [#312](https://github.com/flowglad/flowglad/pull/312)
+  - Added comprehensive shadcn UI components (forms, buttons, inputs, etc.). [#298](https://github.com/flowglad/flowglad/pull/298)
+</Update>
+
+<Update label="August 12, 2025" description="Product Updates #7">
+  ## Highlights
+
+  - Restored invoice checkout flow, allowing your customers to easily pay for invoices. [#292](https://github.com/flowglad/flowglad/pull/292)
+  - Added product slug support for unique catalog identification and improved product management. [#301](https://github.com/flowglad/flowglad/pull/301)
+  - Completely refreshed UI with modern components for a more intuitive and responsive experience.
+
+  ## Features
+
+  - Restored invoice checkout flow, enabling customers to easily pay for invoices directly through the platform. [#292](https://github.com/flowglad/flowglad/pull/292)
+  - Added product slug field to product forms for better catalog organization and unique identification. [#301](https://github.com/flowglad/flowglad/pull/301)
+  - Enhanced authentication system for improved security and user experience.
+
+  ## Improvements
+
+  - Completely refreshed UI with modern shadcn components for a more intuitive and responsive experience.
+  - Fixed date picker issues to prevent site crashes and ensure smooth date selection.
+  - Enhanced form components with better validation, styling, and user feedback.
+  - Improved select components with better descriptions and label support.
+  - Added responsive sidebar navigation for better mobile experience.
+  - Upgraded form buttons with consistent styling and improved user interaction.
+</Update>
+
+<Update label="July 28, 2025" description="Product Updates #6">
+  ## Highlights
+
+  - Onboarding now includes a one-click "Add to Cursor MCP" button for a faster setup experience. [#289](https://github.com/flowglad/flowglad/pull/289)
+  - Invoice API now properly accepts millisecond timestamps, ensuring more accurate billing dates. [#290](https://github.com/flowglad/flowglad/pull/290)
+
+  ## New Features
+
+  - Added "Add to Cursor MCP" button in onboarding for seamless workspace setup. [#289](https://github.com/flowglad/flowglad/pull/289)
+
+  ## Improvements & Fixes
+
+  - Invoice endpoint now validates date fields as millisecond timestamps, preventing mismatched timezones. [#290](https://github.com/flowglad/flowglad/pull/290)
+</Update>
+
+<Update label="July 18, 2025" description="Product Updates #5">
+  ## Highlights
+
+  - Added customer email to payment notifications for improved communication. [#285](https://github.com/flowglad/flowglad/pull/285)
+  - Activated payment failed notifications for both customers and organizations. [#278](https://github.com/flowglad/flowglad/pull/278)
+  - Introduced manual approval for payouts to enhance security. [#280](https://github.com/flowglad/flowglad/pull/280)
+
+  ## Features
+
+  - Added customer email to payment notifications. [#285](https://github.com/flowglad/flowglad/pull/285)
+  - Send organization payment failed notification. [#284](https://github.com/flowglad/flowglad/pull/284)
+  - Require manual approval for payouts. [#280](https://github.com/flowglad/flowglad/pull/280)
+
+  ## Improvements
+
+  - Fixed teammate visibility in settings. [#205](https://github.com/flowglad/flowglad/pull/205)
+  - Expanded docs for subscriptions, checkout, payment methods. [#202](https://github.com/flowglad/flowglad/pull/202)
+  - Resolved icon and pricing display bugs. [#199](https://github.com/flowglad/flowglad/pull/199)
+  - Improved discount input accuracy. [#198](https://github.com/flowglad/flowglad/pull/198)
+  - Made usage meter ID optional in Create Price. [#197](https://github.com/flowglad/flowglad/pull/197)
+</Update>
+
+<Update label="July 1, 2025" description="Product Updates #4">
+  ## Highlights
+
+  - Never miss a failed payment—automatic email & dashboard alerts are now live. [#278](https://github.com/flowglad/flowglad/pull/278)
+  - Build faster with new Managed Catalog Provisioning (MCP) middleware & server. [#276](https://github.com/flowglad/flowglad/pull/276), [#274](https://github.com/flowglad/flowglad/pull/274)
+  - Seamless subscription activation via one-click activate_subscription checkout. [#273](https://github.com/flowglad/flowglad/pull/273), [#263](https://github.com/flowglad/flowglad/pull/263)
+
+  ## New Features
+
+  - Payment failed notifications automatically sent to customers and organizations. [#278](https://github.com/flowglad/flowglad/pull/278)
+  - Managed Catalog Provisioning middleware added to React/Next SDK with full backend support. [#276](https://github.com/flowglad/flowglad/pull/276), [#274](https://github.com/flowglad/flowglad/pull/274)
+  - checkFeatureAccess & checkUsageBalance methods for granular feature gating. [#268](https://github.com/flowglad/flowglad/pull/268)
+  - Cleaner DOM: SDK no longer injects the extra flowglad-root class. [#277](https://github.com/flowglad/flowglad/pull/277)
+  - Catalog Setup API endpoint lets you bootstrap entire catalogs programmatically. [#271](https://github.com/flowglad/flowglad/pull/271)
+  - Full support for activate_subscription checkout sessions in SDK. [#273](https://github.com/flowglad/flowglad/pull/273)
+
+  ## Improvements & Fixes
+
+  - Middleware stability fixes and removed unnecessary catch-all logic. [#275](https://github.com/flowglad/flowglad/pull/275)
+  - Resolved race conditions during checkout session confirmation. [#269](https://github.com/flowglad/flowglad/pull/269)
+  - Onboarding UI polish & clearer quick-start docs for smoother setup experience. [#266](https://github.com/flowglad/flowglad/pull/266), [#264](https://github.com/flowglad/flowglad/pull/264), [#262](https://github.com/flowglad/flowglad/pull/262), [#261](https://github.com/flowglad/flowglad/pull/261)
+  - Fixed authenticated transaction flow to correctly attach organization_id. [#267](https://github.com/flowglad/flowglad/pull/267)
+  - Allowed usage events for credit-trial subscriptions by lifting strict constraint. [#270](https://github.com/flowglad/flowglad/pull/270)
+</Update>
+
+<Update label="June 16, 2025" description="Product Updates #3">
+  ## Highlights
+
+  - Credit trials now available with configurable pricing and overage options. [#248](https://github.com/flowglad/flowglad/pull/248)
+  - Enhanced subscription management with detailed views and payment methods. [#238](https://github.com/flowglad/flowglad/pull/238)
+  - Improved dashboard charts and loading transitions for better user experience. [#241](https://github.com/flowglad/flowglad/pull/241)
+
+  ## Features
+
+  - Added support for credit trials with configurable pricing and overage options. [#248](https://github.com/flowglad/flowglad/pull/248)
+  - New subscription details page with payment method and invoice information. [#238](https://github.com/flowglad/flowglad/pull/238)
+  - Experimental subscription feature items with catalog details page. [#251](https://github.com/flowglad/flowglad/pull/251)
+  - Enhanced payment method flow to update all existing subscriptions. [#249](https://github.com/flowglad/flowglad/pull/249)
+
+  ## Improvements & Fixes
+
+  - Improved dashboard charts with better loading transitions. [#241](https://github.com/flowglad/flowglad/pull/241)
+  - Fixed checkout session confirmation to properly attach customer records. [#243](https://github.com/flowglad/flowglad/pull/243)
+  - Standardized email components for organization and customer-facing communications. [#244](https://github.com/flowglad/flowglad/pull/244)
+  - Improved timezone handling for billing period creation. [#245](https://github.com/flowglad/flowglad/pull/245)
+  - Simplified API key generation with secret key support. [#246](https://github.com/flowglad/flowglad/pull/246)
+  - Enhanced SDK theming support for better dark/light mode compatibility. [#240](https://github.com/flowglad/flowglad/pull/240)
+  - Fixed various UI issues in archive price and make default price modals. [#242](https://github.com/flowglad/flowglad/pull/242)
+</Update>
+
+<Update label="June 2, 2025" description="Product Updates #2">
+  ## Highlights
+
+  - Launched Subscription Features Table & related UX enhancements. [#217](https://github.com/flowglad/flowglad/pull/217)
+  - Added Revenue Data Filters by product ID for deeper insights. [#232](https://github.com/flowglad/flowglad/pull/232)
+  - Improved Product Details Page for a smoother, more intuitive UI. [#237](https://github.com/flowglad/flowglad/pull/237)
+
+  ## Features
+
+  - Subscription Features Table & schema rollout. [#217](https://github.com/flowglad/flowglad/pull/217)
+  - Subscription Feature Items for customizable plans. [#218](https://github.com/flowglad/flowglad/pull/218)
+  - Auto-creation of subscription item features on subscription creation. [#219](https://github.com/flowglad/flowglad/pull/219)
+  - Revenue data filters by product ID. [#232](https://github.com/flowglad/flowglad/pull/232)
+
+  ## Improvements
+
+  - Refreshed Product Details Page UI. [#237](https://github.com/flowglad/flowglad/pull/237)
+  - UI cleanup: collapsible side-nav & consolidated settings. [#236](https://github.com/flowglad/flowglad/pull/236)
+  - Fixed zero trialDays edge cases. [#233](https://github.com/flowglad/flowglad/pull/233)
+  - Ensured default price is created for new product transactions. [#231](https://github.com/flowglad/flowglad/pull/231)
+  - Resolved price form field & discount percentage bugs. [#228](https://github.com/flowglad/flowglad/pull/228)
+  - Fixed payment form email validation & error labels. [#220](https://github.com/flowglad/flowglad/pull/220)
+  - Adjusted price form fields for clearer input. [#222](https://github.com/flowglad/flowglad/pull/222)
+</Update>
