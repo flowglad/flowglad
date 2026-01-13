@@ -440,10 +440,13 @@ export const updatePricingModelTransaction = async (
       }
 
       // Handle resourceSlug -> resourceId transformation
+      // Note: Type assertion needed until Patch 1 adds Resource to the schema
       if ('resourceSlug' in transformedUpdate) {
-        if (existing.type !== FeatureType.Resource) {
+        const existingType = (existing as unknown as { type: string })
+          .type
+        if (existingType !== FeatureType.Resource) {
           throw new Error(
-            `Feature ${existing.slug} has resourceSlug but is type ${existing.type}, not Resource`
+            `Feature ${existing.slug} has resourceSlug but is type ${existingType}, not Resource`
           )
         }
         const newSlug = transformedUpdate.resourceSlug as string
