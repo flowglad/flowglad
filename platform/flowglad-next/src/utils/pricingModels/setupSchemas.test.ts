@@ -248,6 +248,46 @@ describe('validateSetupPricingModelInput', () => {
       expect(result.usageMeters[0].prices?.[0].isDefault).toBe(true)
     })
 
+    it('should throw when multiple prices for same meter have isDefault=true', () => {
+      const input = createMinimalValidInput()
+      input.usageMeters = [
+        {
+          usageMeter: {
+            slug: 'test-meter',
+            name: 'Test Meter',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'price-one',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+            {
+              type: PriceType.Usage,
+              slug: 'price-two',
+              isDefault: true, // Second default - should throw
+              unitPrice: 200,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
+        },
+      ]
+
+      expect(() => validateSetupPricingModelInput(input)).toThrow(
+        'has 2 prices with isDefault=true. At most one price per meter can be the default'
+      )
+    })
+
     // PR 5: Empty prices array is valid - usage meters can exist without prices
     // (e.g., meters that only track usage for credit grants, not billing)
   })

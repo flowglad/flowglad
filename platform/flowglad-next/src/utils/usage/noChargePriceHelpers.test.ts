@@ -13,47 +13,40 @@ import {
 
 describe('noChargePriceHelpers', () => {
   describe('getNoChargeSlugForMeter', () => {
-    it('generates slug with _no_charge suffix for a simple meter slug', () => {
-      const result = getNoChargeSlugForMeter('api_requests')
-      expect(result).toBe('api_requests_no_charge')
-    })
-
-    it('generates slug with _no_charge suffix for a meter slug with underscores', () => {
-      const result = getNoChargeSlugForMeter('storage_gb_usage')
-      expect(result).toBe('storage_gb_usage_no_charge')
-    })
-
-    it('generates slug with _no_charge suffix for a single word meter slug', () => {
-      const result = getNoChargeSlugForMeter('messages')
-      expect(result).toBe('messages_no_charge')
+    it('appends _no_charge suffix to various slug formats', () => {
+      // Simple slug
+      expect(getNoChargeSlugForMeter('api_requests')).toBe(
+        'api_requests_no_charge'
+      )
+      // Slug with underscores
+      expect(getNoChargeSlugForMeter('storage_gb_usage')).toBe(
+        'storage_gb_usage_no_charge'
+      )
+      // Single word slug
+      expect(getNoChargeSlugForMeter('messages')).toBe(
+        'messages_no_charge'
+      )
     })
   })
 
   describe('isNoChargePrice', () => {
-    it('returns true for slugs ending with _no_charge', () => {
+    it('identifies slugs ending with _no_charge suffix', () => {
+      // Valid no_charge slugs
       expect(isNoChargePrice('api_requests_no_charge')).toBe(true)
       expect(isNoChargePrice('storage_no_charge')).toBe(true)
       expect(isNoChargePrice('messages_no_charge')).toBe(true)
-    })
+      expect(isNoChargePrice('test_no_charge')).toBe(true)
 
-    it('returns false for slugs not ending with _no_charge', () => {
+      // Invalid: does not end with _no_charge
       expect(isNoChargePrice('api_requests')).toBe(false)
       expect(isNoChargePrice('storage')).toBe(false)
       expect(isNoChargePrice('no_charge_extra')).toBe(false)
       expect(isNoChargePrice('no_charge_meter')).toBe(false)
-    })
-
-    it('returns false for slugs containing but not ending with _no_charge', () => {
       expect(isNoChargePrice('no_charge_storage')).toBe(false)
       expect(isNoChargePrice('_no_charge_')).toBe(false)
-    })
 
-    it('returns true only for exact suffix match', () => {
-      // _no_charge is the exact suffix
-      expect(isNoChargePrice('test_no_charge')).toBe(true)
-      // _no_chargee has an extra character
+      // Invalid: partial suffix match
       expect(isNoChargePrice('test_no_chargee')).toBe(false)
-      // _no_charg is missing a character
       expect(isNoChargePrice('test_no_charg')).toBe(false)
     })
   })
@@ -74,79 +67,41 @@ describe('noChargePriceHelpers', () => {
       aggregationType: UsageMeterAggregationType.Sum,
     }
 
-    it('creates a price insert with correct no charge slug', () => {
+    it('creates a complete no_charge price insert with all expected properties', () => {
       const result = createNoChargePriceInsert(mockUsageMeter, {
         currency: CurrencyCode.USD,
       })
 
+      // Slug and name derived from meter
       expect(result.slug).toBe('api_requests_no_charge')
-    })
+      expect(result.name).toBe('API Requests - No Charge')
 
-    it('creates a price insert with type=Usage', () => {
-      const result = createNoChargePriceInsert(mockUsageMeter, {
-        currency: CurrencyCode.USD,
-      })
-
-      expect(result.type).toBe(PriceType.Usage)
-    })
-
-    it('creates a price insert with unitPrice=0', () => {
-      const result = createNoChargePriceInsert(mockUsageMeter, {
-        currency: CurrencyCode.USD,
-      })
-
-      expect(result.unitPrice).toBe(0)
-    })
-
-    it('creates a price insert with usageEventsPerUnit=1', () => {
-      const result = createNoChargePriceInsert(mockUsageMeter, {
-        currency: CurrencyCode.USD,
-      })
-
-      expect(result.usageEventsPerUnit).toBe(1)
-    })
-
-    it('creates a price insert with correct usageMeterId', () => {
-      const result = createNoChargePriceInsert(mockUsageMeter, {
-        currency: CurrencyCode.USD,
-      })
-
+      // References to meter and pricing model
       expect(result.usageMeterId).toBe('meter_123')
-    })
-
-    it('creates a price insert with correct pricingModelId', () => {
-      const result = createNoChargePriceInsert(mockUsageMeter, {
-        currency: CurrencyCode.USD,
-      })
-
       expect(result.pricingModelId).toBe('pm_456')
-    })
-
-    it('creates a price insert with productId=null', () => {
-      const result = createNoChargePriceInsert(mockUsageMeter, {
-        currency: CurrencyCode.USD,
-      })
-
       expect(result.productId).toBe(null)
-    })
 
-    it('creates a price insert with isDefault=false by default', () => {
-      const result = createNoChargePriceInsert(mockUsageMeter, {
-        currency: CurrencyCode.USD,
-      })
-
+      // No charge price defaults
+      expect(result.type).toBe(PriceType.Usage)
+      expect(result.unitPrice).toBe(0)
+      expect(result.usageEventsPerUnit).toBe(1)
       expect(result.isDefault).toBe(false)
-    })
-
-    it('creates a price insert with active=true', () => {
-      const result = createNoChargePriceInsert(mockUsageMeter, {
-        currency: CurrencyCode.USD,
-      })
-
       expect(result.active).toBe(true)
+
+      // Interval settings
+      expect(result.intervalUnit).toBe(IntervalUnit.Month)
+      expect(result.intervalCount).toBe(1)
+
+      // Nullable fields
+      expect(result.trialPeriodDays).toBe(null)
+      expect(result.externalId).toBe(null)
+
+      // Passed through values
+      expect(result.currency).toBe(CurrencyCode.USD)
+      expect(result.livemode).toBe(false)
     })
 
-    it('creates a price insert with correct currency', () => {
+    it('uses the provided currency parameter', () => {
       const resultUSD = createNoChargePriceInsert(mockUsageMeter, {
         currency: CurrencyCode.USD,
       })
@@ -158,17 +113,9 @@ describe('noChargePriceHelpers', () => {
       expect(resultGBP.currency).toBe(CurrencyCode.GBP)
     })
 
-    it('creates a price insert with name derived from meter name', () => {
-      const result = createNoChargePriceInsert(mockUsageMeter, {
-        currency: CurrencyCode.USD,
-      })
-
-      expect(result.name).toBe('API Requests - No Charge')
-    })
-
-    it('creates a price insert with livemode from meter', () => {
-      const livemeter = { ...mockUsageMeter, livemode: true }
-      const resultLive = createNoChargePriceInsert(livemeter, {
+    it('inherits livemode from the usage meter', () => {
+      const liveMeter = { ...mockUsageMeter, livemode: true }
+      const resultLive = createNoChargePriceInsert(liveMeter, {
         currency: CurrencyCode.USD,
       })
       expect(resultLive.livemode).toBe(true)
@@ -178,24 +125,6 @@ describe('noChargePriceHelpers', () => {
         currency: CurrencyCode.USD,
       })
       expect(resultTest.livemode).toBe(false)
-    })
-
-    it('creates a price insert with intervalUnit=Month and intervalCount=1', () => {
-      const result = createNoChargePriceInsert(mockUsageMeter, {
-        currency: CurrencyCode.USD,
-      })
-
-      expect(result.intervalUnit).toBe(IntervalUnit.Month)
-      expect(result.intervalCount).toBe(1)
-    })
-
-    it('creates a price insert with trialPeriodDays=null and externalId=null', () => {
-      const result = createNoChargePriceInsert(mockUsageMeter, {
-        currency: CurrencyCode.USD,
-      })
-
-      expect(result.trialPeriodDays).toBe(null)
-      expect(result.externalId).toBe(null)
     })
   })
 })

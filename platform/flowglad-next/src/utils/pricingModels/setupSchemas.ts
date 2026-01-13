@@ -382,9 +382,14 @@ export const validateSetupPricingModelInput = (
       }
     })
 
-    // Usage prices can have isDefault=true for one price per meter
-    // When no user price has isDefault=true, the auto-generated no_charge price
-    // becomes the default. Users can specify which price should be default.
+    // Validate at most one price per meter has isDefault=true
+    // This constraint is enforced by prices_usage_meter_is_default_unique_idx
+    const defaultPrices = prices.filter((price) => price.isDefault)
+    if (defaultPrices.length > 1) {
+      throw new Error(
+        `Usage meter "${meterWithPrices.usageMeter.slug}" has ${defaultPrices.length} prices with isDefault=true. At most one price per meter can be the default.`
+      )
+    }
   })
 
   return parsed
