@@ -28,7 +28,7 @@ export function ChartValueDisplay({
   const config = CHART_SIZE_CONFIG[size]
 
   return (
-    <div className={cn('mt-1', config.padding)}>
+    <div className={config.padding}>
       {isLoading ? (
         <Skeleton
           className={cn(config.skeletonWidth, config.skeletonHeight)}

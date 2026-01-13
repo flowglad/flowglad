@@ -65,7 +65,11 @@ export function IntervalPicker({
     <div className={cn('grid gap-2', className)}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="secondary" size="sm" disabled={disabled}>
+          <Button
+            variant="ghost"
+            className="text-foreground"
+            disabled={disabled}
+          >
             {intervalLabels[value]}
             <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
           </Button>
