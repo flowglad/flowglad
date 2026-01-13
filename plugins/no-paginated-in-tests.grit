@@ -6,10 +6,13 @@ language js
 // to test pagination query combinators. Table-specific pagination tests
 // tend to be flaky and prone to leaking resource isolation.
 
-// Only match it() and describe() - test() is rarely used in this codebase
 or {
   `it($desc, $_)` as $call where {
-    $desc <: r".*paginated.*",
+    $desc <: r".*[pP]aginated.*",
+    register_diagnostic(span=$call, message="It looks like you are trying to write tests for pagination business logic - the only place this test logic should live is in tableUtils.test.ts, and it should test on our pagination query combinators. More table-specific pagination tends to be flaky and prone to leaking resource isolation so it is not allowed. If there is a specific parameter whose behavior you'd like to test, please add it to tableUtils.test.ts instead.", severity="error")
+  },
+  `test($desc, $_)` as $call where {
+    $desc <: r".*[pP]aginated.*",
     register_diagnostic(span=$call, message="It looks like you are trying to write tests for pagination business logic - the only place this test logic should live is in tableUtils.test.ts, and it should test on our pagination query combinators. More table-specific pagination tends to be flaky and prone to leaking resource isolation so it is not allowed. If there is a specific parameter whose behavior you'd like to test, please add it to tableUtils.test.ts instead.", severity="error")
   },
   `describe($desc, $_)` as $call where {
