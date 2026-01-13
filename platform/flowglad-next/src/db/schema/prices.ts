@@ -25,7 +25,7 @@ import {
   createSupabaseWebhookSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -128,42 +128,39 @@ export const prices = pgTable(
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.type]),
-      constructIndex(TABLE_NAME, [table.productId]),
-      constructUniqueIndex(TABLE_NAME, [
-        table.externalId,
-        table.productId,
-      ]),
-      uniqueIndex('prices_product_id_is_default_unique_idx')
-        .on(table.productId)
-        .where(sql`${table.isDefault}`),
-      constructIndex(TABLE_NAME, [table.usageMeterId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"product_id" in (select "id" from "products") and "active" = true`,
-        }
-      ),
-      merchantPolicy(
-        'On update, ensure usage meter belongs to same organization as product',
-        {
-          as: 'permissive',
-          to: 'merchant',
-          for: 'update',
-          withCheck: usageMeterBelongsToSameOrganization,
-        }
-      ),
-      parentForeignKeyIntegrityCheckPolicy({
-        parentTableName: 'products',
-        parentIdColumnInCurrentTable: 'product_id',
-        currentTableName: TABLE_NAME,
-      }),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.type]),
+    constructIndex(TABLE_NAME, [table.productId]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.externalId,
+      table.productId,
+    ]),
+    uniqueIndex('prices_product_id_is_default_unique_idx')
+      .on(table.productId)
+      .where(sql`${table.isDefault}`),
+    constructIndex(TABLE_NAME, [table.usageMeterId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"product_id" in (select "id" from "products") and "active" = true`,
+      }
+    ),
+    merchantPolicy(
+      'On update, ensure usage meter belongs to same organization as product',
+      {
+        as: 'permissive',
+        to: 'merchant',
+        for: 'update',
+        withCheck: usageMeterBelongsToSameOrganization,
+      }
+    ),
+    parentForeignKeyIntegrityCheckPolicy({
+      parentTableName: 'products',
+      parentIdColumnInCurrentTable: 'product_id',
+      currentTableName: TABLE_NAME,
+    }),
+  ])
 ).enableRLS()
 
 export const nulledPriceColumns = {

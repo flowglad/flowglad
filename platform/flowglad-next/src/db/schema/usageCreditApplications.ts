@@ -10,7 +10,7 @@ import {
   constructIndex,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -59,7 +59,7 @@ export const usageCreditApplications = pgTable(
     ),
     createdAt: timestampWithTimezoneColumn('created_at').defaultNow(),
   },
-  (table) => [
+  livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.usageCreditId]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
     enableCustomerReadPolicy(
@@ -77,8 +77,7 @@ export const usageCreditApplications = pgTable(
         using: orgIdEqualsCurrentSQL(),
       }
     ),
-    livemodePolicy(TABLE_NAME),
-  ]
+  ])
 ).enableRLS()
 
 const columnRefinements = {

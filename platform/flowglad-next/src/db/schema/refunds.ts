@@ -18,7 +18,7 @@ import { subscriptions } from '@/db/schema/subscriptions'
 import {
   constructIndex,
   enableCustomerReadPolicy,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -69,7 +69,7 @@ export const refunds = pgTable(
     notes: text('notes'),
     initiatedByUserId: text('initiated_by_user_id'),
   },
-  (table) => [
+  livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.pricingModelId]),
     constructIndex(TABLE_NAME, [table.paymentId]),
     constructIndex(TABLE_NAME, [table.subscriptionId]),
@@ -89,8 +89,7 @@ export const refunds = pgTable(
         using: orgIdEqualsCurrentSQL(),
       }
     ),
-    livemodePolicy(TABLE_NAME),
-  ]
+  ])
 ).enableRLS()
 
 const columnRefinements = {

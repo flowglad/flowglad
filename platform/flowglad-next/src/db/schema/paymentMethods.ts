@@ -11,7 +11,7 @@ import {
   createPaginatedSelectSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   metadataSchema,
   notNullStringForeignKey,

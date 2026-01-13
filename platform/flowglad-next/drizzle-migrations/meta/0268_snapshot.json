@@ -1,5 +1,5 @@
 {
-  "id": "91a95189-399f-4320-a9d8-40175dd827e1",
+  "id": "98cf7846-fdc4-43e6-abef-65cfccefaadf",
   "prevId": "3f727031-8d56-4bfb-a155-80352c40f542",
   "version": "7",
   "dialect": "postgresql",
@@ -1786,7 +1786,7 @@
           "name": "pricing_model_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "stack_auth_hosted_billing_user_id": {
           "name": "stack_auth_hosted_billing_user_id",
@@ -1868,11 +1868,11 @@
           "method": "btree",
           "with": {}
         },
-        "customers_pricing_model_id_external_id_unique_idx": {
-          "name": "customers_pricing_model_id_external_id_unique_idx",
+        "customers_organization_id_external_id_livemode_unique_idx": {
+          "name": "customers_organization_id_external_id_livemode_unique_idx",
           "columns": [
             {
-              "expression": "pricing_model_id",
+              "expression": "organization_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1882,6 +1882,12 @@
               "isExpression": false,
               "asc": true,
               "nulls": "last"
+            },
+            {
+              "expression": "livemode",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
             }
           ],
           "isUnique": true,
@@ -1889,11 +1895,11 @@
           "method": "btree",
           "with": {}
         },
-        "customers_pricing_model_id_invoice_number_base_unique_idx": {
-          "name": "customers_pricing_model_id_invoice_number_base_unique_idx",
+        "customers_organization_id_invoice_number_base_livemode_unique_idx": {
+          "name": "customers_organization_id_invoice_number_base_livemode_unique_idx",
           "columns": [
             {
-              "expression": "pricing_model_id",
+              "expression": "organization_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1903,6 +1909,12 @@
               "isExpression": false,
               "asc": true,
               "nulls": "last"
+            },
+            {
+              "expression": "livemode",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
             }
           ],
           "isUnique": true,
@@ -1910,17 +1922,11 @@
           "method": "btree",
           "with": {}
         },
-        "customers_stripe_customer_id_pricing_model_id_unique_idx": {
-          "name": "customers_stripe_customer_id_pricing_model_id_unique_idx",
+        "customers_stripe_customer_id_unique_idx": {
+          "name": "customers_stripe_customer_id_unique_idx",
           "columns": [
             {
               "expression": "stripe_customer_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "pricing_model_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -5310,6 +5316,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "notification_preferences": {
+          "name": "notification_preferences",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::jsonb"
         }
       },
       "indexes": {
@@ -5787,12 +5800,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "pricing_model_id": {
-          "name": "pricing_model_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "billing_details": {
           "name": "billing_details",
           "type": "jsonb",
@@ -5869,32 +5876,11 @@
           "method": "btree",
           "with": {}
         },
-        "payment_methods_pricing_model_id_idx": {
-          "name": "payment_methods_pricing_model_id_idx",
-          "columns": [
-            {
-              "expression": "pricing_model_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "payment_methods_external_id_pricing_model_id_unique_idx": {
-          "name": "payment_methods_external_id_pricing_model_id_unique_idx",
+        "payment_methods_external_id_unique_idx": {
+          "name": "payment_methods_external_id_unique_idx",
           "columns": [
             {
               "expression": "external_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "pricing_model_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -5912,15 +5898,6 @@
           "tableFrom": "payment_methods",
           "tableTo": "customers",
           "columnsFrom": ["customer_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "payment_methods_pricing_model_id_pricing_models_id_fk": {
-          "name": "payment_methods_pricing_model_id_pricing_models_id_fk",
-          "tableFrom": "payment_methods",
-          "tableTo": "pricing_models",
-          "columnsFrom": ["pricing_model_id"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"

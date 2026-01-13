@@ -72,7 +72,7 @@ function getEndOfDayUTC(date: Date): Date {
  *
  * NOTE: The "Today" preset uses UTC dates to ensure hourly charts display
  * 00:00-23:00 consistently, matching the backend's UTC-based processing.
- * This is the same approach used by LemonSqueezy and other analytics platforms.
+ * This is a common approach used by analytics platforms.
  */
 function createDefaultPresets(): DateRangePreset[] {
   const now = new Date()
@@ -438,9 +438,11 @@ export function DateRangePicker({
         <PopoverTrigger asChild>
           <Button
             id="date"
-            variant="secondary"
-            size="sm"
-            className={cn(!fromDate && 'text-muted-foreground')}
+            variant="ghost"
+            className={cn(
+              'text-foreground',
+              !fromDate && 'text-muted-foreground'
+            )}
             disabled={disabled}
           >
             {formatDateRange()}
@@ -461,8 +463,7 @@ export function DateRangePicker({
                   size="sm"
                   className={cn(
                     'shrink-0 font-normal sm:border-0 sm:bg-transparent sm:rounded-none sm:justify-start sm:px-5',
-                    isPresetActive(preset) &&
-                      'font-medium bg-accent sm:bg-accent'
+                    isPresetActive(preset) && 'font-medium'
                   )}
                   onClick={() => handlePresetClick(preset)}
                 >
