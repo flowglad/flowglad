@@ -1,5 +1,36 @@
 # @flowglad/server
 
+## 0.17.0
+
+### Minor Changes
+
+- Better Auth Plugin Rework (GP-51): Expose all Flowglad API routes through Better Auth
+
+  - All 11 `FlowgladActionKey` routes now accessible via Better Auth endpoints at `/api/auth/flowglad/{action-key}`
+  - Authentication enforced via Better Auth session on all endpoints
+  - Input validation using existing Zod validators from `flowgladActionValidators`
+  - `customerType: 'organization'` correctly uses `activeOrganizationId` as `customerExternalId`
+  - `customerType: 'organization'` returns explicit `NO_ACTIVE_ORGANIZATION` error when no active org (no silent fallback)
+  - `customerType: 'user'` (default) uses `userId` as `customerExternalId`
+  - Custom `getCustomer` function overrides default behavior when provided
+  - Exhaustiveness test ensures all `FlowgladActionKey` values have corresponding endpoints
+  - Consistent error format: `{ error: { code, message, details? } }`
+
+  ### React Package Updates
+
+  - New `betterAuthBasePath` prop on `FlowgladProvider` routes API calls through Better Auth
+  - When set to `/api/auth`, calls route to `/api/auth/flowglad/*` instead of `/api/flowglad/*`
+  - Backward compatible: existing `baseURL` prop continues to work for standalone route handlers
+
+  ## Breaking Changes
+
+  ⚠️ **None** - All changes are additive. Existing functionality remains unchanged. The `betterAuthBasePath` prop is optional, and users who don't use Better Auth continue using `baseURL` with their own `/api/flowglad` route handler.
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/shared@0.17.0
+
 ## 0.16.2
 
 ### Patch Changes
