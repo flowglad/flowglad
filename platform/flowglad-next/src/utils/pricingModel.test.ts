@@ -2662,7 +2662,24 @@ describe('createProductTransaction', () => {
   })
 
   it('should throw an error when creating a SinglePayment product with toggle features', async () => {
-    const toggleFeatureIds = features.map((f) => f.id)
+    // Create toggle features with livemode: true to match the API key's livemode
+    // This ensures RLS allows the features to be visible during validation
+    const livemodeToggleFeatureA = await setupToggleFeature({
+      name: 'Livemode Feature A',
+      organizationId: organization.id,
+      livemode: true,
+      pricingModelId: sourcePricingModel.id,
+    })
+    const livemodeToggleFeatureB = await setupToggleFeature({
+      name: 'Livemode Feature B',
+      organizationId: organization.id,
+      livemode: true,
+      pricingModelId: sourcePricingModel.id,
+    })
+    const toggleFeatureIds = [
+      livemodeToggleFeatureA.id,
+      livemodeToggleFeatureB.id,
+    ]
 
     await expect(
       authenticatedTransaction(
