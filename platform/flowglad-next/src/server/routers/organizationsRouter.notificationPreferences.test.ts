@@ -170,17 +170,19 @@ describe('organizationsRouter notification preferences', () => {
 
     it('updates specified preferences while preserving unspecified ones', async () => {
       // First set some initial preferences
-      await adminTransaction(async ({ transaction }) => {
-        await updateMembership(
-          {
-            id: membership.id,
-            notificationPreferences: {
-              subscriptionCreated: false,
+      const adminUpdatedMembership = await adminTransaction(
+        async ({ transaction }) => {
+          return updateMembership(
+            {
+              id: membership.id,
+              notificationPreferences: {
+                subscriptionCreated: false,
+              },
             },
-          },
-          transaction
-        )
-      })
+            transaction
+          )
+        }
+      )
 
       const caller = createCaller(organization, apiKeyToken, user)
 

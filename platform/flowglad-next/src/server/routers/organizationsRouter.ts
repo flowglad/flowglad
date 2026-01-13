@@ -469,8 +469,24 @@ const getNotificationPreferences = protectedProcedure
     )
   )
 
+/**
+ * Input schema for updating notification preferences.
+ * Uses a schema WITHOUT defaults to allow partial updates.
+ * Only the fields explicitly provided will be updated.
+ */
 const updateNotificationPreferencesInputSchema = z.object({
-  preferences: notificationPreferencesSchema.partial(),
+  preferences: z
+    .object({
+      testModeNotifications: z.boolean().optional(),
+      subscriptionCreated: z.boolean().optional(),
+      subscriptionAdjusted: z.boolean().optional(),
+      subscriptionCanceled: z.boolean().optional(),
+      subscriptionCancellationScheduled: z.boolean().optional(),
+      paymentFailed: z.boolean().optional(),
+      onboardingCompleted: z.boolean().optional(),
+      payoutsEnabled: z.boolean().optional(),
+    })
+    .partial(),
 })
 
 const updateNotificationPreferencesOutputSchema = z.object({
