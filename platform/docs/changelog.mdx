@@ -4,6 +4,37 @@ description: "Latest updates and changes to the Flowglad platform"
 rss: true
 ---
 
+<Update label="December 9, 2025">
+  ## Highlights
+
+  - Use price slugs instead of IDs when creating subscriptions and usage events for cleaner, more maintainable code. [#876](https://github.com/flowglad/flowglad/pull/876), [#879](https://github.com/flowglad/flowglad/pull/879)
+  - Receive email notifications when subscriptions are scheduled for cancellation or actually canceled. [#882](https://github.com/flowglad/flowglad/pull/882), [#891](https://github.com/flowglad/flowglad/pull/891), [#854](https://github.com/flowglad/flowglad/pull/854)
+  - Enhanced subscription details page with better product cards, feature access section, and customer information. [#836](https://github.com/flowglad/flowglad/pull/836), [#851](https://github.com/flowglad/flowglad/pull/851), [#844](https://github.com/flowglad/flowglad/pull/844)
+
+  ## New Features
+
+  - Price slug support in SDK: create subscriptions and usage events using price slugs instead of IDs. [#876](https://github.com/flowglad/flowglad/pull/876), [#879](https://github.com/flowglad/flowglad/pull/879)
+  - Customer subscription cancellation notifications: customers receive emails when subscriptions are canceled or scheduled for cancellation. [#854](https://github.com/flowglad/flowglad/pull/854), [#855](https://github.com/flowglad/flowglad/pull/855), [#882](https://github.com/flowglad/flowglad/pull/882)
+  - Organization subscription cancellation scheduled notifications: organizations receive emails when subscription cancellations are scheduled. [#891](https://github.com/flowglad/flowglad/pull/891)
+  - Feature Access section on subscription details page showing all features and usage credit grants. [#851](https://github.com/flowglad/flowglad/pull/851)
+  - Customer card on subscription details page with quick navigation to customer profile. [#844](https://github.com/flowglad/flowglad/pull/844)
+  - Enhanced subscription details page with improved product cards, expandable sections, and better layout. [#836](https://github.com/flowglad/flowglad/pull/836)
+  - Improved onboarding experience with clearer copy, better visual feedback, and more actionable steps. [#832](https://github.com/flowglad/flowglad/pull/832)
+  - Comprehensive authentication examples and documentation for Better Auth, Supabase, Clerk, NextAuth, and custom auth. [#833](https://github.com/flowglad/flowglad/pull/833)
+  - Examples section in README with links to subscription model implementations. [#843](https://github.com/flowglad/flowglad/pull/843)
+
+  ## Improvements & Fixes
+
+  - Subscriptions now cancel immediately when the first payment fails on paid plans. [#915](https://github.com/flowglad/flowglad/pull/915)
+  - Free plan subscriptions can no longer be canceled to prevent accidental cancellations. [#838](https://github.com/flowglad/flowglad/pull/838)
+  - Subscription items and features now properly expire when subscriptions are canceled. [#839](https://github.com/flowglad/flowglad/pull/839)
+  - Billing portal magic links now only work for live mode customers. [#880](https://github.com/flowglad/flowglad/pull/880)
+  - Default product price updates are now ignored instead of causing errors. [#848](https://github.com/flowglad/flowglad/pull/848)
+  - Improved typography and font rendering across checkout interface components. [#892](https://github.com/flowglad/flowglad/pull/892)
+  - Manually added subscription features are now properly tracked with the manuallyCreated flag. [#889](https://github.com/flowglad/flowglad/pull/889)
+  - Billing runs now support adjustment runs with explicit tracking flags. [#884](https://github.com/flowglad/flowglad/pull/884)
+</Update>
+
 <Update label="November 18, 2025">
   ## Highlights
 
