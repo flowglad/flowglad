@@ -36,11 +36,7 @@ import {
   createBillingPeriodAndItems,
 } from '@/subscriptions/billingPeriodHelpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
-import {
-  createNoopContext,
-  noopEmitEvent,
-  noopInvalidateCache,
-} from '@/test-utils/transactionCallbacks'
+import { createNoopContext } from '@/test-utils/transactionCallbacks'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -260,7 +256,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           adminTransaction(async ({ transaction }) => {
             return attemptToTransitionSubscriptionBillingPeriod(
               testBillingPeriod,
-              transaction
+              createNoopContext(transaction)
             )
           })
         ).rejects.toThrow(/credit trial/)
@@ -385,10 +381,21 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Transition billing period
         const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
+          async ({
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const ctx = {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
             return attemptToTransitionSubscriptionBillingPeriod(
               currentBillingPeriod,
-              transaction
+              ctx
             )
           }
         )
@@ -455,10 +462,21 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
+          async ({
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const ctx = {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
             return attemptToTransitionSubscriptionBillingPeriod(
               billingPeriod,
-              transaction
+              ctx
             )
           }
         )
@@ -506,10 +524,21 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
+          async ({
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const ctx = {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
             return attemptToTransitionSubscriptionBillingPeriod(
               billingPeriod,
-              transaction
+              ctx
             )
           }
         )
@@ -564,10 +593,21 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
+          async ({
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const ctx = {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
             return attemptToTransitionSubscriptionBillingPeriod(
               billingPeriod,
-              transaction
+              ctx
             )
           }
         )
@@ -644,12 +684,25 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Attempting to transition should throw error for non-renewing subscription
         await expect(
-          comprehensiveAdminTransaction(async ({ transaction }) => {
-            return attemptToTransitionSubscriptionBillingPeriod(
-              billingPeriod,
-              transaction
-            )
-          })
+          comprehensiveAdminTransaction(
+            async ({
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }) => {
+              const ctx = {
+                transaction,
+                invalidateCache,
+                emitEvent,
+                enqueueLedgerCommand,
+              }
+              return attemptToTransitionSubscriptionBillingPeriod(
+                billingPeriod,
+                ctx
+              )
+            }
+          )
         ).rejects.toThrow(
           'Non-renewing subscriptions cannot have billing periods'
         )

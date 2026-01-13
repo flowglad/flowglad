@@ -25,7 +25,10 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import {
   BillingPeriodStatus,
@@ -33,7 +36,6 @@ import {
   LedgerTransactionType,
   SubscriptionStatus,
 } from '@/types'
-import type { CacheDependencyKey } from '@/utils/cache'
 import { CacheDependency } from '@/utils/cache'
 import { core } from '@/utils/core'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
@@ -203,8 +205,7 @@ export const attemptBillingPeriodClose = async (
 
 export const attemptToTransitionSubscriptionBillingPeriod = async (
   currentBillingPeriod: BillingPeriod.Record,
-  transaction: DbTransaction,
-  invalidateCache?: (...keys: CacheDependencyKey[]) => void
+  ctx: TransactionEffectsContext
 ): Promise<
   TransactionOutput<{
     subscription: Subscription.StandardRecord
@@ -212,6 +213,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     updatedBillingPeriod: BillingPeriod.Record
   }>
 > => {
+  const { transaction, invalidateCache } = ctx
   if (
     !currentBillingPeriod.endDate ||
     isNaN(currentBillingPeriod.endDate)
@@ -272,7 +274,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     const cacheKey = CacheDependency.customerSubscriptions(
       subscription.customerId
     )
-    invalidateCache?.(cacheKey)
+    invalidateCache(cacheKey)
     return {
       result: {
         subscription,
@@ -316,7 +318,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     const cacheKey = CacheDependency.customerSubscriptions(
       subscription.customerId
     )
-    invalidateCache?.(cacheKey)
+    invalidateCache(cacheKey)
     return {
       result: {
         subscription,
@@ -436,7 +438,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
   const cacheKey = CacheDependency.customerSubscriptions(
     subscription.customerId
   )
-  invalidateCache?.(cacheKey)
+  invalidateCache(cacheKey)
   return {
     result: { subscription, billingRun, updatedBillingPeriod },
     eventsToInsert: [],

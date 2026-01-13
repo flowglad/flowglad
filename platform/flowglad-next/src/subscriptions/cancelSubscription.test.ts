@@ -1398,7 +1398,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           },
         }
         const updatedSubscription =
-          await scheduleSubscriptionCancellation(params, transaction)
+          await scheduleSubscriptionCancellation(
+            params,
+            createNoopContext(transaction)
+          )
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
         )
@@ -1445,7 +1448,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         }
         const result = await scheduleSubscriptionCancellation(
           params,
-          transaction
+          createNoopContext(transaction)
         )
         expect(result.status).toBe(SubscriptionStatus.Canceled)
       })
@@ -1472,7 +1475,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           },
         }
         await expect(
-          scheduleSubscriptionCancellation(params, transaction)
+          scheduleSubscriptionCancellation(
+            params,
+            createNoopContext(transaction)
+          )
         ).rejects.toThrow(/non-renewing subscription/)
       })
     })
@@ -1494,7 +1500,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           },
         }
         await expect(
-          scheduleSubscriptionCancellation(params, transaction)
+          scheduleSubscriptionCancellation(
+            params,
+            createNoopContext(transaction)
+          )
         ).rejects.toThrow('No current billing period found')
       })
     })
@@ -1525,7 +1534,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           },
         }
         const updatedSubscription =
-          await scheduleSubscriptionCancellation(params, transaction)
+          await scheduleSubscriptionCancellation(
+            params,
+            createNoopContext(transaction)
+          )
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
         )
@@ -1583,7 +1595,10 @@ describe('Subscription Cancellation Test Suite', async () => {
         }
 
         // Schedule cancellation
-        await scheduleSubscriptionCancellation(params, transaction)
+        await scheduleSubscriptionCancellation(
+          params,
+          createNoopContext(transaction)
+        )
 
         // Verify all scheduled billing runs are now aborted
         const updatedBillingRun1 = await selectBillingRunById(
@@ -1637,7 +1652,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           },
         }
         const updatedSubscription =
-          await scheduleSubscriptionCancellation(params, transaction)
+          await scheduleSubscriptionCancellation(
+            params,
+            createNoopContext(transaction)
+          )
 
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
@@ -1701,7 +1719,10 @@ describe('Subscription Cancellation Test Suite', async () => {
                 SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
             },
           }
-          await scheduleSubscriptionCancellation(params, transaction)
+          await scheduleSubscriptionCancellation(
+            params,
+            createNoopContext(transaction)
+          )
         })
         expect(notificationSpy).toHaveBeenCalledTimes(1)
       } finally {
@@ -2028,8 +2049,14 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         // Call the function twice
-        await abortScheduledBillingRuns(subscription.id, transaction)
-        await abortScheduledBillingRuns(subscription.id, transaction)
+        await abortScheduledBillingRuns(
+          subscription.id,
+          createNoopContext(transaction)
+        )
+        await abortScheduledBillingRuns(
+          subscription.id,
+          createNoopContext(transaction)
+        )
 
         // Verify billing runs are still aborted (not double-aborted or in error state)
         const updatedBillingRun1 = await selectBillingRunById(
@@ -2560,7 +2587,10 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         const { result: updatedSubscription } =
-          await uncancelSubscription(subscription, transaction)
+          await uncancelSubscription(
+            subscription,
+            createNoopContext(transaction)
+          )
 
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Active
@@ -2583,7 +2613,10 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         const { result: updatedSubscription } =
-          await uncancelSubscription(subscription, transaction)
+          await uncancelSubscription(
+            subscription,
+            createNoopContext(transaction)
+          )
 
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Trialing
@@ -2603,7 +2636,10 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         const { result: updatedSubscription } =
-          await uncancelSubscription(subscription, transaction)
+          await uncancelSubscription(
+            subscription,
+            createNoopContext(transaction)
+          )
 
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Active
@@ -2623,7 +2659,10 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         const { result: updatedSubscription } =
-          await uncancelSubscription(subscription, transaction)
+          await uncancelSubscription(
+            subscription,
+            createNoopContext(transaction)
+          )
 
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Canceled
@@ -2652,7 +2691,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: BillingPeriodStatus.ScheduledToCancel,
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         const updatedBP = await selectBillingPeriodById(
           futureBP.id,
@@ -2682,7 +2724,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: BillingPeriodStatus.ScheduledToCancel,
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         const updatedBP = await selectBillingPeriodById(
           currentBP.id,
@@ -2705,7 +2750,10 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         const { result: updatedSubscription } =
-          await uncancelSubscription(subscription, transaction)
+          await uncancelSubscription(
+            subscription,
+            createNoopContext(transaction)
+          )
 
         expect(updatedSubscription.cancelScheduledAt).toBeNull()
       })
@@ -2743,7 +2791,10 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         await expect(
-          uncancelSubscription(paidSubscription, transaction)
+          uncancelSubscription(
+            paidSubscription,
+            createNoopContext(transaction)
+          )
         ).rejects.toThrow(
           /Cannot uncancel paid subscription without an active payment method/
         )
@@ -2782,7 +2833,10 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         const { result: updatedSubscription } =
-          await uncancelSubscription(freeSubscription, transaction)
+          await uncancelSubscription(
+            freeSubscription,
+            createNoopContext(transaction)
+          )
 
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Active
@@ -2816,7 +2870,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         const { result: updatedSubscription } =
           await uncancelSubscription(
             doNotChargeSubscription,
-            transaction
+            createNoopContext(transaction)
           )
 
         expect(updatedSubscription.status).toBe(
@@ -2854,7 +2908,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           scheduledFor: now + 3 * 60 * 60 * 1000,
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         // Check that a new billing run was created (should have 2 runs now)
         const billingRuns = await selectBillingRuns(
@@ -2900,7 +2957,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           lastPaymentIntentEventTimestamp: now - 1000, // Has a timestamp = Stripe aborted
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         // Check that NO new billing run was created (Stripe-aborted runs should be skipped)
         const billingRuns = await selectBillingRuns(
@@ -2958,7 +3018,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           lastPaymentIntentEventTimestamp: null, // No timestamp = cancellation aborted
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         // Check that a new Scheduled billing run was created
         const billingRuns = await selectBillingRuns(
@@ -3002,7 +3065,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           scheduledFor: now + 60 * 60 * 1000,
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         // Check that NO new billing run was created
         const billingRuns = await selectBillingRuns(
@@ -3046,7 +3112,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           scheduledFor: now + 60 * 60 * 1000,
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         // Check that NO new billing run was created
         const billingRuns = await selectBillingRuns(
@@ -3090,7 +3159,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           scheduledFor: now + 3 * 60 * 60 * 1000,
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         // Check that no additional billing run was created
         const billingRuns = await selectBillingRuns(
@@ -3132,7 +3204,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           scheduledFor: now - 30 * 60 * 1000, // in the past
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         // Check that no new billing run was created
         const billingRuns = await selectBillingRuns(
@@ -3171,7 +3246,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           transaction
         )
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         // Check that no billing run was created for the trial period
         const billingRuns = await selectBillingRuns(
@@ -3205,11 +3283,11 @@ describe('Subscription Cancellation Test Suite', async () => {
         // Call uncancel twice
         const { result: first } = await uncancelSubscription(
           subscription,
-          transaction
+          createNoopContext(transaction)
         )
         const { result: second } = await uncancelSubscription(
           first,
-          transaction
+          createNoopContext(transaction)
         )
 
         expect(first.status).toBe(SubscriptionStatus.Active)
@@ -3249,7 +3327,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: BillingPeriodStatus.ScheduledToCancel,
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         // Check that a billing run was created scheduled at period start
         const billingRuns = await selectBillingRuns(
@@ -3296,7 +3377,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: BillingPeriodStatus.ScheduledToCancel,
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         // Check that a billing run was created scheduled at period end
         const billingRuns = await selectBillingRuns(
@@ -3332,7 +3416,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: BillingPeriodStatus.ScheduledToCancel,
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         // Check that no billing run was created for the past period
         const billingRuns = await selectBillingRuns(
@@ -3383,7 +3470,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           scheduledFor: now + 2 * 60 * 60 * 1000, // Was scheduled for period end
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         // Check that a new billing run was created for the current period
         const billingRuns = await selectBillingRuns(
@@ -3439,7 +3529,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           scheduledFor: now - 60 * 60 * 1000, // Was scheduled at period start (past)
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         // Check that NO new billing run was created (start date is in past)
         const billingRuns = await selectBillingRuns(
@@ -3510,7 +3603,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           scheduledFor: now + 6 * 60 * 60 * 1000,
         })
 
-        await uncancelSubscription(subscription, transaction)
+        await uncancelSubscription(
+          subscription,
+          createNoopContext(transaction)
+        )
 
         // Verify current billing period reverted to Active
         const updatedCurrentBP = await selectBillingPeriodById(
@@ -3980,7 +4076,7 @@ describe('cancelSubscription with resources', async () => {
               SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
           },
         },
-        transaction
+        createNoopContext(transaction)
       )
     })
 
@@ -4153,7 +4249,10 @@ describe('Subscription cancellation cache invalidations', async () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return uncancelSubscription(subscription, transaction)
+          return uncancelSubscription(
+            subscription,
+            createNoopContext(transaction)
+          )
         }
       )
 
@@ -4185,7 +4284,10 @@ describe('Subscription cancellation cache invalidations', async () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return uncancelSubscription(subscription, transaction)
+          return uncancelSubscription(
+            subscription,
+            createNoopContext(transaction)
+          )
         }
       )
 

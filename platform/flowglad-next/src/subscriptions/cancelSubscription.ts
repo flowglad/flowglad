@@ -55,15 +55,15 @@ import {
   SubscriptionCancellationArrangement,
   SubscriptionStatus,
 } from '@/types'
-import type { CacheDependencyKey } from '@/utils/cache'
 import { CacheDependency } from '@/utils/cache'
 import { constructSubscriptionCanceledEventHash } from '@/utils/eventHelpers'
 
 // Abort all scheduled billing runs for a subscription
 export const abortScheduledBillingRuns = async (
   subscriptionId: string,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction } = ctx
   const scheduledBillingRuns = await selectBillingRuns(
     {
       subscriptionId,
@@ -364,7 +364,7 @@ export const cancelSubscriptionImmediately = async (
   /**
    * Abort all scheduled billing runs for the subscription
    */
-  await abortScheduledBillingRuns(subscription.id, transaction)
+  await abortScheduledBillingRuns(subscription.id, ctx)
 
   /**
    * Expire all subscription items and their features
@@ -441,8 +441,9 @@ export const cancelSubscriptionImmediately = async (
 // Schedule a subscription cancellation for the future
 export const scheduleSubscriptionCancellation = async (
   params: ScheduleSubscriptionCancellationParams,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<Subscription.Record> => {
+  const { transaction } = ctx
   const { id, cancellation } =
     scheduleSubscriptionCancellationSchema.parse(params)
   const { timing } = cancellation
@@ -534,7 +535,7 @@ export const scheduleSubscriptionCancellation = async (
   /**
    * Abort all scheduled billing runs for the subscription
    */
-  await abortScheduledBillingRuns(subscription.id, transaction)
+  await abortScheduledBillingRuns(subscription.id, ctx)
 
   const result = await safelyUpdateSubscriptionStatus(
     subscription,
@@ -660,10 +661,10 @@ export const cancelSubscriptionProcedureTransaction = async ({
   }
   const updatedSubscription = await scheduleSubscriptionCancellation(
     input,
-    transaction
+    ctx
   )
   // Queue cache invalidation via effects context
-  invalidateCache?.(
+  invalidateCache(
     CacheDependency.customerSubscriptions(
       updatedSubscription.customerId
     )
@@ -820,11 +821,11 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
  */
 export const uncancelSubscription = async (
   subscription: Subscription.Record,
-  transaction: DbTransaction,
-  invalidateCache?: (...keys: CacheDependencyKey[]) => void
+  ctx: TransactionEffectsContext
 ): Promise<TransactionOutput<Subscription.Record>> => {
+  const { transaction, invalidateCache } = ctx
   // Cache invalidation for this customer's subscriptions
-  invalidateCache?.(
+  invalidateCache(
     CacheDependency.customerSubscriptions(subscription.customerId)
   )
 
@@ -927,9 +928,18 @@ export const uncancelSubscriptionProcedureTransaction = async ({
   input,
   transaction,
   invalidateCache,
+  emitEvent,
+  enqueueLedgerCommand,
 }: UncancelSubscriptionProcedureParams): Promise<
   TransactionOutput<{ subscription: Subscription.ClientRecord }>
 > => {
+  const ctx: TransactionEffectsContext = {
+    transaction,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  }
+
   const subscription = await selectSubscriptionById(
     input.id,
     transaction
@@ -937,8 +947,7 @@ export const uncancelSubscriptionProcedureTransaction = async ({
 
   const { result: updatedSubscription } = await uncancelSubscription(
     subscription,
-    transaction,
-    invalidateCache
+    ctx
   )
 
   return {
