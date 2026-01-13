@@ -46,9 +46,9 @@ export async function getPricingModelSetupData(
     usageMeters.map((meter) => [meter.id, meter.slug])
   )
 
-  // Fetch all resources for this pricing model
+  // Fetch all active resources for this pricing model
   const resources = await selectResources(
-    { pricingModelId: pricingModel.id },
+    { pricingModelId: pricingModel.id, active: true },
     transaction
   )
 
@@ -152,7 +152,7 @@ export async function getPricingModelSetupData(
     } else if (feature.type === FeatureType.Resource) {
       if (!feature.resourceId) {
         throw new Error(
-          `Feature ${feature.slug} is a Resource but has no resourceId`
+          `Feature ${feature.slug} is a Resource feature but has no resourceId`
         )
       }
       const resourceSlug = resourceIdToSlug.get(feature.resourceId)
