@@ -1898,6 +1898,13 @@
       "when": 1768270587804,
       "tag": "0271_chubby_skullbuster",
       "breakpoints": true
+    },
+    {
+      "idx": 272,
+      "version": "7",
+      "when": 1768328438117,
+      "tag": "0272_parched_cammi",
+      "breakpoints": true
     }
   ]
 }
