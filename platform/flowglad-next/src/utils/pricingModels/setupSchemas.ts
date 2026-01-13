@@ -7,6 +7,7 @@ import {
   usageCreditGrantFeatureClientInsertSchema,
 } from '@/db/schema/features'
 import {
+  isReservedPriceSlug,
   singlePaymentPriceClientInsertSchema,
   subscriptionPriceClientInsertSchema,
   usagePriceClientInsertSchema,
@@ -127,6 +128,9 @@ export type SetupPricingModelProductPriceInput = z.infer<
 /**
  * Schema for usage prices that belong to usage meters.
  * Usage prices do NOT have productId - they belong to usage meters directly.
+ *
+ * Note: The `_no_charge` slug suffix is reserved for auto-generated fallback prices
+ * and cannot be used for user-created usage prices.
  */
 export const setupUsageMeterPriceInputSchema =
   usagePriceClientInsertSchema
@@ -136,6 +140,11 @@ export const setupUsageMeterPriceInputSchema =
     })
     .extend({
       ...priceOptionalFieldSchema,
+    })
+    .refine((data) => !isReservedPriceSlug(data.slug ?? ''), {
+      message:
+        'Usage price slugs ending with "_no_charge" are reserved for auto-generated fallback prices',
+      path: ['slug'],
     })
 
 export type SetupUsageMeterPriceInput = z.infer<

@@ -1287,6 +1287,221 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
   })
 })
 
+describe('pricesRouter - Reserved Slug Validation', () => {
+  let organizationId: string
+  let pricingModelId: string
+  let usageMeterId: string
+  let regularProductId: string
+  const livemode = true
+
+  beforeEach(async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const { organization } = await setupOrg()
+
+      // Create pricing model with default product
+      const bookkeepingResult = await createPricingModelBookkeeping(
+        {
+          pricingModel: {
+            name: 'Test Pricing Model for Reserved Slug',
+            isDefault: false,
+          },
+        },
+        {
+          transaction,
+          organizationId: organization.id,
+          livemode,
+        }
+      )
+
+      const pricingModelId = bookkeepingResult.result.pricingModel.id
+
+      // Create a usage meter
+      const usageMeter = await insertUsageMeter(
+        {
+          name: 'API Calls Reserved Test',
+          slug: 'api-calls-reserved-test',
+          organizationId: organization.id,
+          pricingModelId,
+          livemode,
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        transaction
+      )
+
+      // Create a regular product (for testing subscription prices)
+      const regularProduct = await insertProduct(
+        {
+          name: 'Regular Product Reserved Test',
+          slug: 'regular-product-reserved-test',
+          default: false,
+          description: null,
+          imageURL: null,
+          singularQuantityLabel: null,
+          pluralQuantityLabel: null,
+          externalId: null,
+          pricingModelId,
+          organizationId: organization.id,
+          livemode,
+          active: true,
+        },
+        transaction
+      )
+
+      return {
+        organizationId: organization.id,
+        pricingModelId,
+        usageMeterId: usageMeter.id,
+        regularProductId: regularProduct.id,
+      }
+    })
+
+    organizationId = result.organizationId
+    pricingModelId = result.pricingModelId
+    usageMeterId = result.usageMeterId
+    regularProductId = result.regularProductId
+  })
+
+  it('rejects usage price creation with _no_charge suffix via API', async () => {
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    const ctx = {
+      organizationId,
+      apiKey: apiKey.token!,
+      livemode,
+      environment: 'live' as const,
+      isApi: true as const,
+      path: '',
+    }
+
+    // Attempt to create a usage price with reserved slug
+    await expect(
+      pricesRouter.createCaller(ctx as TRPCApiContext).create({
+        price: {
+          type: PriceType.Usage,
+          usageMeterId,
+          productId: null,
+          unitPrice: 100,
+          isDefault: true,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          name: 'Reserved Slug Price',
+          usageEventsPerUnit: 1,
+          slug: 'meter_no_charge', // Reserved suffix
+        },
+      })
+    ).rejects.toThrow('_no_charge')
+  })
+
+  it('allows usage price creation with slug not ending in _no_charge', async () => {
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    const ctx = {
+      organizationId,
+      apiKey: apiKey.token!,
+      livemode,
+      environment: 'live' as const,
+      isApi: true as const,
+      path: '',
+    }
+
+    // Create a usage price with non-reserved slug
+    const result = await pricesRouter
+      .createCaller(ctx as TRPCApiContext)
+      .create({
+        price: {
+          type: PriceType.Usage,
+          usageMeterId,
+          productId: null,
+          unitPrice: 100,
+          isDefault: true,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          name: 'Custom Price',
+          usageEventsPerUnit: 1,
+          slug: 'meter_custom_price',
+        },
+      })
+
+    expect(result.price.slug).toBe('meter_custom_price')
+    expect(result.price.type).toBe(PriceType.Usage)
+  })
+
+  it('allows subscription price creation with _no_charge suffix (restriction only for usage prices)', async () => {
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    const ctx = {
+      organizationId,
+      apiKey: apiKey.token!,
+      livemode,
+      environment: 'live' as const,
+      isApi: true as const,
+      path: '',
+    }
+
+    // Create a subscription price with _no_charge suffix (should be allowed)
+    const result = await pricesRouter
+      .createCaller(ctx as TRPCApiContext)
+      .create({
+        price: {
+          type: PriceType.Subscription,
+          productId: regularProductId,
+          unitPrice: 0,
+          isDefault: true,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          name: 'Free Promo',
+          trialPeriodDays: 0,
+          slug: 'promo_no_charge', // Should be allowed for subscription
+        },
+      })
+
+    expect(result.price.slug).toBe('promo_no_charge')
+    expect(result.price.type).toBe(PriceType.Subscription)
+  })
+
+  it('rejects only suffix pattern, not slugs containing _no_charge elsewhere', async () => {
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    const ctx = {
+      organizationId,
+      apiKey: apiKey.token!,
+      livemode,
+      environment: 'live' as const,
+      isApi: true as const,
+      path: '',
+    }
+
+    // Create a usage price with _no_charge in the middle (should be allowed)
+    const result = await pricesRouter
+      .createCaller(ctx as TRPCApiContext)
+      .create({
+        price: {
+          type: PriceType.Usage,
+          usageMeterId,
+          productId: null,
+          unitPrice: 100,
+          isDefault: true,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          name: 'No Charge Extra',
+          usageEventsPerUnit: 1,
+          slug: 'no_charge_extra_price', // _no_charge not at end
+        },
+      })
+
+    expect(result.price.slug).toBe('no_charge_extra_price')
+    expect(result.price.type).toBe(PriceType.Usage)
+  })
+})
+
 describe('pricesRouter.replaceUsagePrice', () => {
   let organizationId: string
   let pricingModelId: string
