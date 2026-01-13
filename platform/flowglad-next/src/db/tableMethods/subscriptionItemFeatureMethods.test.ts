@@ -12,14 +12,11 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import db from '@/db/client'
-import { resourceClaims } from '@/db/schema/resourceClaims'
 import {
   resourceSubscriptionItemFeatureClientSelectSchema,
   resourceSubscriptionItemFeatureInsertSchema,
   resourceSubscriptionItemFeatureSelectSchema,
   type SubscriptionItemFeature,
-  subscriptionItemFeatures,
 } from '@/db/schema/subscriptionItemFeatures'
 import {
   CurrencyCode,
@@ -67,10 +64,6 @@ describe('subscriptionItemFeatureMethods', () => {
   let usageMeter: any
 
   beforeEach(async () => {
-    // Clear tables for isolation (resource_claims references subscription_item_features)
-    await db.delete(resourceClaims)
-    await db.delete(subscriptionItemFeatures)
-
     // Setup org, product, price, pricingModel
     const orgData = await setupOrg()
     organization = orgData.organization
