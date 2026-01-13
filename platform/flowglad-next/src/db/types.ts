@@ -98,6 +98,66 @@ export interface TransactionEffects {
 }
 
 /**
+ * Callback function signatures for transaction side effects.
+ * These are the methods used to queue cache invalidations, events, and ledger commands.
+ */
+export interface TransactionCallbacks {
+  /**
+   * Queue cache dependency keys to be invalidated after the transaction commits.
+   * Use CacheDependency helpers to construct keys.
+   *
+   * @example
+   * invalidateCache(
+   *   CacheDependency.subscriptionItemFeatures(itemId),
+   *   CacheDependency.customerSubscriptions(customerId)
+   * )
+   */
+  invalidateCache: (...keys: CacheDependencyKey[]) => void
+  /**
+   * Queue events to be inserted before the transaction commits.
+   *
+   * @example
+   * emitEvent(createSubscriptionCreatedEvent(subscription))
+   */
+  emitEvent: (...events: Event.Insert[]) => void
+  /**
+   * Queue ledger commands to be processed before the transaction commits.
+   *
+   * @example
+   * enqueueLedgerCommand(creditCommand)
+   */
+  enqueueLedgerCommand: (...commands: LedgerCommand[]) => void
+}
+
+/**
+ * Base properties shared by all transaction param types.
+ */
+export interface BaseTransactionParams {
+  transaction: DbTransaction
+  livemode: boolean
+}
+
+/**
+ * Effects fields with optional callbacks.
+ * Used by standard transaction wrappers where callbacks may not be provided.
+ */
+export type OptionalEffectsFields = {
+  /**
+   * Accumulated side effects. Only available when using transaction wrappers.
+   * Prefer using the callback methods.
+   */
+  effects?: TransactionEffects
+} & Partial<TransactionCallbacks>
+
+/**
+ * Effects fields with required callbacks.
+ * Used by comprehensive transaction wrappers that always provide callbacks.
+ */
+export type RequiredEffectsFields = {
+  effects: TransactionEffects
+} & TransactionCallbacks
+
+/**
  * Context object containing the transaction and effect callbacks.
  * Use this type for functions that need to emit side effects within a transaction.
  *
@@ -117,109 +177,39 @@ export interface TransactionEffects {
  * }
  * ```
  */
-export interface TransactionEffectsContext {
-  transaction: DbTransaction
-  /**
-   * Queue cache dependency keys to be invalidated after the transaction commits.
-   * Use CacheDependency helpers to construct keys.
-   */
-  invalidateCache: (...keys: CacheDependencyKey[]) => void
-  /**
-   * Queue events to be inserted before the transaction commits.
-   */
-  emitEvent: (...events: Event.Insert[]) => void
-  /**
-   * Queue ledger commands to be processed before the transaction commits.
-   */
-  enqueueLedgerCommand: (...commands: LedgerCommand[]) => void
-}
+export interface TransactionEffectsContext
+  extends Pick<BaseTransactionParams, 'transaction'>,
+    TransactionCallbacks {}
 
-export interface AuthenticatedTransactionParams {
-  transaction: DbTransaction
-  livemode: boolean
+export interface AuthenticatedTransactionParams
+  extends BaseTransactionParams,
+    OptionalEffectsFields {
   userId: string
   organizationId: string
-  /**
-   * Accumulated side effects. Only available when using transaction wrappers.
-   * Prefer using the helper methods below.
-   */
-  effects?: TransactionEffects
-  /**
-   * Queue cache dependency keys to be invalidated after the transaction commits.
-   * Use CacheDependency helpers to construct keys.
-   *
-   * @example
-   * params.invalidateCache(
-   *   CacheDependency.subscriptionItemFeatures(itemId),
-   *   CacheDependency.customerSubscriptions(customerId)
-   * )
-   */
-  invalidateCache?: (...keys: CacheDependencyKey[]) => void
-  /**
-   * Queue events to be inserted before the transaction commits.
-   *
-   * @example
-   * params.emitEvent(createSubscriptionCreatedEvent(subscription))
-   */
-  emitEvent?: (...events: Event.Insert[]) => void
-  /**
-   * Queue ledger commands to be processed before the transaction commits.
-   *
-   * @example
-   * params.enqueueLedgerCommand(creditCommand)
-   */
-  enqueueLedgerCommand?: (...commands: LedgerCommand[]) => void
 }
 
-export interface AdminTransactionParams {
-  transaction: DbTransaction
+export interface AdminTransactionParams
+  extends BaseTransactionParams,
+    OptionalEffectsFields {
   userId: 'ADMIN'
-  livemode: boolean
-  /**
-   * Accumulated side effects. Only available when using transaction wrappers.
-   * Prefer using the helper methods below.
-   */
-  effects?: TransactionEffects
-  /**
-   * Queue cache dependency keys to be invalidated after the transaction commits.
-   * Use CacheDependency helpers to construct keys.
-   */
-  invalidateCache?: (...keys: CacheDependencyKey[]) => void
-  /**
-   * Queue events to be inserted before the transaction commits.
-   */
-  emitEvent?: (...events: Event.Insert[]) => void
-  /**
-   * Queue ledger commands to be processed before the transaction commits.
-   */
-  enqueueLedgerCommand?: (...commands: LedgerCommand[]) => void
 }
 
 /**
  * Stricter version of AuthenticatedTransactionParams used by comprehensiveAuthenticatedTransaction.
  * All callback methods are required (not optional) since they're always provided at runtime.
  */
-export interface ComprehensiveAuthenticatedTransactionParams {
-  transaction: DbTransaction
-  livemode: boolean
-  userId: string
-  organizationId: string
-  effects: TransactionEffects
-  invalidateCache: (...keys: CacheDependencyKey[]) => void
-  emitEvent: (...events: Event.Insert[]) => void
-  enqueueLedgerCommand: (...commands: LedgerCommand[]) => void
-}
+export type ComprehensiveAuthenticatedTransactionParams = Omit<
+  AuthenticatedTransactionParams,
+  keyof OptionalEffectsFields
+> &
+  RequiredEffectsFields
 
 /**
  * Stricter version of AdminTransactionParams used by comprehensiveAdminTransaction.
  * All callback methods are required (not optional) since they're always provided at runtime.
  */
-export interface ComprehensiveAdminTransactionParams {
-  transaction: DbTransaction
-  userId: 'ADMIN'
-  livemode: boolean
-  effects: TransactionEffects
-  invalidateCache: (...keys: CacheDependencyKey[]) => void
-  emitEvent: (...events: Event.Insert[]) => void
-  enqueueLedgerCommand: (...commands: LedgerCommand[]) => void
-}
+export type ComprehensiveAdminTransactionParams = Omit<
+  AdminTransactionParams,
+  keyof OptionalEffectsFields
+> &
+  RequiredEffectsFields

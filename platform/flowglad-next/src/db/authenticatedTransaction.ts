@@ -3,20 +3,19 @@ import { sql } from 'drizzle-orm'
 import type {
   AuthenticatedTransactionParams,
   ComprehensiveAuthenticatedTransactionParams,
-  TransactionEffects,
 } from '@/db/types'
-import {
-  type CacheDependencyKey,
-  invalidateDependencies,
-} from '@/utils/cache'
 import core from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
-import { processLedgerCommand } from './ledgerManager/ledgerManager'
-import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 import type { Event } from './schema/events'
 import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
+import {
+  coalesceEffects,
+  createEffectsAccumulator,
+  invalidateCacheAfterCommit,
+  processEffectsInTransaction,
+} from './transactionEffectsHelpers'
 import type { TransactionOutput } from './transactionEnhacementTypes'
 
 interface AuthenticatedTransactionOptions {
@@ -77,28 +76,17 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       customerId,
     })
 
-  // Create effects accumulator - shared across all nested function calls
-  const effects: TransactionEffects = {
-    cacheInvalidations: [],
-    eventsToInsert: [],
-    ledgerCommands: [],
-  }
+  // Create effects accumulator and callbacks
+  const {
+    effects,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  } = createEffectsAccumulator()
 
-  // Helper functions that push to the effects arrays
-  const invalidateCache = (...keys: CacheDependencyKey[]) => {
-    effects.cacheInvalidations.push(...keys)
-  }
-  const emitEvent = (...events: Event.Insert[]) => {
-    effects.eventsToInsert.push(...events)
-  }
-  const enqueueLedgerCommand = (...commands: LedgerCommand[]) => {
-    effects.ledgerCommands.push(...commands)
-  }
-
-  // Collect cache invalidations to process after commit (from both effects and output)
-  let cacheInvalidations: CacheDependencyKey[] = []
-
-  // Track processed counts for observability
+  // Track coalesced effects for post-commit processing
+  let coalescedCacheInvalidations: typeof effects.cacheInvalidations =
+    []
   let processedEventsCount = 0
   let processedLedgerCommandsCount = 0
 
@@ -145,47 +133,15 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
 
     const output = await fn(paramsForFn)
 
-    // Validate that only one of ledgerCommand or ledgerCommands is provided in output
-    if (
-      output.ledgerCommand &&
-      output.ledgerCommands &&
-      output.ledgerCommands.length > 0
-    ) {
-      throw new Error(
-        'Cannot provide both ledgerCommand and ledgerCommands. Please provide only one.'
-      )
-    }
-
-    // Merge effects with output - effects accumulator takes precedence for arrays
-    const allEvents = [
-      ...effects.eventsToInsert,
-      ...(output.eventsToInsert ?? []),
-    ]
-    const allLedgerCommands = [
-      ...effects.ledgerCommands,
-      ...(output.ledgerCommand ? [output.ledgerCommand] : []),
-      ...(output.ledgerCommands ?? []),
-    ]
-
-    // Record counts for observability (before processing)
-    processedEventsCount = allEvents.length
-    processedLedgerCommandsCount = allLedgerCommands.length
-
-    // Process events if any
-    if (allEvents.length > 0) {
-      await bulkInsertOrDoNothingEventsByHash(allEvents, transaction)
-    }
-
-    // Process ledger commands if any
-    for (const command of allLedgerCommands) {
-      await processLedgerCommand(command, transaction)
-    }
-
-    // Collect cache invalidations from both sources (don't process yet - wait for commit)
-    cacheInvalidations = [
-      ...effects.cacheInvalidations,
-      ...(output.cacheInvalidations ?? []),
-    ]
+    // Coalesce effects from accumulator and output, then process
+    const coalesced = coalesceEffects(effects, output)
+    const counts = await processEffectsInTransaction(
+      coalesced,
+      transaction
+    )
+    processedEventsCount = counts.eventsCount
+    processedLedgerCommandsCount = counts.ledgerCommandsCount
+    coalescedCacheInvalidations = coalesced.cacheInvalidations
 
     // RESET ROLE is not strictly necessary with SET LOCAL ROLE, as the role is session-local.
     // However, keeping it doesn't harm and can be an explicit cleanup.
@@ -195,12 +151,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
   })
 
   // Transaction committed successfully - now invalidate caches
-  // Fire-and-forget; errors are logged but don't fail the request
-  if (cacheInvalidations.length > 0) {
-    // Deduplicate cache invalidation keys to reduce unnecessary Redis operations
-    const uniqueInvalidations = [...new Set(cacheInvalidations)]
-    void invalidateDependencies(uniqueInvalidations)
-  }
+  invalidateCacheAfterCommit(coalescedCacheInvalidations)
 
   return {
     output,
