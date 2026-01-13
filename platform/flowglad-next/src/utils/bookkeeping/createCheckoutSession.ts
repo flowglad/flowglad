@@ -232,6 +232,15 @@ export const createCheckoutSessionTransaction = async (
         { id: resolvedPriceId! },
         transaction
       )
+
+    // When no result is found, it means the price either doesn't exist or is a usage price
+    // (usage prices have null productId, so the innerJoin in the query returns no results)
+    if (!result) {
+      throw new Error(
+        'Checkout sessions are only supported for product prices (subscription/single payment), not usage prices'
+      )
+    }
+
     price = result.price
     product = result.product
     organization = result.organization

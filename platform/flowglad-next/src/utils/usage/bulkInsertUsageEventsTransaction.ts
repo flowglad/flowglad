@@ -408,6 +408,16 @@ export const bulkInsertUsageEventsTransaction = async (
         }
       }
 
+      // Also include usage prices that don't have a productId
+      // (usage prices belong to usage meters, not products)
+      const usagePricesFromDb = await selectPrices(
+        { pricingModelId: pricingModel.id, active: true },
+        transaction
+      )
+      for (const price of usagePricesFromDb) {
+        pricingModelPriceIds.add(price.id)
+      }
+
       for (const { priceId, index } of events) {
         if (!pricingModelPriceIds.has(priceId)) {
           throw new TRPCError({

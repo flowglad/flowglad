@@ -681,7 +681,7 @@ describe('priceMethods.ts', () => {
           },
           transaction
         )
-        expect(insertedPrice.id).toMatch(/^prc_/)
+        expect(insertedPrice.id).toMatch(/^price_/)
         expect(insertedPrice.slug).toBe(slug2)
         expect(insertedPrice.active).toBe(true)
       })

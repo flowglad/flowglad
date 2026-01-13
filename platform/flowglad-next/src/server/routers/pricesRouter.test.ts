@@ -1206,7 +1206,7 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
           },
         })
 
-      expect(result.price.id).toMatch(/^prc_/)
+      expect(result.price.id).toMatch(/^price_/)
       expect(result.price.type).toBe(PriceType.Usage)
       expect(result.price.productId).toBeNull()
       expect(result.price.usageMeterId).toBe(usageMeterId)
