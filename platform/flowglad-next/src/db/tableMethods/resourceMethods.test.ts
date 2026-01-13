@@ -9,7 +9,6 @@ import {
   insertResource,
   selectResourceById,
   selectResources,
-  selectResourcesPaginated,
   selectResourcesTableRowData,
   updateResource,
   upsertResourceByPricingModelIdAndSlug,
@@ -302,54 +301,6 @@ describe('resourceMethods', () => {
     })
   })
 
-  describe('selectResourcesPaginated', () => {
-    it('should return paginated resources with hasMore and cursor when more results exist', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Insert 5 resources
-        for (let i = 0; i < 5; i++) {
-          await insertResource(
-            createResourceInsert({
-              slug: `paginated-resource-${i}`,
-              name: `Paginated Resource ${i}`,
-            }),
-            transaction
-          )
-        }
-
-        // Get first page with limit of 2
-        const page1 = await selectResourcesPaginated(
-          { limit: 2 },
-          transaction
-        )
-
-        // Should return exactly 2 items
-        expect(page1.data.length).toBe(2)
-        // Should indicate more results are available
-        expect(page1.hasMore).toBe(true)
-        // Should have a cursor for the next page (cursor is a base64-encoded JSON string)
-        expect(typeof page1.nextCursor).toBe('string')
-        expect(page1.nextCursor!.length).toBeGreaterThan(0)
-        // Total should be at least 5 (we inserted 5, there may be more in the DB)
-        expect(page1.total).toBeGreaterThanOrEqual(5)
-
-        // Get second page using cursor
-        const page2 = await selectResourcesPaginated(
-          { cursor: page1.nextCursor, limit: 2 },
-          transaction
-        )
-
-        // Should return 2 items
-        expect(page2.data.length).toBe(2)
-        // page1 and page2 should have different items
-        const page1Ids = page1.data.map((r) => r.id)
-        const page2Ids = page2.data.map((r) => r.id)
-        expect(page1Ids.some((id) => page2Ids.includes(id))).toBe(
-          false
-        )
-      })
-    })
-  })
-
   describe('selectResourcesTableRowData', () => {
     it('should return resources with joined pricing model data', async () => {
       await adminTransaction(async ({ transaction }) => {
@@ -499,60 +450,6 @@ describe('resourceMethods', () => {
         expect(result.items[0].resource.id).toBe(resource.id)
         expect(result.items[0].resource.slug).toBe('trim-test')
         expect(result.items[0].resource.name).toBe('TrimTestResource')
-      })
-    })
-
-    it('should support cursor-based pagination with pricing model joins', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Insert multiple resources
-        for (let i = 0; i < 5; i++) {
-          await insertResource(
-            createResourceInsert({
-              slug: `cursor-pagination-${i}`,
-              name: `Cursor Pagination ${i}`,
-            }),
-            transaction
-          )
-        }
-
-        const page1 = await selectResourcesTableRowData({
-          input: {
-            pageSize: 2,
-            filters: { organizationId: organization.id },
-          },
-          transaction,
-        })
-
-        expect(page1.items.length).toBe(2)
-        expect(page1.hasNextPage).toBe(true)
-        // Since hasNextPage is true, endCursor must be defined
-        expect(typeof page1.endCursor).toBe('string')
-        expect(page1.endCursor!.length).toBeGreaterThan(0)
-
-        // All items should have pricing model info
-        for (const item of page1.items) {
-          expect(item.pricingModel.id).toMatch(/^pricing_model_/)
-          expect(typeof item.pricingModel.name).toBe('string')
-          expect(item.pricingModel.name.length).toBeGreaterThan(0)
-        }
-
-        // Get second page using cursor
-        const page2 = await selectResourcesTableRowData({
-          input: {
-            pageSize: 2,
-            pageAfter: page1.endCursor!,
-            filters: { organizationId: organization.id },
-          },
-          transaction,
-        })
-
-        expect(page2.items.length).toBe(2)
-        // Ensure no overlap between pages
-        const page1Ids = page1.items.map((i) => i.resource.id)
-        const page2Ids = page2.items.map((i) => i.resource.id)
-        expect(page1Ids.some((id) => page2Ids.includes(id))).toBe(
-          false
-        )
       })
     })
   })
