@@ -15,7 +15,9 @@ import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   selectPriceById,
   selectPrices,
+  selectResourceFeaturesForPrices,
 } from '@/db/tableMethods/priceMethods'
+import { countActiveResourceClaimsBatch } from '@/db/tableMethods/resourceClaimMethods'
 import {
   bulkCreateOrUpdateSubscriptionItems,
   expireSubscriptionItems,
@@ -37,6 +39,10 @@ import {
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
+import {
+  CacheDependency,
+  type CacheDependencyKey,
+} from '@/utils/cache'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
   createBillingRun,
@@ -321,6 +327,11 @@ export interface AdjustSubscriptionResult {
    * The caller should wait for this run to complete before considering the adjustment done.
    */
   pendingBillingRunId?: string
+  /**
+   * Cache dependency keys to invalidate after the transaction commits.
+   * These should be passed to invalidateDependencies after the transaction.
+   */
+  cacheInvalidations: CacheDependencyKey[]
 }
 
 /**
@@ -380,6 +391,11 @@ export const adjustSubscription = async (
   if (subscription.doNotCharge) {
     throw new Error(
       'Cannot adjust doNotCharge subscriptions. Cancel and create a new subscription instead.'
+    )
+  }
+  if (subscription.isFreePlan) {
+    throw new Error(
+      'Cannot adjust free plan subscriptions. Use createSubscription to upgrade from a free plan instead.'
     )
   }
 
@@ -559,6 +575,81 @@ export const adjustSubscription = async (
     0
   )
 
+  // Validate resource capacity for downgrades
+  // Batch fetch all resource features and claim counts to avoid N+1 queries
+  const itemPriceIds = nonManualSubscriptionItems
+    .map((item) => item.priceId)
+    .filter((id): id is string => id != null)
+
+  if (itemPriceIds.length > 0) {
+    // Batch fetch resource features for all prices
+    const priceToResourceFeatures =
+      await selectResourceFeaturesForPrices(itemPriceIds, transaction)
+
+    // Collect all unique resourceIds across all features
+    const allResourceIds = new Set<string>()
+    for (const features of priceToResourceFeatures.values()) {
+      for (const feature of features) {
+        allResourceIds.add(feature.resourceId)
+      }
+    }
+
+    // Batch fetch claim counts for all resources
+    const resourceClaimCounts =
+      allResourceIds.size > 0
+        ? await countActiveResourceClaimsBatch(
+            {
+              subscriptionId: subscription.id,
+              resourceIds: [...allResourceIds],
+            },
+            transaction
+          )
+        : new Map<string, number>()
+
+    // Aggregate capacity by resourceId across all subscription items
+    // Multiple items may provide capacity for the same resource
+    const resourceCapacityMap = new Map<
+      string,
+      { totalCapacity: number; featureSlug: string }
+    >()
+    for (const newItem of nonManualSubscriptionItems) {
+      if (!newItem.priceId) continue
+
+      const resourceFeatures =
+        priceToResourceFeatures.get(newItem.priceId) ?? []
+
+      for (const feature of resourceFeatures) {
+        // Calculate capacity contribution: feature.amount (per unit) * item quantity
+        const capacityContribution = feature.amount * newItem.quantity
+        const existing = resourceCapacityMap.get(feature.resourceId)
+        if (existing) {
+          existing.totalCapacity += capacityContribution
+        } else {
+          resourceCapacityMap.set(feature.resourceId, {
+            totalCapacity: capacityContribution,
+            featureSlug: feature.slug,
+          })
+        }
+      }
+    }
+
+    // Validate aggregated capacity against active claims
+    for (const [
+      resourceId,
+      { totalCapacity, featureSlug },
+    ] of resourceCapacityMap) {
+      const activeClaims = resourceClaimCounts.get(resourceId) ?? 0
+
+      if (activeClaims > totalCapacity) {
+        throw new Error(
+          `Cannot reduce ${featureSlug} capacity to ${totalCapacity}. ` +
+            `${activeClaims} resources are currently claimed. ` +
+            `Release ${activeClaims - totalCapacity} claims before downgrading.`
+        )
+      }
+    }
+  }
+
   const isUpgrade = newPlanTotalPrice > oldPlanTotalPrice
 
   // Resolve 'auto' timing to actual timing based on upgrade vs downgrade
@@ -606,6 +697,9 @@ export const adjustSubscription = async (
 
   // Track pending billing run ID for immediate adjustments with proration
   let pendingBillingRunId: string | undefined
+
+  // Track cache invalidations - populated in non-billing-run path
+  let cacheInvalidations: CacheDependencyKey[] = []
 
   if (netChargeAmount > 0 && shouldProrate) {
     // Format description similar to createSubscription pattern: single-line with key info
@@ -693,12 +787,13 @@ export const adjustSubscription = async (
       livemode: subscription.livemode,
     }))
 
-    await handleSubscriptionItemAdjustment({
+    const adjustmentResult = await handleSubscriptionItemAdjustment({
       subscriptionId: id,
       newSubscriptionItems: preparedItems,
       adjustmentDate: adjustmentDate,
       transaction,
     })
+    cacheInvalidations = adjustmentResult.cacheInvalidations
 
     // For AtEndOfCurrentBillingPeriod, don't sync with future-dated items
     // Sync using current time to preserve the current subscription state
@@ -782,6 +877,13 @@ export const adjustSubscription = async (
     id,
     transaction
   )
+  // For billing run path, invalidate cache after billing run completes
+  // The actual subscription item changes happen in processOutcomeForBillingRun
+  // But we still need to signal that subscription data has changed
+  if (pendingBillingRunId && cacheInvalidations.length === 0) {
+    cacheInvalidations = [CacheDependency.subscriptionItems(id)]
+  }
+
   return {
     subscription: standardSubscriptionSelectSchema.parse(
       updatedSubscription
@@ -790,5 +892,6 @@ export const adjustSubscription = async (
     resolvedTiming,
     isUpgrade,
     pendingBillingRunId,
+    cacheInvalidations,
   }
 }

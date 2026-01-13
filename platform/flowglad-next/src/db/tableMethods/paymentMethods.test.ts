@@ -92,7 +92,7 @@ describe('paymentMethods.ts', () => {
 
         expect(updatedPayment.refunded).toBe(true)
         expect(updatedPayment.refundedAmount).toBe(payment.amount)
-        expect(updatedPayment.refundedAt).not.toBeNull()
+        expect(typeof updatedPayment.refundedAt).toBe('number')
       })
     })
     it('fails if refund status is not explicitly set', async () => {
@@ -533,7 +533,7 @@ describe('selectRevenueDataForOrganization', () => {
           item.date.getUTCMonth() === 0 &&
           item.date.getUTCDate() === 1
       )
-      expect(janRevenueItem).toBeDefined()
+      expect(janRevenueItem).toMatchObject({ revenue: 20000 }) // (10000 - 0) + (15000 - 5000)
       expect(
         janRevenueItem?.date.toISOString().startsWith('2023-01-01T')
       ).toBe(true)
@@ -547,7 +547,7 @@ describe('selectRevenueDataForOrganization', () => {
           item.date.getUTCMonth() === 1 &&
           item.date.getUTCDate() === 1
       )
-      expect(febRevenueItem).toBeDefined()
+      expect(febRevenueItem).toMatchObject({ revenue: 20000 })
       expect(
         febRevenueItem?.date.toISOString().startsWith('2023-02-01T')
       ).toBe(true)
@@ -2106,7 +2106,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
         expect(result.items.length).toBe(3)
         expect(result.total).toBeGreaterThanOrEqual(3)
-        expect(result.endCursor).toBeDefined()
+        expect(typeof result.endCursor).toBe('string')
       })
     })
 
@@ -2123,8 +2123,6 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
           })
 
         expect(result.items.length).toBe(1)
-        expect(result.items[0].payment).toBeDefined()
-        expect(result.items[0].customer).toBeDefined()
         expect(result.items[0].payment.id).toBe(payment1.id)
         expect(result.items[0].customer.id).toBe(customer1.id)
         expect(result.items[0].customer.name).toBe('Alice Smith')

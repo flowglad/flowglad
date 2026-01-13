@@ -88,7 +88,7 @@ export const reportUsage = async (data: {
   amount: number;           // The quantity of usage (for 'sum' aggregation)
   transactionId: string;    // A unique ID from your system to ensure idempotency
   usageDate?: Date;         // Optional: Defaults to now. Date usage occurred.
-  properties?: Record<string, any>; // Optional: For 'count_distinct_properties'
+  properties?: Record<string, any>; // Required for 'count_distinct_properties' meters
                                    // e.g., { "userId": "user_123" }
 }) => {
   try {
@@ -154,7 +154,7 @@ export const reportUsage = async (data: {
   amount: number;           // The quantity of usage (for 'sum' aggregation)
   transactionId: string;    // A unique ID from your system to ensure idempotency
   usageDate?: Date;         // Optional: Defaults to now. Date usage occurred.
-  properties?: Record<string, any>; // Optional: For 'count_distinct_properties'
+  properties?: Record<string, any>; // Required for 'count_distinct_properties' meters
                                    // e.g., { "userId": "user_123" }
 }) => {
   try {

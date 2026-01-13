@@ -63,6 +63,7 @@ type TracerName =
   | 'trigger'
   | 'resend'
   | 'api-key-verification'
+  | 'cache'
 
 const getTracer = (name: TracerName) => trace.getTracer(name)
 
@@ -428,3 +429,55 @@ export const svixTraced = tracedMethod({
   kind: SpanKind.CLIENT,
   spanPrefix: 'svix',
 })
+
+/**
+ * Stripe API tracer factory for wrapping Stripe SDK calls.
+ *
+ * @example
+ * ```ts
+ * const createCustomer = stripeTraced(
+ *   'customers.create',
+ *   (params) => ({ 'stripe.livemode': params.livemode }),
+ *   async (params) => stripe(params.livemode).customers.create(...)
+ * )
+ * ```
+ */
+export const stripeTraced = tracedMethod({
+  tracerName: 'stripe',
+  kind: SpanKind.CLIENT,
+  spanPrefix: 'stripe',
+})
+
+/**
+ * Inline Stripe API call tracer for use within existing functions.
+ *
+ * This is useful when you have business logic before the Stripe call
+ * and only want to trace the actual API call.
+ *
+ * @example
+ * ```ts
+ * const result = await stripeCall(
+ *   'customers.create',
+ *   { 'stripe.livemode': livemode },
+ *   () => stripe(livemode).customers.create({ email })
+ * )
+ * ```
+ */
+export const stripeCall = async <T>(
+  operation: string,
+  attributes: Record<string, string | number | boolean | undefined>,
+  fn: () => Promise<T>
+): Promise<T> => {
+  return withSpan(
+    {
+      spanName: `stripe.${operation}`,
+      tracerName: 'stripe',
+      kind: SpanKind.CLIENT,
+      attributes: {
+        'stripe.operation': operation,
+        ...attributes,
+      },
+    },
+    () => fn()
+  )
+}

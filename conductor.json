@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "setup": "init_claude_code_flowglad_next"
+    "setup": "bun run init:flowglad-next"
   },
   "runScriptMode": "concurrent"
 }

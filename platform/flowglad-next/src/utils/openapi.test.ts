@@ -303,7 +303,7 @@ describe('trpcToRest', () => {
         const testPath = 'products/test-id-123'
         const matches = config.pattern.exec(testPath)
 
-        expect(matches).not.toBeNull()
+        expect(typeof matches).toBe('object')
         expect(matches![0]).toBe('products/test-id-123') // Full match
         expect(matches![1]).toBe('test-id-123') // Capture group - this is what should be used
 

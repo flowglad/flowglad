@@ -46,6 +46,7 @@ import {
   PurchaseStatus,
   SubscriptionStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import {
   IntentMetadataType,
   StripeIntentMetadata,
@@ -134,11 +135,6 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
       transaction
     )
 
-    if (checkoutSession.type === CheckoutSessionType.Invoice) {
-      throw new Error(
-        `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Invoice checkout flow not supported (checkout session id: ${checkoutSession.id})`
-      )
-    }
     if (
       checkoutSession.type === CheckoutSessionType.AddPaymentMethod
     ) {
@@ -746,11 +742,6 @@ export const processSetupIntentSucceeded = async (
         eventsToInsert: [],
       }
     }
-    if (checkoutSession.type === CheckoutSessionType.Invoice) {
-      throw new Error(
-        `processSetupIntentSucceeded: Invoice checkout flow not supported (checkout session id: ${checkoutSession.id})`
-      )
-    }
     if (checkoutSession.type === CheckoutSessionType.Purchase) {
       throw new Error(
         `processSetupIntentSucceeded: Purchase checkout flow not supported (checkout session id: ${checkoutSession.id})`
@@ -841,6 +832,9 @@ export const processSetupIntentSucceeded = async (
     return {
       result,
       eventsToInsert: [],
+      cacheInvalidations: [
+        CacheDependency.customerSubscriptions(result.customer.id),
+      ],
     }
   }
 

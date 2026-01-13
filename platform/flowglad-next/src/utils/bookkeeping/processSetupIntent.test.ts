@@ -299,7 +299,7 @@ describe('Process setup intent', async () => {
         }
       )
 
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
       expect(result.id).toEqual(checkoutSession.id)
     })
   })
@@ -373,13 +373,13 @@ describe('Process setup intent', async () => {
         }
       )
 
-      expect(result.purchase).toBeDefined()
-      expect(result.checkoutSession).toBeDefined()
-      expect(result.price).toBeDefined()
-      expect(result.organization).toBeDefined()
-      expect(result.product).toBeDefined()
-      expect(result.customer).toBeDefined()
-      expect(result.paymentMethod).toBeDefined()
+      expect(result.purchase).toMatchObject({})
+      expect(result.checkoutSession).toMatchObject({})
+      expect(result.price).toMatchObject({})
+      expect(result.organization).toMatchObject({})
+      expect(result.product).toMatchObject({})
+      expect(result.customer).toMatchObject({})
+      expect(result.paymentMethod).toMatchObject({})
     })
   })
 
@@ -407,9 +407,9 @@ describe('Process setup intent', async () => {
         }
       )
 
-      expect(result.checkoutSession).toBeDefined()
-      expect(result.organization).toBeDefined()
-      expect(result.customer).toBeDefined()
+      expect(result.checkoutSession).toMatchObject({})
+      expect(result.organization).toMatchObject({})
+      expect(result.customer).toMatchObject({})
       expect(result.purchase).toBeNull()
       expect(result.price).toBeNull()
       expect(result.product).toBeNull()
@@ -754,7 +754,7 @@ describe('Process setup intent', async () => {
         )
         // expects:
         const result = calculateTrialEnd(params)
-        expect(result).toBeDefined()
+        expect(result).toMatchObject({})
         expect(result).toEqual(expectedDate.getTime())
       })
 
@@ -766,7 +766,7 @@ describe('Process setup intent', async () => {
         )
         // expects:
         const result = calculateTrialEnd(params)
-        expect(result).toBeDefined()
+        expect(result).toMatchObject({})
         expect(result).toEqual(expectedDate.getTime())
       })
 
@@ -778,7 +778,7 @@ describe('Process setup intent', async () => {
         )
         // expects:
         const result = calculateTrialEnd(params)
-        expect(result).toBeDefined()
+        expect(result).toMatchObject({})
         expect(result).toEqual(expectedDate.getTime())
       })
     })
@@ -1230,7 +1230,7 @@ describe('Process setup intent', async () => {
         if (!('billingRun' in result)) {
           throw new Error('Billing run not found')
         }
-        expect(result.billingRun).toBeDefined()
+        expect(result.billingRun).toMatchObject({})
         const subscription = await adminTransaction(
           async ({ transaction }) => {
             return await selectSubscriptionById(
@@ -1308,7 +1308,7 @@ describe('Process setup intent', async () => {
             if (!('billingRun' in result)) {
               throw new Error('Billing run not found')
             }
-            expect(result.billingRun).toBeDefined()
+            expect(result.billingRun).toMatchObject({})
             return {
               ...result,
               subscription: await selectSubscriptionById(
@@ -1320,7 +1320,9 @@ describe('Process setup intent', async () => {
         )
 
         // The result should include a trial end date for the new subscription
-        expect(firstResult.subscription.trialEnd).toBeDefined()
+        expect(typeof firstResult.subscription.trialEnd).toBe(
+          'object'
+        )
 
         // Cancel the subscription so we can create a new one
         await adminTransaction(async ({ transaction }) => {
@@ -1419,7 +1421,7 @@ describe('Process setup intent', async () => {
             if (!('billingRun' in result)) {
               throw new Error('Billing run not found')
             }
-            expect(result.billingRun).toBeDefined()
+            expect(result.billingRun).toMatchObject({})
             return await selectSubscriptionById(
               result.billingRun!.subscriptionId,
               transaction
@@ -1428,7 +1430,7 @@ describe('Process setup intent', async () => {
         )
 
         // The new subscription should include a trial end date
-        expect(newSubscription.trialEnd).toBeDefined()
+        expect(typeof newSubscription.trialEnd).toBe('object')
       })
     })
 

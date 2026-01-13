@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { RevenueChartIntervalUnit } from '@/types'
 import {
   getDefaultInterval,
+  getIntervalSelectOptions,
   minimumUnitInHours,
 } from './chartIntervalUtils'
 
@@ -136,5 +137,28 @@ describe('getDefaultInterval', () => {
       const result = getDefaultInterval(fromDate, toDate)
       expect(result).toBe(RevenueChartIntervalUnit.Month)
     })
+  })
+})
+
+describe('getIntervalSelectOptions', () => {
+  it('should return options with noun labels for select components', () => {
+    const fromDate = new Date('2024-01-01T00:00:00Z')
+    const toDate = new Date('2024-01-15T00:00:00Z') // 14 days → Hourly + Daily (sorted smallest to largest)
+    const result = getIntervalSelectOptions(fromDate, toDate)
+
+    expect(result).toEqual([
+      { label: 'hour', value: RevenueChartIntervalUnit.Hour },
+      { label: 'day', value: RevenueChartIntervalUnit.Day },
+    ])
+  })
+
+  it('should return single option when only one interval is valid', () => {
+    const fromDate = new Date('2024-01-01T00:00:00Z')
+    const toDate = new Date('2024-01-01T12:00:00Z') // same day → Hourly only
+    const result = getIntervalSelectOptions(fromDate, toDate)
+
+    expect(result).toEqual([
+      { label: 'hour', value: RevenueChartIntervalUnit.Hour },
+    ])
   })
 })

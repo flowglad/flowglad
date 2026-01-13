@@ -776,7 +776,9 @@ describe('Features Schema Validation', () => {
         const amountError = result.error.issues.find((issue) =>
           issue.path.includes('amount')
         )
-        expect(amountError).toBeDefined()
+        expect(amountError).toMatchObject({
+          path: expect.arrayContaining(['amount']),
+        })
       }
     })
 

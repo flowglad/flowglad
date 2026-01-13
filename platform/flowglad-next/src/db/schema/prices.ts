@@ -25,7 +25,7 @@ import {
   createSupabaseWebhookSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -131,71 +131,65 @@ export const prices = pgTable(
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.type]),
-      constructIndex(TABLE_NAME, [table.productId]),
-      // externalId unique per product for non-usage prices
-      uniqueIndex('prices_external_id_product_id_unique_idx')
-        .on(table.externalId, table.productId)
-        .where(sql`${table.type} != 'usage'`),
-      // externalId unique per usage meter for usage prices
-      uniqueIndex('prices_external_id_usage_meter_id_unique_idx')
-        .on(table.externalId, table.usageMeterId)
-        .where(sql`${table.type} = 'usage'`),
-      // isDefault unique per product for non-usage prices
-      uniqueIndex('prices_product_id_is_default_unique_idx')
-        .on(table.productId)
-        .where(sql`${table.isDefault} AND ${table.type} != 'usage'`),
-      // isDefault unique per usage meter for usage prices
-      uniqueIndex('prices_usage_meter_is_default_unique_idx')
-        .on(table.usageMeterId)
-        .where(sql`${table.isDefault} AND ${table.type} = 'usage'`),
-      constructIndex(TABLE_NAME, [table.usageMeterId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      // Customer read access: handle both product prices and usage prices
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"active" = true AND (
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.type]),
+    constructIndex(TABLE_NAME, [table.productId]),
+    // externalId unique per product for non-usage prices
+    uniqueIndex('prices_external_id_product_id_unique_idx')
+      .on(table.externalId, table.productId)
+      .where(sql`${table.type} != 'usage'`),
+    // externalId unique per usage meter for usage prices
+    uniqueIndex('prices_external_id_usage_meter_id_unique_idx')
+      .on(table.externalId, table.usageMeterId)
+      .where(sql`${table.type} = 'usage'`),
+    // isDefault unique per product for non-usage prices
+    uniqueIndex('prices_product_id_is_default_unique_idx')
+      .on(table.productId)
+      .where(sql`${table.isDefault} AND ${table.type} != 'usage'`),
+    // isDefault unique per usage meter for usage prices
+    uniqueIndex('prices_usage_meter_is_default_unique_idx')
+      .on(table.usageMeterId)
+      .where(sql`${table.isDefault} AND ${table.type} = 'usage'`),
+    constructIndex(TABLE_NAME, [table.usageMeterId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    // Customer read access: handle both product prices and usage prices
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"active" = true AND (
             "product_id" IN (SELECT "id" FROM "products")
             OR ("product_id" IS NULL AND "usage_meter_id" IN (SELECT "id" FROM "usage_meters"))
           )`,
-        }
-      ),
-      merchantPolicy(
-        'On update, ensure usage meter belongs to same pricing model',
-        {
-          as: 'permissive',
-          to: 'merchant',
-          for: 'update',
-          withCheck: usageMeterBelongsToSamePricingModel,
-        }
-      ),
-      // Merchant access policy for prices.
-      // Prices don't have an organization_id column - they're scoped to orgs
-      // through their productId (for subscription/single_payment) or usageMeterId (for usage).
-      // For usage prices: must have a visible usage_meter (RLS-scoped by org)
-      // For non-usage prices: must have a visible product (RLS-scoped by org)
-      merchantPolicy(
-        'Merchant access via product or usage meter FK',
-        {
-          as: 'permissive',
-          to: 'merchant',
-          for: 'all',
-          using: sql`(
+      }
+    ),
+    merchantPolicy(
+      'On update, ensure usage meter belongs to same pricing model',
+      {
+        as: 'permissive',
+        to: 'merchant',
+        for: 'update',
+        withCheck: usageMeterBelongsToSamePricingModel,
+      }
+    ),
+    // Merchant access policy for prices.
+    // Prices don't have an organization_id column - they're scoped to orgs
+    // through their productId (for subscription/single_payment) or usageMeterId (for usage).
+    // For usage prices: must have a visible usage_meter (RLS-scoped by org)
+    // For non-usage prices: must have a visible product (RLS-scoped by org)
+    merchantPolicy('Merchant access via product or usage meter FK', {
+      as: 'permissive',
+      to: 'merchant',
+      for: 'all',
+      using: sql`(
             ("type" = 'usage' AND "usage_meter_id" IN (SELECT "id" FROM "usage_meters"))
             OR ("type" != 'usage' AND "product_id" IN (SELECT "id" FROM "products"))
           )`,
-          withCheck: sql`(
+      withCheck: sql`(
             ("type" = 'usage' AND "usage_meter_id" IN (SELECT "id" FROM "usage_meters"))
             OR ("type" != 'usage' AND "product_id" IN (SELECT "id" FROM "products"))
           )`,
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+    }),
+  ])
 ).enableRLS()
 
 export const nulledPriceColumns = {

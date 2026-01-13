@@ -1,6 +1,10 @@
 import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
 import type { AuthenticatedTransactionParams } from '@/db/types'
+import {
+  type CacheDependencyKey,
+  invalidateDependencies,
+} from '@/utils/cache'
 import core from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
@@ -25,116 +29,17 @@ interface AuthenticatedTransactionOptions {
 }
 
 /**
- * Core authenticated transaction logic without tracing.
- */
-const executeAuthenticatedTransaction = async <T>(
-  fn: (params: AuthenticatedTransactionParams) => Promise<T>,
-  options?: AuthenticatedTransactionOptions
-): Promise<{
-  result: T
-  userId: string
-  organizationId?: string
-  livemode: boolean
-}> => {
-  const { apiKey, __testOnlyOrganizationId, customerId } =
-    options ?? {}
-  if (!core.IS_TEST && __testOnlyOrganizationId) {
-    throw new Error(
-      'Attempted to use test organization id in a non-test environment'
-    )
-  }
-  const { userId, livemode, jwtClaim } =
-    await getDatabaseAuthenticationInfo({
-      apiKey,
-      __testOnlyOrganizationId,
-      customerId,
-    })
-
-  const result = await db.transaction(async (transaction) => {
-    if (!jwtClaim) {
-      throw new Error('No jwtClaim found')
-    }
-    if (!userId) {
-      throw new Error('No userId found')
-    }
-
-    /**
-     * Clear whatever state may have been set by previous uses of the connection.
-     * This shouldn't be a concern, but we've seen some issues where connections keep
-     * state between transactions.
-     */
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', NULL, true);`
-    )
-
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', '${sql.raw(
-        JSON.stringify(jwtClaim)
-      )}', TRUE)`
-    )
-
-    await transaction.execute(
-      sql`SET LOCAL ROLE ${sql.raw(jwtClaim.role)}`
-    )
-    await transaction.execute(
-      sql`SELECT set_config('app.livemode', '${sql.raw(
-        Boolean(livemode).toString()
-      )}', TRUE);`
-    )
-    const resp = await fn({
-      transaction,
-      userId,
-      livemode,
-      organizationId: jwtClaim.organization_id,
-    })
-    /**
-     * Reseting the role and request.jwt.claims here,
-     * becuase the auth state seems to be returned to the client "dirty",
-     * with the role from the previous session still applied.
-     */
-    await transaction.execute(sql`RESET ROLE;`)
-
-    return resp
-  })
-
-  return {
-    result,
-    userId,
-    organizationId: jwtClaim?.organization_id,
-    livemode,
-  }
-}
-
-/**
- * Original authenticatedTransaction. Consider deprecating or refactoring.
+ * Executes a function within an authenticated database transaction.
+ * Delegates to comprehensiveAuthenticatedTransaction by wrapping the result.
  */
 export async function authenticatedTransaction<T>(
   fn: (params: AuthenticatedTransactionParams) => Promise<T>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
-  // We need to execute and get the auth info to set span attributes
-  // The traced combinator wraps the entire operation including auth lookup
-  // Static attributes are set at span creation for debugging failed transactions
-  const { result } = await traced(
-    {
-      options: {
-        spanName: 'db.authenticatedTransaction',
-        tracerName: 'db.transaction',
-        kind: SpanKind.CLIENT,
-        attributes: {
-          'db.transaction.type': 'authenticated',
-        },
-      },
-      extractResultAttributes: (data) => ({
-        'db.user_id': data.userId,
-        'db.organization_id': data.organizationId,
-        'db.livemode': data.livemode,
-      }),
-    },
-    () => executeAuthenticatedTransaction(fn, options)
-  )()
-
-  return result
+  return comprehensiveAuthenticatedTransaction(async (params) => {
+    const result = await fn(params)
+    return { result }
+  }, options)
 }
 
 /**
@@ -154,12 +59,20 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
 }> => {
   const { apiKey, __testOnlyOrganizationId, customerId } =
     options ?? {}
+  if (!core.IS_TEST && __testOnlyOrganizationId) {
+    throw new Error(
+      'Attempted to use test organization id in a non-test environment'
+    )
+  }
   const { userId, livemode, jwtClaim } =
     await getDatabaseAuthenticationInfo({
       apiKey,
       __testOnlyOrganizationId,
       customerId,
     })
+
+  // Collect cache invalidations to process after commit
+  let cacheInvalidations: CacheDependencyKey[] = []
 
   const output = await db.transaction(async (transaction) => {
     if (!jwtClaim) {
@@ -231,12 +144,28 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       }
     }
 
+    // Collect cache invalidations (don't process yet - wait for commit)
+    if (
+      output.cacheInvalidations &&
+      output.cacheInvalidations.length > 0
+    ) {
+      cacheInvalidations = output.cacheInvalidations
+    }
+
     // RESET ROLE is not strictly necessary with SET LOCAL ROLE, as the role is session-local.
     // However, keeping it doesn't harm and can be an explicit cleanup.
     await transaction.execute(sql`RESET ROLE;`)
 
     return output
   })
+
+  // Transaction committed successfully - now invalidate caches
+  // Fire-and-forget; errors are logged but don't fail the request
+  if (cacheInvalidations.length > 0) {
+    // Deduplicate cache invalidation keys to reduce unnecessary Redis operations
+    const uniqueInvalidations = [...new Set(cacheInvalidations)]
+    void invalidateDependencies(uniqueInvalidations)
+  }
 
   return {
     output,
@@ -247,7 +176,8 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
 }
 
 /**
- * New comprehensive authenticated transaction handler.
+ * Executes a function within an authenticated database transaction and automatically
+ * processes events and ledger commands from the transaction output.
  */
 export async function comprehensiveAuthenticatedTransaction<T>(
   fn: (
@@ -283,14 +213,14 @@ export async function comprehensiveAuthenticatedTransaction<T>(
 }
 
 /**
- * Original eventfulAuthenticatedTransaction.
- * Consider deprecating. If kept, adapt to use comprehensiveAuthenticatedTransaction.
+ * Wrapper around comprehensiveAuthenticatedTransaction for functions that return
+ * a tuple of [result, events]. Adapts the old signature to TransactionOutput.
  */
 export function eventfulAuthenticatedTransaction<T>(
   fn: (
     params: AuthenticatedTransactionParams
   ) => Promise<[T, Event.Insert[]]>,
-  options: AuthenticatedTransactionOptions
+  options: AuthenticatedTransactionOptions = {}
 ): Promise<T> {
   return comprehensiveAuthenticatedTransaction(async (params) => {
     const [result, eventInserts] = await fn(params)
@@ -328,6 +258,10 @@ export type AuthenticatedProcedureTransactionHandler<
   >
 ) => Promise<TOutput>
 
+/**
+ * Creates an authenticated procedure that wraps a transaction handler.
+ * Delegates to authenticatedProcedureComprehensiveTransaction by wrapping the result.
+ */
 export const authenticatedProcedureTransaction = <
   TInput,
   TOutput,
@@ -339,16 +273,14 @@ export const authenticatedProcedureTransaction = <
     TContext
   >
 ) => {
-  return async (opts: { input: TInput; ctx: TContext }) => {
-    return authenticatedTransaction(
-      (params) =>
-        handler({ ...params, input: opts.input, ctx: opts.ctx }),
-      {
-        apiKey: opts.ctx.apiKey,
-        customerId: opts.ctx.customerId,
-      }
-    )
-  }
+  return authenticatedProcedureComprehensiveTransaction<
+    TInput,
+    TOutput,
+    TContext
+  >(async (params) => {
+    const result = await handler(params)
+    return { result }
+  })
 }
 
 export const authenticatedProcedureComprehensiveTransaction = <

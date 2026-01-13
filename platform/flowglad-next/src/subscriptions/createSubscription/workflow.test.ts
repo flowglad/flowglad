@@ -59,6 +59,7 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import { core } from '@/utils/core'
 import type {
   NonRenewingCreateSubscriptionResult,
@@ -126,7 +127,7 @@ describe('createSubscriptionWorkflow', async () => {
   })
 
   it('creates a subscription with correct priced items, and billing run', async () => {
-    expect(subscription).toBeDefined()
+    expect(typeof subscription).toBe('object')
     expect(subscription.cancelScheduledAt).toBeNull()
     expect(subscription.canceledAt).toBeNull()
     expect(subscriptionItems.length).toBeGreaterThan(0)
@@ -135,7 +136,9 @@ describe('createSubscriptionWorkflow', async () => {
       subscriptionItems[0].unitPrice * subscriptionItems[0].quantity
     ).toBe(defaultPrice.unitPrice * 1)
     expect(billingPeriod.status).toBe(BillingPeriodStatus.Active)
-    expect(billingRun).toBeDefined() // Check if defined first
+    expect(billingRun).toMatchObject({
+      status: BillingRunStatus.Scheduled,
+    }) // Check if defined first
     expect(billingRun?.status).toBe(BillingRunStatus.Scheduled)
   })
 
@@ -247,7 +250,7 @@ describe('createSubscriptionWorkflow', async () => {
           transaction
         )
       })
-    ).resolves.toBeDefined()
+    ).resolves.toMatchObject({})
   })
 
   it('creates billing periods correctly for trial subscriptions', async () => {
@@ -291,7 +294,7 @@ describe('createSubscriptionWorkflow', async () => {
     })
 
     expect(trialSubscription.trialEnd).toBe(trialEnd)
-    expect(trialBillingPeriod).toBeDefined()
+    expect(trialBillingPeriod).toMatchObject({ startDate: startDate })
     expect(trialBillingPeriod!.startDate).toBe(startDate)
     expect(trialBillingPeriod!.endDate).toBe(trialEnd)
 
@@ -422,7 +425,7 @@ describe('createSubscriptionWorkflow', async () => {
         )
       })
 
-      expect(createdSub).toBeDefined()
+      expect(typeof createdSub).toBe('object')
       expect(createdSub.priceId).toBe(usageFeaturePrice.id)
       expect(createdSub.status).toBe(SubscriptionStatus.Active)
       // runBillingAtPeriodStart should normally be false for usage price
@@ -554,7 +557,7 @@ describe('createSubscriptionWorkflow', async () => {
       )
 
       // Verify a subscription was created successfully
-      expect(result.result.subscription).toBeDefined()
+      expect(result.result.subscription).toMatchObject({})
       expect(result.result.subscription.customerId).toBe(
         defaultProductCustomer.id
       )
@@ -571,7 +574,7 @@ describe('createSubscriptionWorkflow', async () => {
       expect(result.result.billingPeriod).toBeNull()
 
       // Verify subscription items were created
-      expect(result.result.subscriptionItems).toBeDefined()
+      expect(result.result.subscriptionItems).toMatchObject({})
       expect(result.result.subscriptionItems.length).toBeGreaterThan(
         0
       )
@@ -738,7 +741,9 @@ describe('createSubscriptionWorkflow', async () => {
         transaction
       )
     })
-    expect(custPmBillingRun).toBeDefined()
+    expect(custPmBillingRun).toMatchObject({
+      status: BillingRunStatus.Scheduled,
+    })
     expect(custPmBillingRun?.status).toBe(BillingRunStatus.Scheduled)
     expect(custPmBillingRun?.paymentMethodId).toBe(
       defaultCustPaymentMethod.id
@@ -830,7 +835,9 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
         transaction
       )
     })
-    expect(billingRun).toBeDefined()
+    expect(billingRun).toMatchObject({
+      status: BillingRunStatus.Scheduled,
+    })
     expect(billingRun?.status).toBe(BillingRunStatus.Scheduled)
   })
 
@@ -1012,8 +1019,8 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
       )
     })
 
-    expect(subscription).toBeDefined()
-    expect(subscriptionItems).toBeDefined()
+    expect(typeof subscription).toBe('object')
+    expect(typeof subscriptionItems).toBe('object')
     expect(subscriptionItems.length).toBe(1)
     const subItem = subscriptionItems[0]
 
@@ -1032,12 +1039,12 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
       const originalFeatureSetup = createdFeaturesAndPfs.find(
         (f) => f.feature.name === featureSpec.name
       )
-      expect(originalFeatureSetup).toBeDefined()
+      expect(typeof originalFeatureSetup).toBe('object')
 
       const sif = createdSifs.find(
         (s) => s.featureId === originalFeatureSetup!.feature.id
       )
-      expect(sif).toBeDefined()
+      expect(sif).toMatchObject({ subscriptionItemId: subItem.id })
       expect(sif!.subscriptionItemId).toBe(subItem.id)
       expect(sif!.productFeatureId).toBe(
         originalFeatureSetup!.productFeature.id
@@ -1129,7 +1136,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
 
     expect(createdSifs.length).toBe(1)
     const sif = createdSifs[0]
-    expect(sif).toBeDefined()
+    expect(typeof sif).toBe('object')
     expect(sif.livemode).toBe(false)
     expect(sif.featureId).toBe(createdFeaturesAndPfs[0].feature.id)
   })
@@ -1208,7 +1215,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     expect(creditSif.featureId).toBe(creditGrantFeature.id)
     expect(creditSif.type).toBe(FeatureType.UsageCreditGrant)
     expect(creditSif.usageMeterId).toBe(usageMeter.id)
-    expect(creditSif.usageMeterId).not.toBeNull()
+    expect(typeof creditSif.usageMeterId).toBe('string')
   })
 
   it('should NOT create SubscriptionItemFeatures if the product has no associated features', async () => {
@@ -1526,7 +1533,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       billingRun,
     } = result
 
-    expect(subscription).toBeDefined()
+    expect(typeof subscription).toBe('object')
     expect(subscriptionItems.length).toBeGreaterThan(0)
 
     // Verify discount redemption was updated
@@ -1609,7 +1616,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
 
     const { subscription, subscriptionItems } = result
 
-    expect(subscription).toBeDefined()
+    expect(typeof subscription).toBe('object')
     expect(subscriptionItems.length).toBeGreaterThan(0)
 
     // Verify first discount redemption was updated
@@ -1695,10 +1702,12 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
         }
       })
 
-    expect(subscription).toBeDefined()
+    expect(typeof subscription).toBe('object')
     expect(subscription.trialEnd).toBe(trialEnd.getTime())
     expect(subscriptionItems.length).toBeGreaterThan(0)
-    expect(billingPeriod).toBeDefined()
+    expect(billingPeriod).toMatchObject({
+      endDate: trialEnd.getTime(),
+    })
     expect(billingPeriod!.endDate).toBe(trialEnd.getTime())
   })
 
@@ -1774,11 +1783,11 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
         }
       )
 
-      expect(workflowResult.ledgerCommand).toBeDefined()
+      expect(typeof workflowResult.ledgerCommand).toBe('object')
       expect(workflowResult.ledgerCommand?.type).toBe(
         LedgerTransactionType.BillingPeriodTransition
       )
-      expect(workflowResult.result.subscription).toBeDefined()
+      expect(workflowResult.result.subscription).toMatchObject({})
       expect(workflowResult.result.subscription.renews).toBe(false)
     })
 
@@ -1839,7 +1848,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       // Check if subscription is marked as free plan
       const createdSubscription = workflowResult.result.subscription
       expect(createdSubscription.isFreePlan).toBe(true)
-      expect(workflowResult.ledgerCommand).toBeDefined()
+      expect(typeof workflowResult.ledgerCommand).toBe('object')
       expect(workflowResult.ledgerCommand?.type).toBe(
         LedgerTransactionType.BillingPeriodTransition
       )
@@ -1885,7 +1894,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       )
 
       expect(workflowResult.ledgerCommand).toBeUndefined()
-      expect(workflowResult.result.subscription).toBeDefined()
+      expect(workflowResult.result.subscription).toMatchObject({})
       // Standard subscriptions should renew by default (unless they're default products with non-subscription prices)
       expect(workflowResult.result.subscription.renews).toBe(true)
     })
@@ -2198,6 +2207,98 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
       )
       expect(upgraded.isFreePlan).toBe(false)
     })
+  })
+})
+
+describe('createSubscriptionWorkflow cache invalidations', async () => {
+  it('returns customerSubscriptions cache invalidation for the customer', async () => {
+    const { organization, product, price } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    const workflowResult = await adminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_cache_test_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      }
+    )
+
+    // Verify cacheInvalidations contains customerSubscriptions dependency
+    expect(workflowResult.cacheInvalidations).toHaveLength(1)
+    expect(workflowResult.cacheInvalidations).toContain(
+      CacheDependency.customerSubscriptions(customer.id)
+    )
+  })
+
+  it('returns customerSubscriptions cache invalidation with the correct customerId', async () => {
+    const { organization, product, price } = await setupOrg()
+    const customer1 = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const customer2 = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const paymentMethod1 = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer1.id,
+      livemode: true,
+    })
+
+    const workflowResult = await adminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_cache_cust_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod1,
+            customer: customer1,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      }
+    )
+
+    // Should invalidate customer1's cache, not customer2's
+    expect(workflowResult.cacheInvalidations).toContain(
+      CacheDependency.customerSubscriptions(customer1.id)
+    )
+    expect(workflowResult.cacheInvalidations).not.toContain(
+      CacheDependency.customerSubscriptions(customer2.id)
+    )
   })
 })
 
@@ -2651,7 +2752,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
     })
 
     // This should succeed without issues - trial eligibility doesn't apply
-    expect(nonRenewingSubscription).toBeDefined()
+    expect(typeof nonRenewingSubscription).toBe('object')
     expect(nonRenewingSubscription.trialEnd).toBeNull()
   })
 })

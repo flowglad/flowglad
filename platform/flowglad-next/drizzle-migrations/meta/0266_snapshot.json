@@ -1,5 +1,5 @@
 {
-  "id": "6c73f5d2-7755-4ab5-a6b6-1b6e785eb63c",
+  "id": "218da931-d169-4d5f-bafc-c4fff0300cae",
   "prevId": "3efee5ee-d240-4310-873c-da42bad523ef",
   "version": "7",
   "dialect": "postgresql",
@@ -2842,6 +2842,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "resource_id": {
+          "name": "resource_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "active": {
           "name": "active",
           "type": "boolean",
@@ -2922,6 +2928,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "features_resource_id_idx": {
+          "name": "features_resource_id_idx",
+          "columns": [
+            {
+              "expression": "resource_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -2948,6 +2969,15 @@
           "tableFrom": "features",
           "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "features_resource_id_resources_id_fk": {
+          "name": "features_resource_id_resources_id_fk",
+          "tableFrom": "features",
+          "tableTo": "resources",
+          "columnsFrom": ["resource_id"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -6522,7 +6552,7 @@
           "name": "product_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "active": {
           "name": "active",
@@ -6611,29 +6641,6 @@
             }
           ],
           "isUnique": true,
-          "where": "\"prices\".\"type\" != 'usage'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "prices_external_id_usage_meter_id_unique_idx": {
-          "name": "prices_external_id_usage_meter_id_unique_idx",
-          "columns": [
-            {
-              "expression": "external_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "usage_meter_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"prices\".\"type\" = 'usage'",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -6649,23 +6656,7 @@
             }
           ],
           "isUnique": true,
-          "where": "\"prices\".\"is_default\" AND \"prices\".\"type\" != 'usage'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "prices_usage_meter_is_default_unique_idx": {
-          "name": "prices_usage_meter_is_default_unique_idx",
-          "columns": [
-            {
-              "expression": "usage_meter_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"prices\".\"is_default\" AND \"prices\".\"type\" = 'usage'",
+          "where": "\"prices\".\"is_default\"",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -6744,22 +6735,21 @@
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": ["customer"],
-          "using": "\"active\" = true AND (\n            \"product_id\" IN (SELECT \"id\" FROM \"products\")\n            OR (\"product_id\" IS NULL AND \"usage_meter_id\" IN (SELECT \"id\" FROM \"usage_meters\"))\n          )"
+          "using": "\"product_id\" in (select \"id\" from \"products\") and \"active\" = true"
         },
-        "On update, ensure usage meter belongs to same pricing model": {
-          "name": "On update, ensure usage meter belongs to same pricing model",
+        "On update, ensure usage meter belongs to same organization as product": {
+          "name": "On update, ensure usage meter belongs to same organization as product",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": ["merchant"],
-          "withCheck": "\"usage_meter_id\" IS NULL\n  OR \"usage_meter_id\" IN (\n    SELECT \"id\" FROM \"usage_meters\"\n    WHERE \"usage_meters\".\"pricing_model_id\" = \"prices\".\"pricing_model_id\"\n  )"
+          "withCheck": "\"usage_meter_id\" IS NULL OR \"usage_meter_id\" IN (\n  SELECT \"id\" FROM \"usage_meters\"\n  WHERE \"usage_meters\".\"organization_id\" = (\n    SELECT \"organization_id\" FROM \"products\" \n    WHERE \"products\".\"id\" = \"prices\".\"product_id\"\n  )\n)"
         },
-        "Merchant access via product or usage meter FK": {
-          "name": "Merchant access via product or usage meter FK",
+        "Ensure organization integrity with products parent table": {
+          "name": "Ensure organization integrity with products parent table",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "(\n            (\"type\" = 'usage' AND \"usage_meter_id\" IN (SELECT \"id\" FROM \"usage_meters\"))\n            OR (\"type\" != 'usage' AND \"product_id\" IN (SELECT \"id\" FROM \"products\"))\n          )",
-          "withCheck": "(\n            (\"type\" = 'usage' AND \"usage_meter_id\" IN (SELECT \"id\" FROM \"usage_meters\"))\n            OR (\"type\" != 'usage' AND \"product_id\" IN (SELECT \"id\" FROM \"products\"))\n          )"
+          "using": "\"product_id\" in (select \"id\" from \"products\")"
         },
         "Check mode (prices)": {
           "name": "Check mode (prices)",
@@ -7998,6 +7988,523 @@
       "checkConstraints": {},
       "isRLSEnabled": true
     },
+    "public.resource_claims": {
+      "name": "resource_claims",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "livemode": {
+          "name": "livemode",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "bigserial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subscription_item_feature_id": {
+          "name": "subscription_item_feature_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resource_id": {
+          "name": "resource_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subscription_id": {
+          "name": "subscription_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pricing_model_id": {
+          "name": "pricing_model_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "claimed_at": {
+          "name": "claimed_at",
+          "type": "timestamptz",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "released_at": {
+          "name": "released_at",
+          "type": "timestamptz",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "release_reason": {
+          "name": "release_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "resource_claims_subscription_id_idx": {
+          "name": "resource_claims_subscription_id_idx",
+          "columns": [
+            {
+              "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "resource_claims_resource_id_idx": {
+          "name": "resource_claims_resource_id_idx",
+          "columns": [
+            {
+              "expression": "resource_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "resource_claims_subscription_item_feature_id_idx": {
+          "name": "resource_claims_subscription_item_feature_id_idx",
+          "columns": [
+            {
+              "expression": "subscription_item_feature_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "resource_claims_organization_id_idx": {
+          "name": "resource_claims_organization_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "resource_claims_pricing_model_id_idx": {
+          "name": "resource_claims_pricing_model_id_idx",
+          "columns": [
+            {
+              "expression": "pricing_model_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "resource_claims_active_idx": {
+          "name": "resource_claims_active_idx",
+          "columns": [
+            {
+              "expression": "resource_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"resource_claims\".\"released_at\" IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "resource_claims_active_external_id_unique_idx": {
+          "name": "resource_claims_active_external_id_unique_idx",
+          "columns": [
+            {
+              "expression": "resource_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "external_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"resource_claims\".\"released_at\" IS NULL AND \"resource_claims\".\"external_id\" IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "resource_claims_organization_id_organizations_id_fk": {
+          "name": "resource_claims_organization_id_organizations_id_fk",
+          "tableFrom": "resource_claims",
+          "tableTo": "organizations",
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "resource_claims_subscription_item_feature_id_subscription_item_features_id_fk": {
+          "name": "resource_claims_subscription_item_feature_id_subscription_item_features_id_fk",
+          "tableFrom": "resource_claims",
+          "tableTo": "subscription_item_features",
+          "columnsFrom": ["subscription_item_feature_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "resource_claims_resource_id_resources_id_fk": {
+          "name": "resource_claims_resource_id_resources_id_fk",
+          "tableFrom": "resource_claims",
+          "tableTo": "resources",
+          "columnsFrom": ["resource_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "resource_claims_subscription_id_subscriptions_id_fk": {
+          "name": "resource_claims_subscription_id_subscriptions_id_fk",
+          "tableFrom": "resource_claims",
+          "tableTo": "subscriptions",
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "resource_claims_pricing_model_id_pricing_models_id_fk": {
+          "name": "resource_claims_pricing_model_id_pricing_models_id_fk",
+          "tableFrom": "resource_claims",
+          "tableTo": "pricing_models",
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "resource_claims_id_unique": {
+          "name": "resource_claims_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations (resource_claims)": {
+          "name": "Enable read for own organizations (resource_claims)",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["merchant"],
+          "using": "\"subscription_id\" in (select \"id\" from \"subscriptions\")"
+        },
+        "Enable read for customers (resource_claims)": {
+          "name": "Enable read for customers (resource_claims)",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": ["customer"],
+          "using": "\"subscription_id\" in (select \"id\" from \"subscriptions\")"
+        },
+        "Check mode (resource_claims)": {
+          "name": "Check mode (resource_claims)",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": ["merchant"],
+          "using": "current_setting('app.livemode')::boolean = livemode"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.resources": {
+      "name": "resources",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "livemode": {
+          "name": "livemode",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "bigserial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pricing_model_id": {
+          "name": "pricing_model_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "resources_organization_id_idx": {
+          "name": "resources_organization_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "resources_pricing_model_id_idx": {
+          "name": "resources_pricing_model_id_idx",
+          "columns": [
+            {
+              "expression": "pricing_model_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "resources_organization_id_slug_pricing_model_id_unique_idx": {
+          "name": "resources_organization_id_slug_pricing_model_id_unique_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "pricing_model_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "resources_organization_id_organizations_id_fk": {
+          "name": "resources_organization_id_organizations_id_fk",
+          "tableFrom": "resources",
+          "tableTo": "organizations",
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "resources_pricing_model_id_pricing_models_id_fk": {
+          "name": "resources_pricing_model_id_pricing_models_id_fk",
+          "tableFrom": "resources",
+          "tableTo": "pricing_models",
+          "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "resources_id_unique": {
+          "name": "resources_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations (resources)": {
+          "name": "Enable read for own organizations (resources)",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["merchant"],
+          "using": "\"organization_id\" = current_organization_id()"
+        },
+        "Enable read for customers (resources)": {
+          "name": "Enable read for customers (resources)",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": ["customer"],
+          "using": "\"organization_id\" = current_organization_id() and \"active\" = true and \"pricing_model_id\" in (select \"pricing_model_id\" from \"customers\")"
+        },
+        "Check mode (resources)": {
+          "name": "Check mode (resources)",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": ["merchant"],
+          "using": "current_setting('app.livemode')::boolean = livemode"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
     "public.subscription_item_features": {
       "name": "subscription_item_features",
       "schema": "",
@@ -8120,6 +8627,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "resource_id": {
+          "name": "resource_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -8198,6 +8711,21 @@
           "method": "btree",
           "with": {}
         },
+        "subscription_item_features_resource_id_idx": {
+          "name": "subscription_item_features_resource_id_idx",
+          "columns": [
+            {
+              "expression": "resource_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "subscription_item_features_feature_id_subscription_item_id_unique_idx": {
           "name": "subscription_item_features_feature_id_subscription_item_id_unique_idx",
           "columns": [
@@ -8262,6 +8790,15 @@
           "tableFrom": "subscription_item_features",
           "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "subscription_item_features_resource_id_resources_id_fk": {
+          "name": "subscription_item_features_resource_id_resources_id_fk",
+          "tableFrom": "subscription_item_features",
+          "tableTo": "resources",
+          "columnsFrom": ["resource_id"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"

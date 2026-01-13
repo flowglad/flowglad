@@ -11,6 +11,9 @@
       ],
       "express": [
         "./dist/types/express/index.d.ts"
+      ],
+      "supabase": [
+        "./dist/types/supabase/index.d.ts"
       ]
     }
   },
@@ -70,6 +73,11 @@
       "types": "./dist/types/express/index.d.ts",
       "import": "./dist/esm/express/index.js",
       "require": "./dist/cjs/express/index.js"
+    },
+    "./supabase": {
+      "types": "./dist/types/supabase/index.d.ts",
+      "import": "./dist/esm/supabase/index.js",
+      "require": "./dist/cjs/supabase/index.js"
     }
   },
   "repository": {

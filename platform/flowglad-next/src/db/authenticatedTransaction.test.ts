@@ -12,6 +12,7 @@ import {
   FlowgladEventType,
 } from '@/types'
 import { hashData } from '@/utils/backendCore'
+import core from '@/utils/core'
 import { adminTransaction } from './adminTransaction'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -814,6 +815,65 @@ describe('Error Handling Tests', () => {
     apiKeyA = userApiKeyA.apiKey
   })
 
+  describe('Test-Only Organization ID Validation', () => {
+    it('throws error when __testOnlyOrganizationId is used in non-test environment', async () => {
+      const originalIsTest = core.IS_TEST
+      // Temporarily override IS_TEST to simulate non-test environment
+      Object.defineProperty(core, 'IS_TEST', {
+        value: false,
+        writable: true,
+        configurable: true,
+      })
+
+      try {
+        await expect(
+          authenticatedTransaction(
+            async () => 'should not reach here',
+            { __testOnlyOrganizationId: testOrg1.id }
+          )
+        ).rejects.toThrow(
+          'Attempted to use test organization id in a non-test environment'
+        )
+
+        // Also verify comprehensiveAuthenticatedTransaction has the same check
+        await expect(
+          comprehensiveAuthenticatedTransaction(
+            async () => ({ result: 'should not reach here' }),
+            { __testOnlyOrganizationId: testOrg1.id }
+          )
+        ).rejects.toThrow(
+          'Attempted to use test organization id in a non-test environment'
+        )
+      } finally {
+        // Restore original IS_TEST value
+        Object.defineProperty(core, 'IS_TEST', {
+          value: originalIsTest,
+          writable: true,
+          configurable: true,
+        })
+      }
+    })
+
+    it('allows __testOnlyOrganizationId in test environment (validation passes before auth fails)', async () => {
+      // This test runs in test environment where IS_TEST is true
+      // The __testOnlyOrganizationId validation should pass, but downstream auth
+      // will fail with various errors depending on session state.
+      // The key assertion is that we do NOT get the "non-test environment" error.
+      const testOnlyError =
+        'Attempted to use test organization id in a non-test environment'
+
+      try {
+        await authenticatedTransaction(async () => 'result', {
+          __testOnlyOrganizationId: testOrg1.id,
+        })
+        // If we reach here, transaction succeeded - that's fine too
+      } catch (error) {
+        // We should NOT get the test-only validation error
+        expect((error as Error).message).not.toBe(testOnlyError)
+      }
+    })
+  })
+
   describe('Authentication Failures', () => {
     it('should handle invalid API key gracefully', async () => {
       // setup:
@@ -889,7 +949,7 @@ describe('Procedure Wrapper Functions', () => {
         async ({ input, ctx, transaction, userId }) => {
           expect(input).toEqual(testInput)
           expect(ctx).toEqual(testContext)
-          expect(userId).toBeDefined()
+          expect(typeof userId).toBe('string')
 
           // Verify we can use transaction
           const organizations = await selectOrganizations(
@@ -1000,12 +1060,16 @@ describe('Edge Cases', () => {
       )
 
       // Document the current behavior - may succeed or fail depending on RLS implementation
-      expect(result).toBeDefined()
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: expect.any(Boolean),
+        })
+      )
       if (result.success) {
         expect(result.memberships).toBeGreaterThanOrEqual(0)
         expect(result.organizations).toBeGreaterThanOrEqual(0)
       } else {
-        expect(result.error).toBeDefined()
+        expect(typeof result.error).toBe('string')
       }
     })
   })

@@ -1,0 +1,44 @@
+<svg viewBox="0 0 800 320" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, sans-serif; max-width: 100%;">
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#dd7d29"/>
+    </marker>
+  </defs>
+
+  <!-- Usage Meter Section -->
+  <g>
+    <rect x="50" y="20" width="700" height="90" rx="6" fill="#f1f0e9" stroke="#dd7d29" stroke-width="1.5"/>
+    <text x="400" y="45" text-anchor="middle" font-weight="600" font-size="14" fill="#141312">USAGE METER</text>
+    <!-- Meter box -->
+    <rect x="250" y="55" width="300" height="45" rx="4" fill="#ffffff" stroke="#dd7d29"/>
+    <text x="400" y="75" text-anchor="middle" font-size="12" fill="#141312">message_credits</text>
+    <text x="400" y="90" text-anchor="middle" font-size="10" fill="#656359">(sum aggregation)</text>
+  </g>
+
+  <!-- Arrows from meter -->
+  <path d="M300 110 L300 140 L220 170" stroke="#dd7d29" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M500 110 L500 140 L580 170" stroke="#dd7d29" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Free Plan Section -->
+  <g>
+    <rect x="50" y="170" width="340" height="130" rx="6" fill="#f1f0e9" stroke="#dd7d29" stroke-width="1.5"/>
+    <text x="220" y="195" text-anchor="middle" font-weight="600" font-size="14" fill="#141312">FREE PLAN</text>
+    <text x="220" y="212" text-anchor="middle" font-size="10" fill="#656359">(default for all users)</text>
+    <!-- Plan box -->
+    <rect x="70" y="225" width="300" height="55" rx="4" fill="#ffffff" stroke="#dd7d29"/>
+    <text x="220" y="250" text-anchor="middle" font-weight="600" font-size="12" fill="#141312">$0</text>
+    <text x="220" y="268" text-anchor="middle" font-size="10" fill="#656359">No included credits</text>
+  </g>
+
+  <!-- Top-up Section -->
+  <g>
+    <rect x="410" y="170" width="340" height="130" rx="6" fill="#f1f0e9" stroke="#dd7d29" stroke-width="1.5"/>
+    <text x="580" y="195" text-anchor="middle" font-weight="600" font-size="14" fill="#141312">TOP-UP</text>
+    <text x="580" y="212" text-anchor="middle" font-size="10" fill="#656359">(one-time purchase)</text>
+    <!-- Top-up box -->
+    <rect x="430" y="225" width="300" height="55" rx="4" fill="#ffffff" stroke="#dd7d29"/>
+    <text x="580" y="250" text-anchor="middle" font-weight="600" font-size="12" fill="#141312">Message Top-Up $100</text>
+    <text x="580" y="268" text-anchor="middle" font-size="10" fill="#656359">+100 message credits</text>
+  </g>
+</svg>

@@ -22,7 +22,9 @@ describe('apiKeysRouteConfigs', () => {
     it('should map POST /api-keys to apiKeys.create procedure', () => {
       const routeConfig = findRouteConfig('POST /api-keys')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'apiKeys.create',
+      })
       expect(routeConfig!.procedure).toBe('apiKeys.create')
       expect(routeConfig!.pattern.test('api-keys')).toBe(true)
 
@@ -35,7 +37,9 @@ describe('apiKeysRouteConfigs', () => {
     it('should map PUT /api-keys/:id to apiKeys.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /api-keys/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'apiKeys.update',
+      })
       expect(routeConfig!.procedure).toBe('apiKeys.update')
       expect(routeConfig!.pattern.test('api-keys/test-id')).toBe(true)
 
@@ -51,7 +55,7 @@ describe('apiKeysRouteConfigs', () => {
     it('should map GET /api-keys/:id to apiKeys.get procedure', () => {
       const routeConfig = findRouteConfig('GET /api-keys/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({ procedure: 'apiKeys.get' })
       expect(routeConfig!.procedure).toBe('apiKeys.get')
       expect(routeConfig!.pattern.test('api-keys/test-id')).toBe(true)
 
@@ -63,7 +67,7 @@ describe('apiKeysRouteConfigs', () => {
     it('should map GET /api-keys to apiKeys.list procedure', () => {
       const routeConfig = findRouteConfig('GET /api-keys')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({ procedure: 'apiKeys.list' })
       expect(routeConfig!.procedure).toBe('apiKeys.list')
       expect(routeConfig!.pattern.test('api-keys')).toBe(true)
 
@@ -75,7 +79,9 @@ describe('apiKeysRouteConfigs', () => {
     it('should map DELETE /api-keys/:id to apiKeys.delete procedure', () => {
       const routeConfig = findRouteConfig('DELETE /api-keys/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'apiKeys.delete',
+      })
       expect(routeConfig!.procedure).toBe('apiKeys.delete')
       expect(routeConfig!.pattern.test('api-keys/test-id')).toBe(true)
 
@@ -120,7 +126,7 @@ describe('apiKeysRouteConfigs', () => {
       // Test API Keys get pattern extraction
       const getConfig = findRouteConfig('GET /api-keys/:id')
       const getMatches = getConfig!.pattern.exec('api-keys/test-id')
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test API Keys update pattern extraction
@@ -128,7 +134,7 @@ describe('apiKeysRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'api-keys/test-id'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test API Keys delete pattern extraction
@@ -136,19 +142,19 @@ describe('apiKeysRouteConfigs', () => {
       const deleteMatches = deleteConfig!.pattern.exec(
         'api-keys/test-id'
       )
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test API Keys list pattern (no captures)
       const listConfig = findRouteConfig('GET /api-keys')
       const listMatches = listConfig!.pattern.exec('api-keys')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test API Keys create pattern (no captures)
       const createConfig = findRouteConfig('POST /api-keys')
       const createMatches = createConfig!.pattern.exec('api-keys')
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })

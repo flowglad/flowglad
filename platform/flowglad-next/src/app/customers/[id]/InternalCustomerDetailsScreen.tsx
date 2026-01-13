@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
 import MigrateCustomerPricingModelModal from '@/components/forms/MigrateCustomerPricingModelModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import { MoreIcon } from '@/components/icons/MoreIcon'
+import PageContainer from '@/components/PageContainer'
 import PopoverMenu, {
   type PopoverMenuItem,
 } from '@/components/PopoverMenu'
@@ -69,7 +69,7 @@ function InternalCustomerDetailsScreen({
   ]
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title={customer.name ?? ''}
@@ -142,7 +142,7 @@ function InternalCustomerDetailsScreen({
         setIsOpen={setIsMigrateOpen}
         customer={customer}
       />
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

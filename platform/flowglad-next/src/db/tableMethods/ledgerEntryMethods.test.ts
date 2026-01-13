@@ -340,7 +340,7 @@ describe('ledgerEntryMethods', () => {
           transaction
         )
         expect(result).toHaveLength(1)
-        expect(result[0].id).toBeDefined()
+        expect(typeof result[0].id).toBe('string')
       })
     })
   })
@@ -3175,17 +3175,17 @@ describe('ledgerEntryMethods', () => {
           (item) => item.usageCreditId === usageCreditC.id
         )
 
-        expect(itemA).toBeDefined()
+        expect(itemA).toMatchObject({ balance: balanceA })
         expect(itemA?.balance).toBe(balanceA)
         expect(itemA?.expiresAt).toEqual(dateA.getTime())
         expect(itemA?.ledgerAccountId).toBe(ledgerAccount.id)
 
-        expect(itemB).toBeDefined()
+        expect(itemB).toMatchObject({ balance: balanceB })
         expect(itemB?.balance).toBe(balanceB)
         expect(itemB?.expiresAt).toBeNull()
         expect(itemB?.ledgerAccountId).toBe(ledgerAccount.id)
 
-        expect(itemC).toBeDefined()
+        expect(itemC).toMatchObject({ balance: balanceC })
         expect(itemC?.balance).toBe(balanceC)
         expect(itemC?.expiresAt).toEqual(dateC.getTime())
         expect(itemC?.ledgerAccountId).toBe(ledgerAccount.id)

@@ -139,7 +139,12 @@ describe('createNonInvoiceCheckoutSession', () => {
           )
       )
 
-      expect(checkoutSession.stripePaymentIntentId).not.toBeNull()
+      expect(typeof checkoutSession.stripePaymentIntentId).toBe(
+        'string'
+      )
+      expect(
+        checkoutSession.stripePaymentIntentId!.length
+      ).toBeGreaterThan(0)
       expect(checkoutSession.stripeSetupIntentId).toBeNull()
     })
   })
@@ -157,7 +162,12 @@ describe('createNonInvoiceCheckoutSession', () => {
           )
       )
 
-      expect(checkoutSession.stripePaymentIntentId).not.toBeNull()
+      expect(typeof checkoutSession.stripePaymentIntentId).toBe(
+        'string'
+      )
+      expect(
+        checkoutSession.stripePaymentIntentId!.length
+      ).toBeGreaterThan(0)
       expect(checkoutSession.stripeSetupIntentId).toBeNull()
       expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
       expect(checkoutSession.priceId).toBe(singlePaymentPrice.id)
@@ -180,7 +190,12 @@ describe('createNonInvoiceCheckoutSession', () => {
       )
 
       expect(checkoutSession.stripePaymentIntentId).toBeNull()
-      expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
+      expect(typeof checkoutSession.stripeSetupIntentId).toBe(
+        'string'
+      )
+      expect(
+        checkoutSession.stripeSetupIntentId!.length
+      ).toBeGreaterThan(0)
       expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
       expect(checkoutSession.priceId).toBe(subscriptionPrice.id)
       expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
@@ -201,7 +216,12 @@ describe('createNonInvoiceCheckoutSession', () => {
           )
       )
 
-      expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
+      expect(typeof checkoutSession.stripeSetupIntentId).toBe(
+        'string'
+      )
+      expect(
+        checkoutSession.stripeSetupIntentId!.length
+      ).toBeGreaterThan(0)
       expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
       expect(checkoutSession.priceId).toBe(usagePrice.id)
       expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
@@ -226,7 +246,9 @@ describe('createNonInvoiceCheckoutSession', () => {
           )
       )
 
-      expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
+      expect(typeof checkoutSession.stripeSetupIntentId).toBe(
+        'string'
+      )
       expect(checkoutSession.type).toBe(
         CheckoutSessionType.AddPaymentMethod
       )

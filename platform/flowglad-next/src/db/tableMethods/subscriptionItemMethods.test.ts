@@ -103,7 +103,7 @@ describe('subscriptionItemMethods', async () => {
           subscriptionItem.id,
           transaction
         )
-        expect(result).toBeDefined()
+        expect(result).toMatchObject({ id: subscriptionItem.id })
         expect(result?.id).toBe(subscriptionItem.id)
       })
     })
@@ -140,7 +140,6 @@ describe('subscriptionItemMethods', async () => {
           newItemData,
           transaction
         )
-        expect(result).toBeDefined()
         expect(result.name).toBe(newItemData.name)
         expect(result.quantity).toBe(newItemData.quantity)
 
@@ -184,7 +183,7 @@ describe('subscriptionItemMethods', async () => {
           },
           transaction
         )
-        expect(result).toBeDefined()
+        expect(result).toMatchObject({ name: updates.name })
         expect(result?.name).toBe(updates.name)
         expect(result?.quantity).toBe(updates.quantity)
 
@@ -279,7 +278,6 @@ describe('subscriptionItemMethods', async () => {
           const original = itemsToInsert.find(
             (p) => p.externalId === insertedItem.externalId
           )
-          expect(original).toBeDefined()
           expect(insertedItem.name).toBe(original?.name)
         }
       })
@@ -293,7 +291,6 @@ describe('subscriptionItemMethods', async () => {
           { id: subscription.id },
           transaction
         )
-        expect(result).toBeDefined()
         expect(result?.subscription.id).toBe(subscription.id)
         expect(result?.subscriptionItems.length).toBeGreaterThan(0)
         expect(
@@ -323,7 +320,7 @@ describe('subscriptionItemMethods', async () => {
             subscription.id,
             transaction
           )
-        expect(result).toBeDefined()
+        expect(result).toMatchObject({})
         expect(result?.subscription.id).toBe(subscription.id)
         expect(result?.subscriptionItems.length).toBeGreaterThan(0)
       })
@@ -384,7 +381,7 @@ describe('subscriptionItemMethods', async () => {
         const updatedItem = results.find(
           (r) => r.id === subscriptionItem.id
         )
-        expect(updatedItem).toBeDefined()
+        expect(updatedItem).toMatchObject({ quantity: 10 })
         expect(updatedItem?.name).toBe(
           'Updated Existing Item via Bulk'
         )
@@ -393,7 +390,7 @@ describe('subscriptionItemMethods', async () => {
         const newItem = results.find(
           (r) => r.externalId === newItemExternalId
         )
-        expect(newItem).toBeDefined()
+        expect(newItem).toMatchObject({ name: 'New Item via Bulk' })
         expect(newItem?.name).toBe('New Item via Bulk')
 
         const count = await transaction
@@ -627,22 +624,26 @@ describe('subscriptionItemMethods', async () => {
 
   describe('selectSubscriptionItemsWithPricesBySubscriptionIds', () => {
     it('should return an empty array when given an empty array of subscription IDs', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         const results =
           await selectSubscriptionItemsWithPricesBySubscriptionIds(
             [],
-            transaction
+            transaction,
+            livemode,
+            { ignoreCache: true }
           )
         expect(results).toEqual([])
       })
     })
 
     it('should return subscription items with their associated prices for valid subscription IDs', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         const results =
           await selectSubscriptionItemsWithPricesBySubscriptionIds(
             [subscription.id],
-            transaction
+            transaction,
+            livemode,
+            { ignoreCache: true }
           )
 
         expect(results.length).toBe(1)
@@ -652,7 +653,7 @@ describe('subscriptionItemMethods', async () => {
         expect(results[0].subscriptionItem.subscriptionId).toBe(
           subscription.id
         )
-        expect(results[0].price).not.toBeNull()
+        expect(results[0].price).toMatchObject({ id: price.id })
         expect(results[0].price?.id).toBe(price.id)
       })
     })
@@ -673,11 +674,13 @@ describe('subscriptionItemMethods', async () => {
         priceId: price.id,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         const results =
           await selectSubscriptionItemsWithPricesBySubscriptionIds(
             [subscription.id, secondSubscription.id],
-            transaction
+            transaction,
+            livemode,
+            { ignoreCache: true }
           )
 
         expect(results.length).toBe(2)
@@ -704,11 +707,13 @@ describe('subscriptionItemMethods', async () => {
     })
 
     it('should return an empty array when given non-existent subscription IDs', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         const results =
           await selectSubscriptionItemsWithPricesBySubscriptionIds(
             [core.nanoid(), core.nanoid()],
-            transaction
+            transaction,
+            livemode,
+            { ignoreCache: true }
           )
         expect(results).toEqual([])
       })
@@ -721,7 +726,7 @@ describe('subscriptionItemMethods', async () => {
       const futureDate = now + 24 * 60 * 60 * 1000 // tomorrow
       const pastDate = now - 24 * 60 * 60 * 1000 // yesterday
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         // Create an expired item
         const expiredSetup = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -781,7 +786,8 @@ describe('subscriptionItemMethods', async () => {
         const richSubscriptions =
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
-            transaction
+            transaction,
+            livemode
           )
         expect(richSubscriptions.length).toBe(1)
         const subWithItems = richSubscriptions[0]
@@ -793,12 +799,12 @@ describe('subscriptionItemMethods', async () => {
           subWithItems.subscriptionItems.find(
             (si) => si.id === item1.id
           )
-        ).toBeDefined()
+        ).toMatchObject({ id: item1.id })
         expect(
           subWithItems.subscriptionItems.find(
             (si) => si.id === item2.id
           )
-        ).toBeDefined()
+        ).toMatchObject({ id: item2.id })
 
         // These should not be present
         expect(
@@ -818,7 +824,7 @@ describe('subscriptionItemMethods', async () => {
     })
 
     it('should correctly determine current status for non-active subscriptions', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         await updateSubscription(
           {
             id: subscription.id,
@@ -831,7 +837,8 @@ describe('subscriptionItemMethods', async () => {
         const richSubscriptions =
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
-            transaction
+            transaction,
+            livemode
           )
         expect(richSubscriptions.length).toBe(1)
         expect(richSubscriptions[0].current).toBe(false)
@@ -842,7 +849,7 @@ describe('subscriptionItemMethods', async () => {
       const now = Date.now()
       const pastDate = now - 24 * 60 * 60 * 1000 // yesterday
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         // First expire the original subscription item from beforeEach
         await updateSubscriptionItem(
           {
@@ -917,7 +924,8 @@ describe('subscriptionItemMethods', async () => {
         const richSubscriptions =
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
-            transaction
+            transaction,
+            livemode
           )
 
         expect(richSubscriptions.length).toBe(1)
@@ -942,7 +950,7 @@ describe('subscriptionItemMethods', async () => {
     })
 
     it('should only include unexpired subscriptionItemFeatures', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         const now = Date.now()
         const pastDate = now - 1000 * 60 * 60 * 24 // 1 day ago
 
@@ -1013,7 +1021,8 @@ describe('subscriptionItemMethods', async () => {
         const richSubscriptions =
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
-            transaction
+            transaction,
+            livemode
           )
 
         expect(richSubscriptions.length).toBe(1)
@@ -1044,7 +1053,7 @@ describe('subscriptionItemMethods', async () => {
         livemode: true,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         // Update the first meter's ledger entries to include the usageMeterId
         await transaction
           .update(ledgerEntries)
@@ -1107,7 +1116,8 @@ describe('subscriptionItemMethods', async () => {
         const richSubscriptions =
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: scenario1.organization.id },
-            transaction
+            transaction,
+            livemode
           )
 
         expect(richSubscriptions.length).toBe(1)
@@ -1131,15 +1141,19 @@ describe('subscriptionItemMethods', async () => {
           (b) => b.id === secondUsageMeter.id
         )
 
-        expect(associatedMeterBalance).toBeDefined()
+        expect(associatedMeterBalance).toMatchObject({
+          availableBalance: -300,
+        })
         expect(associatedMeterBalance?.availableBalance).toBe(-300)
-        expect(unassociatedMeterBalance).toBeDefined()
+        expect(unassociatedMeterBalance).toMatchObject({
+          availableBalance: -200,
+        })
         expect(unassociatedMeterBalance?.availableBalance).toBe(-200)
       })
     })
 
     it('should handle subscriptions with no items or features', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
         // First expire the original subscription item from beforeEach
         await updateSubscriptionItem(
           {
@@ -1161,7 +1175,8 @@ describe('subscriptionItemMethods', async () => {
         const richSubscriptions =
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
-            transaction
+            transaction,
+            livemode
           )
 
         expect(richSubscriptions.length).toBe(2) // Original + new empty subscription
@@ -1169,7 +1184,7 @@ describe('subscriptionItemMethods', async () => {
         const emptySub = richSubscriptions.find(
           (s) => s.id === emptySubscription.id
         )
-        expect(emptySub).toBeDefined()
+        expect(emptySub).toMatchObject({ id: emptySubscription.id })
         expect(emptySub?.subscriptionItems).toEqual([])
         expect(emptySub?.experimental?.featureItems).toEqual([])
         expect(emptySub?.experimental?.usageMeterBalances).toEqual([])
@@ -1342,10 +1357,10 @@ describe('subscriptionItemMethods', async () => {
         expect(results.length).toBe(2)
         expect(
           results.find((item) => item.id === futureExpiringItem.id)
-        ).toBeDefined()
+        ).toMatchObject({ id: futureExpiringItem.id })
         expect(
           results.find((item) => item.id === noExpiryItem.id)
-        ).toBeDefined()
+        ).toMatchObject({ id: noExpiryItem.id })
         expect(
           results.find((item) => item.id === subscriptionItem.id)
         ).toBeUndefined()

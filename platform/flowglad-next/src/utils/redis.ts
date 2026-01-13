@@ -80,18 +80,64 @@ type ApiKeyVerificationResult = z.infer<
   typeof apiKeyVerificationResultSchema
 >
 
+/**
+ * No-op stub client used in unit tests by default.
+ *
+ * IMPORTANT: This stub does NOT store or retrieve any data. All operations
+ * are no-ops that return empty/null values. This means:
+ *
+ * - Caching behavior is NOT tested in unit tests using this stub
+ * - Cache invalidation has no observable effect
+ * - Any code that relies on cached data will always get cache misses
+ *
+ * If you need to test actual caching behavior, use one of these approaches:
+ *
+ * 1. Integration tests: Set REDIS_INTEGRATION_TEST_MODE=true to use real Redis
+ *    (see cache.integration.test.ts for examples)
+ *
+ * 2. Stateful mock: Use _setTestRedisClient() to inject a mock that stores data
+ *    (useful if you need to test cache hits/misses in unit tests)
+ */
+const testStubClient = {
+  get: () => null,
+  getdel: () => null,
+  set: () => null,
+  del: () => null,
+  sadd: () => 0,
+  smembers: () => [] as string[],
+  expire: () => null,
+  exists: () => 0,
+}
+
+/**
+ * Allows tests to inject a custom Redis client.
+ * Use this to provide a stateful mock if you need to test cache behavior
+ * in unit tests without hitting real Redis.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _testRedisClient: any = null
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const _setTestRedisClient = (client: any) => {
+  _testRedisClient = client
+}
+
+/**
+ * Returns a Redis client.
+ *
+ * In unit tests (NODE_ENV=test), returns either:
+ * - A custom client set via _setTestRedisClient(), or
+ * - The default testStubClient (no-op stub)
+ *
+ * In integration tests (REDIS_INTEGRATION_TEST_MODE=true), returns real Redis.
+ * In production, returns real Redis.
+ */
 export const redis = () => {
-  if (core.IS_TEST) {
-    return {
-      get: () => null,
-      getdel: () => null,
-      set: () => null,
-      del: () => null,
-      sadd: () => 0,
-      smembers: () => [] as string[],
-      expire: () => null,
-      exists: () => 0,
-    }
+  if (
+    core.IS_TEST &&
+    process.env.REDIS_INTEGRATION_TEST_MODE !== 'true'
+  ) {
+    return _testRedisClient ?? testStubClient
   }
   return new Redis({
     url: core.envVariable('UPSTASH_REDIS_REST_URL'),
@@ -105,6 +151,11 @@ export enum RedisKeyNamespace {
   Telemetry = 'telemetry',
   BannerDismissals = 'bannerDismissals',
   StripeOAuthCsrfToken = 'stripeOAuthCsrfToken',
+  SubscriptionsByCustomer = 'subscriptionsByCustomer',
+  ItemsBySubscription = 'itemsBySubscription',
+  FeaturesBySubscriptionItem = 'featuresBySubscriptionItem',
+  MeterBalancesBySubscription = 'meterBalancesBySubscription',
+  CacheDependencyRegistry = 'cacheDeps',
 }
 
 const evictionPolicy: Record<
@@ -117,6 +168,7 @@ const evictionPolicy: Record<
   },
   [RedisKeyNamespace.ReferralSelection]: {
     max: 200000, // up to 200k selections across tenants
+    ttl: 60 * 60 * 24 * 30, // 30 days - allows time for later processing
   },
   [RedisKeyNamespace.Telemetry]: {
     max: 500000, // up to 500k telemetry records
@@ -129,6 +181,21 @@ const evictionPolicy: Record<
   [RedisKeyNamespace.StripeOAuthCsrfToken]: {
     max: 10000, // up to 10k concurrent OAuth flows
     ttl: 60 * 15, // 15 minutes - OAuth flow timeout
+  },
+  [RedisKeyNamespace.SubscriptionsByCustomer]: {
+    max: 50000,
+  },
+  [RedisKeyNamespace.ItemsBySubscription]: {
+    max: 100000,
+  },
+  [RedisKeyNamespace.FeaturesBySubscriptionItem]: {
+    max: 200000,
+  },
+  [RedisKeyNamespace.MeterBalancesBySubscription]: {
+    max: 100000,
+  },
+  [RedisKeyNamespace.CacheDependencyRegistry]: {
+    max: 500000, // Higher limit - these are small Sets mapping deps to cache keys
   },
 }
 

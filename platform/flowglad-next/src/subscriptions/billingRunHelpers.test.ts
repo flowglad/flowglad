@@ -384,7 +384,7 @@ describe('billingRunHelpers', async () => {
             transaction
           )
         )
-      expect(feeCalculation).toBeDefined()
+      expect(typeof feeCalculation).toBe('object')
       expect(totalDueAmount).toBeGreaterThan(0)
     })
 
@@ -417,7 +417,7 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.feeCalculation).toBeDefined()
+      expect(result.feeCalculation).toMatchObject({})
       expect(result.feeCalculation.currency).toBe(CurrencyCode.EUR)
     })
 
@@ -470,7 +470,7 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.feeCalculation).toBeDefined()
+      expect(result.feeCalculation).toMatchObject({})
       expect(result.feeCalculation.livemode).toBe(true)
     })
 
@@ -496,7 +496,7 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.feeCalculation).toBeDefined()
+      expect(result.feeCalculation).toMatchObject({})
       expect(result.feeCalculation.paymentMethodType).toBe(
         testPaymentMethod.type
       )
@@ -517,7 +517,8 @@ describe('billingRunHelpers', async () => {
             transaction
           )
       )
-      expect(invoiceInsert.invoiceNumber).toBeDefined()
+      expect(typeof invoiceInsert.invoiceNumber).toBe('string')
+      expect(invoiceInsert.invoiceNumber.length).toBeGreaterThan(0)
     })
 
     it('should generate invoice line items from billing period items, ommiting items with 0 quantity', async () => {
@@ -574,8 +575,10 @@ describe('billingRunHelpers', async () => {
       expect(invoiceInsert.purchaseId).toBeNull()
 
       // Check dates are set
-      expect(invoiceInsert.invoiceDate).toBeDefined()
-      expect(invoiceInsert.dueDate).toBeDefined()
+      expect(typeof invoiceInsert.invoiceDate).toBe('number')
+      expect(invoiceInsert.invoiceDate).toBeGreaterThan(0)
+      expect(typeof invoiceInsert.dueDate).toBe('number')
+      expect(invoiceInsert.dueDate).toBeGreaterThan(0)
       expect(invoiceInsert.billingPeriodStartDate).toEqual(
         billingPeriod.startDate
       )
@@ -729,7 +732,7 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.feeCalculation).toBeDefined()
+      expect(result.feeCalculation).toMatchObject({})
       expect(result.totalDueAmount).toBeGreaterThan(0)
 
       expect(result.totalDueAmount).toBe(
@@ -769,7 +772,7 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.feeCalculation).toBeDefined()
+      expect(result.feeCalculation).toMatchObject({})
       expect(result.feeCalculation.currency).toBe(CurrencyCode.EUR)
     })
 
@@ -822,7 +825,7 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.feeCalculation).toBeDefined()
+      expect(result.feeCalculation).toMatchObject({})
       expect(result.feeCalculation.livemode).toBe(true)
     })
 
@@ -848,7 +851,7 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.feeCalculation).toBeDefined()
+      expect(result.feeCalculation).toMatchObject({})
       expect(result.feeCalculation.paymentMethodType).toBe(
         testPaymentMethod.type
       )
@@ -865,7 +868,7 @@ describe('billingRunHelpers', async () => {
         const retryInsert =
           constructBillingRunRetryInsert(currentBillingRun)
 
-        expect(retryInsert).toBeDefined()
+        expect(typeof retryInsert).toBe('object')
         const expectedRetryDate =
           Date.now() + daysToRetry * 24 * 60 * 60 * 1000
         expect(retryInsert!.scheduledFor).toBeCloseTo(
@@ -891,7 +894,7 @@ describe('billingRunHelpers', async () => {
         ({ transaction }) =>
           scheduleBillingRunRetry(billingRun, transaction)
       )
-      expect(retryBillingRun).toBeDefined()
+      expect(typeof retryBillingRun).toBe('object')
       expect(retryBillingRun?.scheduledFor).toBeGreaterThan(
         Date.now() + 3 * 24 * 60 * 60 * 1000 - 60 * 1000
       )
@@ -968,7 +971,9 @@ describe('billingRunHelpers', async () => {
           scheduleBillingRunRetry(billingRun, transaction)
       )
 
-      expect(retryBillingRun).toBeDefined()
+      expect(retryBillingRun).toMatchObject({
+        status: BillingRunStatus.Scheduled,
+      })
       expect(retryBillingRun?.status).toBe(BillingRunStatus.Scheduled)
       expect(retryBillingRun?.subscriptionId).toBe(subscription.id)
     })
@@ -1102,7 +1107,9 @@ describe('billingRunHelpers', async () => {
         const finalInvoice = invoices.find(
           (inv) => inv.billingPeriodId === billingPeriod.id
         )
-        expect(finalInvoice).toBeDefined()
+        expect(finalInvoice).toMatchObject({
+          status: InvoiceStatus.Paid,
+        })
         expect(finalInvoice!.status).toBe(InvoiceStatus.Paid)
       })
     })
@@ -1122,7 +1129,7 @@ describe('billingRunHelpers', async () => {
             selectBillingRunById(billingRun.id, transaction)
         )
         expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-        expect(updatedBillingRun.errorDetails).toBeDefined()
+        expect(typeof updatedBillingRun.errorDetails).toBe('object')
 
         // Verify no payment was created due to transaction rollback
         const payments = await adminTransaction(({ transaction }) =>
@@ -1165,7 +1172,7 @@ describe('billingRunHelpers', async () => {
             selectBillingRunById(billingRun.id, transaction)
         )
         expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-        expect(updatedBillingRun.errorDetails).toBeDefined()
+        expect(typeof updatedBillingRun.errorDetails).toBe('object')
 
         // Verify payment was created but without charge ID (since payment failed)
         const payments = await adminTransaction(({ transaction }) =>
@@ -1225,7 +1232,7 @@ describe('billingRunHelpers', async () => {
             selectBillingRunById(billingRun.id, transaction)
         )
         expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-        expect(updatedBillingRun.errorDetails).toBeDefined()
+        expect(typeof updatedBillingRun.errorDetails).toBe('object')
 
         // Verify payment was created but without charge ID (since confirmation failed)
         const payments = await adminTransaction(({ transaction }) =>
@@ -1272,7 +1279,7 @@ describe('billingRunHelpers', async () => {
             selectBillingRunById(billingRun.id, transaction)
         )
         expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-        expect(updatedBillingRun.errorDetails).toBeDefined()
+        expect(typeof updatedBillingRun.errorDetails).toBe('object')
 
         // Verify no payment was created
         const payments = await adminTransaction(({ transaction }) =>
@@ -1309,7 +1316,7 @@ describe('billingRunHelpers', async () => {
             selectBillingRunById(billingRun.id, transaction)
         )
         expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-        expect(updatedBillingRun.errorDetails).toBeDefined()
+        expect(typeof updatedBillingRun.errorDetails).toBe('object')
 
         // Verify no payment was created
         const payments = await adminTransaction(({ transaction }) =>
@@ -1372,7 +1379,7 @@ describe('billingRunHelpers', async () => {
         const payment = payments.find(
           (p) => p.billingPeriodId === billingRun.billingPeriodId
         )
-        expect(payment).toBeDefined()
+        expect(typeof payment).toBe('object')
         expect(payment).toMatchObject({
           stripePaymentIntentId: mockPaymentIntent.id,
           amount: staticBillingPeriodItem.unitPrice,
@@ -1395,7 +1402,7 @@ describe('billingRunHelpers', async () => {
         const invoice = invoices.find(
           (inv) => inv.billingPeriodId === billingPeriod.id
         )
-        expect(invoice).toBeDefined()
+        expect(typeof invoice).toBe('object')
         expect(invoice).toMatchObject({
           status: InvoiceStatus.Paid,
           customerId: customer.id,
@@ -1539,7 +1546,7 @@ describe('billingRunHelpers', async () => {
         const invoice = invoices.find(
           (inv) => inv.billingPeriodId === billingPeriod.id
         )
-        expect(invoice).toBeDefined()
+        expect(invoice).toMatchObject({ status: InvoiceStatus.Paid })
         expect(invoice!.status).toBe(InvoiceStatus.Paid)
 
         // Verify usage credits were granted
@@ -1586,11 +1593,11 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.invoice).toBeDefined()
+      expect(result.invoice).toMatchObject({})
       expect(result.invoice.billingPeriodId).toBe(billingPeriod.id)
       expect(result.invoice.customerId).toBe(customer.id)
       expect(result.invoice.organizationId).toBe(organization.id)
-      expect(result.invoice.currency).toBeDefined()
+      expect(result.invoice.currency).toMatchObject({})
     })
 
     it('should use existing invoice when one exists for the billing period', async () => {
@@ -1737,13 +1744,15 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.payment).toBeDefined()
+      expect(result.payment).toMatchObject({})
       if (result.payment) {
         expect(result.payment.subscriptionId).toBe(
           billingPeriod.subscriptionId
         )
         expect(result.payment.billingPeriodId).toBe(billingPeriod.id)
-        expect(result.payment.amount).toBe(result.totalDueAmount)
+        // Payment amount should be the actual amount to charge (totalDueAmount - totalAmountPaid),
+        // not the full totalDueAmount. This ensures the payment record matches what Stripe charges.
+        expect(result.payment.amount).toBe(result.amountToCharge)
         expect(result.payment.currency).toBe(result.invoice.currency)
         expect(result.payment.paymentMethodId).toBe(
           billingRun.paymentMethodId
@@ -1751,7 +1760,7 @@ describe('billingRunHelpers', async () => {
         expect(result.payment.organizationId).toBe(organization.id)
         expect(result.payment.customerId).toBe(customer.id)
         expect(result.payment.invoiceId).toBe(result.invoice.id)
-        expect(result.payment.taxCountry).toBeDefined()
+        expect(result.payment.taxCountry).toMatchObject({})
         expect(result.payment.paymentMethod).toBe(paymentMethod.type)
         expect(result.payment.stripePaymentIntentId).toContain(
           'placeholder____'
@@ -1882,8 +1891,8 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.feeCalculation).toBeDefined()
-      expect(result.feeCalculation.currency).toBeDefined()
+      expect(result.feeCalculation).toMatchObject({})
+      expect(result.feeCalculation.currency).toMatchObject({})
     })
 
     it('should return all expected properties in the result object', async () => {
@@ -1894,17 +1903,17 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.invoice).toBeDefined()
-      expect(result.payment).toBeDefined()
-      expect(result.feeCalculation).toBeDefined()
-      expect(result.customer).toBeDefined()
-      expect(result.organization).toBeDefined()
-      expect(result.billingPeriod).toBeDefined()
-      expect(result.subscription).toBeDefined()
-      expect(result.paymentMethod).toBeDefined()
-      expect(result.totalDueAmount).toBeDefined()
-      expect(result.totalAmountPaid).toBeDefined()
-      expect(result.payments).toBeDefined()
+      expect(result.invoice).toMatchObject({})
+      expect(result.payment).toMatchObject({})
+      expect(result.feeCalculation).toMatchObject({})
+      expect(result.customer).toMatchObject({})
+      expect(result.organization).toMatchObject({})
+      expect(result.billingPeriod).toMatchObject({})
+      expect(result.subscription).toMatchObject({})
+      expect(result.paymentMethod).toMatchObject({})
+      expect(result.totalDueAmount).toMatchObject({})
+      expect(result.totalAmountPaid).toMatchObject({})
+      expect(result.payments).toMatchObject({})
     })
 
     it('should handle nested billing details address for tax country', async () => {
@@ -2011,6 +2020,73 @@ describe('billingRunHelpers', async () => {
 
       expect(result.totalAmountPaid).toBe(50)
       expect(result.payments.length).toBeGreaterThan(0)
+    })
+
+    it('payment.amount equals amountToCharge (not totalDueAmount) when existing payments reduce amount owed', async () => {
+      // Setup: Create a billing period item with a known price
+      const knownPrice = 10000 // $100 in cents
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriodItem(
+          {
+            id: staticBillingPeriodItem.id,
+            unitPrice: knownPrice,
+            type: SubscriptionItemType.Static,
+          },
+          transaction
+        )
+      })
+
+      // Create an existing payment of $50 for this billing period
+      const existingPaymentAmount = 5000 // $50 in cents
+      const testInvoice = await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: staticPrice.id,
+      })
+
+      await setupPayment({
+        stripeChargeId: 'ch_existing_' + core.nanoid(),
+        status: PaymentStatus.Succeeded,
+        amount: existingPaymentAmount,
+        livemode: billingPeriod.livemode,
+        customerId: customer.id,
+        organizationId: organization.id,
+        stripePaymentIntentId: 'pi_existing_' + core.nanoid(),
+        invoiceId: testInvoice.id,
+        paymentMethod: paymentMethod.type,
+        billingPeriodId: billingPeriod.id,
+        subscriptionId: billingPeriod.subscriptionId,
+        paymentMethodId: paymentMethod.id,
+      })
+
+      // Execute the billing run
+      const result = await adminTransaction(({ transaction }) =>
+        executeBillingRunCalculationAndBookkeepingSteps(
+          billingRun,
+          transaction
+        )
+      )
+
+      // Verify the amounts are calculated correctly
+      expect(result.totalAmountPaid).toBe(existingPaymentAmount)
+      expect(result.amountToCharge).toBe(
+        result.totalDueAmount - result.totalAmountPaid
+      )
+
+      // The payment record must store amountToCharge, not totalDueAmount
+      // This is critical because:
+      // 1. Stripe will only charge amountToCharge
+      // 2. Refund logic uses payment.amount to validate max refundable
+      // 3. Revenue reporting sums payment.amount
+      expect(result.payment).toMatchObject({
+        amount: result.amountToCharge,
+      })
+      expect(result.payment!.amount).toBe(result.amountToCharge)
+      expect(result.payment!.amount).not.toBe(result.totalDueAmount)
+      expect(result.payment!.amount).toBeLessThan(
+        result.totalDueAmount
+      )
     })
 
     it('should throw an error if customer has no stripe customer ID', async () => {
@@ -2122,7 +2198,9 @@ describe('billingRunHelpers', async () => {
             transaction
           )
       )
-      expect(updatedEntry).toBeDefined()
+      expect(updatedEntry).toMatchObject({
+        claimedByBillingRunId: billingRun.id,
+      })
       expect(updatedEntry!.claimedByBillingRunId).toBe(billingRun.id)
     })
 
@@ -2271,8 +2349,8 @@ describe('billingRunHelpers', async () => {
       const usageItem = lineItems.find(
         (item) => item.type === SubscriptionItemType.Usage
       )
-      expect(staticItem).toBeDefined()
-      expect(usageItem).toBeDefined()
+      expect(typeof staticItem).toBe('object')
+      expect(typeof usageItem).toBe('object')
     })
   })
 
@@ -2435,7 +2513,9 @@ describe('billingRunHelpers', async () => {
           result.outstandingUsageCostsByLedgerAccountId.get(
             ledgerAccount.id
           )
-        expect(aggregatedCost).toBeDefined()
+        expect(aggregatedCost).toMatchObject({
+          ledgerAccountId: ledgerAccount.id,
+        })
         expect(aggregatedCost?.ledgerAccountId).toBe(ledgerAccount.id)
         expect(aggregatedCost?.usageMeterId).toBe(usageMeter.id)
         expect(aggregatedCost?.subscriptionId).toBe(subscription.id)
@@ -2531,7 +2611,9 @@ describe('billingRunHelpers', async () => {
           result.outstandingUsageCostsByLedgerAccountId.get(
             ledgerAccount.id
           )
-        expect(aggregatedCost).toBeDefined()
+        expect(aggregatedCost).toMatchObject({
+          usageMeterId: usageMeter.id,
+        })
         expect(aggregatedCost?.outstandingBalance).toBe(
           usageEvent1.amount + usageEvent2.amount
         )
@@ -2774,7 +2856,9 @@ describe('billingRunHelpers', async () => {
           result.outstandingUsageCostsByLedgerAccountId.get(
             ledgerAccount.id
           )
-        expect(aggregatedCost).toBeDefined()
+        expect(aggregatedCost).toMatchObject({
+          outstandingBalance: 150,
+        })
         expect(aggregatedCost?.outstandingBalance).toBe(150)
       })
     })
@@ -2901,8 +2985,8 @@ describe('billingRunHelpers', async () => {
       const usageItem = lineItems.find(
         (item) => item.type === SubscriptionItemType.Usage
       )
-      expect(staticItem).toBeDefined()
-      expect(usageItem).toBeDefined()
+      expect(typeof staticItem).toBe('object')
+      expect(typeof usageItem).toBe('object')
     })
 
     it('should return quantity 0 if usageEventsPerUnit is null', () => {
@@ -2986,8 +3070,8 @@ describe('billingRunHelpers', async () => {
       const usageItem = lineItems.find(
         (item) => item.type === SubscriptionItemType.Usage
       )
-      expect(staticItem).toBeDefined()
-      expect(usageItem).toBeDefined()
+      expect(typeof staticItem).toBe('object')
+      expect(typeof usageItem).toBe('object')
     })
   })
 
@@ -3073,7 +3157,7 @@ describe('billingRunHelpers', async () => {
           )
         }
       )
-      expect(directInsert).toBeDefined()
+      expect(typeof directInsert).toBe('object')
 
       const createBillingRunResult = await adminTransaction(
         async ({ transaction }) => {
@@ -3087,14 +3171,14 @@ describe('billingRunHelpers', async () => {
           )
         }
       )
-      expect(createBillingRunResult).toBeDefined()
+      expect(typeof createBillingRunResult).toBe('object')
 
       const retryResult = await adminTransaction(
         async ({ transaction }) => {
           return scheduleBillingRunRetry(billingRun, transaction)
         }
       )
-      expect(retryResult).toBeDefined()
+      expect(typeof retryResult).toBe('object')
     })
   })
 

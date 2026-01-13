@@ -1860,8 +1860,36 @@
     {
       "idx": 266,
       "version": "7",
-      "when": 1767999832555,
-      "tag": "0266_dizzy_giant_man",
+      "when": 1767978055514,
+      "tag": "0266_exotic_stranger",
+      "breakpoints": true
+    },
+    {
+      "idx": 267,
+      "version": "7",
+      "when": 1768108215123,
+      "tag": "0267_massive_zarek",
+      "breakpoints": true
+    },
+    {
+      "idx": 268,
+      "version": "7",
+      "when": 1768202728273,
+      "tag": "0268_nebulous_shockwave",
+      "breakpoints": true
+    },
+    {
+      "idx": 269,
+      "version": "7",
+      "when": 1768252988100,
+      "tag": "0269_nebulous_scarlet_spider",
+      "breakpoints": true
+    },
+    {
+      "idx": 270,
+      "version": "7",
+      "when": 1768260471201,
+      "tag": "0270_gigantic_goliath",
       "breakpoints": true
     }
   ]

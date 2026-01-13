@@ -24,7 +24,9 @@ describe('usageMetersRouteConfigs', () => {
     it('should map POST /usage-meters to usageMeters.create procedure', () => {
       const routeConfig = findRouteConfig('POST /usage-meters')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'usageMeters.create',
+      })
       expect(routeConfig!.procedure).toBe('usageMeters.create')
       expect(routeConfig!.pattern.test('usage-meters')).toBe(true)
 
@@ -42,7 +44,9 @@ describe('usageMetersRouteConfigs', () => {
     it('should map PUT /usage-meters/:id to usageMeters.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /usage-meters/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'usageMeters.update',
+      })
       expect(routeConfig!.procedure).toBe('usageMeters.update')
       expect(routeConfig!.pattern.test('usage-meters/test-id')).toBe(
         true
@@ -65,7 +69,9 @@ describe('usageMetersRouteConfigs', () => {
     it('should map GET /usage-meters/:id to usageMeters.get procedure', () => {
       const routeConfig = findRouteConfig('GET /usage-meters/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'usageMeters.get',
+      })
       expect(routeConfig!.procedure).toBe('usageMeters.get')
       expect(routeConfig!.pattern.test('usage-meters/test-id')).toBe(
         true
@@ -79,7 +85,9 @@ describe('usageMetersRouteConfigs', () => {
     it('should map GET /usage-meters to usageMeters.list procedure', () => {
       const routeConfig = findRouteConfig('GET /usage-meters')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'usageMeters.list',
+      })
       expect(routeConfig!.procedure).toBe('usageMeters.list')
       expect(routeConfig!.pattern.test('usage-meters')).toBe(true)
 
@@ -91,7 +99,9 @@ describe('usageMetersRouteConfigs', () => {
     it('should map DELETE /usage-meters/:id to usageMeters.delete procedure', () => {
       const routeConfig = findRouteConfig('DELETE /usage-meters/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'usageMeters.delete',
+      })
       expect(routeConfig!.procedure).toBe('usageMeters.delete')
       expect(routeConfig!.pattern.test('usage-meters/test-id')).toBe(
         true
@@ -148,7 +158,7 @@ describe('usageMetersRouteConfigs', () => {
       const getMatches = getConfig!.pattern.exec(
         'usage-meters/test-id'
       )
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test Usage Meters update pattern extraction
@@ -156,7 +166,7 @@ describe('usageMetersRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'usage-meters/test-id'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test Usage Meters delete pattern extraction
@@ -164,19 +174,19 @@ describe('usageMetersRouteConfigs', () => {
       const deleteMatches = deleteConfig!.pattern.exec(
         'usage-meters/test-id'
       )
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test Usage Meters list pattern (no captures)
       const listConfig = findRouteConfig('GET /usage-meters')
       const listMatches = listConfig!.pattern.exec('usage-meters')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test Usage Meters create pattern (no captures)
       const createConfig = findRouteConfig('POST /usage-meters')
       const createMatches = createConfig!.pattern.exec('usage-meters')
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })

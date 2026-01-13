@@ -5,8 +5,8 @@ import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { DetailLabel } from '@/components/DetailLabel'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import OrganizationLogoInput from '@/components/OrganizationLogoInput'
+import PageContainer from '@/components/PageContainer'
 import { Label } from '@/components/ui/label'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { Switch } from '@/components/ui/switch'
@@ -32,7 +32,7 @@ function SettingsOrganizationDetailsPage() {
 
   if (!organization) {
     return (
-      <InnerPageContainerNew>
+      <PageContainer>
         <div className="w-full relative flex flex-col justify-center pb-6">
           <PageHeaderNew
             title="Organization Details"
@@ -45,12 +45,12 @@ function SettingsOrganizationDetailsPage() {
             <div>Loading...</div>
           </div>
         </div>
-      </InnerPageContainerNew>
+      </PageContainer>
     )
   }
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title="Organization Details"
@@ -122,7 +122,7 @@ function SettingsOrganizationDetailsPage() {
           </div>
         </div>
       </div>
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

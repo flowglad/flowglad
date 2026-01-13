@@ -2,6 +2,7 @@ import * as R from 'ramda'
 import { z } from 'zod'
 import { currencyCodeSchema } from '@/db/commonZodSchema'
 import {
+  resourceFeatureClientInsertSchema,
   toggleFeatureClientInsertSchema,
   usageCreditGrantFeatureClientInsertSchema,
 } from '@/db/schema/features'
@@ -12,6 +13,7 @@ import {
 } from '@/db/schema/prices'
 import { pricingModelsClientInsertSchema } from '@/db/schema/pricingModels'
 import { productsClientInsertSchema } from '@/db/schema/products'
+import { resourcesClientInsertSchema } from '@/db/schema/resources'
 import { usageMetersClientInsertSchema } from '@/db/schema/usageMeters'
 import { FeatureType, PriceType } from '@/types'
 import core, { safeZodSanitizedString } from '../core'
@@ -35,6 +37,7 @@ export const featurePricingModelSetupSchema = z
         usageMeterId: true,
         amount: true,
         renewalFrequency: true,
+        resourceId: true,
       })
       .describe(
         'A feature that can be granted in a true / false boolean state. When granted to a customer, it will return true.'
@@ -43,6 +46,7 @@ export const featurePricingModelSetupSchema = z
       .omit({
         pricingModelId: true,
         usageMeterId: true,
+        resourceId: true,
       })
       .extend({
         usageMeterSlug: z
@@ -52,6 +56,23 @@ export const featurePricingModelSetupSchema = z
           ),
       })
       .describe('A credit grant to give for a usage meter.'),
+    resourceFeatureClientInsertSchema
+      .omit({
+        pricingModelId: true,
+        usageMeterId: true,
+        resourceId: true,
+        renewalFrequency: true,
+      })
+      .extend({
+        resourceSlug: z
+          .string()
+          .describe(
+            'The slug of the resource to grant. Must be a valid slug for a resource in this pricing model.'
+          ),
+      })
+      .describe(
+        'A resource grant feature that allocates a specific amount of a resource.'
+      ),
   ])
   .describe(
     'A feature that can be granted to a customer. Will be associated with products.'
@@ -168,6 +189,18 @@ const slugsAreUnique = (sluggableResources: { slug: string }[]) => {
   return slugs.length === new Set(slugs).size
 }
 
+const resourcePricingModelSetupSchema = resourcesClientInsertSchema
+  .omit({
+    pricingModelId: true,
+  })
+  .extend({
+    slug: safeZodSanitizedString.describe('The slug of the resource'),
+    name: safeZodSanitizedString.describe('The name of the resource'),
+  })
+  .describe(
+    'A resource that can be claimed by subscriptions via resource features.'
+  )
+
 export const setupPricingModelSchema =
   pricingModelsClientInsertSchema.extend({
     name: safeZodSanitizedString.describe(
@@ -206,6 +239,12 @@ export const setupPricingModelSchema =
           message: 'Usage meters must have unique slugs',
         }
       ),
+    resources: z
+      .array(resourcePricingModelSetupSchema)
+      .optional()
+      .refine((resources) => slugsAreUnique(resources ?? []), {
+        message: 'Resources must have unique slugs',
+      }),
   })
 
 export type SetupPricingModelInput = z.infer<
@@ -268,6 +307,10 @@ export const validateSetupPricingModelInput = (
     (m) => m.usageMeter.slug,
     parsed.usageMeters
   )
+  const resourcesBySlug = core.groupBy(
+    R.prop('slug'),
+    parsed.resources ?? []
+  )
 
   // Collect all price slugs for uniqueness validation
   const allPriceSlugs = new Set<string>()
@@ -287,6 +330,15 @@ export const validateSetupPricingModelInput = (
         if (!usageMetersBySlug[feature.usageMeterSlug]) {
           throw new Error(
             `Usage meter with slug ${feature.usageMeterSlug} does not exist`
+          )
+        }
+      }
+      if (feature.type === FeatureType.Resource) {
+        const resourceArr =
+          resourcesBySlug[feature.resourceSlug] || []
+        if (!resourceArr[0]) {
+          throw new Error(
+            `Resource with slug ${feature.resourceSlug} does not exist`
           )
         }
       }

@@ -546,4 +546,202 @@ describe('validateSetupPricingModelInput', () => {
       ).not.toThrow()
     })
   })
+
+  describe('Resource feature schema validation', () => {
+    it('should accept Resource features with resourceSlug and amount', () => {
+      const input = createMinimalValidInput()
+      input.resources = [
+        {
+          slug: 'test-resource',
+          name: 'Test Resource',
+          active: true,
+        },
+      ]
+      input.features = [
+        {
+          type: FeatureType.Resource,
+          slug: 'resource-feature',
+          name: 'Resource Feature',
+          description: 'Test Description',
+          resourceSlug: 'test-resource',
+          amount: 5,
+          active: true,
+        },
+      ]
+      input.products[0].features = ['resource-feature']
+
+      expect(() =>
+        validateSetupPricingModelInput(input)
+      ).not.toThrow()
+    })
+
+    it('should throw when Resource feature references a non-existent resource slug', () => {
+      const input = createMinimalValidInput()
+      input.resources = []
+      input.features = [
+        {
+          type: FeatureType.Resource,
+          slug: 'resource-feature',
+          name: 'Resource Feature',
+          description: 'Test Description',
+          resourceSlug: 'non-existent-resource',
+          amount: 5,
+          active: true,
+        },
+      ]
+      input.products[0].features = ['resource-feature']
+
+      expect(() => validateSetupPricingModelInput(input)).toThrow(
+        'Resource with slug non-existent-resource does not exist'
+      )
+    })
+
+    it('should reject Resource feature without amount', () => {
+      const input = createMinimalValidInput()
+      input.resources = [
+        {
+          slug: 'test-resource',
+          name: 'Test Resource',
+          active: true,
+        },
+      ]
+      const invalidResourceFeature = {
+        type: FeatureType.Resource,
+        slug: 'resource-feature',
+        name: 'Resource Feature',
+        description: 'Test Description',
+        resourceSlug: 'test-resource',
+        active: true,
+        // intentionally omitting required 'amount' field to test schema validation
+      }
+      // @ts-expect-error - invalidResourceFeature is missing required 'amount' field
+      input.features = [invalidResourceFeature]
+      input.products[0].features = ['resource-feature']
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(false)
+    })
+  })
+
+  describe('resources array validation', () => {
+    it('should allow resources to be undefined when not provided', () => {
+      const input = createMinimalValidInput()
+      // Ensure resources is not set
+      delete (input as any).resources
+
+      const result = validateSetupPricingModelInput(input)
+      expect(result.resources).toBeUndefined()
+    })
+
+    it('should accept input with resources array', () => {
+      const input = createMinimalValidInput()
+      input.resources = [
+        {
+          slug: 'resource-one',
+          name: 'Resource One',
+          active: true,
+        },
+        {
+          slug: 'resource-two',
+          name: 'Resource Two',
+          active: true,
+        },
+      ]
+
+      expect(() =>
+        validateSetupPricingModelInput(input)
+      ).not.toThrow()
+      const result = validateSetupPricingModelInput(input)
+      expect(result.resources).toHaveLength(2)
+      expect(result.resources?.[0]?.slug).toBe('resource-one')
+      expect(result.resources?.[1]?.slug).toBe('resource-two')
+    })
+
+    it('should reject duplicate resource slugs', () => {
+      const input = createMinimalValidInput()
+      input.resources = [
+        {
+          slug: 'duplicate-slug',
+          name: 'Resource One',
+          active: true,
+        },
+        {
+          slug: 'duplicate-slug',
+          name: 'Resource Two',
+          active: true,
+        },
+      ]
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const hasSlugError = result.error.issues.some(
+          (issue) =>
+            issue.message === 'Resources must have unique slugs'
+        )
+        expect(hasSlugError).toBe(true)
+      }
+    })
+  })
+
+  describe('mixed feature types', () => {
+    it('should accept all three feature types (Toggle, UsageCreditGrant, Resource) together', () => {
+      const input = createMinimalValidInput()
+      input.usageMeters = [
+        {
+          usageMeter: {
+            slug: 'test-meter',
+            name: 'Test Meter',
+          },
+        },
+      ]
+      input.resources = [
+        {
+          slug: 'test-resource',
+          name: 'Test Resource',
+          active: true,
+        },
+      ]
+      input.features = [
+        {
+          type: FeatureType.Toggle,
+          slug: 'toggle-feature',
+          name: 'Toggle Feature',
+          description: 'Test Toggle',
+          active: true,
+        },
+        {
+          type: FeatureType.UsageCreditGrant,
+          slug: 'credit-feature',
+          name: 'Credit Feature',
+          description: 'Test Credit',
+          usageMeterSlug: 'test-meter',
+          amount: 100,
+          renewalFrequency: FeatureUsageGrantFrequency.Once,
+          active: true,
+        },
+        {
+          type: FeatureType.Resource,
+          slug: 'resource-feature',
+          name: 'Resource Feature',
+          description: 'Test Resource Feature',
+          resourceSlug: 'test-resource',
+          amount: 5,
+          active: true,
+        },
+      ]
+      input.products[0].features = [
+        'toggle-feature',
+        'credit-feature',
+        'resource-feature',
+      ]
+      // Product keeps its default subscription price from createMinimalValidInput
+
+      expect(() =>
+        validateSetupPricingModelInput(input)
+      ).not.toThrow()
+      const result = validateSetupPricingModelInput(input)
+      expect(result.features).toHaveLength(3)
+    })
+  })
 })

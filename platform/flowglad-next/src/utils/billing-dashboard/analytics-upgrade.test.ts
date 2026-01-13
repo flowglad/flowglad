@@ -2421,21 +2421,21 @@ describe('Analytics Upgrade Tracking', () => {
           const path1 = paths.find(
             (p) => p.fromSubscription.id === free1.id
           )
-          expect(path1).toBeDefined()
+          expect(path1).toMatchObject({})
           expect(path1?.toSubscription?.id).toBe(basic1.id)
 
           // Check free2 → premium1
           const path2 = paths.find(
             (p) => p.fromSubscription.id === free2.id
           )
-          expect(path2).toBeDefined()
+          expect(path2).toMatchObject({})
           expect(path2?.toSubscription?.id).toBe(premium1.id)
 
           // Check basic2 → premium2 (part of upgrade chain)
           const path3 = paths.find(
             (p) => p.fromSubscription.id === basic2.id
           )
-          expect(path3).toBeDefined()
+          expect(path3).toMatchObject({})
           expect(path3?.toSubscription?.id).toBe(premium2.id)
         })
       })
@@ -2652,7 +2652,7 @@ describe('Analytics Upgrade Tracking', () => {
           // or have validation that prevents multiple active free subscriptions
         } catch (error) {
           // Expected behavior: error preventing multiple free subscriptions
-          expect(error).toBeDefined()
+          expect(typeof error).toBe('object')
           expect((error as Error).message).toContain(
             'free subscription'
           )
@@ -2773,7 +2773,7 @@ describe('Analytics Upgrade Tracking', () => {
         } catch (error) {
           // Expected behavior in a well-designed system:
           // The second upgrade attempt should fail
-          expect(error).toBeDefined()
+          expect(typeof error).toBe('object')
         }
       })
     })

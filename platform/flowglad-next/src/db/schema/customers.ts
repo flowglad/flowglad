@@ -15,7 +15,7 @@ import {
   createPaginatedTableRowOutputSchema,
   createSupabaseWebhookSchema,
   enableCustomerReadPolicy,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -59,14 +59,12 @@ const columns = {
   ),
 }
 
-export const customers = pgTable(TABLE_NAME, columns, (table) => {
-  return [
-    constructIndex(TABLE_NAME, [table.organizationId]),
-    constructIndex(TABLE_NAME, [
-      table.email,
-      table.organizationId,
-      table.livemode,
-    ]),
+export const customers = pgTable(
+  TABLE_NAME,
+  columns,
+  livemodePolicyTable(TABLE_NAME, (table, livemodeIndex) => [
+    livemodeIndex([table.organizationId]),
+    constructIndex(TABLE_NAME, [table.email]),
     constructIndex(TABLE_NAME, [table.userId]),
     /**
      * Cannot have a unique index on email, because Stripe can have multiple
@@ -110,9 +108,8 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
       for: 'delete',
       using: sql`false`,
     }),
-    livemodePolicy(TABLE_NAME),
-  ]
-}).enableRLS()
+  ])
+).enableRLS()
 
 const readOnlyColumns = {
   livemode: true,

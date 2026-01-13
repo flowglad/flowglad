@@ -109,7 +109,7 @@ describe('clonePricingModelTransaction', () => {
         }
       )
 
-      expect(clonedPricingModel).toBeDefined()
+      expect(clonedPricingModel).toMatchObject({})
       expect(clonedPricingModel.products).toHaveLength(1)
       expect(clonedPricingModel.products[0].prices).toHaveLength(1)
     })
@@ -514,7 +514,7 @@ describe('clonePricingModelTransaction', () => {
           )
         }
       )
-      expect(clonedPricingModel).toBeDefined()
+      expect(clonedPricingModel).toMatchObject({})
       const clonedProducts = await adminTransaction(
         async ({ transaction }) => {
           return selectPricesAndProductsByProductWhere(
@@ -688,7 +688,7 @@ describe('clonePricingModelTransaction', () => {
       const clonedToggle = newFeatures.find(
         (f) => f.slug === 'premium-support'
       )
-      expect(clonedToggle).toBeDefined()
+      expect(clonedToggle).toMatchObject({ type: FeatureType.Toggle })
       expect(clonedToggle?.type).toBe(FeatureType.Toggle)
       expect(clonedToggle?.name).toBe('Premium Support')
       expect(clonedToggle?.id).not.toBe(toggleFeature.id)
@@ -697,7 +697,9 @@ describe('clonePricingModelTransaction', () => {
       const clonedUsage = newFeatures.find(
         (f) => f.slug === 'api-requests'
       )
-      expect(clonedUsage).toBeDefined()
+      expect(clonedUsage).toMatchObject({
+        type: FeatureType.UsageCreditGrant,
+      })
       expect(clonedUsage?.type).toBe(FeatureType.UsageCreditGrant)
       expect(clonedUsage?.amount).toBe(1000)
       expect(clonedUsage?.renewalFrequency).toBe(
@@ -774,7 +776,7 @@ describe('clonePricingModelTransaction', () => {
       const clonedMeter = clonedUsageMeters.find(
         (m) => m.slug === 'data-transfer'
       )
-      expect(clonedMeter).toBeDefined()
+      expect(typeof clonedMeter).toBe('object')
 
       // Get cloned features
       const clonedFeatures = await adminTransaction(
@@ -788,7 +790,9 @@ describe('clonePricingModelTransaction', () => {
       const clonedFeature = clonedFeatures.find(
         (f) => f.slug === 'bandwidth-usage'
       )
-      expect(clonedFeature).toBeDefined()
+      expect(clonedFeature).toMatchObject({
+        usageMeterId: clonedMeter?.id,
+      })
 
       // Verify that usageMeterId is correctly remapped to the new usage meter
       expect(clonedFeature?.usageMeterId).not.toBe(usageMeter.id)
@@ -1064,8 +1068,8 @@ describe('clonePricingModelTransaction', () => {
       const proProduct = clonedPricingModel.products.find(
         (p) => p.name === 'Pro Plan'
       )
-      expect(basicProduct).toBeDefined()
-      expect(proProduct).toBeDefined()
+      expect(typeof basicProduct).toBe('object')
+      expect(typeof proProduct).toBe('object')
       expect(basicProduct?.prices).toHaveLength(1)
       expect(proProduct?.prices).toHaveLength(1)
 
@@ -1769,8 +1773,8 @@ describe('clonePricingModelTransaction', () => {
         (f) => f.slug === 'usage-feature-validation'
       )
 
-      expect(clonedToggleFeature).toBeDefined()
-      expect(clonedUsageFeature).toBeDefined()
+      expect(typeof clonedToggleFeature).toBe('object')
+      expect(typeof clonedUsageFeature).toBe('object')
 
       // Validate toggle feature associations
       expect(clonedToggleFeature!.pricingModelId).toBe(
@@ -1792,7 +1796,7 @@ describe('clonePricingModelTransaction', () => {
       expect(clonedUsageFeature!.id).not.toBe(sourceUsageFeature.id)
 
       // CRITICAL: usageMeterId should reference the NEW usage meter, not the old one
-      expect(clonedUsageFeature!.usageMeterId).not.toBeNull()
+      expect(typeof clonedUsageFeature!.usageMeterId).toBe('string')
       expect(clonedUsageFeature!.usageMeterId).not.toBe(
         sourceUsageMeter1.id
       )
@@ -1801,7 +1805,7 @@ describe('clonePricingModelTransaction', () => {
       const correspondingNewMeter = clonedUsageMeters.find(
         (m) => m.slug === 'api-calls-meter-validation'
       )
-      expect(correspondingNewMeter).toBeDefined()
+      expect(typeof correspondingNewMeter).toBe('object')
       expect(clonedUsageFeature!.usageMeterId).toBe(
         correspondingNewMeter!.id
       )
@@ -2003,11 +2007,11 @@ describe('clonePricingModelTransaction', () => {
         (f) => f.slug === 'feature-no-meter'
       )
 
-      expect(newMeter1).toBeDefined()
-      expect(newMeter2).toBeDefined()
-      expect(newFeature1).toBeDefined()
-      expect(newFeature2).toBeDefined()
-      expect(newFeature3).toBeDefined()
+      expect(newMeter1).toMatchObject({})
+      expect(newMeter2).toMatchObject({})
+      expect(newFeature1).toMatchObject({})
+      expect(newFeature2).toMatchObject({})
+      expect(newFeature3).toMatchObject({})
 
       // Validate correct meter remapping
       expect(newFeature1!.usageMeterId).toBe(newMeter1!.id)
@@ -2565,6 +2569,254 @@ describe('createProductTransaction', () => {
       'Cannot create usage prices with feature assignments. Usage prices must be associated with usage meters only.'
     )
   })
+
+  it('should create a product with a usage price when there are no featureIds', async () => {
+    // Setup: Create a usage meter for the usage price
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: sourcePricingModel.id,
+      name: 'API Requests',
+      slug: 'api-requests',
+      livemode: false,
+    })
+
+    // Test: Create a usage price product without featureIds - should succeed
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return createProductTransaction(
+          {
+            product: {
+              name: 'API Usage Product',
+              description: 'Product with usage-based pricing',
+              active: true,
+              imageURL: null,
+              singularQuantityLabel: 'request',
+              pluralQuantityLabel: 'requests',
+              pricingModelId: sourcePricingModel.id,
+              default: false,
+              slug: `flowglad-usage-product+${core.nanoid()}`,
+            },
+            prices: [
+              {
+                name: 'Per-Request Pricing',
+                type: PriceType.Usage,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                unitPrice: 50,
+                trialPeriodDays: null,
+                active: true,
+                usageMeterId: usageMeter.id,
+                usageEventsPerUnit: 1,
+                isDefault: true,
+                slug: `flowglad-usage-price+${core.nanoid()}`,
+              },
+            ],
+            // featureIds intentionally omitted - should be allowed for usage prices
+          },
+          {
+            userId,
+            transaction,
+            livemode: org1ApiKey.livemode,
+            organizationId: organization.id,
+          }
+        )
+      },
+      {
+        apiKey: org1ApiKeyToken,
+      }
+    )
+
+    const { product, prices } = result
+    const price = prices[0]
+
+    // Verify product was created correctly
+    expect(product.name).toBe('API Usage Product')
+    expect(product.description).toBe(
+      'Product with usage-based pricing'
+    )
+    expect(product.active).toBe(true)
+    expect(product.singularQuantityLabel).toBe('request')
+    expect(product.pluralQuantityLabel).toBe('requests')
+
+    // Verify usage price was created correctly
+    expect(prices).toHaveLength(1)
+    expect(price.name).toBe('Per-Request Pricing')
+    expect(price.type).toBe(PriceType.Usage)
+    expect(price.usageMeterId).toBe(usageMeter.id)
+    expect(price.usageEventsPerUnit).toBe(1)
+    expect(price.unitPrice).toBe(50)
+    expect(price.isDefault).toBe(true)
+    expect(price.active).toBe(true)
+
+    // Verify no product features are associated (since featureIds was not provided)
+    const productFeatures = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductFeatures(
+          { productId: product.id },
+          transaction
+        )
+      }
+    )
+
+    expect(productFeatures).toHaveLength(0)
+  })
+
+  it('should throw an error when creating a SinglePayment product with toggle features', async () => {
+    // Create toggle features with livemode: true to match the API key's livemode
+    // This ensures RLS allows the features to be visible during validation
+    const livemodeToggleFeatureA = await setupToggleFeature({
+      name: 'Livemode Feature A',
+      organizationId: organization.id,
+      livemode: true,
+      pricingModelId: sourcePricingModel.id,
+    })
+    const livemodeToggleFeatureB = await setupToggleFeature({
+      name: 'Livemode Feature B',
+      organizationId: organization.id,
+      livemode: true,
+      pricingModelId: sourcePricingModel.id,
+    })
+    const toggleFeatureIds = [
+      livemodeToggleFeatureA.id,
+      livemodeToggleFeatureB.id,
+    ]
+
+    await expect(
+      authenticatedTransaction(
+        async ({ transaction }) => {
+          return createProductTransaction(
+            {
+              product: {
+                name: 'Single Payment Product with Toggle Features',
+                description: 'Test Description',
+                active: true,
+                imageURL: null,
+                singularQuantityLabel: 'singular',
+                pluralQuantityLabel: 'plural',
+                pricingModelId: sourcePricingModel.id,
+                default: false,
+                slug: `flowglad-test-product+${core.nanoid()}`,
+              },
+              prices: [
+                {
+                  name: 'One-time Payment',
+                  type: PriceType.SinglePayment,
+                  intervalCount: null,
+                  intervalUnit: null,
+                  unitPrice: 9900,
+                  trialPeriodDays: null,
+                  active: true,
+                  usageMeterId: null,
+                  usageEventsPerUnit: null,
+                  isDefault: true,
+                  slug: `flowglad-test-price+${core.nanoid()}`,
+                },
+              ],
+              featureIds: toggleFeatureIds,
+            },
+            {
+              userId,
+              transaction,
+              livemode: org1ApiKey.livemode,
+              organizationId: organization.id,
+            }
+          )
+        },
+        {
+          apiKey: org1ApiKeyToken,
+        }
+      )
+    ).rejects.toThrow(
+      'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+    )
+  })
+
+  it('should allow creating a SinglePayment product with usage credit grant features', async () => {
+    // Setup: Create a usage meter for the usage credit grant feature
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: sourcePricingModel.id,
+      name: 'API Credits',
+      slug: `api-credits-${core.nanoid()}`,
+      livemode: false,
+    })
+
+    // Setup: Create a usage credit grant feature
+    const usageCreditGrantFeature =
+      await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'API Credit Grant',
+        usageMeterId: usageMeter.id,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: false,
+        amount: 1000,
+      })
+
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return createProductTransaction(
+          {
+            product: {
+              name: 'Single Payment Product with Credits',
+              description:
+                'Product that grants usage credits on purchase',
+              active: true,
+              imageURL: null,
+              singularQuantityLabel: 'purchase',
+              pluralQuantityLabel: 'purchases',
+              pricingModelId: sourcePricingModel.id,
+              default: false,
+              slug: `flowglad-test-product+${core.nanoid()}`,
+            },
+            prices: [
+              {
+                name: 'Credit Bundle',
+                type: PriceType.SinglePayment,
+                intervalCount: null,
+                intervalUnit: null,
+                unitPrice: 4900,
+                trialPeriodDays: null,
+                active: true,
+                usageMeterId: null,
+                usageEventsPerUnit: null,
+                isDefault: true,
+                slug: `flowglad-test-price+${core.nanoid()}`,
+              },
+            ],
+            featureIds: [usageCreditGrantFeature.id],
+          },
+          {
+            userId,
+            transaction,
+            livemode: org1ApiKey.livemode,
+            organizationId: organization.id,
+          }
+        )
+      },
+      {
+        apiKey: org1ApiKeyToken,
+      }
+    )
+
+    const { product } = result
+    expect(product.name).toBe('Single Payment Product with Credits')
+
+    // Verify the usage credit grant feature was associated
+    const productFeatures = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductFeatures(
+          { productId: product.id },
+          transaction
+        )
+      }
+    )
+
+    expect(productFeatures).toHaveLength(1)
+    expect(productFeatures[0].featureId).toBe(
+      usageCreditGrantFeature.id
+    )
+  })
 })
 
 describe('editProductTransaction - Feature Updates', () => {
@@ -2684,7 +2936,9 @@ describe('editProductTransaction - Feature Updates', () => {
     expect(
       productFeatures.find((pf) => !pf.expiredAt)?.featureId
     ).toBe(features[0].id)
-    expect(productFeatures.find((pf) => pf.expiredAt)).toBeDefined()
+    expect(productFeatures.find((pf) => pf.expiredAt)).toMatchObject(
+      {}
+    )
   })
 
   it('should not change features if featureIds is not provided', async () => {
@@ -2727,6 +2981,110 @@ describe('editProductTransaction - Feature Updates', () => {
     expect(
       productFeatures.filter((pf) => !pf.expiredAt)
     ).toHaveLength(2)
+  })
+
+  it('should throw an error when adding toggle features to a SinglePayment product', async () => {
+    // Setup: Create a SinglePayment product
+    const singlePaymentProduct = await setupProduct({
+      organizationId: organization.id,
+      livemode: true,
+      pricingModelId: product.pricingModelId,
+      name: 'Single Payment Product',
+    })
+    await setupPrice({
+      productId: singlePaymentProduct.id,
+      name: 'One-time Price',
+      livemode: true,
+      isDefault: true,
+      type: PriceType.SinglePayment,
+      unitPrice: 9900,
+    })
+
+    const toggleFeatureIds = [features[0].id]
+
+    await expect(
+      authenticatedTransaction(
+        async ({ userId, transaction, livemode, organizationId }) => {
+          return editProductTransaction(
+            {
+              product: { id: singlePaymentProduct.id },
+              featureIds: toggleFeatureIds,
+            },
+            { userId, transaction, livemode, organizationId }
+          )
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).rejects.toThrow(
+      'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+    )
+  })
+
+  it('should allow adding usage credit grant features to a SinglePayment product', async () => {
+    // Setup: Create a SinglePayment product
+    const singlePaymentProduct = await setupProduct({
+      organizationId: organization.id,
+      livemode: true,
+      pricingModelId: product.pricingModelId,
+      name: 'Single Payment Product with Credits',
+    })
+    await setupPrice({
+      productId: singlePaymentProduct.id,
+      name: 'Credit Bundle Price',
+      livemode: true,
+      isDefault: true,
+      type: PriceType.SinglePayment,
+      unitPrice: 4900,
+    })
+
+    // Setup: Create a usage meter and usage credit grant feature
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: product.pricingModelId,
+      name: 'API Credits Meter',
+      slug: `api-credits-meter-${core.nanoid()}`,
+      livemode: true,
+    })
+
+    const usageCreditGrantFeature =
+      await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        pricingModelId: product.pricingModelId,
+        name: 'Credit Grant Feature',
+        usageMeterId: usageMeter.id,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: true,
+        amount: 500,
+      })
+
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        return editProductTransaction(
+          {
+            product: { id: singlePaymentProduct.id },
+            featureIds: [usageCreditGrantFeature.id],
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
+
+    const productFeatures = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductFeatures(
+          { productId: singlePaymentProduct.id },
+          transaction
+        )
+      }
+    )
+
+    expect(
+      productFeatures.filter((pf) => !pf.expiredAt)
+    ).toHaveLength(1)
+    expect(
+      productFeatures.find((pf) => !pf.expiredAt)?.featureId
+    ).toBe(usageCreditGrantFeature.id)
   })
 })
 
@@ -2892,7 +3250,7 @@ describe('editProductTransaction - Price Updates', () => {
       { apiKey: apiKeyToken }
     )
 
-    expect(result).toBeDefined()
+    expect(result).toMatchObject({})
     expect(result.name).toBe('Updated Base Plan Name')
     expect(result.description).toBe('Updated description')
     expect(result.default).toBe(true)
@@ -3619,7 +3977,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       const newPrice = finalPrices.find(
         (p) => p.unitPrice === modifiedPrice.unitPrice
       )
-      expect(newPrice).toBeDefined()
+      expect(newPrice).toMatchObject({ slug: 'new-slug' })
       expect(newPrice?.slug).toBe('new-slug')
     })
 

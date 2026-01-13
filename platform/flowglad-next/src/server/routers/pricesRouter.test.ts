@@ -177,7 +177,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         }
       )
 
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
       expect(result.unitPrice).toBe(0)
       expect(result.name).toBe('Updated Base Plan Price')
     })
@@ -273,7 +273,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         }
       )
 
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
       expect(result.name).toBe('Updated Default Price Name')
       expect(result.active).toBe(false)
       expect(result.unitPrice).toBe(0) // Should remain 0
@@ -432,7 +432,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         }
       )
 
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
       expect(result.unitPrice).toBe(2000)
     })
 
@@ -491,7 +491,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         }
       )
 
-      expect(result).toBeDefined()
+      expect(result).toMatchObject({})
       expect(result.isDefault).toBe(false)
     })
   })
@@ -601,7 +601,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         } as any,
       } as any)
 
-      expect(result.price).toBeDefined()
+      expect(result.price).toMatchObject({})
       expect(result.price.unitPrice).toBe(2500)
       expect(result.price.isDefault).toBe(true)
     })
@@ -654,8 +654,8 @@ describe('pricesRouter - Default Price Constraints', () => {
         .createCaller(ctx)
         .get({ id: regularPriceId })
 
-      expect(result).toBeDefined()
-      expect(result.price).toBeDefined()
+      expect(result).toMatchObject({})
+      expect(result.price).toMatchObject({})
       expect(result.price.id).toBe(regularPriceId)
     })
 
@@ -1238,7 +1238,6 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
           } as any,
         })
 
-      expect(result.price).toBeDefined()
       expect(result.price.type).toBe(PriceType.Usage)
       expect(result.price.productId).toBeNull()
       expect(result.price.unitPrice).toBe(200)
@@ -1275,7 +1274,6 @@ describe('pricesRouter - PR 4: API Contract Updates', () => {
           },
         })
 
-      expect(result.price).toBeDefined()
       expect(result.price.type).toBe(PriceType.Subscription)
       expect(result.price.productId).toBe(regularProductId)
     })

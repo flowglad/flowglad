@@ -581,7 +581,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
     // Verify they are actually expired (have expiredAt set)
     for (const removedPf of syncResult.removed) {
-      expect(removedPf.expiredAt).not.toBeNull()
+      expect(typeof removedPf.expiredAt).toBe('number')
     }
   })
 
@@ -1053,7 +1053,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     expect(removeResult.removed[0].featureId).toBe(
       featureSlugToIdMap.get('feature-b')
     )
-    expect(removeResult.removed[0].expiredAt).not.toBeNull()
+    expect(typeof removeResult.removed[0].expiredAt).toBe('number')
 
     // Step 2: Re-add feature-b (this should unexpire it)
     const reAddResult = await adminTransaction(

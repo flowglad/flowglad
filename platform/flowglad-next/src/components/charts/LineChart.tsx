@@ -1,8 +1,8 @@
 // Tremor LineChart [v0.3.2]
+// Refactored to use modular components from LineChart/ directory
 
 'use client'
 
-import { RiArrowLeftSLine, RiArrowRightSLine } from '@remixicon/react'
 import React from 'react'
 import { mergeRefs } from 'react-merge-refs'
 import {
@@ -20,6 +20,8 @@ import {
 } from 'recharts'
 import type { AxisDomain } from 'recharts/types/util/types'
 
+import { cn } from '@/lib/utils'
+import { RevenueChartIntervalUnit } from '@/types'
 import {
   AvailableChartColors,
   type AvailableChartColorsKeys,
@@ -29,507 +31,51 @@ import {
   hasOnlyOneValueForKey,
 } from '@/utils/chartStyles'
 
-// Function to get the actual CSS color value for Recharts stroke prop
-const getCSSColorValue = (
-  color: AvailableChartColorsKeys
-): string => {
-  // For foreground, return the CSS custom property directly
-  if (color === 'foreground') {
-    return 'hsl(var(--foreground))'
-  }
+// Import modular components
+import { useContainerSize } from './LineChart/hooks/useContainerSize'
+import {
+  ChartLegend,
+  type RechartsLegendPayloadItem,
+} from './LineChart/Legend'
+import {
+  ChartTooltip,
+  type ChartTooltipProps,
+  type PayloadItem,
+  type TooltipProps,
+} from './LineChart/Tooltip'
+import { getCSSColorValue } from './LineChart/utils/colors'
 
-  // For other colors, construct the appropriate CSS color
-  const colorMap = {
-    blue: '#3b82f6',
-    emerald: '#10b981',
-    violet: '#8b5cf6',
-    amber: '#f59e0b',
-    gray: '#6b7280',
-    cyan: '#06b6d4',
-    pink: '#ec4899',
-    lime: '#84cc16',
-    fuchsia: '#d946ef',
-    primary: 'hsl(var(--primary))',
-    stone: '#57534e',
-  }
+//#region Types for Recharts callbacks
 
-  return colorMap[color as keyof typeof colorMap] || '#6b7280'
-}
-
-import { useOnWindowResize } from '@/app/hooks/useOnWindowResize'
-import { cn } from '@/lib/utils'
-
-// Add useContainerSize hook
-const useContainerSize = () => {
-  const [size, setSize] = React.useState({ width: 0, height: 0 })
-  const containerRef = React.useRef<HTMLDivElement>(null)
-
-  React.useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      const { width, height } = entries[0].contentRect
-      setSize({ width, height })
-    })
-
-    resizeObserver.observe(container)
-
-    return () => {
-      resizeObserver.disconnect()
-    }
-  }, [])
-
-  return { containerRef, ...size }
-}
-
-//#region Legend
-
-interface LegendItemProps {
-  name: string
-  color: AvailableChartColorsKeys
-  onClick?: (name: string, color: AvailableChartColorsKeys) => void
-  activeLegend?: string
-}
-
-const LegendItem = ({
-  name,
-  color,
-  onClick,
-  activeLegend,
-}: LegendItemProps) => {
-  const hasOnValueChange = !!onClick
-  return (
-    <li
-      className={cn(
-        // base
-        'group inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 transition',
-        hasOnValueChange
-          ? 'cursor-pointer hover:bg-accent'
-          : 'cursor-default'
-      )}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick?.(name, color)
-      }}
-    >
-      <span
-        className={cn(
-          'h-[3px] w-3.5 shrink-0 rounded-full',
-          getColorClassName(color, 'bg'),
-          activeLegend && activeLegend !== name
-            ? 'opacity-40'
-            : 'opacity-100'
-        )}
-        aria-hidden={true}
-      />
-      <p
-        className={cn(
-          // base
-          'truncate whitespace-nowrap text-xs',
-          // text color
-          'text-muted-foreground',
-          hasOnValueChange && 'group-hover:text-accent-foreground',
-          activeLegend && activeLegend !== name
-            ? 'opacity-40'
-            : 'opacity-100'
-        )}
-      >
-        {name}
-      </p>
-    </li>
-  )
-}
-
-interface ScrollButtonProps {
-  icon: React.ElementType
-  onClick?: () => void
-  disabled?: boolean
-}
-
-const ScrollButton = ({
-  icon,
-  onClick,
-  disabled,
-}: ScrollButtonProps) => {
-  const Icon = icon
-  const [isPressed, setIsPressed] = React.useState(false)
-  const intervalRef = React.useRef<NodeJS.Timeout | null>(null)
-
-  React.useEffect(() => {
-    if (isPressed) {
-      intervalRef.current = setInterval(() => {
-        onClick?.()
-      }, 300)
-    } else {
-      clearInterval(intervalRef.current as NodeJS.Timeout)
-    }
-    return () => clearInterval(intervalRef.current as NodeJS.Timeout)
-  }, [isPressed, onClick])
-
-  React.useEffect(() => {
-    if (disabled) {
-      clearInterval(intervalRef.current as NodeJS.Timeout)
-      setIsPressed(false)
-    }
-  }, [disabled])
-
-  return (
-    <button
-      type="button"
-      className={cn(
-        // base
-        'group inline-flex size-5 items-center truncate rounded transition',
-        disabled
-          ? 'cursor-not-allowed text-muted-foreground opacity-50'
-          : 'cursor-pointer text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-      )}
-      disabled={disabled}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick?.()
-      }}
-      onMouseDown={(e) => {
-        e.stopPropagation()
-        setIsPressed(true)
-      }}
-      onMouseUp={(e) => {
-        e.stopPropagation()
-        setIsPressed(false)
-      }}
-    >
-      <Icon className="size-full" aria-hidden="true" />
-    </button>
-  )
-}
-
-interface LegendProps
-  extends React.OlHTMLAttributes<HTMLOListElement> {
-  categories: string[]
-  colors?: AvailableChartColorsKeys[]
-  onClickLegendItem?: (category: string, color: string) => void
-  activeLegend?: string
-  enableLegendSlider?: boolean
-}
-
-type HasScrollProps = {
-  left: boolean
-  right: boolean
-}
-
-const Legend = React.forwardRef<HTMLOListElement, LegendProps>(
-  (props, ref) => {
-    const {
-      categories,
-      colors = AvailableChartColors,
-      className,
-      onClickLegendItem,
-      activeLegend,
-      enableLegendSlider = false,
-      ...other
-    } = props
-    const scrollableRef = React.useRef<HTMLInputElement>(null)
-    const scrollButtonsRef = React.useRef<HTMLDivElement>(null)
-    const [hasScroll, setHasScroll] =
-      React.useState<HasScrollProps | null>(null)
-    const [isKeyDowned, setIsKeyDowned] = React.useState<
-      string | null
-    >(null)
-    const intervalRef = React.useRef<NodeJS.Timeout | null>(null)
-
-    const checkScroll = React.useCallback(() => {
-      const scrollable = scrollableRef?.current
-      if (!scrollable) return
-
-      const hasLeftScroll = scrollable.scrollLeft > 0
-      const hasRightScroll =
-        scrollable.scrollWidth - scrollable.clientWidth >
-        scrollable.scrollLeft
-
-      setHasScroll({ left: hasLeftScroll, right: hasRightScroll })
-    }, [setHasScroll])
-
-    const scrollToTest = React.useCallback(
-      (direction: 'left' | 'right') => {
-        const element = scrollableRef?.current
-        const scrollButtons = scrollButtonsRef?.current
-        const scrollButtonsWith = scrollButtons?.clientWidth ?? 0
-        const width = element?.clientWidth ?? 0
-
-        if (element && enableLegendSlider) {
-          element.scrollTo({
-            left:
-              direction === 'left'
-                ? element.scrollLeft - width + scrollButtonsWith
-                : element.scrollLeft + width - scrollButtonsWith,
-            behavior: 'smooth',
-          })
-          setTimeout(() => {
-            checkScroll()
-          }, 400)
-        }
-      },
-      [enableLegendSlider, checkScroll]
-    )
-
-    React.useEffect(() => {
-      const keyDownHandler = (key: string) => {
-        if (key === 'ArrowLeft') {
-          scrollToTest('left')
-        } else if (key === 'ArrowRight') {
-          scrollToTest('right')
-        }
-      }
-      if (isKeyDowned) {
-        keyDownHandler(isKeyDowned)
-        intervalRef.current = setInterval(() => {
-          keyDownHandler(isKeyDowned)
-        }, 300)
-      } else {
-        clearInterval(intervalRef.current as NodeJS.Timeout)
-      }
-      return () =>
-        clearInterval(intervalRef.current as NodeJS.Timeout)
-    }, [isKeyDowned, scrollToTest])
-
-    const keyDown = (e: KeyboardEvent) => {
-      e.stopPropagation()
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        e.preventDefault()
-        setIsKeyDowned(e.key)
-      }
-    }
-    const keyUp = (e: KeyboardEvent) => {
-      e.stopPropagation()
-      setIsKeyDowned(null)
-    }
-
-    React.useEffect(() => {
-      const scrollable = scrollableRef?.current
-      if (enableLegendSlider) {
-        checkScroll()
-        scrollable?.addEventListener('keydown', keyDown)
-        scrollable?.addEventListener('keyup', keyUp)
-      }
-
-      return () => {
-        scrollable?.removeEventListener('keydown', keyDown)
-        scrollable?.removeEventListener('keyup', keyUp)
-      }
-    }, [checkScroll, enableLegendSlider])
-
-    return (
-      <ol
-        ref={ref}
-        className={cn('relative overflow-hidden', className)}
-        {...other}
-      >
-        <div
-          ref={scrollableRef}
-          tabIndex={0}
-          className={cn(
-            'flex h-full',
-            enableLegendSlider
-              ? hasScroll?.right || hasScroll?.left
-                ? 'snap-mandatory items-center overflow-auto pl-4 pr-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
-                : ''
-              : 'flex-wrap'
-          )}
-        >
-          {categories.map((category, index) => (
-            <LegendItem
-              key={`item-${index}`}
-              name={category}
-              color={colors[index] as AvailableChartColorsKeys}
-              onClick={onClickLegendItem}
-              activeLegend={activeLegend}
-            />
-          ))}
-        </div>
-        {enableLegendSlider &&
-        (hasScroll?.right || hasScroll?.left) ? (
-          <>
-            <div
-              className={cn(
-                // base
-                'absolute bottom-0 right-0 top-0 flex h-full items-center justify-center pr-1',
-                // background color
-                'bg-background'
-              )}
-            >
-              <ScrollButton
-                icon={RiArrowLeftSLine}
-                onClick={() => {
-                  setIsKeyDowned(null)
-                  scrollToTest('left')
-                }}
-                disabled={!hasScroll?.left}
-              />
-              <ScrollButton
-                icon={RiArrowRightSLine}
-                onClick={() => {
-                  setIsKeyDowned(null)
-                  scrollToTest('right')
-                }}
-                disabled={!hasScroll?.right}
-              />
-            </div>
-          </>
-        ) : null}
-      </ol>
-    )
-  }
-)
-
-Legend.displayName = 'Legend'
-
-const ChartLegend = (
-  { payload }: any,
-  categoryColors: Map<string, AvailableChartColorsKeys>,
-  setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
-  activeLegend: string | undefined,
-  onClick?: (category: string, color: string) => void,
-  enableLegendSlider?: boolean,
-  legendPosition?: 'left' | 'center' | 'right',
-  yAxisWidth?: number
-) => {
-  const legendRef = React.useRef<HTMLDivElement>(null)
-
-  useOnWindowResize(() => {
-    const calculateHeight = (height: number | undefined) =>
-      height ? Number(height) + 15 : 60
-    setLegendHeight(calculateHeight(legendRef.current?.clientHeight))
-  })
-
-  const legendPayload = payload.filter(
-    (item: any) => item.type !== 'none'
-  )
-
-  const paddingLeft =
-    legendPosition === 'left' && yAxisWidth ? yAxisWidth - 8 : 0
-
-  return (
-    <div
-      ref={legendRef}
-      style={{ paddingLeft: paddingLeft }}
-      className={cn(
-        'flex items-center',
-        { 'justify-center': legendPosition === 'center' },
-        { 'justify-start': legendPosition === 'left' },
-        { 'justify-end': legendPosition === 'right' }
-      )}
-    >
-      <Legend
-        categories={legendPayload.map((entry: any) => entry.value)}
-        colors={legendPayload.map((entry: any) =>
-          categoryColors.get(entry.value)
-        )}
-        onClickLegendItem={onClick}
-        activeLegend={activeLegend}
-        enableLegendSlider={enableLegendSlider}
-      />
-    </div>
-  )
-}
-
-//#region Tooltip
-
-type TooltipProps = Pick<
-  ChartTooltipProps,
-  'active' | 'payload' | 'label'
->
-
-type PayloadItem = {
-  category: string
-  value: number
-  index: string
-  color: AvailableChartColorsKeys
-  type?: string
-  payload: any
-}
-
-interface ChartTooltipProps {
-  active: boolean | undefined
-  payload: PayloadItem[]
-  label: string
-  valueFormatter: (value: number) => string
+/**
+ * Props provided by Recharts to X-axis tick render functions.
+ */
+interface RechartsXAxisTickProps {
+  x: number
+  y: number
+  payload: { value: string | number }
+  index: number
+  fill?: string
+  stroke?: string
+  textAnchor?: string
+  verticalAnchor?: string
 }
 
 /**
- * Default chart tooltip for LineChart.
- * Shows a vertical layout: value on top, date below.
- * Matches the Figma design system tooltip styling.
+ * Props provided by Recharts to dot/activeDot render functions.
  */
-const ChartTooltip = ({
-  active,
-  payload,
-  label,
-  valueFormatter,
-}: ChartTooltipProps) => {
-  if (active && payload && payload.length) {
-    const legendPayload = payload.filter(
-      (item: any) => item.type !== 'none'
-    )
-    // For single category charts, show simplified tooltip
-    if (legendPayload.length === 1) {
-      const { value } = legendPayload[0]
-      return (
-        <div
-          className={cn(
-            'bg-popover flex flex-col gap-2 p-2 rounded border border-border',
-            'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
-          )}
-        >
-          <p className="text-base font-medium text-foreground tracking-tight leading-none">
-            {valueFormatter(value)}
-          </p>
-          <p className="text-sm text-muted-foreground tracking-tight leading-5">
-            {label}
-          </p>
-        </div>
-      )
-    }
-    // For multi-category charts, show category breakdown
-    return (
-      <div
-        className={cn(
-          'bg-popover rounded border border-border',
-          'shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
-        )}
-      >
-        <div className={cn('border-b border-inherit px-3 py-2')}>
-          <p className="text-sm font-medium text-foreground">
-            {label}
-          </p>
-        </div>
-        <div className={cn('space-y-1 px-3 py-2')}>
-          {legendPayload.map(({ value, category, color }, index) => (
-            <div
-              key={`id-${index}`}
-              className="flex items-center justify-between gap-4"
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    'h-[3px] w-3.5 shrink-0 rounded-full',
-                    getColorClassName(color, 'bg')
-                  )}
-                />
-                <p className="text-sm whitespace-nowrap text-muted-foreground">
-                  {category}
-                </p>
-              </div>
-              <p className="text-sm whitespace-nowrap font-medium tabular-nums text-foreground">
-                {valueFormatter(value)}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
-  return null
+interface RechartsDotProps {
+  cx: number
+  cy: number
+  r?: number
+  stroke?: string
+  strokeWidth?: number
+  strokeLinecap?: 'butt' | 'round' | 'square'
+  strokeLinejoin?: 'miter' | 'round' | 'bevel'
+  fill?: string
+  dataKey?: string
+  index?: number
+  payload?: Record<string, unknown>
 }
 
 //#region LineChart
@@ -549,7 +95,7 @@ type LineChartEventProps = BaseEventProps | null | undefined
 
 interface LineChartProps
   extends React.HTMLAttributes<HTMLDivElement> {
-  data: Record<string, any>[]
+  data: Record<string, unknown>[]
   index: string
   categories: string[]
   colors?: AvailableChartColorsKeys[]
@@ -579,12 +125,74 @@ interface LineChartProps
   startEndOnlyYAxis?: boolean
   /** Fill style for the area under the line. Defaults to 'none' for backwards compatibility. */
   fill?: 'gradient' | 'solid' | 'none'
+  /** The time interval unit of the data. Used for smart grid line sampling when there are many data points. */
+  intervalUnit?: RevenueChartIntervalUnit
+  /** Horizontal margin (left/right) in pixels. Defaults to 24 for alignment with page padding. */
+  horizontalMargin?: number
 }
 
 /**
- * Warning! This file is fully copied from Tremor's AreaChart component.
- * It's not a good idea to edit it. It will probably break.
+ * Maximum number of grid lines to show before sampling kicks in.
+ * This keeps charts readable while still allowing hover on all data points.
  */
+const MAX_GRID_LINES = 35
+
+/**
+ * Calculates a smart sampling interval that snaps to meaningful time boundaries.
+ * Returns 0 if no sampling needed, otherwise the interval step.
+ *
+ * @param dataLength - Number of data points
+ * @param intervalUnit - The time granularity of the data (hour, day, week, month)
+ * @returns The interval step (0 = show all, N = show every Nth)
+ *
+ * @example
+ * // 168 hourly points (7 days) → sample every 6 hours = 28 grid lines
+ * getSmartTickInterval(168, RevenueChartIntervalUnit.Hour) // returns 6
+ *
+ * // 52 weekly points (1 year) → sample every 2 weeks = 26 grid lines
+ * getSmartTickInterval(52, RevenueChartIntervalUnit.Week) // returns 2
+ */
+function getSmartTickInterval(
+  dataLength: number,
+  intervalUnit?: RevenueChartIntervalUnit
+): number {
+  if (dataLength <= MAX_GRID_LINES) return 0 // Show all ticks
+
+  const baseInterval = Math.ceil(dataLength / MAX_GRID_LINES)
+
+  // Snap to meaningful time boundaries based on the data's granularity.
+  // Always ensure we return at least baseInterval to stay under MAX_GRID_LINES.
+  switch (intervalUnit) {
+    case RevenueChartIntervalUnit.Hour:
+      // Snap to clock-friendly intervals: 2, 3, 4, 6, 12 hours
+      const hourOptions = [2, 3, 4, 6, 12]
+      return (
+        hourOptions.find((h) => h >= baseInterval) ?? baseInterval
+      )
+
+    case RevenueChartIntervalUnit.Day:
+      // Snap to 7 days (weekly boundaries) when needed
+      return baseInterval >= 4
+        ? Math.max(7, baseInterval)
+        : baseInterval
+
+    case RevenueChartIntervalUnit.Week:
+      // Snap to 2 or 4 weeks (bi-weekly or monthly rhythm)
+      const weekOptions = [2, 4]
+      return (
+        weekOptions.find((w) => w >= baseInterval) ?? baseInterval
+      )
+
+    case RevenueChartIntervalUnit.Month:
+      // Snap to quarterly (3 months) if needed
+      return baseInterval >= 2
+        ? Math.max(3, baseInterval)
+        : baseInterval
+
+    default:
+      return baseInterval
+  }
+}
 
 const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
   (props, ref) => {
@@ -619,6 +227,8 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       customTooltip,
       startEndOnlyYAxis = false,
       fill = 'none',
+      intervalUnit,
+      horizontalMargin = 24,
       ...other
     } = props
     const { containerRef, width, height } = useContainerSize()
@@ -690,27 +300,36 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       0.2 // 20% padding above max value for visual breathing room
     )
 
-    // When startEndOnly is true, we want grid lines at actual data positions
-    // but only show labels for start/end. Calculate a sensible interval
-    // to avoid too many grid lines (target ~8 lines for readability).
+    // Smart grid line sampling: show one tick per data point up to MAX_GRID_LINES,
+    // then sample at meaningful time boundaries to prevent visual overload.
+    // Labels are only rendered for first/last points when startEndOnly is true.
     const xAxisInterval = React.useMemo(() => {
       if (!startEndOnly) return intervalType
-      if (data.length <= 8) return 0 // Show all if few data points
-      return Math.max(1, Math.floor(data.length / 8))
-    }, [startEndOnly, data.length, intervalType])
+
+      // Use smart sampling when we have many data points
+      const smartInterval = getSmartTickInterval(
+        data.length,
+        intervalUnit
+      )
+      return smartInterval
+    }, [startEndOnly, intervalType, data.length, intervalUnit])
 
     const hasOnValueChange = !!onValueChange
     const prevActiveRef = React.useRef<boolean | undefined>(undefined)
     const prevLabelRef = React.useRef<string | undefined>(undefined)
 
-    function onDotClick(itemData: any, event: React.MouseEvent) {
+    function onDotClick(
+      itemData: RechartsDotProps,
+      event: React.MouseEvent
+    ) {
       event.stopPropagation()
 
       if (!hasOnValueChange) return
       if (
         (itemData.index === activeDot?.index &&
           itemData.dataKey === activeDot?.dataKey) ||
-        (hasOnlyOneValueForKey(data, itemData.dataKey) &&
+        (itemData.dataKey &&
+          hasOnlyOneValueForKey(data, itemData.dataKey) &&
           activeLegend &&
           activeLegend === itemData.dataKey)
       ) {
@@ -725,8 +344,8 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
         })
         onValueChange?.({
           eventType: 'dot',
-          categoryClicked: itemData.dataKey,
-          ...itemData.payload,
+          categoryClicked: itemData.dataKey ?? '',
+          ...(itemData.payload as Record<string, string | number>),
         })
       }
     }
@@ -754,13 +373,13 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
     return (
       <div
         ref={mergeRefs([ref, containerRef])}
-        className={cn('h-80 w-full', className)}
+        className={cn('h-60 w-full', className)}
         tremor-id="tremor-raw"
         {...other}
       >
         {/*
          * Chart Sizing Mechanism:
-         * 1. The outer div is set to h-80 (20rem) and w-full by default, making it fill its parent's width
+         * 1. The outer div is set to h-60 (15rem) and w-full by default, making it fill its parent's width
          * 2. ResponsiveContainer wraps the chart and is set to 100% width and height, so it fills the outer div
          * 3. useContainerSize hook uses ResizeObserver to track the actual pixel dimensions of the outer div
          * 4. These dimensions (width & height) are passed to RechartsLineChart, which uses them for internal calculations
@@ -785,8 +404,8 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             }
             margin={{
               bottom: xAxisLabel ? 30 : undefined,
-              left: 16,
-              right: 16,
+              left: horizontalMargin,
+              right: horizontalMargin,
               top: 5,
             }}
           >
@@ -804,7 +423,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               interval={xAxisInterval}
               tick={
                 startEndOnly
-                  ? (props: any) => {
+                  ? (props: RechartsXAxisTickProps) => {
                       const {
                         x,
                         y,
@@ -812,9 +431,19 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                         index: tickIndex,
                       } = props
                       const isFirst = tickIndex === 0
+
+                      // Calculate the last visible tick index accounting for sampling interval
+                      // When interval > 0, ticks appear at 0, interval, 2*interval, etc.
+                      const interval =
+                        typeof xAxisInterval === 'number' &&
+                        xAxisInterval > 0
+                          ? xAxisInterval
+                          : 1
+                      const lastVisibleTickIndex =
+                        Math.floor((data.length - 1) / interval) *
+                        interval
                       const isLast =
-                        tickIndex >=
-                        data.length - 1 - (xAxisInterval as number)
+                        tickIndex === lastVisibleTickIndex
 
                       // Only render first and last labels
                       if (!isFirst && !isLast) return <g />
@@ -919,15 +548,21 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               position={{ y: 16 }}
               content={({ active, payload, label }) => {
                 const cleanPayload: TooltipProps['payload'] = payload
-                  ? payload.map((item: any) => ({
-                      category: item.dataKey,
-                      value: item.value,
-                      index: item.payload[index],
+                  ? payload.map((item) => ({
+                      category: String(item.dataKey ?? ''),
+                      value: Number(item.value ?? 0),
+                      index: String(
+                        (item.payload as Record<string, unknown>)?.[
+                          index
+                        ] ?? ''
+                      ),
                       color: categoryColors.get(
-                        item.dataKey
+                        String(item.dataKey ?? '')
                       ) as AvailableChartColorsKeys,
                       type: item.type,
-                      payload: item.payload,
+                      payload:
+                        (item.payload as Record<string, unknown>) ??
+                        {},
                     }))
                   : []
 
@@ -970,7 +605,10 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 height={legendHeight}
                 content={({ payload }) =>
                   ChartLegend(
-                    { payload },
+                    {
+                      payload: (payload ??
+                        []) as RechartsLegendPayloadItem[],
+                    },
                     categoryColors,
                     setLegendHeight,
                     activeLegend,
@@ -1049,13 +687,14 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                     ? 0.3
                     : 1
                 }
-                activeDot={(props: any) => {
+                activeDot={(props: unknown) => {
+                  const dotProps = props as RechartsDotProps
                   const {
                     cx: cxCoord,
                     cy: cyCoord,
                     strokeLinecap,
                     strokeLinejoin,
-                  } = props
+                  } = dotProps
                   return (
                     <Dot
                       className={cn(
@@ -1069,11 +708,14 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                       strokeLinecap={strokeLinecap}
                       strokeLinejoin={strokeLinejoin}
                       strokeWidth={2}
-                      onClick={(_, event) => onDotClick(props, event)}
+                      onClick={(_, event) =>
+                        onDotClick(dotProps, event)
+                      }
                     />
                   )
                 }}
-                dot={(props: any) => {
+                dot={(props: unknown) => {
+                  const dotProps = props as RechartsDotProps
                   const {
                     stroke,
                     strokeLinecap,
@@ -1081,9 +723,8 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                     strokeWidth,
                     cx: cxCoord,
                     cy: cyCoord,
-                    dataKey,
-                    index,
-                  } = props
+                    index: dotIndex,
+                  } = dotProps
 
                   if (
                     (hasOnlyOneValueForKey(data, category) &&
@@ -1091,12 +732,12 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                         activeDot ||
                         (activeLegend && activeLegend !== category)
                       )) ||
-                    (activeDot?.index === index &&
+                    (activeDot?.index === dotIndex &&
                       activeDot?.dataKey === category)
                   ) {
                     return (
                       <Dot
-                        key={index}
+                        key={dotIndex}
                         cx={cxCoord}
                         cy={cyCoord}
                         r={5}
@@ -1112,7 +753,9 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                       />
                     )
                   }
-                  return <React.Fragment key={index}></React.Fragment>
+                  return (
+                    <React.Fragment key={dotIndex}></React.Fragment>
+                  )
                 }}
                 key={category}
                 name={category}
@@ -1141,10 +784,10 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                     tooltipType="none"
                     strokeWidth={12}
                     connectNulls={connectNulls}
-                    onClick={(props: any, event) => {
+                    onClick={(props, event) => {
                       event.stopPropagation()
-                      const { name } = props
-                      onCategoryClick(name)
+                      const lineProps = props as { name?: string }
+                      onCategoryClick(lineProps.name ?? category)
                     }}
                   />
                 ))
@@ -1158,4 +801,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
 
 LineChart.displayName = 'LineChart'
 
-export { LineChart, type LineChartEventProps, type TooltipProps }
+// Re-export types from modular components for backward compatibility
+export type { ChartTooltipProps, PayloadItem, TooltipProps }
+
+export { LineChart, type LineChartEventProps }

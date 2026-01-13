@@ -1,6 +1,6 @@
 
 - For `checkUsageBalance` (available on client & server): provide the `usageMeterSlug` to check for and optionally refine the result to a specific subscription by passing in a `subscriptionId` for `refinementParams`. Returns either `{ availableBalance: number }` or `null` if not found.
-- For `createUsageEvent` (server only): provide `{amount: number, priceId: string, subscriptionId: string, usageMeterId: string, transactionId: string, properties?: Record<string, unknown>, usageDate?: number}`. The optional `properties` field is for usage meter of count distinct properties aggregation type. See [here](/api-reference/usage-events/create-usage-event#body-usage-event) for more details on the parameters.
+- For `createUsageEvent` (server only): provide `{amount: number, priceId: string, subscriptionId: string, usageMeterId: string, transactionId: string, properties?: Record<string, unknown>, usageDate?: number}`. The `properties` field is **required** for usage meters with `count_distinct_properties` aggregation type - it must be a non-empty object identifying the distinct combination being counted (e.g., `{ user_id: '123' }`). For other aggregation types, `properties` is optional. See [here](/api-reference/usage-events/create-usage-event#body-usage-event) for more details on the parameters.
 
 ### Example: Usage Balance Check
 

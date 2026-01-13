@@ -143,7 +143,7 @@ export function PricesDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar */}
-      <div className="flex flex-col gap-3 pt-1 pb-2 px-4">
+      <div className="flex flex-col gap-3 pt-1 pb-2 px-6">
         {/* Title row */}
         {title && (
           <div>
@@ -233,7 +233,7 @@ export function PricesDataTable({
       </Table>
 
       {/* Pagination */}
-      <div className="py-2 px-4">
+      <div className="py-2 px-6">
         <DataTablePagination
           table={table}
           totalCount={data?.total}

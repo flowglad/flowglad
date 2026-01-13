@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { insertCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 
 // Only mock Next headers to satisfy runtime; avoid higher-level mocks
 vi.mock('next/headers', () => ({
@@ -244,9 +245,6 @@ describe('checkoutHelpers', () => {
     it('valid session without customer → includes product/price/org and no customer', async () => {
       const { organization, product, price } = await makeSession()
       await adminTransaction(async ({ transaction }) => {
-        const { insertCheckoutSession } = await import(
-          '@/db/tableMethods/checkoutSessionMethods'
-        )
         const noCustomerSession = await insertCheckoutSession(
           {
             status: CheckoutSessionStatus.Open,
@@ -319,7 +317,7 @@ describe('checkoutHelpers', () => {
           session.id,
           transaction
         )
-        expect(result.feeCalculation).not.toBeNull()
+        expect(result.feeCalculation).toMatchObject({ id: second.id })
         expect(result.feeCalculation?.id).toBe(second.id)
         expect(result.feeCalculation?.id).not.toBe(first.id)
       })

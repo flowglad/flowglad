@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CustomerCardNew } from '@/components/CustomerCardNew'
 import { ExpandSection } from '@/components/ExpandSection'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import PageContainer from '@/components/PageContainer'
 import { Badge } from '@/components/ui/badge'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import type { Customer } from '@/db/schema/customers'
@@ -44,7 +44,7 @@ const InnerPurchasePage = ({
   const router = useRouter()
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <div className="w-full relative flex flex-col justify-center gap-6 pb-6">
         <PageHeaderNew
           title="Purchase Details"
@@ -141,7 +141,7 @@ const InnerPurchasePage = ({
           </div>
         </ExpandSection>
       </div>
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

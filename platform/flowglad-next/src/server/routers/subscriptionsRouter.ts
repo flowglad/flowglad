@@ -77,6 +77,7 @@ import {
   SubscriptionAdjustmentTiming,
   SubscriptionStatus,
 } from '@/types'
+import { invalidateDependencies } from '@/utils/cache'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { addFeatureToSubscription } from '../mutations/addFeatureToSubscription'
 import { protectedProcedure, router } from '../trpc'
@@ -327,7 +328,15 @@ const adjustSubscriptionProcedure = protectedProcedure
       resolvedTiming,
       isUpgrade,
       pendingBillingRunId,
+      cacheInvalidations,
     } = adjustmentResult
+
+    // Invalidate caches after transaction committed (fire-and-forget)
+    // Deduplicate to reduce unnecessary Redis operations
+    if (cacheInvalidations.length > 0) {
+      const uniqueInvalidations = [...new Set(cacheInvalidations)]
+      void invalidateDependencies(uniqueInvalidations)
+    }
 
     // Step 2: If there's a pending billing run, wait for it to complete
     // This happens outside the transaction since it can take several seconds

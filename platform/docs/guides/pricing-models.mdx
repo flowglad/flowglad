@@ -1,0 +1,112 @@
+---
+title: "Pricing Models"
+description: "Explore different pricing model patterns and implementations with Flowglad"
+---
+
+## Overview
+
+Flowglad supports flexible pricing models to fit various business needs. This guide explores different pricing patterns with complete example implementations. Each pattern includes a fully functional example project you can reference or fork.
+
+## Example Implementations
+
+### Generation-based Subscription
+
+A hybrid pricing model combining subscriptions, one-time payments, and usage-based billing - perfect for AI-powered applications with variable compute costs.
+
+[Next.js](/guides/nextjs/generation-based-subscription) | [Tanstack Start](/guides/tanstack-start/generation-based-subscription)
+
+**Features:**
+- Recurring subscription plans
+- One-time credit topups
+- Usage-based quotas per plan for resource consumption (e.g., image generation)
+- Subscription management
+
+**Use Cases:**
+- AI image generation services
+- API platforms with consumption-based pricing
+- Compute platform with subscription and additional paid usage
+
+### Tiered Usage-Gated Subscription
+
+Tiered subscription plans with usage limits and feature access varying by tier - similar to ChatGPT's pricing model with different quotas and capabilities per plan level.
+
+[Next.js](/guides/nextjs/tiered-usage-gated-subscription) 
+
+
+**Features:**
+- Multiple subscription tiers (e.g., Free, Plus, Pro, Business)
+- Feature access controlled by subscription tier
+- Usage credit grants that renew monthly
+- Multiple usage meters with tier-specific limits
+
+**Use Cases:**
+- Freemium SaaS products
+- AI chat applications with tiered usage
+- Collaboration tools with seat-based pricing
+
+### Usage Limit Subscription
+
+Hybrid subscription model with included usage credits that renew each billing period, plus optional overage billing.
+
+[Next.js](/guides/nextjs/usage-limit-subscription) 
+
+**Features:**
+- Base subscription with included usage credits
+- Monthly credit renewal on billing cycle
+- Optional on-demand credit purchases
+- Multiple plans with different usage allowances
+- Real-time usage tracking and balance monitoring
+
+**Use Cases:**
+- API platforms (like Cursor, Anthropic, OpenAI)
+- Analytics platforms with query limits
+
+## Choosing a Pricing Model
+
+### Generation-based / Hybrid Model
+Choose this when:
+- Costs vary significantly per user action
+- You want to offer both subscription and pay-as-you-go options
+- Resource consumption is unpredictable
+- You need to monetize specific high-cost features
+
+### Tiered Usage-Gated Model
+Choose this when:
+- You want a clear upgrade path from free to paid
+- Different user segments need different feature sets
+- Usage patterns are relatively predictable
+- You want to gate premium features behind higher tiers
+
+### Usage Limit Model
+Choose this when:
+- Most users fit within predictable usage ranges
+- You want to provide certainty with base subscription pricing
+- Power users should pay more for extra usage
+- You need flexibility for occasional spikes in usage
+
+## Pricing Configuration
+
+Pricing models can be defined in the Flowglad [dashboard](https://app.flowglad.com/pricing-models).
+
+These models can be stored in a `pricing.yaml` file in your codebase. This file specifies:
+- Subscription plans and their prices
+- Usage meters and their billing rates
+- Feature gates and access rules
+- Credit grants and renewal policies
+
+This file can be imported/exported from Flowglad as a source of truth that can be checked into version control.
+
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="View a Next.js Example" icon="/images/nextjs.svg" href="/guides/nextjs/generation-based-subscription">
+    See a generation based subscription example in Next.js
+  </Card>
+  <Card title="View Example Projects" icon="github" href="https://github.com/flowglad/examples">
+    Browse the complete example implementations
+  </Card>
+  <Card title="Usage Metering" icon="chart-line" href="/features/usage#usage-based-billing">
+    Learn about tracking and billing usage
+  </Card>
+</CardGroup>

@@ -294,7 +294,7 @@ describe('dbAuthInfoForSecretApiKeyResult', () => {
     expect(result.jwtClaim.user_metadata.id).toEqual(secretUser.id)
     expect(result.jwtClaim.organization_id).toEqual(secretOrg.id)
     expect(result.jwtClaim.email).toEqual('apiKey@example.com')
-    expect(result.jwtClaim.session_id).toBeDefined()
+    expect(typeof result.jwtClaim.session_id).toBe('string')
     expect(result.jwtClaim.app_metadata.provider).toEqual('apiKey')
   })
 
@@ -602,7 +602,7 @@ describe('subtleties and invariants across flows', () => {
         organizationId: secretOrg.id,
       },
     } as any)
-    expect(secretRes.jwtClaim.session_id).toBeDefined()
+    expect(typeof secretRes.jwtClaim.session_id).toBe('string')
     expect((webappRes.jwtClaim as any).session_id).toBeUndefined()
   })
 })
@@ -629,6 +629,20 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       livemode: true,
     })
     merchantUser = merchantSetup.user
+    // Ensure merchantUser has a betterAuthId for authentication
+    await adminTransaction(async ({ transaction }) => {
+      if (!merchantUser.betterAuthId) {
+        const betterAuthId = `bau_${core.nanoid()}`
+        await transaction
+          .update(users)
+          .set({ betterAuthId })
+          .where(eq(users.id, merchantUser.id))
+        merchantUser = {
+          ...merchantUser,
+          betterAuthId,
+        } as User.Record
+      }
+    })
 
     // Create customer users
     await adminTransaction(async ({ transaction }) => {
@@ -930,8 +944,12 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       ).toBeUndefined()
 
       // Both should have organization_id
-      expect(merchantAuth.jwtClaim.organization_id).toBeDefined()
-      expect(customerAuth.jwtClaim.organization_id).toBeDefined()
+      expect(merchantAuth.jwtClaim.organization_id).toEqual(
+        customerOrg.id
+      )
+      expect(customerAuth.jwtClaim.organization_id).toEqual(
+        customerOrg.id
+      )
 
       // Role should be different
       expect(merchantAuth.jwtClaim.role).toBe('merchant')
@@ -1188,7 +1206,7 @@ describe('Focused membership consistency between databaseAuthentication and trpc
       focusedOrgId!
     )
     expect(dbAuthResult.userId).toEqual(testUserId!)
-    expect(trpcContextResult).toBeDefined()
+    expect(trpcContextResult).toMatchObject({})
     expect(trpcContextResult!.membership.organizationId).toEqual(
       focusedOrgId!
     )

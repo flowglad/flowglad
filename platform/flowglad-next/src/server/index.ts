@@ -1,6 +1,7 @@
 import { generateDescription } from '@/server/mutations/generateDescription'
 import { getPresignedURL } from '@/server/mutations/getPresignedURL'
 import { pong } from '@/server/mutations/pong'
+import { resetPassword } from '@/server/mutations/resetPassword'
 import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
 import { logout } from './mutations/logout'
 import { setReferralSelection } from './mutations/setReferralSelection'
@@ -26,6 +27,8 @@ import { pricingModelsRouter } from './routers/pricingModelsRouter'
 import { productFeaturesRouter } from './routers/productFeaturesRouter'
 import { productsRouter } from './routers/productsRouter'
 import { purchasesRouter } from './routers/purchasesRouter'
+import { resourceClaimsRouter } from './routers/resourceClaimsRouter'
+import { resourcesRouter } from './routers/resourcesRouter'
 import { subscriptionItemFeaturesRouter } from './routers/subscriptionItemFeaturesRouter'
 import { subscriptionsRouter } from './routers/subscriptionsRouter'
 import { usageEventsRouter } from './routers/usageEventsRouter'
@@ -58,6 +61,7 @@ export const appRouter = router({
     inviteUserToOrganization,
     logout,
     setReferralSelection,
+    resetPassword,
   }),
   apiKeys: apiKeysRouter,
   banners: bannersRouter,
@@ -71,6 +75,8 @@ export const appRouter = router({
   subscriptionItemFeatures: subscriptionItemFeaturesRouter,
   customerBillingPortal: customerBillingPortalRouter,
   docsSearch: docsSearchRouter,
+  resources: resourcesRouter,
+  resourceClaims: resourceClaimsRouter,
 })
 
 // This would map to REST endpoints like:

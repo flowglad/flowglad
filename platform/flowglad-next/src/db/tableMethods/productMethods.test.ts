@@ -640,7 +640,6 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
     expect(result.prices).toHaveLength(1)
     expect(result.prices[0].name).toBe('Basic Price')
     // Should have empty features array, not null or undefined
-    expect(result.features).toBeDefined()
     expect(Array.isArray(result.features)).toBe(true)
     expect(result.features).toHaveLength(0)
   })
@@ -703,7 +702,6 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
     expect(result.prices).toHaveLength(2)
     expect(result.prices[0].name).toBe('Price 1')
     expect(result.prices[1].name).toBe('Price 2')
-    expect(result.features).toBeDefined()
     expect(Array.isArray(result.features)).toBe(true)
   })
 })

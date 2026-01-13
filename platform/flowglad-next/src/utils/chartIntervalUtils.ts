@@ -42,6 +42,29 @@ export const intervalLabels: Record<
 }
 
 /**
+ * Canonical ordering of intervals from smallest to largest.
+ * Used to ensure consistent display order in UI selectors.
+ */
+const INTERVAL_ORDER: RevenueChartIntervalUnit[] = [
+  RevenueChartIntervalUnit.Hour,
+  RevenueChartIntervalUnit.Day,
+  RevenueChartIntervalUnit.Week,
+  RevenueChartIntervalUnit.Month,
+  RevenueChartIntervalUnit.Year,
+]
+
+/**
+ * Sorts interval options from smallest to largest granularity.
+ */
+function sortIntervalOptions(
+  options: RevenueChartIntervalUnit[]
+): RevenueChartIntervalUnit[] {
+  return [...options].sort(
+    (a, b) => INTERVAL_ORDER.indexOf(a) - INTERVAL_ORDER.indexOf(b)
+  )
+}
+
+/**
  * Label mapping for interval units (noun form, lowercase)
  * Used for inline selectors like "Revenue by day"
  */
@@ -59,14 +82,15 @@ export const intervalNounLabels: Record<
 /**
  * Returns the interval configuration based on the selected date range.
  * Only valid options are returned - no disabled options.
+ * Options are always sorted from smallest to largest granularity.
  *
  * | Date Range       | Default  | Options              |
  * |------------------|----------|----------------------|
  * | 0-1 day          | Hourly   | Hourly               |
- * | 2-14 days        | Daily    | Daily, Hourly        |
+ * | 2-14 days        | Daily    | Hourly, Daily        |
  * | 15-30 days       | Daily    | Daily, Weekly        |
  * | 31-92 days       | Weekly   | Weekly, Monthly      |
- * | 93-365+ days     | Monthly  | Monthly, Weekly      |
+ * | 93-365+ days     | Monthly  | Weekly, Monthly      |
  */
 export function getIntervalConfig(
   fromDate: Date,
@@ -86,10 +110,10 @@ export function getIntervalConfig(
     // 2-14 days
     return {
       default: RevenueChartIntervalUnit.Day,
-      options: [
-        RevenueChartIntervalUnit.Day,
+      options: sortIntervalOptions([
         RevenueChartIntervalUnit.Hour,
-      ],
+        RevenueChartIntervalUnit.Day,
+      ]),
     }
   }
 
@@ -97,10 +121,10 @@ export function getIntervalConfig(
     // 15-30 days
     return {
       default: RevenueChartIntervalUnit.Day,
-      options: [
+      options: sortIntervalOptions([
         RevenueChartIntervalUnit.Day,
         RevenueChartIntervalUnit.Week,
-      ],
+      ]),
     }
   }
 
@@ -108,20 +132,20 @@ export function getIntervalConfig(
     // 31-92 days (~1-3 months)
     return {
       default: RevenueChartIntervalUnit.Week,
-      options: [
+      options: sortIntervalOptions([
         RevenueChartIntervalUnit.Week,
         RevenueChartIntervalUnit.Month,
-      ],
+      ]),
     }
   }
 
   // 93-365+ days
   return {
     default: RevenueChartIntervalUnit.Month,
-    options: [
+    options: sortIntervalOptions([
       RevenueChartIntervalUnit.Month,
       RevenueChartIntervalUnit.Week,
-    ],
+    ]),
   }
 }
 
@@ -134,4 +158,23 @@ export function getDefaultInterval(
   toDate: Date
 ): RevenueChartIntervalUnit {
   return getIntervalConfig(fromDate, toDate).default
+}
+
+/**
+ * Returns interval options for a Select component based on date range.
+ * Each option has a `label` (e.g., "day") and `value` (the enum value).
+ *
+ * @example
+ * const options = getIntervalSelectOptions(fromDate, toDate)
+ * // [{ label: 'day', value: 'day' }, { label: 'week', value: 'week' }]
+ */
+export function getIntervalSelectOptions(
+  fromDate: Date,
+  toDate: Date
+): Array<{ label: string; value: RevenueChartIntervalUnit }> {
+  const config = getIntervalConfig(fromDate, toDate)
+  return config.options.map((opt) => ({
+    label: intervalNounLabels[opt],
+    value: opt,
+  }))
 }

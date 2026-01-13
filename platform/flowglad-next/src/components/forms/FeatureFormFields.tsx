@@ -22,11 +22,13 @@ import {
 import { Switch } from '@/components/ui/switch'
 import {
   type CreateFeatureInput,
+  resourceFeatureDefaultColumns,
   toggleFeatureDefaultColumns,
   usageCreditGrantFeatureDefaultColumns,
 } from '@/db/schema/features'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import core, { titleCase } from '@/utils/core'
+import ResourcesSelect from './ResourcesSelect'
 import UsageMetersSelect from './UsageMetersSelect'
 
 const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
@@ -119,6 +121,11 @@ const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
                       usageCreditGrantFeatureDefaultColumns
                     ).forEach(assignFeatureValueFromTuple)
                   }
+                  if (value === FeatureType.Resource) {
+                    Object.entries(
+                      resourceFeatureDefaultColumns
+                    ).forEach(assignFeatureValueFromTuple)
+                  }
                 }}
               >
                 <SelectTrigger>
@@ -138,6 +145,14 @@ const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
                       <div>Usage Credit Grant</div>
                       <div className="text-xs text-muted-foreground">
                         Credits towards a specific usage meter.
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value={FeatureType.Resource}>
+                    <div>
+                      <div>Resource</div>
+                      <div className="text-xs text-muted-foreground">
+                        Claimable capacity (seats, API keys, etc.)
                       </div>
                     </div>
                   </SelectItem>
@@ -214,6 +229,50 @@ const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
                 <FormMessage />
               </FormItem>
             )}
+          />
+        </>
+      )}
+
+      {featureType === FeatureType.Resource && (
+        <>
+          <FormField
+            control={form.control}
+            name="feature.amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Capacity</FormLabel>
+                <FormDescription>
+                  Maximum number of claims allowed per subscription
+                  unit
+                </FormDescription>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={1}
+                    step={1}
+                    placeholder="e.g. 10"
+                    value={field.value?.toString() ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (value) {
+                        const intValue = parseInt(value, 10)
+                        if (!isNaN(intValue)) {
+                          field.onChange(intValue)
+                        }
+                      } else {
+                        field.onChange(null)
+                      }
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <ResourcesSelect
+            name="feature.resourceId"
+            control={form.control}
+            pricingModelId={pricingModelId}
           />
         </>
       )}

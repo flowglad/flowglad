@@ -13,7 +13,7 @@ import {
   createPaginatedSelectSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   membershipOrganizationIdIntegrityCheckPolicy,
   merchantPolicy,
   notNullStringForeignKey,
@@ -42,43 +42,40 @@ export const productFeatures = pgTable(
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructUniqueIndex(TABLE_NAME, [
-        table.productId,
-        table.featureId,
-      ]),
-      constructIndex(TABLE_NAME, [table.productId]),
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      membershipOrganizationIdIntegrityCheckPolicy(),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"product_id" in (select "id" from "products")`,
-        }
-      ),
-      parentForeignKeyIntegrityCheckPolicy({
-        parentTableName: 'products',
-        parentIdColumnInCurrentTable: 'product_id',
-        currentTableName: TABLE_NAME,
-      }),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          for: 'all',
-          using: orgIdEqualsCurrentSQL(),
-        }
-      ),
-      parentForeignKeyIntegrityCheckPolicy({
-        parentTableName: 'features',
-        parentIdColumnInCurrentTable: 'feature_id',
-        currentTableName: TABLE_NAME,
-      }),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructUniqueIndex(TABLE_NAME, [
+      table.productId,
+      table.featureId,
+    ]),
+    constructIndex(TABLE_NAME, [table.productId]),
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    membershipOrganizationIdIntegrityCheckPolicy(),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"product_id" in (select "id" from "products")`,
+      }
+    ),
+    parentForeignKeyIntegrityCheckPolicy({
+      parentTableName: 'products',
+      parentIdColumnInCurrentTable: 'product_id',
+      currentTableName: TABLE_NAME,
+    }),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        for: 'all',
+        using: orgIdEqualsCurrentSQL(),
+      }
+    ),
+    parentForeignKeyIntegrityCheckPolicy({
+      parentTableName: 'features',
+      parentIdColumnInCurrentTable: 'feature_id',
+      currentTableName: TABLE_NAME,
+    }),
+  ])
 ).enableRLS()
 
 const readOnlyColumns = {

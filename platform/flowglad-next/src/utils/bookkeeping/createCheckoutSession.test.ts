@@ -447,7 +447,9 @@ describe('createCheckoutSessionTransaction', () => {
         )
     )
 
-    expect(checkoutSession.stripePaymentIntentId).not.toBeNull()
+    expect(typeof checkoutSession.stripePaymentIntentId).toBe(
+      'string'
+    )
     expect(checkoutSession.stripeSetupIntentId).toBeNull()
     expect(url).toBe(
       `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
@@ -476,7 +478,7 @@ describe('createCheckoutSessionTransaction', () => {
     )
 
     expect(checkoutSession.stripePaymentIntentId).toBeNull()
-    expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
+    expect(typeof checkoutSession.stripeSetupIntentId).toBe('string')
     expect(url).toBe(
       `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
     )
@@ -527,7 +529,7 @@ describe('createCheckoutSessionTransaction', () => {
         )
     )
 
-    expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
+    expect(typeof checkoutSession.stripeSetupIntentId).toBe('string')
     expect(url).toBe(
       `${core.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
     )
@@ -554,7 +556,7 @@ describe('createCheckoutSessionTransaction', () => {
         )
     )
 
-    expect(checkoutSession.stripeSetupIntentId).toBeDefined()
+    expect(typeof checkoutSession.stripeSetupIntentId).toBe('string')
     expect(checkoutSession.stripePaymentIntentId).toBeNull()
     expect(checkoutSession.priceId).toBe(subscriptionPrice.id)
     expect(url).toBe(
@@ -655,7 +657,9 @@ describe('createCheckoutSessionTransaction', () => {
           )
       )
 
-      expect(checkoutSession.stripePaymentIntentId).not.toBeNull()
+      expect(typeof checkoutSession.stripePaymentIntentId).toBe(
+        'string'
+      )
       expect(checkoutSession.stripeSetupIntentId).toBeNull()
     })
   })
@@ -686,7 +690,9 @@ describe('createCheckoutSessionTransaction', () => {
       expect(checkoutSession.customerId).toBeNull()
       expect(checkoutSession.customerEmail).toBeNull()
       expect(checkoutSession.customerName).toBeNull()
-      expect(checkoutSession.stripePaymentIntentId).not.toBeNull()
+      expect(typeof checkoutSession.stripePaymentIntentId).toBe(
+        'string'
+      )
       expect(url).toBe(
         `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
       )
@@ -966,7 +972,7 @@ describe('createCheckoutSessionTransaction', () => {
             )
         )
 
-        expect(result.checkoutSession).toBeDefined()
+        expect(result.checkoutSession).toMatchObject({})
         expect(result.checkoutSession.type).toBe(
           CheckoutSessionType.Product
         )
@@ -1024,7 +1030,7 @@ describe('createCheckoutSessionTransaction', () => {
             )
         )
 
-        expect(result.checkoutSession).toBeDefined()
+        expect(result.checkoutSession).toMatchObject({})
         expect(result.checkoutSession.type).toBe(
           CheckoutSessionType.Product
         )

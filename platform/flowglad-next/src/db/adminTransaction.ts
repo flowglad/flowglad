@@ -1,6 +1,10 @@
 import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
 import type { AdminTransactionParams } from '@/db/types'
+import {
+  type CacheDependencyKey,
+  invalidateDependencies,
+} from '@/utils/cache'
 import { isNil } from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
@@ -19,57 +23,17 @@ interface AdminTransactionOptions {
 // only works in the context of a nextjs sessionful runtime.
 
 /**
- * Core admin transaction logic without tracing.
- */
-const executeAdminTransaction = async <T>(
-  fn: (params: AdminTransactionParams) => Promise<T>,
-  effectiveLivemode: boolean
-): Promise<T> => {
-  return db.transaction(async (transaction) => {
-    /**
-     * Reseting the role and request.jwt.claims here,
-     * becuase the auth state seems to be returned to the client "dirty",
-     * with the role from the previous session still applied.
-     */
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', NULL, true);`
-    )
-
-    const resp = await fn({
-      transaction,
-      userId: 'ADMIN',
-      livemode: effectiveLivemode,
-    })
-    await transaction.execute(sql`RESET ROLE;`)
-    return resp
-  })
-}
-
-/**
- * Original adminTransaction. Consider deprecating or refactoring to use comprehensiveAdminTransaction.
+ * Executes a function within an admin database transaction.
+ * Delegates to comprehensiveAdminTransaction by wrapping the result.
  */
 export async function adminTransaction<T>(
   fn: (params: AdminTransactionParams) => Promise<T>,
   options: AdminTransactionOptions = {}
 ): Promise<T> {
-  const { livemode = true } = options
-  const effectiveLivemode = isNil(livemode) ? true : livemode
-
-  return traced(
-    {
-      options: {
-        spanName: 'db.adminTransaction',
-        tracerName: 'db.transaction',
-        kind: SpanKind.CLIENT,
-        attributes: {
-          'db.transaction.type': 'admin',
-          'db.user_id': 'ADMIN',
-          'db.livemode': effectiveLivemode,
-        },
-      },
-    },
-    () => executeAdminTransaction(fn, effectiveLivemode)
-  )()
+  return comprehensiveAdminTransaction(async (params) => {
+    const result = await fn(params)
+    return { result }
+  }, options)
 }
 
 /**
@@ -82,7 +46,10 @@ const executeComprehensiveAdminTransaction = async <T>(
   ) => Promise<TransactionOutput<T>>,
   effectiveLivemode: boolean
 ): Promise<TransactionOutput<T>> => {
-  return db.transaction(async (transaction) => {
+  // Collect cache invalidations to process after commit
+  let cacheInvalidations: CacheDependencyKey[] = []
+
+  const output = await db.transaction(async (transaction) => {
     // Set up transaction context (e.g., clearing previous JWT claims)
     await transaction.execute(
       sql`SELECT set_config('request.jwt.claims', NULL, true);`
@@ -128,9 +95,27 @@ const executeComprehensiveAdminTransaction = async <T>(
       }
     }
 
+    // Collect cache invalidations (don't process yet - wait for commit)
+    if (
+      output.cacheInvalidations &&
+      output.cacheInvalidations.length > 0
+    ) {
+      cacheInvalidations = output.cacheInvalidations
+    }
+
     // Return the full output so tracing can extract metrics
     return output
   })
+
+  // Transaction committed successfully - now invalidate caches
+  // Fire-and-forget; errors are logged but don't fail the request
+  if (cacheInvalidations.length > 0) {
+    // Deduplicate cache invalidation keys to reduce unnecessary Redis operations
+    const uniqueInvalidations = [...new Set(cacheInvalidations)]
+    void invalidateDependencies(uniqueInvalidations)
+  }
+
+  return output
 }
 
 /**
@@ -189,17 +174,15 @@ export async function comprehensiveAdminTransaction<T>(
 }
 
 /**
- * Original eventfulAdminTransaction.
- * Consider deprecating or refactoring to use comprehensiveAdminTransaction.
- * If kept, it could be a wrapper that adapts the old fn signature to TransactionOutput.
+ * Wrapper around comprehensiveAdminTransaction for functions that return
+ * a tuple of [result, events]. Adapts the old signature to TransactionOutput.
  */
 export async function eventfulAdminTransaction<T>(
   fn: (
     params: AdminTransactionParams
   ) => Promise<[T, Event.Insert[]]>,
-  options: AdminTransactionOptions
+  options: AdminTransactionOptions = {}
 ): Promise<T> {
-  // This is now a simple wrapper around comprehensiveAdminTransaction
   return comprehensiveAdminTransaction(async (params) => {
     const [result, eventInserts] = await fn(params)
     return {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import PageContainer from '@/components/PageContainer'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { PaymentStatus } from '@/types'
 import { PaymentsDataTable } from './data-table'
@@ -28,7 +28,7 @@ export default function InternalPaymentsPage() {
   }
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <PageHeaderNew title="Payments" hideBorder className="pb-2" />
       <PaymentsDataTable
         filters={getFilters()}
@@ -37,6 +37,6 @@ export default function InternalPaymentsPage() {
         onFilterChange={setStatusFilter}
         hiddenColumns={['paymentId']}
       />
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }

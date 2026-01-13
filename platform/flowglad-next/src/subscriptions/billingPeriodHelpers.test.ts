@@ -157,7 +157,7 @@ describe('Subscription Billing Period Transition', async () => {
         updatedBillingPeriod.startDate
       )
       // And because a valid payment method exists, a billing run should be created
-      expect(newBillingRun).toBeDefined()
+      expect(typeof newBillingRun).toBe('object')
     })
   })
 
@@ -277,7 +277,8 @@ describe('Subscription Billing Period Transition', async () => {
       )
 
       expect(updatedSub.status).toBe(SubscriptionStatus.Canceled)
-      expect(updatedSub.canceledAt).toBeDefined()
+      expect(typeof updatedSub.canceledAt).toBe('number')
+      expect(updatedSub.canceledAt).toBeGreaterThan(0)
       expect(newBillingRun).toBeNull()
     })
   })
@@ -308,9 +309,12 @@ describe('Subscription Billing Period Transition', async () => {
       expect(updatedSub.currentBillingPeriodStart).not.toEqual(
         updatedBillingPeriod.startDate
       )
-      expect(updatedSub.currentBillingPeriodEnd).toBeDefined()
+      expect(typeof updatedSub.currentBillingPeriodEnd).toBe('number')
+      expect(updatedSub.currentBillingPeriodEnd).toBeGreaterThan(
+        Date.now()
+      )
       // And a billing run was created with scheduledFor equal to the new period's start date
-      expect(newBillingRun).toBeDefined()
+      expect(typeof newBillingRun).toBe('object')
       expect(newBillingRun?.scheduledFor).toEqual(
         updatedSub.currentBillingPeriodStart
       )
@@ -499,7 +503,7 @@ describe('Subscription Billing Period Transition', async () => {
         updatedBillingPeriod.startDate
       )
       // And because a valid payment method exists, a billing run should be created.
-      expect(newBillingRun).toBeDefined()
+      expect(typeof newBillingRun).toBe('object')
     })
   })
 
@@ -851,7 +855,7 @@ describe('Ledger Interactions', () => {
         const newCredit = usageCredits.find(
           (uc) => uc.issuedAmount === grantAmount
         )
-        expect(newCredit).toBeDefined()
+        expect(newCredit).toMatchObject({})
 
         const allBillingPeriods = await selectBillingPeriods(
           { subscriptionId: subscription.id },
@@ -860,7 +864,7 @@ describe('Ledger Interactions', () => {
         const newBp = allBillingPeriods.find(
           (bp) => bp.startDate > pastBillingPeriod.startDate
         )
-        expect(newBp).toBeDefined()
+        expect(typeof newBp).toBe('object')
         expect(newCredit?.billingPeriodId).toBe(newBp!.id)
 
         const ledgerEntries = await selectLedgerEntries(
@@ -873,8 +877,8 @@ describe('Ledger Interactions', () => {
             le.amount === grantAmount
         )
 
-        expect(creditEntry).toBeDefined()
-        expect(creditEntry?.ledgerTransactionId).toBeDefined()
+        expect(creditEntry).toMatchObject({})
+        expect(creditEntry?.ledgerTransactionId).toMatchObject({})
 
         const balance =
           await aggregateBalanceForLedgerAccountFromEntries(
@@ -1103,7 +1107,7 @@ describe('Ledger Interactions', () => {
           (le) =>
             le.entryType === LedgerEntryType.CreditGrantRecognized
         )
-        expect(creditEntry).toBeDefined()
+        expect(creditEntry).toMatchObject({ amount: grantAmount })
         expect(creditEntry?.amount).toBe(grantAmount)
 
         const balance =
@@ -1198,7 +1202,7 @@ describe('Ledger Interactions', () => {
             le.entryType === LedgerEntryType.CreditGrantRecognized &&
             le.amount === grantAmount1
         )
-        expect(creditEntry1).toBeDefined()
+        expect(creditEntry1).toMatchObject({})
 
         const ledgerEntries2 = await selectLedgerEntries(
           { ledgerAccountId: otherLedgerAccount.id },
@@ -1209,7 +1213,7 @@ describe('Ledger Interactions', () => {
             le.entryType === LedgerEntryType.CreditGrantRecognized &&
             le.amount === grantAmount2
         )
-        expect(creditEntry2).toBeDefined()
+        expect(creditEntry2).toMatchObject({})
 
         const balance1 =
           await aggregateBalanceForLedgerAccountFromEntries(
@@ -1278,7 +1282,7 @@ describe('Ledger Interactions', () => {
           (le) =>
             le.entryType === LedgerEntryType.CreditGrantRecognized
         )
-        expect(creditEntry).toBeDefined()
+        expect(creditEntry).toMatchObject({})
 
         const otherLedgerEntries = await selectLedgerEntries(
           { ledgerAccountId: otherLedgerAccount.id },
@@ -1379,10 +1383,10 @@ describe('Ledger Interactions', () => {
         )
         expect(usageCredits.length).toBe(1)
         const newCredit = usageCredits[0]
-        expect(newCredit).toBeDefined()
+        expect(newCredit).toMatchObject({})
         expect(newCredit.issuedAmount).toBe(everyGrantAmount)
         expect(newCredit.usageMeterId).toBe(otherUsageMeter.id)
-        expect(newCredit.expiresAt).toBeDefined() // Recurring grants should expire
+        expect(newCredit.expiresAt).toMatchObject({}) // Recurring grants should expire
 
         // Verify balances
         const balanceForOnceMeter =
@@ -1457,7 +1461,7 @@ describe('Ledger Interactions', () => {
           le.entryType === LedgerEntryType.CreditGrantExpired
       )
 
-      expect(expiredLedgerEntry).toBeDefined()
+      expect(expiredLedgerEntry).toMatchObject({ amount: 500 })
       expect(expiredLedgerEntry!.amount).toBe(500)
 
       await adminTransaction(async ({ transaction }) => {
@@ -1564,7 +1568,7 @@ describe('Ledger Interactions', () => {
         (le: LedgerEntry.Record) =>
           le.entryType === LedgerEntryType.CreditGrantExpired
       )
-      expect(expiredLedgerEntry).toBeDefined()
+      expect(expiredLedgerEntry).toMatchObject({ amount: 600 })
       expect(expiredLedgerEntry!.amount).toBe(600) // 1000 - 400
 
       await adminTransaction(async ({ transaction }) => {
@@ -1926,7 +1930,7 @@ describe('Ledger Interactions', () => {
           (le: LedgerEntry.Record) =>
             le.entryType === LedgerEntryType.CreditGrantExpired
         )
-        expect(expiringEntry).toBeDefined()
+        expect(expiringEntry).toMatchObject({ amount: 100 })
         expect(expiringEntry!.amount).toBe(100)
 
         // Check evergreen credit
@@ -2061,7 +2065,7 @@ describe('Ledger Interactions', () => {
         )
         expect(usageCredits.length).toBe(1)
         const newCredit = usageCredits[0]
-        expect(newCredit).toBeDefined()
+        expect(newCredit).toMatchObject({})
 
         const grantEntries = await selectLedgerEntries(
           {

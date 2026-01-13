@@ -121,7 +121,7 @@ describe('insertSubscriptionAndItems', () => {
       )
 
       // Verify the subscription was created successfully
-      expect(result.subscription).toBeDefined()
+      expect(result.subscription).toMatchObject({})
       expect(result.subscription.customerId).toBe(customer.id)
       expect(result.subscription.priceId).toBe(singlePaymentPrice.id)
       // Non-renewing subscriptions should have renews = false
@@ -131,7 +131,7 @@ describe('insertSubscriptionAndItems', () => {
       )
 
       // Verify subscription items were created
-      expect(result.subscriptionItems).toBeDefined()
+      expect(result.subscriptionItems).toMatchObject({})
       expect(result.subscriptionItems.length).toBeGreaterThan(0)
     })
 
