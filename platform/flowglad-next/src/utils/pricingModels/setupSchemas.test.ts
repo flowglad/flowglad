@@ -217,7 +217,7 @@ describe('validateSetupPricingModelInput', () => {
       ).not.toThrow()
     })
 
-    it('should set isDefault=false for all usage prices regardless of input', () => {
+    it('should preserve isDefault value for usage prices', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [
         {
@@ -229,8 +229,9 @@ describe('validateSetupPricingModelInput', () => {
             {
               type: PriceType.Usage,
               slug: 'usage-price',
-              // isDefault explicitly set to true - should be changed to false
-              // because usage prices don't use the isDefault concept
+              // isDefault=true should be preserved for usage prices
+              // When isDefault=true, this price becomes the default for billing
+              // When no price has isDefault=true, the no_charge price is the default
               isDefault: true,
               unitPrice: 100,
               intervalUnit: IntervalUnit.Month,
@@ -244,7 +245,47 @@ describe('validateSetupPricingModelInput', () => {
       ]
 
       const result = validateSetupPricingModelInput(input)
-      expect(result.usageMeters[0].prices?.[0].isDefault).toBe(false)
+      expect(result.usageMeters[0].prices?.[0].isDefault).toBe(true)
+    })
+
+    it('should throw when multiple prices for same meter have isDefault=true', () => {
+      const input = createMinimalValidInput()
+      input.usageMeters = [
+        {
+          usageMeter: {
+            slug: 'test-meter',
+            name: 'Test Meter',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'price-one',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+            {
+              type: PriceType.Usage,
+              slug: 'price-two',
+              isDefault: true, // Second default - should throw
+              unitPrice: 200,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
+        },
+      ]
+
+      expect(() => validateSetupPricingModelInput(input)).toThrow(
+        'has 2 prices with isDefault=true. At most one price per meter can be the default'
+      )
     })
 
     // PR 5: Empty prices array is valid - usage meters can exist without prices

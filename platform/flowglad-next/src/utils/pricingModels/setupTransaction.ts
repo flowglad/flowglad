@@ -22,6 +22,7 @@ import {
   type SetupPricingModelProductInput,
   validateSetupPricingModelInput,
 } from '@/utils/pricingModels/setupSchemas'
+import { createNoChargePriceInsert } from '@/utils/usage/noChargePriceHelpers'
 
 export const externalIdFromProductData = (
   product: SetupPricingModelProductInput,
@@ -228,10 +229,40 @@ export const setupPricingModelTransaction = async (
     }
   )
 
-  // Combine product prices and usage prices
+  // Build a set of usage meter slugs that have a user-specified default price
+  const metersWithUserDefaultPrice = new Set(
+    input.usageMeters
+      .filter((meterWithPrices) =>
+        (meterWithPrices.prices || []).some(
+          (price) => price.isDefault
+        )
+      )
+      .map((meterWithPrices) => meterWithPrices.usageMeter.slug)
+  )
+
+  // Create no charge prices for all usage meters
+  // These serve as fallback defaults when no other price is set as default
+  const noChargePriceInserts: Price.Insert[] = usageMeters.map(
+    (usageMeter) => {
+      const hasUserDefaultPrice = metersWithUserDefaultPrice.has(
+        usageMeter.slug
+      )
+      const noChargePrice = createNoChargePriceInsert(usageMeter, {
+        currency: organization.defaultCurrency,
+      })
+      // Set isDefault to true only if no user-specified price has isDefault
+      return {
+        ...noChargePrice,
+        isDefault: !hasUserDefaultPrice,
+      }
+    }
+  )
+
+  // Combine product prices, usage prices, and no charge prices
   const priceInserts: Price.Insert[] = [
     ...productPriceInserts,
     ...usagePriceInserts,
+    ...noChargePriceInserts,
   ]
 
   // Auto-generate default plan if none provided

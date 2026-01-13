@@ -382,12 +382,14 @@ export const validateSetupPricingModelInput = (
       }
     })
 
-    // Usage prices don't use isDefault - always set to false
-    // This avoids unique constraint issues and aligns with the data model where
-    // usage prices don't have a "default" concept (unlike product prices)
-    prices.forEach((price) => {
-      price.isDefault = false
-    })
+    // Validate at most one price per meter has isDefault=true
+    // This constraint is enforced by prices_usage_meter_is_default_unique_idx
+    const defaultPrices = prices.filter((price) => price.isDefault)
+    if (defaultPrices.length > 1) {
+      throw new Error(
+        `Usage meter "${meterWithPrices.usageMeter.slug}" has ${defaultPrices.length} prices with isDefault=true. At most one price per meter can be the default.`
+      )
+    }
   })
 
   return parsed
