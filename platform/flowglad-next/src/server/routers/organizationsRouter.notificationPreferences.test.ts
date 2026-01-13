@@ -104,8 +104,6 @@ describe('organizationsRouter notification preferences', () => {
       expect(result.subscriptionCanceled).toBe(true)
       expect(result.subscriptionCancellationScheduled).toBe(true)
       expect(result.paymentFailed).toBe(true)
-      expect(result.onboardingCompleted).toBe(true)
-      expect(result.payoutsEnabled).toBe(true)
     })
 
     it('returns stored preferences merged with defaults', async () => {
@@ -136,8 +134,6 @@ describe('organizationsRouter notification preferences', () => {
       expect(result.subscriptionCanceled).toBe(true)
       expect(result.subscriptionCancellationScheduled).toBe(true)
       expect(result.paymentFailed).toBe(true)
-      expect(result.onboardingCompleted).toBe(true)
-      expect(result.payoutsEnabled).toBe(true)
     })
   })
 
@@ -218,8 +214,6 @@ describe('organizationsRouter notification preferences', () => {
         subscriptionCanceled: false,
         subscriptionCancellationScheduled: false,
         paymentFailed: false,
-        onboardingCompleted: false,
-        payoutsEnabled: false,
       }
 
       const result = await caller.updateNotificationPreferences({
@@ -236,8 +230,6 @@ describe('organizationsRouter notification preferences', () => {
       expect(getResult.subscriptionCanceled).toBe(false)
       expect(getResult.subscriptionCancellationScheduled).toBe(false)
       expect(getResult.paymentFailed).toBe(false)
-      expect(getResult.onboardingCompleted).toBe(false)
-      expect(getResult.payoutsEnabled).toBe(false)
     })
 
     it('handles toggling preferences back and forth', async () => {
