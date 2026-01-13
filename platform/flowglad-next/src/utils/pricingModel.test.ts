@@ -2660,6 +2660,163 @@ describe('createProductTransaction', () => {
 
     expect(productFeatures).toHaveLength(0)
   })
+
+  it('should throw an error when creating a SinglePayment product with toggle features', async () => {
+    // Create toggle features with livemode: true to match the API key's livemode
+    // This ensures RLS allows the features to be visible during validation
+    const livemodeToggleFeatureA = await setupToggleFeature({
+      name: 'Livemode Feature A',
+      organizationId: organization.id,
+      livemode: true,
+      pricingModelId: sourcePricingModel.id,
+    })
+    const livemodeToggleFeatureB = await setupToggleFeature({
+      name: 'Livemode Feature B',
+      organizationId: organization.id,
+      livemode: true,
+      pricingModelId: sourcePricingModel.id,
+    })
+    const toggleFeatureIds = [
+      livemodeToggleFeatureA.id,
+      livemodeToggleFeatureB.id,
+    ]
+
+    await expect(
+      authenticatedTransaction(
+        async ({ transaction }) => {
+          return createProductTransaction(
+            {
+              product: {
+                name: 'Single Payment Product with Toggle Features',
+                description: 'Test Description',
+                active: true,
+                imageURL: null,
+                singularQuantityLabel: 'singular',
+                pluralQuantityLabel: 'plural',
+                pricingModelId: sourcePricingModel.id,
+                default: false,
+                slug: `flowglad-test-product+${core.nanoid()}`,
+              },
+              prices: [
+                {
+                  name: 'One-time Payment',
+                  type: PriceType.SinglePayment,
+                  intervalCount: null,
+                  intervalUnit: null,
+                  unitPrice: 9900,
+                  trialPeriodDays: null,
+                  active: true,
+                  usageMeterId: null,
+                  usageEventsPerUnit: null,
+                  isDefault: true,
+                  slug: `flowglad-test-price+${core.nanoid()}`,
+                },
+              ],
+              featureIds: toggleFeatureIds,
+            },
+            {
+              userId,
+              transaction,
+              livemode: org1ApiKey.livemode,
+              organizationId: organization.id,
+            }
+          )
+        },
+        {
+          apiKey: org1ApiKeyToken,
+        }
+      )
+    ).rejects.toThrow(
+      'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+    )
+  })
+
+  it('should allow creating a SinglePayment product with usage credit grant features', async () => {
+    // Setup: Create a usage meter for the usage credit grant feature
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: sourcePricingModel.id,
+      name: 'API Credits',
+      slug: `api-credits-${core.nanoid()}`,
+      livemode: false,
+    })
+
+    // Setup: Create a usage credit grant feature
+    const usageCreditGrantFeature =
+      await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'API Credit Grant',
+        usageMeterId: usageMeter.id,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: false,
+        amount: 1000,
+      })
+
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return createProductTransaction(
+          {
+            product: {
+              name: 'Single Payment Product with Credits',
+              description:
+                'Product that grants usage credits on purchase',
+              active: true,
+              imageURL: null,
+              singularQuantityLabel: 'purchase',
+              pluralQuantityLabel: 'purchases',
+              pricingModelId: sourcePricingModel.id,
+              default: false,
+              slug: `flowglad-test-product+${core.nanoid()}`,
+            },
+            prices: [
+              {
+                name: 'Credit Bundle',
+                type: PriceType.SinglePayment,
+                intervalCount: null,
+                intervalUnit: null,
+                unitPrice: 4900,
+                trialPeriodDays: null,
+                active: true,
+                usageMeterId: null,
+                usageEventsPerUnit: null,
+                isDefault: true,
+                slug: `flowglad-test-price+${core.nanoid()}`,
+              },
+            ],
+            featureIds: [usageCreditGrantFeature.id],
+          },
+          {
+            userId,
+            transaction,
+            livemode: org1ApiKey.livemode,
+            organizationId: organization.id,
+          }
+        )
+      },
+      {
+        apiKey: org1ApiKeyToken,
+      }
+    )
+
+    const { product } = result
+    expect(product.name).toBe('Single Payment Product with Credits')
+
+    // Verify the usage credit grant feature was associated
+    const productFeatures = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductFeatures(
+          { productId: product.id },
+          transaction
+        )
+      }
+    )
+
+    expect(productFeatures).toHaveLength(1)
+    expect(productFeatures[0].featureId).toBe(
+      usageCreditGrantFeature.id
+    )
+  })
 })
 
 describe('editProductTransaction - Feature Updates', () => {
@@ -2824,6 +2981,110 @@ describe('editProductTransaction - Feature Updates', () => {
     expect(
       productFeatures.filter((pf) => !pf.expiredAt)
     ).toHaveLength(2)
+  })
+
+  it('should throw an error when adding toggle features to a SinglePayment product', async () => {
+    // Setup: Create a SinglePayment product
+    const singlePaymentProduct = await setupProduct({
+      organizationId: organization.id,
+      livemode: true,
+      pricingModelId: product.pricingModelId,
+      name: 'Single Payment Product',
+    })
+    await setupPrice({
+      productId: singlePaymentProduct.id,
+      name: 'One-time Price',
+      livemode: true,
+      isDefault: true,
+      type: PriceType.SinglePayment,
+      unitPrice: 9900,
+    })
+
+    const toggleFeatureIds = [features[0].id]
+
+    await expect(
+      authenticatedTransaction(
+        async ({ userId, transaction, livemode, organizationId }) => {
+          return editProductTransaction(
+            {
+              product: { id: singlePaymentProduct.id },
+              featureIds: toggleFeatureIds,
+            },
+            { userId, transaction, livemode, organizationId }
+          )
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).rejects.toThrow(
+      'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+    )
+  })
+
+  it('should allow adding usage credit grant features to a SinglePayment product', async () => {
+    // Setup: Create a SinglePayment product
+    const singlePaymentProduct = await setupProduct({
+      organizationId: organization.id,
+      livemode: true,
+      pricingModelId: product.pricingModelId,
+      name: 'Single Payment Product with Credits',
+    })
+    await setupPrice({
+      productId: singlePaymentProduct.id,
+      name: 'Credit Bundle Price',
+      livemode: true,
+      isDefault: true,
+      type: PriceType.SinglePayment,
+      unitPrice: 4900,
+    })
+
+    // Setup: Create a usage meter and usage credit grant feature
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: product.pricingModelId,
+      name: 'API Credits Meter',
+      slug: `api-credits-meter-${core.nanoid()}`,
+      livemode: true,
+    })
+
+    const usageCreditGrantFeature =
+      await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        pricingModelId: product.pricingModelId,
+        name: 'Credit Grant Feature',
+        usageMeterId: usageMeter.id,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: true,
+        amount: 500,
+      })
+
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        return editProductTransaction(
+          {
+            product: { id: singlePaymentProduct.id },
+            featureIds: [usageCreditGrantFeature.id],
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
+
+    const productFeatures = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductFeatures(
+          { productId: singlePaymentProduct.id },
+          transaction
+        )
+      }
+    )
+
+    expect(
+      productFeatures.filter((pf) => !pf.expiredAt)
+    ).toHaveLength(1)
+    expect(
+      productFeatures.find((pf) => !pf.expiredAt)?.featureId
+    ).toBe(usageCreditGrantFeature.id)
   })
 })
 
