@@ -605,9 +605,10 @@ export async function invalidateDependencies(
       const cacheKeys = await client.smembers(registryKey)
 
       if (cacheKeys.length > 0) {
-        logger.debug('Invalidating cache keys for dependency', {
+        logger.info('cache_invalidation', {
           dependency: dep,
           cacheKeys,
+          invalidation_count: cacheKeys.length,
         })
         // Delete all the cache keys
         await client.del(...cacheKeys)
