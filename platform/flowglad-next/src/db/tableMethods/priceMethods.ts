@@ -35,6 +35,7 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { FeatureType, PriceType } from '@/types'
+import { getNoChargeSlugForMeter } from '@/utils/usage/noChargePriceHelpers'
 import {
   type Feature,
   features,
@@ -72,6 +73,7 @@ import {
 import {
   derivePricingModelIdFromUsageMeter,
   pricingModelIdsForUsageMeters,
+  selectUsageMeterById,
 } from './usageMeterMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -820,6 +822,104 @@ const setPricesForProductToNonDefault = async (
     .where(eq(prices.productId, productId))
 }
 
+/**
+ * Sets all prices for a usage meter to non-default.
+ * Used when setting a new price as default for the meter.
+ */
+export const setPricesForUsageMeterToNonDefault = async (
+  usageMeterId: string,
+  transaction: DbTransaction
+): Promise<void> => {
+  await transaction
+    .update(prices)
+    .set({ isDefault: false })
+    .where(
+      and(
+        eq(prices.usageMeterId, usageMeterId),
+        eq(prices.isDefault, true)
+      )
+    )
+}
+
+/**
+ * Selects the default price for a usage meter.
+ * Returns the active price with isDefault=true for the given meter.
+ *
+ * @param usageMeterId - The ID of the usage meter
+ * @param transaction - Database transaction
+ * @returns The default price record if found, null otherwise
+ */
+export const selectDefaultPriceForUsageMeter = async (
+  usageMeterId: string,
+  transaction: DbTransaction
+): Promise<Price.Record | null> => {
+  const result = await transaction
+    .select()
+    .from(prices)
+    .where(
+      and(
+        eq(prices.usageMeterId, usageMeterId),
+        eq(prices.isDefault, true),
+        eq(prices.active, true)
+      )
+    )
+    .limit(1)
+  if (result.length === 0) {
+    return null
+  }
+  return pricesSelectSchema.parse(result[0])
+}
+
+/**
+ * Ensures a usage meter has a default price.
+ * If no active default price exists, sets the no_charge price as default.
+ *
+ * This is called when:
+ * 1. A price is explicitly unset as default (isDefault: false)
+ * 2. A price is deactivated (active: false)
+ *
+ * Note: The unique constraint on isDefault doesn't filter by active status,
+ * so we must unset all existing defaults (including inactive ones) before
+ * setting the no_charge price as default.
+ *
+ * @param usageMeterId - The ID of the usage meter
+ * @param transaction - Database transaction
+ */
+export const ensureUsageMeterHasDefaultPrice = async (
+  usageMeterId: string,
+  transaction: DbTransaction
+): Promise<void> => {
+  // Check if meter has any active default price
+  const defaultPrice = await selectDefaultPriceForUsageMeter(
+    usageMeterId,
+    transaction
+  )
+  if (defaultPrice) return // Already has an active default, nothing to do
+
+  // Get the usage meter to derive the no_charge price slug
+  const usageMeter = await selectUsageMeterById(
+    usageMeterId,
+    transaction
+  )
+  const noChargeSlug = getNoChargeSlugForMeter(usageMeter.slug)
+
+  // First, unset any existing defaults (including inactive ones) to satisfy the unique constraint
+  // The constraint is on (usageMeterId) WHERE isDefault = true, regardless of active status
+  await setPricesForUsageMeterToNonDefault(usageMeterId, transaction)
+
+  // Set the no_charge price as default
+  // We update by slug + pricingModelId since that's how prices are uniquely identified
+  await transaction
+    .update(prices)
+    .set({ isDefault: true })
+    .where(
+      and(
+        eq(prices.slug, noChargeSlug),
+        eq(prices.pricingModelId, usageMeter.pricingModelId)
+      )
+    )
+}
+
 const setPricesForProductToNonDefaultNonActive = async (
   productId: string,
   transaction: DbTransaction
@@ -882,14 +982,24 @@ export const safelyUpdatePrice = async (
   transaction: DbTransaction
 ) => {
   /**
-   * If price is default, reset other prices for the same product
+   * If price is default, reset other prices for the same product/usage meter
    */
   if (price.isDefault) {
     const existingPrice = await selectPriceById(price.id, transaction)
-    // Only reset product prices if this is a non-usage price
+    // For product prices, reset other prices for the same product
     if (Price.hasProductId(existingPrice)) {
       await setPricesForProductToNonDefault(
         existingPrice.productId,
+        transaction
+      )
+    }
+    // For usage prices, reset other prices for the same usage meter
+    if (
+      existingPrice.type === PriceType.Usage &&
+      existingPrice.usageMeterId
+    ) {
+      await setPricesForUsageMeterToNonDefault(
+        existingPrice.usageMeterId,
         transaction
       )
     }

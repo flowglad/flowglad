@@ -15,6 +15,7 @@ import {
   pricesTableRowDataSchema,
 } from '@/db/schema/prices'
 import {
+  ensureUsageMeterHasDefaultPrice,
   safelyUpdatePrice,
   selectPriceById,
   selectPricesPaginated,
@@ -32,6 +33,7 @@ import { PriceType } from '@/types'
 import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { createPriceTransaction } from '@/utils/pricingModel'
+import { isNoChargePrice } from '@/utils/usage/noChargePriceHelpers'
 import { validatePriceImmutableFields } from '@/utils/validateImmutableFields'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -122,6 +124,30 @@ export const updatePrice = protectedProcedure
           })
         }
 
+        // No_charge price protection: these prices cannot be deactivated or have slug changed
+        if (
+          existingPrice.slug &&
+          isNoChargePrice(existingPrice.slug)
+        ) {
+          if (price.active === false) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message:
+                'No_charge prices cannot be deactivated. They are protected system prices.',
+            })
+          }
+          if (
+            price.slug !== undefined &&
+            price.slug !== existingPrice.slug
+          ) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message:
+                'Cannot change the slug of a no_charge price. This field is immutable.',
+            })
+          }
+        }
+
         // Product validation only applies to non-usage prices.
         // Usage prices don't have productId, so skip product-related validation.
         let product = null
@@ -168,6 +194,20 @@ export const updatePrice = protectedProcedure
           },
           transaction
         )
+
+        // Cascade: if a usage price was unset as default or deactivated,
+        // ensure the usage meter still has a default price
+        if (
+          existingPrice.type === PriceType.Usage &&
+          existingPrice.usageMeterId &&
+          (price.isDefault === false || price.active === false)
+        ) {
+          await ensureUsageMeterHasDefaultPrice(
+            existingPrice.usageMeterId,
+            transaction
+          )
+        }
+
         return {
           price: updatedPrice,
         }
@@ -257,10 +297,32 @@ export const archivePrice = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
         const oldPrice = await selectPriceById(input.id, transaction)
+
+        // No_charge prices cannot be archived
+        if (oldPrice.slug && isNoChargePrice(oldPrice.slug)) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message:
+              'No_charge prices cannot be archived. They are protected system prices.',
+          })
+        }
+
         const price = await safelyUpdatePrice(
           { id: input.id, active: false, type: oldPrice.type },
           transaction
         )
+
+        // Cascade: if a usage price was deactivated, ensure the usage meter still has a default price
+        if (
+          oldPrice.type === PriceType.Usage &&
+          oldPrice.usageMeterId
+        ) {
+          await ensureUsageMeterHasDefaultPrice(
+            oldPrice.usageMeterId,
+            transaction
+          )
+        }
+
         return { price }
       }
     )

@@ -13,6 +13,7 @@ import {
 import { adminTransaction } from '@/db/adminTransaction'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { core } from '@/utils/core'
+import { getNoChargeSlugForMeter } from '@/utils/usage/noChargePriceHelpers'
 import type { Organization } from '../schema/organizations'
 import {
   nulledPriceColumns,
@@ -27,10 +28,12 @@ import {
   bulkInsertPrices,
   dangerouslyInsertPrice,
   derivePricingModelIdForPrice,
+  ensureUsageMeterHasDefaultPrice,
   insertPrice,
   pricingModelIdsForPrices,
   safelyInsertPrice,
   safelyUpdatePrice,
+  selectDefaultPriceForUsageMeter,
   selectPriceById,
   selectPriceBySlugAndCustomerId,
   selectPriceBySlugForDefaultPricingModel,
@@ -38,6 +41,7 @@ import {
   selectPricesAndProductsForOrganization,
   selectResourceFeaturesForPrice,
   selectResourceFeaturesForPrices,
+  setPricesForUsageMeterToNonDefault,
   updatePrice,
 } from './priceMethods'
 import { updatePricingModel } from './pricingModelMethods'
@@ -2805,6 +2809,503 @@ describe('priceMethods.ts', () => {
         ).rejects.toThrow(
           /Pricing model id must be provided or derivable from productId or usageMeterId/
         )
+      })
+    })
+  })
+
+  describe('Usage Price Default Management', () => {
+    let organization: Organization.Record
+    let pricingModel: PricingModel.Record
+    let usageMeter: UsageMeter.Record
+
+    beforeEach(async () => {
+      const setup = await setupOrg()
+      organization = setup.organization
+      pricingModel = setup.pricingModel
+
+      usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+    })
+
+    // Helper to create a usage price with control over isDefault
+    // (setupPrice doesn't allow setting isDefault for usage prices)
+    const createUsagePrice = async (params: {
+      name: string
+      unitPrice: number
+      usageMeterId: string
+      isDefault: boolean
+      slug?: string
+    }) => {
+      return adminTransaction(async ({ transaction }) => {
+        return insertPrice(
+          {
+            name: params.name,
+            type: PriceType.Usage,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            unitPrice: params.unitPrice,
+            currency: CurrencyCode.USD,
+            livemode: true,
+            usageMeterId: params.usageMeterId,
+            usageEventsPerUnit: 1,
+            pricingModelId: pricingModel.id,
+            isDefault: params.isDefault,
+            active: true,
+            slug: params.slug ?? `test-price-${core.nanoid()}`,
+            trialPeriodDays: null,
+            productId: null,
+          },
+          transaction
+        )
+      })
+    }
+
+    describe('setPricesForUsageMeterToNonDefault', () => {
+      it('sets all default prices for a usage meter to non-default', async () => {
+        // Create a default price using insertPrice directly
+        const defaultPrice = await createUsagePrice({
+          name: 'Default Usage Price',
+          unitPrice: 100,
+          usageMeterId: usageMeter.id,
+          isDefault: true,
+        })
+
+        // Create a non-default price
+        const nonDefaultPrice = await createUsagePrice({
+          name: 'Non-Default Usage Price',
+          unitPrice: 200,
+          usageMeterId: usageMeter.id,
+          isDefault: false,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          await setPricesForUsageMeterToNonDefault(
+            usageMeter.id,
+            transaction
+          )
+
+          const updatedDefault = await selectPriceById(
+            defaultPrice.id,
+            transaction
+          )
+          const updatedNonDefault = await selectPriceById(
+            nonDefaultPrice.id,
+            transaction
+          )
+
+          expect(updatedDefault.isDefault).toBe(false)
+          expect(updatedNonDefault.isDefault).toBe(false)
+        })
+      })
+
+      it('does not affect prices from other usage meters', async () => {
+        const otherMeter = await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Other Usage Meter',
+          livemode: true,
+          pricingModelId: pricingModel.id,
+        })
+
+        // Create default price for first meter
+        const price1 = await createUsagePrice({
+          name: 'Price for Meter 1',
+          unitPrice: 100,
+          usageMeterId: usageMeter.id,
+          isDefault: true,
+        })
+
+        // Create default price for other meter
+        const price2 = await adminTransaction(
+          async ({ transaction }) => {
+            return insertPrice(
+              {
+                name: 'Price for Meter 2',
+                type: PriceType.Usage,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                unitPrice: 100,
+                currency: CurrencyCode.USD,
+                livemode: true,
+                usageMeterId: otherMeter.id,
+                usageEventsPerUnit: 1,
+                pricingModelId: pricingModel.id,
+                isDefault: true,
+                active: true,
+                slug: `test-price-${core.nanoid()}`,
+                trialPeriodDays: null,
+                productId: null,
+              },
+              transaction
+            )
+          }
+        )
+
+        await adminTransaction(async ({ transaction }) => {
+          // Only unset defaults for first meter
+          await setPricesForUsageMeterToNonDefault(
+            usageMeter.id,
+            transaction
+          )
+
+          const updated1 = await selectPriceById(
+            price1.id,
+            transaction
+          )
+          const updated2 = await selectPriceById(
+            price2.id,
+            transaction
+          )
+
+          expect(updated1.isDefault).toBe(false)
+          expect(updated2.isDefault).toBe(true) // Should remain default
+        })
+      })
+    })
+
+    describe('selectDefaultPriceForUsageMeter', () => {
+      it('returns the active default price for a usage meter', async () => {
+        const defaultPrice = await createUsagePrice({
+          name: 'Default Usage Price',
+          unitPrice: 100,
+          usageMeterId: usageMeter.id,
+          isDefault: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          const result = await selectDefaultPriceForUsageMeter(
+            usageMeter.id,
+            transaction
+          )
+
+          expect(result?.id).toBe(defaultPrice.id)
+          expect(result?.isDefault).toBe(true)
+          expect(result?.active).toBe(true)
+        })
+      })
+
+      it('returns null when no default price exists', async () => {
+        await createUsagePrice({
+          name: 'Non-Default Usage Price',
+          unitPrice: 100,
+          usageMeterId: usageMeter.id,
+          isDefault: false,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          const result = await selectDefaultPriceForUsageMeter(
+            usageMeter.id,
+            transaction
+          )
+
+          expect(result).toBeNull()
+        })
+      })
+
+      it('returns null when default price is inactive', async () => {
+        const defaultPrice = await createUsagePrice({
+          name: 'Default Usage Price',
+          unitPrice: 100,
+          usageMeterId: usageMeter.id,
+          isDefault: true,
+        })
+
+        // Deactivate the price
+        await adminTransaction(async ({ transaction }) => {
+          await updatePrice(
+            {
+              id: defaultPrice.id,
+              active: false,
+              type: PriceType.Usage,
+            },
+            transaction
+          )
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          const result = await selectDefaultPriceForUsageMeter(
+            usageMeter.id,
+            transaction
+          )
+
+          expect(result).toBeNull()
+        })
+      })
+    })
+
+    describe('ensureUsageMeterHasDefaultPrice', () => {
+      it('does nothing when meter already has an active default price', async () => {
+        const defaultPrice = await createUsagePrice({
+          name: 'Default Usage Price',
+          unitPrice: 100,
+          usageMeterId: usageMeter.id,
+          isDefault: true,
+        })
+
+        // Create a no_charge price (not default)
+        const noChargeSlug = getNoChargeSlugForMeter(usageMeter.slug)
+        const noChargePrice = await createUsagePrice({
+          name: 'No Charge Price',
+          unitPrice: 0,
+          usageMeterId: usageMeter.id,
+          isDefault: false,
+          slug: noChargeSlug,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          await ensureUsageMeterHasDefaultPrice(
+            usageMeter.id,
+            transaction
+          )
+
+          // Default price should still be default
+          const updatedDefault = await selectPriceById(
+            defaultPrice.id,
+            transaction
+          )
+          expect(updatedDefault.isDefault).toBe(true)
+
+          // No charge should remain non-default
+          const updatedNoCharge = await selectPriceById(
+            noChargePrice.id,
+            transaction
+          )
+          expect(updatedNoCharge.isDefault).toBe(false)
+        })
+      })
+
+      it('sets no_charge price as default when no active default exists', async () => {
+        // Create a regular price that is default
+        const regularPrice = await createUsagePrice({
+          name: 'Regular Price',
+          unitPrice: 100,
+          usageMeterId: usageMeter.id,
+          isDefault: true,
+        })
+
+        // Create a no_charge price (not default)
+        const noChargeSlug = getNoChargeSlugForMeter(usageMeter.slug)
+        const noChargePrice = await createUsagePrice({
+          name: 'No Charge Price',
+          unitPrice: 0,
+          usageMeterId: usageMeter.id,
+          isDefault: false,
+          slug: noChargeSlug,
+        })
+
+        // Unset the regular price as default
+        await adminTransaction(async ({ transaction }) => {
+          await updatePrice(
+            {
+              id: regularPrice.id,
+              isDefault: false,
+              type: PriceType.Usage,
+            },
+            transaction
+          )
+        })
+
+        // Now ensure there's a default
+        await adminTransaction(async ({ transaction }) => {
+          await ensureUsageMeterHasDefaultPrice(
+            usageMeter.id,
+            transaction
+          )
+
+          // No charge should now be default
+          const updatedNoCharge = await selectPriceById(
+            noChargePrice.id,
+            transaction
+          )
+          expect(updatedNoCharge.isDefault).toBe(true)
+
+          // Regular price should remain non-default
+          const updatedRegular = await selectPriceById(
+            regularPrice.id,
+            transaction
+          )
+          expect(updatedRegular.isDefault).toBe(false)
+        })
+      })
+
+      it('sets no_charge price as default when existing default is deactivated', async () => {
+        // Create a regular price that is default
+        const regularPrice = await createUsagePrice({
+          name: 'Regular Price',
+          unitPrice: 100,
+          usageMeterId: usageMeter.id,
+          isDefault: true,
+        })
+
+        // Create a no_charge price (not default)
+        const noChargeSlug = getNoChargeSlugForMeter(usageMeter.slug)
+        const noChargePrice = await createUsagePrice({
+          name: 'No Charge Price',
+          unitPrice: 0,
+          usageMeterId: usageMeter.id,
+          isDefault: false,
+          slug: noChargeSlug,
+        })
+
+        // Deactivate the regular price (but leave it as default in DB)
+        await adminTransaction(async ({ transaction }) => {
+          await updatePrice(
+            {
+              id: regularPrice.id,
+              active: false,
+              type: PriceType.Usage,
+            },
+            transaction
+          )
+        })
+
+        // Now ensure there's an active default
+        await adminTransaction(async ({ transaction }) => {
+          await ensureUsageMeterHasDefaultPrice(
+            usageMeter.id,
+            transaction
+          )
+
+          // No charge should now be default
+          const updatedNoCharge = await selectPriceById(
+            noChargePrice.id,
+            transaction
+          )
+          expect(updatedNoCharge.isDefault).toBe(true)
+        })
+      })
+    })
+
+    describe('safelyUpdatePrice with usage prices', () => {
+      it('unsets other usage prices as default when setting a new default', async () => {
+        // Create first price as default
+        const firstPrice = await createUsagePrice({
+          name: 'First Usage Price',
+          unitPrice: 100,
+          usageMeterId: usageMeter.id,
+          isDefault: true,
+        })
+
+        // Create second price (not default)
+        const secondPrice = await createUsagePrice({
+          name: 'Second Usage Price',
+          unitPrice: 200,
+          usageMeterId: usageMeter.id,
+          isDefault: false,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          // Set second price as default
+          await safelyUpdatePrice(
+            {
+              id: secondPrice.id,
+              isDefault: true,
+              type: PriceType.Usage,
+            },
+            transaction
+          )
+
+          // First price should no longer be default
+          const updatedFirst = await selectPriceById(
+            firstPrice.id,
+            transaction
+          )
+          expect(updatedFirst.isDefault).toBe(false)
+
+          // Second price should now be default
+          const updatedSecond = await selectPriceById(
+            secondPrice.id,
+            transaction
+          )
+          expect(updatedSecond.isDefault).toBe(true)
+        })
+      })
+
+      it('does not affect prices from other usage meters when setting default', async () => {
+        const otherMeter = await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Other Usage Meter',
+          livemode: true,
+          pricingModelId: pricingModel.id,
+        })
+
+        // Create default price for first meter
+        const price1 = await createUsagePrice({
+          name: 'Price for Meter 1',
+          unitPrice: 100,
+          usageMeterId: usageMeter.id,
+          isDefault: true,
+        })
+
+        // Create default price for other meter
+        const price2 = await adminTransaction(
+          async ({ transaction }) => {
+            return insertPrice(
+              {
+                name: 'Price for Meter 2',
+                type: PriceType.Usage,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                unitPrice: 100,
+                currency: CurrencyCode.USD,
+                livemode: true,
+                usageMeterId: otherMeter.id,
+                usageEventsPerUnit: 1,
+                pricingModelId: pricingModel.id,
+                isDefault: true,
+                active: true,
+                slug: `test-price-${core.nanoid()}`,
+                trialPeriodDays: null,
+                productId: null,
+              },
+              transaction
+            )
+          }
+        )
+
+        // Create non-default price for first meter
+        const newPrice = await createUsagePrice({
+          name: 'New Price for Meter 1',
+          unitPrice: 200,
+          usageMeterId: usageMeter.id,
+          isDefault: false,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          // Set new price as default for first meter
+          await safelyUpdatePrice(
+            {
+              id: newPrice.id,
+              isDefault: true,
+              type: PriceType.Usage,
+            },
+            transaction
+          )
+
+          // Price1 should no longer be default
+          const updated1 = await selectPriceById(
+            price1.id,
+            transaction
+          )
+          expect(updated1.isDefault).toBe(false)
+
+          // Price2 (other meter) should still be default
+          const updated2 = await selectPriceById(
+            price2.id,
+            transaction
+          )
+          expect(updated2.isDefault).toBe(true)
+
+          // New price should be default
+          const updatedNew = await selectPriceById(
+            newPrice.id,
+            transaction
+          )
+          expect(updatedNew.isDefault).toBe(true)
+        })
       })
     })
   })
