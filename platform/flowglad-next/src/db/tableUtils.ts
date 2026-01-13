@@ -894,10 +894,12 @@ export const createIndexName = (
 
 export const constructUniqueIndex = (
   tableName: string,
-  columns: Parameters<IndexBuilderOn['on']>
+  columns: Parameters<IndexBuilderOn['on']>,
+  where?: SQL
 ) => {
   const indexName = createIndexName(tableName, columns, true)
-  return uniqueIndex(indexName).on(...columns)
+  const idx = uniqueIndex(indexName).on(...columns)
+  return where ? idx.where(where) : idx
 }
 
 /**

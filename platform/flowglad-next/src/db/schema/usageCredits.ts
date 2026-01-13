@@ -104,6 +104,27 @@ export const usageCredits = pgTable(
       table.subscriptionId,
       table.usageMeterId,
     ]),
+    // Prevent duplicate manual credit grants for the same feature in the same billing period
+    constructUniqueIndex(
+      TABLE_NAME,
+      [
+        table.subscriptionId,
+        table.sourceReferenceId,
+        table.usageMeterId,
+        table.billingPeriodId,
+      ],
+      sql`"source_reference_type" = 'manual_adjustment'::"UsageCreditSourceReferenceType" AND "credit_type" = 'grant'::"UsageCreditType" AND "billing_period_id" IS NOT NULL`
+    ),
+    // Prevent duplicate manual credit grants for the same feature when no billing period exists (lifetime/unbound)
+    constructUniqueIndex(
+      TABLE_NAME,
+      [
+        table.subscriptionId,
+        table.sourceReferenceId,
+        table.usageMeterId,
+      ],
+      sql`"source_reference_type" = 'manual_adjustment'::"UsageCreditSourceReferenceType" AND "credit_type" = 'grant'::"UsageCreditType" AND "billing_period_id" IS NULL`
+    ),
     enableCustomerReadPolicy(
       `Enable read for customers (${TABLE_NAME})`,
       {

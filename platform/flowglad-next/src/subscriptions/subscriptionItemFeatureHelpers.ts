@@ -445,8 +445,10 @@ const grantImmediateUsageCredits = async (
     }
   }
 
-  const usageCredit = await insertUsageCredit(
-    {
+  // Use INSERT ... ON CONFLICT DO NOTHING to handle race conditions at the database level
+  const [usageCredit] = await transaction
+    .insert(usageCredits)
+    .values({
       subscriptionId: subscription.id,
       organizationId: subscription.organizationId,
       livemode: subscription.livemode,
@@ -458,14 +460,20 @@ const grantImmediateUsageCredits = async (
       usageMeterId,
       paymentId: null,
       issuedAmount: grantAmount,
-      issuedAt: Date.now(),
+      issuedAt: new Date(),
       expiresAt: currentBillingPeriod?.endDate ?? null,
       status: UsageCreditStatus.Posted,
       notes: null,
       metadata: null,
-    },
-    transaction
-  )
+      pricingModelId: subscriptionItemFeature.pricingModelId,
+    })
+    .onConflictDoNothing()
+    .returning()
+
+  // If no credit was inserted (conflict occurred), it means another concurrent request already created it
+  if (!usageCredit) {
+    return
+  }
 
   const ledgerCommand: CreditGrantRecognizedLedgerCommand = {
     type: LedgerTransactionType.CreditGrantRecognized,
