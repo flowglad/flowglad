@@ -41,19 +41,19 @@ Multiple PRs should each have their own link:
 Each changelog entry uses the Mintlify `Update` component:
 
 ```mdx
-<Update label="[Full Date]" description="[Version or Title]">
+<Update label="[Full Date]">
   ## Highlights
 
   - [Most important change with user benefit]. [#PR](https://github.com/flowglad/flowglad/pull/PR)
   - [Second most important change]. [#PR](https://github.com/flowglad/flowglad/pull/PR)
   - [Third highlight if applicable]. [#PR](https://github.com/flowglad/flowglad/pull/PR)
 
-  ## Features
+  ## New Features
 
   - [New capability description]. [#PR](https://github.com/flowglad/flowglad/pull/PR)
   - [Another new feature]. [#PR](https://github.com/flowglad/flowglad/pull/PR)
 
-  ## Improvements
+  ## Improvements & Fixes
 
   - [Enhancement or fix description]. [#PR](https://github.com/flowglad/flowglad/pull/PR)
   - [Another improvement]. [#PR](https://github.com/flowglad/flowglad/pull/PR)
@@ -67,21 +67,15 @@ The date of the release in a human-readable format.
 
 **Format**: `"Month Day, Year"` (e.g., `"November 20, 2025"`)
 
-### `description` (Required)
-A short identifier for the release. Use one of these patterns:
-- Version number: `"v1.2.0"`
-- Product update number: `"Product Updates #13"`
-- Release name: `"Summer 2025 Release"`
-
 ### Section Headers
 
-Use `##` headers to organize content within the Update component:
+Use `##` headers to organize content within the Update component. **Always use these exact headers for consistency:**
 
 | Section | Purpose | When to Include |
 |---------|---------|-----------------|
 | `## Highlights` | Top 2-4 most impactful changes | Always (if there are notable changes) |
-| `## Features` or `## New Features` | New capabilities added | When new features were added |
-| `## Improvements` or `## Improvements & Fixes` | Enhancements and bug fixes | When there are improvements or fixes |
+| `## New Features` | New capabilities added | When new features were added |
+| `## Improvements & Fixes` | Enhancements and bug fixes | When there are improvements or fixes |
 
 ## Entry Ordering
 
@@ -96,12 +90,12 @@ Use `##` headers to organize content within the Update component:
 - Focus on user-facing impact
 - Each item should be compelling enough to make users want to learn more
 
-### Features Section
+### New Features Section
 - One item per feature
 - Start with an action verb or the feature name
 - Include enough detail to understand what it does
 
-### Improvements Section
+### Improvements & Fixes Section
 - Group related fixes if they're minor
 - Be specific about what was fixed ("Fixed X" not just "Fixed bug")
 - Include context if the fix addresses a common issue
@@ -109,7 +103,7 @@ Use `##` headers to organize content within the Update component:
 ## Example Entry
 
 ```mdx
-<Update label="November 20, 2025" description="Product Updates #13">
+<Update label="November 20, 2025">
   ## Highlights
 
   - Import and export pricing models as YAML files for faster setup and easier sharing. [#657](https://github.com/flowglad/flowglad/pull/657), [#662](https://github.com/flowglad/flowglad/pull/662)
@@ -152,9 +146,10 @@ The RSS feed only includes pure Markdown content. Components, code blocks, and H
 
 ## Checklist Before Completion
 
-- [ ] Entry uses the `<Update>` component with `label` and `description` props
+- [ ] Entry uses the `<Update>` component with `label` prop
 - [ ] Date in `label` uses "Month Day, Year" format
 - [ ] All PR references converted to full GitHub links
+- [ ] Section headers use exact names: `## Highlights`, `## New Features`, `## Improvements & Fixes`
 - [ ] Highlights section contains 2-4 impactful items
 - [ ] Items are ordered by importance, not PR number
 - [ ] Each item clearly describes user benefit or what was fixed
