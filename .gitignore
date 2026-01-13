@@ -41,6 +41,9 @@ playground/react-native/prisma/database.sqlite
 # Git worktrees
 .conductor
 
+# Claude Code settings (shared via .worktreeinclude, not git)
+.claude/settings.json
+
 # openapi diffing
 temp-openapi**.json
 
