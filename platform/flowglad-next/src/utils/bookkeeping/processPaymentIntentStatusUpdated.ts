@@ -6,6 +6,7 @@ import type {
 import type { Event } from '@/db/schema/events'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import type { Payment } from '@/db/schema/payments'
+import { Price } from '@/db/schema/prices'
 import type { Purchase } from '@/db/schema/purchases'
 import type { UsageCredit } from '@/db/schema/usageCredits'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
@@ -394,7 +395,11 @@ export const ledgerCommandForPaymentSucceeded = async (
   transaction: DbTransaction
 ): Promise<CreditGrantRecognizedLedgerCommand | undefined> => {
   const price = await selectPriceById(params.priceId, transaction)
-  if (price.type !== PriceType.SinglePayment) {
+  // Use type guard for consistent pattern and proper TypeScript narrowing
+  if (
+    !Price.hasProductId(price) ||
+    price.type !== PriceType.SinglePayment
+  ) {
     return undefined
   }
   const { features } = await selectProductPriceAndFeaturesByProductId(

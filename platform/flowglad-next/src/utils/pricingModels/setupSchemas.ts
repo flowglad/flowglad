@@ -373,6 +373,11 @@ export const validateSetupPricingModelInput = (
       }
     })
 
+    // Implicit default: single price becomes default automatically
+    if (prices.length === 1 && prices[0].isDefault !== true) {
+      prices[0].isDefault = true
+    }
+
     // Validate that at most one price is marked as default per meter
     const defaultPrices = prices.filter((p) => p.isDefault === true)
     if (defaultPrices.length > 1) {

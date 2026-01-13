@@ -33,6 +33,12 @@ const getRawProductId = (
  *
  * This is a pure function that can be unit tested without database dependencies.
  *
+ * NOTE: The v1 Zod schema coerces usage price productId to null before this runs,
+ * so the "usage prices cannot have productId" error is currently unreachable via
+ * normal API paths. This validation will become active when:
+ * 1. We switch to v2 strict Zod schema (productId: z.null() instead of coercion)
+ * 2. Raw input bypasses Zod parsing (edge cases, internal calls)
+ *
  * @param price - The price insert to validate (raw or parsed)
  * @throws TRPCError with code BAD_REQUEST if validation fails
  */
@@ -42,6 +48,9 @@ export const validatePriceTypeProductIdConsistency = (
   const productId = getRawProductId(price)
 
   // For usage prices, productId must be null or undefined (not a valid string).
+  // NOTE: With v1 Zod coercion, this branch is unreachable via normal API paths
+  // since Zod transforms productId to null. This is intentional for backward
+  // compatibility. The validation will activate when we deploy v2 strict schema.
   if (
     price.type === PriceType.Usage &&
     productId !== null &&

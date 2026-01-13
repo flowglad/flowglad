@@ -711,7 +711,9 @@ export const selectPricesTableRowData =
       )
 
       return priceRecords.map((price) => {
-        // Usage prices don't have a productId; product may also be deleted/not found
+        // Usage prices belong to usage meters, not products (productId is null).
+        // Only fetch product data for subscription/single_payment prices.
+        // Product may also be null if it was deleted.
         let productInfo: { id: string; name: string } | null = null
         if (Price.hasProductId(price)) {
           const product = productsById.get(price.productId)

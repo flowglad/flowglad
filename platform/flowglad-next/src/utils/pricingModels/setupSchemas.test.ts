@@ -44,24 +44,9 @@ describe('validateSetupPricingModelInput', () => {
     usageMeters: [],
   })
 
-  // PR 5: Usage prices now live under usage meters, not products
-  it('should throw if a usage meter has no associated usage price', () => {
-    const input = createMinimalValidInput()
-    // Add a usage meter with no prices
-    input.usageMeters = [
-      {
-        usageMeter: {
-          slug: 'test-meter',
-          name: 'Test Meter',
-        },
-        // No prices defined
-      },
-    ]
-
-    expect(() => validateSetupPricingModelInput(input)).toThrow(
-      /Usage meter with slug .+ must have at least one usage price associated with it/
-    )
-  })
+  // PR 5: Usage prices are optional for usage meters per the gameplan.
+  // A usage meter can exist without prices (e.g., for meters that only track usage
+  // for credit grants, not billing).
 
   describe('feature existence validation', () => {
     it('should throw when a product references a feature slug that does not exist', () => {
@@ -231,7 +216,7 @@ describe('validateSetupPricingModelInput', () => {
       ).not.toThrow()
     })
 
-    it('should throw when usage meter has empty prices array', () => {
+    it('should implicitly set isDefault=true for single price on meter', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [
         {
@@ -239,14 +224,29 @@ describe('validateSetupPricingModelInput', () => {
             slug: 'test-meter',
             name: 'Test Meter',
           },
-          prices: [], // Empty prices array
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'usage-price',
+              // isDefault explicitly set to false - should be implicitly changed to true
+              isDefault: false,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
         },
       ]
 
-      expect(() => validateSetupPricingModelInput(input)).toThrow(
-        /Usage meter with slug .+ must have at least one usage price associated with it/
-      )
+      const result = validateSetupPricingModelInput(input)
+      expect(result.usageMeters[0].prices?.[0].isDefault).toBe(true)
     })
+
+    // PR 5: Empty prices array is valid - usage meters can exist without prices
+    // (e.g., meters that only track usage for credit grants, not billing)
   })
 
   // PR 5: This describe block is obsolete - usage prices are now nested under usage meters
