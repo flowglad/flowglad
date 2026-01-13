@@ -246,6 +246,7 @@ export const createCustomerBookkeeping = async (
     livemode,
     invalidateCache,
     emitEvent,
+    enqueueLedgerCommand,
   }: Omit<AuthenticatedTransactionParams, 'userId'>
 ): Promise<
   TransactionOutput<{
@@ -381,6 +382,7 @@ export const createCustomerBookkeeping = async (
             transaction,
             invalidateCache: invalidateCache!,
             emitEvent: emitEvent!,
+            enqueueLedgerCommand: enqueueLedgerCommand ?? (() => {}),
           }
         )
 

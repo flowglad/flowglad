@@ -26,6 +26,7 @@ import {
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
+  createNoopContext,
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
@@ -196,9 +197,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         async ({ transaction }) => {
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -300,9 +299,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       })
 
@@ -394,9 +391,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       })
 
@@ -512,9 +507,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       })
 
@@ -646,9 +639,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       })
 

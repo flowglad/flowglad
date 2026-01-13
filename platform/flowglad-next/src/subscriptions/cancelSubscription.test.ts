@@ -59,7 +59,11 @@ import {
 } from '@/subscriptions/cancelSubscription'
 import type { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
 import {
+  createCapturingCallbacks,
+  createCapturingContext,
+  createNoopContext,
   noopEmitEvent,
+  noopEnqueueLedgerCommand,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
 import * as subscriptionCancellationNotifications from '@/trigger/notifications/send-organization-subscription-cancellation-scheduled-notification'
@@ -168,9 +172,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
         await reassignDefaultSubscription(
           canceledSubscription,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         const subscriptions = await selectSubscriptions(
@@ -241,9 +243,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
         await reassignDefaultSubscription(
           canceledSubscription,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         const subscriptions = await selectSubscriptions(
@@ -312,9 +312,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
         await reassignDefaultSubscription(
           canceledSubscription,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         const subscriptions = await selectSubscriptions(
@@ -350,9 +348,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       await adminTransaction(async ({ transaction }) => {
         await reassignDefaultSubscription(
           canceledSubscription,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         const subscriptions = await selectSubscriptions(
@@ -402,9 +398,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       await adminTransaction(async ({ transaction }) => {
         await reassignDefaultSubscription(
           canceledSubscription,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         const subscriptions = await selectSubscriptions(
@@ -467,9 +461,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
         await reassignDefaultSubscription(
           canceledSubscription,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         const subscriptions = await selectSubscriptions(
@@ -524,9 +516,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
         await reassignDefaultSubscription(
           canceledSubscription,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         const subscriptions = await selectSubscriptions(
@@ -601,9 +591,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             {
               subscription,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
 
         expect(canceledSubscription.status).toBe(
@@ -711,9 +699,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           {
             subscription: subscriptionToCancel,
           },
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         const subscriptions = await selectSubscriptions(
@@ -776,9 +762,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             {
               subscription,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
 
         // Verify subscription fields.
@@ -821,27 +805,36 @@ describe('Subscription Cancellation Test Suite', async () => {
           priceId: price.id,
           status: SubscriptionStatus.Canceled,
         })
+        const { ctx, effects } = createCapturingContext(transaction)
         const { result, eventsToInsert } =
           await cancelSubscriptionImmediately(
             {
               subscription,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            ctx
           )
         expect(result.status).toBe(SubscriptionStatus.Canceled)
+        // Verify both returned events and captured callback events
         expect(eventsToInsert).toHaveLength(1)
-        if (!eventsToInsert) {
-          throw new Error('No events to insert')
-        }
-        expect(eventsToInsert[0]).toMatchObject({
+        expect(effects.events).toHaveLength(1)
+        expect(eventsToInsert?.[0]).toMatchObject({
           type: FlowgladEventType.SubscriptionCanceled,
           payload: {
             object: EventNoun.Subscription,
             id: subscription.id,
           },
         })
+        expect(effects.events[0]).toMatchObject({
+          type: FlowgladEventType.SubscriptionCanceled,
+          payload: {
+            object: EventNoun.Subscription,
+            id: subscription.id,
+          },
+        })
+        // Verify cache invalidation was called
+        expect(effects.cacheInvalidations).toContain(
+          CacheDependency.customerSubscriptions(customer.id)
+        )
       })
     })
 
@@ -856,18 +849,21 @@ describe('Subscription Cancellation Test Suite', async () => {
           canceledAt,
           status: SubscriptionStatus.Active,
         })
+        const { ctx, effects } = createCapturingContext(transaction)
         const { result, eventsToInsert } =
           await cancelSubscriptionImmediately(
             {
               subscription: subscriptionWithTimestamp,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            ctx
           )
         expect(result.status).toBe(SubscriptionStatus.Canceled)
         expect(result.canceledAt).toBe(canceledAt)
         expect(eventsToInsert).toHaveLength(1)
+        expect(effects.events).toHaveLength(1)
+        expect(effects.cacheInvalidations).toContain(
+          CacheDependency.customerSubscriptions(customer.id)
+        )
       })
     })
 
@@ -891,30 +887,30 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: BillingPeriodStatus.ScheduledToCancel,
         })
 
+        const { ctx, effects } = createCapturingContext(transaction)
         const { result, eventsToInsert } =
           await cancelSubscriptionImmediately(
             {
               subscription,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            ctx
           )
 
         // Verify subscription was canceled immediately
         expect(result.status).toBe(SubscriptionStatus.Canceled)
         expect(result.canceledAt).toMatchObject({})
         expect(eventsToInsert).toHaveLength(1)
-        if (!eventsToInsert) {
-          throw new Error('No events to insert')
-        }
-        expect(eventsToInsert[0]).toMatchObject({
+        expect(effects.events).toHaveLength(1)
+        expect(eventsToInsert?.[0]).toMatchObject({
           type: FlowgladEventType.SubscriptionCanceled,
           payload: {
             object: EventNoun.Subscription,
             id: subscription.id,
           },
         })
+        expect(effects.cacheInvalidations).toContain(
+          CacheDependency.customerSubscriptions(customer.id)
+        )
       })
     })
 
@@ -947,30 +943,30 @@ describe('Subscription Cancellation Test Suite', async () => {
             endDate: periodEnd,
           })
 
+          const { ctx, effects } = createCapturingContext(transaction)
           const { result, eventsToInsert } =
             await cancelSubscriptionImmediately(
               {
                 subscription,
               },
-              transaction,
-              noopInvalidateCache,
-              noopEmitEvent
+              ctx
             )
 
           // Verify subscription was canceled regardless of initial status
           expect(result.status).toBe(SubscriptionStatus.Canceled)
           expect(result.canceledAt).toMatchObject({})
           expect(eventsToInsert).toHaveLength(1)
-          if (!eventsToInsert) {
-            throw new Error('No events to insert')
-          }
-          expect(eventsToInsert[0]).toMatchObject({
+          expect(effects.events).toHaveLength(1)
+          expect(eventsToInsert?.[0]).toMatchObject({
             type: FlowgladEventType.SubscriptionCanceled,
             payload: {
               object: EventNoun.Subscription,
               id: subscription.id,
             },
           })
+          expect(effects.cacheInvalidations).toContain(
+            CacheDependency.customerSubscriptions(customer.id)
+          )
         })
       }
     })
@@ -997,9 +993,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             {
               subscription,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         ).rejects.toThrow(
           /Cannot end a subscription before its start date/
@@ -1024,9 +1018,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             {
               subscription,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
           result = output.result
         } catch (error) {
@@ -1062,9 +1054,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             {
               subscription,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Canceled
@@ -1130,9 +1120,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             {
               subscription,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
 
         // Verify subscription is canceled
@@ -1213,9 +1201,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           {
             subscription,
           },
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         // Verify all PastDue billing periods are now Canceled
@@ -1282,9 +1268,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           {
             subscription,
           },
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         // Verify all scheduled billing runs are now aborted
@@ -1352,9 +1336,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           {
             subscription,
           },
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         // Verify only scheduled billing run is aborted
@@ -1742,6 +1724,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           startDate: Date.now() - 60 * 60 * 1000,
           endDate: Date.now() + 60 * 60 * 1000,
         })
+        const { callbacks, effects } = createCapturingCallbacks()
         const response = await cancelSubscriptionProcedureTransaction(
           {
             input: {
@@ -1761,9 +1744,9 @@ describe('Subscription Cancellation Test Suite', async () => {
               eventsToInsert: [],
               ledgerCommands: [],
             },
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-            enqueueLedgerCommand: () => {},
+            invalidateCache: callbacks.invalidateCache,
+            emitEvent: callbacks.emitEvent,
+            enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
           }
         )
 
@@ -1772,6 +1755,11 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
         expect(response.result.subscription.current).toBe(false)
         expect(response.eventsToInsert).toHaveLength(1)
+        // Verify events were also captured via callbacks
+        expect(effects.events).toHaveLength(1)
+        expect(effects.cacheInvalidations).toContain(
+          CacheDependency.customerSubscriptions(customer.id)
+        )
       })
     })
 
@@ -1789,6 +1777,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           startDate: now - 60 * 60 * 1000,
           endDate: now + 60 * 60 * 1000,
         })
+        const { callbacks, effects } = createCapturingCallbacks()
         const response = await cancelSubscriptionProcedureTransaction(
           {
             input: {
@@ -1810,9 +1799,9 @@ describe('Subscription Cancellation Test Suite', async () => {
               eventsToInsert: [],
               ledgerCommands: [],
             },
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-            enqueueLedgerCommand: () => {},
+            invalidateCache: callbacks.invalidateCache,
+            emitEvent: callbacks.emitEvent,
+            enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
           }
         )
 
@@ -1820,6 +1809,8 @@ describe('Subscription Cancellation Test Suite', async () => {
           SubscriptionStatus.CancellationScheduled
         )
         expect(response.eventsToInsert).toHaveLength(0)
+        // Verify no events were captured via callbacks either
+        expect(effects.events).toHaveLength(0)
         // For AtEndOfCurrentBillingPeriod, cancelScheduledAt should be set to the billing period end
         expect(response.result.subscription.cancelScheduledAt).toBe(
           now + 60 * 60 * 1000
@@ -1847,9 +1838,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             {
               subscription,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
           result = output.result
         } catch (error) {
@@ -1884,9 +1873,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             {
               subscription,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Canceled
@@ -1931,17 +1918,13 @@ describe('Subscription Cancellation Test Suite', async () => {
               {
                 subscription,
               },
-              transaction,
-              noopInvalidateCache,
-              noopEmitEvent
+              createNoopContext(transaction)
             ),
             cancelSubscriptionImmediately(
               {
                 subscription,
               },
-              transaction,
-              noopInvalidateCache,
-              noopEmitEvent
+              createNoopContext(transaction)
             ),
           ])
         expect(result1.status).toBe(SubscriptionStatus.Canceled)
@@ -1957,9 +1940,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             {
               subscription: null as unknown as Subscription.Record,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         ).rejects.toThrow()
       })
@@ -1989,9 +1970,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             {
               subscription,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Canceled
@@ -2163,9 +2142,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             {
               subscription,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
           return result.canceledAt
         }
@@ -2325,9 +2302,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             {
               subscription,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
           return result.canceledAt
         }
@@ -3606,6 +3581,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           endDate: now + 60 * 60 * 1000,
         })
 
+        const { callbacks, effects } = createCapturingCallbacks()
         const response =
           await uncancelSubscriptionProcedureTransaction({
             input: { id: subscription.id },
@@ -3619,9 +3595,9 @@ describe('Subscription Cancellation Test Suite', async () => {
               eventsToInsert: [],
               ledgerCommands: [],
             },
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-            enqueueLedgerCommand: () => {},
+            invalidateCache: callbacks.invalidateCache,
+            emitEvent: callbacks.emitEvent,
+            enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
           })
 
         expect(response.result.subscription.id).toBe(subscription.id)
@@ -3630,6 +3606,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
         expect(response.result.subscription.current).toBe(true)
         expect(response.eventsToInsert).toHaveLength(0)
+        // Verify no events were captured via callbacks either
+        expect(effects.events).toHaveLength(0)
       })
     })
 
@@ -3835,9 +3813,7 @@ describe('cancelSubscription with resources', async () => {
     await adminTransaction(async ({ transaction }) => {
       await cancelSubscriptionImmediately(
         { subscription, customer, skipNotifications: true },
-        transaction,
-        noopInvalidateCache,
-        noopEmitEvent
+        createNoopContext(transaction)
       )
     })
 
@@ -4053,9 +4029,7 @@ describe('Subscription cancellation cache invalidations', async () => {
               subscription,
               customer,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -4087,9 +4061,7 @@ describe('Subscription cancellation cache invalidations', async () => {
               subscription,
               customer: customer1,
             },
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )

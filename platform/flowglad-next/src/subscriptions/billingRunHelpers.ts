@@ -971,19 +971,15 @@ export const executeBillingRun = async (
       confirmationResult.status === 'succeeded' ||
       confirmationResult.status === 'requires_payment_method'
     ) {
-      await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache, emitEvent }) => {
-          return await processOutcomeForBillingRun(
-            {
-              input: confirmationResult,
-              adjustmentParams: adjustmentParams,
-            },
-            transaction,
-            invalidateCache,
-            emitEvent
-          )
-        }
-      )
+      await comprehensiveAdminTransaction(async (ctx) => {
+        return await processOutcomeForBillingRun(
+          {
+            input: confirmationResult,
+            adjustmentParams: adjustmentParams,
+          },
+          ctx
+        )
+      })
     }
 
     return {

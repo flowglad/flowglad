@@ -37,6 +37,7 @@ import {
 } from '@/subscriptions/billingPeriodHelpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
+  createNoopContext,
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
@@ -98,11 +99,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId,
                 autoStart: true,
               },
-              {
-                transaction,
-                invalidateCache: noopInvalidateCache,
-                emitEvent: noopEmitEvent,
-              }
+              createNoopContext(transaction)
             )
           }
         )
@@ -144,11 +141,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId,
                 autoStart: true,
               },
-              {
-                transaction,
-                invalidateCache: noopInvalidateCache,
-                emitEvent: noopEmitEvent,
-              }
+              createNoopContext(transaction)
             )
           }
         )
@@ -185,11 +178,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId,
                 autoStart: true,
               },
-              {
-                transaction,
-                invalidateCache: noopInvalidateCache,
-                emitEvent: noopEmitEvent,
-              }
+              createNoopContext(transaction)
             )
           }
         )
@@ -226,11 +215,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 trialEnd,
                 autoStart: true,
               },
-              {
-                transaction,
-                invalidateCache: noopInvalidateCache,
-                emitEvent: noopEmitEvent,
-              }
+              createNoopContext(transaction)
             )
           }
         )
@@ -308,11 +293,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 interval: IntervalUnit.Month,
                 intervalCount: 1,
               },
-              {
-                transaction,
-                invalidateCache: noopInvalidateCache,
-                emitEvent: noopEmitEvent,
-              }
+              createNoopContext(transaction)
             )
 
             const billingPeriods = await selectBillingPeriods(
@@ -362,11 +343,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               interval: IntervalUnit.Month,
               intervalCount: 1,
             },
-            {
-              transaction,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-            }
+            createNoopContext(transaction)
           )
           const billingRuns = await selectBillingRuns(
             { subscriptionId: nonRenewingSubscription.id },
@@ -744,11 +721,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId: `si_credits_${core.nanoid()}`,
                 autoStart: true,
               },
-              {
-                transaction,
-                invalidateCache: noopInvalidateCache,
-                emitEvent: noopEmitEvent,
-              }
+              createNoopContext(transaction)
             )
           }
         )
@@ -986,11 +959,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId: `si_no_runs_${core.nanoid()}`,
                 autoStart: true,
               },
-              {
-                transaction,
-                invalidateCache: noopInvalidateCache,
-                emitEvent: noopEmitEvent,
-              }
+              createNoopContext(transaction)
             )
           }
         )
@@ -1046,11 +1015,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId: `si_period_start_${core.nanoid()}`,
                 autoStart: true,
               },
-              {
-                transaction,
-                invalidateCache: noopInvalidateCache,
-                emitEvent: noopEmitEvent,
-              }
+              createNoopContext(transaction)
             )
           }
         )

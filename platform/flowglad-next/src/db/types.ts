@@ -97,6 +97,43 @@ export interface TransactionEffects {
   ledgerCommands: LedgerCommand[]
 }
 
+/**
+ * Context object containing the transaction and effect callbacks.
+ * Use this type for functions that need to emit side effects within a transaction.
+ *
+ * @example
+ * ```typescript
+ * export const someFunction = async (
+ *   params: Params,
+ *   ctx: TransactionEffectsContext
+ * ): Promise<Result> => {
+ *   const { transaction, emitEvent, enqueueLedgerCommand, invalidateCache } = ctx
+ *
+ *   emitEvent(event1)
+ *   enqueueLedgerCommand(cmd1)
+ *   invalidateCache(key1)
+ *
+ *   return someResult
+ * }
+ * ```
+ */
+export interface TransactionEffectsContext {
+  transaction: DbTransaction
+  /**
+   * Queue cache dependency keys to be invalidated after the transaction commits.
+   * Use CacheDependency helpers to construct keys.
+   */
+  invalidateCache: (...keys: CacheDependencyKey[]) => void
+  /**
+   * Queue events to be inserted before the transaction commits.
+   */
+  emitEvent: (...events: Event.Insert[]) => void
+  /**
+   * Queue ledger commands to be processed before the transaction commits.
+   */
+  enqueueLedgerCommand: (...commands: LedgerCommand[]) => void
+}
+
 export interface AuthenticatedTransactionParams {
   transaction: DbTransaction
   livemode: boolean

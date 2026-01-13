@@ -46,6 +46,7 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import {
+  createNoopContext,
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
@@ -114,11 +115,7 @@ describe('createSubscriptionWorkflow', async () => {
             stripeSetupIntentId,
             autoStart: true, // Ensures billingRun is created for the first test
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       }
     )
@@ -183,11 +180,7 @@ describe('createSubscriptionWorkflow', async () => {
             stripeSetupIntentId: stripeSetupIntentIdNew, // New intent ID
             // autoStart behavior for the second subscription attempt can be default or true
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       })
     ).rejects.toThrow(
@@ -225,11 +218,7 @@ describe('createSubscriptionWorkflow', async () => {
           stripeSetupIntentId: stripeSetupIntentIdPast,
           autoStart: true,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
 
       await updateSubscription(
@@ -263,11 +252,7 @@ describe('createSubscriptionWorkflow', async () => {
             stripeSetupIntentId: stripeSetupIntentIdCurrent,
             autoStart: true,
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       })
     ).resolves.toMatchObject({})
@@ -309,11 +294,7 @@ describe('createSubscriptionWorkflow', async () => {
           stripeSetupIntentId: stripeSetupIntentIdTrial,
           autoStart: true, // autoStart influences initial status
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -381,11 +362,7 @@ describe('createSubscriptionWorkflow', async () => {
               stripeSetupIntentId: stripeSetupIntentIdUsage,
               autoStart: true,
             },
-            {
-              transaction,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-            }
+            createNoopContext(transaction)
           )
         })
       ).rejects.toThrow(
@@ -451,11 +428,7 @@ describe('createSubscriptionWorkflow', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       })
 
@@ -495,11 +468,7 @@ describe('createSubscriptionWorkflow', async () => {
             stripeSetupIntentId: stripeSetupIntentIdSubType,
             autoStart: true,
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       })
       expect(subTypeSubscription.runBillingAtPeriodStart).toBe(true)
@@ -547,11 +516,7 @@ describe('createSubscriptionWorkflow', async () => {
               stripeSetupIntentId: stripeSetupIntentIdSingle,
               // autoStart: true, // Not relevant for this check
             },
-            {
-              transaction,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-            }
+            createNoopContext(transaction)
           )
         })
       ).rejects.toThrow('Price is not a subscription')
@@ -593,11 +558,7 @@ describe('createSubscriptionWorkflow', async () => {
               customer: defaultProductCustomer,
               autoStart: true, // Enable autoStart to get an active subscription
             },
-            {
-              transaction,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-            }
+            createNoopContext(transaction)
           )
         }
       )
@@ -687,11 +648,7 @@ describe('createSubscriptionWorkflow', async () => {
               firstSubscription.stripeSetupIntentId!,
             autoStart: true, // Or false, depending on what it should do with incomplete
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       }
     )
@@ -715,11 +672,7 @@ describe('createSubscriptionWorkflow', async () => {
               firstSubscription.stripeSetupIntentId!,
             autoStart: true,
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       }
     )
@@ -755,11 +708,7 @@ describe('createSubscriptionWorkflow', async () => {
           // defaultPaymentMethod is omitted
           // autoStart can be true or false, outcome should be no billing run
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
     expect(noPmBillingRun).toBeNull()
@@ -796,11 +745,7 @@ describe('createSubscriptionWorkflow', async () => {
           // defaultPaymentMethod is omitted in params to createSubscriptionWorkflow
           autoStart: true, // Important for billing run creation
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
     expect(custPmBillingRun).toMatchObject({
@@ -837,11 +782,7 @@ describe('createSubscriptionWorkflow', async () => {
             stripeSetupIntentId: stripeSetupIntentIdMismatch,
             autoStart: true,
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       })
     ).rejects.toThrow(
@@ -898,11 +839,7 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
           stripeSetupIntentId,
           autoStart: true,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
     expect(billingRun).toMatchObject({
@@ -941,11 +878,7 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
           stripeSetupIntentId,
           autoStart: true,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
     expect(billingRun).toBeNull()
@@ -985,11 +918,7 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
           stripeSetupIntentId,
           autoStart: false, // Key for this test
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
     // expect(subscription.status).toBe(SubscriptionStatus.Incomplete)
@@ -1030,11 +959,7 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
           stripeSetupIntentId,
           // autoStart is not provided (defaults to false in createSubscriptionWorkflow logic)
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
     expect(subscription.status).toBe(SubscriptionStatus.Incomplete)
@@ -1097,11 +1022,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
           stripeSetupIntentId,
           autoStart: true,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -1202,11 +1123,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
           stripeSetupIntentId,
           autoStart: true,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -1283,11 +1200,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
           stripeSetupIntentId,
           autoStart: true,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -1342,11 +1255,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
           stripeSetupIntentId,
           autoStart: true,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -1415,11 +1324,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
           stripeSetupIntentId,
           autoStart: true,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -1541,11 +1446,7 @@ describe('createSubscriptionWorkflow ledger account creation', async () => {
           stripeSetupIntentId,
           autoStart: true,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -1627,11 +1528,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
             autoStart: true,
             discountRedemption,
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       }
     )
@@ -1719,11 +1616,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
             autoStart: true,
             discountRedemption: discountRedemptions[0], // Currently only supports one discount
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       }
     )
@@ -1809,11 +1702,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
             trialEnd,
             discountRedemption,
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
         return {
           result,
@@ -1896,11 +1785,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: true,
             },
-            {
-              transaction,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-            }
+            createNoopContext(transaction)
           )
         }
       )
@@ -1962,11 +1847,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: true,
             },
-            {
-              transaction,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-            }
+            createNoopContext(transaction)
           )
         }
       )
@@ -2014,11 +1895,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: true,
             },
-            {
-              transaction,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-            }
+            createNoopContext(transaction)
           )
         }
       )
@@ -2063,11 +1940,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: false, // Don't auto-start, which will create Incomplete status
             },
-            {
-              transaction,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-            }
+            createNoopContext(transaction)
           )
         }
       )
@@ -2167,11 +2040,7 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
           autoStart: true,
           preserveBillingCycleAnchor: true,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
     // FIXME: we have to do this bc createSubscriptionWorkflow doesn't accept a time argument.
@@ -2299,11 +2168,7 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
           autoStart: true,
           // preserveBillingCycleAnchor is not set (falsey)
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -2383,11 +2248,7 @@ describe('createSubscriptionWorkflow cache invalidations', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       }
     )
@@ -2433,11 +2294,7 @@ describe('createSubscriptionWorkflow cache invalidations', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       }
     )
@@ -2501,11 +2358,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           trialEnd,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -2562,11 +2415,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           trialEnd: firstTrialEnd,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -2606,11 +2455,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           trialEnd: secondTrialEnd, // Explicitly provide trialEnd
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -2667,11 +2512,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           trialEnd: firstTrialEnd,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -2711,11 +2552,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           trialEnd: secondTrialEnd,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -2772,11 +2609,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           trialEnd: firstTrialEnd,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -2815,11 +2648,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           // trialEnd not provided, but price has trialPeriodDays
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -2887,11 +2716,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           trialEnd: firstTrialEnd,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 
@@ -2929,11 +2754,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           stripeSetupIntentId,
           autoStart: true,
         },
-        {
-          transaction,
-          invalidateCache: noopInvalidateCache,
-          emitEvent: noopEmitEvent,
-        }
+        createNoopContext(transaction)
       )
     })
 

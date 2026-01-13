@@ -7,16 +7,9 @@ export const setupIntentSucceededTask = task({
   id: 'setup-intent-succeeded',
   run: async (payload: Stripe.SetupIntentSucceededEvent, { ctx }) => {
     logger.log('Setup intent succeeded', { payload, ctx })
-    await comprehensiveAdminTransaction(
-      async ({ transaction, invalidateCache, emitEvent }) => {
-        return processSetupIntentSucceeded(
-          payload.data.object,
-          transaction,
-          invalidateCache,
-          emitEvent
-        )
-      }
-    )
+    await comprehensiveAdminTransaction(async (ctx) => {
+      return processSetupIntentSucceeded(payload.data.object, ctx)
+    })
     return {
       message: 'Setup intent succeeded',
     }

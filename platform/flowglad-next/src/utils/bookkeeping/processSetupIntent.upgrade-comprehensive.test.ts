@@ -36,6 +36,7 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
+  createNoopContext,
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
@@ -237,9 +238,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -331,9 +330,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -405,9 +402,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -488,9 +483,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -553,9 +546,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             firstSetupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -606,9 +597,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             secondSetupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         })
       ).rejects.toThrow('already has an active subscription')
@@ -669,9 +658,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -749,11 +736,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
               stripeSetupIntentId,
               autoStart: true,
             },
-            {
-              transaction,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-            }
+            createNoopContext(transaction)
           )
         ).rejects.toThrow(
           'already has an active free subscription. Only one free subscription is allowed per customer.'
@@ -806,9 +789,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -830,9 +811,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           // Note: Fee calculation already exists, so this shouldn't cause issues
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -907,9 +886,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             firstSetupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -934,9 +911,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             secondSetupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         })
       ).rejects.toThrow('already has an active subscription')
@@ -987,9 +962,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -1059,9 +1032,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -1132,9 +1103,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -1206,9 +1175,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -1256,9 +1223,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -1310,9 +1275,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             firstSetupIntent,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         }
       )
@@ -1399,9 +1362,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         // Should return terminal result without creating new subscription
@@ -1472,9 +1433,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         expect(result.result.type).toBe(CheckoutSessionType.Product)
@@ -1543,9 +1502,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         // Check the updated checkout session status
@@ -1606,9 +1563,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         // Get the created subscription
@@ -1687,9 +1642,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         // Get the new subscription
@@ -1764,9 +1717,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         await expect(
           processSetupIntentSucceeded(
             setupIntentNoPM,
-            transaction,
-            noopInvalidateCache,
-            noopEmitEvent
+            createNoopContext(transaction)
           )
         ).rejects.toThrow(
           'Payment method required for subscription activation'
@@ -1821,9 +1772,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
         await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         // Verify the subscription was updated
@@ -1886,9 +1835,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         // Verify all subscriptions were updated
@@ -1940,9 +1887,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
         const paymentMethods = await selectPaymentMethods(
           { stripePaymentMethodId: pmId },
@@ -1994,9 +1939,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         const subscriptions = await selectSubscriptions(
@@ -2041,9 +1984,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
         // Check eventsToInsert structure

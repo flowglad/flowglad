@@ -38,6 +38,7 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { calculateSplitInBillingPeriodBasedOnAdjustmentDate } from '@/subscriptions/adjustSubscription'
 import {
+  createNoopContext,
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
@@ -212,9 +213,7 @@ describe('Subscription Upgrade with Proration', () => {
         )
         await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       })
 
@@ -271,9 +270,7 @@ describe('Subscription Upgrade with Proration', () => {
         )
         await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       })
 
@@ -330,9 +327,7 @@ describe('Subscription Upgrade with Proration', () => {
         )
         await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       })
 
@@ -448,9 +443,7 @@ describe('Subscription Upgrade with Proration', () => {
         )
         await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       })
 
@@ -496,9 +489,7 @@ describe('Subscription Upgrade with Proration', () => {
         )
         await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       })
 
@@ -584,9 +575,7 @@ describe('Subscription Upgrade with Proration', () => {
         )
         await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       })
 
@@ -703,9 +692,7 @@ describe('Subscription Upgrade with Proration', () => {
         )
         await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       })
 
@@ -810,9 +797,7 @@ describe('Subscription Upgrade with Proration', () => {
         )
         await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       })
 
@@ -917,9 +902,7 @@ describe('Subscription Upgrade with Proration', () => {
         )
         await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       })
 
@@ -1035,9 +1018,7 @@ describe('Subscription Upgrade with Proration', () => {
         )
         await processSetupIntentSucceeded(
           setupIntent,
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       })
 

@@ -47,6 +47,7 @@ import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import { createMockPaymentIntentEventResponse } from '@/test/helpers/stripeMocks'
 import {
+  createNoopContext,
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
@@ -174,9 +175,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       // The function should simply skip processing and return undefined.
       const { result } = await processOutcomeForBillingRun(
         { input: event },
-        transaction,
-        noopInvalidateCache,
-        noopEmitEvent
+        createNoopContext(transaction)
       )
       expect(result?.processingSkipped).toBe(true)
     })
@@ -235,9 +234,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       const { result, ledgerCommands } =
         await processOutcomeForBillingRun(
           { input: event },
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
       const updatedBillingRun = await selectBillingRunById(
@@ -334,9 +331,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       const { ledgerCommands: firstLedgerCommands } =
         await processOutcomeForBillingRun(
           { input: event },
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
       expect(typeof firstLedgerCommands).toBe('object')
@@ -345,9 +340,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       const { ledgerCommands: secondLedgerCommands } =
         await processOutcomeForBillingRun(
           { input: event },
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
 
       expect(secondLedgerCommands).toBeUndefined()
@@ -403,9 +396,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       const { ledgerCommands } = await processOutcomeForBillingRun(
         { input: event },
-        transaction,
-        noopInvalidateCache,
-        noopEmitEvent
+        createNoopContext(transaction)
       )
 
       const updatedBillingRun = await selectBillingRunById(
@@ -487,9 +478,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
       const { ledgerCommands } = await processOutcomeForBillingRun(
         { input: event },
-        transaction,
-        noopInvalidateCache,
-        noopEmitEvent
+        createNoopContext(transaction)
       )
 
       const updatedBillingRun = await selectBillingRunById(
@@ -568,9 +557,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
       const { ledgerCommands } = await processOutcomeForBillingRun(
         { input: event },
-        transaction,
-        noopInvalidateCache,
-        noopEmitEvent
+        createNoopContext(transaction)
       )
 
       const updatedBillingRun = await selectBillingRunById(
@@ -659,9 +646,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
       const { ledgerCommands } = await processOutcomeForBillingRun(
         { input: event },
-        transaction,
-        noopInvalidateCache,
-        noopEmitEvent
+        createNoopContext(transaction)
       )
 
       const updatedBillingRun = await selectBillingRunById(
@@ -721,9 +706,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       await expect(
         processOutcomeForBillingRun(
           { input: event },
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       ).rejects.toThrow(
         `Invoice for billing period ${billingRun.billingPeriodId} not found.`
@@ -772,9 +755,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       await expect(
         processOutcomeForBillingRun(
           { input: event },
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       ).rejects.toThrow(
         /No latest charge found for payment intent pi_no_charge/
@@ -920,9 +901,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       return await processOutcomeForBillingRun(
         { input: event },
-        transaction,
-        noopInvalidateCache,
-        noopEmitEvent
+        createNoopContext(transaction)
       )
     })
 
@@ -1071,9 +1050,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       return await processOutcomeForBillingRun(
         { input: event },
-        transaction,
-        noopInvalidateCache,
-        noopEmitEvent
+        createNoopContext(transaction)
       )
     })
 
@@ -1210,9 +1187,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
         return await processOutcomeForBillingRun(
           { input: event },
-          transaction,
-          noopInvalidateCache,
-          noopEmitEvent
+          createNoopContext(transaction)
         )
       }
     )
@@ -1358,11 +1333,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       }
     )
@@ -1437,9 +1408,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
       return await processOutcomeForBillingRun(
         { input: event },
-        transaction,
-        noopInvalidateCache,
-        noopEmitEvent
+        createNoopContext(transaction)
       )
     })
 
@@ -1548,11 +1517,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       }
     )
@@ -1626,9 +1591,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
       return await processOutcomeForBillingRun(
         { input: event },
-        transaction,
-        noopInvalidateCache,
-        noopEmitEvent
+        createNoopContext(transaction)
       )
     })
 
@@ -1733,11 +1696,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          {
-            transaction,
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-          }
+          createNoopContext(transaction)
         )
       }
     )
@@ -1819,9 +1778,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
       return await processOutcomeForBillingRun(
         { input: firstEvent },
-        transaction,
-        noopInvalidateCache,
-        noopEmitEvent
+        createNoopContext(transaction)
       )
     })
 
@@ -1875,9 +1832,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
       return await processOutcomeForBillingRun(
         { input: secondEvent },
-        transaction,
-        noopInvalidateCache,
-        noopEmitEvent
+        createNoopContext(transaction)
       )
     })
 

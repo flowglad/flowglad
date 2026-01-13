@@ -35,12 +35,10 @@ export const stripePaymentIntentSucceededTask = task({
          */
         if ('billingRunId' in metadata) {
           const result = await comprehensiveAdminTransaction(
-            async ({ transaction, invalidateCache, emitEvent }) => {
+            async (ctx) => {
               return await processOutcomeForBillingRun(
                 { input: payload },
-                transaction,
-                invalidateCache,
-                emitEvent
+                ctx
               )
             }
           )

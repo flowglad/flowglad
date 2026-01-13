@@ -197,13 +197,8 @@ const processSetupIntent = async ({
 }> => {
   const setupIntent = await getSetupIntent(setupIntentId)
   const setupSuceededResult = await comprehensiveAdminTransaction(
-    async ({ transaction, invalidateCache, emitEvent }) => {
-      return processSetupIntentSucceeded(
-        setupIntent,
-        transaction,
-        invalidateCache,
-        emitEvent
-      )
+    async (ctx) => {
+      return processSetupIntentSucceeded(setupIntent, ctx)
     }
   )
 

@@ -32,7 +32,10 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { releaseAllResourceClaimsForSubscription } from '@/resources/resourceClaimHelpers'
 import { createBillingRun } from '@/subscriptions/billingRunHelpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
@@ -80,15 +83,14 @@ export const abortScheduledBillingRuns = async (
  * Re-adds a default-plan subscription when a cancellation leaves the customer without one.
  *
  * @param canceledSubscription Subscription record that was just canceled.
- * @param transaction Active database transaction.
+ * @param ctx Transaction context with database transaction and effect callbacks.
  * @returns Resolves when the reassignment logic finishes.
  */
 export const reassignDefaultSubscription = async (
   canceledSubscription: Subscription.Record,
-  transaction: DbTransaction,
-  invalidateCache: (...keys: CacheDependencyKey[]) => void,
-  emitEvent: (...events: Event.Insert[]) => void
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction } = ctx
   // don't need to re-add default subscription when upgrading to a paid plan
   if (canceledSubscription.isFreePlan) {
     return
@@ -182,7 +184,7 @@ export const reassignDefaultSubscription = async (
         autoStart: true,
         name: `${defaultProduct.name} Subscription`,
       },
-      { transaction, invalidateCache, emitEvent }
+      ctx
     )
   } catch (error) {
     console.error(
@@ -241,10 +243,9 @@ export interface CancelSubscriptionImmediatelyParams {
 // Cancel a subscription immediately
 export const cancelSubscriptionImmediately = async (
   params: CancelSubscriptionImmediatelyParams,
-  transaction: DbTransaction,
-  invalidateCache: (...keys: CacheDependencyKey[]) => void,
-  emitEvent: (...events: Event.Insert[]) => void
+  ctx: TransactionEffectsContext
 ): Promise<TransactionOutput<Subscription.Record>> => {
+  const { transaction, invalidateCache, emitEvent } = ctx
   const {
     subscription,
     customer: providedCustomer,
@@ -396,12 +397,7 @@ export const cancelSubscriptionImmediately = async (
   }
 
   if (!skipReassignDefaultSubscription) {
-    await reassignDefaultSubscription(
-      updatedSubscription,
-      transaction,
-      invalidateCache,
-      emitEvent
-    )
+    await reassignDefaultSubscription(updatedSubscription, ctx)
   }
 
   if (!skipNotifications) {
@@ -608,9 +604,18 @@ export const cancelSubscriptionProcedureTransaction = async ({
   transaction,
   invalidateCache,
   emitEvent,
+  enqueueLedgerCommand,
 }: CancelSubscriptionProcedureParams): Promise<
   TransactionOutput<{ subscription: Subscription.ClientRecord }>
 > => {
+  // Construct context for internal function calls
+  const ctx: TransactionEffectsContext = {
+    transaction,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  }
+
   // Fetch subscription first to check if it's a free plan
   const subscription = await selectSubscriptionById(
     input.id,
@@ -640,14 +645,7 @@ export const cancelSubscriptionProcedureTransaction = async ({
   ) {
     // Note: subscription is already fetched above, can reuse it
     const { result: updatedSubscription } =
-      await cancelSubscriptionImmediately(
-        {
-          subscription,
-        },
-        transaction,
-        invalidateCache,
-        emitEvent
-      )
+      await cancelSubscriptionImmediately({ subscription }, ctx)
     return {
       result: {
         subscription: {

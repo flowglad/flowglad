@@ -10,7 +10,7 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type { TransactionEffectsContext } from '@/db/types'
 import { idempotentSendCustomerSubscriptionCreatedNotification } from '@/trigger/notifications/send-customer-subscription-created-notification'
 import { idempotentSendCustomerSubscriptionUpgradedNotification } from '@/trigger/notifications/send-customer-subscription-upgraded-notification'
 import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
@@ -23,7 +23,6 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@/types'
-import type { CacheDependencyKey } from '@/utils/cache'
 import { CacheDependency } from '@/utils/cache'
 import { calculateTrialEligibility } from '@/utils/checkoutHelpers'
 import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
@@ -45,33 +44,16 @@ import type {
 } from './types'
 
 /**
- * Transaction context for workflow functions.
- * Contains the database transaction and effect callbacks.
- */
-export interface WorkflowTransactionContext {
-  transaction: DbTransaction
-  /**
-   * Queue cache dependency keys to be invalidated after the transaction commits.
-   * Use CacheDependency helpers to construct keys.
-   */
-  invalidateCache: (...keys: CacheDependencyKey[]) => void
-  /**
-   * Queue events to be inserted before the transaction commits.
-   */
-  emitEvent: (...events: Event.Insert[]) => void
-}
-
-/**
  * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
  * This is because the subscription will not be active until the organization has started it,
  * and we do not want to create a billing run if the organization has not explicitly opted to start the subscription.
  * @param params
- * @param ctx - Transaction context with database transaction and optional effect callbacks
+ * @param ctx - Transaction context with database transaction and effect callbacks
  * @returns
  */
 export const createSubscriptionWorkflow = async (
   params: CreateSubscriptionParams,
-  ctx: WorkflowTransactionContext
+  ctx: TransactionEffectsContext
 ): Promise<
   TransactionOutput<
     | StandardCreateSubscriptionResult

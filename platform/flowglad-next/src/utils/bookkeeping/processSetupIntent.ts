@@ -35,7 +35,10 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { activateSubscription } from '@/subscriptions/createSubscription/helpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
@@ -46,7 +49,6 @@ import {
   PurchaseStatus,
   SubscriptionStatus,
 } from '@/types'
-import type { CacheDependencyKey } from '@/utils/cache'
 import { CacheDependency } from '@/utils/cache'
 import {
   IntentMetadataType,
@@ -411,12 +413,11 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     }: SetupIntentSucceededBookkeepingResult & {
       setupIntent: CoreSripeSetupIntent
     },
-    transaction: DbTransaction,
-    invalidateCache: (...keys: CacheDependencyKey[]) => void,
-    emitEvent: (...events: Event.Insert[]) => void
+    ctx: TransactionEffectsContext
   ): Promise<
     TransactionOutput<ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult>
   > => {
+    const { transaction } = ctx
     if (!customer) {
       throw new Error(
         `Customer is required for setup intent ${setupIntent.id}`
@@ -495,7 +496,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         product,
         livemode: checkoutSession.livemode,
       },
-      { transaction, invalidateCache, emitEvent }
+      ctx
     )
 
     const eventInserts: Event.Insert[] = []
@@ -673,9 +674,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
 
 export const processSetupIntentSucceeded = async (
   setupIntent: CoreSripeSetupIntent,
-  transaction: DbTransaction,
-  invalidateCache: (...keys: CacheDependencyKey[]) => void,
-  emitEvent: (...events: Event.Insert[]) => void
+  ctx: TransactionEffectsContext
 ): Promise<
   TransactionOutput<
     | ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult
@@ -684,6 +683,7 @@ export const processSetupIntentSucceeded = async (
     | ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult
   >
 > => {
+  const { transaction, invalidateCache } = ctx
   // Check if this setup intent was already processed (idempotency check)
   const existingSubscription = await selectSubscriptions(
     {
@@ -845,8 +845,6 @@ export const processSetupIntentSucceeded = async (
 
   return await createSubscriptionFromSetupIntentableCheckoutSession(
     withSetupIntent,
-    transaction,
-    invalidateCache,
-    emitEvent
+    ctx
   )
 }

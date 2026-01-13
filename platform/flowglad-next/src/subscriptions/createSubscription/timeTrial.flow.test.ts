@@ -19,6 +19,7 @@ import {
 } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
 import {
+  createNoopContext,
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
@@ -255,9 +256,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
       }
       await processSetupIntentSucceeded(
         setupIntent,
-        transaction,
-        noopInvalidateCache,
-        noopEmitEvent
+        createNoopContext(transaction)
       )
       // 6. Final billing state
       const billingState = await customerBillingTransaction(
