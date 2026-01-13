@@ -89,6 +89,7 @@ describe('Free Subscription Notification Behavior', () => {
   it('should NOT send notification when creating a free subscription (unitPrice = 0)', async () => {
     const {
       idempotentSendOrganizationSubscriptionCreatedNotification,
+      // biome-ignore lint/plugin: dynamic import required to access mocked module
     } = await import(
       '@/trigger/notifications/send-organization-subscription-created-notification'
     )
@@ -122,6 +123,7 @@ describe('Free Subscription Notification Behavior', () => {
   it('should send notification when creating a paid subscription (unitPrice > 0)', async () => {
     const {
       idempotentSendOrganizationSubscriptionCreatedNotification,
+      // biome-ignore lint/plugin: dynamic import required to access mocked module
     } = await import(
       '@/trigger/notifications/send-organization-subscription-created-notification'
     )
@@ -163,6 +165,7 @@ describe('Free Subscription Notification Behavior', () => {
   it('should NOT send notification for free subscription regardless of slug name', async () => {
     const {
       idempotentSendOrganizationSubscriptionCreatedNotification,
+      // biome-ignore lint/plugin: dynamic import required to access mocked module
     } = await import(
       '@/trigger/notifications/send-organization-subscription-created-notification'
     )

@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import { FlowgladLogomark } from '@/components/icons/FlowgladLogomark'
 import { SignupSideBar } from '@/components/signup-sidebar'
 
 const SignupLayout = ({
@@ -8,23 +9,28 @@ const SignupLayout = ({
   children: React.ReactNode
 }) => {
   return (
-    <div className="bg-background h-full w-full flex justify-between items-center">
-      <SignupSideBar className="hidden md:flex h-full" />
-      <div className="flex-1 h-full w-full flex flex-col justify-center items-center gap-9">
-        <div className="w-full min-w-[360px] flex flex-col rounded-lg">
-          <div className="flex-1 w-full flex flex-col justify-center items-center gap-6">
-            <div className="flex flex-col justify-center items-center w-full">
-              {children}
-              <Link
-                href="https://www.flowglad.com/privacy-policy"
-                className="text-sm text-muted-foreground mt-8"
-              >
-                Privacy Policy
-              </Link>
-            </div>
-          </div>
+    <div className="bg-background min-h-screen w-full flex">
+      {/* Left side - Form content (50% on desktop, full on mobile) */}
+      <div className="w-full md:w-1/2 min-h-screen flex flex-col items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md flex flex-col items-center">
+          {/* Logo */}
+          <Link href="/" className="mb-6">
+            <FlowgladLogomark className="w-8 h-8 text-foreground" />
+          </Link>
+
+          {children}
+
+          <Link
+            href="https://www.flowglad.com/privacy-policy"
+            className="text-sm text-muted-foreground mt-8 hover:text-foreground transition-colors"
+          >
+            Privacy Policy
+          </Link>
         </div>
       </div>
+
+      {/* Right side - Decorative panel (50% on desktop, hidden on mobile) */}
+      <SignupSideBar className="hidden md:flex md:w-1/2" />
     </div>
   )
 }

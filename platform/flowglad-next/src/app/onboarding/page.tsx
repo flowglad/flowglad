@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { ClientAuthGuard } from '@/components/ClientAuthGuard'
+import PageContainer from '@/components/PageContainer'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import type { ApiKey } from '@/db/schema/apiKeys'
@@ -160,23 +161,25 @@ const OnboardingPage = async () => {
       requireOrganization={true}
       redirectTo="/onboarding/business-details"
     >
-      <div className="flex flex-col gap-4 p-4 w-full justify-center items-start m-auto max-w-[416px] min-h-svh">
-        <div className="flex flex-col items-start justify-center w-full gap-4">
-          <div className="flex flex-col items-start justify-center gap-1 p-2">
-            <h2 className="text-xl font-semibold">
-              Integrate Flowglad
-            </h2>
-            <p className="text-sm text-foreground">
-              Complete these steps to start accepting payments.
-            </p>
+      <PageContainer>
+        <div className="flex flex-col gap-4 p-4 w-full justify-center items-start m-auto max-w-[416px] min-h-svh">
+          <div className="flex flex-col items-start justify-center w-full gap-4">
+            <div className="flex flex-col items-start justify-center gap-1 p-2">
+              <h2 className="text-xl font-semibold">
+                Integrate Flowglad
+              </h2>
+              <p className="text-sm text-foreground">
+                Complete these steps to start accepting payments.
+              </p>
+            </div>
+            <OnboardingStatusTable
+              onboardingChecklistItems={onboardingChecklistItems}
+              secretApiKey={secretApiKey.token}
+              pricingModelsCount={results.pricingModels?.length ?? 0}
+            />
           </div>
-          <OnboardingStatusTable
-            onboardingChecklistItems={onboardingChecklistItems}
-            secretApiKey={secretApiKey.token}
-            pricingModelsCount={results.pricingModels?.length ?? 0}
-          />
         </div>
-      </div>
+      </PageContainer>
     </ClientAuthGuard>
   )
 }

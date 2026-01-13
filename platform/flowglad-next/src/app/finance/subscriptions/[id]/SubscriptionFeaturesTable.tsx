@@ -17,6 +17,7 @@ import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 const FEATURE_TYPE_LABELS: Record<FeatureType, string> = {
   [FeatureType.Toggle]: 'Toggle',
   [FeatureType.UsageCreditGrant]: 'Usage credit grant',
+  [FeatureType.Resource]: 'Resource',
 }
 
 const FEATURE_RENEWAL_LABELS: Record<
@@ -84,11 +85,11 @@ export const SubscriptionFeaturesTable = ({
                       : feature.amount}
                   </TableCell>
                   <TableCell>
-                    {feature.type === FeatureType.Toggle
-                      ? '-'
-                      : FEATURE_RENEWAL_LABELS[
+                    {feature.type === FeatureType.UsageCreditGrant
+                      ? FEATURE_RENEWAL_LABELS[
                           feature.renewalFrequency
-                        ]}
+                        ]
+                      : '-'}
                   </TableCell>
                 </TableRow>
               )

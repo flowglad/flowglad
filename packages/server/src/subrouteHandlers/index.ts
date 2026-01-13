@@ -10,6 +10,7 @@ import {
   updateCustomer,
 } from './customerHandlers'
 import {
+  adjustSubscription,
   cancelSubscription,
   uncancelSubscription,
 } from './subscriptionHandlers'
@@ -29,6 +30,7 @@ export const routeToHandlerMap: {
     createActivateSubscriptionCheckoutSession,
   [FlowgladActionKey.CancelSubscription]: cancelSubscription,
   [FlowgladActionKey.UncancelSubscription]: uncancelSubscription,
+  [FlowgladActionKey.AdjustSubscription]: adjustSubscription,
   [FlowgladActionKey.CreateSubscription]: async () => {
     return {
       data: {},

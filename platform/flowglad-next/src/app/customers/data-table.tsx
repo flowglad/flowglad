@@ -195,7 +195,7 @@ export function CustomersDataTable({
   return (
     <div className="w-full">
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 pt-1 pb-2 px-4">
+      <div className="flex flex-col gap-3 pt-1 pb-2 px-6">
         {/* Title row */}
         {title && (
           <div>
@@ -321,7 +321,7 @@ export function CustomersDataTable({
       </Table>
 
       {/* Enterprise pagination with built-in selection count */}
-      <div className="py-2 px-4">
+      <div className="py-2 px-6">
         <DataTablePagination
           table={table}
           totalCount={data?.total}

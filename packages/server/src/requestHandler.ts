@@ -169,7 +169,7 @@ export const requestHandler = <TRequest = unknown>(
       }
       if ((error as any).message) {
         return {
-          status: (error as any).status,
+          status: (error as any).status ?? 500,
           error: { message: (error as any).message },
         }
       }

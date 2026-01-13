@@ -1,28 +1,17 @@
 'use client'
-import { useState } from 'react'
-import DateRangeActiveSubscribersChart from '@/components/DateRangeActiveSubscribersChart'
-import DateRangeRecurringRevenueChart from '@/components/DateRangeRecurringRevenueChart'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
-import { RevenueChart } from '@/components/RevenueChart'
+
+import { startOfDay, subMonths } from 'date-fns'
+import { useEffect, useState } from 'react'
+import { ChartDivider, ChartGrid } from '@/components/charts'
+import { DashboardChart } from '@/components/DashboardChart'
+import PageContainer from '@/components/PageContainer'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
+import { IntervalPicker } from '@/components/ui/interval-picker'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { useAuthContext } from '@/contexts/authContext'
+import { RevenueChartIntervalUnit } from '@/types'
+import { getIntervalConfig } from '@/utils/chartIntervalUtils'
 
-const ChartContainer = ({
-  children,
-}: {
-  children: React.ReactNode
-}) => {
-  return (
-    <div className="w-full relative flex flex-col">{children}</div>
-  )
-}
-
-const ChartDivider = () => {
-  return (
-    <div className="w-full border-t border-dashed border-border" />
-  )
-}
 export interface DashboardPageProps {
   organizationCreatedAt: Date
 }
@@ -35,58 +24,96 @@ function InternalDashboardPage({
   const greeting = firstName
     ? `Hello, ${firstName}`
     : 'Hello there :)'
+  const today = startOfDay(new Date())
   const [range, setRange] = useState<{
     from: Date
     to: Date
   }>({
-    from: new Date(organizationCreatedAt),
-    to: new Date(),
+    from: subMonths(today, 12),
+    to: today,
   })
+
+  // Global interval state for all charts
+  const [interval, setInterval] = useState<RevenueChartIntervalUnit>(
+    () => getIntervalConfig(range.from, range.to).default
+  )
+
+  // Auto-correct interval when date range changes if it becomes invalid
+  useEffect(() => {
+    const config = getIntervalConfig(range.from, range.to)
+    setInterval((prev) =>
+      config.options.includes(prev) ? prev : config.default
+    )
+  }, [range.from, range.to])
+
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <PageHeaderNew
         title={greeting}
         className="pb-2"
         description={
-          <DateRangePicker
-            fromDate={range.from}
-            toDate={range.to}
-            minDate={new Date(organizationCreatedAt)}
-            maxDate={new Date()}
-            onSelect={(newRange) => {
-              if (newRange) {
-                setRange({
-                  from:
-                    newRange.from ?? new Date(organizationCreatedAt),
-                  to: newRange.to ?? new Date(),
-                })
-              }
-            }}
-          />
+          <div className="-ml-4 flex items-center">
+            <DateRangePicker
+              fromDate={range.from}
+              toDate={range.to}
+              maxDate={new Date()}
+              onSelect={(newRange) => {
+                if (newRange?.from && newRange?.to) {
+                  setRange({ from: newRange.from, to: newRange.to })
+                }
+              }}
+            />
+            <IntervalPicker
+              value={interval}
+              onValueChange={setInterval}
+              fromDate={range.from}
+              toDate={range.to}
+            />
+          </div>
         }
       />
-      <div className="w-full flex flex-col gap-6 pt-4 pb-16">
-        <ChartContainer>
-          <RevenueChart fromDate={range.from} toDate={range.to} />
-        </ChartContainer>
-        <ChartDivider />
-        <ChartContainer>
-          <DateRangeRecurringRevenueChart
-            organizationCreatedAt={organizationCreatedAt}
+      {/* 
+        Content container uses edge-to-edge divider pattern:
+        - NO gap between items
+        - Padding on individual sections for spacing
+        - Allows ChartDivider to span full width while content is inset
+      */}
+      <div className="w-full flex flex-col pb-16">
+        {/* Primary Chart - Full Size with metric selector */}
+        <div className="py-6">
+          <DashboardChart
             fromDate={range.from}
             toDate={range.to}
+            interval={interval}
+            size="lg"
+            availableMetrics={['revenue', 'mrr', 'subscribers']}
+            defaultMetric="revenue"
           />
-        </ChartContainer>
+        </div>
+
         <ChartDivider />
-        <ChartContainer>
-          <DateRangeActiveSubscribersChart
-            organizationCreatedAt={organizationCreatedAt}
+
+        {/* Secondary Charts - Compact Grid with metric selectors */}
+        <ChartGrid>
+          <DashboardChart
             fromDate={range.from}
             toDate={range.to}
+            interval={interval}
+            size="sm"
+            availableMetrics={['mrr', 'subscribers']}
+            defaultMetric="mrr"
           />
-        </ChartContainer>
+          <DashboardChart
+            fromDate={range.from}
+            toDate={range.to}
+            interval={interval}
+            size="sm"
+            availableMetrics={['subscribers', 'mrr']}
+            defaultMetric="subscribers"
+          />
+        </ChartGrid>
       </div>
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

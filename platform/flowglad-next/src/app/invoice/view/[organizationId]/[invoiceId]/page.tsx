@@ -1,18 +1,9 @@
-import { adminTransaction } from '@/db/adminTransaction'
-import type { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 import type { InvoiceTemplateProps } from '@/pdf-generation/invoices'
-import { CheckoutFlowType, InvoiceStatus } from '@/types'
-import { findOrCreateInvoiceCheckoutSession } from '@/utils/checkoutSessionState'
+import { InvoiceStatus } from '@/types'
 import core from '@/utils/core'
-import {
-  getPaymentIntent,
-  stripeCurrencyAmountToHumanReadableCurrencyAmount,
-} from '@/utils/stripe'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { CustomerFacingInvoicePage } from './CustomerFacingInvoicePage'
-import {
-  CustomerInvoiceDownloadReceiptButtonBanner,
-  CustomerInvoicePayButtonBanner,
-} from './CustomerInvoiceButtonBanner'
+import { CustomerInvoiceDownloadReceiptButtonBanner } from './CustomerInvoiceButtonBanner'
 
 const CustomerInvoicePaidView = (props: InvoiceTemplateProps) => {
   const { invoice, invoiceLineItems } = props
@@ -58,46 +49,8 @@ const CustomerInvoicePaidView = (props: InvoiceTemplateProps) => {
   )
 }
 
-const CustomerInvoiceOpenView = async (
-  props: InvoiceTemplateProps
-) => {
+const CustomerInvoiceOpenView = (props: InvoiceTemplateProps) => {
   const { invoice, invoiceLineItems, customer, organization } = props
-  const checkoutSession = await adminTransaction(
-    async ({ transaction }) => {
-      return findOrCreateInvoiceCheckoutSession(
-        {
-          invoice,
-          invoiceLineItems,
-        },
-        transaction
-      )
-    }
-  )
-
-  let clientSecret: string | null = null
-  if (checkoutSession.stripePaymentIntentId) {
-    const paymentIntent = await getPaymentIntent(
-      checkoutSession.stripePaymentIntentId
-    )
-    clientSecret = paymentIntent.client_secret
-  }
-
-  const checkoutInfo: CheckoutInfoCore = {
-    customer,
-    sellerOrganization: organization,
-    flowType: CheckoutFlowType.Invoice,
-    invoice,
-    invoiceLineItems,
-    feeCalculation: null,
-    clientSecret,
-    customerSessionClientSecret: null,
-    readonlyCustomerEmail: customer.email,
-    redirectUrl: core.safeUrl(
-      `/invoice/view/${organization.id}/${invoice.id}`,
-      core.NEXT_PUBLIC_APP_URL
-    ),
-    checkoutSession,
-  }
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
       <div className="bg-card rounded-lg shadow-lg p-8 max-w-md w-full">
@@ -137,10 +90,6 @@ const CustomerInvoiceOpenView = async (
             </span>
           </div>
         </div>
-        <CustomerInvoicePayButtonBanner
-          invoice={invoice}
-          checkoutInfo={checkoutInfo}
-        />
       </div>
     </div>
   )

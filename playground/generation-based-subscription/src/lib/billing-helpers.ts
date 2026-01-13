@@ -1,8 +1,8 @@
 import type {
   BillingWithChecks,
   Price,
-  UsageMeter,
   Product,
+  UsageMeter,
 } from '@flowglad/nextjs'
 
 type UsageMeterSlug = 'fast_generations' | 'hd_video_minutes'

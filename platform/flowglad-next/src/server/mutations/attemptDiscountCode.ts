@@ -47,6 +47,7 @@ export const attemptDiscountCode = publicProcedure
           {
             code: input.code,
             organizationId: checkoutSession.organizationId,
+            livemode: checkoutSession.livemode,
           },
           transaction
         )

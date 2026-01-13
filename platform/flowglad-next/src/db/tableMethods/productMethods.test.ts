@@ -5,8 +5,11 @@ import {
   setupPrice,
   setupPricingModel,
   setupProduct,
+  setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { Organization } from '@/db/schema/organizations'
+import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import core from '@/utils/core'
@@ -637,7 +640,6 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
     expect(result.prices).toHaveLength(1)
     expect(result.prices[0].name).toBe('Basic Price')
     // Should have empty features array, not null or undefined
-    expect(result.features).toBeDefined()
     expect(Array.isArray(result.features)).toBe(true)
     expect(result.features).toHaveLength(0)
   })
@@ -700,7 +702,6 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
     expect(result.prices).toHaveLength(2)
     expect(result.prices[0].name).toBe('Price 1')
     expect(result.prices[1].name).toBe('Price 2')
-    expect(result.features).toBeDefined()
     expect(Array.isArray(result.features)).toBe(true)
   })
 })
@@ -788,6 +789,178 @@ describe('selectProductsCursorPaginated search', () => {
       expect(resultEmpty.items.length).toBeGreaterThanOrEqual(1)
       expect(resultEmpty.total).toBe(resultUndefined.total)
     })
+  })
+})
+
+describe('selectProductsCursorPaginated excludeUsageProducts', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+  })
+
+  it('excludes products that have any usage price when excludeUsageProducts=true', async () => {
+    // Create a subscription product
+    const subscriptionProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Subscription Product',
+    })
+
+    await setupPrice({
+      productId: subscriptionProduct.id,
+      name: 'Subscription Price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+    })
+
+    // Create a usage meter for usage products
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'API Calls Meter',
+    })
+
+    // Create a usage product
+    const usageProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Usage Product',
+    })
+
+    await setupPrice({
+      productId: usageProduct.id,
+      name: 'Usage Price',
+      type: PriceType.Usage,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 10,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: usageMeter.id,
+    })
+
+    // Query with excludeUsageProducts=true
+    const resultWithExclusion = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductsCursorPaginated({
+          input: {
+            filters: {
+              pricingModelId: pricingModel.id,
+              excludeUsageProducts: true,
+            } as Parameters<
+              typeof selectProductsCursorPaginated
+            >[0]['input']['filters'],
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Should only include subscription product and the default product created with the pricing model
+    const productNames = resultWithExclusion.items.map(
+      (item) => item.product.name
+    )
+    expect(productNames).toContain('Subscription Product')
+    expect(productNames).not.toContain('Usage Product')
+
+    // Query without excludeUsageProducts filter (should include all)
+    const resultWithoutExclusion = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductsCursorPaginated({
+          input: {
+            filters: {
+              pricingModelId: pricingModel.id,
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    const allProductNames = resultWithoutExclusion.items.map(
+      (item) => item.product.name
+    )
+    expect(allProductNames).toContain('Subscription Product')
+    expect(allProductNames).toContain('Usage Product')
+  })
+
+  it('includes all products when excludeUsageProducts=false', async () => {
+    // Create a subscription product
+    const subscriptionProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Subscription Product 2',
+    })
+
+    await setupPrice({
+      productId: subscriptionProduct.id,
+      name: 'Subscription Price 2',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+    })
+
+    // Create a usage meter for usage products
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'API Calls Meter 2',
+    })
+
+    // Create a usage product
+    const usageProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Usage Product 2',
+    })
+
+    await setupPrice({
+      productId: usageProduct.id,
+      name: 'Usage Price 2',
+      type: PriceType.Usage,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 10,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: usageMeter.id,
+    })
+
+    // Query with excludeUsageProducts=false (should include all)
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectProductsCursorPaginated({
+        input: {
+          filters: {
+            pricingModelId: pricingModel.id,
+            excludeUsageProducts: false,
+          } as Parameters<
+            typeof selectProductsCursorPaginated
+          >[0]['input']['filters'],
+        },
+        transaction,
+      })
+    })
+
+    const productNames = result.items.map((item) => item.product.name)
+    expect(productNames).toContain('Subscription Product 2')
+    expect(productNames).toContain('Usage Product 2')
   })
 })
 

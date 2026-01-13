@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
-import {
-  ReactQueryProvider,
-  FlowgladProviderWrapper,
-} from '@/components/providers'
-import { Navbar } from '@/components/navbar'
 import { PropsWithChildren } from 'react'
+import { Navbar } from '@/components/navbar'
+import {
+  FlowgladProviderWrapper,
+  ReactQueryProvider,
+} from '@/components/providers'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',

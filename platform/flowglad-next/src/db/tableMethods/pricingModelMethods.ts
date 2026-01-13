@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, notExists, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { Customer } from '@/db/schema/customers'
 import {
@@ -27,24 +27,21 @@ import {
   features,
   featuresSelectSchema,
 } from '../schema/features'
-import type { PricingModelWithProductsAndUsageMeters } from '../schema/prices'
-import { prices } from '../schema/prices'
 import {
-  type ProductFeature,
-  productFeatures,
-} from '../schema/productFeatures'
+  type Price,
+  type PricingModelWithProductsAndUsageMeters,
+  type ProductWithPrices,
+  prices,
+} from '../schema/prices'
+import { type ProductFeature } from '../schema/productFeatures'
 import { products } from '../schema/products'
 import {
   type UsageMeter,
   usageMeters,
   usageMetersClientSelectSchema,
 } from '../schema/usageMeters'
-import {
-  selectPricesAndProductsByProductWhere,
-  updatePrice,
-} from './priceMethods'
+import { selectPricesAndProductsByProductWhere } from './priceMethods'
 import { selectFeaturesByProductFeatureWhere } from './productFeatureMethods'
-import { selectProducts } from './productMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof pricingModels,
@@ -192,33 +189,61 @@ const pricingModelTableRowSchema = z.object({
   productsCount: z.number(),
 })
 
+/**
+ * Counts non-usage products by pricing model IDs.
+ * A "usage-product" is defined as a product with any price where type = 'usage'.
+ *
+ * @param pricingModelIds - Array of pricing model IDs to count products for
+ * @param transaction - Database transaction
+ * @returns Map of pricingModelId -> count of non-usage products
+ */
+export const countNonUsageProductsByPricingModelIds = async (
+  pricingModelIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, number>> => {
+  if (pricingModelIds.length === 0) {
+    return new Map()
+  }
+
+  // Query: SELECT pricing_model_id, COUNT(*) as count
+  // FROM products p
+  // WHERE p.pricing_model_id IN (...)
+  //   AND NOT EXISTS (SELECT 1 FROM prices pr WHERE pr.product_id = p.id AND pr.type = 'usage')
+  // GROUP BY p.pricing_model_id
+  const results = await transaction
+    .select({
+      pricingModelId: products.pricingModelId,
+      count: sql<number>`COUNT(*)`.mapWith(Number),
+    })
+    .from(products)
+    .where(
+      and(
+        inArray(products.pricingModelId, pricingModelIds),
+        notExists(
+          sql`(SELECT 1 FROM ${prices} WHERE ${prices.productId} = ${products.id} AND ${prices.type} = ${PriceType.Usage})`
+        )
+      )
+    )
+    .groupBy(products.pricingModelId)
+
+  const countMap = new Map<string, number>()
+  for (const row of results) {
+    countMap.set(row.pricingModelId, row.count)
+  }
+  return countMap
+}
+
 export const selectPricingModelsTableRows =
   createCursorPaginatedSelectFunction(
     pricingModels,
     config,
     pricingModelTableRowSchema,
     async (pricingModelsResult, transaction) => {
-      const productsByPricingModelId = new Map<string, number>()
-
-      if (pricingModelsResult.length > 0) {
-        const products = await selectProducts(
-          {
-            pricingModelId: pricingModelsResult.map(
-              (pricingModel) => pricingModel.id
-            ),
-          },
+      const productsByPricingModelId =
+        await countNonUsageProductsByPricingModelIds(
+          pricingModelsResult.map((pricingModel) => pricingModel.id),
           transaction
         )
-
-        products.forEach((product: { pricingModelId: string }) => {
-          const currentCount =
-            productsByPricingModelId.get(product.pricingModelId) || 0
-          productsByPricingModelId.set(
-            product.pricingModelId,
-            currentCount + 1
-          )
-        })
-      }
 
       return pricingModelsResult.map((pricingModel) => ({
         pricingModel: pricingModel,
@@ -349,7 +374,8 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
       defaultProduct:
         productsByPricingModelId
           .get(pricingModel.id)
-          ?.find((product) => product.default) ?? undefined,
+          ?.find((product: ProductWithPrices) => product.default) ??
+        undefined,
     }))
   }
 
@@ -375,12 +401,16 @@ export const selectPricingModelForCustomer = async (
       return {
         ...pricingModel,
         products: pricingModel.products
-          .filter((product) => product.active)
-          .map((product) => ({
+          .filter((product: ProductWithPrices) => product.active)
+          .map((product: ProductWithPrices) => ({
             ...product,
-            prices: product.prices.filter((price) => price.active),
+            prices: product.prices.filter(
+              (price: Price.ClientRecord) => price.active
+            ),
           }))
-          .filter((product) => product.prices.length > 0), // Filter out products with no active prices
+          .filter(
+            (product: ProductWithPrices) => product.prices.length > 0
+          ), // Filter out products with no active prices
       }
     }
   }
@@ -403,12 +433,16 @@ export const selectPricingModelForCustomer = async (
   return {
     ...pricingModel,
     products: pricingModel.products
-      .filter((product) => product.active)
-      .map((product) => ({
+      .filter((product: ProductWithPrices) => product.active)
+      .map((product: ProductWithPrices) => ({
         ...product,
-        prices: product.prices.filter((price) => price.active),
+        prices: product.prices.filter(
+          (price: Price.ClientRecord) => price.active
+        ),
       }))
-      .filter((product) => product.prices.length > 0), // Filter out products with no active prices
+      .filter(
+        (product: ProductWithPrices) => product.prices.length > 0
+      ), // Filter out products with no active prices
   }
 }
 

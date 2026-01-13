@@ -14,7 +14,7 @@ import {
   createPaginatedSelectSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   ommittedColumnsForInsertSchema,
@@ -50,33 +50,30 @@ export const usageMeters = pgTable(
       .notNull()
       .default(UsageMeterAggregationType.Sum),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      constructUniqueIndex(TABLE_NAME, [
-        table.organizationId,
-        table.slug,
-        table.pricingModelId,
-      ]),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"pricing_model_id" in (select "pricing_model_id" from "customers")`,
-        }
-      ),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'all',
-          using: orgIdEqualsCurrentSQL(),
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.organizationId,
+      table.slug,
+      table.pricingModelId,
+    ]),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"pricing_model_id" in (select "pricing_model_id" from "customers")`,
+      }
+    ),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'all',
+        using: orgIdEqualsCurrentSQL(),
+      }
+    ),
+  ])
 ).enableRLS()
 
 const columnRefinements = {

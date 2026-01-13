@@ -99,13 +99,10 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
       )
       const timestampAfterExecution = Date.now()
 
-      expect(result).toBeDefined()
-      expect(result.ledgerTransaction).toBeDefined()
-      expect(result.ledgerEntries).toBeDefined()
       expect(result.ledgerEntries.length).toBe(1)
 
       const ledgerTransaction = result.ledgerTransaction
-      expect(ledgerTransaction.id).toBeDefined()
+      expect(typeof ledgerTransaction.id).toBe('string')
       expect(ledgerTransaction.organizationId).toBe(
         command.organizationId
       )
@@ -128,7 +125,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
       )
 
       const ledgerEntry = result.ledgerEntries[0]
-      expect(ledgerEntry.id).toBeDefined()
+      expect(typeof ledgerEntry.id).toBe('string')
       expect(ledgerEntry.ledgerTransactionId).toBe(
         ledgerTransaction.id
       )
@@ -228,14 +225,11 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
       )
       const timestampAfterExecution = Date.now()
 
-      expect(result).toBeDefined()
-      expect(result.ledgerTransaction).toBeDefined()
-      expect(result.ledgerEntries).toBeDefined()
       expect(result.ledgerEntries.length).toBe(1)
 
       const ledgerTransaction = result.ledgerTransaction
       expect(ledgerTransaction.description).toBeNull()
-      expect(ledgerTransaction.id).toBeDefined()
+      expect(typeof ledgerTransaction.id).toBe('string')
       expect(ledgerTransaction.organizationId).toBe(
         command.organizationId
       )
@@ -252,7 +246,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
       )
 
       const ledgerEntry = result.ledgerEntries[0]
-      expect(ledgerEntry.id).toBeDefined()
+      expect(typeof ledgerEntry.id).toBe('string')
       expect(ledgerEntry.ledgerTransactionId).toBe(
         ledgerTransaction.id
       )
@@ -351,14 +345,11 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         transaction
       )
 
-      expect(result).toBeDefined()
-      expect(result.ledgerTransaction).toBeDefined()
-      expect(result.ledgerEntries).toBeDefined()
       expect(result.ledgerEntries.length).toBe(1)
 
       const ledgerTransaction = result.ledgerTransaction
       expect(ledgerTransaction.metadata).toBeNull()
-      expect(ledgerTransaction.id).toBeDefined()
+      expect(typeof ledgerTransaction.id).toBe('string')
       expect(ledgerTransaction.organizationId).toBe(
         command.organizationId
       )
@@ -375,7 +366,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
       )
 
       const ledgerEntry = result.ledgerEntries[0]
-      expect(ledgerEntry.id).toBeDefined()
+      expect(typeof ledgerEntry.id).toBe('string')
       expect(ledgerEntry.ledgerTransactionId).toBe(
         ledgerTransaction.id
       )
@@ -444,13 +435,10 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         transaction
       )
 
-      expect(result).toBeDefined()
-      expect(result.ledgerTransaction).toBeDefined()
-      expect(result.ledgerEntries).toBeDefined()
       expect(result.ledgerEntries.length).toBe(1)
 
       const ledgerTransaction = result.ledgerTransaction
-      expect(ledgerTransaction.id).toBeDefined()
+      expect(typeof ledgerTransaction.id).toBe('string')
       expect(ledgerTransaction.organizationId).toBe(
         command.organizationId
       )
@@ -468,7 +456,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
 
       const ledgerEntry = result.ledgerEntries[0]
       expect(ledgerEntry.billingPeriodId).toBeNull()
-      expect(ledgerEntry.id).toBeDefined()
+      expect(typeof ledgerEntry.id).toBe('string')
       expect(ledgerEntry.ledgerTransactionId).toBe(
         ledgerTransaction.id
       )
@@ -633,14 +621,11 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         transaction
       )
 
-      expect(result).toBeDefined()
-      expect(result.ledgerTransaction).toBeDefined()
-      expect(result.ledgerEntries).toBeDefined()
       expect(result.ledgerEntries.length).toBe(1)
 
       const ledgerTransaction = result.ledgerTransaction
       expect(ledgerTransaction.livemode).toBe(true)
-      expect(ledgerTransaction.id).toBeDefined()
+      expect(typeof ledgerTransaction.id).toBe('string')
       expect(ledgerTransaction.organizationId).toBe(
         command.organizationId
       )
@@ -653,8 +638,9 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
       )
 
       const ledgerEntry = result.ledgerEntries[0]
+      expect(typeof ledgerEntry.id).toBe('string')
       expect(ledgerEntry.livemode).toBe(true)
-      expect(ledgerEntry.id).toBeDefined()
+      expect(typeof ledgerEntry.id).toBe('string')
       expect(ledgerEntry.ledgerTransactionId).toBe(
         ledgerTransaction.id
       )
@@ -725,14 +711,11 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         transaction
       )
 
-      expect(result).toBeDefined()
-      expect(result.ledgerTransaction).toBeDefined()
-      expect(result.ledgerEntries).toBeDefined()
       expect(result.ledgerEntries.length).toBe(1)
 
       const ledgerTransaction = result.ledgerTransaction
       expect(ledgerTransaction.livemode).toBe(false)
-      expect(ledgerTransaction.id).toBeDefined()
+      expect(typeof ledgerTransaction.id).toBe('string')
       expect(ledgerTransaction.organizationId).toBe(
         command.organizationId
       )
@@ -745,8 +728,9 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
       )
 
       const ledgerEntry = result.ledgerEntries[0]
+      expect(typeof ledgerEntry.id).toBe('string')
       expect(ledgerEntry.livemode).toBe(false)
-      expect(ledgerEntry.id).toBeDefined()
+      expect(typeof ledgerEntry.id).toBe('string')
       expect(ledgerEntry.ledgerTransactionId).toBe(
         ledgerTransaction.id
       )
@@ -815,13 +799,10 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         transaction
       )
 
-      expect(result).toBeDefined()
-      expect(result.ledgerTransaction).toBeDefined()
-      expect(result.ledgerEntries).toBeDefined()
       expect(result.ledgerEntries.length).toBe(1)
 
       const ledgerTransaction = result.ledgerTransaction
-      expect(ledgerTransaction.id).toBeDefined()
+      expect(typeof ledgerTransaction.id).toBe('string')
       expect(ledgerTransaction.organizationId).toBe(
         command.organizationId
       )
@@ -836,7 +817,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
 
       const ledgerEntry = result.ledgerEntries[0]
       expect(ledgerEntry.amount).toBe(1)
-      expect(ledgerEntry.id).toBeDefined()
+      expect(typeof ledgerEntry.id).toBe('string')
       expect(ledgerEntry.ledgerTransactionId).toBe(
         ledgerTransaction.id
       )
@@ -885,13 +866,10 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         transaction
       )
 
-      expect(result).toBeDefined()
-      expect(result.ledgerTransaction).toBeDefined()
-      expect(result.ledgerEntries).toBeDefined()
       expect(result.ledgerEntries.length).toBe(1)
 
       const ledgerTransaction = result.ledgerTransaction
-      expect(ledgerTransaction.id).toBeDefined()
+      expect(typeof ledgerTransaction.id).toBe('string')
       expect(ledgerTransaction.organizationId).toBe(
         command.organizationId
       )
@@ -906,7 +884,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
 
       const ledgerEntry = result.ledgerEntries[0]
       expect(ledgerEntry.amount).toBe(999999999)
-      expect(ledgerEntry.id).toBeDefined()
+      expect(typeof ledgerEntry.id).toBe('string')
       expect(ledgerEntry.ledgerTransactionId).toBe(
         ledgerTransaction.id
       )
@@ -969,9 +947,6 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         transaction
       )
 
-      expect(result).toBeDefined()
-      expect(result.ledgerTransaction).toBeDefined()
-      expect(result.ledgerEntries).toBeDefined()
       expect(result.ledgerEntries.length).toBe(1)
 
       const ledgerEntry = result.ledgerEntries[0]
@@ -979,7 +954,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
       expect(ledgerEntry.ledgerAccountId).toBe(secondLedgerAccount.id)
 
       const ledgerTransaction = result.ledgerTransaction
-      expect(ledgerTransaction.id).toBeDefined()
+      expect(typeof ledgerTransaction.id).toBe('string')
       expect(ledgerTransaction.organizationId).toBe(
         command.organizationId
       )
@@ -992,7 +967,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         usageCredit.id
       )
 
-      expect(ledgerEntry.id).toBeDefined()
+      expect(typeof ledgerEntry.id).toBe('string')
       expect(ledgerEntry.ledgerTransactionId).toBe(
         ledgerTransaction.id
       )
@@ -1046,9 +1021,6 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         transaction
       )
 
-      expect(result).toBeDefined()
-      expect(result.ledgerTransaction).toBeDefined()
-      expect(result.ledgerEntries).toBeDefined()
       expect(result.ledgerEntries.length).toBe(1)
 
       const ledgerEntry = result.ledgerEntries[0]
@@ -1056,7 +1028,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
       expect(ledgerEntry.ledgerAccountId).toBe(ledgerAccount.id)
 
       const ledgerTransaction = result.ledgerTransaction
-      expect(ledgerTransaction.id).toBeDefined()
+      expect(typeof ledgerTransaction.id).toBe('string')
       expect(ledgerTransaction.organizationId).toBe(
         command.organizationId
       )
@@ -1069,7 +1041,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         usageCredit.id
       )
 
-      expect(ledgerEntry.id).toBeDefined()
+      expect(typeof ledgerEntry.id).toBe('string')
       expect(ledgerEntry.ledgerTransactionId).toBe(
         ledgerTransaction.id
       )
@@ -1140,13 +1112,10 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         transaction
       )
 
-      expect(result).toBeDefined()
-      expect(result.ledgerTransaction).toBeDefined()
-      expect(result.ledgerEntries).toBeDefined()
       expect(result.ledgerEntries.length).toBe(1)
 
       const ledgerEntry = result.ledgerEntries[0]
-      expect(ledgerEntry.id).toBeDefined()
+      expect(typeof ledgerEntry.id).toBe('string')
       expect(ledgerEntry.ledgerTransactionId).toBe(
         result.ledgerTransaction.id
       )
@@ -1154,7 +1123,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
       expect(ledgerEntry.amount).toBe(usageCredit.issuedAmount)
 
       const ledgerTransaction = result.ledgerTransaction
-      expect(ledgerTransaction.id).toBeDefined()
+      expect(typeof ledgerTransaction.id).toBe('string')
       expect(ledgerTransaction.organizationId).toBe(
         command.organizationId
       )

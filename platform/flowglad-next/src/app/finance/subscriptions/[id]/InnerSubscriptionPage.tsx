@@ -7,9 +7,10 @@ import { useState } from 'react'
 import { CustomerCardNew } from '@/components/CustomerCardNew'
 import { ExpandSection } from '@/components/ExpandSection'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
-import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import { ItemFeature } from '@/components/ItemFeature'
+import PageContainer from '@/components/PageContainer'
 import { ProductCard } from '@/components/ProductCard'
+import { SubscriptionResourceUsage } from '@/components/subscriptions/SubscriptionResourceUsage'
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import {
@@ -118,7 +119,7 @@ const InnerSubscriptionPage = ({
   const statusBadge = getSubscriptionStatusBadge(subscription.status)
 
   return (
-    <InnerPageContainerNew>
+    <PageContainer>
       <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title="Subscription Details"
@@ -272,6 +273,11 @@ const InnerSubscriptionPage = ({
             )}
           </div>
         </ExpandSection>
+        <ExpandSection title="Resource Usage" defaultExpanded={false}>
+          <SubscriptionResourceUsage
+            subscriptionId={subscription.id}
+          />
+        </ExpandSection>
         <BillingHistorySection
           subscriptionId={subscription.id}
           customerId={subscription.customerId}
@@ -298,7 +304,7 @@ const InnerSubscriptionPage = ({
         setIsOpen={setIsCancelModalOpen}
         subscriptionId={subscription.id}
       />
-    </InnerPageContainerNew>
+    </PageContainer>
   )
 }
 

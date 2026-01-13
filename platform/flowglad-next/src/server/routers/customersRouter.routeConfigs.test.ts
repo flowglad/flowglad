@@ -24,7 +24,9 @@ describe('customersRouteConfigs', () => {
     it('should map POST /customers to customers.create procedure', () => {
       const routeConfig = findRouteConfig('POST /customers')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'customers.create',
+      })
       expect(routeConfig!.procedure).toBe('customers.create')
       expect(routeConfig!.pattern.test('customers')).toBe(true)
 
@@ -39,7 +41,9 @@ describe('customersRouteConfigs', () => {
         'PUT /customers/:externalId'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'customers.update',
+      })
       expect(routeConfig!.procedure).toBe('customers.update')
       expect(routeConfig!.pattern.test('customers/test-id')).toBe(
         true
@@ -59,7 +63,9 @@ describe('customersRouteConfigs', () => {
         'GET /customers/:externalId'
       )
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'customers.get',
+      })
       expect(routeConfig!.procedure).toBe('customers.get')
       expect(routeConfig!.pattern.test('customers/test-id')).toBe(
         true
@@ -76,7 +82,9 @@ describe('customersRouteConfigs', () => {
           'GET /customers/:externalId/billing'
         ]
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'customers.getBilling',
+      })
       expect(routeConfig!.procedure).toBe('customers.getBilling')
       expect(
         routeConfig!.pattern.test('customers/test-id/billing')
@@ -90,7 +98,9 @@ describe('customersRouteConfigs', () => {
     it('should map GET /customers to customers.list procedure', () => {
       const routeConfig = findRouteConfig('GET /customers')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'customers.list',
+      })
       expect(routeConfig!.procedure).toBe('customers.list')
       expect(routeConfig!.pattern.test('customers')).toBe(true)
 
@@ -155,26 +165,26 @@ describe('customersRouteConfigs', () => {
       // Test customer get pattern extraction
       const getConfig = findRouteConfig('GET /customers/:externalId')
       const getMatches = getConfig!.pattern.exec('customers/test-id')
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test customer billing pattern extraction
       const billingMatches = billingConfigs[
         'GET /customers/:externalId/billing'
       ].pattern.exec('customers/test-id/billing')
-      expect(billingMatches).not.toBeNull()
+      expect(typeof billingMatches).toBe('object')
       expect(billingMatches![1]).toBe('test-id') // First capture group
 
       // Test customer list pattern (no captures)
       const listConfig = findRouteConfig('GET /customers')
       const listMatches = listConfig!.pattern.exec('customers')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test customer create pattern (no captures)
       const createConfig = findRouteConfig('POST /customers')
       const createMatches = createConfig!.pattern.exec('customers')
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })

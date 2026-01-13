@@ -24,7 +24,9 @@ describe('purchasesRouteConfigs', () => {
     it('should map POST /purchases to purchases.create procedure', () => {
       const routeConfig = findRouteConfig('POST /purchases')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'purchases.create',
+      })
       expect(routeConfig!.procedure).toBe('purchases.create')
       expect(routeConfig!.pattern.test('purchases')).toBe(true)
 
@@ -39,7 +41,9 @@ describe('purchasesRouteConfigs', () => {
     it('should map PUT /purchases/:id to purchases.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /purchases/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'purchases.update',
+      })
       expect(routeConfig!.procedure).toBe('purchases.update')
       expect(routeConfig!.pattern.test('purchases/test-id')).toBe(
         true
@@ -59,7 +63,9 @@ describe('purchasesRouteConfigs', () => {
     it('should map GET /purchases/:id to purchases.get procedure', () => {
       const routeConfig = findRouteConfig('GET /purchases/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'purchases.get',
+      })
       expect(routeConfig!.procedure).toBe('purchases.get')
       expect(routeConfig!.pattern.test('purchases/test-id')).toBe(
         true
@@ -73,7 +79,9 @@ describe('purchasesRouteConfigs', () => {
     it('should map GET /purchases to purchases.list procedure', () => {
       const routeConfig = findRouteConfig('GET /purchases')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'purchases.list',
+      })
       expect(routeConfig!.procedure).toBe('purchases.list')
       expect(routeConfig!.pattern.test('purchases')).toBe(true)
 
@@ -85,7 +93,9 @@ describe('purchasesRouteConfigs', () => {
     it('should map DELETE /purchases/:id to purchases.delete procedure', () => {
       const routeConfig = findRouteConfig('DELETE /purchases/:id')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig).toMatchObject({
+        procedure: 'purchases.delete',
+      })
       expect(routeConfig!.procedure).toBe('purchases.delete')
       expect(routeConfig!.pattern.test('purchases/test-id')).toBe(
         true
@@ -136,7 +146,7 @@ describe('purchasesRouteConfigs', () => {
       // Test Purchases get pattern extraction
       const getConfig = findRouteConfig('GET /purchases/:id')
       const getMatches = getConfig!.pattern.exec('purchases/test-id')
-      expect(getMatches).not.toBeNull()
+      expect(typeof getMatches).toBe('object')
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test Purchases update pattern extraction
@@ -144,7 +154,7 @@ describe('purchasesRouteConfigs', () => {
       const updateMatches = updateConfig!.pattern.exec(
         'purchases/test-id'
       )
-      expect(updateMatches).not.toBeNull()
+      expect(typeof updateMatches).toBe('object')
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test Purchases delete pattern extraction
@@ -152,19 +162,19 @@ describe('purchasesRouteConfigs', () => {
       const deleteMatches = deleteConfig!.pattern.exec(
         'purchases/test-id'
       )
-      expect(deleteMatches).not.toBeNull()
+      expect(typeof deleteMatches).toBe('object')
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test Purchases list pattern (no captures)
       const listConfig = findRouteConfig('GET /purchases')
       const listMatches = listConfig!.pattern.exec('purchases')
-      expect(listMatches).not.toBeNull()
+      expect(listMatches).toMatchObject({ length: 1 })
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test Purchases create pattern (no captures)
       const createConfig = findRouteConfig('POST /purchases')
       const createMatches = createConfig!.pattern.exec('purchases')
-      expect(createMatches).not.toBeNull()
+      expect(createMatches).toMatchObject({ length: 1 })
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
     })
   })

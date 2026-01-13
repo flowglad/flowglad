@@ -33,8 +33,10 @@ import {
   LedgerTransactionType,
   SubscriptionStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import { core } from '@/utils/core'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
+import { tracedTrigger } from '@/utils/triggerTracing'
 import { syncSubscriptionWithActiveItems } from './adjustSubscription'
 import { generateNextBillingPeriod } from './billingIntervalHelpers'
 import { createBillingRun } from './billingRunHelpers'
@@ -272,6 +274,11 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
         updatedBillingPeriod,
       },
       eventsToInsert: [],
+      cacheInvalidations: [
+        CacheDependency.customerSubscriptions(
+          subscription.customerId
+        ),
+      ],
     }
   }
 
@@ -311,6 +318,11 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
         updatedBillingPeriod,
       },
       eventsToInsert: [],
+      cacheInvalidations: [
+        CacheDependency.customerSubscriptions(
+          subscription.customerId
+        ),
+      ],
     }
   }
   const newBillingPeriod = result.billingPeriod
@@ -342,9 +354,19 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       transaction
     )
     if (subscription.runBillingAtPeriodStart && !core.IS_TEST) {
-      await attemptBillingRunTask.trigger({
-        billingRun,
-      })
+      // billingRun is guaranteed to be non-null here since it was just assigned above
+      const currentBillingRun = billingRun
+      await tracedTrigger(
+        'attemptBillingRun',
+        () =>
+          attemptBillingRunTask.trigger({
+            billingRun: currentBillingRun,
+          }),
+        {
+          'trigger.billing_run_id': currentBillingRun.id,
+          'trigger.livemode': currentBillingRun.livemode,
+        }
+      )
     }
   }
   subscription = await updateSubscription(
@@ -419,6 +441,9 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       subscriptionId: subscription.id,
       payload: ledgerCommandPayload,
     },
+    cacheInvalidations: [
+      CacheDependency.customerSubscriptions(subscription.customerId),
+    ],
   }
 }
 

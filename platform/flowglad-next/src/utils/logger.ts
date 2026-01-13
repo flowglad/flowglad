@@ -55,6 +55,13 @@ function enrichWithContext(
       : core.IS_TEST
         ? 'test'
         : 'development',
+    'host.id': process.env.VERCEL_DEPLOYMENT_ID || 'localhost',
+    ...(process.env.VERCEL_GIT_COMMIT_SHA && {
+      'vcs.commit.id': process.env.VERCEL_GIT_COMMIT_SHA,
+    }),
+    ...(process.env.VERCEL_GIT_COMMIT_REF && {
+      'vcs.branch': process.env.VERCEL_GIT_COMMIT_REF,
+    }),
   }
 
   // Add API environment if provided or if we can detect it

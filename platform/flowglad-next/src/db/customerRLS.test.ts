@@ -1012,27 +1012,34 @@ describe('Customer Role RLS Policies', () => {
       )
     })
 
-    it('should return no products when the customer has NULL pricingModelId', async () => {
-      // Create a new customer with its own user and NO pricing model
-      const emptyCustomer = await setupCustomer({
+    it('should return only products from the customers pricing model', async () => {
+      // Create a new customer with its own user and a different pricing model
+      const differentPm = await setupPricingModel({
         organizationId: org1.id,
-        email: `nopm_${core.nanoid()}@test.com`,
-        livemode: true,
+        name: 'Different Pricing Model',
+        isDefault: false,
       })
 
-      const emptyUser = await adminTransaction(
+      const customerWithDifferentPm = await setupCustomer({
+        organizationId: org1.id,
+        email: `diffpm_${core.nanoid()}@test.com`,
+        livemode: true,
+        pricingModelId: differentPm.id,
+      })
+
+      const differentPmUser = await adminTransaction(
         async ({ transaction }) => {
           const user = await insertUser(
             {
               id: `usr_${core.nanoid()}`,
-              email: emptyCustomer.email,
-              name: 'No PM User',
+              email: customerWithDifferentPm.email,
+              name: 'Different PM User',
               betterAuthId: `bau_${core.nanoid()}`,
             },
             transaction
           )
           await updateCustomer(
-            { id: emptyCustomer.id, userId: user.id },
+            { id: customerWithDifferentPm.id, userId: user.id },
             transaction
           )
           return user
@@ -1040,14 +1047,15 @@ describe('Customer Role RLS Policies', () => {
       )
 
       const visibleProducts = await authenticatedCustomerTransaction(
-        emptyCustomer,
-        emptyUser,
+        customerWithDifferentPm,
+        differentPmUser,
         org1,
         async ({ transaction }) => {
           return selectProducts({}, transaction)
         }
       )
 
+      // Should return no products since the different pricing model has no products
       expect(visibleProducts).toHaveLength(0)
     })
   })
@@ -1502,7 +1510,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1540,7 +1548,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1589,7 +1597,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1629,80 +1637,17 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
       })
 
-      it('should prevent checkout when customer has NULL pricing model', async () => {
-        // Create a customer with NULL pricing model
-        const nullPricingModelCustomer = await setupCustomer({
-          organizationId: org1.id,
-          email: `null_pm_${core.nanoid()}@test.com`,
-          livemode: true,
-        })
-
-        const nullPricingModelUser = await adminTransaction(
-          async ({ transaction }) => {
-            const user = await insertUser(
-              {
-                id: `usr_${core.nanoid()}`,
-                email: nullPricingModelCustomer.email,
-                name: 'Null PM Customer',
-                betterAuthId: `bau_${core.nanoid()}`,
-              },
-              transaction
-            )
-
-            await updateCustomer(
-              {
-                id: nullPricingModelCustomer.id,
-                userId: user.id,
-                pricingModelId: null, // Explicitly set to null
-              },
-              transaction
-            )
-
-            return user
-          }
-        )
-
-        let error: Error | null = null
-
-        try {
-          await authenticatedCustomerTransaction(
-            nullPricingModelCustomer,
-            nullPricingModelUser,
-            org1,
-            async ({ transaction }) => {
-              // Customer with null pricing model shouldn't be able to checkout any price
-              await insertCheckoutSession(
-                {
-                  organizationId: org1.id,
-                  customerId: nullPricingModelCustomer.id,
-                  priceId: priceInModelA.id,
-                  type: CheckoutSessionType.Product,
-                  status: CheckoutSessionStatus.Open,
-                  quantity: 1,
-                  invoiceId: null,
-                  purchaseId: null,
-                  targetSubscriptionId: null,
-                  automaticallyUpdateSubscriptions: null,
-                  livemode: true,
-                },
-                transaction
-              )
-            }
-          )
-        } catch (err: any) {
-          error = err
-        }
-
-        expect(error).toBeTruthy()
-        expect(error?.message).toMatch(
-          /Failed to insert|violates row-level security|permission denied|No prices found with id/i
-        )
+      // NOTE: This test is no longer applicable since pricingModelId is now a required (NOT NULL) field on customers.
+      // The migration ensures all customers have a valid pricing model, so this scenario cannot occur.
+      // The database schema prevents NULL pricing models at the constraint level.
+      it.skip('should prevent checkout when customer has NULL pricing model', async () => {
+        // Test skipped: pricingModelId is now a required field and cannot be NULL
       })
 
       it('should prevent checkout with price from different organization', async () => {
@@ -1737,7 +1682,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1802,7 +1747,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1839,7 +1784,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -1902,7 +1847,7 @@ describe('Customer Role RLS Policies', () => {
           error = err
         }
 
-        expect(error).toBeTruthy()
+        expect(error).toBeInstanceOf(Error)
         expect(error?.message).toMatch(
           /Failed to insert|violates row-level security|permission denied|No prices found with id/i
         )
@@ -2059,6 +2004,7 @@ describe('Customer Role RLS Policies', () => {
                 name: 'Hacker Customer',
                 externalId: `ext_${core.nanoid()}`,
                 livemode: true,
+                pricingModelId: customerA_Org1.pricingModelId!,
               },
               transaction
             )
@@ -2069,17 +2015,17 @@ describe('Customer Role RLS Policies', () => {
       }
 
       // Customer creation should have failed (RLS prevents inserts for customer role)
-      expect(newCustomerError).toBeTruthy()
+      expect(typeof newCustomerError).toBe('string')
       expect(newCustomerError).toMatch(
         /Failed to insert|row-level security|violates/
       )
     })
   })
 
-  describe('Customer with null pricingModelId should access default pricing model', () => {
+  describe('Customer with default pricingModelId should access billing portal', () => {
     let organization: Organization.Record
     let defaultPricingModel: PricingModel.Record
-    let customerWithNullPricingModel: Customer.Record
+    let customerWithDefaultPricingModel: Customer.Record
     let user: User.Record
     let apiKey: ApiKey.Record
 
@@ -2119,33 +2065,36 @@ describe('Customer Role RLS Policies', () => {
       user = userApiKey.user
       apiKey = userApiKey.apiKey
 
-      // Create customer without pricing model, using the same user as the API key
-      customerWithNullPricingModel = await setupCustomer({
+      // Create customer with default pricing model, using the same user as the API key
+      customerWithDefaultPricingModel = await setupCustomer({
         organizationId: organization.id,
-        email: 'null-pricing-model@example.com',
+        email: 'default-pricing-model@example.com',
         userId: user.id,
+        pricingModelId: defaultPricingModel.id,
       })
     })
 
-    it('should allow customer with null pricingModelId to access billing portal and get default pricing model', async () => {
-      expect(customerWithNullPricingModel.pricingModelId).toBeNull()
+    it('should allow customer with pricingModelId to access billing portal and get their pricing model', async () => {
+      // pricingModelId is now NOT NULL - customer should have the default pricing model assigned
+      expect(customerWithDefaultPricingModel.pricingModelId).toBe(
+        defaultPricingModel.id
+      )
 
-      // Test as a customer (not merchant) to reproduce the RLS issue
+      // Test as a customer (not merchant) to verify RLS works correctly
 
       // Use the helper function to simulate customer accessing billing portal with proper RLS context
       const result = await authenticatedCustomerTransaction(
-        customerWithNullPricingModel,
+        customerWithDefaultPricingModel,
         user,
         organization,
         async ({ transaction }) => {
           return selectPricingModelForCustomer(
-            customerWithNullPricingModel,
+            customerWithDefaultPricingModel,
             transaction
           )
         }
       )
 
-      expect(result).toBeDefined()
       expect(result.id).toBe(defaultPricingModel.id)
       expect(result.isDefault).toBe(true)
     })

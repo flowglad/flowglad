@@ -1,6 +1,7 @@
 import { ChevronLeft, MoreHorizontal } from 'lucide-react'
 import type { ReactNode } from 'react'
 import React from 'react'
+import { LAYOUT_TOKENS } from '@/components/charts/constants'
 import { cn } from '@/lib/utils'
 import { Button } from './button'
 import {
@@ -96,34 +97,37 @@ export function PageHeaderNew({
   return (
     <div
       className={cn(
-        'flex flex-col items-start justify-center w-full',
+        'flex flex-col items-start justify-center w-full gap-2',
         !hideBorder && 'border-b border-dashed border-border',
-        'px-4 pt-20 pb-1',
+        LAYOUT_TOKENS.page.class,
+        'pt-20 pb-2',
         className
       )}
     >
       {/* Headline wrapper */}
       <div className="flex flex-col gap-1 items-start w-full">
-        {/* Breadcrumb navigation */}
-        {breadcrumb && onBreadcrumbClick ? (
-          <button
-            onClick={onBreadcrumbClick}
-            className="flex items-center gap-1 h-5 hover:opacity-70 transition-opacity cursor-pointer"
-            type="button"
-          >
-            <ChevronLeft size={14} />
-            <span className="font-mono font-medium text-sm text-muted-foreground leading-[1.2]">
-              {breadcrumb}
-            </span>
-          </button>
-        ) : breadcrumb ? (
-          <div className="flex items-center gap-1 h-5">
-            <ChevronLeft size={14} />
-            <span className="font-mono font-medium text-sm text-muted-foreground leading-[1.2]">
-              {breadcrumb}
-            </span>
-          </div>
-        ) : null}
+        {/* Breadcrumb navigation - always render container to prevent layout shift */}
+        <div className="flex items-center gap-1 min-h-5">
+          {breadcrumb && onBreadcrumbClick ? (
+            <button
+              onClick={onBreadcrumbClick}
+              className="flex items-center gap-1 hover:opacity-70 transition-opacity cursor-pointer"
+              type="button"
+            >
+              <ChevronLeft size={14} />
+              <span className="font-mono font-medium text-sm text-muted-foreground leading-[1.2]">
+                {breadcrumb}
+              </span>
+            </button>
+          ) : breadcrumb ? (
+            <>
+              <ChevronLeft size={14} />
+              <span className="font-mono font-medium text-sm text-muted-foreground leading-[1.2]">
+                {breadcrumb}
+              </span>
+            </>
+          ) : null}
+        </div>
 
         {/* Page title */}
         <h1 className="text-2xl text-foreground leading-[1.35] w-full">
@@ -133,7 +137,7 @@ export function PageHeaderNew({
 
       {/* Status badges and description */}
       {(badges.length > 0 || description) && (
-        <div className="flex flex-wrap items-center gap-2 w-full px-0 py-2">
+        <div className="flex flex-wrap items-center gap-2 w-full px-0">
           <TooltipProvider delayDuration={300}>
             {badges.map((badge, index) => {
               const badgeContent = (

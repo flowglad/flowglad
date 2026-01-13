@@ -18,6 +18,94 @@ const SubscriptionPage = async ({
   params: Promise<{ id: string }>
 }) => {
   const { id } = await params
+  const result = await authenticatedTransaction(
+    async ({ transaction, livemode }) => {
+      const [subscription] =
+        await selectRichSubscriptionsAndActiveItems(
+          { id },
+          transaction,
+          livemode
+        )
+
+      if (!subscription) {
+        return null
+      }
+
+      const defaultPaymentMethod = subscription.defaultPaymentMethodId
+        ? await selectPaymentMethodById(
+            subscription.defaultPaymentMethodId,
+            transaction
+          )
+        : null
+
+      const customer = await selectCustomerById(
+        subscription.customerId,
+        transaction
+      )
+
+      let product = null
+      let pricingModel = null
+
+      if (subscription.priceId) {
+        const price = await selectPriceById(
+          subscription.priceId,
+          transaction
+        )
+        product = await selectProductById(
+          price.productId,
+          transaction
+        )
+      } else if (subscription.subscriptionItems.length > 0) {
+        // Fallback: if no main price is set, use the product from the first item
+        const firstPrice = subscription.subscriptionItems[0].price
+        if (firstPrice) {
+          product = await selectProductById(
+            firstPrice.productId,
+            transaction
+          )
+        }
+      }
+
+      if (product && product.pricingModelId) {
+        pricingModel = await selectPricingModelById(
+          product.pricingModelId,
+          transaction
+        )
+      }
+
+      // Fetch all products for subscription items
+      const productIds = [
+        ...new Set(
+          subscription.subscriptionItems.map(
+            (item) => item.price.productId
+          )
+        ),
+      ]
+      const products =
+        productIds.length > 0
+          ? await selectProducts({ id: productIds }, transaction)
+          : []
+
+      // Create a record of productId to product name (plain object for serialization)
+      const productNames: Record<string, string> = Object.fromEntries(
+        products.map((p) => [p.id, p.name])
+      )
+
+      return {
+        subscription,
+        defaultPaymentMethod,
+        customer,
+        product,
+        pricingModel,
+        productNames,
+      }
+    }
+  )
+
+  if (!result) {
+    notFound()
+  }
+
   const {
     subscription,
     defaultPaymentMethod,
@@ -25,80 +113,7 @@ const SubscriptionPage = async ({
     product,
     pricingModel,
     productNames,
-  } = await authenticatedTransaction(async ({ transaction }) => {
-    const [subscription] =
-      await selectRichSubscriptionsAndActiveItems({ id }, transaction)
-
-    if (!subscription) {
-      notFound()
-    }
-
-    const defaultPaymentMethod = subscription.defaultPaymentMethodId
-      ? await selectPaymentMethodById(
-          subscription.defaultPaymentMethodId,
-          transaction
-        )
-      : null
-
-    const customer = await selectCustomerById(
-      subscription.customerId,
-      transaction
-    )
-
-    let product = null
-    let pricingModel = null
-
-    if (subscription.priceId) {
-      const price = await selectPriceById(
-        subscription.priceId,
-        transaction
-      )
-      product = await selectProductById(price.productId, transaction)
-    } else if (subscription.subscriptionItems.length > 0) {
-      // Fallback: if no main price is set, use the product from the first item
-      const firstPrice = subscription.subscriptionItems[0].price
-      if (firstPrice) {
-        product = await selectProductById(
-          firstPrice.productId,
-          transaction
-        )
-      }
-    }
-
-    if (product && product.pricingModelId) {
-      pricingModel = await selectPricingModelById(
-        product.pricingModelId,
-        transaction
-      )
-    }
-
-    // Fetch all products for subscription items
-    const productIds = [
-      ...new Set(
-        subscription.subscriptionItems.map(
-          (item) => item.price.productId
-        )
-      ),
-    ]
-    const products =
-      productIds.length > 0
-        ? await selectProducts({ id: productIds }, transaction)
-        : []
-
-    // Create a record of productId to product name (plain object for serialization)
-    const productNames: Record<string, string> = Object.fromEntries(
-      products.map((p) => [p.id, p.name])
-    )
-
-    return {
-      subscription,
-      defaultPaymentMethod,
-      customer,
-      product,
-      pricingModel,
-      productNames,
-    }
-  })
+  } = result
   return (
     <InnerSubscriptionPage
       subscription={subscriptionWithCurrent(subscription)}

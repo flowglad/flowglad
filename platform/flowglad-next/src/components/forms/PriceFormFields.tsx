@@ -456,9 +456,7 @@ const PriceFormFields = ({
                     <SelectItem value={PriceType.Subscription}>
                       Subscription
                     </SelectItem>
-                    <SelectItem value={PriceType.Usage}>
-                      Usage
-                    </SelectItem>
+                    {/* Usage price type is excluded from product forms */}
                   </SelectContent>
                 </Select>
               </FormControl>

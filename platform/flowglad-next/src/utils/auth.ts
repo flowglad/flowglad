@@ -117,6 +117,7 @@ const handleSendVerificationOTP = async (params: {
   })
 }
 
+// For now, we rely on better-auth's native rate limiting
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',

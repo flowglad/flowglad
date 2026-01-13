@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import {
-  TextInput,
+  Alert,
   Button,
   ScrollView,
-  Text,
   StyleSheet,
-  Alert,
+  Text,
+  TextInput,
 } from 'react-native'
 import { authClient } from '@/lib/auth-client'
 

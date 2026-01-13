@@ -19,7 +19,15 @@ export const generatePdf = async ({
   const browser = await initBrowser()
   try {
     const page = await browser.newPage()
-    await page.goto(url)
+    const response = await page.goto(url)
+
+    if (!response || !response.ok()) {
+      const status = response?.status() ?? 'unknown'
+      const statusText = response?.statusText() ?? 'unknown'
+      throw new Error(
+        `Failed to load page for PDF generation: ${status} ${statusText}. URL: ${url}`
+      )
+    }
 
     logger.info('PDF generated from URL', { url })
     // Generate PDF with embedded fonts

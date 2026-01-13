@@ -39,6 +39,15 @@ export default defineConfig(({ mode }) => {
       include: [
         'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       ],
+      exclude: [
+        '**/node_modules/**',
+        '**/dist/**',
+        '**/*.integration.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+        // RLS tests must run separately with fileParallelism: false
+        // to prevent database connection pool interference.
+        // Use `bun run test:rls` or the combined `bun run test` command.
+        '**/*.rls.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+      ],
       environment: 'jsdom',
       setupFiles: ['./vitest.setup.ts'],
       env: loadEnv(mode, process.cwd(), ''),

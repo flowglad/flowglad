@@ -185,7 +185,7 @@ describe('selectInvoicesTableRowData', () => {
 
     expect(result.items.length).toBe(2)
     expect(result.hasNextPage).toBe(true)
-    expect(result.endCursor).toBeDefined()
+    expect(typeof result.endCursor).toBe('string')
   })
 
   it('should return correct pagination metadata when there are no more results', async () => {
@@ -203,7 +203,7 @@ describe('selectInvoicesTableRowData', () => {
 
     expect(result.items.length).toBe(3)
     expect(result.hasNextPage).toBe(false)
-    expect(result.endCursor).toBeDefined()
+    expect(typeof result.endCursor).toBe('string')
   })
 
   it('should handle different page sizes correctly', async () => {

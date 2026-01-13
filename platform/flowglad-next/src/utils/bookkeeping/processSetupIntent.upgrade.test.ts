@@ -212,10 +212,10 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       expect(updatedFreeSubscription.cancellationReason).toBe(
         'upgraded_to_paid'
       )
-      expect(updatedFreeSubscription.canceledAt).toBeDefined()
+      expect(typeof updatedFreeSubscription.canceledAt).toBe('number')
       expect(
-        updatedFreeSubscription.replacedBySubscriptionId
-      ).toBeDefined()
+        typeof updatedFreeSubscription.replacedBySubscriptionId
+      ).toBe('string')
 
       // Verify new subscription was created
       const allSubscriptions = await adminTransaction(
@@ -311,8 +311,8 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         (sub) => sub.status === SubscriptionStatus.Active
       )
 
-      expect(newSubscription).toBeDefined()
-      expect(newSubscription!.metadata).toBeDefined()
+      expect(typeof newSubscription).toBe('object')
+      expect(typeof newSubscription!.metadata).toBe('object')
       const metadata = newSubscription!.metadata as any
 
       // Should preserve checkout metadata only (no upgrade tracking in metadata)

@@ -62,14 +62,14 @@ jobs:
       # This prevents publishing from a different commit than what was merged
       # For manual dispatch, use the selected branch input
       - name: Checkout repository
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           ref: ${{ env.REF }}
           fetch-depth: 0
 
       # Setup Bun package manager (matches packageManager field in package.json)
       - name: Setup Bun
-        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+        uses: oven-sh/setup-bun@b7a1c7ccf290d58743029c4f6903da283811b979 # v2.1.0
         with:
           bun-version: '1.3.1'
 
@@ -117,7 +117,7 @@ jobs:
       # Tag format: v<version> (e.g., v0.13.0)
       # Pinned to specific commit SHA for security (prevents supply-chain attacks)
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@26994186c0ac3ef5cae75ac16aa32e8153525f77 # v1
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           tag_name: "v${{ steps.release_info.outputs.version }}"
           name: "SDK Release v${{ steps.release_info.outputs.version }}"

@@ -191,7 +191,6 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
         const newLa = createdLedgerAccounts.find(
           (la) => la.usageMeterId === usageMeterId
         )
-        expect(newLa).toBeDefined()
         expect(newLa?.organizationId).toBe(
           subscription.organizationId
         )

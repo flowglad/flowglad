@@ -25,6 +25,7 @@ import {
 } from '@/utils/bookkeeping/fees/common'
 import core from '@/utils/core'
 import {
+  cancelPaymentIntent,
   createStripeCustomer,
   getPaymentIntent,
   getSetupIntent,
@@ -188,34 +189,54 @@ export const confirmCheckoutSessionTransaction = async (
         transaction
       )
 
-      const finalFeeAmount = calculateTotalFeeAmount(
-        finalizedFeeCalculation
-      )
-
       const totalAmountDue = calculateTotalDueAmount(
         finalizedFeeCalculation
       )
 
-      const paymentIntent = await getPaymentIntent(
-        checkoutSession.stripePaymentIntentId
-      )
+      // Handle zero-total checkouts (e.g., 100% discount applied)
+      // Cancel the PaymentIntent since we can't charge $0 through Stripe
+      // FIXME: If input.savePaymentMethodForFuture is true, we should create a SetupIntent
+      // to save the card instead of just canceling the PaymentIntent. Currently the card
+      // data is lost when the PaymentIntent is canceled in this edge case.
+      if (totalAmountDue === 0) {
+        await cancelPaymentIntent(
+          checkoutSession.stripePaymentIntentId,
+          checkoutSession.livemode
+        )
+        // Clear the PaymentIntent ID from the checkout session
+        await updateCheckoutSession(
+          {
+            ...checkoutSession,
+            customerId: customer.id,
+            stripePaymentIntentId: null,
+          },
+          transaction
+        )
+      } else {
+        const finalFeeAmount = calculateTotalFeeAmount(
+          finalizedFeeCalculation
+        )
 
-      await updatePaymentIntent(
-        checkoutSession.stripePaymentIntentId,
-        {
-          ...(paymentIntent.customer
-            ? {}
-            : { customer: stripeCustomerId }),
-          amount: totalAmountDue,
-          application_fee_amount:
-            totalAmountDue > 0 ? finalFeeAmount : undefined,
-          // Set setup_future_usage if user consented to save payment method for future checkouts
-          ...(input.savePaymentMethodForFuture
-            ? { setup_future_usage: 'on_session' as const }
-            : {}),
-        },
-        checkoutSession.livemode
-      )
+        const paymentIntent = await getPaymentIntent(
+          checkoutSession.stripePaymentIntentId
+        )
+
+        await updatePaymentIntent(
+          checkoutSession.stripePaymentIntentId,
+          {
+            ...(paymentIntent.customer
+              ? {}
+              : { customer: stripeCustomerId }),
+            amount: totalAmountDue,
+            application_fee_amount: finalFeeAmount,
+            // Set setup_future_usage if user consented to save payment method for future checkouts
+            ...(input.savePaymentMethodForFuture
+              ? { setup_future_usage: 'on_session' as const }
+              : {}),
+          },
+          checkoutSession.livemode
+        )
+      }
     }
     return {
       result: {

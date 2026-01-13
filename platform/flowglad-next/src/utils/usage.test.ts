@@ -58,11 +58,7 @@ describe('createUsageMeterTransaction', () => {
         }
       )
 
-      // Verify all three records were created
-      expect(result.usageMeter).toBeDefined()
-      expect(result.product).toBeDefined()
-      expect(result.price).toBeDefined()
-
+      // Verify all three records were created with expected properties
       // Verify usage meter properties
       expect(result.usageMeter.name).toBe('API Calls')
       expect(result.usageMeter.slug).toBe('api-calls')
@@ -74,7 +70,7 @@ describe('createUsageMeterTransaction', () => {
       expect(result.product.slug).toBe('api-calls') // Same slug as usage meter
       expect(result.product.pricingModelId).toBe(pricingModel.id)
       // Note: organizationId comes from user's focused membership in createProductTransaction
-      expect(result.product.organizationId).toBeDefined()
+      expect(typeof result.product.organizationId).toBe('string')
       expect(result.product.default).toBe(false)
       expect(result.product.active).toBe(true)
 

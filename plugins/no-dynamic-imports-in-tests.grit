@@ -1,0 +1,11 @@
+engine biome(1.0)
+language js
+
+// Detect dynamic imports (await import("...") or import("...")) in test files
+// This rule forbids using dynamic imports in test files to ensure test isolation
+// and predictable behavior. Dynamic imports in tests often indicate test setup issues.
+
+// Match any import() call expression - will catch both awaited and non-awaited
+JsImportCallExpression() as $import where {
+  register_diagnostic(span=$import, message="Dynamic imports are not allowed in test files. Import modules statically at the top of the file instead.", severity="error")
+}
