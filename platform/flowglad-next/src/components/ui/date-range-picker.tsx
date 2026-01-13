@@ -450,7 +450,7 @@ export function DateRangePicker({
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-auto max-w-[92.5vw] overflow-hidden p-0 rounded-md"
+          className="w-auto max-w-[92.5vw] overflow-hidden p-0"
           align="start"
         >
           <div className="flex flex-col sm:flex-row">

@@ -15,6 +15,8 @@ import {
   type BillingPeriod,
   billingPeriods,
 } from '@/db/schema/billingPeriods'
+import { prices } from '@/db/schema/prices'
+import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import {
   type Subscription,
   subscriptions,
@@ -45,6 +47,7 @@ export interface RevenueCalculationOptions {
   endDate: Date
   granularity: RevenueChartIntervalUnit
   debug?: boolean // Optional debug flag, defaults to false
+  productId?: string // Optional product ID to filter MRR by
 }
 
 export interface BillingPeriodWithItems {
@@ -291,7 +294,7 @@ export async function calculateMRRByMonth(
   options: RevenueCalculationOptions,
   transaction: DbTransaction
 ): Promise<MonthlyRecurringRevenue[]> {
-  const { startDate, endDate, debug = false } = options
+  const { startDate, endDate, debug = false, productId } = options
 
   if (debug) {
     console.log('[MRR DEBUG] calculateMRRByMonth called with:', {
@@ -319,12 +322,54 @@ export async function calculateMRRByMonth(
   }
 
   // Get all billing periods that overlap with the date range
-  const billingPeriods = await getBillingPeriodsForDateRange(
+  let billingPeriodsData = await getBillingPeriodsForDateRange(
     organizationId,
     startDate,
     endDate,
     transaction
   )
+
+  // Filter by product if specified (single JOIN query approach)
+  if (productId) {
+    const subscriptionsWithProduct = await transaction
+      .selectDistinct({
+        subscriptionId: subscriptionItems.subscriptionId,
+      })
+      .from(subscriptionItems)
+      .innerJoin(prices, eq(subscriptionItems.priceId, prices.id))
+      .where(eq(prices.productId, productId))
+
+    if (subscriptionsWithProduct.length === 0) {
+      if (debug) {
+        console.log('[MRR DEBUG] No subscriptions have this product')
+      }
+      return months.map((month) => ({ month, amount: 0 }))
+    }
+
+    const validSubscriptionIds = new Set(
+      subscriptionsWithProduct.map((s) => s.subscriptionId)
+    )
+
+    if (debug) {
+      console.log(
+        '[MRR DEBUG] Found subscriptions with product:',
+        Array.from(validSubscriptionIds)
+      )
+    }
+
+    billingPeriodsData = billingPeriodsData.filter((bp) =>
+      validSubscriptionIds.has(bp.subscription.id)
+    )
+
+    if (debug) {
+      console.log(
+        '[MRR DEBUG] After product filtering, remaining billing periods:',
+        billingPeriodsData.length
+      )
+    }
+  }
+
+  const billingPeriods = billingPeriodsData
 
   if (debug) {
     console.log(
