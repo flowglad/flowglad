@@ -896,3 +896,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS "payment_methods_external_id_pricing_model_id_
 
 -- Step 23: Create index on payment_methods.pricing_model_id
 CREATE INDEX IF NOT EXISTS "payment_methods_pricing_model_id_idx" ON "payment_methods" USING btree ("pricing_model_id");
+

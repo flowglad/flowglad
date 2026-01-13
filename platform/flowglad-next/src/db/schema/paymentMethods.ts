@@ -48,33 +48,27 @@ const columns = {
 export const paymentMethods = pgTable(
   TABLE_NAME,
   columns,
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.customerId]),
-      constructIndex(TABLE_NAME, [table.type]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      constructUniqueIndex(TABLE_NAME, [
-        table.externalId,
-        table.pricingModelId,
-      ]),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"customer_id" in (select "id" from "customers")`,
-        }
-      ),
-      merchantPolicy(
-        'Enable read for own organizations via customer',
-        {
-          as: 'permissive',
-          to: 'all',
-          for: 'all',
-          using: sql`"customerId" in (select "id" from "customers")`,
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.customerId]),
+    constructIndex(TABLE_NAME, [table.type]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.externalId,
+      table.pricingModelId,
+    ]),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"customer_id" in (select "id" from "customers")`,
+      }
+    ),
+    merchantPolicy('Enable read for own organizations via customer', {
+      as: 'permissive',
+      to: 'all',
+      for: 'all',
+      using: sql`"customerId" in (select "id" from "customers")`,
+    }),
+  ])
 ).enableRLS()
 
 export const paymentMethodBillingDetailsSchema = z.object({
