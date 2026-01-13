@@ -25,8 +25,12 @@ export default function CreateOrgPage() {
 
       if (error) {
         setError(error.message || 'Failed to create organization')
-      } else {
+      } else if (data) {
         console.log('Organization created:', data)
+        // Set the newly created org as active
+        await authClient.organization.setActive({
+          organizationId: data.id,
+        })
         router.push('/debug')
       }
     } catch (err) {
