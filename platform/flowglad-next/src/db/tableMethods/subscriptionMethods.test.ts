@@ -1286,9 +1286,8 @@ describe('selectSubscriptionsTableRowData', () => {
           (item) => item.subscription.id === usageSubscription.id
         )
 
-        // Verify the subscription is returned
-        expect(usageSubRow).not.toBeNull()
-        expect(usageSubRow!.subscription.id).toBe(
+        // Verify the subscription is returned with expected id
+        expect(usageSubRow?.subscription.id).toBe(
           usageSubscription.id
         )
         expect(usageSubRow!.subscription.priceId).toBe(usagePrice.id)

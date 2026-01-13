@@ -1171,8 +1171,7 @@ describe('diffUsageMeters with prices', () => {
     const result = diffUsageMeters(existing, proposed)
 
     expect(result.toUpdate).toHaveLength(1)
-    expect(result.toUpdate[0].priceDiff).toBeTruthy()
-    expect(result.toUpdate[0].priceDiff.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].priceDiff?.toUpdate).toHaveLength(1)
     expect(
       result.toUpdate[0].priceDiff.toUpdate[0].existing.unitPrice
     ).toBe(100)

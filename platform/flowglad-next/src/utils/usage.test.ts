@@ -227,8 +227,8 @@ describe('createUsageMeterTransaction', () => {
       const usagePrice = pricesWithSlug.find(
         (p) => p.type === PriceType.Usage
       )
-      expect(subscriptionPrice).not.toBeUndefined()
-      expect(usagePrice).not.toBeUndefined()
+      expect(subscriptionPrice?.type).toBe(PriceType.Subscription)
+      expect(usagePrice?.type).toBe(PriceType.Usage)
     })
 
     it('allows usage meter creation with unique slug even when other slugs exist', async () => {
