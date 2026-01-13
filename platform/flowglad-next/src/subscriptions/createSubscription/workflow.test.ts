@@ -46,6 +46,7 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import {
+  createCapturingContext,
   createNoopContext,
   noopEmitEvent,
   noopInvalidateCache,
@@ -2230,32 +2231,38 @@ describe('createSubscriptionWorkflow cache invalidations', async () => {
       livemode: true,
     })
 
-    const workflowResult = await adminTransaction(
-      async ({ transaction }) => {
-        const stripeSetupIntentId = `setupintent_cache_test_${core.nanoid()}`
-        return createSubscriptionWorkflow(
-          {
-            organization,
-            product,
-            price,
-            quantity: 1,
-            livemode: true,
-            startDate: new Date(),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: paymentMethod,
-            customer,
-            stripeSetupIntentId,
-            autoStart: true,
-          },
-          createNoopContext(transaction)
-        )
-      }
-    )
+    let capturedEffects: {
+      cacheInvalidations: string[]
+      events: unknown[]
+      ledgerCommands: unknown[]
+    } | null = null
+
+    await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_cache_test_${core.nanoid()}`
+      const { ctx, effects } = createCapturingContext(transaction)
+      capturedEffects = effects
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+        },
+        ctx
+      )
+    })
 
     // Verify cacheInvalidations contains customerSubscriptions dependency
-    expect(workflowResult.cacheInvalidations).toHaveLength(1)
-    expect(workflowResult.cacheInvalidations).toContain(
+    expect(capturedEffects!.cacheInvalidations).toHaveLength(1)
+    expect(capturedEffects!.cacheInvalidations).toContain(
       CacheDependency.customerSubscriptions(customer.id)
     )
   })
@@ -2276,34 +2283,40 @@ describe('createSubscriptionWorkflow cache invalidations', async () => {
       livemode: true,
     })
 
-    const workflowResult = await adminTransaction(
-      async ({ transaction }) => {
-        const stripeSetupIntentId = `setupintent_cache_cust_${core.nanoid()}`
-        return createSubscriptionWorkflow(
-          {
-            organization,
-            product,
-            price,
-            quantity: 1,
-            livemode: true,
-            startDate: new Date(),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: paymentMethod1,
-            customer: customer1,
-            stripeSetupIntentId,
-            autoStart: true,
-          },
-          createNoopContext(transaction)
-        )
-      }
-    )
+    let capturedEffects: {
+      cacheInvalidations: string[]
+      events: unknown[]
+      ledgerCommands: unknown[]
+    } | null = null
+
+    await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_cache_cust_${core.nanoid()}`
+      const { ctx, effects } = createCapturingContext(transaction)
+      capturedEffects = effects
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod1,
+          customer: customer1,
+          stripeSetupIntentId,
+          autoStart: true,
+        },
+        ctx
+      )
+    })
 
     // Should invalidate customer1's cache, not customer2's
-    expect(workflowResult.cacheInvalidations).toContain(
+    expect(capturedEffects!.cacheInvalidations).toContain(
       CacheDependency.customerSubscriptions(customer1.id)
     )
-    expect(workflowResult.cacheInvalidations).not.toContain(
+    expect(capturedEffects!.cacheInvalidations).not.toContain(
       CacheDependency.customerSubscriptions(customer2.id)
     )
   })
