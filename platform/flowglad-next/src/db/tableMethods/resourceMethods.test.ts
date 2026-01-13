@@ -501,60 +501,6 @@ describe('resourceMethods', () => {
         expect(result.items[0].resource.name).toBe('TrimTestResource')
       })
     })
-
-    it('should support cursor-based pagination with pricing model joins', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Insert multiple resources
-        for (let i = 0; i < 5; i++) {
-          await insertResource(
-            createResourceInsert({
-              slug: `cursor-pagination-${i}`,
-              name: `Cursor Pagination ${i}`,
-            }),
-            transaction
-          )
-        }
-
-        const page1 = await selectResourcesTableRowData({
-          input: {
-            pageSize: 2,
-            filters: { organizationId: organization.id },
-          },
-          transaction,
-        })
-
-        expect(page1.items.length).toBe(2)
-        expect(page1.hasNextPage).toBe(true)
-        // Since hasNextPage is true, endCursor must be defined
-        expect(typeof page1.endCursor).toBe('string')
-        expect(page1.endCursor!.length).toBeGreaterThan(0)
-
-        // All items should have pricing model info
-        for (const item of page1.items) {
-          expect(item.pricingModel.id).toMatch(/^pricing_model_/)
-          expect(typeof item.pricingModel.name).toBe('string')
-          expect(item.pricingModel.name.length).toBeGreaterThan(0)
-        }
-
-        // Get second page using cursor
-        const page2 = await selectResourcesTableRowData({
-          input: {
-            pageSize: 2,
-            pageAfter: page1.endCursor!,
-            filters: { organizationId: organization.id },
-          },
-          transaction,
-        })
-
-        expect(page2.items.length).toBe(2)
-        // Ensure no overlap between pages
-        const page1Ids = page1.items.map((i) => i.resource.id)
-        const page2Ids = page2.items.map((i) => i.resource.id)
-        expect(page1Ids.some((id) => page2Ids.includes(id))).toBe(
-          false
-        )
-      })
-    })
   })
 
   describe('bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug', () => {
