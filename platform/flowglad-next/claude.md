@@ -21,14 +21,19 @@ If you are trying to run tests to see whether they pass, you must use `bun run t
 ### Test Environments
 The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs like Stripe.
 
-**React component tests** (`.test.tsx` files) require DOM APIs and must include this directive at the top of the file:
+**Tests using React or DOM APIs** must include this directive at the top of the file:
 ```typescript
 /**
  * @vitest-environment jsdom
  */
 ```
 
-This tells Vitest to run that specific test file in a jsdom environment where DOM APIs like `document`, `window`, and React Testing Library work correctly.
+This includes:
+- React component tests (`.test.tsx` files)
+- React hook tests using `renderHook` from `@testing-library/react`
+- Any test that needs DOM APIs like `document` or `window`
+
+This tells Vitest to run that specific test file in a jsdom environment.
 
 ## When Writing TRPC Code
 1. Always specify mutation and query outputs using `.output()`
