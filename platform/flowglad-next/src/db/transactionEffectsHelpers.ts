@@ -5,7 +5,11 @@ import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 import type { Event } from './schema/events'
 import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
 import type { TransactionOutput } from './transactionEnhacementTypes'
-import type { DbTransaction, TransactionEffects } from './types'
+import type {
+  DbTransaction,
+  TransactionEffects,
+  TransactionEffectsContext,
+} from './types'
 
 /**
  * Creates a fresh effects accumulator and the callback functions that push to it.
