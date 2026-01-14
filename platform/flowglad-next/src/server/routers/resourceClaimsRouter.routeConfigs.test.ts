@@ -19,9 +19,9 @@ describe('resourceClaimsRouteConfigs', () => {
   }
 
   describe('Route pattern matching and procedure mapping', () => {
-    it('maps POST /resource-claims/:id/claim to resourceClaims.claim procedure', () => {
+    it('maps POST /resource-claims/:subscriptionId/claim to resourceClaims.claim procedure', () => {
       const routeConfig = findRouteConfig(
-        'POST /resource-claims/:id/claim'
+        'POST /resource-claims/:subscriptionId/claim'
       )
 
       expect(routeConfig!.procedure).toBe('resourceClaims.claim')
@@ -30,9 +30,9 @@ describe('resourceClaimsRouteConfigs', () => {
       ).toBe(true)
     })
 
-    it('maps POST /resource-claims/:id/release to resourceClaims.release procedure', () => {
+    it('maps POST /resource-claims/:subscriptionId/release to resourceClaims.release procedure', () => {
       const routeConfig = findRouteConfig(
-        'POST /resource-claims/:id/release'
+        'POST /resource-claims/:subscriptionId/release'
       )
 
       expect(routeConfig!.procedure).toBe('resourceClaims.release')
@@ -41,9 +41,9 @@ describe('resourceClaimsRouteConfigs', () => {
       ).toBe(true)
     })
 
-    it('maps GET /resource-claims/:id/usage to resourceClaims.getUsage procedure', () => {
+    it('maps GET /resource-claims/:subscriptionId/usage to resourceClaims.getUsage procedure', () => {
       const routeConfig = findRouteConfig(
-        'GET /resource-claims/:id/usage'
+        'GET /resource-claims/:subscriptionId/usage'
       )
 
       expect(routeConfig!.procedure).toBe('resourceClaims.getUsage')
@@ -52,9 +52,9 @@ describe('resourceClaimsRouteConfigs', () => {
       ).toBe(true)
     })
 
-    it('maps GET /resource-claims/:id/claims to resourceClaims.listClaims procedure', () => {
+    it('maps GET /resource-claims/:subscriptionId/claims to resourceClaims.listClaims procedure', () => {
       const routeConfig = findRouteConfig(
-        'GET /resource-claims/:id/claims'
+        'GET /resource-claims/:subscriptionId/claims'
       )
 
       expect(routeConfig!.procedure).toBe('resourceClaims.listClaims')
@@ -67,7 +67,7 @@ describe('resourceClaimsRouteConfigs', () => {
   describe('Route pattern RegExp validation', () => {
     it('validates claim route pattern matches expected paths and rejects invalid paths', () => {
       const claimConfig = findRouteConfig(
-        'POST /resource-claims/:id/claim'
+        'POST /resource-claims/:subscriptionId/claim'
       )
 
       expect(
@@ -89,7 +89,7 @@ describe('resourceClaimsRouteConfigs', () => {
 
     it('validates release route pattern matches expected paths and rejects invalid paths', () => {
       const releaseConfig = findRouteConfig(
-        'POST /resource-claims/:id/release'
+        'POST /resource-claims/:subscriptionId/release'
       )
 
       expect(
@@ -113,7 +113,7 @@ describe('resourceClaimsRouteConfigs', () => {
 
     it('validates getUsage route pattern matches expected paths and rejects invalid paths', () => {
       const usageConfig = findRouteConfig(
-        'GET /resource-claims/:id/usage'
+        'GET /resource-claims/:subscriptionId/usage'
       )
 
       expect(
@@ -137,7 +137,7 @@ describe('resourceClaimsRouteConfigs', () => {
 
     it('validates listClaims route pattern matches expected paths and rejects invalid paths', () => {
       const listConfig = findRouteConfig(
-        'GET /resource-claims/:id/claims'
+        'GET /resource-claims/:subscriptionId/claims'
       )
 
       expect(
@@ -159,7 +159,7 @@ describe('resourceClaimsRouteConfigs', () => {
 
     it('extracts correct id capture group from URL paths', () => {
       const claimConfig = findRouteConfig(
-        'POST /resource-claims/:id/claim'
+        'POST /resource-claims/:subscriptionId/claim'
       )
       const claimMatches = claimConfig!.pattern.exec(
         'resource-claims/test-sub-id/claim'
@@ -168,7 +168,7 @@ describe('resourceClaimsRouteConfigs', () => {
       expect(claimMatches![1]).toBe('test-sub-id')
 
       const releaseConfig = findRouteConfig(
-        'POST /resource-claims/:id/release'
+        'POST /resource-claims/:subscriptionId/release'
       )
       const releaseMatches = releaseConfig!.pattern.exec(
         'resource-claims/test-sub-id/release'
@@ -177,7 +177,7 @@ describe('resourceClaimsRouteConfigs', () => {
       expect(releaseMatches![1]).toBe('test-sub-id')
 
       const usageConfig = findRouteConfig(
-        'GET /resource-claims/:id/usage'
+        'GET /resource-claims/:subscriptionId/usage'
       )
       const usageMatches = usageConfig!.pattern.exec(
         'resource-claims/test-sub-id/usage'
@@ -186,7 +186,7 @@ describe('resourceClaimsRouteConfigs', () => {
       expect(usageMatches![1]).toBe('test-sub-id')
 
       const listConfig = findRouteConfig(
-        'GET /resource-claims/:id/claims'
+        'GET /resource-claims/:subscriptionId/claims'
       )
       const listMatches = listConfig!.pattern.exec(
         'resource-claims/test-sub-id/claims'
@@ -201,21 +201,21 @@ describe('resourceClaimsRouteConfigs', () => {
       // Custom action routes (claim, release) expect sliced matches and return id + body
       const slicedMatchRoutes = [
         {
-          key: 'POST /resource-claims/:id/claim',
+          key: 'POST /resource-claims/:subscriptionId/claim',
           path: 'resource-claims/subscription-claim-123/claim',
           body: { resourceSlug: 'seats', quantity: 10 },
           expected: {
-            id: 'subscription-claim-123',
+            subscriptionId: 'subscription-claim-123',
             resourceSlug: 'seats',
             quantity: 10,
           },
         },
         {
-          key: 'POST /resource-claims/:id/release',
+          key: 'POST /resource-claims/:subscriptionId/release',
           path: 'resource-claims/subscription-release-789/release',
           body: { resourceSlug: 'seats', quantity: 5 },
           expected: {
-            id: 'subscription-release-789',
+            subscriptionId: 'subscription-release-789',
             resourceSlug: 'seats',
             quantity: 5,
           },
@@ -233,17 +233,16 @@ describe('resourceClaimsRouteConfigs', () => {
       })
 
       // Nested resource getter (getUsage) and lister (listClaims) expect full match array
-      // and return entityId using camelCase format (resourceClaimsId)
       const fullMatchRoutes = [
         {
-          key: 'GET /resource-claims/:id/usage',
+          key: 'GET /resource-claims/:subscriptionId/usage',
           path: 'resource-claims/subscription-usage-202/usage',
-          expected: { resourceClaimsId: 'subscription-usage-202' },
+          expected: { subscriptionId: 'subscription-usage-202' },
         },
         {
-          key: 'GET /resource-claims/:id/claims',
+          key: 'GET /resource-claims/:subscriptionId/claims',
           path: 'resource-claims/subscription-list-404/claims',
-          expected: { resourceClaimsId: 'subscription-list-404' },
+          expected: { subscriptionId: 'subscription-list-404' },
         },
       ]
 
@@ -257,7 +256,7 @@ describe('resourceClaimsRouteConfigs', () => {
 
     it('preserves special characters in id when extracting from URL paths', () => {
       const routeConfig = findRouteConfig(
-        'POST /resource-claims/:id/claim'
+        'POST /resource-claims/:subscriptionId/claim'
       )
 
       const fullMatch1 = routeConfig!.pattern.exec(
@@ -268,7 +267,7 @@ describe('resourceClaimsRouteConfigs', () => {
         quantity: 1,
       })
       expect(result1).toEqual({
-        id: 'sub%40company.com',
+        subscriptionId: 'sub%40company.com',
         resourceSlug: 'seats',
         quantity: 1,
       })
@@ -281,7 +280,7 @@ describe('resourceClaimsRouteConfigs', () => {
         quantity: 1,
       })
       expect(result2).toEqual({
-        id: 'sub_123-abc',
+        subscriptionId: 'sub_123-abc',
         resourceSlug: 'seats',
         quantity: 1,
       })
@@ -292,26 +291,37 @@ describe('resourceClaimsRouteConfigs', () => {
     it('includes all expected custom route configs for resource claims operations', () => {
       const routeKeys = getAllRouteKeys()
 
-      expect(routeKeys).toContain('POST /resource-claims/:id/claim')
-      expect(routeKeys).toContain('POST /resource-claims/:id/release')
-      expect(routeKeys).toContain('GET /resource-claims/:id/usage')
-      expect(routeKeys).toContain('GET /resource-claims/:id/claims')
+      expect(routeKeys).toContain(
+        'POST /resource-claims/:subscriptionId/claim'
+      )
+      expect(routeKeys).toContain(
+        'POST /resource-claims/:subscriptionId/release'
+      )
+      expect(routeKeys).toContain(
+        'GET /resource-claims/:subscriptionId/usage'
+      )
+      expect(routeKeys).toContain(
+        'GET /resource-claims/:subscriptionId/usages'
+      )
+      expect(routeKeys).toContain(
+        'GET /resource-claims/:subscriptionId/claims'
+      )
 
-      expect(routeKeys).toHaveLength(4)
+      expect(routeKeys).toHaveLength(5)
     })
 
     it('extracts id from routes with correct mapParams invocation per route type', () => {
       // Custom action routes (claim, release) expect sliced matches
       const slicedMatchRoutes = [
         {
-          key: 'POST /resource-claims/:id/claim',
+          key: 'POST /resource-claims/:subscriptionId/claim',
           path: 'resource-claims/test-sub/claim',
-          idKey: 'id',
+          idKey: 'subscriptionId',
         },
         {
-          key: 'POST /resource-claims/:id/release',
+          key: 'POST /resource-claims/:subscriptionId/release',
           path: 'resource-claims/test-sub/release',
-          idKey: 'id',
+          idKey: 'subscriptionId',
         },
       ]
 
@@ -327,11 +337,15 @@ describe('resourceClaimsRouteConfigs', () => {
       // Nested resource getter (getUsage) and lister (listClaims) expect full match array
       const fullMatchRoutes = [
         {
-          key: 'GET /resource-claims/:id/usage',
+          key: 'GET /resource-claims/:subscriptionId/usage',
           path: 'resource-claims/test-sub/usage',
         },
         {
-          key: 'GET /resource-claims/:id/claims',
+          key: 'GET /resource-claims/:subscriptionId/usages',
+          path: 'resource-claims/test-sub/usages',
+        },
+        {
+          key: 'GET /resource-claims/:subscriptionId/claims',
           path: 'resource-claims/test-sub/claims',
         },
       ]
@@ -340,7 +354,7 @@ describe('resourceClaimsRouteConfigs', () => {
         const config = findRouteConfig(key)
         const fullMatch = config!.pattern.exec(path)
         const result = config!.mapParams(fullMatch as string[])
-        expect(result).toHaveProperty('resourceClaimsId', 'test-sub')
+        expect(result).toHaveProperty('subscriptionId', 'test-sub')
       })
     })
 
@@ -356,10 +370,15 @@ describe('resourceClaimsRouteConfigs', () => {
 
     it('maps to correct TRPC procedures', () => {
       const expectedMappings = {
-        'POST /resource-claims/:id/claim': 'resourceClaims.claim',
-        'POST /resource-claims/:id/release': 'resourceClaims.release',
-        'GET /resource-claims/:id/usage': 'resourceClaims.getUsage',
-        'GET /resource-claims/:id/claims':
+        'POST /resource-claims/:subscriptionId/claim':
+          'resourceClaims.claim',
+        'POST /resource-claims/:subscriptionId/release':
+          'resourceClaims.release',
+        'GET /resource-claims/:subscriptionId/usage':
+          'resourceClaims.getUsage',
+        'GET /resource-claims/:subscriptionId/usages':
+          'resourceClaims.listResourceUsages',
+        'GET /resource-claims/:subscriptionId/claims':
           'resourceClaims.listClaims',
       }
 
@@ -386,10 +405,10 @@ describe('resourceClaimsRouteConfigs', () => {
   describe('Custom route behavior with id parameter', () => {
     it('differentiates between claim and release actions for the same subscription', () => {
       const claimConfig = findRouteConfig(
-        'POST /resource-claims/:id/claim'
+        'POST /resource-claims/:subscriptionId/claim'
       )
       const releaseConfig = findRouteConfig(
-        'POST /resource-claims/:id/release'
+        'POST /resource-claims/:subscriptionId/release'
       )
 
       const claimPath = 'resource-claims/sub-same/claim'
@@ -404,10 +423,10 @@ describe('resourceClaimsRouteConfigs', () => {
 
     it('differentiates between usage and claims for the same subscription', () => {
       const usageConfig = findRouteConfig(
-        'GET /resource-claims/:id/usage'
+        'GET /resource-claims/:subscriptionId/usage'
       )
       const listConfig = findRouteConfig(
-        'GET /resource-claims/:id/claims'
+        'GET /resource-claims/:subscriptionId/claims'
       )
 
       const usagePath = 'resource-claims/sub-same/usage'
