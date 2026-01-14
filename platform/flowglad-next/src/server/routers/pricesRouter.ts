@@ -365,6 +365,15 @@ export const replaceUsagePrice = protectedProcedure
           })
         }
 
+        // No_charge prices cannot be replaced
+        if (oldPrice.slug && isNoChargePrice(oldPrice.slug)) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message:
+              'No_charge prices cannot be replaced. They are protected system prices.',
+          })
+        }
+
         // Validate the new price belongs to the same usage meter
         if (input.newPrice.usageMeterId !== oldPrice.usageMeterId) {
           throw new TRPCError({

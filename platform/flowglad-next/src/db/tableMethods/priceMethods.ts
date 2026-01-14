@@ -909,7 +909,7 @@ export const ensureUsageMeterHasDefaultPrice = async (
 
   // Set the no_charge price as default
   // We update by slug + pricingModelId since that's how prices are uniquely identified
-  await transaction
+  const updateResult = await transaction
     .update(prices)
     .set({ isDefault: true })
     .where(
@@ -918,6 +918,16 @@ export const ensureUsageMeterHasDefaultPrice = async (
         eq(prices.pricingModelId, usageMeter.pricingModelId)
       )
     )
+    .returning({ id: prices.id })
+
+  // Verify the no_charge price was found and updated
+  if (updateResult.length === 0) {
+    throw new Error(
+      `Failed to set default price for usage meter ${usageMeterId}: ` +
+        `no_charge price with slug "${noChargeSlug}" not found. ` +
+        `This indicates a data inconsistency - the no_charge price should always exist.`
+    )
+  }
 }
 
 const setPricesForProductToNonDefaultNonActive = async (

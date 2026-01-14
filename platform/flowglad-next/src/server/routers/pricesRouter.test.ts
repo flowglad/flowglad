@@ -1899,4 +1899,72 @@ describe('pricesRouter.replaceUsagePrice', () => {
       })
     ).rejects.toThrow('_no_charge')
   })
+
+  it('throws FORBIDDEN when attempting to replace a no_charge price', async () => {
+    const { apiKey, user } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    const ctx = {
+      organizationId,
+      apiKey: apiKey.token!,
+      livemode,
+      environment: 'live' as const,
+      path: '',
+      user,
+    }
+
+    // Create a no_charge price (simulating the auto-generated one)
+    const noChargePrice = await adminTransaction(
+      async ({ transaction }) => {
+        const org = await orgSetup.selectOrganizationById(
+          organizationId,
+          transaction
+        )
+        return insertPrice(
+          {
+            productId: null,
+            pricingModelId,
+            unitPrice: 0,
+            isDefault: false,
+            type: PriceType.Usage,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: org.defaultCurrency,
+            livemode,
+            active: true,
+            name: 'No Charge Price',
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            usageMeterId,
+            externalId: null,
+            slug: 'api-calls-replace-test_no_charge', // Reserved slug pattern
+          },
+          transaction
+        )
+      }
+    )
+
+    // Attempt to replace the no_charge price (should fail)
+    await expect(
+      pricesRouter.createCaller(ctx).replaceUsagePrice({
+        newPrice: {
+          type: PriceType.Usage,
+          productId: null,
+          usageMeterId,
+          unitPrice: 100,
+          usageEventsPerUnit: 10,
+          isDefault: false,
+          name: 'Replacement Price',
+          slug: 'replacement-price',
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          trialPeriodDays: null,
+        },
+        oldPriceId: noChargePrice.id,
+      })
+    ).rejects.toThrow(
+      'No_charge prices cannot be replaced. They are protected system prices.'
+    )
+  })
 })
