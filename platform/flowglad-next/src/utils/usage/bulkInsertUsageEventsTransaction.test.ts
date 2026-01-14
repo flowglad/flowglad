@@ -118,7 +118,20 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
     })
 
-    it('should resolve usageMeterSlug to usageMeterId', async () => {
+    it('should resolve usageMeterSlug to usageMeterId and use default price', async () => {
+      // Create a default price for the usage meter
+      const defaultPrice = await setupPrice({
+        name: 'Default Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+      })
+
       const result = await adminTransaction(async ({ transaction }) =>
         bulkInsertUsageEventsTransaction(
           {
@@ -139,7 +152,10 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       expect(result.result.usageEvents).toHaveLength(1)
-      expect(result.result.usageEvents[0].priceId).toBeNull()
+      // Should resolve to the default price
+      expect(result.result.usageEvents[0].priceId).toBe(
+        defaultPrice.id
+      )
       expect(result.result.usageEvents[0].usageMeterId).toBe(
         usageMeter.id
       )

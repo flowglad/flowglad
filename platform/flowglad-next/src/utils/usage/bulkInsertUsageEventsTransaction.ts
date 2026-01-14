@@ -7,7 +7,10 @@ import {
 } from '@/db/schema/usageEvents'
 import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectPrices } from '@/db/tableMethods/priceMethods'
+import {
+  selectDefaultPriceForUsageMeter,
+  selectPrices,
+} from '@/db/tableMethods/priceMethods'
 import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import { bulkInsertOrDoNothingUsageEventsByTransactionId } from '@/db/tableMethods/usageEventMethods'
@@ -251,6 +254,56 @@ export const bulkInsertUsageEventsTransaction = async (
     }
   }
 
+  // Collect all usage meter IDs that need default price resolution
+  // This includes:
+  // 1. Events with usageMeterSlug (resolved to usageMeterId via slugToUsageMeterIdMap)
+  // 2. Events with direct usageMeterId (when priceId is not provided)
+  const usageMeterIdsNeedingDefaultPrice = new Set<string>()
+
+  for (const usageEvent of usageInsertsWithoutBillingPeriodId) {
+    const subscription = subscriptionsMap.get(
+      usageEvent.subscriptionId
+    )
+    if (!subscription) continue
+
+    // If usageMeterSlug is provided, the resolved meter ID needs a default price
+    if (usageEvent.usageMeterSlug) {
+      const key = `${subscription.customerId}:${usageEvent.usageMeterSlug}`
+      const resolvedUsageMeterId = slugToUsageMeterIdMap.get(key)
+      if (resolvedUsageMeterId) {
+        usageMeterIdsNeedingDefaultPrice.add(resolvedUsageMeterId)
+      }
+    }
+
+    // If direct usageMeterId is provided without priceId, it needs a default price
+    if (
+      usageEvent.usageMeterId &&
+      !usageEvent.priceId &&
+      !usageEvent.priceSlug
+    ) {
+      usageMeterIdsNeedingDefaultPrice.add(usageEvent.usageMeterId)
+    }
+  }
+
+  // Batch fetch default prices for all usage meters that need them
+  const usageMeterDefaultPriceMap = new Map<string, string>()
+
+  if (usageMeterIdsNeedingDefaultPrice.size > 0) {
+    for (const usageMeterId of usageMeterIdsNeedingDefaultPrice) {
+      const defaultPrice = await selectDefaultPriceForUsageMeter(
+        usageMeterId,
+        transaction
+      )
+      if (!defaultPrice) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Usage meter ${usageMeterId} has no default price. This should not happen.`,
+        })
+      }
+      usageMeterDefaultPriceMap.set(usageMeterId, defaultPrice.id)
+    }
+  }
+
   // Resolve identifiers for all events
   const resolvedUsageEvents = usageInsertsWithoutBillingPeriodId.map(
     (usageEvent, index) => {
@@ -281,7 +334,7 @@ export const bulkInsertUsageEventsTransaction = async (
         priceId = resolvedPriceId
       }
 
-      // If usageMeterSlug is provided, resolve it
+      // If usageMeterSlug is provided, resolve it and use the default price
       if (usageEvent.usageMeterSlug) {
         const key = `${subscription.customerId}:${usageEvent.usageMeterSlug}`
         const resolvedUsageMeterId = slugToUsageMeterIdMap.get(key)
@@ -293,7 +346,31 @@ export const bulkInsertUsageEventsTransaction = async (
           })
         }
         usageMeterId = resolvedUsageMeterId
-        priceId = null // When usage meter identifiers are used, priceId is null
+
+        // Use the default price for this usage meter
+        const defaultPriceId = usageMeterDefaultPriceMap.get(
+          resolvedUsageMeterId
+        )
+        if (!defaultPriceId) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `Failed to resolve default price for usage meter ${resolvedUsageMeterId} at index ${index}`,
+          })
+        }
+        priceId = defaultPriceId
+      }
+
+      // If direct usageMeterId is provided without priceId, use the default price
+      if (usageMeterId && !priceId && !usageEvent.priceSlug) {
+        const defaultPriceId =
+          usageMeterDefaultPriceMap.get(usageMeterId)
+        if (!defaultPriceId) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `Failed to resolve default price for usage meter ${usageMeterId} at index ${index}`,
+          })
+        }
+        priceId = defaultPriceId
       }
 
       // Omit slug fields and set resolved identifiers
@@ -338,22 +415,24 @@ export const bulkInsertUsageEventsTransaction = async (
     })
   }
 
-  // Validate price IDs that were provided directly (not resolved from slug)
+  // Validate price IDs that were provided directly (not resolved from slug or usageMeterId)
   // They must exist in the customer's pricing model
   // Note: Events with priceSlug already validated during slug resolution (lines 156-199)
+  // Note: Events with usageMeterSlug or usageMeterId have their priceId derived from default price lookup
   const eventsWithDirectPriceIds = resolvedUsageEvents
     .map((usageEvent, index) => ({
       usageEvent,
       index,
     }))
     .filter(({ usageEvent, index }) => {
-      // Only validate events that have a priceId AND were NOT resolved from a slug
-      // Check if this event originally had a priceSlug by checking the original input
+      // Only validate events that have a priceId AND were NOT resolved from a slug or usageMeterId
+      // Check the original input to see how the priceId was determined
       const originalEvent = input.usageEvents[index]
       return (
         usageEvent.priceId !== null &&
         !originalEvent.priceSlug &&
-        !originalEvent.usageMeterSlug
+        !originalEvent.usageMeterSlug &&
+        !originalEvent.usageMeterId
       )
     })
 
