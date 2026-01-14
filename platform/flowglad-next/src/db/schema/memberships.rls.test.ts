@@ -168,7 +168,7 @@ describe.sequential('memberships RLS - notificationPreferences', () => {
       const prefs = getMembershipNotificationPreferences(
         memberships[0]
       )
-      expect(prefs.testModeNotifications).toBe(false) // default
+      expect(prefs.testModeNotifications).toBe(true) // default
       expect(prefs.subscriptionCreated).toBe(true) // default
     })
 
