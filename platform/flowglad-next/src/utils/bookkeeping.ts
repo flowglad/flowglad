@@ -244,6 +244,9 @@ export const createCustomerBookkeeping = async (
     transaction,
     organizationId,
     livemode,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
   }: Omit<AuthenticatedTransactionParams, 'userId'>
 ): Promise<
   TransactionOutput<{
@@ -349,6 +352,12 @@ export const createCustomerBookkeeping = async (
           transaction
         )
 
+        // Create capturing callbacks to collect events locally while also calling provided callbacks
+        const capturingEmitEvent = (...events: Event.Insert[]) => {
+          eventsToInsert.push(...events)
+          emitEvent?.(...events)
+        }
+
         // Create the subscription
         const subscriptionResult = await createSubscriptionWorkflow(
           {
@@ -375,10 +384,16 @@ export const createCustomerBookkeeping = async (
             autoStart: true,
             name: `${defaultProduct.name} Subscription`,
           },
-          transaction
+          {
+            transaction,
+            invalidateCache: invalidateCache ?? (() => {}),
+            emitEvent: capturingEmitEvent,
+            enqueueLedgerCommand: enqueueLedgerCommand ?? (() => {}),
+          }
         )
 
-        // Merge events from subscription creation
+        // Events from subscription creation are already captured via capturingEmitEvent
+        // Also merge any events returned in the result for backwards compatibility
         if (subscriptionResult.eventsToInsert) {
           eventsToInsert.push(...subscriptionResult.eventsToInsert)
         }

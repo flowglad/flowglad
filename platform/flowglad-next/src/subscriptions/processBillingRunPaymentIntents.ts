@@ -42,7 +42,10 @@ import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionIt
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
 import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
@@ -218,7 +221,7 @@ const processAwaitingPaymentConfirmationNotifications = async (
 
 export const processOutcomeForBillingRun = async (
   params: ProcessOutcomeForBillingRunParams,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<
   TransactionOutput<{
     invoice: Invoice.Record
@@ -228,6 +231,7 @@ export const processOutcomeForBillingRun = async (
     processingSkipped?: boolean
   }>
 > => {
+  const { transaction, invalidateCache, emitEvent } = ctx
   const { input, adjustmentParams } = params
   const event = 'type' in input ? input.data.object : input
   const timestamp = 'type' in input ? input.created : event.created
@@ -544,9 +548,13 @@ export const processOutcomeForBillingRun = async (
   }
 
   // Track cache invalidations from subscription item adjustments and status changes
+  const customerSubscriptionsCacheKey =
+    CacheDependency.customerSubscriptions(subscription.customerId)
+  // Queue via effects context
+  invalidateCache(customerSubscriptionsCacheKey)
+  // Also return for backward compatibility
   const cacheInvalidations: CacheDependencyKey[] = [
-    // Always invalidate customerSubscriptions since status may change
-    CacheDependency.customerSubscriptions(subscription.customerId),
+    customerSubscriptionsCacheKey,
     ...(subscriptionItemAdjustmentResult?.cacheInvalidations ?? []),
   ]
 
@@ -576,19 +584,7 @@ export const processOutcomeForBillingRun = async (
     // Do not cancel if first payment fails for free or default plans
     if (firstPayment && !subscription.isFreePlan) {
       // First payment failure - cancel subscription immediately
-      const {
-        result: canceledSubscription,
-        eventsToInsert: cancelEvents,
-      } = await cancelSubscriptionImmediately(
-        {
-          subscription,
-        },
-        transaction
-      )
-
-      if (cancelEvents && cancelEvents.length > 0) {
-        eventsToInsert.push(...cancelEvents)
-      }
+      await cancelSubscriptionImmediately({ subscription }, ctx)
     } else {
       // nth payment failures logic
       const maybeRetry = await scheduleBillingRunRetry(

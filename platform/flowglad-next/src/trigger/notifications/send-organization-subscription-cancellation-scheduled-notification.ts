@@ -15,6 +15,7 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { filterEligibleRecipients } from '@/utils/notifications'
 
 const sendOrganizationSubscriptionCancellationScheduledNotificationTask =
   task({
@@ -66,15 +67,37 @@ const sendOrganizationSubscriptionCancellationScheduledNotificationTask =
         throw new Error('Organization or customer not found')
       }
 
+      const eligibleRecipients = filterEligibleRecipients(
+        usersAndMemberships,
+        'subscriptionCancellationScheduled',
+        subscription.livemode
+      )
+
+      if (eligibleRecipients.length === 0) {
+        return {
+          message: 'No recipients opted in for this notification',
+        }
+      }
+
+      const recipientEmails = eligibleRecipients
+        .map(({ user }) => user.email)
+        .filter(
+          (email): email is string => !isNil(email) && email !== ''
+        )
+
+      if (recipientEmails.length === 0) {
+        return {
+          message: 'No valid email addresses for eligible recipients',
+        }
+      }
+
       const cancellationDate = new Date(scheduledCancellationDate)
       const subscriptionName = subscription.name || 'subscription'
 
       await safeSend({
         from: 'Flowglad <notifications@flowglad.com>',
         bcc: getBccForLivemode(subscription.livemode),
-        to: usersAndMemberships
-          .map(({ user }) => user.email)
-          .filter((email) => !isNil(email)),
+        to: recipientEmails,
         subject: formatEmailSubject(
           `Cancellation Scheduled: ${customer.name} scheduled cancellation for ${subscriptionName} on ${formatDate(cancellationDate)}`,
           subscription.livemode

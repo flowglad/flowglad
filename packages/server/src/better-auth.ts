@@ -62,6 +62,10 @@ export const endpointKeyToActionKey: Record<
   createSubscription: FlowgladActionKey.CreateSubscription,
   updateCustomer: FlowgladActionKey.UpdateCustomer,
   createUsageEvent: FlowgladActionKey.CreateUsageEvent,
+  getResources: FlowgladActionKey.GetResources,
+  claimResource: FlowgladActionKey.ClaimResource,
+  releaseResource: FlowgladActionKey.ReleaseResource,
+  listResourceClaims: FlowgladActionKey.ListResourceClaims,
 }
 
 /**
@@ -89,6 +93,10 @@ const _actionKeyToEndpointKey = {
   [FlowgladActionKey.CreateSubscription]: 'createSubscription',
   [FlowgladActionKey.UpdateCustomer]: 'updateCustomer',
   [FlowgladActionKey.CreateUsageEvent]: 'createUsageEvent',
+  [FlowgladActionKey.GetResources]: 'getResources',
+  [FlowgladActionKey.ClaimResource]: 'claimResource',
+  [FlowgladActionKey.ReleaseResource]: 'releaseResource',
+  [FlowgladActionKey.ListResourceClaims]: 'listResourceClaims',
 } satisfies Record<
   FlowgladActionKey,
   keyof typeof endpointKeyToActionKey
@@ -482,6 +490,23 @@ export const flowgladPlugin = (
       ),
       createUsageEvent: createFlowgladBillingEndpoint(
         FlowgladActionKey.CreateUsageEvent,
+        options
+      ),
+      // Resource claim endpoints - to be fully implemented in later patches
+      getResources: createFlowgladBillingEndpoint(
+        FlowgladActionKey.GetResources,
+        options
+      ),
+      claimResource: createFlowgladBillingEndpoint(
+        FlowgladActionKey.ClaimResource,
+        options
+      ),
+      releaseResource: createFlowgladBillingEndpoint(
+        FlowgladActionKey.ReleaseResource,
+        options
+      ),
+      listResourceClaims: createFlowgladBillingEndpoint(
+        FlowgladActionKey.ListResourceClaims,
         options
       ),
     },

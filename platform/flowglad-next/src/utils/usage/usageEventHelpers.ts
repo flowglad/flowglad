@@ -28,8 +28,10 @@ import {
   selectUsageMeterBySlugAndCustomerId,
   selectUsageMeters,
 } from '@/db/tableMethods/usageMeterMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import {
   LedgerTransactionType,
   PriceType,
@@ -598,16 +600,17 @@ export const generateLedgerCommandsForBulkUsageEvents = async (
  * @param params - Object containing:
  *   - input: The usage event input (with resolved priceId/usageMeterId)
  *   - livemode: Whether the event is in livemode
- * @param transaction - Database transaction
- * @returns Transaction output with the usage event and optional ledger command
+ * @param ctx - Transaction effects context with callbacks for enqueueing ledger commands
+ * @returns The usage event record
  */
 export const ingestAndProcessUsageEvent = async (
   {
     input,
     livemode,
   }: { input: CreateUsageEventInput; livemode: boolean },
-  transaction: DbTransaction
-): Promise<TransactionOutput<{ usageEvent: UsageEvent.Record }>> => {
+  ctx: TransactionEffectsContext
+): Promise<{ usageEvent: UsageEvent.Record }> => {
+  const { transaction, enqueueLedgerCommand } = ctx
   const usageEventInput = input.usageEvent
   // Fetch the current billing period for the subscription
   const billingPeriod =
@@ -734,7 +737,7 @@ export const ingestAndProcessUsageEvent = async (
       })
     }
     // Return the existing event without creating a new one
-    return { result: { usageEvent: existingUsageEvent } }
+    return { usageEvent: existingUsageEvent }
   }
 
   // Fetch the usage meter to validate count_distinct_properties requirements before insert
@@ -830,21 +833,19 @@ export const ingestAndProcessUsageEvent = async (
 
     // Only process if no duplicate exists
     if (existingUsageEvent) {
-      return { result: { usageEvent } }
+      return { usageEvent }
     }
   }
 
-  return {
-    result: { usageEvent },
-    eventsToInsert: [],
-    ledgerCommand: {
-      type: LedgerTransactionType.UsageEventProcessed,
-      livemode,
-      organizationId: subscription.organizationId,
-      subscriptionId: subscription.id,
-      payload: {
-        usageEvent,
-      },
+  enqueueLedgerCommand({
+    type: LedgerTransactionType.UsageEventProcessed,
+    livemode,
+    organizationId: subscription.organizationId,
+    subscriptionId: subscription.id,
+    payload: {
+      usageEvent,
     },
-  }
+  })
+
+  return { usageEvent }
 }

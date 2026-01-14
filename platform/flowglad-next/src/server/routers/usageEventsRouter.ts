@@ -53,16 +53,29 @@ export const createUsageEvent = protectedProcedure
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transaction }) => {
+      async ({
+        input,
+        ctx,
+        transaction,
+        emitEvent,
+        invalidateCache,
+        enqueueLedgerCommand,
+      }) => {
         const resolvedInput = await resolveUsageEventInput(
           input,
           transaction
         )
 
-        return ingestAndProcessUsageEvent(
+        const result = await ingestAndProcessUsageEvent(
           { input: resolvedInput, livemode: ctx.livemode },
-          transaction
+          {
+            transaction,
+            emitEvent,
+            invalidateCache,
+            enqueueLedgerCommand,
+          }
         )
+        return { result }
       }
     )
   )

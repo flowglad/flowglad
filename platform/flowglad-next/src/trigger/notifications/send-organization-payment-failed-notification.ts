@@ -15,6 +15,7 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { filterEligibleRecipients } from '@/utils/notifications'
 
 interface PaymentFailedNotificationData {
   organizationId: string
@@ -69,12 +70,34 @@ const sendOrganizationPaymentFailedNotificationTask = task({
       throw new Error('Organization or customer not found')
     }
 
+    const eligibleRecipients = filterEligibleRecipients(
+      usersAndMemberships,
+      'paymentFailed',
+      paymentData.livemode
+    )
+
+    if (eligibleRecipients.length === 0) {
+      return {
+        message: 'No recipients opted in for this notification',
+      }
+    }
+
+    const recipientEmails = eligibleRecipients
+      .map(({ user }) => user.email)
+      .filter(
+        (email): email is string => !isNil(email) && email !== ''
+      )
+
+    if (recipientEmails.length === 0) {
+      return {
+        message: 'No valid email addresses for eligible recipients',
+      }
+    }
+
     await safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
       bcc: getBccForLivemode(paymentData.livemode),
-      to: usersAndMemberships
-        .map(({ user }) => user.email)
-        .filter((email) => !isNil(email)),
+      to: recipientEmails,
       subject: formatEmailSubject(
         `Payment Failed: ${customer.name} payment of ${paymentData.amount} ${paymentData.currency} failed`,
         paymentData.livemode
