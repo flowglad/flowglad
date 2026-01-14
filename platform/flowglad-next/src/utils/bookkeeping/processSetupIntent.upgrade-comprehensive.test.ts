@@ -35,10 +35,7 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
-import {
-  createCapturingContext,
-  createNoopContext,
-} from '@/test-utils/transactionCallbacks'
+import { createNoopContext } from '@/test-utils/transactionCallbacks'
 import {
   CancellationReason,
   CheckoutSessionStatus,
@@ -1981,14 +1978,16 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         livemode: checkoutSession.livemode,
       })
       await comprehensiveAdminTransaction(async ({ transaction }) => {
-        const { ctx, effects } = createCapturingContext(transaction)
-        await processSetupIntentSucceeded(setupIntent, ctx)
+        const result = await processSetupIntentSucceeded(
+          setupIntent,
+          createNoopContext(transaction)
+        )
 
-        // Check events structure
-        expect(Array.isArray(effects.events)).toBe(true)
-        expect(effects.events.length).toBeGreaterThan(0)
+        // Check eventsToInsert structure
+        expect(Array.isArray(result.eventsToInsert)).toBe(true)
+        expect(result.eventsToInsert!.length).toBeGreaterThan(0)
 
-        const events = effects.events
+        const events = result.eventsToInsert!
         // Exactly one SubscriptionCreated event per new subscription
         const subscriptionCreatedEvents = events.filter(
           (event) =>
@@ -2007,7 +2006,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
         expect(purchaseCompletedEvents).toHaveLength(1)
 
-        return { result: null }
+        return result
       })
     })
   })
