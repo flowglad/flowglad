@@ -515,7 +515,7 @@ describe('updatePricingModelTransaction', () => {
    * to SetupPricingModelInput. Remove assertions once Patch 1 is implemented.
    */
   describe('resource updates', () => {
-    it.skip('creates new resources when added to proposed input', async () => {
+    it('creates new resources when added to proposed input', async () => {
       const setupResult = await createBasicPricingModel()
 
       // Update with resources array
@@ -579,7 +579,7 @@ describe('updatePricingModelTransaction', () => {
       expect(updateResult.resources.created[0].active).toBe(true)
     })
 
-    it.skip('updates existing resources when properties change', async () => {
+    it('updates existing resources when properties change', async () => {
       // First create a pricing model with resources
       const setupResult = await createBasicPricingModel()
 
@@ -685,7 +685,7 @@ describe('updatePricingModelTransaction', () => {
       )
     })
 
-    it.skip('deactivates resources removed from proposed input', async () => {
+    it('deactivates resources removed from proposed input', async () => {
       // First create a pricing model with resources
       const setupResult = await createBasicPricingModel()
 
@@ -806,7 +806,7 @@ describe('updatePricingModelTransaction', () => {
       expect(activeResources[0].slug).toBe('seats')
     })
 
-    it.skip('does not modify unchanged resources', async () => {
+    it('does not modify unchanged resources', async () => {
       // First create a pricing model with resources
       const setupResult = await createBasicPricingModel()
 
@@ -857,7 +857,7 @@ describe('updatePricingModelTransaction', () => {
         )
       )
 
-      // Now update with same resources
+      // Now update with same resources (must include active: true to match exported state)
       const updateResult = await adminTransaction(
         async ({ transaction }) =>
           updatePricingModelTransaction(
@@ -867,7 +867,9 @@ describe('updatePricingModelTransaction', () => {
                 name: 'Test Pricing Model',
                 isDefault: false,
                 usageMeters: [],
-                resources: [{ slug: 'seats', name: 'Seats' }],
+                resources: [
+                  { slug: 'seats', name: 'Seats', active: true },
+                ],
                 features: [
                   {
                     type: FeatureType.Toggle,
@@ -922,7 +924,7 @@ describe('updatePricingModelTransaction', () => {
    * Unskip these tests once all patches are implemented.
    */
   describe('resource feature updates', () => {
-    it.skip('creates new Resource features with correct resourceId', async () => {
+    it('creates new Resource features with correct resourceId', async () => {
       // First create a pricing model with a resource but no Resource features
       const setupResult = await createBasicPricingModel()
 
@@ -1050,7 +1052,7 @@ describe('updatePricingModelTransaction', () => {
       expect(createdFeature.renewalFrequency).toBeNull()
     })
 
-    it.skip('transforms resourceSlug to resourceId when updating Resource feature', async () => {
+    it('transforms resourceSlug to resourceId when updating Resource feature', async () => {
       // First create a pricing model with two resources and a Resource feature
       const setupResult = await createBasicPricingModel()
 
@@ -1194,7 +1196,7 @@ describe('updatePricingModelTransaction', () => {
       expect(updatedFeature.amount).toBe(10)
     })
 
-    it.skip('throws when Resource feature references non-existent resource', async () => {
+    it('throws when Resource feature references non-existent resource', async () => {
       const setupResult = await createBasicPricingModel()
 
       // Add a resource first
@@ -1300,10 +1302,12 @@ describe('updatePricingModelTransaction', () => {
             transaction
           )
         )
-      ).rejects.toThrow('Resource non-existent-resource not found')
+      ).rejects.toThrow(
+        'Resource with slug non-existent-resource does not exist'
+      )
     })
 
-    it.skip('deactivates Resource features when removed from proposed input', async () => {
+    it('deactivates Resource features when removed from proposed input', async () => {
       const setupResult = await createBasicPricingModel()
 
       // Add a resource and Resource feature
@@ -1431,7 +1435,7 @@ describe('updatePricingModelTransaction', () => {
       expect(seatGrantFeature!.active).toBe(false)
     })
 
-    it.skip('creates new resources and Resource features that use those resources in the same update', async () => {
+    it('creates new resources and Resource features that use those resources in the same update', async () => {
       const setupResult = await createBasicPricingModel()
 
       // Add both resources and Resource features in a single update
