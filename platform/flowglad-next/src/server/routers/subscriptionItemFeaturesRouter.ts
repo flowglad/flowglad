@@ -71,7 +71,7 @@ const createSubscriptionItemFeature = protectedProcedure
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transaction, ctx }) => {
+      async ({ input, transaction, ctx, invalidateCache }) => {
         const organizationId = ctx.organizationId
         if (!organizationId) {
           throw new TRPCError({
@@ -95,14 +95,10 @@ const createSubscriptionItemFeature = protectedProcedure
             subscriptionItemFeatureId,
             transaction
           )
-        return {
-          result: { subscriptionItemFeature },
-          cacheInvalidations: [
-            CacheDependency.subscriptionItemFeatures(
-              subscriptionItemId
-            ),
-          ],
-        }
+        invalidateCache(
+          CacheDependency.subscriptionItemFeatures(subscriptionItemId)
+        )
+        return { result: { subscriptionItemFeature } }
       }
     )
   )
@@ -113,7 +109,7 @@ const updateSubscriptionItemFeature = protectedProcedure
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transaction, invalidateCache }) => {
         // Get existing record to obtain subscriptionItemId for cache invalidation
         const existingFeature =
           await selectSubscriptionItemFeatureById(
@@ -141,14 +137,12 @@ const updateSubscriptionItemFeature = protectedProcedure
             input.id,
             transaction
           )
-        return {
-          result: { subscriptionItemFeature },
-          cacheInvalidations: [
-            CacheDependency.subscriptionItemFeatures(
-              existingFeature.subscriptionItemId
-            ),
-          ],
-        }
+        invalidateCache(
+          CacheDependency.subscriptionItemFeatures(
+            existingFeature.subscriptionItemId
+          )
+        )
+        return { result: { subscriptionItemFeature } }
       }
     )
   )
@@ -193,7 +187,7 @@ const expireSubscriptionItemFeature = protectedProcedure
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transaction, invalidateCache }) => {
         const { id, expiredAt } = input
         // Ensure the feature exists before attempting to deactivate
         const existingFeature =
@@ -216,14 +210,12 @@ const expireSubscriptionItemFeature = protectedProcedure
             subscriptionItemFeatureId,
             transaction
           )
-        return {
-          result: { subscriptionItemFeature },
-          cacheInvalidations: [
-            CacheDependency.subscriptionItemFeatures(
-              existingFeature.subscriptionItemId
-            ),
-          ],
-        }
+        invalidateCache(
+          CacheDependency.subscriptionItemFeatures(
+            existingFeature.subscriptionItemId
+          )
+        )
+        return { result: { subscriptionItemFeature } }
       }
     )
   )
