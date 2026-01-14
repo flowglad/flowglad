@@ -26,6 +26,11 @@ import {
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
+  createNoopContext,
+  noopEmitEvent,
+  noopInvalidateCache,
+} from '@/test-utils/transactionCallbacks'
+import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   CurrencyCode,
@@ -192,7 +197,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         async ({ transaction }) => {
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction
+            createNoopContext(transaction)
           )
         }
       )
@@ -294,7 +299,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
-          transaction
+          createNoopContext(transaction)
         )
       })
 
@@ -386,7 +391,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
-          transaction
+          createNoopContext(transaction)
         )
       })
 
@@ -502,7 +507,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
-          transaction
+          createNoopContext(transaction)
         )
       })
 
@@ -634,7 +639,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
-          transaction
+          createNoopContext(transaction)
         )
       })
 

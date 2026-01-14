@@ -19,6 +19,7 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { filterEligibleRecipients } from '@/utils/notifications'
 
 export interface SendOrganizationSubscriptionAdjustedNotificationPayload {
   subscriptionId: string
@@ -97,6 +98,30 @@ const sendOrganizationSubscriptionAdjustedNotificationTask = task({
       )
     }
 
+    const eligibleRecipients = filterEligibleRecipients(
+      usersAndMemberships,
+      'subscriptionAdjusted',
+      subscription.livemode
+    )
+
+    if (eligibleRecipients.length === 0) {
+      return {
+        message: 'No recipients opted in for this notification',
+      }
+    }
+
+    const recipientEmails = eligibleRecipients
+      .map(({ user }) => user.email)
+      .filter(
+        (email): email is string => !isNil(email) && email !== ''
+      )
+
+    if (recipientEmails.length === 0) {
+      return {
+        message: 'No valid email addresses for eligible recipients',
+      }
+    }
+
     const previousTotalPrice = previousItems.reduce(
       (sum, item) => sum + item.unitPrice * item.quantity,
       0
@@ -112,9 +137,7 @@ const sendOrganizationSubscriptionAdjustedNotificationTask = task({
     await safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
       bcc: getBccForLivemode(subscription.livemode),
-      to: usersAndMemberships
-        .map(({ user }) => user.email)
-        .filter((email) => !isNil(email)),
+      to: recipientEmails,
       subject: formatEmailSubject(
         `Subscription ${subjectAction}: ${customer.name} ${subjectAction} their subscription`,
         subscription.livemode

@@ -45,6 +45,11 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import {
+  createNoopContext,
+  noopEmitEvent,
+  noopInvalidateCache,
+} from '@/test-utils/transactionCallbacks'
+import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PaymentMethodType,
@@ -798,7 +803,7 @@ describe('Process setup intent', async () => {
         adminTransaction(async ({ transaction }) => {
           return processSetupIntentSucceeded(
             invalidSetupIntent,
-            transaction
+            createNoopContext(transaction)
           )
         })
       ).rejects.toThrow('No metadata found')
@@ -812,7 +817,7 @@ describe('Process setup intent', async () => {
               checkoutSession.id,
               customer.stripeCustomerId!
             ),
-            transaction
+            createNoopContext(transaction)
           )
         })
       ).rejects.toThrow()
@@ -835,7 +840,7 @@ describe('Process setup intent', async () => {
         adminTransaction(async ({ transaction }) => {
           return processSetupIntentSucceeded(
             invalidSetupIntent,
-            transaction
+            createNoopContext(transaction)
           )
         })
       ).rejects.toThrow('Metadata type is not checkout_session')
@@ -867,7 +872,7 @@ describe('Process setup intent', async () => {
           )
           return processSetupIntentSucceeded(
             newSetupIntentSucceeded,
-            transaction
+            createNoopContext(transaction)
           )
         })
       ).rejects.toThrow(/^Attempting to process checkout session/)
@@ -945,7 +950,7 @@ describe('Process setup intent', async () => {
             async ({ transaction }) => {
               return processSetupIntentSucceeded(
                 setupIntent,
-                transaction
+                createNoopContext(transaction)
               )
             }
           )
@@ -995,7 +1000,7 @@ describe('Process setup intent', async () => {
             async ({ transaction }) => {
               return processSetupIntentSucceeded(
                 setupIntent,
-                transaction
+                createNoopContext(transaction)
               )
             }
           )
@@ -1100,7 +1105,7 @@ describe('Process setup intent', async () => {
             async ({ transaction }) => {
               return processSetupIntentSucceeded(
                 setupIntent1,
-                transaction
+                createNoopContext(transaction)
               )
             }
           )
@@ -1145,7 +1150,7 @@ describe('Process setup intent', async () => {
             async ({ transaction }) => {
               return processSetupIntentSucceeded(
                 setupIntent1, // Same setup intent as before
-                transaction
+                createNoopContext(transaction)
               )
             }
           )
@@ -1218,7 +1223,7 @@ describe('Process setup intent', async () => {
             )
             return processSetupIntentSucceeded(
               freshSetupIntentSucceeded,
-              transaction
+              createNoopContext(transaction)
             )
           }
         )
@@ -1303,7 +1308,7 @@ describe('Process setup intent', async () => {
             )
             const { result } = await processSetupIntentSucceeded(
               localFirstSetupIntent,
-              transaction
+              createNoopContext(transaction)
             )
             if (!('billingRun' in result)) {
               throw new Error('Billing run not found')
@@ -1370,7 +1375,7 @@ describe('Process setup intent', async () => {
                   ...initialResult,
                   setupIntent: localFirstSetupIntent,
                 },
-                transaction
+                createNoopContext(transaction)
               )
             return {
               ...result,
@@ -1416,7 +1421,7 @@ describe('Process setup intent', async () => {
             )
             const { result } = await processSetupIntentSucceeded(
               newSetupIntent,
-              transaction
+              createNoopContext(transaction)
             )
             if (!('billingRun' in result)) {
               throw new Error('Billing run not found')
@@ -1449,7 +1454,7 @@ describe('Process setup intent', async () => {
           adminTransaction(async ({ transaction }) => {
             return processSetupIntentSucceeded(
               succeededSetupIntent,
-              transaction
+              createNoopContext(transaction)
             )
           })
         ).rejects.toThrow()
@@ -1469,7 +1474,7 @@ describe('Process setup intent', async () => {
           adminTransaction(async ({ transaction }) => {
             return processSetupIntentSucceeded(
               invalidSetupIntent,
-              transaction
+              createNoopContext(transaction)
             )
           })
         ).rejects.toThrow()

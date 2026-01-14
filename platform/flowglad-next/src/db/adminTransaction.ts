@@ -1,17 +1,19 @@
 import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
-import type { AdminTransactionParams } from '@/db/types'
-import {
-  type CacheDependencyKey,
-  invalidateDependencies,
-} from '@/utils/cache'
+import type {
+  AdminTransactionParams,
+  ComprehensiveAdminTransactionParams,
+} from '@/db/types'
 import { isNil } from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
-import { processLedgerCommand } from './ledgerManager/ledgerManager'
 import type { Event } from './schema/events'
-import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
-// New imports for ledger and transaction output types
+import {
+  coalesceEffects,
+  createEffectsAccumulator,
+  invalidateCacheAfterCommit,
+  processEffectsInTransaction,
+} from './transactionEffectsHelpers'
 import type { TransactionOutput } from './transactionEnhacementTypes'
 
 interface AdminTransactionOptions {
@@ -38,16 +40,31 @@ export async function adminTransaction<T>(
 
 /**
  * Core comprehensive admin transaction logic without tracing.
- * Returns the full TransactionOutput so the traced wrapper can extract metrics.
+ * Returns the full TransactionOutput plus processed counts so the traced wrapper can extract accurate metrics.
  */
 const executeComprehensiveAdminTransaction = async <T>(
   fn: (
-    params: AdminTransactionParams
+    params: ComprehensiveAdminTransactionParams
   ) => Promise<TransactionOutput<T>>,
   effectiveLivemode: boolean
-): Promise<TransactionOutput<T>> => {
-  // Collect cache invalidations to process after commit
-  let cacheInvalidations: CacheDependencyKey[] = []
+): Promise<{
+  output: TransactionOutput<T>
+  processedEventsCount: number
+  processedLedgerCommandsCount: number
+}> => {
+  // Create effects accumulator and callbacks
+  const {
+    effects,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  } = createEffectsAccumulator()
+
+  // Track coalesced effects for post-commit processing
+  let coalescedCacheInvalidations: typeof effects.cacheInvalidations =
+    []
+  let processedEventsCount = 0
+  let processedLedgerCommandsCount = 0
 
   const output = await db.transaction(async (transaction) => {
     // Set up transaction context (e.g., clearing previous JWT claims)
@@ -56,66 +73,40 @@ const executeComprehensiveAdminTransaction = async <T>(
     )
     // Admin transactions typically run with higher privileges, no specific role needs to be set via JWT claims normally.
 
-    const paramsForFn: AdminTransactionParams = {
+    const paramsForFn: ComprehensiveAdminTransactionParams = {
       transaction,
       userId: 'ADMIN',
       livemode: effectiveLivemode,
+      effects,
+      invalidateCache,
+      emitEvent,
+      enqueueLedgerCommand,
     }
 
     const output = await fn(paramsForFn)
 
-    // Validate that only one of ledgerCommand or ledgerCommands is provided
-    if (
-      output.ledgerCommand &&
-      output.ledgerCommands &&
-      output.ledgerCommands.length > 0
-    ) {
-      throw new Error(
-        'Cannot provide both ledgerCommand and ledgerCommands. Please provide only one.'
-      )
-    }
-
-    // Process events if any
-    if (output.eventsToInsert && output.eventsToInsert.length > 0) {
-      await bulkInsertOrDoNothingEventsByHash(
-        output.eventsToInsert,
-        transaction
-      )
-    }
-
-    // Process ledger commands if any
-    if (output.ledgerCommand) {
-      await processLedgerCommand(output.ledgerCommand, transaction)
-    } else if (
-      output.ledgerCommands &&
-      output.ledgerCommands.length > 0
-    ) {
-      for (const command of output.ledgerCommands) {
-        await processLedgerCommand(command, transaction)
-      }
-    }
-
-    // Collect cache invalidations (don't process yet - wait for commit)
-    if (
-      output.cacheInvalidations &&
-      output.cacheInvalidations.length > 0
-    ) {
-      cacheInvalidations = output.cacheInvalidations
-    }
+    // Coalesce effects from accumulator and output, then process
+    const coalesced = coalesceEffects(effects, output)
+    const counts = await processEffectsInTransaction(
+      coalesced,
+      transaction
+    )
+    processedEventsCount = counts.eventsCount
+    processedLedgerCommandsCount = counts.ledgerCommandsCount
+    coalescedCacheInvalidations = coalesced.cacheInvalidations
 
     // Return the full output so tracing can extract metrics
     return output
   })
 
   // Transaction committed successfully - now invalidate caches
-  // Fire-and-forget; errors are logged but don't fail the request
-  if (cacheInvalidations.length > 0) {
-    // Deduplicate cache invalidation keys to reduce unnecessary Redis operations
-    const uniqueInvalidations = [...new Set(cacheInvalidations)]
-    void invalidateDependencies(uniqueInvalidations)
-  }
+  invalidateCacheAfterCommit(coalescedCacheInvalidations)
 
-  return output
+  return {
+    output,
+    processedEventsCount,
+    processedLedgerCommandsCount,
+  }
 }
 
 /**
@@ -141,14 +132,18 @@ const executeComprehensiveAdminTransaction = async <T>(
  */
 export async function comprehensiveAdminTransaction<T>(
   fn: (
-    params: AdminTransactionParams
+    params: ComprehensiveAdminTransactionParams
   ) => Promise<TransactionOutput<T>>,
   options: AdminTransactionOptions = {}
 ): Promise<T> {
   const { livemode = true } = options
   const effectiveLivemode = isNil(livemode) ? true : livemode
 
-  const output = await traced(
+  const {
+    output,
+    processedEventsCount,
+    processedLedgerCommandsCount,
+  } = await traced(
     {
       options: {
         spanName: 'db.comprehensiveAdminTransaction',
@@ -160,11 +155,10 @@ export async function comprehensiveAdminTransaction<T>(
           'db.livemode': effectiveLivemode,
         },
       },
-      extractResultAttributes: (output: TransactionOutput<T>) => ({
-        'db.events_count': output.eventsToInsert?.length ?? 0,
-        'db.ledger_commands_count': output.ledgerCommand
-          ? 1
-          : (output.ledgerCommands?.length ?? 0),
+      extractResultAttributes: (data) => ({
+        // Use the actual processed counts, which include both effects callbacks and output
+        'db.events_count': data.processedEventsCount,
+        'db.ledger_commands_count': data.processedLedgerCommandsCount,
       }),
     },
     () => executeComprehensiveAdminTransaction(fn, effectiveLivemode)
@@ -179,7 +173,7 @@ export async function comprehensiveAdminTransaction<T>(
  */
 export async function eventfulAdminTransaction<T>(
   fn: (
-    params: AdminTransactionParams
+    params: ComprehensiveAdminTransactionParams
   ) => Promise<[T, Event.Insert[]]>,
   options: AdminTransactionOptions = {}
 ): Promise<T> {

@@ -44,6 +44,14 @@ import {
   migratePricingModelForCustomer,
 } from '@/subscriptions/migratePricingModel'
 import {
+  createCapturingCallbacks,
+  createCapturingContext,
+  createNoopContext,
+  noopEmitEvent,
+  noopEnqueueLedgerCommand,
+  noopInvalidateCache,
+} from '@/test-utils/transactionCallbacks'
+import {
   BillingPeriodStatus,
   BillingRunStatus,
   CancellationReason,
@@ -134,16 +142,18 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration
-      const result = await adminTransaction(
+      const { result, effects } = await adminTransaction(
         async ({ transaction }) => {
-          return await migratePricingModelForCustomer(
+          const { ctx, effects } = createCapturingContext(transaction)
+          const result = await migratePricingModelForCustomer(
             {
               customer,
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            ctx
           )
+          return { result, effects }
         }
       )
 
@@ -175,14 +185,14 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Verify events
-      expect(result.eventsToInsert || []).toHaveLength(2) // 1 canceled + 1 created
+      expect(effects.events).toHaveLength(2) // 1 canceled + 1 created
       expect(
-        (result.eventsToInsert || []).filter(
+        effects.events.filter(
           (e) => e.type === 'subscription.canceled'
         )
       ).toHaveLength(1)
       expect(
-        (result.eventsToInsert || []).filter(
+        effects.events.filter(
           (e) => e.type === 'subscription.created'
         )
       ).toHaveLength(1)
@@ -232,7 +242,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            createNoopContext(transaction)
           )
         }
       )
@@ -340,7 +350,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            createNoopContext(transaction)
           )
         }
       )
@@ -377,16 +387,18 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should migrate customer with no subscriptions to a default subscription on the new pricing model', async () => {
       // Execute migration on customer with no subscriptions
-      const result = await adminTransaction(
+      const { result, effects } = await adminTransaction(
         async ({ transaction }) => {
-          return await migratePricingModelForCustomer(
+          const { ctx, effects } = createCapturingContext(transaction)
+          const result = await migratePricingModelForCustomer(
             {
               customer,
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            ctx
           )
+          return { result, effects }
         }
       )
 
@@ -406,13 +418,9 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Verify events (only subscription.created)
+      expect(effects.events.length).toBeGreaterThanOrEqual(1)
       expect(
-        (result.eventsToInsert || []).length
-      ).toBeGreaterThanOrEqual(1)
-      expect(
-        (result.eventsToInsert || []).some(
-          (e) => e.type === 'subscription.created'
-        )
+        effects.events.some((e) => e.type === 'subscription.created')
       ).toBe(true)
     })
   })
@@ -441,7 +449,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: emptyPricingModel.id,
             },
-            transaction
+            createNoopContext(transaction)
           )
         })
       ).rejects.toThrow('No default product found for pricing model')
@@ -469,16 +477,18 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration (same pricing model)
-      const result = await adminTransaction(
+      const { result, effects } = await adminTransaction(
         async ({ transaction }) => {
-          return await migratePricingModelForCustomer(
+          const { ctx, effects } = createCapturingContext(transaction)
+          const result = await migratePricingModelForCustomer(
             {
               customer: updatedCustomer,
               oldPricingModelId: pricingModel2.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            ctx
           )
+          return { result, effects }
         }
       )
 
@@ -494,7 +504,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Verify no events were generated
-      expect(result.eventsToInsert).toHaveLength(0)
+      expect(effects.events).toHaveLength(0)
     })
   })
 
@@ -543,7 +553,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            createNoopContext(transaction)
           )
         }
       )
@@ -644,7 +654,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            createNoopContext(transaction)
           )
         }
       )
@@ -771,7 +781,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            createNoopContext(transaction)
           )
         }
       )
@@ -895,7 +905,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            createNoopContext(transaction)
           )
         }
       )
@@ -1021,7 +1031,7 @@ describe('Pricing Model Migration Test Suite', async () => {
             oldPricingModelId: pricingModel1.id,
             newPricingModelId: pricingModel2.id,
           },
-          transaction
+          createNoopContext(transaction)
         )
       })
 
@@ -1127,7 +1137,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            createNoopContext(transaction)
           )
           return result.result.canceledSubscriptions[0].canceledAt
         }
@@ -1187,7 +1197,7 @@ describe('Pricing Model Migration Test Suite', async () => {
             oldPricingModelId: pricingModel1.id,
             newPricingModelId: pricingModel2.id,
           },
-          transaction
+          createNoopContext(transaction)
         )
       })
 
@@ -1228,7 +1238,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: 'non-existent-id',
             },
-            transaction
+            createNoopContext(transaction)
           )
         })
       ).rejects.toThrow('No pricing models found with id')
@@ -1250,7 +1260,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: otherPricingModel.id,
             },
-            transaction
+            createNoopContext(transaction)
           )
         })
       ).rejects.toThrow('does not belong to organization')
@@ -1281,6 +1291,14 @@ describe('Pricing Model Migration Test Suite', async () => {
               livemode: false,
               userId: 'test-user-id',
               organizationId: organization.id,
+              effects: {
+                cacheInvalidations: [],
+                eventsToInsert: [],
+                ledgerCommands: [],
+              },
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: noopEnqueueLedgerCommand,
             }
           )
         }
@@ -1321,6 +1339,14 @@ describe('Pricing Model Migration Test Suite', async () => {
               livemode: false,
               userId: 'test-user-id',
               organizationId: undefined as unknown as string,
+              effects: {
+                cacheInvalidations: [],
+                eventsToInsert: [],
+                ledgerCommands: [],
+              },
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: noopEnqueueLedgerCommand,
             }
           )
         })
@@ -1341,6 +1367,14 @@ describe('Pricing Model Migration Test Suite', async () => {
               livemode: false,
               userId: 'test-user-id',
               organizationId: organization.id,
+              effects: {
+                cacheInvalidations: [],
+                eventsToInsert: [],
+                ledgerCommands: [],
+              },
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: noopEnqueueLedgerCommand,
             }
           )
         })
@@ -1363,6 +1397,14 @@ describe('Pricing Model Migration Test Suite', async () => {
               livemode: false,
               userId: 'test-user-id',
               organizationId: organization.id,
+              effects: {
+                cacheInvalidations: [],
+                eventsToInsert: [],
+                ledgerCommands: [],
+              },
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: noopEnqueueLedgerCommand,
             }
           )
         })
@@ -1390,6 +1432,14 @@ describe('Pricing Model Migration Test Suite', async () => {
               livemode: false,
               userId: 'test-user-id',
               organizationId: organization.id,
+              effects: {
+                cacheInvalidations: [],
+                eventsToInsert: [],
+                ledgerCommands: [],
+              },
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: noopEnqueueLedgerCommand,
             }
           )
         })
@@ -1457,6 +1507,14 @@ describe('Pricing Model Migration Test Suite', async () => {
               livemode: false,
               userId: 'test-user-id',
               organizationId: organization.id,
+              effects: {
+                cacheInvalidations: [],
+                eventsToInsert: [],
+                ledgerCommands: [],
+              },
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: noopEnqueueLedgerCommand,
             }
           )
         })
@@ -1483,7 +1541,7 @@ describe('Pricing Model Migration Test Suite', async () => {
             oldPricingModelId: pricingModel1.id,
             newPricingModelId: pricingModel2.id,
           },
-          transaction
+          createNoopContext(transaction)
         )
       })
 
@@ -1539,7 +1597,7 @@ describe('Pricing Model Migration Test Suite', async () => {
             oldPricingModelId: pricingModel1.id,
             newPricingModelId: pricingModel2.id,
           },
-          transaction
+          createNoopContext(transaction)
         )
       })
 
@@ -1573,42 +1631,46 @@ describe('Pricing Model Migration Test Suite', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      const result = await adminTransaction(
+      const effects = await adminTransaction(
         async ({ transaction }) => {
-          return await migratePricingModelForCustomer(
+          const { ctx, effects } = createCapturingContext(transaction)
+          await migratePricingModelForCustomer(
             {
               customer,
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            ctx
           )
+          return effects
         }
       )
 
       // Should have cache invalidations for the customer's subscriptions
-      expect(result.cacheInvalidations).toContain(
+      expect(effects.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer.id)
       )
     })
 
     it('should return customerSubscriptions cache invalidation when migrating with no existing subscriptions', async () => {
       // Customer with no subscriptions
-      const result = await adminTransaction(
+      const effects = await adminTransaction(
         async ({ transaction }) => {
-          return await migratePricingModelForCustomer(
+          const { ctx, effects } = createCapturingContext(transaction)
+          await migratePricingModelForCustomer(
             {
               customer,
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            ctx
           )
+          return effects
         }
       )
 
       // Should still have cache invalidation from the new subscription creation
-      expect(result.cacheInvalidations).toContain(
+      expect(effects.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer.id)
       )
     })
@@ -1627,25 +1689,27 @@ describe('Pricing Model Migration Test Suite', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      const result = await adminTransaction(
+      const effects = await adminTransaction(
         async ({ transaction }) => {
-          return await migratePricingModelForCustomer(
+          const { ctx, effects } = createCapturingContext(transaction)
+          await migratePricingModelForCustomer(
             {
               customer,
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            transaction
+            ctx
           )
+          return effects
         }
       )
 
       // Should invalidate the migrated customer's cache
-      expect(result.cacheInvalidations).toContain(
+      expect(effects.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer.id)
       )
       // Should NOT invalidate the other customer's cache
-      expect(result.cacheInvalidations).not.toContain(
+      expect(effects.cacheInvalidations).not.toContain(
         CacheDependency.customerSubscriptions(otherCustomer.id)
       )
     })
@@ -1658,26 +1722,34 @@ describe('Pricing Model Migration Test Suite', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      const result = await adminTransaction(
+      const effects = await adminTransaction(
         async ({ transaction }) => {
-          return await migrateCustomerPricingModelProcedureTransaction(
-            {
-              input: {
-                externalId: customer.externalId,
-                newPricingModelId: pricingModel2.id,
-              },
-              transaction,
-              ctx: { apiKey: undefined },
-              livemode: false,
-              userId: 'test-user-id',
-              organizationId: organization.id,
-            }
-          )
+          const { callbacks, effects } = createCapturingCallbacks()
+          await migrateCustomerPricingModelProcedureTransaction({
+            input: {
+              externalId: customer.externalId,
+              newPricingModelId: pricingModel2.id,
+            },
+            transaction,
+            ctx: { apiKey: undefined },
+            livemode: false,
+            userId: 'test-user-id',
+            organizationId: organization.id,
+            effects: {
+              cacheInvalidations: [],
+              eventsToInsert: [],
+              ledgerCommands: [],
+            },
+            invalidateCache: callbacks.invalidateCache,
+            emitEvent: callbacks.emitEvent,
+            enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
+          })
+          return effects
         }
       )
 
       // Verify cache invalidations are returned from procedure transaction
-      expect(result.cacheInvalidations).toContain(
+      expect(effects.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer.id)
       )
     })

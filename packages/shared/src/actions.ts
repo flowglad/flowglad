@@ -441,7 +441,7 @@ export const claimResourceSchema = z
     metadata: z
       .record(
         z.string(),
-        z.union([z.string(), z.number(), z.boolean()])
+        z.union([z.string().max(500), z.number(), z.boolean()])
       )
       .optional(),
     quantity: z

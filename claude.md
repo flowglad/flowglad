@@ -56,6 +56,24 @@ Please use the following guidelines when implementing new tests:
 
 **Behavior Tests** - Test behaviors across the cartesian product of dependency implementations, asserting universal invariants. Good for ensuring behavior is consistent across all valid configurations, catching regressions when new implementations are added, and reducing test boilerplate when the same behavior must hold for many variants. See `src/test/behaviorTest/` for the framework.
 
+### Test Environments
+
+The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs like Stripe.
+
+**Tests using React or DOM APIs** must include this directive at the top of the file:
+```typescript
+/**
+ * @vitest-environment jsdom
+ */
+```
+
+This includes:
+- React component tests (`.test.tsx` files)
+- React hook tests using `renderHook` from `@testing-library/react`
+- Any test that needs DOM APIs like `document` or `window`
+
+This tells Vitest to run that specific test file in a jsdom environment.
+
 
 ## After Finishing Edits
 

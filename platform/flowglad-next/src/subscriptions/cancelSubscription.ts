@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
+import type { ComprehensiveAuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { Event } from '@/db/schema/events'
@@ -32,7 +32,10 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { releaseAllResourceClaimsForSubscription } from '@/resources/resourceClaimHelpers'
 import { createBillingRun } from '@/subscriptions/billingRunHelpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
@@ -58,8 +61,9 @@ import { constructSubscriptionCanceledEventHash } from '@/utils/eventHelpers'
 // Abort all scheduled billing runs for a subscription
 export const abortScheduledBillingRuns = async (
   subscriptionId: string,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction } = ctx
   const scheduledBillingRuns = await selectBillingRuns(
     {
       subscriptionId,
@@ -79,13 +83,14 @@ export const abortScheduledBillingRuns = async (
  * Re-adds a default-plan subscription when a cancellation leaves the customer without one.
  *
  * @param canceledSubscription Subscription record that was just canceled.
- * @param transaction Active database transaction.
+ * @param ctx Transaction context with database transaction and effect callbacks.
  * @returns Resolves when the reassignment logic finishes.
  */
 export const reassignDefaultSubscription = async (
   canceledSubscription: Subscription.Record,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction } = ctx
   // don't need to re-add default subscription when upgrading to a paid plan
   if (canceledSubscription.isFreePlan) {
     return
@@ -179,7 +184,7 @@ export const reassignDefaultSubscription = async (
         autoStart: true,
         name: `${defaultProduct.name} Subscription`,
       },
-      transaction
+      ctx
     )
   } catch (error) {
     console.error(
@@ -238,8 +243,9 @@ export interface CancelSubscriptionImmediatelyParams {
 // Cancel a subscription immediately
 export const cancelSubscriptionImmediately = async (
   params: CancelSubscriptionImmediatelyParams,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<TransactionOutput<Subscription.Record>> => {
+  const { transaction, invalidateCache, emitEvent } = ctx
   const {
     subscription,
     customer: providedCustomer,
@@ -251,22 +257,16 @@ export const cancelSubscriptionImmediately = async (
     providedCustomer ??
     (await selectCustomerById(subscription.customerId, transaction))
 
-  // Cache invalidation for this customer's subscriptions (used in all return paths)
-  const cacheInvalidations = [
-    CacheDependency.customerSubscriptions(subscription.customerId),
-  ]
+  // Cache invalidation for this customer's subscriptions
+  invalidateCache(
+    CacheDependency.customerSubscriptions(subscription.customerId)
+  )
 
   if (isSubscriptionInTerminalState(subscription.status)) {
-    return {
-      result: subscription,
-      eventsToInsert: [
-        constructSubscriptionCanceledEventInsert(
-          subscription,
-          customer
-        ),
-      ],
-      cacheInvalidations,
-    }
+    emitEvent(
+      constructSubscriptionCanceledEventInsert(subscription, customer)
+    )
+    return { result: subscription }
   }
   if (
     subscription.canceledAt &&
@@ -277,16 +277,13 @@ export const cancelSubscriptionImmediately = async (
       SubscriptionStatus.Canceled,
       transaction
     )
-    return {
-      result: updatedSubscription,
-      eventsToInsert: [
-        constructSubscriptionCanceledEventInsert(
-          updatedSubscription,
-          customer
-        ),
-      ],
-      cacheInvalidations,
-    }
+    emitEvent(
+      constructSubscriptionCanceledEventInsert(
+        updatedSubscription,
+        customer
+      )
+    )
+    return { result: updatedSubscription }
   }
   const endDate = Date.now()
   const status = SubscriptionStatus.Canceled
@@ -367,7 +364,7 @@ export const cancelSubscriptionImmediately = async (
   /**
    * Abort all scheduled billing runs for the subscription
    */
-  await abortScheduledBillingRuns(subscription.id, transaction)
+  await abortScheduledBillingRuns(subscription.id, ctx)
 
   /**
    * Expire all subscription items and their features
@@ -400,10 +397,7 @@ export const cancelSubscriptionImmediately = async (
   }
 
   if (!skipReassignDefaultSubscription) {
-    await reassignDefaultSubscription(
-      updatedSubscription,
-      transaction
-    )
+    await reassignDefaultSubscription(updatedSubscription, ctx)
   }
 
   if (!skipNotifications) {
@@ -435,23 +429,21 @@ export const cancelSubscriptionImmediately = async (
     }
   }
 
-  return {
-    result: updatedSubscription,
-    eventsToInsert: [
-      constructSubscriptionCanceledEventInsert(
-        updatedSubscription,
-        customer
-      ),
-    ],
-    cacheInvalidations,
-  }
+  emitEvent(
+    constructSubscriptionCanceledEventInsert(
+      updatedSubscription,
+      customer
+    )
+  )
+  return { result: updatedSubscription }
 }
 
 // Schedule a subscription cancellation for the future
 export const scheduleSubscriptionCancellation = async (
   params: ScheduleSubscriptionCancellationParams,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<Subscription.Record> => {
+  const { transaction } = ctx
   const { id, cancellation } =
     scheduleSubscriptionCancellationSchema.parse(params)
   const { timing } = cancellation
@@ -543,7 +535,7 @@ export const scheduleSubscriptionCancellation = async (
   /**
    * Abort all scheduled billing runs for the subscription
    */
-  await abortScheduledBillingRuns(subscription.id, transaction)
+  await abortScheduledBillingRuns(subscription.id, ctx)
 
   const result = await safelyUpdateSubscriptionStatus(
     subscription,
@@ -585,9 +577,8 @@ export const scheduleSubscriptionCancellation = async (
 }
 
 type CancelSubscriptionProcedureParams =
-  AuthenticatedProcedureTransactionParams<
+  ComprehensiveAuthenticatedProcedureTransactionParams<
     ScheduleSubscriptionCancellationParams,
-    { subscription: Subscription.ClientRecord },
     { apiKey?: string }
   >
 
@@ -612,10 +603,20 @@ type CancelSubscriptionProcedureParams =
 export const cancelSubscriptionProcedureTransaction = async ({
   input,
   transaction,
-  ctx,
+  invalidateCache,
+  emitEvent,
+  enqueueLedgerCommand,
 }: CancelSubscriptionProcedureParams): Promise<
   TransactionOutput<{ subscription: Subscription.ClientRecord }>
 > => {
+  // Construct context for internal function calls
+  const ctx: TransactionEffectsContext = {
+    transaction,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  }
+
   // Fetch subscription first to check if it's a free plan
   const subscription = await selectSubscriptionById(
     input.id,
@@ -644,16 +645,8 @@ export const cancelSubscriptionProcedureTransaction = async ({
     SubscriptionCancellationArrangement.Immediately
   ) {
     // Note: subscription is already fetched above, can reuse it
-    const {
-      result: updatedSubscription,
-      eventsToInsert,
-      cacheInvalidations,
-    } = await cancelSubscriptionImmediately(
-      {
-        subscription,
-      },
-      transaction
-    )
+    const { result: updatedSubscription } =
+      await cancelSubscriptionImmediately({ subscription }, ctx)
     return {
       result: {
         subscription: {
@@ -664,13 +657,17 @@ export const cancelSubscriptionProcedureTransaction = async ({
           ),
         },
       },
-      eventsToInsert,
-      cacheInvalidations,
     }
   }
   const updatedSubscription = await scheduleSubscriptionCancellation(
     input,
-    transaction
+    ctx
+  )
+  // Queue cache invalidation via effects context
+  invalidateCache(
+    CacheDependency.customerSubscriptions(
+      updatedSubscription.customerId
+    )
   )
   return {
     result: {
@@ -682,12 +679,6 @@ export const cancelSubscriptionProcedureTransaction = async ({
         ),
       },
     },
-    eventsToInsert: [],
-    cacheInvalidations: [
-      CacheDependency.customerSubscriptions(
-        updatedSubscription.customerId
-      ),
-    ],
   }
 }
 
@@ -830,18 +821,18 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
  */
 export const uncancelSubscription = async (
   subscription: Subscription.Record,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<TransactionOutput<Subscription.Record>> => {
+  const { transaction, invalidateCache } = ctx
+  // Cache invalidation for this customer's subscriptions
+  invalidateCache(
+    CacheDependency.customerSubscriptions(subscription.customerId)
+  )
+
   // Idempotent behavior: If subscription is in terminal state, silently succeed
   if (isSubscriptionInTerminalState(subscription.status)) {
     return {
       result: subscription,
-      eventsToInsert: [],
-      cacheInvalidations: [
-        CacheDependency.customerSubscriptions(
-          subscription.customerId
-        ),
-      ],
     }
   }
 
@@ -851,12 +842,6 @@ export const uncancelSubscription = async (
   ) {
     return {
       result: subscription,
-      eventsToInsert: [],
-      cacheInvalidations: [
-        CacheDependency.customerSubscriptions(
-          subscription.customerId
-        ),
-      ],
     }
   }
 
@@ -876,12 +861,6 @@ export const uncancelSubscription = async (
   ) {
     return {
       result: subscription,
-      eventsToInsert: [],
-      cacheInvalidations: [
-        CacheDependency.customerSubscriptions(
-          subscription.customerId
-        ),
-      ],
     }
   }
 
@@ -927,19 +906,12 @@ export const uncancelSubscription = async (
   // Note: No events are emitted for uncancel
   return {
     result: updatedSubscription,
-    eventsToInsert: [],
-    cacheInvalidations: [
-      CacheDependency.customerSubscriptions(
-        updatedSubscription.customerId
-      ),
-    ],
   }
 }
 
 type UncancelSubscriptionProcedureParams =
-  AuthenticatedProcedureTransactionParams<
+  ComprehensiveAuthenticatedProcedureTransactionParams<
     { id: string },
-    { subscription: Subscription.ClientRecord },
     { apiKey?: string }
   >
 
@@ -955,16 +927,28 @@ type UncancelSubscriptionProcedureParams =
 export const uncancelSubscriptionProcedureTransaction = async ({
   input,
   transaction,
+  invalidateCache,
+  emitEvent,
+  enqueueLedgerCommand,
 }: UncancelSubscriptionProcedureParams): Promise<
   TransactionOutput<{ subscription: Subscription.ClientRecord }>
 > => {
+  const ctx: TransactionEffectsContext = {
+    transaction,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  }
+
   const subscription = await selectSubscriptionById(
     input.id,
     transaction
   )
 
-  const { result: updatedSubscription, cacheInvalidations } =
-    await uncancelSubscription(subscription, transaction)
+  const { result: updatedSubscription } = await uncancelSubscription(
+    subscription,
+    ctx
+  )
 
   return {
     result: {
@@ -976,7 +960,5 @@ export const uncancelSubscriptionProcedureTransaction = async ({
         ),
       },
     },
-    eventsToInsert: [],
-    cacheInvalidations,
   }
 }
