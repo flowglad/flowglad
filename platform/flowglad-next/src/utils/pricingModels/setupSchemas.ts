@@ -274,6 +274,20 @@ export const validateSetupPricingModelInput = (
     R.prop('slug'),
     parsed.resources ?? []
   )
+
+  // Early validation: fail fast if Resource features exist but no resources provided
+  const hasResourceFeatures = parsed.features.some(
+    (f) => f.type === FeatureType.Resource
+  )
+  if (
+    hasResourceFeatures &&
+    (!parsed.resources || parsed.resources.length === 0)
+  ) {
+    throw new Error(
+      'Resource features are defined but no resources array was provided'
+    )
+  }
+
   const pricesBySlug = core.groupBy(
     R.propOr(null, 'slug'),
     parsed.products.map((p) => p.price)

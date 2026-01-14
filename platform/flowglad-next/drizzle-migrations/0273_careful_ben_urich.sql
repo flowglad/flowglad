@@ -1,0 +1,2 @@
+ALTER POLICY "Enable read for own organizations via customer" ON "payment_methods" TO merchant USING ("customer_id" in (select "id" from "customers"));--> statement-breakpoint
+ALTER POLICY "Enable actions for own organizations via subscriptions" ON "subscription_items" TO merchant USING ("subscription_id" in (select "id" from "subscriptions"));

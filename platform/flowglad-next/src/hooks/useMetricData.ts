@@ -42,7 +42,8 @@ export function useMetricData(
   metric: MetricType,
   params: ChartDataParams
 ): UseMetricDataResult {
-  const { fromDate, toDate, interval, organizationId } = params
+  const { fromDate, toDate, interval, organizationId, productId } =
+    params
 
   // Revenue query - only enabled when metric === 'revenue'
   const revenueQuery = trpc.organizations.getRevenue.useQuery(
@@ -51,6 +52,7 @@ export function useMetricData(
       revenueChartIntervalUnit: interval,
       fromDate,
       toDate,
+      productId: productId ?? undefined, // Revenue already supports productId
     },
     { enabled: metric === 'revenue' && !!organizationId }
   )
@@ -61,6 +63,7 @@ export function useMetricData(
       startDate: fromDate,
       endDate: toDate,
       granularity: interval,
+      productId: productId ?? undefined,
     },
     { enabled: metric === 'mrr' && !!organizationId }
   )
@@ -72,6 +75,7 @@ export function useMetricData(
         startDate: fromDate,
         endDate: toDate,
         granularity: interval,
+        productId: productId ?? undefined,
       },
       { enabled: metric === 'subscribers' && !!organizationId }
     )

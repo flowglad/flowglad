@@ -6,6 +6,7 @@ import {
   selectProductFeatures,
   updateProductFeature,
 } from '@/db/tableMethods/productFeatureMethods'
+import { bulkInsertResources } from '@/db/tableMethods/resourceMethods'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
@@ -296,6 +297,148 @@ describe('resolveExistingIds', () => {
     expect(resolvedIds.products.has('simple')).toBe(true)
     expect(resolvedIds.prices.size).toBeGreaterThanOrEqual(1)
     expect(resolvedIds.prices.has('simple-price')).toBe(true)
+  })
+
+  it('includes resources in the returned ID maps', async () => {
+    // Setup: create pricing model
+    const input: SetupPricingModelInput = {
+      name: 'Resource Test Model',
+      isDefault: false,
+      usageMeters: [],
+      features: [],
+      products: [
+        {
+          product: {
+            name: 'Basic Product',
+            slug: 'basic',
+            default: false,
+            active: true,
+          },
+          price: {
+            type: PriceType.SinglePayment,
+            slug: 'basic-price',
+            unitPrice: 1000,
+            isDefault: true,
+            active: true,
+          },
+          features: [],
+        },
+      ],
+    }
+
+    const setupResult = await adminTransaction(
+      async ({ transaction }) =>
+        setupPricingModelTransaction(
+          {
+            input,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
+        )
+    )
+
+    // Directly insert resources for the pricing model
+    const createdResources = await adminTransaction(
+      async ({ transaction }) =>
+        bulkInsertResources(
+          [
+            {
+              slug: 'resource-a',
+              name: 'Resource A',
+              pricingModelId: setupResult.pricingModel.id,
+              organizationId: organization.id,
+              livemode: false,
+              active: true,
+            },
+            {
+              slug: 'resource-b',
+              name: 'Resource B',
+              pricingModelId: setupResult.pricingModel.id,
+              organizationId: organization.id,
+              livemode: false,
+              active: true,
+            },
+          ],
+          transaction
+        )
+    )
+
+    // Test: resolve IDs
+    const resolvedIds = await adminTransaction(
+      async ({ transaction }) =>
+        resolveExistingIds(setupResult.pricingModel.id, transaction)
+    )
+
+    // Verify resources map exists and has correct entries
+    expect(resolvedIds.resources).toBeInstanceOf(Map)
+    expect(resolvedIds.resources.size).toBe(2)
+    expect(resolvedIds.resources.has('resource-a')).toBe(true)
+    expect(resolvedIds.resources.has('resource-b')).toBe(true)
+
+    // Verify IDs match the created records
+    const resourceA = createdResources.find(
+      (r) => r.slug === 'resource-a'
+    )
+    const resourceB = createdResources.find(
+      (r) => r.slug === 'resource-b'
+    )
+    expect(resolvedIds.resources.get('resource-a')).toBe(
+      resourceA?.id
+    )
+    expect(resolvedIds.resources.get('resource-b')).toBe(
+      resourceB?.id
+    )
+  })
+
+  it('returns empty resources map when no resources exist', async () => {
+    // Setup: create pricing model without resources
+    const input: SetupPricingModelInput = {
+      name: 'No Resources Model',
+      isDefault: false,
+      usageMeters: [],
+      features: [],
+      products: [
+        {
+          product: {
+            name: 'Simple Product',
+            slug: 'simple',
+            default: false,
+            active: true,
+          },
+          price: {
+            type: PriceType.SinglePayment,
+            slug: 'simple-price',
+            unitPrice: 1000,
+            isDefault: true,
+            active: true,
+          },
+          features: [],
+        },
+      ],
+    }
+
+    const setupResult = await adminTransaction(
+      async ({ transaction }) =>
+        setupPricingModelTransaction(
+          {
+            input,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
+        )
+    )
+
+    // Test: resolve IDs
+    const resolvedIds = await adminTransaction(
+      async ({ transaction }) =>
+        resolveExistingIds(setupResult.pricingModel.id, transaction)
+    )
+
+    // Verify resources map exists and is empty
+    expect(resolvedIds.resources).toBeInstanceOf(Map)
+    expect(resolvedIds.resources.size).toBe(0)
   })
 })
 

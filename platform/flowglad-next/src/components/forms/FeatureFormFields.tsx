@@ -22,13 +22,15 @@ import {
 import { Switch } from '@/components/ui/switch'
 import {
   type CreateFeatureInput,
-  resourceFeatureDefaultColumns,
+  // FIXME: FEATURE - Resource UI is temporarily disabled while resource features are gated behind devOnlyProcedure
+  // resourceFeatureDefaultColumns,
   toggleFeatureDefaultColumns,
   usageCreditGrantFeatureDefaultColumns,
 } from '@/db/schema/features'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import core, { titleCase } from '@/utils/core'
-import ResourcesSelect from './ResourcesSelect'
+// FIXME: FEATURE - Resource UI is temporarily disabled while resource features are gated behind devOnlyProcedure
+// import ResourcesSelect from './ResourcesSelect'
 import UsageMetersSelect from './UsageMetersSelect'
 
 const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
@@ -121,11 +123,12 @@ const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
                       usageCreditGrantFeatureDefaultColumns
                     ).forEach(assignFeatureValueFromTuple)
                   }
-                  if (value === FeatureType.Resource) {
-                    Object.entries(
-                      resourceFeatureDefaultColumns
-                    ).forEach(assignFeatureValueFromTuple)
-                  }
+                  // FIXME: FEATURE - Resource UI is temporarily disabled while resource features are gated behind devOnlyProcedure
+                  // if (value === FeatureType.Resource) {
+                  //   Object.entries(
+                  //     resourceFeatureDefaultColumns
+                  //   ).forEach(assignFeatureValueFromTuple)
+                  // }
                 }}
               >
                 <SelectTrigger>
@@ -148,6 +151,7 @@ const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
                       </div>
                     </div>
                   </SelectItem>
+                  {/* FIXME: FEATURE - Resource UI is temporarily disabled while resource features are gated behind devOnlyProcedure
                   <SelectItem value={FeatureType.Resource}>
                     <div>
                       <div>Resource</div>
@@ -156,6 +160,7 @@ const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
                       </div>
                     </div>
                   </SelectItem>
+                  */}
                 </SelectContent>
               </Select>
             </FormControl>
@@ -233,6 +238,7 @@ const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
         </>
       )}
 
+      {/* FIXME: FEATURE - Resource UI is temporarily disabled while resource features are gated behind devOnlyProcedure
       {featureType === FeatureType.Resource && (
         <>
           <FormField
@@ -276,6 +282,7 @@ const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
           />
         </>
       )}
+      */}
       <Controller
         control={form.control}
         name="feature.active"

@@ -37,6 +37,8 @@ interface DashboardChartProps {
   availableMetrics?: MetricType[]
   /** Default metric to display */
   defaultMetric?: MetricType
+  /** Optional product ID to filter metrics by a specific product */
+  productId?: string | null
 }
 
 /**
@@ -76,6 +78,7 @@ export function DashboardChart({
   size = 'lg',
   availableMetrics = METRIC_TYPES,
   defaultMetric = DEFAULT_METRIC,
+  productId,
 }: DashboardChartProps) {
   // Guard against empty availableMetrics - this is a programming error
   if (availableMetrics.length === 0) {
@@ -122,6 +125,7 @@ export function DashboardChart({
     toDate,
     interval,
     organizationId: organization?.id ?? '',
+    productId,
   })
 
   // Get currency for formatting
@@ -189,8 +193,8 @@ export function DashboardChart({
               {metricConfig.label}
             </p>
           )}
-          <ChartInfoTooltip content={metricConfig.infoTooltip} />
         </div>
+        <ChartInfoTooltip content={metricConfig.infoTooltip} />
       </div>
 
       {/* Value display */}

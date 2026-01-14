@@ -144,6 +144,7 @@ const getMRRCalculationInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
   granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  productId: z.string().nullish(),
 })
 
 const getMRR = protectedProcedure
@@ -165,7 +166,10 @@ const getMRR = protectedProcedure
 
         return calculateMRRByMonth(
           ctx.organizationId!,
-          input,
+          {
+            ...input,
+            productId: input.productId ?? undefined,
+          },
           transaction
         )
       }
@@ -210,6 +214,7 @@ const getActiveSubscribersInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
   granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  productId: z.string().nullish(),
 })
 
 const getActiveSubscribers = protectedProcedure
@@ -231,7 +236,10 @@ const getActiveSubscribers = protectedProcedure
 
         return calculateActiveSubscribersByMonth(
           ctx.organizationId!,
-          input,
+          {
+            ...input,
+            productId: input.productId ?? undefined,
+          },
           transaction
         )
       }
@@ -489,8 +497,6 @@ const updateNotificationPreferencesInputSchema = z.object({
       subscriptionCanceled: z.boolean().optional(),
       subscriptionCancellationScheduled: z.boolean().optional(),
       paymentFailed: z.boolean().optional(),
-      onboardingCompleted: z.boolean().optional(),
-      payoutsEnabled: z.boolean().optional(),
     })
     .partial(),
 })

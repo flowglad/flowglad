@@ -113,7 +113,6 @@ const config: Config = {
     },
   },
   plugins: [
-    require('@tailwindcss/forms'),
     require('tailwindcss-animate'),
     /**
      * Tailwind utils to hide scrollbars

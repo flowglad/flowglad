@@ -37,14 +37,12 @@ describe('memberships notificationPreferences', () => {
           getMembershipNotificationPreferences(freshMembership)
         expect(prefs.testModeNotifications).toBe(false)
 
-        // getMembershipNotificationPreferences should return all 7 notification types as true
+        // getMembershipNotificationPreferences should return all 5 notification types as true
         expect(prefs.subscriptionCreated).toBe(true)
         expect(prefs.subscriptionAdjusted).toBe(true)
         expect(prefs.subscriptionCanceled).toBe(true)
         expect(prefs.subscriptionCancellationScheduled).toBe(true)
         expect(prefs.paymentFailed).toBe(true)
-        expect(prefs.onboardingCompleted).toBe(true)
-        expect(prefs.payoutsEnabled).toBe(true)
 
         // Verify the full shape matches defaults
         expect(prefs).toEqual(DEFAULT_NOTIFICATION_PREFERENCES)
@@ -83,13 +81,11 @@ describe('memberships notificationPreferences', () => {
         // subscriptionCreated should be false (from stored value)
         expect(prefs.subscriptionCreated).toBe(false)
 
-        // All other 6 notification type preferences should return true (from defaults)
+        // All other 4 notification type preferences should return true (from defaults)
         expect(prefs.subscriptionAdjusted).toBe(true)
         expect(prefs.subscriptionCanceled).toBe(true)
         expect(prefs.subscriptionCancellationScheduled).toBe(true)
         expect(prefs.paymentFailed).toBe(true)
-        expect(prefs.onboardingCompleted).toBe(true)
-        expect(prefs.payoutsEnabled).toBe(true)
       })
     })
 
@@ -106,14 +102,12 @@ describe('memberships notificationPreferences', () => {
         // testModeNotifications should be false (default)
         expect(prefs.testModeNotifications).toBe(false)
 
-        // All 7 notification type preferences should be true (defaults)
+        // All 5 notification type preferences should be true (defaults)
         expect(prefs.subscriptionCreated).toBe(true)
         expect(prefs.subscriptionAdjusted).toBe(true)
         expect(prefs.subscriptionCanceled).toBe(true)
         expect(prefs.subscriptionCancellationScheduled).toBe(true)
         expect(prefs.paymentFailed).toBe(true)
-        expect(prefs.onboardingCompleted).toBe(true)
-        expect(prefs.payoutsEnabled).toBe(true)
       })
     })
 
@@ -146,12 +140,10 @@ describe('memberships notificationPreferences', () => {
         expect(prefs.subscriptionCreated).toBe(false)
         expect(prefs.paymentFailed).toBe(false)
 
-        // All 5 other notification types should be true (defaults)
+        // All 3 other notification types should be true (defaults)
         expect(prefs.subscriptionAdjusted).toBe(true)
         expect(prefs.subscriptionCanceled).toBe(true)
         expect(prefs.subscriptionCancellationScheduled).toBe(true)
-        expect(prefs.onboardingCompleted).toBe(true)
-        expect(prefs.payoutsEnabled).toBe(true)
       })
     })
 
@@ -176,8 +168,6 @@ describe('memberships notificationPreferences', () => {
       expect(result.subscriptionCanceled).toBe(true)
       expect(result.subscriptionCancellationScheduled).toBe(true)
       expect(result.paymentFailed).toBe(true)
-      expect(result.onboardingCompleted).toBe(true)
-      expect(result.payoutsEnabled).toBe(true)
     })
 
     it('DEFAULT_NOTIFICATION_PREFERENCES equals notificationPreferencesSchema.parse({})', () => {
