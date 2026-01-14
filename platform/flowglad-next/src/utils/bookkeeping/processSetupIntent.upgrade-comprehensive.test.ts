@@ -38,8 +38,6 @@ import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/w
 import {
   createCapturingContext,
   createNoopContext,
-  noopEmitEvent,
-  noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
 import {
   CancellationReason,
@@ -1987,8 +1985,8 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         await processSetupIntentSucceeded(setupIntent, ctx)
 
         // Check events structure
-        expect(effects.events).toMatchObject({})
         expect(Array.isArray(effects.events)).toBe(true)
+        expect(effects.events.length).toBeGreaterThan(0)
 
         const events = effects.events
         // Exactly one SubscriptionCreated event per new subscription
