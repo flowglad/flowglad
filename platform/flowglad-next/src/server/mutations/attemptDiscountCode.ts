@@ -5,6 +5,7 @@ import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import { publicProcedure } from '@/server/trpc'
+import { createNoopContext } from '@/test-utils/transactionCallbacks'
 import { CheckoutSessionType } from '@/types'
 import { editCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
 import {
@@ -59,7 +60,7 @@ export const attemptDiscountCode = publicProcedure
               checkoutSession: { ...checkoutSession, discountId },
               purchaseId: R.propOr(null, 'purchaseId', input),
             },
-            transaction
+            createNoopContext(transaction)
           )
         }
         const discount = matchingDiscounts[0]

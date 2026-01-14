@@ -45,6 +45,7 @@ import {
   describeIfStripeKey,
   getStripeTestClient,
 } from '@/test/stripeIntegrationHelpers'
+import { extractEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   FeeCalculationType,
   PaymentStatus,
@@ -245,19 +246,20 @@ const processPaymentSuccessBehavior = defineBehavior({
     }
 
     // Process the charge through our bookkeeping
-    const bookkeepingResult = await adminTransaction(
-      async ({ transaction }) => {
-        return processStripeChargeForCheckoutSession(
+    const bookkeepingResult = await comprehensiveAdminTransaction(
+      async (params) => {
+        const result = await processStripeChargeForCheckoutSession(
           {
             checkoutSessionId: prev.updatedCheckoutSession.id,
             charge,
           },
-          transaction
+          extractEffectsContext(params)
         )
+        return { result }
       }
     )
 
-    const purchase = bookkeepingResult.result.purchase
+    const purchase = bookkeepingResult.purchase
     if (!purchase) {
       throw new Error('Purchase not created after payment success')
     }

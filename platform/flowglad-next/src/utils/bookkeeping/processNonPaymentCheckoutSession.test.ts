@@ -13,6 +13,7 @@ import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import { extractEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -101,11 +102,13 @@ describe('processNonPaymentCheckoutSession', () => {
 
       // Process the non-payment checkout session
       const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return processNonPaymentCheckoutSession(
-            updatedCheckoutSession,
-            transaction
-          )
+        async (params) => {
+          return {
+            result: await processNonPaymentCheckoutSession(
+              updatedCheckoutSession,
+              extractEffectsContext(params)
+            ),
+          }
         }
       )
 
@@ -141,11 +144,13 @@ describe('processNonPaymentCheckoutSession', () => {
 
       // Attempt to process non-payment checkout should fail
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) => {
-          return processNonPaymentCheckoutSession(
-            checkoutSession,
-            transaction
-          )
+        comprehensiveAdminTransaction(async (params) => {
+          return {
+            result: await processNonPaymentCheckoutSession(
+              checkoutSession,
+              extractEffectsContext(params)
+            ),
+          }
         })
       ).rejects.toThrow('Total due for purchase session')
     })

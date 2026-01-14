@@ -328,7 +328,7 @@ describe('Process setup intent', async () => {
         adminTransaction(async ({ transaction }) => {
           return processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
             succeededSetupIntent,
-            transaction
+            createNoopContext(transaction)
           )
         })
       ).rejects.toThrow(
@@ -356,7 +356,7 @@ describe('Process setup intent', async () => {
         adminTransaction(async ({ transaction }) => {
           return processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
             addPaymentMethodSetupIntent,
-            transaction
+            createNoopContext(transaction)
           )
         })
       ).rejects.toThrow(
@@ -373,7 +373,7 @@ describe('Process setup intent', async () => {
           )
           return processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
             succeededSetupIntent,
-            transaction
+            createNoopContext(transaction)
           )
         }
       )
@@ -1367,7 +1367,7 @@ describe('Process setup intent', async () => {
             const initialResult =
               await processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
                 localSecondSetupIntent,
-                transaction
+                createNoopContext(transaction)
               )
             const { result } =
               await createSubscriptionFromSetupIntentableCheckoutSession(
