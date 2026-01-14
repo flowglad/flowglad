@@ -123,32 +123,3 @@ export function invalidateCacheAfterCommit(
     void invalidateDependencies(uniqueInvalidations)
   }
 }
-
-/**
- * No-op callbacks for use in contexts where effects are not being tracked.
- * Useful for legacy code or when effects are handled at a higher level.
- */
-export const noopInvalidateCache = (
-  ..._keys: CacheDependencyKey[]
-): void => {}
-
-export const noopEmitEvent = (..._events: Event.Insert[]): void => {}
-
-export const noopEnqueueLedgerCommand = (
-  ..._commands: LedgerCommand[]
-): void => {}
-
-/**
- * Creates a TransactionEffectsContext with no-op callbacks.
- * Use this when effects should be discarded or are handled elsewhere.
- */
-export function createNoopContext(
-  transaction: DbTransaction
-): TransactionEffectsContext {
-  return {
-    transaction,
-    invalidateCache: noopInvalidateCache,
-    emitEvent: noopEmitEvent,
-    enqueueLedgerCommand: noopEnqueueLedgerCommand,
-  }
-}

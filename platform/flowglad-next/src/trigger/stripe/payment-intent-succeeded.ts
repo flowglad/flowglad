@@ -1,15 +1,12 @@
 import { logger, task } from '@trigger.dev/sdk'
 import type Stripe from 'stripe'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
-import { createNoopContext } from '@/db/transactionEffectsHelpers'
+import type { TransactionEffectsContext } from '@/db/types'
 import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 import { InvoiceStatus } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
@@ -37,12 +34,19 @@ export const stripePaymentIntentSucceededTask = task({
          * process it on own track, and then terminate
          */
         if ('billingRunId' in metadata) {
-          const result = await adminTransaction(
-            async ({ transaction }) => {
-              return await processOutcomeForBillingRun(
+          const result = await comprehensiveAdminTransaction(
+            async (params) => {
+              const effectsCtx: TransactionEffectsContext = {
+                transaction: params.transaction,
+                invalidateCache: params.invalidateCache,
+                emitEvent: params.emitEvent,
+                enqueueLedgerCommand: params.enqueueLedgerCommand,
+              }
+              const billingResult = await processOutcomeForBillingRun(
                 { input: payload },
-                createNoopContext(transaction)
+                effectsCtx
               )
+              return { result: billingResult }
             }
           )
           return result
