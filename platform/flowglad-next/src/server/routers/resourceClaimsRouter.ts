@@ -168,7 +168,16 @@ const claimProcedure = devOnlyProcedure
   .output(claimOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, organizationId }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
         const { customerId } = await validateSubscriptionOwnership(
           input.subscriptionId,
           organizationId,
@@ -205,7 +214,16 @@ const releaseProcedure = devOnlyProcedure
   .output(releaseOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, organizationId }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
         const { customerId } = await validateSubscriptionOwnership(
           input.subscriptionId,
           organizationId,
@@ -242,7 +260,16 @@ const getUsageProcedure = devOnlyProcedure
   .output(getUsageOutputSchema)
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, organizationId }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
         const { subscription } = await validateSubscriptionOwnership(
           input.subscriptionId,
           organizationId,
@@ -392,7 +419,16 @@ const listClaimsProcedure = devOnlyProcedure
   .output(listClaimsOutputSchema)
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, organizationId }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
         const { subscription } = await validateSubscriptionOwnership(
           input.subscriptionId,
           organizationId,

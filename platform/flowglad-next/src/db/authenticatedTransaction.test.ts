@@ -946,10 +946,10 @@ describe('Procedure Wrapper Functions', () => {
       const testContext = { apiKey: apiKeyA.token }
 
       const procedureHandler = authenticatedProcedureTransaction(
-        async ({ input, ctx, transaction, userId }) => {
+        async ({ input, ctx, transactionCtx }) => {
+          const { transaction } = transactionCtx
           expect(input).toEqual(testInput)
           expect(ctx).toEqual(testContext)
-          expect(typeof userId).toBe('string')
 
           // Verify we can use transaction
           const organizations = await selectOrganizations(
@@ -986,10 +986,20 @@ describe('Procedure Wrapper Functions', () => {
 
       const procedureHandler =
         authenticatedProcedureComprehensiveTransaction(
-          async ({ input, ctx, organizationId }) => {
+          async ({ input, ctx, transactionCtx }) => {
             expect(input).toEqual(testInput)
             expect(ctx).toEqual(testContext)
-            expect(organizationId).toBe(testOrg1.id)
+            // Verify transactionCtx has expected properties
+            expect(typeof transactionCtx.transaction.execute).toBe(
+              'function'
+            )
+            expect(typeof transactionCtx.invalidateCache).toBe(
+              'function'
+            )
+            expect(typeof transactionCtx.emitEvent).toBe('function')
+            expect(typeof transactionCtx.enqueueLedgerCommand).toBe(
+              'function'
+            )
 
             return {
               result: 'comprehensive_procedure_success',

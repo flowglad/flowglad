@@ -438,12 +438,14 @@ export const processOutcomeForBillingRun = async (
       )
 
     subscriptionItemAdjustmentResult =
-      await handleSubscriptionItemAdjustment({
-        subscriptionId: subscription.id,
-        newSubscriptionItems: adjustmentParams.newSubscriptionItems,
-        adjustmentDate: adjustmentParams.adjustmentDate,
-        transaction,
-      })
+      await handleSubscriptionItemAdjustment(
+        {
+          subscriptionId: subscription.id,
+          newSubscriptionItems: adjustmentParams.newSubscriptionItems,
+          adjustmentDate: adjustmentParams.adjustmentDate,
+        },
+        ctx
+      )
 
     // Sync subscription record with updated items
     await syncSubscriptionWithActiveItems(
@@ -531,15 +533,11 @@ export const processOutcomeForBillingRun = async (
   )
 
   // Queue cache invalidations via effects context
+  // Note: handleSubscriptionItemAdjustment now calls invalidateCache internally
+  // so we only need to invalidate customer subscriptions here
   invalidateCache(
     CacheDependency.customerSubscriptions(subscription.customerId)
   )
-  // Also invalidate any cache keys from subscription item adjustments
-  if (subscriptionItemAdjustmentResult?.cacheInvalidations) {
-    invalidateCache(
-      ...subscriptionItemAdjustmentResult.cacheInvalidations
-    )
-  }
 
   const notificationParams: BillingRunNotificationParams = {
     invoice,
