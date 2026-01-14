@@ -10,7 +10,7 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type { TransactionEffectsContext } from '@/db/types'
 import { idempotentSendCustomerSubscriptionCreatedNotification } from '@/trigger/notifications/send-customer-subscription-created-notification'
 import { idempotentSendCustomerSubscriptionUpgradedNotification } from '@/trigger/notifications/send-customer-subscription-upgraded-notification'
 import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
@@ -48,18 +48,21 @@ import type {
  * This is because the subscription will not be active until the organization has started it,
  * and we do not want to create a billing run if the organization has not explicitly opted to start the subscription.
  * @param params
- * @param transaction
+ * @param ctx - Transaction context with database transaction and effect callbacks
  * @returns
  */
 export const createSubscriptionWorkflow = async (
   params: CreateSubscriptionParams,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<
   TransactionOutput<
     | StandardCreateSubscriptionResult
     | NonRenewingCreateSubscriptionResult
   >
 > => {
+  // Destructure context for cleaner code below
+  const { transaction, invalidateCache, emitEvent } = ctx
+
   // FIXME: Re-enable this once usage prices are fully deprecated
   if (
     params.price.type === PriceType.Usage &&
@@ -383,14 +386,20 @@ export const createSubscriptionWorkflow = async (
           billingPeriodItems,
           billingRun,
         }
+
+  // Invalidate customer subscriptions cache via effects context
+  // This queues the invalidation to be processed after transaction commits
+  invalidateCache(
+    CacheDependency.customerSubscriptions(
+      updatedSubscription.customerId
+    )
+  )
+
+  // Emit subscription created event via effects context
+  emitEvent(...eventInserts)
+
   return {
     result: transactionResult,
     ledgerCommand,
-    eventsToInsert: eventInserts,
-    cacheInvalidations: [
-      CacheDependency.customerSubscriptions(
-        updatedSubscription.customerId
-      ),
-    ],
   }
 }
