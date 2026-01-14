@@ -274,7 +274,7 @@ export const createSubscriptionWorkflow = async (
       preservedBillingPeriodStart: params.preservedBillingPeriodStart,
       isDefaultPlan: params.product.default,
     },
-    transaction
+    ctx
   )
   // Don't send notifications for free subscriptions
   // A subscription is considered free if unitPrice is 0, not based on slug
