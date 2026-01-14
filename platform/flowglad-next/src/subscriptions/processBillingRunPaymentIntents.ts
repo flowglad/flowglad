@@ -39,7 +39,6 @@ import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { TransactionEffectsContext } from '@/db/types'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
@@ -214,15 +213,13 @@ const processAwaitingPaymentConfirmationNotifications = async (
 export const processOutcomeForBillingRun = async (
   params: ProcessOutcomeForBillingRunParams,
   ctx: TransactionEffectsContext
-): Promise<
-  TransactionOutput<{
-    invoice: Invoice.Record
-    invoiceLineItems: InvoiceLineItem.Record[]
-    billingRun: BillingRun.Record
-    payment: Payment.Record
-    processingSkipped?: boolean
-  }>
-> => {
+): Promise<{
+  invoice: Invoice.Record
+  invoiceLineItems: InvoiceLineItem.Record[]
+  billingRun: BillingRun.Record
+  payment: Payment.Record
+  processingSkipped?: boolean
+}> => {
   const {
     transaction,
     invalidateCache,
@@ -269,13 +266,11 @@ export const processOutcomeForBillingRun = async (
       transaction
     )
     return {
-      result: {
-        invoice: result.invoice,
-        invoiceLineItems: result.invoiceLineItems,
-        billingRun,
-        payment,
-        processingSkipped: true,
-      },
+      invoice: result.invoice,
+      invoiceLineItems: result.invoiceLineItems,
+      billingRun,
+      payment,
+      processingSkipped: true,
     }
   }
 
@@ -354,12 +349,10 @@ export const processOutcomeForBillingRun = async (
     }
 
     return {
-      result: {
-        invoice,
-        invoiceLineItems: [],
-        billingRun,
-        payment,
-      },
+      invoice,
+      invoiceLineItems: [],
+      billingRun,
+      payment,
     }
   }
 
@@ -685,12 +678,10 @@ export const processOutcomeForBillingRun = async (
   }
 
   return {
-    result: {
-      invoice,
-      invoiceLineItems,
-      billingRun,
-      payment,
-    },
+    invoice,
+    invoiceLineItems,
+    billingRun,
+    payment,
   }
 }
 

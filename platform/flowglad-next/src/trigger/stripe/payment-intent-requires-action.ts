@@ -1,6 +1,7 @@
 import { logger, task } from '@trigger.dev/sdk'
 import type Stripe from 'stripe'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
+import { createNoopContext } from '@/db/transactionEffectsHelpers'
 import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 
 export const stripePaymentIntentRequiresActionTask = task({
@@ -11,10 +12,10 @@ export const stripePaymentIntentRequiresActionTask = task({
   ) => {
     const metadata = payload.data.object.metadata
     if ('billingRunId' in metadata) {
-      return comprehensiveAdminTransaction(async (ctx) => {
+      return adminTransaction(async ({ transaction }) => {
         return await processOutcomeForBillingRun(
           { input: payload },
-          ctx
+          createNoopContext(transaction)
         )
       })
     } else {

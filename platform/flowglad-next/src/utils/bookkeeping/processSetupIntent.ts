@@ -552,8 +552,9 @@ export interface ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededR
 const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
   async (
     setupIntent: CoreSripeSetupIntent,
-    transaction: DbTransaction
+    ctx: TransactionEffectsContext
   ): Promise<ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult> => {
+    const { transaction } = ctx
     const initialCheckoutSession =
       await checkoutSessionFromSetupIntent(setupIntent, transaction)
     const checkoutSession = await updateCheckoutSession(
@@ -625,7 +626,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
         defaultPaymentMethod: paymentMethod,
         autoStart: true,
       },
-      transaction
+      ctx
     )
 
     // Fetch the subscription again to get the updated status after activation
@@ -805,7 +806,7 @@ export const processSetupIntentSucceeded = async (
     const result =
       await processActivateSubscriptionCheckoutSessionSetupIntentSucceeded(
         setupIntent,
-        transaction
+        ctx
       )
     invalidateCache(
       CacheDependency.customerSubscriptions(result.customer.id)

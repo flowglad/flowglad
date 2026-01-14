@@ -5,7 +5,11 @@ import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 import type { Event } from './schema/events'
 import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
 import type { TransactionOutput } from './transactionEnhacementTypes'
-import type { DbTransaction, TransactionEffects } from './types'
+import type {
+  DbTransaction,
+  TransactionEffects,
+  TransactionEffectsContext,
+} from './types'
 
 /**
  * Creates a fresh effects accumulator and the callback functions that push to it.
@@ -117,5 +121,34 @@ export function invalidateCacheAfterCommit(
   if (cacheInvalidations.length > 0) {
     const uniqueInvalidations = [...new Set(cacheInvalidations)]
     void invalidateDependencies(uniqueInvalidations)
+  }
+}
+
+/**
+ * No-op callbacks for use in contexts where effects are not being tracked.
+ * Useful for legacy code or when effects are handled at a higher level.
+ */
+export const noopInvalidateCache = (
+  ..._keys: CacheDependencyKey[]
+): void => {}
+
+export const noopEmitEvent = (..._events: Event.Insert[]): void => {}
+
+export const noopEnqueueLedgerCommand = (
+  ..._commands: LedgerCommand[]
+): void => {}
+
+/**
+ * Creates a TransactionEffectsContext with no-op callbacks.
+ * Use this when effects should be discarded or are handled elsewhere.
+ */
+export function createNoopContext(
+  transaction: DbTransaction
+): TransactionEffectsContext {
+  return {
+    transaction,
+    invalidateCache: noopInvalidateCache,
+    emitEvent: noopEmitEvent,
+    enqueueLedgerCommand: noopEnqueueLedgerCommand,
   }
 }
