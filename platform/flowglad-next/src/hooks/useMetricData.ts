@@ -45,7 +45,7 @@ export function useMetricData(
   const { fromDate, toDate, interval, organizationId, productId } =
     params
 
-  // Revenue query - only enabled when metric === 'revenue'
+  // Revenue query - always enabled once organization is known
   const revenueQuery = trpc.organizations.getRevenue.useQuery(
     {
       organizationId,
@@ -54,10 +54,10 @@ export function useMetricData(
       toDate,
       productId: productId ?? undefined, // Revenue already supports productId
     },
-    { enabled: metric === 'revenue' && !!organizationId }
+    { enabled: !!organizationId }
   )
 
-  // MRR query - only enabled when metric === 'mrr'
+  // MRR query - always enabled once organization is known
   const mrrQuery = trpc.organizations.getMRR.useQuery(
     {
       startDate: fromDate,
@@ -65,10 +65,10 @@ export function useMetricData(
       granularity: interval,
       productId: productId ?? undefined,
     },
-    { enabled: metric === 'mrr' && !!organizationId }
+    { enabled: !!organizationId }
   )
 
-  // Subscribers query - only enabled when metric === 'subscribers'
+  // Subscribers query - always enabled once organization is known
   const subscribersQuery =
     trpc.organizations.getActiveSubscribers.useQuery(
       {
@@ -77,7 +77,7 @@ export function useMetricData(
         granularity: interval,
         productId: productId ?? undefined,
       },
-      { enabled: metric === 'subscribers' && !!organizationId }
+      { enabled: !!organizationId }
     )
 
   // ─────────────────────────────────────────────────────────────────
