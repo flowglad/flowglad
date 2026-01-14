@@ -118,6 +118,8 @@ When using `migrations:test:staging` or `migrations:test:prod`, the container st
 
 4. **Press Enter** in the terminal when done to clean up the containers
 
+> **Note:** The `migrations:test:staging` and `migrations:test:prod` scripts automatically enable inspect mode. If running `migrations:test` directly, add `--inspect` to keep containers running for inspection.
+
 ### Best Practices
 
 - Always test migrations against staging before production

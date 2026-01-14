@@ -26,6 +26,7 @@
  *     It should have format: postgresql://[user]:[password]@[host]:5432/[database]
  */
 
+import * as fs from 'fs'
 import { loadEnvConfig } from '@next/env'
 import { execSync } from 'child_process'
 import * as readline from 'readline'
@@ -43,6 +44,17 @@ interface TestResult {
   port?: number
   containerName?: string
   migrationOutput?: string
+}
+
+interface ExecSyncError extends Error {
+  stderr?: string
+  stdout?: string
+  status?: number
+}
+
+function getExecErrorOutput(error: unknown): string {
+  const execError = error as ExecSyncError
+  return execError.stdout || execError.stderr || ''
 }
 
 async function waitForEnterOrExport(
@@ -76,7 +88,6 @@ async function waitForEnterOrExport(
       // Handle 'e' key - export to file
       if (key === 'e' || key === 'E') {
         if (migrationOutput) {
-          const fs = require('fs')
           const timestamp = new Date()
             .toISOString()
             .replace(/:/g, '-')
@@ -160,7 +171,7 @@ function execCommandWithOutput(command: string): string {
       stdio: 'pipe',
     })
   } catch (error) {
-    const execError = error as { stderr?: string; stdout?: string }
+    const execError = error as ExecSyncError
     throw new Error(
       execError.stderr || execError.stdout || 'Command failed'
     )
@@ -255,12 +266,7 @@ function cloneDatabase(sourceUrl: string, targetPort: number): void {
     })
     log('Database cloned successfully', 'success')
   } catch (error) {
-    const execError = error as {
-      stderr?: string
-      stdout?: string
-      message?: string
-      status?: number
-    }
+    const execError = error as ExecSyncError
 
     // Log detailed error info for debugging
     if (execError.stderr) {
@@ -370,12 +376,7 @@ function runMigrations(targetPort: number): string {
     log('Migrations applied successfully', 'success')
     return result
   } catch (error) {
-    const execError = error as {
-      stderr?: string
-      stdout?: string
-      message?: string
-    }
-    const fullOutput = execError.stdout || execError.stderr || ''
+    const fullOutput = getExecErrorOutput(error)
 
     // Display the error output
     if (fullOutput) {
@@ -436,7 +437,7 @@ async function testMigration(
     const durationMs = Date.now() - startTime
 
     // Capture error output too
-    const execError = error as { stderr?: string; stdout?: string }
+    const execError = error as ExecSyncError
     if (execError.stdout || execError.stderr) {
       migrationOutput = `STDOUT:\n${execError.stdout || ''}\n\nSTDERR:\n${execError.stderr || ''}`
     }
