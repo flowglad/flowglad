@@ -215,6 +215,23 @@ describe('resolveExistingIds', () => {
       createdProPrice?.id
     )
 
+    // Verify usage prices are also included in the prices map
+    expect(resolvedIds.prices.has('api-usage-price')).toBe(true)
+    expect(resolvedIds.prices.has('storage-usage-price')).toBe(true)
+
+    const createdApiUsagePrice = setupResult.prices.find(
+      (p) => p.slug === 'api-usage-price'
+    )
+    const createdStorageUsagePrice = setupResult.prices.find(
+      (p) => p.slug === 'storage-usage-price'
+    )
+    expect(resolvedIds.prices.get('api-usage-price')).toBe(
+      createdApiUsagePrice?.id
+    )
+    expect(resolvedIds.prices.get('storage-usage-price')).toBe(
+      createdStorageUsagePrice?.id
+    )
+
     // Verify usage meters map
     expect(resolvedIds.usageMeters.size).toBe(2)
     expect(resolvedIds.usageMeters.has('api-calls')).toBe(true)

@@ -359,6 +359,17 @@ describe('updatePricingModelTransaction', () => {
       expect(updateResult.usageMeters.created).toHaveLength(1)
       expect(updateResult.usageMeters.created[0].slug).toBe('storage')
       expect(updateResult.usageMeters.created[0].name).toBe('Storage')
+
+      // Verify usage meter prices were also created
+      // The new "storage" meter should have its price created
+      const storageUsagePrice = updateResult.prices.created.find(
+        (p) => p.slug === 'storage-usage-price'
+      )
+      expect(storageUsagePrice?.type).toBe(PriceType.Usage)
+      expect(storageUsagePrice?.unitPrice).toBe(5)
+      expect(storageUsagePrice?.usageMeterId).toBe(
+        updateResult.usageMeters.created[0].id
+      )
     })
 
     it('updates existing usage meter name', async () => {

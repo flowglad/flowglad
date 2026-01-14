@@ -69,10 +69,23 @@ export const resolveExistingIds = async (
 
   // Fetch prices for all products
   const productIds = products.map((p) => p.id)
-  const prices =
+  const productPrices =
     productIds.length > 0
       ? await selectPrices({ productId: productIds }, transaction)
       : []
+
+  // Fetch prices for all usage meters
+  const usageMeterIds = usageMeters.map((m) => m.id)
+  const usageMeterPrices =
+    usageMeterIds.length > 0
+      ? await selectPrices(
+          { usageMeterId: usageMeterIds },
+          transaction
+        )
+      : []
+
+  // Combine all prices
+  const prices = [...productPrices, ...usageMeterPrices]
 
   // Build slug->id maps
   const featureMap = new Map<string, string>()
