@@ -85,7 +85,7 @@ export const createSubscriptionWorkflow = async (
       {
         stripeSetupIntentId: params.stripeSetupIntentId,
       },
-      ctx.transaction
+      transaction
     )
 
     if (existingSubscription) {
@@ -93,7 +93,7 @@ export const createSubscriptionWorkflow = async (
         params,
         existingSubscription.subscription,
         existingSubscription.subscriptionItems,
-        ctx.transaction
+        transaction
       )
     }
   }
@@ -110,7 +110,7 @@ export const createSubscriptionWorkflow = async (
         customerId: params.customer.id,
         status: SubscriptionStatus.Active,
       },
-      ctx.transaction
+      transaction
     )
 
     const freeSubscriptions = activeSubscriptions.filter(
@@ -178,7 +178,7 @@ export const createSubscriptionWorkflow = async (
           canceledAt: Date.now(),
           cancellationReason: CancellationReason.UpgradedToPaid,
         },
-        ctx.transaction
+        transaction
       )
     }
   }
@@ -194,19 +194,16 @@ export const createSubscriptionWorkflow = async (
     // Fetch customer to check trial eligibility
     const customer = await selectCustomerById(
       params.customer.id,
-      ctx.transaction
+      transaction
     )
     // Fetch price record to check trial eligibility
-    const price = await selectPriceById(
-      params.price.id,
-      ctx.transaction
-    )
+    const price = await selectPriceById(params.price.id, transaction)
 
     // Calculate trial eligibility (returns undefined for non-subscription prices)
     const isEligibleForTrial = await calculateTrialEligibility(
       price,
       customer,
-      ctx.transaction
+      transaction
     )
 
     // If not eligible, remove trial period (similar to checkout flow setting trialPeriodDays to null)
@@ -221,17 +218,17 @@ export const createSubscriptionWorkflow = async (
     trialEnd: finalTrialEnd,
   }
 
-  await verifyCanCreateSubscription(params, ctx.transaction)
+  await verifyCanCreateSubscription(params, transaction)
   const defaultPaymentMethod =
     await maybeDefaultPaymentMethodForSubscription(
       {
         customerId: params.customer.id,
         defaultPaymentMethod: params.defaultPaymentMethod,
       },
-      ctx.transaction
+      transaction
     )
   const { subscription, subscriptionItems } =
-    await insertSubscriptionAndItems(params, ctx.transaction)
+    await insertSubscriptionAndItems(params, transaction)
 
   // Link the canceled free subscription to the new paid subscription
   if (canceledFreeSubscription) {
@@ -241,7 +238,7 @@ export const createSubscriptionWorkflow = async (
         renews: canceledFreeSubscription.renews,
         replacedBySubscriptionId: subscription.id,
       },
-      ctx.transaction
+      transaction
     )
   }
 
@@ -251,14 +248,14 @@ export const createSubscriptionWorkflow = async (
         ...params.discountRedemption,
         subscriptionId: subscription.id,
       },
-      ctx.transaction
+      transaction
     )
   }
   const { price } = params
   const subscriptionItemFeatures =
     await createSubscriptionFeatureItems(
       subscriptionItems,
-      ctx.transaction
+      transaction
     )
 
   const {
@@ -277,7 +274,7 @@ export const createSubscriptionWorkflow = async (
       preservedBillingPeriodStart: params.preservedBillingPeriodStart,
       isDefaultPlan: params.product.default,
     },
-    ctx.transaction
+    transaction
   )
   // Don't send notifications for free subscriptions
   // A subscription is considered free if unitPrice is 0, not based on slug
@@ -309,7 +306,7 @@ export const createSubscriptionWorkflow = async (
   const timestamp = Date.now()
   const customer = await selectCustomerById(
     updatedSubscription.customerId,
-    ctx.transaction
+    transaction
   )
 
   if (!customer) {
