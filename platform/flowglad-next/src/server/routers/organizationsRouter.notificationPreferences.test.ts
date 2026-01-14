@@ -98,7 +98,7 @@ describe('organizationsRouter notification preferences', () => {
       const result = await caller.getNotificationPreferences()
 
       // Default values
-      expect(result.testModeNotifications).toBe(false)
+      expect(result.testModeNotifications).toBe(true)
       expect(result.subscriptionCreated).toBe(true)
       expect(result.subscriptionAdjusted).toBe(true)
       expect(result.subscriptionCanceled).toBe(true)

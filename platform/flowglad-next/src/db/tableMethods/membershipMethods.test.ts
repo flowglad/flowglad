@@ -30,7 +30,7 @@ describe('getMembershipNotificationPreferences', () => {
     const result = getMembershipNotificationPreferences(membership)
 
     expect(result).toEqual(DEFAULT_NOTIFICATION_PREFERENCES)
-    expect(result.testModeNotifications).toBe(false)
+    expect(result.testModeNotifications).toBe(true)
     expect(result.subscriptionCreated).toBe(true)
     expect(result.subscriptionAdjusted).toBe(true)
     expect(result.subscriptionCanceled).toBe(true)

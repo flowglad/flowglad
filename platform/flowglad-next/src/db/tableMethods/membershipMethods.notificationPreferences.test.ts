@@ -32,10 +32,10 @@ describe('memberships notificationPreferences', () => {
           transaction
         )
 
-        // getMembershipNotificationPreferences should return testModeNotifications = false
+        // getMembershipNotificationPreferences should return testModeNotifications = true (default)
         const prefs =
           getMembershipNotificationPreferences(freshMembership)
-        expect(prefs.testModeNotifications).toBe(false)
+        expect(prefs.testModeNotifications).toBe(true)
 
         // getMembershipNotificationPreferences should return all 5 notification types as true
         expect(prefs.subscriptionCreated).toBe(true)
@@ -99,8 +99,8 @@ describe('memberships notificationPreferences', () => {
         const prefs =
           getMembershipNotificationPreferences(freshMembership)
 
-        // testModeNotifications should be false (default)
-        expect(prefs.testModeNotifications).toBe(false)
+        // testModeNotifications should be true (default)
+        expect(prefs.testModeNotifications).toBe(true)
 
         // All 5 notification type preferences should be true (defaults)
         expect(prefs.subscriptionCreated).toBe(true)
@@ -162,7 +162,7 @@ describe('memberships notificationPreferences', () => {
     it('successfully parses an empty object and returns all defaults', () => {
       const result = notificationPreferencesSchema.parse({})
 
-      expect(result.testModeNotifications).toBe(false)
+      expect(result.testModeNotifications).toBe(true)
       expect(result.subscriptionCreated).toBe(true)
       expect(result.subscriptionAdjusted).toBe(true)
       expect(result.subscriptionCanceled).toBe(true)
