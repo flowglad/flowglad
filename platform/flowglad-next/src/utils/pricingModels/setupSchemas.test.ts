@@ -42,7 +42,6 @@ describe('validateSetupPricingModelInput', () => {
       },
     ],
     usageMeters: [],
-    resources: [],
   })
 
   it('should throw if a usage meter has no associated usage price', () => {

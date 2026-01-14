@@ -239,8 +239,7 @@ export function TemplatePreviewContent({
                           if (
                             feature &&
                             'amount' in feature &&
-                            typeof feature.amount === 'number' &&
-                            feature.amount > 0 &&
+                            feature.amount &&
                             !startsWithNumber
                           ) {
                             // Remove plan-specific suffix (e.g., " - Hobby", " - Pro")
@@ -249,16 +248,16 @@ export function TemplatePreviewContent({
                               ''
                             )
                             // Format amount with K notation for thousands
-                            const amount = feature.amount
                             let formattedAmount
-                            if (amount >= 1000) {
-                              const thousands = amount / 1000
+                            if (feature.amount >= 1000) {
+                              const thousands = feature.amount / 1000
                               formattedAmount =
                                 thousands % 1 === 0
                                   ? `${thousands}K`
                                   : `${thousands.toFixed(1)}K`
                             } else {
-                              formattedAmount = amount.toString()
+                              formattedAmount =
+                                feature.amount.toString()
                             }
                             displayName = `${formattedAmount} ${baseName}`
                           }

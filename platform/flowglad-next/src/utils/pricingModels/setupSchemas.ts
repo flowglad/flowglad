@@ -2,7 +2,6 @@ import * as R from 'ramda'
 import { z } from 'zod'
 import { currencyCodeSchema } from '@/db/commonZodSchema'
 import {
-  resourceFeatureClientInsertSchema,
   toggleFeatureClientInsertSchema,
   usageCreditGrantFeatureClientInsertSchema,
 } from '@/db/schema/features'
@@ -13,7 +12,6 @@ import {
 } from '@/db/schema/prices'
 import { pricingModelsClientInsertSchema } from '@/db/schema/pricingModels'
 import { productsClientInsertSchema } from '@/db/schema/products'
-import { resourcesClientInsertSchema } from '@/db/schema/resources'
 import { usageMetersClientInsertSchema } from '@/db/schema/usageMeters'
 import { CurrencyCode, FeatureType, PriceType } from '@/types'
 import core, { safeZodSanitizedString } from '../core'
@@ -54,21 +52,6 @@ export const featurePricingModelSetupSchema = z
           ),
       })
       .describe('A credit grant to give for a usage meter.'),
-    resourceFeatureClientInsertSchema
-      .omit({
-        pricingModelId: true,
-        resourceId: true,
-      })
-      .extend({
-        resourceSlug: z
-          .string()
-          .describe(
-            'The slug of the resource to grant. Must be a valid slug for a resource.'
-          ),
-      })
-      .describe(
-        'A resource grant feature that grants a specified amount of a resource.'
-      ),
   ])
   .describe(
     'A feature that can be granted to a customer. Will be associated with products.'
@@ -186,44 +169,15 @@ export const setupPricingModelSchema =
       .refine(slugsAreUnique, {
         message: 'Usage meters must have unique slugs',
       }),
-    resources: z
-      .array(
-        resourcesClientInsertSchema
-          .omit({
-            pricingModelId: true,
-          })
-          .describe(
-            'A resource that can be granted in amounts by Resource features. Resources represent countable things like seats, API calls, or storage.'
-          )
-      )
-      .refine(slugsAreUnique, {
-        message: 'Resources must have unique slugs',
-      })
-      .optional()
-      .default([]),
   })
 
-/**
- * Type for pricing model setup data - after validation with defaults applied.
- * All fields are required (including resources, which defaults to []).
- * Use this type when working with validated data.
- */
-export type SetupPricingModelInput = z.output<
-  typeof setupPricingModelSchema
->
-
-/**
- * Input type for setupPricingModelSchema - before validation.
- * Resources and isDefault are optional (they have defaults).
- * Use this type for function parameters that accept unvalidated input.
- */
-export type SetupPricingModelRawInput = z.input<
+export type SetupPricingModelInput = z.infer<
   typeof setupPricingModelSchema
 >
 
 export const validateSetupPricingModelInput = (
-  input: SetupPricingModelRawInput
-): SetupPricingModelInput => {
+  input: SetupPricingModelInput
+) => {
   const result = setupPricingModelSchema.safeParse(input)
   if (!result.success) {
     if (

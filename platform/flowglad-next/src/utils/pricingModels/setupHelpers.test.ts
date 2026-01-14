@@ -14,7 +14,7 @@ import {
 } from '@/types'
 import { getPricingModelSetupData } from './setupHelpers'
 import {
-  type SetupPricingModelRawInput,
+  type SetupPricingModelInput,
   setupPricingModelSchema,
 } from './setupSchemas'
 import { setupPricingModelTransaction } from './setupTransaction'
@@ -35,7 +35,7 @@ afterEach(async () => {
 describe('getPricingModelSetupData', () => {
   it('should fetch and transform a complete pricing model with all related entities', async () => {
     // First, create a pricing model with all the complex parts
-    const originalInput: SetupPricingModelRawInput = {
+    const originalInput: SetupPricingModelInput = {
       name: 'Test Pricing Model',
       isDefault: false,
       usageMeters: [
@@ -331,7 +331,7 @@ describe('getPricingModelSetupData', () => {
   })
 
   it('should handle a minimal pricing model with no usage meters or features', async () => {
-    const minimalInput: SetupPricingModelRawInput = {
+    const minimalInput: SetupPricingModelInput = {
       name: 'Minimal Model',
       isDefault: false,
       usageMeters: [],
@@ -386,7 +386,7 @@ describe('getPricingModelSetupData', () => {
   })
 
   it('should only include active default prices in the output', async () => {
-    const input: SetupPricingModelRawInput = {
+    const input: SetupPricingModelInput = {
       name: 'Filter Test Model',
       isDefault: false,
       usageMeters: [],
@@ -454,7 +454,7 @@ describe('getPricingModelSetupData', () => {
   })
 
   it('should exclude inactive features from the output', async () => {
-    const input: SetupPricingModelRawInput = {
+    const input: SetupPricingModelInput = {
       name: 'Inactive Features Test Model',
       isDefault: false,
       usageMeters: [
@@ -593,7 +593,7 @@ describe('getPricingModelSetupData', () => {
 
   it('should exclude expired product-feature associations from the output', async () => {
     // First, create a pricing model with features
-    const input: SetupPricingModelRawInput = {
+    const input: SetupPricingModelInput = {
       name: 'Expired Associations Test Model',
       isDefault: false,
       usageMeters: [],

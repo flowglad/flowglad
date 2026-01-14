@@ -32,7 +32,6 @@ describe('setupPricingModelSchema', () => {
       },
     ],
     usageMeters: [],
-    resources: [],
   })
 
   describe('unique slug validation', () => {
