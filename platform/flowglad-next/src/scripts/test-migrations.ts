@@ -26,9 +26,9 @@
  *     It should have format: postgresql://[user]:[password]@[host]:5432/[database]
  */
 
-import * as fs from 'fs'
 import { loadEnvConfig } from '@next/env'
 import { execSync } from 'child_process'
+import * as fs from 'fs'
 import * as readline from 'readline'
 
 const TEST_CONTAINER_PREFIX = 'flowglad-migration-test'
