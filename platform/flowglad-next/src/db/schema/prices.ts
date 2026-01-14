@@ -71,17 +71,6 @@ const hiddenColumns = {
 
 const TABLE_NAME = 'prices'
 
-/**
- * Validates that usage_meter_id belongs to the same pricing model as the price.
- * This uses pricingModelId instead of product subquery to handle usage prices
- * with null productId.
- */
-const usageMeterBelongsToSamePricingModel = sql`"usage_meter_id" IS NULL
-  OR "usage_meter_id" IN (
-    SELECT "id" FROM "usage_meters"
-    WHERE "usage_meters"."pricing_model_id" = "prices"."pricing_model_id"
-  )`
-
 export const prices = pgTable(
   TABLE_NAME,
   {
@@ -162,20 +151,13 @@ export const prices = pgTable(
           )`,
       }
     ),
-    merchantPolicy(
-      'On update, ensure usage meter belongs to same pricing model',
-      {
-        as: 'permissive',
-        to: 'merchant',
-        for: 'update',
-        withCheck: usageMeterBelongsToSamePricingModel,
-      }
-    ),
     // Merchant access policy for prices.
     // Prices don't have an organization_id column - they're scoped to orgs
     // through their productId (for subscription/single_payment) or usageMeterId (for usage).
     // For usage prices: must have a visible usage_meter (RLS-scoped by org)
     // For non-usage prices: must have a visible product (RLS-scoped by org)
+    // The withCheck also enforces pricing_model_id consistency on INSERT/UPDATE:
+    // the price's pricing_model_id must match the parent (product or usage meter).
     merchantPolicy('Merchant access via product or usage meter FK', {
       as: 'permissive',
       to: 'merchant',
@@ -185,8 +167,14 @@ export const prices = pgTable(
             OR ("type" != 'usage' AND "product_id" IN (SELECT "id" FROM "products"))
           )`,
       withCheck: sql`(
-            ("type" = 'usage' AND "usage_meter_id" IN (SELECT "id" FROM "usage_meters"))
-            OR ("type" != 'usage' AND "product_id" IN (SELECT "id" FROM "products"))
+            ("type" = 'usage' AND "usage_meter_id" IN (
+              SELECT "id" FROM "usage_meters"
+              WHERE "usage_meters"."pricing_model_id" = "prices"."pricing_model_id"
+            ))
+            OR ("type" != 'usage' AND "product_id" IN (
+              SELECT "id" FROM "products"
+              WHERE "products"."pricing_model_id" = "prices"."pricing_model_id"
+            ))
           )`,
     }),
   ])

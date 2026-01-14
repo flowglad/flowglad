@@ -554,19 +554,7 @@ describe('prices RLS - merchant update policy for usage meter validation', () =>
     expect(updated.usageMeterId).toBe(usageMeter2.id)
   })
 
-  /**
-   * NOTE: This test documents a known limitation in the current RLS policy design.
-   * The "usage meter belongs to same pricing model" policy is PERMISSIVE, and combines
-   * with the "merchant access via product or usage meter FK" policy (also PERMISSIVE).
-   * In Postgres, when multiple permissive policies exist, a row passes if ANY policy passes.
-   * Since the main merchant policy allows access to any visible usage meter (same org),
-   * the pricing model restriction doesn't effectively block cross-pricing-model updates.
-   *
-   * This test documents the ACTUAL behavior - merchants CAN update usage prices to use
-   * meters from different pricing models within their org. If this needs to be restricted,
-   * the RLS policy architecture would need to be changed (e.g., use restrictive policies).
-   */
-  it('allows updating a usage price to use a usage meter from a different pricing model (due to permissive policy design)', async () => {
+  it('denies updating a usage price to use a usage meter from a different pricing model', async () => {
     // Create a second pricing model for the same organization
     const pricingModel2 = await setupPricingModel({
       organizationId: organization.id,
@@ -582,24 +570,23 @@ describe('prices RLS - merchant update policy for usage meter validation', () =>
       livemode: true,
     })
 
-    // The update succeeds because the main merchant policy is permissive and
-    // allows access to any visible usage meter in the same org
-    const updated = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return updatePrice(
-          {
-            id: usagePrice.id,
-            usageMeterId: usageMeterInPM2.id,
-            type: PriceType.Usage,
-          },
-          transaction
-        )
-      },
-      { apiKey: apiKey.token }
-    )
-
-    expect(updated.id).toBe(usagePrice.id)
-    expect(updated.usageMeterId).toBe(usageMeterInPM2.id)
+    // The update should fail because the RLS policy requires the usage meter's
+    // pricing_model_id to match the price's pricing_model_id
+    await expect(
+      authenticatedTransaction(
+        async ({ transaction }) => {
+          return updatePrice(
+            {
+              id: usagePrice.id,
+              usageMeterId: usageMeterInPM2.id,
+              type: PriceType.Usage,
+            },
+            transaction
+          )
+        },
+        { apiKey: apiKey.token }
+      )
+    ).rejects.toThrow()
   })
 })
 
