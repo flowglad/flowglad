@@ -197,12 +197,11 @@ export const updateFeatureTransaction = async (
         // Feature deactivated - expire product features
         // This prevents NEW subscriptions from getting the feature
         // Note: expireProductFeaturesByFeatureId also detaches existing subscriptionItemFeatures
-        const { cacheInvalidations } =
-          await expireProductFeaturesByFeatureId(
-            productFeatureIds,
-            transaction
-          )
-        invalidateCache?.(...cacheInvalidations)
+        // and calls invalidateCache directly
+        await expireProductFeaturesByFeatureId(productFeatureIds, {
+          transaction,
+          invalidateCache,
+        })
       } else if (featureUpdate.active === true) {
         // Feature reactivated - unexpire product features
         // This allows NEW subscriptions to get the feature again

@@ -570,7 +570,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction }
         )
     )
 
@@ -713,7 +713,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction }
         )
     )
 
@@ -877,7 +877,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction }
         )
     )
 
@@ -1073,7 +1073,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction }
         )
     )
 
@@ -1109,7 +1109,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction }
         )
     )
 
@@ -1197,7 +1197,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction }
         )
     )
 
@@ -1223,7 +1223,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction }
         )
     )
 
@@ -1358,7 +1358,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction }
         )
     )
 

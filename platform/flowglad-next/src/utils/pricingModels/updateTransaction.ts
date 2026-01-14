@@ -896,7 +896,7 @@ export const updatePricingModelTransaction = async (
         organizationId: pricingModel.organizationId,
         livemode: pricingModel.livemode,
       },
-      transaction
+      { transaction }
     )
 
   result.productFeatures.added = productFeaturesResult.added

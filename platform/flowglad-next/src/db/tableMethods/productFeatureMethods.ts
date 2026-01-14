@@ -22,10 +22,7 @@ import type {
   AuthenticatedTransactionParams,
   DbTransaction,
 } from '@/db/types'
-import {
-  CacheDependency,
-  type CacheDependencyKey,
-} from '@/utils/cache'
+import { CacheDependency } from '@/utils/cache'
 import { features, featuresSelectSchema } from '../schema/features'
 import type { Product } from '../schema/products'
 import { createDateNotPassedFilter } from '../tableUtils'
@@ -101,12 +98,16 @@ export const selectProductFeaturesPaginated =
 
 export const expireProductFeaturesByFeatureId = async (
   productFeatureIds: string[],
-  transaction: DbTransaction
+  params: Pick<
+    AuthenticatedTransactionParams,
+    'transaction' | 'invalidateCache'
+  >
 ): Promise<{
   expiredProductFeature: ProductFeature.Record[]
   detachedSubscriptionItemFeatures: import('@/db/schema/subscriptionItemFeatures').SubscriptionItemFeature.Record[]
-  cacheInvalidations: CacheDependencyKey[]
 }> => {
+  const { transaction, invalidateCache } = params
+
   // First, detach any existing subscription item features
   const detachedSubscriptionItemFeatures =
     await detachSubscriptionItemFeaturesFromProductFeature(
@@ -124,7 +125,7 @@ export const expireProductFeaturesByFeatureId = async (
     .where(inArray(productFeatures.id, productFeatureIds))
     .returning()
 
-  // Collect unique subscription item IDs that need cache invalidation
+  // Invalidate cache for affected subscription items
   const subscriptionItemIds = [
     ...new Set(
       detachedSubscriptionItemFeatures.map(
@@ -132,15 +133,17 @@ export const expireProductFeaturesByFeatureId = async (
       )
     ),
   ]
+  invalidateCache?.(
+    ...subscriptionItemIds.map((id) =>
+      CacheDependency.subscriptionItemFeatures(id)
+    )
+  )
 
   return {
     expiredProductFeature: productFeaturesSelectSchema
       .array()
       .parse(expiredProductFeature),
     detachedSubscriptionItemFeatures,
-    cacheInvalidations: subscriptionItemIds.map((id) =>
-      CacheDependency.subscriptionItemFeatures(id)
-    ),
   }
 }
 
@@ -343,12 +346,10 @@ export const syncProductFeatures = async (
         (pf) => !pf.expiredAt
       )
       if (activeFeatures.length > 0) {
-        const { cacheInvalidations } =
-          await expireProductFeaturesByFeatureId(
-            activeFeatures.map((pf) => pf.id),
-            transaction
-          )
-        invalidateCache?.(...cacheInvalidations)
+        await expireProductFeaturesByFeatureId(
+          activeFeatures.map((pf) => pf.id),
+          { transaction, invalidateCache }
+        )
       }
     }
     return []
@@ -372,12 +373,10 @@ export const syncProductFeatures = async (
 
   // Only call expire if there are features to expire
   if (productFeaturesToExpire.length > 0) {
-    const { cacheInvalidations } =
-      await expireProductFeaturesByFeatureId(
-        productFeaturesToExpire.map((pf) => pf.id),
-        transaction
-      )
-    invalidateCache?.(...cacheInvalidations)
+    await expireProductFeaturesByFeatureId(
+      productFeaturesToExpire.map((pf) => pf.id),
+      { transaction, invalidateCache }
+    )
   }
 
   const featureIdsToUnexpire = allProductFeaturesForProduct

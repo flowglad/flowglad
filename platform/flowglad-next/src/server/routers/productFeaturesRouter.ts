@@ -151,15 +151,13 @@ export const expireProductFeature = protectedProcedure
   .output(z.object({ success: z.boolean() })) // Indicate success
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transaction }) => {
-        const { cacheInvalidations } =
-          await expireProductFeaturesByFeatureId(
-            [input.id],
-            transaction
-          )
+      async ({ input, transaction, invalidateCache }) => {
+        await expireProductFeaturesByFeatureId([input.id], {
+          transaction,
+          invalidateCache,
+        })
         return {
           result: { success: true },
-          cacheInvalidations,
         }
       }
     )
