@@ -127,6 +127,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
               transaction,
               livemode: true,
               organizationId: organization.id,
+              invalidateCache,
             }
           )
           return { result }

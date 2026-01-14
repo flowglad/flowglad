@@ -359,9 +359,20 @@ export const migrateCustomerPricingModelProcedureTransaction =
       newSubscription: Subscription.ClientRecord
     }>
   > => {
-    const { transaction } = transactionCtx
+    const {
+      transaction,
+      invalidateCache,
+      emitEvent,
+      enqueueLedgerCommand,
+    } = transactionCtx
     const { organizationId } = ctx
     const { externalId, newPricingModelId } = input
+    const effectsCtx: TransactionEffectsContext = {
+      transaction,
+      invalidateCache,
+      emitEvent,
+      enqueueLedgerCommand,
+    }
 
     if (!organizationId) {
       throw new TRPCError({
@@ -420,7 +431,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
         oldPricingModelId: customer.pricingModelId,
         newPricingModelId,
       },
-      transactionCtx
+      effectsCtx
     )
 
     return {

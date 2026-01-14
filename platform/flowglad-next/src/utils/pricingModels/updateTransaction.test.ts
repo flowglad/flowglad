@@ -11,7 +11,6 @@ import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
-import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
@@ -631,7 +630,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInput,
+              } as SetupPricingModelInputWithResources,
             },
             { transaction, invalidateCache }
           )
@@ -747,7 +746,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInput,
+              } as SetupPricingModelInputWithResources,
             },
             { transaction, invalidateCache }
           )
@@ -874,7 +873,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInput,
+              } as SetupPricingModelInputWithResources,
             },
             { transaction, invalidateCache }
           )
@@ -893,9 +892,7 @@ describe('updatePricingModelTransaction', () => {
                 name: 'Test Pricing Model',
                 isDefault: false,
                 usageMeters: [],
-                resources: [
-                  { slug: 'seats', name: 'Seats', active: true },
-                ],
+                resources: [{ slug: 'seats', name: 'Seats' }],
                 features: [
                   {
                     type: FeatureType.Toggle,
@@ -927,7 +924,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInput,
+              } as SetupPricingModelInputWithResources,
             },
             { transaction, invalidateCache }
           )
@@ -990,7 +987,7 @@ describe('updatePricingModelTransaction', () => {
               ],
             },
           },
-          createDiscardingEffectsContext(transaction)
+          transaction
         )
       )
 
@@ -1057,7 +1054,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            createDiscardingEffectsContext(transaction)
+            transaction
           )
       )
 
@@ -1131,7 +1128,7 @@ describe('updatePricingModelTransaction', () => {
               ],
             },
           },
-          createDiscardingEffectsContext(transaction)
+          transaction
         )
       )
 
@@ -1203,7 +1200,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            createDiscardingEffectsContext(transaction)
+            transaction
           )
       )
 
@@ -1261,7 +1258,7 @@ describe('updatePricingModelTransaction', () => {
               ],
             },
           },
-          createDiscardingEffectsContext(transaction)
+          transaction
         )
       )
 
@@ -1318,7 +1315,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            createDiscardingEffectsContext(transaction)
+            transaction
           )
         )
       ).rejects.toThrow(
@@ -1381,7 +1378,7 @@ describe('updatePricingModelTransaction', () => {
               ],
             },
           },
-          createDiscardingEffectsContext(transaction)
+          transaction
         )
       )
 
@@ -1430,7 +1427,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            createDiscardingEffectsContext(transaction)
+            transaction
           )
       )
 
@@ -1526,7 +1523,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            createDiscardingEffectsContext(transaction)
+            transaction
           )
       )
 

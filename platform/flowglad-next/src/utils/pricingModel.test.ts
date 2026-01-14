@@ -2320,7 +2320,7 @@ describe('createProductTransaction', () => {
   })
   it('should create a product with a default price', async () => {
     const result = await comprehensiveAuthenticatedTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, invalidateCache }) => {
         const txResult = await createProductTransaction(
           {
             product: {
@@ -2355,6 +2355,7 @@ describe('createProductTransaction', () => {
             transaction,
             livemode: org1ApiKey.livemode,
             organizationId: organization.id,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -2390,7 +2391,7 @@ describe('createProductTransaction', () => {
   it('should create a product and associate features with it', async () => {
     const featureIds = features.map((f) => f.id)
     const result = await comprehensiveAuthenticatedTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, invalidateCache }) => {
         const txResult = await createProductTransaction(
           {
             product: {
@@ -2426,6 +2427,7 @@ describe('createProductTransaction', () => {
             transaction,
             livemode: org1ApiKey.livemode,
             organizationId: organization.id,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -2453,7 +2455,7 @@ describe('createProductTransaction', () => {
 
   it('should create a product without features if featureIds is not provided', async () => {
     const result = await comprehensiveAuthenticatedTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, invalidateCache }) => {
         const txResult = await createProductTransaction(
           {
             product: {
@@ -2488,6 +2490,7 @@ describe('createProductTransaction', () => {
             transaction,
             livemode: org1ApiKey.livemode,
             organizationId: organization.id,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -2525,7 +2528,7 @@ describe('createProductTransaction', () => {
     // Test: Attempting to create a usage price with featureIds should throw
     await expect(
       comprehensiveAuthenticatedTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, invalidateCache }) => {
           const txResult = await createProductTransaction(
             {
               product: {
@@ -2561,6 +2564,7 @@ describe('createProductTransaction', () => {
               transaction,
               livemode: org1ApiKey.livemode,
               organizationId: organization.id,
+              invalidateCache,
             }
           )
           return { result: txResult }
@@ -2586,7 +2590,7 @@ describe('createProductTransaction', () => {
 
     // Test: Create a usage price product without featureIds - should succeed
     const result = await comprehensiveAuthenticatedTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, invalidateCache }) => {
         const txResult = await createProductTransaction(
           {
             product: {
@@ -2622,6 +2626,7 @@ describe('createProductTransaction', () => {
             transaction,
             livemode: org1ApiKey.livemode,
             organizationId: organization.id,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -2688,7 +2693,7 @@ describe('createProductTransaction', () => {
 
     await expect(
       comprehensiveAuthenticatedTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, invalidateCache }) => {
           const txResult = await createProductTransaction(
             {
               product: {
@@ -2724,6 +2729,7 @@ describe('createProductTransaction', () => {
               transaction,
               livemode: org1ApiKey.livemode,
               organizationId: organization.id,
+              invalidateCache,
             }
           )
           return { result: txResult }
@@ -2760,7 +2766,7 @@ describe('createProductTransaction', () => {
       })
 
     const result = await comprehensiveAuthenticatedTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, invalidateCache }) => {
         const txResult = await createProductTransaction(
           {
             product: {
@@ -2797,6 +2803,7 @@ describe('createProductTransaction', () => {
             transaction,
             livemode: org1ApiKey.livemode,
             organizationId: organization.id,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -2872,7 +2879,12 @@ describe('editProductTransaction - Feature Updates', () => {
   it('should add features to a product', async () => {
     const featureIds = [features[0].id, features[1].id]
     await comprehensiveAuthenticatedTransaction(
-      async ({ userId, transaction, organizationId }) => {
+      async ({
+        userId,
+        transaction,
+        invalidateCache,
+        organizationId,
+      }) => {
         const txResult = await editProductTransaction(
           {
             product: { id: product.id, name: 'Updated Product' },
@@ -2883,6 +2895,7 @@ describe('editProductTransaction - Feature Updates', () => {
             transaction,
             livemode: true,
             organizationId,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -2908,7 +2921,12 @@ describe('editProductTransaction - Feature Updates', () => {
   it('should remove features from a product', async () => {
     // First, add features
     await comprehensiveAuthenticatedTransaction(
-      async ({ userId, transaction, organizationId }) => {
+      async ({
+        userId,
+        transaction,
+        invalidateCache,
+        organizationId,
+      }) => {
         const txResult = await editProductTransaction(
           {
             product: { id: product.id },
@@ -2919,6 +2937,7 @@ describe('editProductTransaction - Feature Updates', () => {
             transaction,
             livemode: true,
             organizationId,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -2928,7 +2947,12 @@ describe('editProductTransaction - Feature Updates', () => {
 
     // Then, remove one
     await comprehensiveAuthenticatedTransaction(
-      async ({ userId, transaction, organizationId }) => {
+      async ({
+        userId,
+        transaction,
+        invalidateCache,
+        organizationId,
+      }) => {
         const txResult = await editProductTransaction(
           {
             product: { id: product.id },
@@ -2939,6 +2963,7 @@ describe('editProductTransaction - Feature Updates', () => {
             transaction,
             livemode: true,
             organizationId,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -2969,7 +2994,12 @@ describe('editProductTransaction - Feature Updates', () => {
   it('should not change features if featureIds is not provided', async () => {
     // First, add features
     await comprehensiveAuthenticatedTransaction(
-      async ({ userId, transaction, organizationId }) => {
+      async ({
+        userId,
+        transaction,
+        invalidateCache,
+        organizationId,
+      }) => {
         const txResult = await editProductTransaction(
           {
             product: { id: product.id },
@@ -2980,6 +3010,7 @@ describe('editProductTransaction - Feature Updates', () => {
             transaction,
             livemode: true,
             organizationId,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -2989,7 +3020,12 @@ describe('editProductTransaction - Feature Updates', () => {
 
     // Then, edit product without featureIds
     await comprehensiveAuthenticatedTransaction(
-      async ({ userId, transaction, organizationId }) => {
+      async ({
+        userId,
+        transaction,
+        invalidateCache,
+        organizationId,
+      }) => {
         const txResult = await editProductTransaction(
           {
             product: { id: product.id, name: 'New Name' },
@@ -2999,6 +3035,7 @@ describe('editProductTransaction - Feature Updates', () => {
             transaction,
             livemode: true,
             organizationId,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -3041,7 +3078,12 @@ describe('editProductTransaction - Feature Updates', () => {
 
     await expect(
       comprehensiveAuthenticatedTransaction(
-        async ({ userId, transaction, organizationId }) => {
+        async ({
+          userId,
+          transaction,
+          invalidateCache,
+          organizationId,
+        }) => {
           const txResult = await editProductTransaction(
             {
               product: { id: singlePaymentProduct.id },
@@ -3052,6 +3094,7 @@ describe('editProductTransaction - Feature Updates', () => {
               transaction,
               livemode: true,
               organizationId,
+              invalidateCache,
             }
           )
           return { result: txResult }
@@ -3101,7 +3144,12 @@ describe('editProductTransaction - Feature Updates', () => {
       })
 
     await comprehensiveAuthenticatedTransaction(
-      async ({ userId, transaction, organizationId }) => {
+      async ({
+        userId,
+        transaction,
+        invalidateCache,
+        organizationId,
+      }) => {
         const txResult = await editProductTransaction(
           {
             product: { id: singlePaymentProduct.id },
@@ -3112,6 +3160,7 @@ describe('editProductTransaction - Feature Updates', () => {
             transaction,
             livemode: true,
             organizationId,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -3233,7 +3282,12 @@ describe('editProductTransaction - Price Updates', () => {
 
     // Should succeed without error - price updates are silently ignored for default products
     const result = await comprehensiveAuthenticatedTransaction(
-      async ({ userId, transaction, organizationId }) => {
+      async ({
+        userId,
+        transaction,
+        invalidateCache,
+        organizationId,
+      }) => {
         const txResult = await editProductTransaction(
           {
             product: {
@@ -3249,6 +3303,7 @@ describe('editProductTransaction - Price Updates', () => {
             transaction,
             livemode: true,
             organizationId,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -3288,7 +3343,12 @@ describe('editProductTransaction - Price Updates', () => {
 
   it('should allow updating allowed fields on default products', async () => {
     const result = await comprehensiveAuthenticatedTransaction(
-      async ({ userId, transaction, organizationId }) => {
+      async ({
+        userId,
+        transaction,
+        invalidateCache,
+        organizationId,
+      }) => {
         const txResult = await editProductTransaction(
           {
             product: {
@@ -3304,6 +3364,7 @@ describe('editProductTransaction - Price Updates', () => {
             transaction,
             livemode: true,
             organizationId,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -3358,7 +3419,12 @@ describe('editProductTransaction - Price Updates', () => {
     }
 
     await comprehensiveAuthenticatedTransaction(
-      async ({ userId, transaction, organizationId }) => {
+      async ({
+        userId,
+        transaction,
+        invalidateCache,
+        organizationId,
+      }) => {
         const txResult = await editProductTransaction(
           {
             product: {
@@ -3374,6 +3440,7 @@ describe('editProductTransaction - Price Updates', () => {
             transaction,
             livemode: true,
             organizationId,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -3444,7 +3511,12 @@ describe('editProductTransaction - Price Updates', () => {
     }
 
     await comprehensiveAuthenticatedTransaction(
-      async ({ userId, transaction, organizationId }) => {
+      async ({
+        userId,
+        transaction,
+        invalidateCache,
+        organizationId,
+      }) => {
         const txResult = await editProductTransaction(
           {
             product: {
@@ -3460,6 +3532,7 @@ describe('editProductTransaction - Price Updates', () => {
             transaction,
             livemode: true,
             organizationId,
+            invalidateCache,
           }
         )
         return { result: txResult }
@@ -3544,7 +3617,12 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
     it('should update active default price slug when no price input is provided', async () => {
       // Update product with new slug, no price input
       await comprehensiveAuthenticatedTransaction(
-        async ({ userId, transaction, organizationId }) => {
+        async ({
+          userId,
+          transaction,
+          invalidateCache,
+          organizationId,
+        }) => {
           const txResult = await editProductTransaction(
             {
               product: {
@@ -3560,6 +3638,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               transaction,
               livemode: true,
               organizationId,
+              invalidateCache,
             }
           )
           return { result: txResult }
@@ -3625,7 +3704,12 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       }
 
       await comprehensiveAuthenticatedTransaction(
-        async ({ userId, transaction, organizationId }) => {
+        async ({
+          userId,
+          transaction,
+          invalidateCache,
+          organizationId,
+        }) => {
           const txResult = await editProductTransaction(
             {
               product: {
@@ -3642,6 +3726,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               transaction,
               livemode: true,
               organizationId,
+              invalidateCache,
             }
           )
           return { result: txResult }
@@ -3678,7 +3763,12 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
     it('should not update price slug when product slug is not changing', async () => {
       // Update product name but keep same slug, no price input
       await comprehensiveAuthenticatedTransaction(
-        async ({ userId, transaction, organizationId }) => {
+        async ({
+          userId,
+          transaction,
+          invalidateCache,
+          organizationId,
+        }) => {
           const txResult = await editProductTransaction(
             {
               product: {
@@ -3694,6 +3784,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               transaction,
               livemode: true,
               organizationId,
+              invalidateCache,
             }
           )
           return { result: txResult }
@@ -3765,7 +3856,12 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Update product slug
       await comprehensiveAuthenticatedTransaction(
-        async ({ userId, transaction, organizationId }) => {
+        async ({
+          userId,
+          transaction,
+          invalidateCache,
+          organizationId,
+        }) => {
           const txResult = await editProductTransaction(
             {
               product: {
@@ -3781,6 +3877,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               transaction,
               livemode: true,
               organizationId,
+              invalidateCache,
             }
           )
           return { result: txResult }
@@ -3845,7 +3942,12 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       // Try to update product slug to conflict with existing price slug
       await expect(
         comprehensiveAuthenticatedTransaction(
-          async ({ userId, transaction, organizationId }) => {
+          async ({
+            userId,
+            transaction,
+            invalidateCache,
+            organizationId,
+          }) => {
             const txResult = await editProductTransaction(
               {
                 product: {
@@ -3861,6 +3963,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                 transaction,
                 livemode: true,
                 organizationId,
+                invalidateCache,
               }
             )
             return { result: txResult }
@@ -3894,7 +3997,12 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       // Try to update default product slug (should be blocked by existing validation)
       await expect(
         comprehensiveAuthenticatedTransaction(
-          async ({ userId, transaction, organizationId }) => {
+          async ({
+            userId,
+            transaction,
+            invalidateCache,
+            organizationId,
+          }) => {
             const txResult = await editProductTransaction(
               {
                 product: {
@@ -3910,6 +4018,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                 transaction,
                 livemode: true,
                 organizationId,
+                invalidateCache,
               }
             )
             return { result: txResult }
@@ -3972,7 +4081,12 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Update product slug from null to a value
       await comprehensiveAuthenticatedTransaction(
-        async ({ userId, transaction, organizationId }) => {
+        async ({
+          userId,
+          transaction,
+          invalidateCache,
+          organizationId,
+        }) => {
           const txResult = await editProductTransaction(
             {
               product: {
@@ -3988,6 +4102,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               transaction,
               livemode: true,
               organizationId,
+              invalidateCache,
             }
           )
           return { result: txResult }
@@ -4041,7 +4156,12 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       }
 
       await comprehensiveAuthenticatedTransaction(
-        async ({ userId, transaction, organizationId }) => {
+        async ({
+          userId,
+          transaction,
+          invalidateCache,
+          organizationId,
+        }) => {
           const txResult = await editProductTransaction(
             {
               product: {
@@ -4058,6 +4178,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               transaction,
               livemode: true,
               organizationId,
+              invalidateCache,
             }
           )
           return { result: txResult }
@@ -4119,7 +4240,12 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       }
 
       await comprehensiveAuthenticatedTransaction(
-        async ({ userId, transaction, organizationId }) => {
+        async ({
+          userId,
+          transaction,
+          invalidateCache,
+          organizationId,
+        }) => {
           const txResult = await editProductTransaction(
             {
               product: {
@@ -4136,6 +4262,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               transaction,
               livemode: true,
               organizationId,
+              invalidateCache,
             }
           )
           return { result: txResult }

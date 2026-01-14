@@ -19,9 +19,11 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type {
+  AuthenticatedTransactionParams,
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { CacheDependency } from '@/utils/cache'
 import { features, featuresSelectSchema } from '../schema/features'
 import type { Product } from '../schema/products'
 import { createDateNotPassedFilter } from '../tableUtils'
@@ -97,12 +99,15 @@ export const selectProductFeaturesPaginated =
 
 export const expireProductFeaturesByFeatureId = async (
   productFeatureIds: string[],
-  params: Pick<TransactionEffectsContext, 'transaction'>
+  params: Pick<
+    TransactionEffectsContext,
+    'transaction' | 'invalidateCache'
+  >
 ): Promise<{
   expiredProductFeature: ProductFeature.Record[]
   detachedSubscriptionItemFeatures: import('@/db/schema/subscriptionItemFeatures').SubscriptionItemFeature.Record[]
 }> => {
-  const { transaction } = params
+  const { transaction, invalidateCache } = params
 
   // First, detach any existing subscription item features
   const detachedSubscriptionItemFeatures =
@@ -120,6 +125,20 @@ export const expireProductFeaturesByFeatureId = async (
     .set({ expiredAt: Date.now() })
     .where(inArray(productFeatures.id, productFeatureIds))
     .returning()
+
+  // Invalidate cache for affected subscription items
+  const subscriptionItemIds = [
+    ...new Set(
+      detachedSubscriptionItemFeatures.map(
+        (feature) => feature.subscriptionItemId
+      )
+    ),
+  ]
+  invalidateCache(
+    ...subscriptionItemIds.map((id) =>
+      CacheDependency.subscriptionItemFeatures(id)
+    )
+  )
 
   return {
     expiredProductFeature: productFeaturesSelectSchema
@@ -308,10 +327,13 @@ export const syncProductFeatures = async (
     >
     desiredFeatureIds: string[]
   },
-  transactionParams: Pick<TransactionEffectsContext, 'transaction'>
+  transactionParams: Pick<
+    TransactionEffectsContext,
+    'transaction' | 'invalidateCache'
+  >
 ) => {
   const { product, desiredFeatureIds } = params
-  const { transaction } = transactionParams
+  const { transaction, invalidateCache } = transactionParams
 
   // Early return if no features to sync
   if (!desiredFeatureIds || desiredFeatureIds.length === 0) {
@@ -327,7 +349,7 @@ export const syncProductFeatures = async (
       if (activeFeatures.length > 0) {
         await expireProductFeaturesByFeatureId(
           activeFeatures.map((pf) => pf.id),
-          { transaction }
+          { transaction, invalidateCache }
         )
       }
     }
@@ -354,7 +376,7 @@ export const syncProductFeatures = async (
   if (productFeaturesToExpire.length > 0) {
     await expireProductFeaturesByFeatureId(
       productFeaturesToExpire.map((pf) => pf.id),
-      { transaction }
+      { transaction, invalidateCache }
     )
   }
 
