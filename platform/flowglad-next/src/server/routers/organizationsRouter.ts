@@ -491,8 +491,6 @@ const updateNotificationPreferencesInputSchema = z.object({
       subscriptionCanceled: z.boolean().optional(),
       subscriptionCancellationScheduled: z.boolean().optional(),
       paymentFailed: z.boolean().optional(),
-      onboardingCompleted: z.boolean().optional(),
-      payoutsEnabled: z.boolean().optional(),
     })
     .partial(),
 })
