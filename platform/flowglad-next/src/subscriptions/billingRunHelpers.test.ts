@@ -2862,6 +2862,229 @@ describe('billingRunHelpers', async () => {
         expect(aggregatedCost?.outstandingBalance).toBe(150)
       })
     })
+
+    it('returns $0 contribution for usage events with no_charge price (unitPrice: 0)', async () => {
+      const ledgerAccount = await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+      await adminTransaction(async ({ transaction }) => {
+        const ledgerTransaction = await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.UsageEventProcessed,
+        })
+        const billingPeriod = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: new Date(Date.now() - 1000),
+          endDate: new Date(Date.now() + 1000),
+          status: BillingPeriodStatus.Active,
+          livemode: true,
+        })
+
+        // Create a no_charge price with unitPrice: 0
+        const noChargePrice = await setupPrice({
+          name: 'No Charge Price',
+          type: PriceType.Usage,
+          unitPrice: 0,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: true,
+          currency: organization.defaultCurrency,
+          usageMeterId: usageMeter.id,
+        })
+
+        // Usage event with some quantity (e.g., 100 units used)
+        const usageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          amount: 100, // quantity of usage
+          priceId: noChargePrice.id,
+          billingPeriodId: billingPeriod.id,
+          transactionId: 'no_charge_test_' + Math.random(),
+          customerId: customer.id,
+          usageDate: Date.now(),
+        })
+
+        // Ledger entry with amount: 0 (since unitPrice is 0, cost = quantity * 0 = 0)
+        await setupDebitLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerTransactionId: ledgerTransaction.id,
+          ledgerAccountId: ledgerAccount.id,
+          amount: 0, // cost is $0 because unitPrice is 0
+          entryType: LedgerEntryType.UsageCost,
+          sourceUsageEventId: usageEvent.id,
+          status: LedgerEntryStatus.Posted,
+          usageMeterId: usageMeter.id,
+        })
+
+        const result = await tabulateOutstandingUsageCosts(
+          subscription.id,
+          billingPeriod.endDate,
+          transaction
+        )
+
+        // With amount: 0, the ledger entry balance is 0 and should not appear in raw costs
+        // (only non-zero balances are included)
+        expect(result.rawOutstandingUsageCosts.length).toBe(0)
+        expect(
+          result.outstandingUsageCostsByLedgerAccountId.size
+        ).toBe(0)
+      })
+    })
+
+    it('correctly calculates mixed billing with charged and no_charge usage events', async () => {
+      // Create two usage meters - one for charged usage, one for no_charge
+      const chargedUsageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Charged Usage Meter',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+      const noChargeUsageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'No Charge Usage Meter',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+
+      // Create ledger accounts for each meter
+      const chargedLedgerAccount = await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: chargedUsageMeter.id,
+        livemode: true,
+      })
+      const noChargeLedgerAccount = await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: noChargeUsageMeter.id,
+        livemode: true,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const ledgerTransaction = await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.UsageEventProcessed,
+        })
+        const billingPeriod = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: new Date(Date.now() - 1000),
+          endDate: new Date(Date.now() + 1000),
+          status: BillingPeriodStatus.Active,
+          livemode: true,
+        })
+
+        // Create a charged price (unitPrice: 10 cents)
+        const chargedPrice = await setupPrice({
+          name: 'Charged Price',
+          type: PriceType.Usage,
+          unitPrice: 10,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+          usageMeterId: chargedUsageMeter.id,
+        })
+
+        // Create a no_charge price (unitPrice: 0)
+        const noChargePrice = await setupPrice({
+          name: 'No Charge Price',
+          type: PriceType.Usage,
+          unitPrice: 0,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: true,
+          currency: organization.defaultCurrency,
+          usageMeterId: noChargeUsageMeter.id,
+        })
+
+        // Charged usage event: 50 units at $0.10/unit = $5.00 (500 cents)
+        const chargedUsageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: chargedUsageMeter.id,
+          amount: 50,
+          priceId: chargedPrice.id,
+          billingPeriodId: billingPeriod.id,
+          transactionId: 'charged_usage_' + Math.random(),
+          customerId: customer.id,
+          usageDate: Date.now(),
+        })
+
+        // No charge usage event: 200 units at $0/unit = $0
+        const noChargeUsageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: noChargeUsageMeter.id,
+          amount: 200,
+          priceId: noChargePrice.id,
+          billingPeriodId: billingPeriod.id,
+          transactionId: 'no_charge_usage_' + Math.random(),
+          customerId: customer.id,
+          usageDate: Date.now(),
+        })
+
+        // Ledger entry for charged usage: 50 * 10 = 500 cents
+        await setupDebitLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerTransactionId: ledgerTransaction.id,
+          ledgerAccountId: chargedLedgerAccount.id,
+          amount: 500,
+          entryType: LedgerEntryType.UsageCost,
+          sourceUsageEventId: chargedUsageEvent.id,
+          status: LedgerEntryStatus.Posted,
+          usageMeterId: chargedUsageMeter.id,
+        })
+
+        // Ledger entry for no_charge usage: 200 * 0 = 0 cents
+        await setupDebitLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerTransactionId: ledgerTransaction.id,
+          ledgerAccountId: noChargeLedgerAccount.id,
+          amount: 0,
+          entryType: LedgerEntryType.UsageCost,
+          sourceUsageEventId: noChargeUsageEvent.id,
+          status: LedgerEntryStatus.Posted,
+          usageMeterId: noChargeUsageMeter.id,
+        })
+
+        const result = await tabulateOutstandingUsageCosts(
+          subscription.id,
+          billingPeriod.endDate,
+          transaction
+        )
+
+        // Only the charged usage should appear (no_charge has 0 balance, excluded)
+        expect(result.rawOutstandingUsageCosts.length).toBe(1)
+        expect(result.rawOutstandingUsageCosts[0].balance).toBe(500)
+        expect(
+          result.rawOutstandingUsageCosts[0].ledgerAccountId
+        ).toBe(chargedLedgerAccount.id)
+        expect(result.rawOutstandingUsageCosts[0].usageMeterId).toBe(
+          chargedUsageMeter.id
+        )
+
+        expect(
+          result.outstandingUsageCostsByLedgerAccountId.size
+        ).toBe(1)
+        const aggregatedCost =
+          result.outstandingUsageCostsByLedgerAccountId.get(
+            chargedLedgerAccount.id
+          )
+        expect(aggregatedCost?.outstandingBalance).toBe(500)
+      })
+    })
   })
 
   describe('billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts', () => {

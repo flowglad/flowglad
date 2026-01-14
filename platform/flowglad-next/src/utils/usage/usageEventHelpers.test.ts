@@ -829,7 +829,20 @@ describe('usageEventHelpers', () => {
       )
     })
 
-    it('should successfully create usage event when priceId is null and valid usageMeterId is provided directly', async () => {
+    it('should resolve to default price when priceId is null and valid usageMeterId is provided directly', async () => {
+      // Create a default price for the usage meter
+      const defaultPrice = await setupPrice({
+        name: 'Default Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+      })
+
       const input: CreateUsageEventInput = {
         usageEvent: {
           subscriptionId: mainSubscription.id,
@@ -851,7 +864,8 @@ describe('usageEventHelpers', () => {
           }
         )
 
-      expect(createdUsageEvent.priceId).toBeNull()
+      // Should resolve to the default price
+      expect(createdUsageEvent.priceId).toBe(defaultPrice.id)
       expect(createdUsageEvent.usageMeterId).toBe(usageMeter.id)
       expect(createdUsageEvent.subscriptionId).toBe(
         mainSubscription.id
@@ -1274,7 +1288,20 @@ describe('usageEventHelpers', () => {
       )
     })
 
-    it('should resolve usageMeterId to usage event with null priceId', async () => {
+    it('should resolve usageMeterId to the default price for the usage meter', async () => {
+      // Create a default price for the usage meter
+      const defaultPrice = await setupPrice({
+        name: 'Default Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+      })
+
       const input = {
         usageEvent: {
           subscriptionId: mainSubscription.id,
@@ -1291,12 +1318,12 @@ describe('usageEventHelpers', () => {
       )
 
       expect(result.usageEvent.usageMeterId).toBe(usageMeter.id)
-      expect(result.usageEvent.priceId).toBeNull()
+      expect(result.usageEvent.priceId).toBe(defaultPrice.id)
       expect(result.usageEvent).not.toHaveProperty('usageMeterSlug')
     })
 
-    it('should resolve usageMeterSlug to usageMeterId with null priceId', async () => {
-      // First, we need to set up a usage meter with a slug
+    it('should resolve usageMeterSlug to usageMeterId and default price', async () => {
+      // First, we need to set up a usage meter with a slug and a default price
       const usageMeterWithSlug = await adminTransaction(
         async ({ transaction }) => {
           const orgSetup = await setupOrg()
@@ -1315,6 +1342,19 @@ describe('usageEventHelpers', () => {
             pricingModelId: orgSetup.pricingModel.id,
             slug: 'test-usage-meter-slug',
           })
+          // Create a default price for the usage meter
+          const defaultPrice = await setupPrice({
+            name: 'Default Usage Price',
+            type: PriceType.Usage,
+            unitPrice: 0,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: true,
+            currency: CurrencyCode.USD,
+            usageMeterId: testUsageMeter.id,
+          })
+          // Create another non-default price for the subscription
           const testPrice = await setupPrice({
             name: 'Test Usage Price',
             type: PriceType.Usage,
@@ -1332,7 +1372,12 @@ describe('usageEventHelpers', () => {
             paymentMethodId: testPaymentMethod.id,
             priceId: testPrice.id,
           })
-          return { testUsageMeter, testSubscription, testCustomer }
+          return {
+            testUsageMeter,
+            testSubscription,
+            testCustomer,
+            defaultPrice,
+          }
         }
       )
 
@@ -1354,7 +1399,9 @@ describe('usageEventHelpers', () => {
       expect(result.usageEvent.usageMeterId).toBe(
         usageMeterWithSlug.testUsageMeter.id
       )
-      expect(result.usageEvent.priceId).toBeNull()
+      expect(result.usageEvent.priceId).toBe(
+        usageMeterWithSlug.defaultPrice.id
+      )
       expect(result.usageEvent).not.toHaveProperty('usageMeterSlug')
     })
 
