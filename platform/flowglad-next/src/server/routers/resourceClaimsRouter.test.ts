@@ -621,9 +621,7 @@ describe('resourceClaimsRouter', () => {
       ).rejects.toThrow()
     })
 
-    // Tests for filtering - these test the EXPECTED behavior
-    // Currently the implementation does NOT filter, so these tests will fail
-    // until the filtering is implemented
+    // Tests for filtering by resourceSlugs and resourceIds
     describe('filtering by resourceSlugs', () => {
       it('filters results to only include resources matching the provided slugs', async () => {
         // Create claims for both resources
