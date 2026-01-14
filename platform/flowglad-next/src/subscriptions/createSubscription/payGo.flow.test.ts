@@ -288,7 +288,8 @@ describe('Pay as You Go Workflow E2E', () => {
 
     // 2. Call @createCheckoutSessionTransaction to create an ActivateSubscription checkout session
     const checkoutSession = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async (ctx) => {
+        const { transaction } = ctx
         const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
           {
             type: CheckoutSessionType.Product,
@@ -334,7 +335,7 @@ describe('Pay as You Go Workflow E2E', () => {
         // 3. Call @confirmCheckoutSession.ts to finalize it
         await confirmCheckoutSessionTransaction(
           { id: checkoutSession.id },
-          transaction
+          ctx
         )
 
         // expect a feeCalculation for the checkout session
@@ -347,7 +348,7 @@ describe('Pay as You Go Workflow E2E', () => {
       }
     )
 
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
       // 4. Call @processSetupIntentSucceeded with a stubbed paymentIntent
       const paymentIntent: CoreStripePaymentIntent = {
         id: 'si_123',
@@ -359,10 +360,11 @@ describe('Pay as You Go Workflow E2E', () => {
         },
       }
 
-      return processPaymentIntentStatusUpdated(
+      const result = await processPaymentIntentStatusUpdated(
         paymentIntent,
-        transaction
+        ctx
       )
+      return { result }
     })
 
     await comprehensiveAdminTransaction(async ({ transaction }) => {

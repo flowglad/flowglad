@@ -23,7 +23,10 @@
 import type Stripe from 'stripe'
 import { expect } from 'vitest'
 import { teardownOrg } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Payment } from '@/db/schema/payments'
@@ -136,7 +139,8 @@ const confirmCheckoutSessionBehavior = defineBehavior({
     )
 
     // Update checkout session with payment intent ID and confirm
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const session = await selectCheckoutSessionById(
         prev.updatedCheckoutSession.id,
         transaction
@@ -154,10 +158,8 @@ const confirmCheckoutSessionBehavior = defineBehavior({
       )
 
       // Confirm the checkout session
-      await confirmCheckoutSessionTransaction(
-        { id: session.id },
-        transaction
-      )
+      await confirmCheckoutSessionTransaction({ id: session.id }, ctx)
+      return { result: null }
     })
 
     return {

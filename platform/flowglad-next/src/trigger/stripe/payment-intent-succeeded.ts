@@ -1,7 +1,6 @@
 import { logger, task } from '@trigger.dev/sdk'
 import type Stripe from 'stripe'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import type { Event } from '@/db/schema/events'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
@@ -51,79 +50,64 @@ export const stripePaymentIntentSucceededTask = task({
           organization,
           customer,
           payment,
-        } = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
-            const paymentResult =
-              await processPaymentIntentStatusUpdated(
-                payload.data.object,
-                transaction
-              )
-            const {
-              result: { payment },
-              eventsToInsert,
-              ledgerCommand,
-            } = paymentResult
+        } = await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const { payment } = await processPaymentIntentStatusUpdated(
+            payload.data.object,
+            ctx
+          )
 
-            if (!payment.purchaseId) {
-              throw new Error(
-                `Payment ${payment.id} has no purchaseId, cannot process payment intent succeeded event`
-              )
-            }
+          if (!payment.purchaseId) {
+            throw new Error(
+              `Payment ${payment.id} has no purchaseId, cannot process payment intent succeeded event`
+            )
+          }
 
-            const purchase = await selectPurchaseById(
-              payment.purchaseId,
+          const purchase = await selectPurchaseById(
+            payment.purchaseId,
+            transaction
+          )
+
+          const [invoice] =
+            await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+              { id: payment.invoiceId },
               transaction
             )
 
-            const [invoice] =
-              await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-                { id: payment.invoiceId },
-                transaction
-              )
+          const [customer] = await selectCustomers(
+            {
+              id: purchase.customerId,
+            },
+            transaction
+          )
 
-            const [customer] = await selectCustomers(
-              {
-                id: purchase.customerId,
-              },
+          const organization = await selectOrganizationById(
+            purchase.organizationId,
+            transaction
+          )
+
+          const membersForOrganization =
+            await selectMembershipsAndUsersByMembershipWhere(
+              { organizationId: organization.id },
               transaction
             )
 
-            const organization = await selectOrganizationById(
-              purchase.organizationId,
-              transaction
-            )
+          await safelyIncrementDiscountRedemptionSubscriptionPayment(
+            payment,
+            transaction
+          )
+          const result = {
+            invoice: invoice.invoice,
+            invoiceLineItems: invoice.invoiceLineItems,
+            purchase,
+            organization,
+            customer,
+            membersForOrganization,
+            payment,
+          }
 
-            const membersForOrganization =
-              await selectMembershipsAndUsersByMembershipWhere(
-                { organizationId: organization.id },
-                transaction
-              )
-
-            await safelyIncrementDiscountRedemptionSubscriptionPayment(
-              payment,
-              transaction
-            )
-            const result = {
-              invoice: invoice.invoice,
-              invoiceLineItems: invoice.invoiceLineItems,
-              purchase,
-              organization,
-              customer,
-              membersForOrganization,
-              payment,
-            }
-            const eventInserts: Event.Insert[] = [
-              ...(eventsToInsert ?? []),
-            ]
-
-            return {
-              result,
-              eventsToInsert: eventInserts,
-              ledgerCommand,
-            }
-          },
-          {}
-        )
+          return { result }
+        }, {})
 
         await comprehensiveAdminTransaction(
           async ({ transaction }) => {

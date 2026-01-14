@@ -168,7 +168,8 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
     expect(ci2.price.id).toBe(price.id)
 
     const checkoutSession = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async (ctx) => {
+        const { transaction } = ctx
         // 1. Create checkout session
         const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
           {
@@ -217,7 +218,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
         // 3. Confirm checkout session
         await confirmCheckoutSessionTransaction(
           { id: checkoutSession.id },
-          transaction
+          ctx
         )
         // 4. Expect fee calculation exists
         const feeCalculations = await selectFeeCalculations(
