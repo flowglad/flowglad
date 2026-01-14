@@ -6,7 +6,6 @@ import type {
 } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import type { Customer } from '@/db/schema/customers'
-import type { Event } from '@/db/schema/events'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Organization } from '@/db/schema/organizations'
@@ -321,10 +320,10 @@ export const processOutcomeForBillingRun = async (
       `Invoice for billing period ${billingRun.billingPeriodId} not found.`
     )
   }
-  const {
-    result: { payment },
-    eventsToInsert: childeventsToInsert,
-  } = await processPaymentIntentStatusUpdated(event, transaction)
+  const { payment } = await processPaymentIntentStatusUpdated(
+    event,
+    ctx
+  )
 
   if (billingRunStatus === BillingRunStatus.Succeeded) {
     await createStripeTaxTransactionIfNeededForPayment(
@@ -365,7 +364,6 @@ export const processOutcomeForBillingRun = async (
         payment,
       },
       ledgerCommands: [],
-      eventsToInsert: childeventsToInsert || [],
     }
   }
 
@@ -542,10 +540,6 @@ export const processOutcomeForBillingRun = async (
   const organizationMemberUsers = usersAndMemberships.map(
     (userAndMembership) => userAndMembership.user
   )
-  const eventsToInsert: Event.Insert[] = []
-  if (childeventsToInsert && childeventsToInsert.length > 0) {
-    eventsToInsert.push(...childeventsToInsert)
-  }
 
   // Track cache invalidations from subscription item adjustments and status changes
   const customerSubscriptionsCacheKey =
@@ -704,7 +698,6 @@ export const processOutcomeForBillingRun = async (
       payment,
     },
     ledgerCommands: ledgerCommands,
-    eventsToInsert,
     cacheInvalidations,
   }
 }

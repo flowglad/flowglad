@@ -15,10 +15,11 @@ const confirmCheckoutSessionInputSchema = z.object({
 export const confirmCheckoutSession = publicProcedure
   .input(confirmCheckoutSessionInputSchema)
   .mutation(async ({ input }) => {
-    return comprehensiveAdminTransaction(async ({ transaction }) => {
-      return await confirmCheckoutSessionTransaction(
+    return comprehensiveAdminTransaction(async (ctx) => {
+      const result = await confirmCheckoutSessionTransaction(
         input,
-        transaction
+        ctx
       )
+      return { result }
     })
   })
