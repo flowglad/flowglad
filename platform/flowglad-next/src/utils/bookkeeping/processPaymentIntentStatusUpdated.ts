@@ -177,19 +177,16 @@ export const upsertPaymentForStripeCharge = async (
       transaction
     )
     const {
-      result: { checkoutSession, purchase: updatedPurchase, invoice },
-      eventsToInsert: eventsFromCheckoutSession = [],
+      checkoutSession,
+      purchase: updatedPurchase,
+      invoice,
     } = await processStripeChargeForCheckoutSession(
       {
         checkoutSessionId: paymentIntentMetadata.checkoutSessionId,
         charge,
       },
-      transaction
+      ctx
     )
-    // Emit events from checkout session processing
-    if (eventsFromCheckoutSession.length > 0) {
-      emitEvent(...eventsFromCheckoutSession)
-    }
     invoiceId = invoice?.id ?? null
     currency = invoice?.currency ?? null
     if (!checkoutSession.organizationId) {

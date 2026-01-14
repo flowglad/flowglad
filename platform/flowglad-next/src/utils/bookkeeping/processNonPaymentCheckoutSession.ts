@@ -8,8 +8,7 @@ import {
   selectPurchaseById,
   updatePurchase,
 } from '@/db/tableMethods/purchaseMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type { TransactionEffectsContext } from '@/db/types'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -23,13 +22,12 @@ import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions
 
 export const processNonPaymentCheckoutSession = async (
   checkoutSession: CheckoutSession.Record,
-  transaction: DbTransaction
-): Promise<
-  TransactionOutput<{
-    purchase: Purchase.Record
-    invoice: Invoice.Record
-  }>
-> => {
+  ctx: TransactionEffectsContext
+): Promise<{
+  purchase: Purchase.Record
+  invoice: Invoice.Record
+}> => {
+  const { transaction } = ctx
   checkoutSession = await updateCheckoutSession(
     {
       ...checkoutSession,
@@ -90,9 +88,9 @@ export const processNonPaymentCheckoutSession = async (
   const upsertPurchaseResult =
     await processPurchaseBookkeepingForCheckoutSession(
       { checkoutSession, stripeCustomerId: null },
-      transaction
+      ctx
     )
-  purchase = upsertPurchaseResult.result.purchase
+  purchase = upsertPurchaseResult.purchase
 
   // Update purchase to Paid status for successful zero-total checkouts
   // This mirrors the behavior in updatePurchaseStatusToReflectLatestPayment
@@ -113,9 +111,5 @@ export const processNonPaymentCheckoutSession = async (
     },
     transaction
   )
-  return {
-    result: { purchase, invoice: invoiceForPurchase.invoice },
-    eventsToInsert: upsertPurchaseResult.eventsToInsert || [],
-    ledgerCommand: upsertPurchaseResult.ledgerCommand,
-  }
+  return { purchase, invoice: invoiceForPurchase.invoice }
 }
