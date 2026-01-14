@@ -58,19 +58,29 @@ export const createProduct = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createProductSchema)
   .output(singleProductOutputSchema)
-  .mutation(async ({ input, ctx }) => {
-    try {
-      // Validate that default products cannot be created manually
-      validateProductCreation(input.product)
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction, invalidateCache } = transactionCtx
+        const { livemode, organizationId } = ctx
+        const userId = ctx.user?.id
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User ID is required for this operation.',
+          })
+        }
+        try {
+          // Validate that default products cannot be created manually
+          validateProductCreation(input.product)
 
-      const result = await comprehensiveAuthenticatedTransaction(
-        async ({
-          transaction,
-          userId,
-          livemode,
-          organizationId,
-          invalidateCache,
-        }) => {
           const { product, price, featureIds } = input
           const txResult = await createProductTransaction(
             {
@@ -91,27 +101,25 @@ export const createProduct = protectedProcedure
               invalidateCache,
             }
           )
-          return { result: txResult }
-        },
-        {
-          apiKey: ctx.apiKey,
+          return {
+            result: {
+              product: txResult.product,
+            },
+          }
+        } catch (error) {
+          errorHandlers.product.handle(error, {
+            operation: 'create',
+            details: {
+              productName: input.product.name,
+              hasPrice: !!input.price,
+              hasFeatures: !!input.featureIds,
+            },
+          })
+          throw error
         }
-      )
-      return {
-        product: result.product,
       }
-    } catch (error) {
-      errorHandlers.product.handle(error, {
-        operation: 'create',
-        details: {
-          productName: input.product.name,
-          hasPrice: !!input.price,
-          hasFeatures: !!input.featureIds,
-        },
-      })
-      throw error
-    }
-  })
+    )
+  )
 
 export const updateProduct = protectedProcedure
   .meta(openApiMetas.PUT)
