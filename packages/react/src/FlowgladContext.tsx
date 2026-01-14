@@ -854,6 +854,8 @@ export const FlowgladContextProvider = (
                   updatedAt: now,
                 },
                 subscriptionItems: [],
+                isUpgrade: false,
+                resolvedTiming: 'immediately',
               },
             })
           },
