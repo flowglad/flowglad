@@ -243,14 +243,6 @@ export type AuthenticatedProcedureTransactionParams<
 }
 
 /**
- * @deprecated Use AuthenticatedProcedureTransactionParams instead
- */
-export type ComprehensiveAuthenticatedProcedureTransactionParams<
-  TInput,
-  TContext extends { apiKey?: string; customerId?: string },
-> = AuthenticatedProcedureTransactionParams<TInput, TContext>
-
-/**
  * Creates an authenticated procedure that wraps a transaction handler.
  * Delegates to authenticatedProcedureComprehensiveTransaction by wrapping the result.
  */
