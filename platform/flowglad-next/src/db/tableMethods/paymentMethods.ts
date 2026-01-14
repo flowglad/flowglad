@@ -291,7 +291,10 @@ export const selectRevenueDataForOrganization = async (
           AND ${payments.chargeDate} >= ${new Date(fromDate).toISOString()}
           AND ${payments.chargeDate} <= ${new Date(toDate).toISOString()}
           AND ${prices.productId} = ${params.productId}
-          AND ${payments.status} IN (${sql.join(revenuePaymentStatuses, sql`, `)})
+          AND ${payments.status} IN (${sql.join(
+            revenuePaymentStatuses.map((status) => sql`${status}`),
+            sql`, `
+          )})
         GROUP BY 1
         
         UNION ALL
@@ -309,7 +312,10 @@ export const selectRevenueDataForOrganization = async (
           AND ${payments.chargeDate} <= ${new Date(toDate).toISOString()}
           AND ${prices.productId} = ${params.productId}
           AND ${payments.purchaseId} IS NULL
-          AND ${payments.status} IN (${sql.join(revenuePaymentStatuses, sql`, `)})
+          AND ${payments.status} IN (${sql.join(
+            revenuePaymentStatuses.map((status) => sql`${status}`),
+            sql`, `
+          )})
         GROUP BY 1
       `
     : sql`
@@ -322,7 +328,10 @@ export const selectRevenueDataForOrganization = async (
           ${payments.organizationId} = ${organizationId}
           AND ${payments.chargeDate} >= ${new Date(fromDate).toISOString()}
           AND ${payments.chargeDate} <= ${new Date(toDate).toISOString()}
-          AND ${payments.status} IN (${sql.join(revenuePaymentStatuses, sql`, `)})
+          AND ${payments.status} IN (${sql.join(
+            revenuePaymentStatuses.map((status) => sql`${status}`),
+            sql`, `
+          )})
         GROUP BY 1
       `
 

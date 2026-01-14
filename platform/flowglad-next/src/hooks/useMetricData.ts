@@ -19,6 +19,8 @@ export interface UseMetricDataResult {
   isLoading: boolean
   /** Max value for Y-axis scaling */
   maxValue: number
+  /** Error from the query, if any (tRPC errors have additional properties like `data` and `shape`) */
+  error: Error | null
 }
 
 /**
@@ -101,7 +103,7 @@ export function useMetricData(
   //
   // We show loading state when:
   // 1. isPending: Query has never successfully returned data
-  // 2. !data: Observer doesn't have data available yet
+  // 2. !data && !error: Observer doesn't have data available yet AND hasn't errored
   //
   // This handles the critical edge case where:
   // - Query succeeded before (isPending=false) from another chart instance
@@ -110,9 +112,13 @@ export function useMetricData(
   //
   // The previous fix `isPending || (isFetching && !data)` missed this
   // because the AND condition doesn't trigger when isFetching is false.
+  //
+  // We also check for errors to prevent infinite loading state when a
+  // query fails - without this, !data would be true forever after an error.
   // ─────────────────────────────────────────────────────────────────
   const activeQuery = queryRegistry[metric]
-  const isLoading = activeQuery.isPending || !activeQuery.data
+  const isLoading =
+    activeQuery.isPending || (!activeQuery.data && !activeQuery.error)
 
   // Transform revenue data to chart format
   const transformRevenueData = (): {
@@ -224,5 +230,7 @@ export function useMetricData(
     rawValues: result.rawValues,
     isLoading, // ← From unified logic above, NOT per-case
     maxValue,
+    // Cast is safe: TRPCClientError extends Error at runtime
+    error: (activeQuery.error as Error | null) ?? null,
   }
 }

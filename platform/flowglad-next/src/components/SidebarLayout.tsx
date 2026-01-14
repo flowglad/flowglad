@@ -59,7 +59,7 @@ const SidebarLayout = ({
       >
         <div className="flex w-full max-w-[var(--layout-max-width)]">
           {/* Sidebar placeholder - matches expanded sidebar width on desktop */}
-          <div className="hidden md:block relative w-[--sidebar-width] bg-transparent" />
+          <div className="hidden md:block relative w-[var(--sidebar-width)] bg-transparent" />
           {/* Content area - matches SidebarInset structure */}
           <main className="relative flex flex-1 min-w-0 flex-col bg-background">
             {/* Mobile top bar placeholder */}
