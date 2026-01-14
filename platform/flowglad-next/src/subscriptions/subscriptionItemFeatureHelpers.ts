@@ -1,6 +1,5 @@
 import { and, eq, isNull } from 'drizzle-orm'
 import * as R from 'ramda'
-import type { CreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import { Customer } from '@/db/schema/customers'
 import type { Feature } from '@/db/schema/features'
 import type { Price } from '@/db/schema/prices'
@@ -38,8 +37,10 @@ import {
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
 import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import {
   FeatureType,
   LedgerTransactionType,
@@ -383,8 +384,9 @@ const grantImmediateUsageCredits = async (
     subscriptionItemFeature: SubscriptionItemFeature.Record
     grantAmount: number
   },
-  transaction: DbTransaction
-) => {
+  ctx: TransactionEffectsContext
+): Promise<void> => {
+  const { transaction, enqueueLedgerCommand } = ctx
   const usageMeterId = subscriptionItemFeature.usageMeterId
   if (!usageMeterId) {
     throw new Error(
@@ -467,7 +469,7 @@ const grantImmediateUsageCredits = async (
     transaction
   )
 
-  const ledgerCommand: CreditGrantRecognizedLedgerCommand = {
+  enqueueLedgerCommand({
     type: LedgerTransactionType.CreditGrantRecognized,
     organizationId: subscription.organizationId,
     livemode: subscription.livemode,
@@ -475,12 +477,7 @@ const grantImmediateUsageCredits = async (
     payload: {
       usageCredit,
     },
-  }
-
-  return {
-    usageCredit,
-    ledgerCommand,
-  }
+  })
 }
 
 const findOrCreateManualSubscriptionItem = async (
@@ -538,12 +535,11 @@ const findOrCreateManualSubscriptionItem = async (
 
 export const addFeatureToSubscriptionItem = async (
   input: AddFeatureToSubscriptionInput,
-  transaction: DbTransaction
-): Promise<
-  TransactionOutput<{
-    subscriptionItemFeature: SubscriptionItemFeature.Record
-  }>
-> => {
+  ctx: TransactionEffectsContext
+): Promise<{
+  subscriptionItemFeature: SubscriptionItemFeature.Record
+}> => {
+  const { transaction } = ctx
   const {
     subscriptionItemId,
     featureId,
@@ -700,8 +696,6 @@ export const addFeatureToSubscriptionItem = async (
       )
     }
   }
-  let ledgerCommand: CreditGrantRecognizedLedgerCommand | undefined
-
   if (
     feature.type === FeatureType.UsageCreditGrant &&
     grantCreditsImmediately
@@ -711,19 +705,15 @@ export const addFeatureToSubscriptionItem = async (
         'Missing usage feature insert data for immediate credit grant.'
       )
     }
-    const immediateGrant = await grantImmediateUsageCredits(
+    await grantImmediateUsageCredits(
       {
         subscription,
         subscriptionItemFeature,
         grantAmount: usageFeatureInsert.amount,
       },
-      transaction
+      ctx
     )
-    ledgerCommand = immediateGrant?.ledgerCommand
   }
 
-  return {
-    result: { subscriptionItemFeature },
-    ledgerCommand,
-  }
+  return { subscriptionItemFeature }
 }
