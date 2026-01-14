@@ -36,8 +36,6 @@ describe('getMembershipNotificationPreferences', () => {
     expect(result.subscriptionCanceled).toBe(true)
     expect(result.subscriptionCancellationScheduled).toBe(true)
     expect(result.paymentFailed).toBe(true)
-    expect(result.onboardingCompleted).toBe(true)
-    expect(result.payoutsEnabled).toBe(true)
   })
 
   it('returns all default preferences when membership has null notificationPreferences', () => {
@@ -69,8 +67,6 @@ describe('getMembershipNotificationPreferences', () => {
     expect(result.subscriptionCanceled).toBe(true)
     expect(result.subscriptionCancellationScheduled).toBe(true)
     expect(result.paymentFailed).toBe(true)
-    expect(result.onboardingCompleted).toBe(true)
-    expect(result.payoutsEnabled).toBe(true)
   })
 
   it('returns stored preferences when all preferences are explicitly set', () => {
@@ -81,8 +77,6 @@ describe('getMembershipNotificationPreferences', () => {
       subscriptionCanceled: false,
       subscriptionCancellationScheduled: false,
       paymentFailed: false,
-      onboardingCompleted: false,
-      payoutsEnabled: false,
     }
     const membership: Membership.Record = {
       ...baseMembership,
@@ -112,7 +106,5 @@ describe('getMembershipNotificationPreferences', () => {
     expect(result.subscriptionCanceled).toBe(true)
     expect(result.subscriptionCancellationScheduled).toBe(true)
     expect(result.paymentFailed).toBe(true)
-    expect(result.onboardingCompleted).toBe(true)
-    expect(result.payoutsEnabled).toBe(true)
   })
 })

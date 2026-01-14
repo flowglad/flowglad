@@ -116,25 +116,6 @@ const NotificationPreferencesFormFields = () => {
           description="Notify when a payment fails"
         />
       </div>
-
-      {/* Account Notifications Group */}
-      <div className="flex flex-col gap-4">
-        <div className="text-sm font-medium text-foreground">
-          Account Notifications
-        </div>
-        <NotificationToggle
-          id="onboarding-completed"
-          name="onboardingCompleted"
-          label="Onboarding Completed"
-          description="Notify when Stripe Connect onboarding is completed"
-        />
-        <NotificationToggle
-          id="payouts-enabled"
-          name="payoutsEnabled"
-          label="Payouts Enabled"
-          description="Notify when payouts are enabled on your account"
-        />
-      </div>
     </div>
   )
 }

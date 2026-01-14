@@ -107,8 +107,6 @@ describe('EditNotificationPreferencesModal', () => {
     subscriptionCanceled: true,
     subscriptionCancellationScheduled: true,
     paymentFailed: true,
-    onboardingCompleted: true,
-    payoutsEnabled: true,
   }
 
   const mockMutateAsync = vi.fn()
@@ -292,8 +290,6 @@ describe('EditNotificationPreferencesModal', () => {
         subscriptionCanceled: true,
         subscriptionCancellationScheduled: true,
         paymentFailed: true,
-        onboardingCompleted: true,
-        payoutsEnabled: true,
       }
 
       render(
@@ -318,8 +314,6 @@ describe('EditNotificationPreferencesModal', () => {
         subscriptionCanceled: false,
         subscriptionCancellationScheduled: false,
         paymentFailed: false,
-        onboardingCompleted: false,
-        payoutsEnabled: false,
       }
 
       render(
@@ -346,8 +340,6 @@ describe('EditNotificationPreferencesModal', () => {
         subscriptionCanceled: false,
         subscriptionCancellationScheduled: true,
         paymentFailed: false,
-        onboardingCompleted: true,
-        payoutsEnabled: false,
       }
 
       render(
