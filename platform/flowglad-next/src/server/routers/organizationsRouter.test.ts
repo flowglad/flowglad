@@ -97,6 +97,7 @@ describe('organizationsRouter - notification preferences', () => {
       expect(result.subscriptionCanceled).toBe(true)
       expect(result.subscriptionCancellationScheduled).toBe(true)
       expect(result.paymentFailed).toBe(true)
+      expect(result.paymentSuccessful).toBe(true)
     })
 
     it('returns stored notification preferences merged with defaults', async () => {
@@ -125,6 +126,7 @@ describe('organizationsRouter - notification preferences', () => {
       expect(result.subscriptionAdjusted).toBe(true)
       expect(result.subscriptionCanceled).toBe(true)
       expect(result.paymentFailed).toBe(true)
+      expect(result.paymentSuccessful).toBe(true)
     })
 
     it('throws BAD_REQUEST when organizationId is missing', async () => {
@@ -187,6 +189,7 @@ describe('organizationsRouter - notification preferences', () => {
       expect(result.preferences.subscriptionAdjusted).toBe(true)
       expect(result.preferences.subscriptionCanceled).toBe(true)
       expect(result.preferences.paymentFailed).toBe(true)
+      expect(result.preferences.paymentSuccessful).toBe(true)
 
       const getResult = await caller.getNotificationPreferences()
       expect(getResult).toEqual(result.preferences)
@@ -230,6 +233,7 @@ describe('organizationsRouter - notification preferences', () => {
         'subscriptionCanceled',
         'subscriptionCancellationScheduled',
         'paymentFailed',
+        'paymentSuccessful',
       ]
 
       for (const key of expectedKeys) {
@@ -295,6 +299,7 @@ describe('organizationsRouter - notification preferences', () => {
           subscriptionCanceled: false,
           subscriptionCancellationScheduled: false,
           paymentFailed: false,
+          paymentSuccessful: false,
         },
       })
 
@@ -314,6 +319,7 @@ describe('organizationsRouter - notification preferences', () => {
           subscriptionCanceled: true,
           subscriptionCancellationScheduled: true,
           paymentFailed: true,
+          paymentSuccessful: true,
         },
       })
 
