@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
@@ -8,6 +11,7 @@ import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
+import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
@@ -127,9 +131,9 @@ describe('updatePricingModelTransaction', () => {
         name: 'Old Name',
       })
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -169,8 +173,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.pricingModel.name).toBe('New Name')
@@ -185,9 +192,9 @@ describe('updatePricingModelTransaction', () => {
         isDefault: false,
       })
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -227,8 +234,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.pricingModel.isDefault).toBe(true)
@@ -241,9 +251,9 @@ describe('updatePricingModelTransaction', () => {
         usageMeters: [{ slug: 'api-calls', name: 'API Calls' }],
       })
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -328,8 +338,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.usageMeters.created).toHaveLength(1)
@@ -342,9 +355,9 @@ describe('updatePricingModelTransaction', () => {
         usageMeters: [{ slug: 'api-calls', name: 'API Calls' }],
       })
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -407,8 +420,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.usageMeters.updated).toHaveLength(1)
@@ -426,72 +442,76 @@ describe('updatePricingModelTransaction', () => {
       })
 
       await expect(
-        adminTransaction(async ({ transaction }) =>
-          updatePricingModelTransaction(
-            {
-              pricingModelId: setupResult.pricingModel.id,
-              proposedInput: {
-                name: 'Test Pricing Model',
-                isDefault: false,
-                usageMeters: [
-                  { slug: 'api-calls', name: 'API Calls' },
-                ],
-                features: [
-                  {
-                    type: FeatureType.Toggle,
-                    slug: 'feature-a',
-                    name: 'Feature A',
-                    description: 'A toggle feature',
-                    active: true,
-                  },
-                ],
-                products: [
-                  {
-                    product: {
-                      name: 'Starter Plan',
-                      slug: 'starter',
-                      default: false,
+        comprehensiveAdminTransaction(
+          async ({ transaction, invalidateCache }) => {
+            const result = await updatePricingModelTransaction(
+              {
+                pricingModelId: setupResult.pricingModel.id,
+                proposedInput: {
+                  name: 'Test Pricing Model',
+                  isDefault: false,
+                  usageMeters: [
+                    { slug: 'api-calls', name: 'API Calls' },
+                  ],
+                  features: [
+                    {
+                      type: FeatureType.Toggle,
+                      slug: 'feature-a',
+                      name: 'Feature A',
+                      description: 'A toggle feature',
                       active: true,
                     },
-                    price: {
-                      type: PriceType.Subscription,
-                      slug: 'starter-monthly',
-                      unitPrice: 1999,
-                      isDefault: true,
-                      active: true,
-                      intervalCount: 1,
-                      intervalUnit: IntervalUnit.Month,
-                      usageMeterId: null,
-                      usageEventsPerUnit: null,
+                  ],
+                  products: [
+                    {
+                      product: {
+                        name: 'Starter Plan',
+                        slug: 'starter',
+                        default: false,
+                        active: true,
+                      },
+                      price: {
+                        type: PriceType.Subscription,
+                        slug: 'starter-monthly',
+                        unitPrice: 1999,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageMeterId: null,
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
                     },
-                    features: ['feature-a'],
-                  },
-                  {
-                    product: {
-                      name: 'API Calls Usage',
-                      slug: 'api-calls-usage',
-                      default: false,
-                      active: true,
+                    {
+                      product: {
+                        name: 'API Calls Usage',
+                        slug: 'api-calls-usage',
+                        default: false,
+                        active: true,
+                      },
+                      price: {
+                        type: PriceType.Usage,
+                        slug: 'api-calls-usage-price',
+                        unitPrice: 10,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageMeterSlug: 'api-calls',
+                        usageEventsPerUnit: 100,
+                        trialPeriodDays: null,
+                      },
+                      features: [],
                     },
-                    price: {
-                      type: PriceType.Usage,
-                      slug: 'api-calls-usage-price',
-                      unitPrice: 10,
-                      isDefault: true,
-                      active: true,
-                      intervalCount: 1,
-                      intervalUnit: IntervalUnit.Month,
-                      usageMeterSlug: 'api-calls',
-                      usageEventsPerUnit: 100,
-                      trialPeriodDays: null,
-                    },
-                    features: [],
-                  },
-                ],
+                  ],
+                },
               },
-            },
-            transaction
-          )
+              { transaction, invalidateCache }
+            )
+            return { result }
+          },
+          { livemode: false }
         )
       ).rejects.toThrow('Usage meters cannot be removed')
     })
@@ -502,9 +522,9 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Update with resources array
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -548,8 +568,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.resources.created).toHaveLength(2)
@@ -567,56 +590,60 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add resources first
-      await adminTransaction(async ({ transaction }) =>
-        updatePricingModelTransaction(
-          {
-            pricingModelId: setupResult.pricingModel.id,
-            proposedInput: {
-              name: 'Test Pricing Model',
-              isDefault: false,
-              usageMeters: [],
-              resources: [{ slug: 'seats', name: 'Seats' }],
-              features: [
-                {
-                  type: FeatureType.Toggle,
-                  slug: 'feature-a',
-                  name: 'Feature A',
-                  description: 'A toggle feature',
-                  active: true,
-                },
-              ],
-              products: [
-                {
-                  product: {
-                    name: 'Starter Plan',
-                    slug: 'starter',
-                    default: false,
+      await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                resources: [{ slug: 'seats', name: 'Seats' }],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
                     active: true,
                   },
-                  price: {
-                    type: PriceType.Subscription,
-                    slug: 'starter-monthly',
-                    unitPrice: 1999,
-                    isDefault: true,
-                    active: true,
-                    intervalCount: 1,
-                    intervalUnit: IntervalUnit.Month,
-                    usageMeterId: null,
-                    usageEventsPerUnit: null,
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'Starter Plan',
+                      slug: 'starter',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'starter-monthly',
+                      unitPrice: 1999,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a'],
                   },
-                  features: ['feature-a'],
-                },
-              ],
+                ],
+              } as SetupPricingModelInput,
             },
-          },
-          transaction
-        )
+            { transaction, invalidateCache }
+          )
+          return { result }
+        },
+        { livemode: false }
       )
 
       // Now update the resource name
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -657,8 +684,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.resources.updated).toHaveLength(1)
@@ -673,59 +703,63 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add resources first
-      await adminTransaction(async ({ transaction }) =>
-        updatePricingModelTransaction(
-          {
-            pricingModelId: setupResult.pricingModel.id,
-            proposedInput: {
-              name: 'Test Pricing Model',
-              isDefault: false,
-              usageMeters: [],
-              resources: [
-                { slug: 'seats', name: 'Seats' },
-                { slug: 'projects', name: 'Projects' },
-              ],
-              features: [
-                {
-                  type: FeatureType.Toggle,
-                  slug: 'feature-a',
-                  name: 'Feature A',
-                  description: 'A toggle feature',
-                  active: true,
-                },
-              ],
-              products: [
-                {
-                  product: {
-                    name: 'Starter Plan',
-                    slug: 'starter',
-                    default: false,
+      await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                resources: [
+                  { slug: 'seats', name: 'Seats' },
+                  { slug: 'projects', name: 'Projects' },
+                ],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
                     active: true,
                   },
-                  price: {
-                    type: PriceType.Subscription,
-                    slug: 'starter-monthly',
-                    unitPrice: 1999,
-                    isDefault: true,
-                    active: true,
-                    intervalCount: 1,
-                    intervalUnit: IntervalUnit.Month,
-                    usageMeterId: null,
-                    usageEventsPerUnit: null,
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'Starter Plan',
+                      slug: 'starter',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'starter-monthly',
+                      unitPrice: 1999,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a'],
                   },
-                  features: ['feature-a'],
-                },
-              ],
+                ],
+              } as SetupPricingModelInput,
             },
-          },
-          transaction
-        )
+            { transaction, invalidateCache }
+          )
+          return { result }
+        },
+        { livemode: false }
       )
 
       // Now remove 'projects' resource
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -766,8 +800,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.resources.deactivated).toHaveLength(1)
@@ -794,56 +831,9 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add resources first
-      await adminTransaction(async ({ transaction }) =>
-        updatePricingModelTransaction(
-          {
-            pricingModelId: setupResult.pricingModel.id,
-            proposedInput: {
-              name: 'Test Pricing Model',
-              isDefault: false,
-              usageMeters: [],
-              resources: [{ slug: 'seats', name: 'Seats' }],
-              features: [
-                {
-                  type: FeatureType.Toggle,
-                  slug: 'feature-a',
-                  name: 'Feature A',
-                  description: 'A toggle feature',
-                  active: true,
-                },
-              ],
-              products: [
-                {
-                  product: {
-                    name: 'Starter Plan',
-                    slug: 'starter',
-                    default: false,
-                    active: true,
-                  },
-                  price: {
-                    type: PriceType.Subscription,
-                    slug: 'starter-monthly',
-                    unitPrice: 1999,
-                    isDefault: true,
-                    active: true,
-                    intervalCount: 1,
-                    intervalUnit: IntervalUnit.Month,
-                    usageMeterId: null,
-                    usageEventsPerUnit: null,
-                  },
-                  features: ['feature-a'],
-                },
-              ],
-            },
-          },
-          transaction
-        )
-      )
-
-      // Now update with same resources (must include active: true to match exported state)
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -884,10 +874,66 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              },
+              } as SetupPricingModelInput,
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
+      )
+
+      // Now update with same resources
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                resources: [
+                  { slug: 'seats', name: 'Seats', active: true },
+                ],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
+                    active: true,
+                  },
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'Starter Plan',
+                      slug: 'starter',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'starter-monthly',
+                      unitPrice: 1999,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a'],
+                  },
+                ],
+              } as SetupPricingModelInput,
+            },
+            { transaction, invalidateCache }
+          )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.resources.created).toHaveLength(0)
@@ -944,7 +990,7 @@ describe('updatePricingModelTransaction', () => {
               ],
             },
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       )
 
@@ -1011,7 +1057,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
       )
 
@@ -1085,7 +1131,7 @@ describe('updatePricingModelTransaction', () => {
               ],
             },
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       )
 
@@ -1157,7 +1203,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
       )
 
@@ -1215,7 +1261,7 @@ describe('updatePricingModelTransaction', () => {
               ],
             },
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       )
 
@@ -1272,7 +1318,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow(
@@ -1335,7 +1381,7 @@ describe('updatePricingModelTransaction', () => {
               ],
             },
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       )
 
@@ -1384,7 +1430,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
       )
 
@@ -1480,7 +1526,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
       )
 
@@ -1519,9 +1565,9 @@ describe('updatePricingModelTransaction', () => {
     it('creates new features', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -1568,8 +1614,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.features.created).toHaveLength(1)
@@ -1579,9 +1628,9 @@ describe('updatePricingModelTransaction', () => {
     it('updates existing feature name', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -1621,8 +1670,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.features.updated).toHaveLength(1)
@@ -1673,9 +1725,9 @@ describe('updatePricingModelTransaction', () => {
         ],
       })
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -1715,8 +1767,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.features.deactivated).toHaveLength(1)
@@ -1732,76 +1787,80 @@ describe('updatePricingModelTransaction', () => {
       })
 
       await expect(
-        adminTransaction(async ({ transaction }) =>
-          updatePricingModelTransaction(
-            {
-              pricingModelId: setupResult.pricingModel.id,
-              proposedInput: {
-                name: 'Test Pricing Model',
-                isDefault: false,
-                usageMeters: [
-                  { slug: 'api-calls', name: 'API Calls' },
-                ],
-                features: [
-                  {
-                    type: FeatureType.UsageCreditGrant,
-                    slug: 'feature-a',
-                    name: 'Feature A',
-                    description: 'Changed to usage credit grant',
-                    usageMeterSlug: 'api-calls',
-                    amount: 100,
-                    renewalFrequency:
-                      FeatureUsageGrantFrequency.EveryBillingPeriod,
-                    active: true,
-                  },
-                ],
-                products: [
-                  {
-                    product: {
-                      name: 'Starter Plan',
-                      slug: 'starter',
-                      default: false,
-                      active: true,
-                    },
-                    price: {
-                      type: PriceType.Subscription,
-                      slug: 'starter-monthly',
-                      unitPrice: 1999,
-                      isDefault: true,
-                      active: true,
-                      intervalCount: 1,
-                      intervalUnit: IntervalUnit.Month,
-                      usageMeterId: null,
-                      usageEventsPerUnit: null,
-                    },
-                    features: ['feature-a'],
-                  },
-                  {
-                    product: {
-                      name: 'API Calls Usage',
-                      slug: 'api-calls-usage',
-                      default: false,
-                      active: true,
-                    },
-                    price: {
-                      type: PriceType.Usage,
-                      slug: 'api-calls-usage-price',
-                      unitPrice: 10,
-                      isDefault: true,
-                      active: true,
-                      intervalCount: 1,
-                      intervalUnit: IntervalUnit.Month,
+        comprehensiveAdminTransaction(
+          async ({ transaction, invalidateCache }) => {
+            const result = await updatePricingModelTransaction(
+              {
+                pricingModelId: setupResult.pricingModel.id,
+                proposedInput: {
+                  name: 'Test Pricing Model',
+                  isDefault: false,
+                  usageMeters: [
+                    { slug: 'api-calls', name: 'API Calls' },
+                  ],
+                  features: [
+                    {
+                      type: FeatureType.UsageCreditGrant,
+                      slug: 'feature-a',
+                      name: 'Feature A',
+                      description: 'Changed to usage credit grant',
                       usageMeterSlug: 'api-calls',
-                      usageEventsPerUnit: 100,
-                      trialPeriodDays: null,
+                      amount: 100,
+                      renewalFrequency:
+                        FeatureUsageGrantFrequency.EveryBillingPeriod,
+                      active: true,
                     },
-                    features: [],
-                  },
-                ],
+                  ],
+                  products: [
+                    {
+                      product: {
+                        name: 'Starter Plan',
+                        slug: 'starter',
+                        default: false,
+                        active: true,
+                      },
+                      price: {
+                        type: PriceType.Subscription,
+                        slug: 'starter-monthly',
+                        unitPrice: 1999,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageMeterId: null,
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                    {
+                      product: {
+                        name: 'API Calls Usage',
+                        slug: 'api-calls-usage',
+                        default: false,
+                        active: true,
+                      },
+                      price: {
+                        type: PriceType.Usage,
+                        slug: 'api-calls-usage-price',
+                        unitPrice: 10,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageMeterSlug: 'api-calls',
+                        usageEventsPerUnit: 100,
+                        trialPeriodDays: null,
+                      },
+                      features: [],
+                    },
+                  ],
+                },
               },
-            },
-            transaction
-          )
+              { transaction, invalidateCache }
+            )
+            return { result }
+          },
+          { livemode: false }
         )
       ).rejects.toThrow('Feature type cannot be changed')
     })
@@ -1811,9 +1870,9 @@ describe('updatePricingModelTransaction', () => {
     it('creates new products with prices', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -1873,8 +1932,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.products.created).toHaveLength(1)
@@ -1892,9 +1954,9 @@ describe('updatePricingModelTransaction', () => {
     it('updates existing product metadata without affecting price', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -1935,8 +1997,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.products.updated).toHaveLength(1)
@@ -1997,9 +2062,9 @@ describe('updatePricingModelTransaction', () => {
         ],
       })
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -2042,8 +2107,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       // 1 product deactivated: 'pro' (explicitly removed)
@@ -2067,9 +2135,9 @@ describe('updatePricingModelTransaction', () => {
     it('creates new price and deactivates old price when price changes', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -2109,8 +2177,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       // Price for starter changed (1999 -> 2999), plus free product deactivated
@@ -2177,9 +2248,9 @@ describe('updatePricingModelTransaction', () => {
         ],
       })
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -2226,8 +2297,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.productFeatures.added).toHaveLength(1)
@@ -2276,9 +2350,9 @@ describe('updatePricingModelTransaction', () => {
         ],
       })
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -2325,8 +2399,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.productFeatures.added).toHaveLength(0)
@@ -2336,9 +2413,9 @@ describe('updatePricingModelTransaction', () => {
     it('does not modify productFeatures when no changes', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -2378,8 +2455,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.productFeatures.added).toHaveLength(0)
@@ -2391,9 +2471,9 @@ describe('updatePricingModelTransaction', () => {
     it('creates new features and products that use those features in the same update', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -2460,8 +2540,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.features.created).toHaveLength(1)
@@ -2486,9 +2569,9 @@ describe('updatePricingModelTransaction', () => {
     it('creates new usage meters and features that use those meters in the same update', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -2562,8 +2645,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.usageMeters.created).toHaveLength(1)
@@ -2647,9 +2733,9 @@ describe('updatePricingModelTransaction', () => {
         ],
       })
 
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -2716,8 +2802,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       // Pricing model renamed
@@ -2814,77 +2903,83 @@ describe('updatePricingModelTransaction', () => {
         ],
       })
 
-      await adminTransaction(async ({ transaction }) =>
-        updatePricingModelTransaction(
-          {
-            pricingModelId: setupResult.pricingModel.id,
-            proposedInput: {
-              name: 'Updated Pricing Model',
-              isDefault: false,
-              usageMeters: [{ slug: 'api-calls', name: 'API Calls' }],
-              features: [
-                {
-                  type: FeatureType.Toggle,
-                  slug: 'feature-a',
-                  name: 'Feature A Updated',
-                  description: 'A toggle feature',
-                  active: true,
-                },
-                {
-                  type: FeatureType.Toggle,
-                  slug: 'feature-b',
-                  name: 'Feature B',
-                  description: 'New feature',
-                  active: true,
-                },
-              ],
-              products: [
-                {
-                  product: {
-                    name: 'Starter Plan',
-                    slug: 'starter',
-                    default: false,
+      await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Updated Pricing Model',
+                isDefault: false,
+                usageMeters: [
+                  { slug: 'api-calls', name: 'API Calls' },
+                ],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A Updated',
+                    description: 'A toggle feature',
                     active: true,
                   },
-                  price: {
-                    type: PriceType.Subscription,
-                    slug: 'starter-monthly',
-                    unitPrice: 2999,
-                    isDefault: true,
-                    active: true,
-                    intervalCount: 1,
-                    intervalUnit: IntervalUnit.Month,
-                    usageMeterId: null,
-                    usageEventsPerUnit: null,
-                  },
-                  features: ['feature-a', 'feature-b'],
-                },
-                {
-                  product: {
-                    name: 'API Usage',
-                    slug: 'api-usage',
-                    default: false,
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-b',
+                    name: 'Feature B',
+                    description: 'New feature',
                     active: true,
                   },
-                  price: {
-                    type: PriceType.Usage,
-                    slug: 'api-usage-price',
-                    unitPrice: 10,
-                    isDefault: true,
-                    active: true,
-                    intervalCount: 1,
-                    intervalUnit: IntervalUnit.Month,
-                    usageMeterSlug: 'api-calls',
-                    usageEventsPerUnit: 100,
-                    trialPeriodDays: null,
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'Starter Plan',
+                      slug: 'starter',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'starter-monthly',
+                      unitPrice: 2999,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a', 'feature-b'],
                   },
-                  features: [],
-                },
-              ],
+                  {
+                    product: {
+                      name: 'API Usage',
+                      slug: 'api-usage',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Usage,
+                      slug: 'api-usage-price',
+                      unitPrice: 10,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterSlug: 'api-calls',
+                      usageEventsPerUnit: 100,
+                      trialPeriodDays: null,
+                    },
+                    features: [],
+                  },
+                ],
+              },
             },
-          },
-          transaction
-        )
+            { transaction, invalidateCache }
+          )
+          return { result }
+        },
+        { livemode: false }
       )
 
       // Verify database state
@@ -3002,9 +3097,9 @@ describe('updatePricingModelTransaction', () => {
       })
 
       // Try to update without the default product - only include Pro
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -3045,8 +3140,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       // Verify the default product was NOT deactivated (it was auto-added back)
@@ -3100,9 +3198,9 @@ describe('updatePricingModelTransaction', () => {
       })
 
       // Try to update with protected field changes on the default product
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -3143,8 +3241,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       // Verify database state
@@ -3218,9 +3319,9 @@ describe('updatePricingModelTransaction', () => {
       })
 
       // Update only allowed fields on the default product
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -3268,8 +3369,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       // Verify database state
@@ -3362,9 +3466,9 @@ describe('updatePricingModelTransaction', () => {
       })
 
       // Attempt to demote the default product by setting default: false
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -3424,8 +3528,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            { transaction, invalidateCache }
           )
+          return { result }
+        },
+        { livemode: false }
       )
 
       // Verify database state - should have exactly 2 active products (no duplicates)

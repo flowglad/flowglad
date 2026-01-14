@@ -8,20 +8,10 @@ export const addFeatureToSubscription = protectedProcedure
   .input(addFeatureToSubscriptionInputSchema)
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({
-        input,
-        transaction,
-        emitEvent,
-        invalidateCache,
-        enqueueLedgerCommand,
-      }) => {
+      async ({ input, transactionCtx }) => {
         const { subscriptionItemFeature } =
-          await addFeatureToSubscriptionItem(input, {
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-          })
+          await addFeatureToSubscriptionItem(input, transactionCtx)
+        const { transaction } = transactionCtx
 
         const [enrichedFeature] =
           await selectClientSubscriptionItemFeatureAndFeatureById(

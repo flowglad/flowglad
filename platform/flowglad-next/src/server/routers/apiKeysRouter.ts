@@ -70,7 +70,14 @@ const getTableRowsProcedure = protectedProcedure
       })
     )
   )
-  .query(authenticatedProcedureTransaction(selectApiKeysTableRowData))
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectApiKeysTableRowData({ input, transaction })
+      }
+    )
+  )
 
 export const createApiKey = protectedProcedure
   .input(createApiKeyInputSchema)

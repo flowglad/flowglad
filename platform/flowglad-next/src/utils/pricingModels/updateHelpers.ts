@@ -22,7 +22,10 @@ import {
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 
 /**
  * Maps of slugs to database IDs for all child entities of a pricing model.
@@ -169,11 +172,15 @@ export const syncProductFeaturesForMultipleProducts = async (
     organizationId: string
     livemode: boolean
   },
-  transaction: DbTransaction
+  transactionParams: Pick<
+    TransactionEffectsContext,
+    'transaction' | 'invalidateCache'
+  >
 ): Promise<{
   added: ProductFeature.Record[]
   removed: ProductFeature.Record[]
 }> => {
+  const { transaction, invalidateCache } = transactionParams
   // Early return if no products to sync
   if (productsWithFeatures.length === 0) {
     return { added: [], removed: [] }
@@ -259,7 +266,7 @@ export const syncProductFeaturesForMultipleProducts = async (
   if (productFeatureIdsToExpire.length > 0) {
     const expireResult = await expireProductFeaturesByFeatureId(
       productFeatureIdsToExpire,
-      transaction
+      { transaction }
     )
     expiredProductFeatures = expireResult.expiredProductFeature
   }

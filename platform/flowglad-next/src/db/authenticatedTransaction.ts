@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 import type {
   AuthenticatedTransactionParams,
   ComprehensiveAuthenticatedTransactionParams,
+  TransactionEffectsContext,
 } from '@/db/types'
 import core from '@/utils/core'
 import { traced } from '@/utils/tracing'
@@ -228,39 +229,18 @@ export type AuthenticatedProcedureResolver<
   TContext extends { apiKey?: string; customerId?: string },
 > = (input: TInput, ctx: TContext) => Promise<TOutput>
 
+/**
+ * Params for authenticated procedure transaction handlers.
+ * Provides transactionCtx (TransactionEffectsContext) for passing to business logic functions.
+ */
 export type AuthenticatedProcedureTransactionParams<
   TInput,
-  TOutput,
   TContext extends { apiKey?: string; customerId?: string },
-> = AuthenticatedTransactionParams & {
+> = {
   input: TInput
   ctx: TContext
+  transactionCtx: TransactionEffectsContext
 }
-
-/**
- * Stricter version of AuthenticatedProcedureTransactionParams used by
- * authenticatedProcedureComprehensiveTransaction.
- * All callback methods are required (not optional) since they're always provided at runtime.
- */
-export type ComprehensiveAuthenticatedProcedureTransactionParams<
-  TInput,
-  TContext extends { apiKey?: string; customerId?: string },
-> = ComprehensiveAuthenticatedTransactionParams & {
-  input: TInput
-  ctx: TContext
-}
-
-export type AuthenticatedProcedureTransactionHandler<
-  TInput,
-  TOutput,
-  TContext extends { apiKey?: string; customerId?: string },
-> = (
-  params: AuthenticatedProcedureTransactionParams<
-    TInput,
-    TOutput,
-    TContext
-  >
-) => Promise<TOutput>
 
 /**
  * Creates an authenticated procedure that wraps a transaction handler.
@@ -271,11 +251,9 @@ export const authenticatedProcedureTransaction = <
   TOutput,
   TContext extends { apiKey?: string; customerId?: string },
 >(
-  handler: AuthenticatedProcedureTransactionHandler<
-    TInput,
-    TOutput,
-    TContext
-  >
+  handler: (
+    params: AuthenticatedProcedureTransactionParams<TInput, TContext>
+  ) => Promise<TOutput>
 ) => {
   return authenticatedProcedureComprehensiveTransaction<
     TInput,
@@ -293,16 +271,24 @@ export const authenticatedProcedureComprehensiveTransaction = <
   TContext extends { apiKey?: string; customerId?: string },
 >(
   handler: (
-    params: ComprehensiveAuthenticatedProcedureTransactionParams<
-      TInput,
-      TContext
-    >
+    params: AuthenticatedProcedureTransactionParams<TInput, TContext>
   ) => Promise<TransactionOutput<TOutput>>
 ) => {
   return async (opts: { input: TInput; ctx: TContext }) => {
     return comprehensiveAuthenticatedTransaction(
-      (params) =>
-        handler({ ...params, input: opts.input, ctx: opts.ctx }),
+      (params) => {
+        const transactionCtx: TransactionEffectsContext = {
+          transaction: params.transaction,
+          invalidateCache: params.invalidateCache,
+          emitEvent: params.emitEvent,
+          enqueueLedgerCommand: params.enqueueLedgerCommand,
+        }
+        return handler({
+          input: opts.input,
+          ctx: opts.ctx,
+          transactionCtx,
+        })
+      },
       {
         apiKey: opts.ctx.apiKey,
         customerId: opts.ctx.customerId,
@@ -317,11 +303,7 @@ export function eventfulAuthenticatedProcedureTransaction<
   TContext extends { apiKey?: string; customerId?: string },
 >(
   handler: (
-    params: AuthenticatedProcedureTransactionParams<
-      TInput,
-      TOutput,
-      TContext
-    >
+    params: AuthenticatedProcedureTransactionParams<TInput, TContext>
   ) => Promise<[TOutput, Event.Insert[]]>
 ) {
   return authenticatedProcedureTransaction<TInput, TOutput, TContext>(
@@ -329,7 +311,7 @@ export function eventfulAuthenticatedProcedureTransaction<
       const [result, eventInserts] = await handler(params)
       await bulkInsertOrDoNothingEventsByHash(
         eventInserts,
-        params.transaction
+        params.transactionCtx.transaction
       )
       return result
     }

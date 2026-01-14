@@ -91,7 +91,13 @@ const getTableRowsProcedure = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      selectPaymentsCursorPaginatedWithTableRowData
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectPaymentsCursorPaginatedWithTableRowData({
+          input,
+          transaction,
+        })
+      }
     )
   )
 

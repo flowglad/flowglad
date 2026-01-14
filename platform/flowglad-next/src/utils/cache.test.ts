@@ -359,8 +359,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
     expect(JSON.parse(mockRedis.store[key3])).toEqual({ entry: 3 })
   })
 
-  it('handles invalidation of non-existent dependencies gracefully', async () => {
-    // Should not throw
+  it('resolves without error when invalidating non-existent dependencies', async () => {
     await expect(
       invalidateDependencies([
         'dep:nonexistent',
@@ -407,11 +406,6 @@ describe('CacheDependency helpers', () => {
   it('creates consistent subscriptionItems dependency keys', () => {
     const key = CacheDependency.subscriptionItems('sub_456')
     expect(key).toBe('subscriptionItems:sub_456')
-  })
-
-  it('creates consistent subscriptionItemFeatures dependency keys', () => {
-    const key = CacheDependency.subscriptionItemFeatures('si_789')
-    expect(key).toBe('subscriptionItemFeatures:si_789')
   })
 
   it('creates consistent subscriptionLedger dependency keys', () => {

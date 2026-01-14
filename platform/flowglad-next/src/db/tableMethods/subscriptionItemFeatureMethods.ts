@@ -141,6 +141,52 @@ export const selectSubscriptionItemFeaturesWithFeatureSlug = async (
   })
 }
 
+/**
+ * Fetches subscription item features with feature name and slug for multiple subscription items.
+ * This is a bulk query version that fetches all features for the given subscription item IDs
+ * in a single database query.
+ */
+export const selectSubscriptionItemFeaturesWithFeatureSlugs = async (
+  subscriptionItemIds: string[],
+  transaction: DbTransaction
+): Promise<SubscriptionItemFeature.ClientRecord[]> => {
+  if (subscriptionItemIds.length === 0) {
+    return []
+  }
+
+  const result = await transaction
+    .select({
+      subscriptionItemFeature: subscriptionItemFeatures,
+      feature: {
+        name: features.name,
+        slug: features.slug,
+      },
+    })
+    .from(subscriptionItemFeatures)
+    .innerJoin(
+      features,
+      eq(subscriptionItemFeatures.featureId, features.id)
+    )
+    .where(
+      inArray(
+        subscriptionItemFeatures.subscriptionItemId,
+        subscriptionItemIds
+      )
+    )
+
+  return result.map((row) => {
+    const subscriptionItemFeature =
+      subscriptionItemFeaturesSelectSchema.parse(
+        row.subscriptionItemFeature
+      )
+    return {
+      ...subscriptionItemFeature,
+      name: row.feature.name,
+      slug: row.feature.slug,
+    }
+  })
+}
+
 const baseUpsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId =
   createUpsertFunction(
     subscriptionItemFeatures,
