@@ -419,6 +419,32 @@ describe('resourceClaimsRouter', () => {
         'Resource is not available on this subscription'
       )
     })
+
+    it('throws validation error when both resourceSlug and resourceId are provided', async () => {
+      const caller = createCaller(organization, apiKeyToken)
+
+      await expect(
+        caller.getUsage({
+          subscriptionId: subscription.id,
+          resourceSlug: 'seats',
+          resourceId: resource.id,
+        })
+      ).rejects.toThrow(
+        'Exactly one of resourceSlug or resourceId must be provided'
+      )
+    })
+
+    it('throws validation error when neither resourceSlug nor resourceId is provided', async () => {
+      const caller = createCaller(organization, apiKeyToken)
+
+      await expect(
+        caller.getUsage({
+          subscriptionId: subscription.id,
+        })
+      ).rejects.toThrow(
+        'Exactly one of resourceSlug or resourceId must be provided'
+      )
+    })
   })
 
   describe('listResourceUsages procedure', () => {
