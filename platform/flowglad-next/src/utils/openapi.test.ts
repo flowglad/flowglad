@@ -290,6 +290,128 @@ describe('trpcToRest', () => {
     })
   })
 
+  describe('routeSuffix parameter', () => {
+    it('uses the derived resource name from action when routeSuffix is not provided for getX actions', () => {
+      const result = trpcToRest('subscriptions.getUsage')
+
+      expect(result).toEqual({
+        'GET /subscriptions/:id/usage': {
+          procedure: 'subscriptions.getUsage',
+          pattern: expect.any(RegExp),
+          mapParams: expect.any(Function),
+        },
+      })
+
+      const pattern = result['GET /subscriptions/:id/usage'].pattern
+      expect(pattern.test('subscriptions/sub_123/usage')).toBe(true)
+      expect(pattern.test('subscriptions/sub_123/other')).toBe(false)
+    })
+
+    it('uses routeSuffix to override the route path for getX actions', () => {
+      const result = trpcToRest('subscriptions.getUsage', {
+        routeSuffix: 'usages',
+      })
+
+      expect(result).toEqual({
+        'GET /subscriptions/:id/usages': {
+          procedure: 'subscriptions.getUsage',
+          pattern: expect.any(RegExp),
+          mapParams: expect.any(Function),
+        },
+      })
+
+      const pattern = result['GET /subscriptions/:id/usages'].pattern
+      expect(pattern.test('subscriptions/sub_123/usages')).toBe(true)
+      expect(pattern.test('subscriptions/sub_123/usage')).toBe(false)
+
+      const matches = pattern
+        .exec('subscriptions/sub_123/usages')!
+        .slice(1)
+      expect(
+        result['GET /subscriptions/:id/usages'].mapParams(matches)
+      ).toEqual({
+        subscriptionsId: 'sub_123',
+      })
+    })
+
+    it('uses the derived resource name from action when routeSuffix is not provided for listX actions', () => {
+      const result = trpcToRest('resources.listClaims')
+
+      expect(result).toEqual({
+        'GET /resources/:id/claims': {
+          procedure: 'resources.listClaims',
+          pattern: expect.any(RegExp),
+          mapParams: expect.any(Function),
+        },
+      })
+
+      const pattern = result['GET /resources/:id/claims'].pattern
+      expect(pattern.test('resources/res_123/claims')).toBe(true)
+      expect(pattern.test('resources/res_123/other')).toBe(false)
+    })
+
+    it('uses routeSuffix to override the route path for listX actions', () => {
+      const result = trpcToRest('resources.listClaims', {
+        routeSuffix: 'active-claims',
+      })
+
+      expect(result).toEqual({
+        'GET /resources/:id/active-claims': {
+          procedure: 'resources.listClaims',
+          pattern: expect.any(RegExp),
+          mapParams: expect.any(Function),
+        },
+      })
+
+      const pattern =
+        result['GET /resources/:id/active-claims'].pattern
+      expect(pattern.test('resources/res_123/active-claims')).toBe(
+        true
+      )
+      expect(pattern.test('resources/res_123/claims')).toBe(false)
+
+      const matches = pattern
+        .exec('resources/res_123/active-claims')!
+        .slice(1)
+      expect(
+        result['GET /resources/:id/active-claims'].mapParams(matches)
+      ).toEqual({
+        resourcesId: 'res_123',
+      })
+    })
+
+    it('combines routeSuffix with custom routeParams for nested resource routes', () => {
+      const result = trpcToRest('customers.getBilling', {
+        routeParams: ['externalId'],
+        routeSuffix: 'billing',
+      })
+
+      expect(result).toEqual({
+        'GET /customers/:externalId/billing': {
+          procedure: 'customers.getBilling',
+          pattern: expect.any(RegExp),
+          mapParams: expect.any(Function),
+        },
+      })
+
+      const pattern =
+        result['GET /customers/:externalId/billing'].pattern
+      expect(pattern.test('customers/cust_123/billing')).toBe(true)
+      expect(pattern.test('customers/cust_123/other')).toBe(false)
+
+      const matches = pattern
+        .exec('customers/cust_123/billing')!
+        .slice(1)
+      expect(
+        result['GET /customers/:externalId/billing'].mapParams(
+          matches
+        )
+      ).toEqual({
+        externalId: 'cust_123',
+      })
+    })
+  })
+
   describe('Regex match indices validation', () => {
     it('should use correct match indices for all CRUD operations', () => {
       const operations = ['get', 'update', 'edit', 'delete'] as const

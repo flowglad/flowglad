@@ -345,7 +345,7 @@ export const trpcToRest = (
               `^${entity}/([^\\/]+)/${routeSuffix}$`
             ),
             mapParams: (matches) => ({
-              [entityIdKey]: matches[1],
+              [entityIdKey]: matches[0],
             }),
           },
         }
@@ -366,7 +366,7 @@ export const trpcToRest = (
               `^${entity}/([^\\/]+)/${routeSuffix}$`
             ),
             mapParams: (matches) => ({
-              [entityIdKey]: matches[1],
+              [entityIdKey]: matches[0],
             }),
           },
         }

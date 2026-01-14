@@ -400,7 +400,27 @@ const getUsageProcedure = devOnlyProcedure
     )
   )
 
-const listResourceUsagesProcedure = protectedProcedure
+const listResourceUsagesInputSchema = z
+  .object({
+    subscriptionId: z.string(),
+    resourceSlugs: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'List of resource slugs to filter by. If not provided, will return usage for all resources on the subscription.'
+      ),
+    resourceIds: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'List of resource IDs to filter by. If not provided, will return usage for all resources on the subscription.'
+      ),
+  })
+  .meta({
+    id: 'ListResourceUsagesInput',
+  })
+
+const listResourceUsagesProcedure = devOnlyProcedure
   .meta({
     openapi: {
       method: 'GET',
@@ -412,7 +432,7 @@ const listResourceUsagesProcedure = protectedProcedure
       protect: true,
     },
   })
-  .input(z.object({ subscriptionId: z.string() }))
+  .input(listResourceUsagesInputSchema)
   .output(listResourceUsagesOutputSchema)
   .query(
     authenticatedProcedureTransaction(
