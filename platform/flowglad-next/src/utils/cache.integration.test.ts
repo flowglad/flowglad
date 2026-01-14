@@ -936,7 +936,7 @@ describeIfRedisKey(
 
       // Verify cache is populated
       const beforeTransaction = await client.get(cacheKey)
-      expect(typeof beforeTransaction).toBe('object')
+      expect(typeof beforeTransaction).toBe('string')
 
       // Call comprehensiveAdminTransaction with a function that uses invalidateCache
       await comprehensiveAdminTransaction(
@@ -999,8 +999,8 @@ describeIfRedisKey(
       await client.sadd(registryKey2, cacheKey2)
 
       // Verify both caches are populated
-      expect(typeof (await client.get(cacheKey1))).toBe('object')
-      expect(typeof (await client.get(cacheKey2))).toBe('object')
+      expect(typeof (await client.get(cacheKey1))).toBe('string')
+      expect(typeof (await client.get(cacheKey2))).toBe('string')
 
       // Call comprehensiveAdminTransaction with multiple invalidateCache calls
       await comprehensiveAdminTransaction(
