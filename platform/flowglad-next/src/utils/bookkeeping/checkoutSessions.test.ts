@@ -32,7 +32,7 @@ import {
 } from '@/db/tableMethods/purchaseMethods'
 import type { DbTransaction } from '@/db/types'
 import { selectEventsByCustomer } from '@/test/helpers/databaseHelpers'
-import { extractEffectsContext } from '@/test-utils/transactionCallbacks'
+import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -755,7 +755,7 @@ describe('Checkout Sessions', async () => {
                 checkoutSession: updatedCheckoutSession,
                 stripeCustomerId: `cus_${core.nanoid()}`,
               },
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             )
           return { result }
         }
@@ -835,7 +835,7 @@ describe('Checkout Sessions', async () => {
                 checkoutSession,
                 stripeCustomerId: succeededCharge.customer! as string,
               },
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             )
           return { result: bookkeeping }
         }
@@ -853,7 +853,7 @@ describe('Checkout Sessions', async () => {
                 checkoutSession,
                 stripeCustomerId: succeededCharge.customer! as string,
               },
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             )
           return { result: bookkeeping }
         }
@@ -882,7 +882,7 @@ describe('Checkout Sessions', async () => {
                 checkoutSession,
                 stripeCustomerId: 'different-stripe-id',
               },
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             )
           return { result: bookkeeping }
         })
@@ -898,7 +898,7 @@ describe('Checkout Sessions', async () => {
                 checkoutSession,
                 stripeCustomerId: customer.stripeCustomerId!,
               },
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             )
           return { result: bookkeeping }
         }
@@ -929,7 +929,7 @@ describe('Checkout Sessions', async () => {
                 checkoutSession: updatedCheckoutSession,
                 stripeCustomerId: succeededCharge.customer! as string,
               },
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             )
           return { result: bookkeeping }
         }
@@ -961,7 +961,7 @@ describe('Checkout Sessions', async () => {
                 checkoutSession,
                 stripeCustomerId: succeededCharge.customer! as string,
               },
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             )
           return { result: bookkeeping }
         }
@@ -990,7 +990,7 @@ describe('Checkout Sessions', async () => {
                 checkoutSession,
                 stripeCustomerId: succeededCharge.customer! as string,
               },
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             )
           return { result: bookkeeping }
         }
@@ -1018,7 +1018,7 @@ describe('Checkout Sessions', async () => {
               checkoutSession: updatedCheckoutSession,
               stripeCustomerId: succeededCharge.customer! as string,
             },
-            extractEffectsContext(params)
+            createProcessingEffectsContext(params)
           )
         const [discountRedemption] = await selectDiscountRedemptions(
           {
@@ -1042,7 +1042,7 @@ describe('Checkout Sessions', async () => {
                 checkoutSession,
                 stripeCustomerId: succeededCharge.customer! as string,
               },
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             )
           const latestFeeCalculation =
             await selectLatestFeeCalculation(
@@ -1075,7 +1075,7 @@ describe('Checkout Sessions', async () => {
                 checkoutSession,
                 stripeCustomerId: succeededCharge.customer! as string,
               },
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             )
           return { result: bookkeeping }
         })
@@ -1130,7 +1130,7 @@ describe('Checkout Sessions', async () => {
                 checkoutSessionId: checkoutSession.id,
                 charge: succeededCharge,
               },
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             )
           return { result: chargeResult }
         }
@@ -1157,7 +1157,7 @@ describe('Checkout Sessions', async () => {
                 checkoutSessionId: checkoutSession.id,
                 charge: failedCharge,
               },
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             )
           return { result: chargeResult }
         }
@@ -1186,7 +1186,7 @@ describe('Checkout Sessions', async () => {
                 checkoutSessionId: checkoutSession.id,
                 charge: succeededCharge,
               },
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             )
           return { result: chargeResult }
         }

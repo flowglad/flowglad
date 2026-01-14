@@ -13,7 +13,7 @@ import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
-import { extractEffectsContext } from '@/test-utils/transactionCallbacks'
+import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -106,7 +106,7 @@ describe('processNonPaymentCheckoutSession', () => {
           return {
             result: await processNonPaymentCheckoutSession(
               updatedCheckoutSession,
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             ),
           }
         }
@@ -148,7 +148,7 @@ describe('processNonPaymentCheckoutSession', () => {
           return {
             result: await processNonPaymentCheckoutSession(
               checkoutSession,
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             ),
           }
         })

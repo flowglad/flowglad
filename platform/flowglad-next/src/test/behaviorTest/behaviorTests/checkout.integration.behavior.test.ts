@@ -45,7 +45,7 @@ import {
   describeIfStripeKey,
   getStripeTestClient,
 } from '@/test/stripeIntegrationHelpers'
-import { extractEffectsContext } from '@/test-utils/transactionCallbacks'
+import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   FeeCalculationType,
   PaymentStatus,
@@ -253,7 +253,7 @@ const processPaymentSuccessBehavior = defineBehavior({
             checkoutSessionId: prev.updatedCheckoutSession.id,
             charge,
           },
-          extractEffectsContext(params)
+          createProcessingEffectsContext(params)
         )
         return { result }
       }
