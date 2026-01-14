@@ -253,6 +253,7 @@ describe.sequential('memberships RLS - notificationPreferences', () => {
       expect(prefs.subscriptionAdjusted).toBe(true)
       expect(prefs.subscriptionCanceled).toBe(true)
       expect(prefs.paymentFailed).toBe(true)
+      expect(prefs.paymentSuccessful).toBe(true)
     })
 
     it('preserves existing preferences when updating partial preferences', async () => {

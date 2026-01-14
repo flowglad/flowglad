@@ -110,6 +110,12 @@ const NotificationPreferencesFormFields = () => {
           Payment Notifications
         </div>
         <NotificationToggle
+          id="payment-successful"
+          name="paymentSuccessful"
+          label="Payment Successful"
+          description="Notify when a payment is successful"
+        />
+        <NotificationToggle
           id="payment-failed"
           name="paymentFailed"
           label="Payment Failed"
