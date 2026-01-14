@@ -60,6 +60,70 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - **Fresh Database**: When setting up a fresh database, always run `bun run seed:countries` after migrations to populate the countries table.
 - **Idempotent**: The countries seeding script is safe to run multiple times - it won't duplicate data.
 
+## Testing Database Migrations
+
+Before applying migrations to staging or production, you can test them against clones of those databases using Docker.
+
+### Prerequisites
+
+- **Docker** must be running
+- **PostgreSQL client tools** (`pg_dump` and `psql`) must be installed:
+  - macOS: `brew install libpq && brew link --force libpq`
+  - Ubuntu: `sudo apt-get install postgresql-client`
+- **Environment variables**: `STAGING_DATABASE_URL` and `PROD_DATABASE_URL` must be set in your `.env.local` file
+  - Get connection strings from Supabase project > Connect > Connection string
+  - Type: URI, Source: Primary Database, Method: Session pooler > View parameters
+  - Format: `postgresql://[user]:[password]@[host]:5432/[database]`
+
+### Usage
+
+```bash
+# Test against staging database (keeps container running for inspection)
+bun run migrations:test:staging
+
+# Test against production database (keeps container running for inspection)
+bun run migrations:test:prod
+
+# Test against both (staging first, then prod if staging passes)
+bun run migrations:test
+```
+
+### How It Works
+
+1. **Creates a Docker container** with a fresh PostgreSQL instance
+2. **Clones the target database** using `pg_dump` from staging or production
+3. **Runs pending migrations** against the clone
+4. **Reports success or failure** - if migrations fail, you'll see the error before affecting real databases
+
+### Inspecting the Database After Migration
+
+When using `migrations:test:staging` or `migrations:test:prod`, the container stays running after the test completes. This allows you to:
+
+1. **Connect directly to inspect the migrated state**:
+   ```bash
+   # Staging clone (port 5433)
+   psql "postgresql://test:test@localhost:5433/test_db"
+
+   # Production clone (port 5434)
+   psql "postgresql://test:test@localhost:5434/test_db"
+   ```
+
+2. **Point your local app to the cloned database** to test application behavior:
+   ```bash
+   # Run the app against the staging clone
+   DATABASE_URL="postgresql://test:test@localhost:5433/test_db" bun run dev
+   ```
+
+3. **Press 'e'** to save migration output to a file for further debugging
+
+4. **Press Enter** in the terminal when done to clean up the containers
+
+### Best Practices
+
+- Always test migrations against staging before production
+- Use `--inspect` mode to verify the database state looks correct after migration
+- If a migration fails, fix the issue and re-run the test before applying to real databases
+
 ## How to Read the Codebase
 
 ### Folders
