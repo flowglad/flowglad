@@ -668,7 +668,7 @@ export const processOutcomeForBillingRun = async (
           (item) => item.type === FeatureType.UsageCreditGrant
         ),
       },
-    } as BillingPeriodTransitionLedgerCommand)
+    } satisfies BillingPeriodTransitionLedgerCommand)
   }
 
   if (invoice.status === InvoiceStatus.Paid) {
@@ -681,7 +681,7 @@ export const processOutcomeForBillingRun = async (
       livemode: invoice.livemode,
       organizationId: invoice.organizationId,
       subscriptionId: invoice.subscriptionId!,
-    } as SettleInvoiceUsageCostsLedgerCommand)
+    } satisfies SettleInvoiceUsageCostsLedgerCommand)
   }
 
   return {

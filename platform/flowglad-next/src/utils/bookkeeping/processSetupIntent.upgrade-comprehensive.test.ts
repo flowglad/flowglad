@@ -1959,7 +1959,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
   })
 
   describe('Events Logging Validation', () => {
-    it('should return appropriate events in eventsToInsert', async () => {
+    it('should emit appropriate events via callback', async () => {
       const checkoutSession = await setupCheckoutSession({
         organizationId: organization.id,
         customerId: customer.id,

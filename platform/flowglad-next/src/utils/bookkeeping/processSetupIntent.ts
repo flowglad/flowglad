@@ -495,11 +495,6 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       ctx
     )
 
-    // Emit events from createSubscriptionWorkflow output
-    if (output.eventsToInsert && output.eventsToInsert.length > 0) {
-      emitEvent(...output.eventsToInsert)
-    }
-
     const updatedPurchase = await updatePurchase(
       {
         id: purchase.id,
