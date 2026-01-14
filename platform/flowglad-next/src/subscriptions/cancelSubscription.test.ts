@@ -63,7 +63,6 @@ import {
   createCapturingContext,
   createNoopContext,
   noopEmitEvent,
-  noopEnqueueLedgerCommand,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
 import * as subscriptionCancellationNotifications from '@/trigger/notifications/send-organization-subscription-cancellation-scheduled-notification'
@@ -806,24 +805,15 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: SubscriptionStatus.Canceled,
         })
         const { ctx, effects } = createCapturingContext(transaction)
-        const { result, eventsToInsert } =
-          await cancelSubscriptionImmediately(
-            {
-              subscription,
-            },
-            ctx
-          )
-        expect(result.status).toBe(SubscriptionStatus.Canceled)
-        // Verify both returned events and captured callback events
-        expect(eventsToInsert).toHaveLength(1)
-        expect(effects.events).toHaveLength(1)
-        expect(eventsToInsert?.[0]).toMatchObject({
-          type: FlowgladEventType.SubscriptionCanceled,
-          payload: {
-            object: EventNoun.Subscription,
-            id: subscription.id,
+        const { result } = await cancelSubscriptionImmediately(
+          {
+            subscription,
           },
-        })
+          ctx
+        )
+        expect(result.status).toBe(SubscriptionStatus.Canceled)
+        // Verify captured callback events
+        expect(effects.events).toHaveLength(1)
         expect(effects.events[0]).toMatchObject({
           type: FlowgladEventType.SubscriptionCanceled,
           payload: {
@@ -850,16 +840,14 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: SubscriptionStatus.Active,
         })
         const { ctx, effects } = createCapturingContext(transaction)
-        const { result, eventsToInsert } =
-          await cancelSubscriptionImmediately(
-            {
-              subscription: subscriptionWithTimestamp,
-            },
-            ctx
-          )
+        const { result } = await cancelSubscriptionImmediately(
+          {
+            subscription: subscriptionWithTimestamp,
+          },
+          ctx
+        )
         expect(result.status).toBe(SubscriptionStatus.Canceled)
         expect(result.canceledAt).toBe(canceledAt)
-        expect(eventsToInsert).toHaveLength(1)
         expect(effects.events).toHaveLength(1)
         expect(effects.cacheInvalidations).toContain(
           CacheDependency.customerSubscriptions(customer.id)
@@ -888,20 +876,18 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         const { ctx, effects } = createCapturingContext(transaction)
-        const { result, eventsToInsert } =
-          await cancelSubscriptionImmediately(
-            {
-              subscription,
-            },
-            ctx
-          )
+        const { result } = await cancelSubscriptionImmediately(
+          {
+            subscription,
+          },
+          ctx
+        )
 
         // Verify subscription was canceled immediately
         expect(result.status).toBe(SubscriptionStatus.Canceled)
         expect(result.canceledAt).toMatchObject({})
-        expect(eventsToInsert).toHaveLength(1)
         expect(effects.events).toHaveLength(1)
-        expect(eventsToInsert?.[0]).toMatchObject({
+        expect(effects.events[0]).toMatchObject({
           type: FlowgladEventType.SubscriptionCanceled,
           payload: {
             object: EventNoun.Subscription,
@@ -944,20 +930,18 @@ describe('Subscription Cancellation Test Suite', async () => {
           })
 
           const { ctx, effects } = createCapturingContext(transaction)
-          const { result, eventsToInsert } =
-            await cancelSubscriptionImmediately(
-              {
-                subscription,
-              },
-              ctx
-            )
+          const { result } = await cancelSubscriptionImmediately(
+            {
+              subscription,
+            },
+            ctx
+          )
 
           // Verify subscription was canceled regardless of initial status
           expect(result.status).toBe(SubscriptionStatus.Canceled)
           expect(result.canceledAt).toMatchObject({})
-          expect(eventsToInsert).toHaveLength(1)
           expect(effects.events).toHaveLength(1)
-          expect(eventsToInsert?.[0]).toMatchObject({
+          expect(effects.events[0]).toMatchObject({
             type: FlowgladEventType.SubscriptionCanceled,
             payload: {
               object: EventNoun.Subscription,
@@ -1775,8 +1759,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           immediateSubscription.id
         )
         expect(response.result.subscription.current).toBe(false)
-        expect(response.eventsToInsert).toHaveLength(1)
-        // Verify events were also captured via callbacks
+        // Verify events were captured via callbacks
         expect(effects.events).toHaveLength(1)
         expect(effects.cacheInvalidations).toContain(
           CacheDependency.customerSubscriptions(customer.id)
@@ -1829,8 +1812,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         expect(response.result.subscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
         )
-        expect(response.eventsToInsert).toHaveLength(0)
-        // Verify no events were captured via callbacks either
+        // Verify no events were captured via callbacks
         expect(effects.events).toHaveLength(0)
         // For AtEndOfCurrentBillingPeriod, cancelScheduledAt should be set to the billing period end
         expect(response.result.subscription.cancelScheduledAt).toBe(
@@ -3701,8 +3683,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           SubscriptionStatus.Active
         )
         expect(response.result.subscription.current).toBe(true)
-        expect(response.eventsToInsert).toHaveLength(0)
-        // Verify no events were captured via callbacks either
+        // Verify no events were captured via callbacks
         expect(effects.events).toHaveLength(0)
       })
     })
@@ -4118,19 +4099,21 @@ describe('Subscription cancellation cache invalidations', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      const result = await adminTransaction(
+      const effects = await adminTransaction(
         async ({ transaction }) => {
-          return cancelSubscriptionImmediately(
+          const { ctx, effects } = createCapturingContext(transaction)
+          await cancelSubscriptionImmediately(
             {
               subscription,
               customer,
             },
-            createNoopContext(transaction)
+            ctx
           )
+          return effects
         }
       )
 
-      expect(result.cacheInvalidations).toContain(
+      expect(effects.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer.id)
       )
     })
@@ -4150,22 +4133,24 @@ describe('Subscription cancellation cache invalidations', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      const result = await adminTransaction(
+      const effects = await adminTransaction(
         async ({ transaction }) => {
-          return cancelSubscriptionImmediately(
+          const { ctx, effects } = createCapturingContext(transaction)
+          await cancelSubscriptionImmediately(
             {
               subscription,
               customer: customer1,
             },
-            createNoopContext(transaction)
+            ctx
           )
+          return effects
         }
       )
 
-      expect(result.cacheInvalidations).toContain(
+      expect(effects.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer1.id)
       )
-      expect(result.cacheInvalidations).not.toContain(
+      expect(effects.cacheInvalidations).not.toContain(
         CacheDependency.customerSubscriptions(customer2.id)
       )
     })
@@ -4195,9 +4180,10 @@ describe('Subscription cancellation cache invalidations', async () => {
         status: BillingPeriodStatus.Active,
       })
 
-      const result = await adminTransaction(
+      const effects = await adminTransaction(
         async ({ transaction }) => {
-          return cancelSubscriptionProcedureTransaction({
+          const { callbacks, effects } = createCapturingCallbacks()
+          await cancelSubscriptionProcedureTransaction({
             input: {
               id: subscription.id,
               cancellation: {
@@ -4215,14 +4201,15 @@ describe('Subscription cancellation cache invalidations', async () => {
               eventsToInsert: [],
               ledgerCommands: [],
             },
-            invalidateCache: noopInvalidateCache,
-            emitEvent: noopEmitEvent,
-            enqueueLedgerCommand: () => {},
+            invalidateCache: callbacks.invalidateCache,
+            emitEvent: callbacks.emitEvent,
+            enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
           })
+          return effects
         }
       )
 
-      expect(result.cacheInvalidations).toContain(
+      expect(effects.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(subscription.customerId)
       )
     })
@@ -4247,16 +4234,15 @@ describe('Subscription cancellation cache invalidations', async () => {
         cancelScheduledAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
       })
 
-      const result = await adminTransaction(
+      const effects = await adminTransaction(
         async ({ transaction }) => {
-          return uncancelSubscription(
-            subscription,
-            createNoopContext(transaction)
-          )
+          const { ctx, effects } = createCapturingContext(transaction)
+          await uncancelSubscription(subscription, ctx)
+          return effects
         }
       )
 
-      expect(result.cacheInvalidations).toContain(
+      expect(effects.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer.id)
       )
     })
@@ -4282,19 +4268,18 @@ describe('Subscription cancellation cache invalidations', async () => {
         cancelScheduledAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
       })
 
-      const result = await adminTransaction(
+      const effects = await adminTransaction(
         async ({ transaction }) => {
-          return uncancelSubscription(
-            subscription,
-            createNoopContext(transaction)
-          )
+          const { ctx, effects } = createCapturingContext(transaction)
+          await uncancelSubscription(subscription, ctx)
+          return effects
         }
       )
 
-      expect(result.cacheInvalidations).toContain(
+      expect(effects.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer1.id)
       )
-      expect(result.cacheInvalidations).not.toContain(
+      expect(effects.cacheInvalidations).not.toContain(
         CacheDependency.customerSubscriptions(customer2.id)
       )
     })

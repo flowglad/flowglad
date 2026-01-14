@@ -36,6 +36,7 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
+  createCapturingContext,
   createNoopContext,
   noopEmitEvent,
   noopInvalidateCache,
@@ -1982,16 +1983,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         livemode: checkoutSession.livemode,
       })
       await comprehensiveAdminTransaction(async ({ transaction }) => {
-        const result = await processSetupIntentSucceeded(
-          setupIntent,
-          createNoopContext(transaction)
-        )
+        const { ctx, effects } = createCapturingContext(transaction)
+        await processSetupIntentSucceeded(setupIntent, ctx)
 
-        // Check eventsToInsert structure
-        expect(result.eventsToInsert).toMatchObject({})
-        expect(Array.isArray(result.eventsToInsert)).toBe(true)
+        // Check events structure
+        expect(effects.events).toMatchObject({})
+        expect(Array.isArray(effects.events)).toBe(true)
 
-        const events = result.eventsToInsert ?? []
+        const events = effects.events
         // Exactly one SubscriptionCreated event per new subscription
         const subscriptionCreatedEvents = events.filter(
           (event) =>
@@ -2010,7 +2009,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
         expect(purchaseCompletedEvents).toHaveLength(1)
 
-        return result
+        return { result: null }
       })
     })
   })
