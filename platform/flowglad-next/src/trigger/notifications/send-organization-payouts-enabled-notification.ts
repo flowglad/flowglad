@@ -49,26 +49,14 @@ const sendOrganizationPayoutsEnabledNotificationTask = task({
         }
       })
 
-    // Payouts enabled is always a livemode event - send to all members
-    // (no specific notification preference exists for account-level notifications)
-    const eligibleRecipients = usersAndMemberships
-
-    if (eligibleRecipients.length === 0) {
-      return {
-        message: 'No recipients opted in for this notification',
-      }
-    }
-
-    const recipientEmails = eligibleRecipients
+    const recipientEmails = usersAndMemberships
       .map(({ user }) => user.email)
-      .filter(
-        (email): email is string => !isNil(email) && email !== ''
-      )
+      .filter((email) => !isNil(email))
 
     if (recipientEmails.length === 0) {
-      return {
-        message: 'No valid email addresses for eligible recipients',
-      }
+      throw new Error(
+        `No recipient emails found for organization ${organizationId}`
+      )
     }
 
     await sendOrganizationPayoutsEnabledNotificationEmail({

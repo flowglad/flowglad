@@ -83,40 +83,16 @@ const sendOrganizationOnboardingCompletedNotificationTask = task({
       throw new Error('Organization not found')
     }
 
-    // Onboarding completed is always a livemode event - send to all members
-    // (no specific notification preference exists for account-level notifications)
-    const eligibleRecipients = usersAndMemberships
-
-    if (eligibleRecipients.length === 0) {
-      // Still notify Flowglad team even if no user recipients
-      await notifyFlowgladTeamPayoutsEnabled({
-        organizationId: organization.id,
-        organizationName: organization.name,
-      })
-      return {
-        message: 'No recipients opted in for this notification',
-      }
-    }
-
-    const recipientEmails = eligibleRecipients
+    const recipients = usersAndMemberships
       .map(({ user }) => user.email)
-      .filter(
-        (email): email is string => !isNil(email) && email !== ''
-      )
+      .filter((email) => !isNil(email))
 
-    if (recipientEmails.length === 0) {
-      // Still notify Flowglad team even if no valid email addresses
-      await notifyFlowgladTeamPayoutsEnabled({
-        organizationId: organization.id,
-        organizationName: organization.name,
-      })
-      return {
-        message: 'No valid email addresses for eligible recipients',
-      }
+    if (recipients.length === 0) {
+      throw new Error('No recipient emails found for organization')
     }
 
     await sendOrganizationOnboardingCompletedNotificationEmail({
-      to: recipientEmails,
+      to: recipients,
       organizationName: organization.name,
     })
     await notifyFlowgladTeamPayoutsEnabled({
