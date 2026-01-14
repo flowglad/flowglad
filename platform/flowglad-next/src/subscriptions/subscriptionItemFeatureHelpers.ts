@@ -179,6 +179,26 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
           detachedReason: null,
           manuallyCreated: manuallyCreated ?? false,
         }
+      case FeatureType.Resource: {
+        const resourceAmount = manuallyCreated
+          ? feature.amount
+          : feature.amount * subscriptionItem.quantity
+        return {
+          subscriptionItemId: subscriptionItem.id,
+          featureId: feature.id,
+          type: FeatureType.Resource,
+          livemode: subscriptionItem.livemode,
+          usageMeterId: null,
+          amount: resourceAmount,
+          renewalFrequency: null,
+          productFeatureId: productFeature?.id ?? null,
+          expiredAt: null,
+          detachedAt: null,
+          detachedReason: null,
+          manuallyCreated: manuallyCreated ?? false,
+          resourceId: feature.resourceId,
+        }
+      }
       default:
         throw new Error(
           `Unknown feature type encountered: ${feature}`
