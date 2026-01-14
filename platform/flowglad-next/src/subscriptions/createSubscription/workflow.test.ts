@@ -1762,16 +1762,10 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       })
 
       const stripeSetupIntentId = `setupintent_nonrenewing_${core.nanoid()}`
-      const workflowResult = await adminTransaction(
-        async ({
-          transaction,
-        }): Promise<
-          TransactionOutput<
-            | StandardCreateSubscriptionResult
-            | NonRenewingCreateSubscriptionResult
-          >
-        > => {
-          return createSubscriptionWorkflow(
+      const { workflowResult, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } = createCapturingContext(transaction)
+          const workflowResult = await createSubscriptionWorkflow(
             {
               organization,
               product: defaultProduct,
@@ -1786,13 +1780,14 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: true,
             },
-            createNoopContext(transaction)
+            ctx
           )
+          return { workflowResult, effects }
         }
       )
 
-      expect(typeof workflowResult.ledgerCommand).toBe('object')
-      expect(workflowResult.ledgerCommand?.type).toBe(
+      expect(effects.ledgerCommands).toHaveLength(1)
+      expect(effects.ledgerCommands[0].type).toBe(
         LedgerTransactionType.BillingPeriodTransition
       )
       expect(workflowResult.result.subscription).toMatchObject({})
@@ -1821,16 +1816,10 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       })
 
       const stripeSetupIntentId = `setupintent_free_${core.nanoid()}`
-      const workflowResult = await adminTransaction(
-        async ({
-          transaction,
-        }): Promise<
-          TransactionOutput<
-            | StandardCreateSubscriptionResult
-            | NonRenewingCreateSubscriptionResult
-          >
-        > => {
-          return createSubscriptionWorkflow(
+      const { workflowResult, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } = createCapturingContext(transaction)
+          const workflowResult = await createSubscriptionWorkflow(
             {
               organization,
               product: {
@@ -1848,16 +1837,17 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: true,
             },
-            createNoopContext(transaction)
+            ctx
           )
+          return { workflowResult, effects }
         }
       )
 
       // Check if subscription is marked as free plan
       const createdSubscription = workflowResult.result.subscription
       expect(createdSubscription.isFreePlan).toBe(true)
-      expect(typeof workflowResult.ledgerCommand).toBe('object')
-      expect(workflowResult.ledgerCommand?.type).toBe(
+      expect(effects.ledgerCommands).toHaveLength(1)
+      expect(effects.ledgerCommands[0].type).toBe(
         LedgerTransactionType.BillingPeriodTransition
       )
     })

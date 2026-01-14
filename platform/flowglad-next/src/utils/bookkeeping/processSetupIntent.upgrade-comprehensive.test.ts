@@ -1998,11 +1998,8 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           subscriptionCreatedEvents[0].occurredAt
         )
 
-        // PurchaseCompleted event is returned in eventsToInsert
-        expect(Array.isArray(result.eventsToInsert)).toBe(true)
-        const purchaseCompletedEvents = (
-          result.eventsToInsert ?? []
-        ).filter(
+        // PurchaseCompleted event is emitted via callback, check captured effects
+        const purchaseCompletedEvents = effects.events.filter(
           (event) =>
             event.type === FlowgladEventType.PurchaseCompleted
         )
