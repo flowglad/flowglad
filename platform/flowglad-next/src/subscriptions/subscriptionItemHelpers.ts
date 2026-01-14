@@ -29,7 +29,10 @@ import {
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
@@ -42,10 +45,7 @@ import {
   UsageCreditStatus,
   UsageCreditType,
 } from '@/types'
-import {
-  CacheDependency,
-  type CacheDependencyKey,
-} from '@/utils/cache'
+import { CacheDependency } from '@/utils/cache'
 import { calculateSplitInBillingPeriodBasedOnAdjustmentDate } from './adjustSubscription'
 import { createSubscriptionFeatureItems } from './subscriptionItemFeatureHelpers'
 
@@ -424,27 +424,25 @@ const grantProratedCreditsForFeatures = async (params: {
  * @param params.transaction - The database transaction
  * @returns A promise resolving to the created/updated items, features, credits, and ledger entries
  */
-export const handleSubscriptionItemAdjustment = async (params: {
-  subscriptionId: string
-  newSubscriptionItems: (
-    | SubscriptionItem.Insert
-    | SubscriptionItem.Record
-  )[]
-  adjustmentDate: Date | number
-  transaction: DbTransaction
-}): Promise<{
+export const handleSubscriptionItemAdjustment = async (
+  params: {
+    subscriptionId: string
+    newSubscriptionItems: (
+      | SubscriptionItem.Insert
+      | SubscriptionItem.Record
+    )[]
+    adjustmentDate: Date | number
+  },
+  ctx: TransactionEffectsContext
+): Promise<{
   createdOrUpdatedSubscriptionItems: SubscriptionItem.Record[]
   createdFeatures: SubscriptionItemFeature.Record[]
   usageCredits: UsageCredit.Record[]
   ledgerEntries: LedgerEntry.CreditGrantRecognizedRecord[]
-  cacheInvalidations: CacheDependencyKey[]
 }> => {
-  const {
-    subscriptionId,
-    newSubscriptionItems,
-    adjustmentDate,
-    transaction,
-  } = params
+  const { subscriptionId, newSubscriptionItems, adjustmentDate } =
+    params
+  const { transaction, invalidateCache } = ctx
 
   // Get all currently active subscription items
   const currentlyActiveItems =
@@ -603,16 +601,18 @@ export const handleSubscriptionItemAdjustment = async (params: {
       : []),
   ])
 
+  // Invalidate cache for subscription items and their features
+  invalidateCache(
+    CacheDependency.subscriptionItems(subscriptionId),
+    ...Array.from(subscriptionItemIdsWithFeatureChanges).map((id) =>
+      CacheDependency.subscriptionItemFeatures(id)
+    )
+  )
+
   return {
     createdOrUpdatedSubscriptionItems,
     createdFeatures,
     usageCredits,
     ledgerEntries,
-    cacheInvalidations: [
-      CacheDependency.subscriptionItems(subscriptionId),
-      ...Array.from(subscriptionItemIdsWithFeatureChanges).map((id) =>
-        CacheDependency.subscriptionItemFeatures(id)
-      ),
-    ],
   }
 }

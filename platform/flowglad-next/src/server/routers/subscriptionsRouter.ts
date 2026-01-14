@@ -5,6 +5,7 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
+  comprehensiveAuthenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   PRICE_ID_DESCRIPTION,
@@ -70,7 +71,6 @@ import {
   SubscriptionAdjustmentTiming,
   SubscriptionStatus,
 } from '@/types'
-import { invalidateDependencies } from '@/utils/cache'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { addFeatureToSubscription } from '../mutations/addFeatureToSubscription'
 import { protectedProcedure, router } from '../trpc'
@@ -139,18 +139,22 @@ const adjustSubscriptionProcedure = protectedProcedure
 
     // Step 1: Perform the adjustment in a transaction
     // This triggers the billing run but doesn't wait for it
-    const adjustmentResult = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return adjustSubscription(
-          input,
-          ctx.organization!,
-          transaction
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    // Cache invalidations are handled automatically by the comprehensive transaction
+    const adjustmentResult =
+      await comprehensiveAuthenticatedTransaction(
+        async (transactionCtx) => {
+          return {
+            result: await adjustSubscription(
+              input,
+              ctx.organization!,
+              transactionCtx
+            ),
+          }
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
 
     const {
       subscription,
@@ -158,15 +162,7 @@ const adjustSubscriptionProcedure = protectedProcedure
       resolvedTiming,
       isUpgrade,
       pendingBillingRunId,
-      cacheInvalidations,
     } = adjustmentResult
-
-    // Invalidate caches after transaction committed (fire-and-forget)
-    // Deduplicate to reduce unnecessary Redis operations
-    if (cacheInvalidations.length > 0) {
-      const uniqueInvalidations = [...new Set(cacheInvalidations)]
-      void invalidateDependencies(uniqueInvalidations)
-    }
 
     // Step 2: If there's a pending billing run, wait for it to complete
     // This happens outside the transaction since it can take several seconds
