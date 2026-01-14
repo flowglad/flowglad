@@ -510,21 +510,6 @@ describe('Subscription Billing Period Transition', async () => {
     })
   })
 
-  it('should throw an error when billing period endDate is missing (duplicate test)', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const invalidBillingPeriod = {
-        ...billingPeriod,
-        endDate: null,
-      }
-      await expect(
-        attemptToTransitionSubscriptionBillingPeriod(
-          invalidBillingPeriod as unknown as BillingPeriod.Record,
-          createNoopContext(transaction)
-        )
-      ).rejects.toThrow()
-    })
-  })
-
   it('calls enqueueLedgerCommand with BillingPeriodTransitionLedgerCommand when transitioning to a new billing period', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Mark the current billing period as completed (terminal state)
