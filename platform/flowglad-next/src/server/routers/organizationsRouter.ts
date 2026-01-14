@@ -112,8 +112,14 @@ const getFocusedMembership = protectedProcedure
   .query(
     authenticatedProcedureTransaction(
       async ({ ctx, transactionCtx }) => {
-        const userId = ctx.user?.id!
+        const userId = ctx.user?.id
         const { transaction } = transactionCtx
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User authentication required',
+          })
+        }
         const focusedMembership =
           await selectFocusedMembershipAndOrganization(
             userId,
@@ -476,8 +482,14 @@ const getNotificationPreferences = protectedProcedure
   .query(
     authenticatedProcedureTransaction(
       async ({ ctx, transactionCtx }) => {
-        const userId = ctx.user?.id!
+        const userId = ctx.user?.id
         const { transaction } = transactionCtx
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User authentication required',
+          })
+        }
         if (!ctx.organizationId) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
@@ -531,8 +543,14 @@ const updateNotificationPreferences = protectedProcedure
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const userId = ctx.user?.id!
+        const userId = ctx.user?.id
         const { transaction } = transactionCtx
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User authentication required',
+          })
+        }
         if (!ctx.organizationId) {
           throw new TRPCError({
             code: 'BAD_REQUEST',

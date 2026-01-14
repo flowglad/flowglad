@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -92,6 +93,12 @@ const createProcedure = devOnlyProcedure
         const { transaction } = transactionCtx
         const { livemode } = ctx
         const userId = ctx.user?.id
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User authentication required',
+          })
+        }
         const [{ organization }] =
           await selectMembershipAndOrganizations(
             {

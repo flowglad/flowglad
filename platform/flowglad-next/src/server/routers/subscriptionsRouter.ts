@@ -71,6 +71,7 @@ import {
   SubscriptionAdjustmentTiming,
   SubscriptionStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { addFeatureToSubscription } from '../mutations/addFeatureToSubscription'
 import { protectedProcedure, router } from '../trpc'
@@ -690,9 +691,9 @@ const updatePaymentMethodProcedure = protectedProcedure
     })
   )
   .mutation(
-    authenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+        const { transaction, invalidateCache } = transactionCtx
         const subscription = await selectSubscriptionById(
           input.id,
           transaction
@@ -722,13 +723,22 @@ const updatePaymentMethodProcedure = protectedProcedure
           transaction
         )
 
+        // Invalidate cache for customer subscriptions
+        invalidateCache(
+          CacheDependency.customerSubscriptions(
+            subscription.customerId
+          )
+        )
+
         return {
-          subscription: {
-            ...updatedSubscription,
-            current: isSubscriptionCurrent(
-              updatedSubscription.status,
-              updatedSubscription.cancellationReason
-            ),
+          result: {
+            subscription: {
+              ...updatedSubscription,
+              current: isSubscriptionCurrent(
+                updatedSubscription.status,
+                updatedSubscription.cancellationReason
+              ),
+            },
           },
         }
       }

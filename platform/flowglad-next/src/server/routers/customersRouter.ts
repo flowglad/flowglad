@@ -99,7 +99,10 @@ const createCustomerProcedure = protectedProcedure
         const { livemode, organizationId } = ctx
         try {
           if (!organizationId) {
-            throw new Error('organizationId is required')
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'organizationId is required',
+            })
           }
 
           const { customer } = input
