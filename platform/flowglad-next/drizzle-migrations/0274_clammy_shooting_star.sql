@@ -87,40 +87,74 @@ END $$;
 --> statement-breakpoint
 
 -- Step 3b: Update checkout_sessions to point to correct pricing-model-scoped discount
+--
+-- Why JOIN-based instead of subquery-based UPDATE?
+-- A subquery like `SET discount_id = (SELECT ... LIMIT 1)` returns NULL if no match is found,
+-- which would accidentally clear the discount_id. The JOIN-based approach only updates rows
+-- where a matching discount actually exists, preserving the original discount_id otherwise.
+--
+-- Example scenario this handles safely:
+--   1. Discount "SAVE20" (id=D1) existed org-wide, had redemptions only in Pricing Model A
+--   2. Step 3 assigned D1 to Pricing Model A (since that's where redemptions occurred)
+--   3. Checkout session CS1 references D1 but has pricing_model_id = Pricing Model B
+--   4. No discount with code "SAVE20" exists for Pricing Model B
+--   5. With subquery approach: CS1.discount_id would become NULL (data loss!)
+--   6. With JOIN approach: CS1 is not updated, keeps original D1 reference
+--   7. The validation in Step 3e will flag this as a pricing_model_id mismatch for review
+--
 UPDATE checkout_sessions cs
-SET discount_id = (
-  SELECT d2.id
-  FROM discounts d2
-  WHERE d2.code = (SELECT code FROM discounts WHERE id = cs.discount_id)
-    AND d2.pricing_model_id = cs.pricing_model_id
-    AND d2.organization_id = cs.organization_id
-    AND d2.livemode = (SELECT livemode FROM discounts WHERE id = cs.discount_id)
-  LIMIT 1
-)
-WHERE cs.discount_id IS NOT NULL;
+SET discount_id = sub.new_discount_id
+FROM (
+  SELECT cs2.id as cs_id, d2.id as new_discount_id
+  FROM checkout_sessions cs2
+  JOIN discounts d_old ON cs2.discount_id = d_old.id
+  JOIN discounts d2 ON d2.code = d_old.code
+    AND d2.pricing_model_id = cs2.pricing_model_id
+    AND d2.organization_id = cs2.organization_id
+    AND d2.livemode = d_old.livemode
+) sub
+WHERE cs.id = sub.cs_id;
 --> statement-breakpoint
 
 -- Step 3c: Update fee_calculations to point to correct pricing-model-scoped discount
+--
+-- Same JOIN-based approach as checkout_sessions above - only updates rows where a matching
+-- pricing-model-scoped discount exists. If no match is found, the original discount_id is
+-- preserved and the validation in Step 3e will flag the mismatch.
+--
 UPDATE fee_calculations fc
-SET discount_id = (
-  SELECT d2.id
-  FROM discounts d2
-  WHERE d2.code = (SELECT code FROM discounts WHERE id = fc.discount_id)
-    AND d2.pricing_model_id = fc.pricing_model_id
-    AND d2.organization_id = fc.organization_id
-    AND d2.livemode = (SELECT livemode FROM discounts WHERE id = fc.discount_id)
-  LIMIT 1
-)
-WHERE fc.discount_id IS NOT NULL;
+SET discount_id = sub.new_discount_id
+FROM (
+  SELECT fc2.id as fc_id, d2.id as new_discount_id
+  FROM fee_calculations fc2
+  JOIN discounts d_old ON fc2.discount_id = d_old.id
+  JOIN discounts d2 ON d2.code = d_old.code
+    AND d2.pricing_model_id = fc2.pricing_model_id
+    AND d2.organization_id = fc2.organization_id
+    AND d2.livemode = d_old.livemode
+) sub
+WHERE fc.id = sub.fc_id;
 --> statement-breakpoint
 
 -- Step 3d: Verify no NULL pricing_model_ids remain (fail explicitly if any orgs lack default PM)
 DO $$
 DECLARE
   null_count INTEGER;
+  rec RECORD;
 BEGIN
   SELECT COUNT(*) INTO null_count FROM discounts WHERE pricing_model_id IS NULL;
   IF null_count > 0 THEN
+    RAISE NOTICE 'Discounts missing pricing_model_id (organization lacks default pricing model):';
+    FOR rec IN
+      SELECT d.id as discount_id, d.code, d.organization_id, d.livemode, o.name as org_name
+      FROM discounts d
+      LEFT JOIN organizations o ON d.organization_id = o.id
+      WHERE d.pricing_model_id IS NULL
+      LIMIT 50
+    LOOP
+      RAISE NOTICE '  discount_id=%, code=%, organization_id=%, org_name=%, livemode=%',
+        rec.discount_id, rec.code, rec.organization_id, rec.org_name, rec.livemode;
+    END LOOP;
     RAISE EXCEPTION 'Migration failed: % discount(s) could not be assigned a pricing_model_id because their organization has no default pricing model. Please create default pricing models for all organizations before running this migration.', null_count;
   END IF;
 END $$;
