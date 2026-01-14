@@ -12,11 +12,13 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import { db } from '@/db/client'
 import {
   resourceSubscriptionItemFeatureClientSelectSchema,
   resourceSubscriptionItemFeatureInsertSchema,
   resourceSubscriptionItemFeatureSelectSchema,
   type SubscriptionItemFeature,
+  subscriptionItemFeatures,
 } from '@/db/schema/subscriptionItemFeatures'
 import {
   CurrencyCode,
