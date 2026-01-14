@@ -1373,7 +1373,8 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // Process payment intent event (this should grant credits)
-    await adminTransaction(async ({ transaction }) => {
+    // Use comprehensiveAdminTransaction so ledger commands are processed
+    await comprehensiveAdminTransaction(async (params) => {
       const event = createMockPaymentIntentEventResponse(
         'succeeded',
         {
@@ -1393,10 +1394,11 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         }
       )
 
-      return await processOutcomeForBillingRun(
+      const result = await processOutcomeForBillingRun(
         { input: event },
-        createDiscardingEffectsContext(transaction)
+        createProcessingEffectsContext(params)
       )
+      return { result }
     })
 
     // Assertions
@@ -1556,7 +1558,8 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // Process payment intent event (this should grant credits)
-    await adminTransaction(async ({ transaction }) => {
+    // Use comprehensiveAdminTransaction so ledger commands are processed
+    await comprehensiveAdminTransaction(async (params) => {
       const event = createMockPaymentIntentEventResponse(
         'succeeded',
         {
@@ -1576,10 +1579,11 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         }
       )
 
-      return await processOutcomeForBillingRun(
+      const result = await processOutcomeForBillingRun(
         { input: event },
-        createDiscardingEffectsContext(transaction)
+        createProcessingEffectsContext(params)
       )
+      return { result }
     })
 
     // Assertions: similar to "Once" grant, as the first grant is always issued.
@@ -1743,7 +1747,8 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // 1. First payment succeeds - should grant credits and create transition
-    await adminTransaction(async ({ transaction }) => {
+    // Use comprehensiveAdminTransaction so ledger commands are processed
+    await comprehensiveAdminTransaction(async (params) => {
       const firstEvent = createMockPaymentIntentEventResponse(
         'succeeded',
         {
@@ -1763,10 +1768,11 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         }
       )
 
-      return await processOutcomeForBillingRun(
+      const result = await processOutcomeForBillingRun(
         { input: firstEvent },
-        createDiscardingEffectsContext(transaction)
+        createProcessingEffectsContext(params)
       )
+      return { result }
     })
 
     // Verify credits were granted after first payment
