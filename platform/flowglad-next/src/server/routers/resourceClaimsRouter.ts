@@ -1,6 +1,9 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
-import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
+import {
+  type AuthenticatedProcedureTransactionParams,
+  authenticatedProcedureTransaction,
+} from '@/db/authenticatedTransaction'
 import { resourceClaimsClientSelectSchema } from '@/db/schema/resourceClaims'
 import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import {
