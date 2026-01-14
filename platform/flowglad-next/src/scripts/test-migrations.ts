@@ -11,6 +11,11 @@
  *   bun run migrations:test --prod       # Test against prod only (use with caution)
  *   bun run migrations:test --inspect    # Keep containers running for inspection after tests
  *
+ * Interactive Export (--inspect mode):
+ *   When using --inspect, you can press 'e' to export all migration output (including PostgreSQL
+ *   NOTICE messages) to a timestamped log file for debugging. The containers remain running after
+ *   export, and you can press Enter to clean up when done.
+ *
  * Requirements:
  *   - Docker must be running
  *   - pg_dump and psql must be available (usually comes with PostgreSQL installation)
@@ -37,19 +42,84 @@ interface TestResult {
   durationMs: number
   port?: number
   containerName?: string
+  migrationOutput?: string
 }
 
-async function waitForEnter(prompt: string): Promise<void> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  })
+async function waitForEnterOrExport(
+  prompt: string,
+  migrationOutput?: string
+): Promise<void> {
+  // Enable raw mode to capture single key presses
+  if (process.stdin.isTTY) {
+    process.stdin.setRawMode(true)
+  }
+  process.stdin.resume()
+  process.stdin.setEncoding('utf8')
 
   return new Promise((resolve) => {
-    rl.question(prompt, () => {
-      rl.close()
-      resolve()
-    })
+    console.log(prompt)
+    log(
+      'Press \x1b[1me\x1b[0m to export migration output to file, or \x1b[1mEnter\x1b[0m to cleanup and exit',
+      'info'
+    )
+
+    const onData = (key: string) => {
+      // Handle Ctrl+C
+      if (key === '\u0003') {
+        if (process.stdin.isTTY) {
+          process.stdin.setRawMode(false)
+        }
+        process.stdin.pause()
+        process.exit(0)
+      }
+
+      // Handle 'e' key - export to file
+      if (key === 'e' || key === 'E') {
+        if (migrationOutput) {
+          const fs = require('fs')
+          const timestamp = new Date()
+            .toISOString()
+            .replace(/:/g, '-')
+            .replace(/\..+/, '')
+          const filename = `migration-output-${timestamp}.log`
+
+          try {
+            fs.writeFileSync(filename, migrationOutput, 'utf-8')
+            log(
+              `Migration output exported to: ${filename}`,
+              'success'
+            )
+            log(
+              'Press \x1b[1mEnter\x1b[0m to cleanup and exit',
+              'info'
+            )
+          } catch (error) {
+            log(
+              `Failed to export: ${error instanceof Error ? error.message : String(error)}`,
+              'error'
+            )
+          }
+        } else {
+          log('No migration output to export', 'warn')
+        }
+        return // Don't resolve yet, wait for Enter
+      }
+
+      // Handle Enter key - cleanup and exit
+      if (key === '\r' || key === '\n') {
+        process.stdin.removeListener('data', onData)
+        if (process.stdin.isTTY) {
+          process.stdin.setRawMode(false)
+        }
+        process.stdin.pause()
+        console.log('') // New line for cleaner output
+        resolve()
+      }
+
+      // All other keys are ignored - continue waiting for 'e' or Enter
+    }
+
+    process.stdin.on('data', onData)
   })
 }
 
@@ -253,7 +323,7 @@ function cloneDatabase(sourceUrl: string, targetPort: number): void {
   }
 }
 
-function runMigrations(targetPort: number): void {
+function runMigrations(targetPort: number): string {
   log('Running pending migrations...')
 
   /**
@@ -281,17 +351,40 @@ function runMigrations(targetPort: number): void {
     'info'
   )
 
-  // Run the migrate script with the test database URL
-  execSync(
-    `DATABASE_URL="${testDbUrl}" bun run src/scripts/migrate.ts`,
-    {
-      encoding: 'utf-8',
-      stdio: 'inherit',
-      cwd: process.cwd(),
-    }
-  )
+  // Run the migrate script and capture output
+  // We use pipe to capture but then display it so we can save it later
+  try {
+    const result = execSync(
+      `DATABASE_URL="${testDbUrl}" bun run src/scripts/migrate.ts 2>&1`,
+      {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+        cwd: process.cwd(),
+        maxBuffer: 1024 * 1024 * 50, // 50MB buffer for large output
+      }
+    )
 
-  log('Migrations applied successfully', 'success')
+    // Display the captured output
+    console.log(result)
+
+    log('Migrations applied successfully', 'success')
+    return result
+  } catch (error) {
+    const execError = error as {
+      stderr?: string
+      stdout?: string
+      message?: string
+    }
+    const fullOutput = execError.stdout || execError.stderr || ''
+
+    // Display the error output
+    if (fullOutput) {
+      console.log(fullOutput)
+    }
+
+    // Re-throw to maintain error handling
+    throw error
+  }
 }
 
 async function testMigration(
@@ -302,6 +395,7 @@ async function testMigration(
 ): Promise<TestResult> {
   const containerName = `${TEST_CONTAINER_PREFIX}-${environment}`
   const startTime = Date.now()
+  let migrationOutput = ''
 
   log(`\n${'='.repeat(60)}`)
   log(
@@ -319,8 +413,8 @@ async function testMigration(
     // 3. Clone the database
     cloneDatabase(databaseUrl, port)
 
-    // 4. Run migrations
-    runMigrations(port)
+    // 4. Run migrations and capture output
+    migrationOutput = runMigrations(port)
 
     const durationMs = Date.now() - startTime
     log(
@@ -334,11 +428,18 @@ async function testMigration(
       durationMs,
       port,
       containerName,
+      migrationOutput,
     }
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : String(error)
     const durationMs = Date.now() - startTime
+
+    // Capture error output too
+    const execError = error as { stderr?: string; stdout?: string }
+    if (execError.stdout || execError.stderr) {
+      migrationOutput = `STDOUT:\n${execError.stdout || ''}\n\nSTDERR:\n${execError.stderr || ''}`
+    }
 
     log(
       `\n${environment.toUpperCase()} migration test FAILED: ${errorMessage}`,
@@ -352,6 +453,7 @@ async function testMigration(
       durationMs,
       port,
       containerName,
+      migrationOutput,
     }
   } finally {
     // Only cleanup if not in inspect mode
@@ -532,9 +634,17 @@ async function main(): Promise<void> {
         }
       }
 
+      // Combine all migration outputs
+      const allOutput = results
+        .map((r) => {
+          return `\n${'='.repeat(60)}\n${r.environment.toUpperCase()} MIGRATION OUTPUT\n${'='.repeat(60)}\n${r.migrationOutput || 'No output captured'}`
+        })
+        .join('\n\n')
+
       console.log('\n')
-      await waitForEnter(
-        'Press Enter to clean up containers and exit...'
+      await waitForEnterOrExport(
+        'Press Enter to clean up containers and exit...',
+        allOutput
       )
 
       // Clean up containers
