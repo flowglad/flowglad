@@ -462,8 +462,14 @@ const getNotificationPreferences = protectedProcedure
   .query(
     authenticatedProcedureTransaction(
       async ({ transaction, userId, ctx }) => {
+        if (!ctx.organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'organizationId is required',
+          })
+        }
         const [membership] = await selectMemberships(
-          { userId, organizationId: ctx.organizationId! },
+          { userId, organizationId: ctx.organizationId },
           transaction
         )
         if (!membership) {
@@ -509,8 +515,14 @@ const updateNotificationPreferences = protectedProcedure
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction, userId, ctx }) => {
+        if (!ctx.organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'organizationId is required',
+          })
+        }
         const [membership] = await selectMemberships(
-          { userId, organizationId: ctx.organizationId! },
+          { userId, organizationId: ctx.organizationId },
           transaction
         )
         if (!membership) {
@@ -519,10 +531,12 @@ const updateNotificationPreferences = protectedProcedure
             message: 'Membership not found',
           })
         }
-        const currentPrefs =
+        // Get the raw stored preferences (partial object) to preserve existing values
+        const storedPrefs =
           (membership.notificationPreferences as Partial<NotificationPreferences>) ??
           {}
-        const updatedPrefs = { ...currentPrefs, ...input.preferences }
+        // Merge stored preferences with the new input preferences
+        const updatedPrefs = { ...storedPrefs, ...input.preferences }
         const updatedMembership = await updateMembership(
           {
             id: membership.id,
@@ -531,7 +545,6 @@ const updateNotificationPreferences = protectedProcedure
           transaction
         )
         // Return full preferences merged with defaults to ensure all fields are present
-        // Use the actual saved preferences from the database, not the computed values
         return {
           preferences:
             getMembershipNotificationPreferences(updatedMembership),
