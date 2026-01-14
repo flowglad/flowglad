@@ -14,8 +14,9 @@ if (!betterAuthSecret) {
 }
 
 const flowgladConfig: FlowgladBetterAuthPluginOptions = {
-  customerType: 'organization' as const,
+  customerType: 'user' as const,
   baseURL: 'http://localhost:3000',
+  // customerType optional - defaults to user
   // apiKey optional - reads from FLOWGLAD_SECRET_KEY env var
   // baseURL optional - defaults to https://app.flowglad.com
 }
