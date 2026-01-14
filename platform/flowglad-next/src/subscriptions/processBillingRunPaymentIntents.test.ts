@@ -47,9 +47,9 @@ import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import { createMockPaymentIntentEventResponse } from '@/test/helpers/stripeMocks'
 import {
-  createCapturingContext,
-  createNoopContext,
-  extractEffectsContext,
+  createCapturingEffectsContext,
+  createDiscardingEffectsContext,
+  createProcessingEffectsContext,
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
@@ -177,7 +177,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       // The function should simply skip processing and return undefined.
       const { result } = await processOutcomeForBillingRun(
         { input: event },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
       expect(result?.processingSkipped).toBe(true)
     })
@@ -214,7 +214,8 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       invoiceId: invoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
-      const { ctx, effects } = createCapturingContext(transaction)
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
       const event = createMockPaymentIntentEventResponse(
         'succeeded',
         {
@@ -330,13 +331,13 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
     await adminTransaction(async ({ transaction }) => {
       const { ctx: ctx1, effects: effects1 } =
-        createCapturingContext(transaction)
+        createCapturingEffectsContext(transaction)
       await processOutcomeForBillingRun({ input: event }, ctx1)
 
       expect(effects1.ledgerCommands.length).toBeGreaterThan(0)
 
       const { ctx: ctx2, effects: effects2 } =
-        createCapturingContext(transaction)
+        createCapturingEffectsContext(transaction)
       await processOutcomeForBillingRun({ input: event }, ctx2)
 
       expect(effects2.ledgerCommands.length).toBe(0)
@@ -373,7 +374,8 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       invoiceId: failedInvoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
-      const { ctx, effects } = createCapturingContext(transaction)
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
       const event = createMockPaymentIntentEventResponse(
         'requires_payment_method',
         {
@@ -441,7 +443,8 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     })
 
     await adminTransaction(async ({ transaction }) => {
-      const { ctx, effects } = createCapturingContext(transaction)
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
       const canceledInvoice = await setupInvoice({
         billingPeriodId: billingPeriod.id,
         customerId: customer.id,
@@ -526,7 +529,8 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       invoiceId: invoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
-      const { ctx, effects } = createCapturingContext(transaction)
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
       const event = createMockPaymentIntentEventResponse(
         'processing',
         {
@@ -603,7 +607,8 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       organizationId: organization.id,
     })
     await adminTransaction(async ({ transaction }) => {
-      const { ctx, effects } = createCapturingContext(transaction)
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
       const requiresActionInvoice = await setupInvoice({
         billingPeriodId: billingPeriod.id,
         customerId: customer.id,
@@ -690,7 +695,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       await expect(
         processOutcomeForBillingRun(
           { input: event },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       ).rejects.toThrow(
         `Invoice for billing period ${billingRun.billingPeriodId} not found.`
@@ -739,7 +744,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       await expect(
         processOutcomeForBillingRun(
           { input: event },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       ).rejects.toThrow(
         /No latest charge found for payment intent pi_no_charge/
@@ -885,7 +890,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       return await processOutcomeForBillingRun(
         { input: event },
-        extractEffectsContext(params)
+        createProcessingEffectsContext(params)
       )
     })
 
@@ -1034,7 +1039,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       return await processOutcomeForBillingRun(
         { input: event },
-        extractEffectsContext(params)
+        createProcessingEffectsContext(params)
       )
     })
 
@@ -1171,7 +1176,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
         return await processOutcomeForBillingRun(
           { input: event },
-          extractEffectsContext(params)
+          createProcessingEffectsContext(params)
         )
       }
     )
@@ -1317,7 +1322,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          extractEffectsContext(params)
+          createProcessingEffectsContext(params)
         )
       }
     )
@@ -1392,7 +1397,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
       return await processOutcomeForBillingRun(
         { input: event },
-        extractEffectsContext(params)
+        createProcessingEffectsContext(params)
       )
     })
 
@@ -1501,7 +1506,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          extractEffectsContext(params)
+          createProcessingEffectsContext(params)
         )
       }
     )
@@ -1575,7 +1580,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
       return await processOutcomeForBillingRun(
         { input: event },
-        extractEffectsContext(params)
+        createProcessingEffectsContext(params)
       )
     })
 
@@ -1680,7 +1685,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          extractEffectsContext(params)
+          createProcessingEffectsContext(params)
         )
       }
     )
@@ -1762,7 +1767,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
       return await processOutcomeForBillingRun(
         { input: firstEvent },
-        extractEffectsContext(params)
+        createProcessingEffectsContext(params)
       )
     })
 
@@ -1816,7 +1821,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
       return await processOutcomeForBillingRun(
         { input: secondEvent },
-        extractEffectsContext(params)
+        createProcessingEffectsContext(params)
       )
     })
 

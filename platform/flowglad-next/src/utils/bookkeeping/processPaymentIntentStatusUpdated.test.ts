@@ -50,7 +50,7 @@ import {
   createMockPaymentIntent,
   createMockStripeCharge,
 } from '@/test/helpers/stripeMocks'
-import { createNoopContext } from '@/test-utils/transactionCallbacks'
+import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -722,7 +722,7 @@ describe('Process payment intent status updated', async () => {
               charge: fakeCharge,
               paymentIntentMetadata: fakeMetadata,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow(/No payment intent id found/)
@@ -744,7 +744,7 @@ describe('Process payment intent status updated', async () => {
               paymentIntentMetadata:
                 null as unknown as StripeIntentMetadata,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow()
@@ -770,7 +770,7 @@ describe('Process payment intent status updated', async () => {
               charge: fakeCharge,
               paymentIntentMetadata: fakeMetadata,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow()
@@ -795,7 +795,7 @@ describe('Process payment intent status updated', async () => {
               charge: fakeCharge,
               paymentIntentMetadata: fakeMetadata,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow()
@@ -849,7 +849,7 @@ describe('Process payment intent status updated', async () => {
               charge: fakeCharge,
               paymentIntentMetadata: fakeMetadata,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
       )
       expect(payment.amount).toBe(5000)
@@ -943,7 +943,7 @@ describe('Process payment intent status updated', async () => {
               charge: fakeCharge,
               paymentIntentMetadata: fakeMetadata,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
       )
 
@@ -1230,7 +1230,7 @@ describe('Process payment intent status updated', async () => {
               charge: fakeCharge,
               paymentIntentMetadata: fakeMetadata,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
       )
       const { payment: payment2 } = await adminTransaction(
@@ -1240,7 +1240,7 @@ describe('Process payment intent status updated', async () => {
               charge: fakeCharge,
               paymentIntentMetadata: fakeMetadata,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
       )
       expect(payment2.id).toEqual(payment1.id)
@@ -1297,7 +1297,7 @@ describe('Process payment intent status updated', async () => {
               charge: fakeCharge,
               paymentIntentMetadata: fakeMetadata,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
       )
       expect(payment.amount).toBe(0)
@@ -1322,7 +1322,7 @@ describe('Process payment intent status updated', async () => {
               charge: fakeCharge,
               paymentIntentMetadata: fakeMetadata,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow()
@@ -1377,7 +1377,7 @@ describe('Process payment intent status updated', async () => {
               charge: fakeCharge,
               paymentIntentMetadata: fakeMetadata,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
       )
       expect(payment.refunded).toBe(false)

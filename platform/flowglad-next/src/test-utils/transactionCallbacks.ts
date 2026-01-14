@@ -24,10 +24,10 @@ export const noopEnqueueLedgerCommand = (
 ): void => {}
 
 /**
- * Creates a TransactionEffectsContext with no-op callbacks for tests.
- * Use this when the test doesn't need to verify callback behavior.
+ * Creates a TransactionEffectsContext that discards all effects.
+ * Use this when the test doesn't need to verify or process callback behavior.
  */
-export function createNoopContext(
+export function createDiscardingEffectsContext(
   transaction: DbTransaction
 ): TransactionEffectsContext {
   return {
@@ -102,12 +102,12 @@ export function createCapturingCallbacks(): {
 }
 
 /**
- * Creates a TransactionEffectsContext with capturing callbacks for tests.
+ * Creates a TransactionEffectsContext that captures effects for assertion.
  * Use this when the test needs to verify what side effects were emitted.
  *
  * @example
  * ```typescript
- * const { ctx, effects } = createCapturingContext(transaction)
+ * const { ctx, effects } = createCapturingEffectsContext(transaction)
  *
  * await cancelSubscriptionImmediately({ subscription }, ctx)
  *
@@ -115,7 +115,9 @@ export function createCapturingCallbacks(): {
  * expect(effects.events[0].type).toBe(FlowgladEventType.SubscriptionCanceled)
  * ```
  */
-export function createCapturingContext(transaction: DbTransaction): {
+export function createCapturingEffectsContext(
+  transaction: DbTransaction
+): {
   ctx: TransactionEffectsContext
   effects: CapturedEffects
 } {
@@ -130,22 +132,23 @@ export function createCapturingContext(transaction: DbTransaction): {
 }
 
 /**
- * Extracts TransactionEffectsContext from ComprehensiveAdminTransactionParams.
+ * Creates a TransactionEffectsContext that processes effects through the
+ * comprehensive transaction infrastructure.
  * Use this when calling functions that expect TransactionEffectsContext from within
- * comprehensiveAdminTransaction callbacks, to ensure effects are properly tracked.
+ * comprehensiveAdminTransaction callbacks, to ensure effects are properly processed.
  *
  * @example
  * ```typescript
  * await comprehensiveAdminTransaction(async (params) => {
  *   await attemptToTransitionSubscriptionBillingPeriod(
  *     billingPeriod,
- *     extractEffectsContext(params)
+ *     createProcessingEffectsContext(params)
  *   )
  *   return { result: null }
  * })
  * ```
  */
-export function extractEffectsContext(
+export function createProcessingEffectsContext(
   params:
     | ComprehensiveAdminTransactionParams
     | ComprehensiveAuthenticatedTransactionParams

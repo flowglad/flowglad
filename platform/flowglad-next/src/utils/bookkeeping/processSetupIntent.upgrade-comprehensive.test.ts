@@ -36,8 +36,8 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
-  createCapturingContext,
-  createNoopContext,
+  createCapturingEffectsContext,
+  createDiscardingEffectsContext,
 } from '@/test-utils/transactionCallbacks'
 import {
   CancellationReason,
@@ -237,7 +237,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -329,7 +329,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -401,7 +401,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -482,7 +482,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -545,7 +545,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             firstSetupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -596,7 +596,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             secondSetupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow('already has an active subscription')
@@ -657,7 +657,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -735,7 +735,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
               stripeSetupIntentId,
               autoStart: true,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         ).rejects.toThrow(
           'already has an active free subscription. Only one free subscription is allowed per customer.'
@@ -788,7 +788,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -810,7 +810,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           // Note: Fee calculation already exists, so this shouldn't cause issues
           return await processSetupIntentSucceeded(
             setupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -885,7 +885,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             firstSetupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -910,7 +910,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             secondSetupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow('already has an active subscription')
@@ -961,7 +961,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1031,7 +1031,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1102,7 +1102,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1174,7 +1174,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1222,7 +1222,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1274,7 +1274,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             firstSetupIntent,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1361,7 +1361,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         // Should return terminal result without creating new subscription
@@ -1432,7 +1432,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         expect(result.result.type).toBe(CheckoutSessionType.Product)
@@ -1501,7 +1501,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         // Check the updated checkout session status
@@ -1562,7 +1562,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         // Get the created subscription
@@ -1641,7 +1641,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         // Get the new subscription
@@ -1716,7 +1716,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         await expect(
           processSetupIntentSucceeded(
             setupIntentNoPM,
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         ).rejects.toThrow(
           'Payment method required for subscription activation'
@@ -1771,7 +1771,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
         await processSetupIntentSucceeded(
           setupIntent,
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         // Verify the subscription was updated
@@ -1834,7 +1834,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         // Verify all subscriptions were updated
@@ -1886,7 +1886,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
         const paymentMethods = await selectPaymentMethods(
           { stripePaymentMethodId: pmId },
@@ -1938,7 +1938,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         const subscriptions = await selectSubscriptions(
@@ -1981,7 +1981,8 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         livemode: checkoutSession.livemode,
       })
       await comprehensiveAdminTransaction(async ({ transaction }) => {
-        const { ctx, effects } = createCapturingContext(transaction)
+        const { ctx, effects } =
+          createCapturingEffectsContext(transaction)
         const result = await processSetupIntentSucceeded(
           setupIntent,
           ctx

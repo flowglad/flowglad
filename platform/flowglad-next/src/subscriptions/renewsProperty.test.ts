@@ -37,8 +37,8 @@ import {
 } from '@/subscriptions/billingPeriodHelpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
-  createNoopContext,
-  extractEffectsContext,
+  createDiscardingEffectsContext,
+  createProcessingEffectsContext,
 } from '@/test-utils/transactionCallbacks'
 import {
   BillingPeriodStatus,
@@ -98,7 +98,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId,
                 autoStart: true,
               },
-              createNoopContext(transaction)
+              createDiscardingEffectsContext(transaction)
             )
           }
         )
@@ -140,7 +140,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId,
                 autoStart: true,
               },
-              createNoopContext(transaction)
+              createDiscardingEffectsContext(transaction)
             )
           }
         )
@@ -177,7 +177,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId,
                 autoStart: true,
               },
-              createNoopContext(transaction)
+              createDiscardingEffectsContext(transaction)
             )
           }
         )
@@ -214,7 +214,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 trialEnd,
                 autoStart: true,
               },
-              createNoopContext(transaction)
+              createDiscardingEffectsContext(transaction)
             )
           }
         )
@@ -259,7 +259,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           adminTransaction(async ({ transaction }) => {
             return attemptToTransitionSubscriptionBillingPeriod(
               testBillingPeriod,
-              createNoopContext(transaction)
+              createDiscardingEffectsContext(transaction)
             )
           })
         ).rejects.toThrow(/credit trial/)
@@ -292,7 +292,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 interval: IntervalUnit.Month,
                 intervalCount: 1,
               },
-              createNoopContext(transaction)
+              createDiscardingEffectsContext(transaction)
             )
 
             const billingPeriods = await selectBillingPeriods(
@@ -342,7 +342,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               interval: IntervalUnit.Month,
               intervalCount: 1,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
           const billingRuns = await selectBillingRuns(
             { subscriptionId: nonRenewingSubscription.id },
@@ -777,7 +777,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId: `si_credits_${core.nanoid()}`,
                 autoStart: true,
               },
-              extractEffectsContext(params)
+              createProcessingEffectsContext(params)
             )
           }
         )
@@ -1015,7 +1015,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId: `si_no_runs_${core.nanoid()}`,
                 autoStart: true,
               },
-              createNoopContext(transaction)
+              createDiscardingEffectsContext(transaction)
             )
           }
         )
@@ -1071,7 +1071,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId: `si_period_start_${core.nanoid()}`,
                 autoStart: true,
               },
-              createNoopContext(transaction)
+              createDiscardingEffectsContext(transaction)
             )
           }
         )
