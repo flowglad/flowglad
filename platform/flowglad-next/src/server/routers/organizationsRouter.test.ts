@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { setupOrg } from '@/../seedDatabase'
+import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Membership } from '@/db/schema/memberships'
 import {
@@ -10,81 +10,83 @@ import {
 import type { Organization } from '@/db/schema/organizations'
 import type { User } from '@/db/schema/users'
 import {
-  insertMembership,
   selectMemberships,
   updateMembership,
 } from '@/db/tableMethods/membershipMethods'
-import { insertUser } from '@/db/tableMethods/userMethods'
-import type { TRPCContext } from '@/server/trpcContext'
+import type { TRPCApiContext } from '@/server/trpcContext'
 import { organizationsRouter } from './organizationsRouter'
 
 const createCaller = (
   organization: Organization.Record,
-  user: User.Record
+  apiKeyToken: string,
+  user: User.Record,
+  livemode: boolean = true
 ) => {
-  const context: TRPCContext = {
+  return organizationsRouter.createCaller({
     organizationId: organization.id,
     organization,
-    user,
-    livemode: true,
-    environment: 'live' as const,
-    isApi: false,
+    apiKey: apiKeyToken,
+    livemode,
+    environment: livemode ? ('live' as const) : ('test' as const),
+    isApi: true,
     path: '',
-    apiKey: undefined,
-  }
-  return organizationsRouter.createCaller(context)
+    user,
+    session: null,
+  } as unknown as TRPCApiContext)
 }
 
-const createCallerWithoutOrg = (user: User.Record) => {
-  const context: TRPCContext = {
+const createCallerWithoutOrg = (
+  apiKeyToken: string,
+  user: User.Record
+) => {
+  return organizationsRouter.createCaller({
     organizationId: undefined,
     organization: undefined,
-    user,
+    apiKey: apiKeyToken,
     livemode: true,
     environment: 'live' as const,
-    isApi: false,
+    isApi: true,
     path: '',
-    apiKey: undefined,
-  }
-  return organizationsRouter.createCaller(context)
+    user,
+    session: null,
+  } as unknown as TRPCApiContext)
 }
 
 describe('organizationsRouter - notification preferences', () => {
   let organization: Organization.Record
   let user: User.Record
   let membership: Membership.Record
+  let apiKeyToken: string
 
   beforeEach(async () => {
     const orgSetup = await setupOrg()
     organization = orgSetup.organization
 
-    await adminTransaction(async ({ transaction }) => {
-      const nanoid = Date.now().toString()
-      user = await insertUser(
-        {
-          id: `user-${nanoid}`,
-          email: `test-${nanoid}@example.com`,
-          name: 'Test User',
-          betterAuthId: `auth-${nanoid}`,
-        },
-        transaction
-      )
-
-      membership = await insertMembership(
-        {
-          organizationId: organization.id,
-          userId: user.id,
-          focused: true,
-          livemode: true,
-        },
-        transaction
-      )
+    const userApiKeySetup = await setupUserAndApiKey({
+      organizationId: organization.id,
+      livemode: true,
     })
+    if (!userApiKeySetup.apiKey.token) {
+      throw new Error('API key token not found after setup')
+    }
+    apiKeyToken = userApiKeySetup.apiKey.token
+    user = userApiKeySetup.user
+
+    // Get the membership that was created
+    const memberships = await adminTransaction(
+      async ({ transaction }) => {
+        return selectMemberships(
+          { userId: user.id, organizationId: organization.id },
+          transaction
+        )
+      }
+    )
+    membership = memberships[0]
   })
 
   describe('getNotificationPreferences', () => {
     it('returns default notification preferences when none are set', async () => {
-      const caller = createCaller(organization, user)
+      const caller = createCaller(organization, apiKeyToken, user)
 
       const result = await caller.getNotificationPreferences()
 
@@ -95,8 +97,6 @@ describe('organizationsRouter - notification preferences', () => {
       expect(result.subscriptionCanceled).toBe(true)
       expect(result.subscriptionCancellationScheduled).toBe(true)
       expect(result.paymentFailed).toBe(true)
-      expect(result.onboardingCompleted).toBe(true)
-      expect(result.payoutsEnabled).toBe(true)
     })
 
     it('returns stored notification preferences merged with defaults', async () => {
@@ -117,7 +117,7 @@ describe('organizationsRouter - notification preferences', () => {
         )
       })
 
-      const caller = createCaller(organization, user)
+      const caller = createCaller(organization, apiKeyToken, user)
       const result = await caller.getNotificationPreferences()
 
       expect(result.testModeNotifications).toBe(true)
@@ -128,7 +128,10 @@ describe('organizationsRouter - notification preferences', () => {
     })
 
     it('throws BAD_REQUEST when organizationId is missing', async () => {
-      const callerWithoutOrg = createCallerWithoutOrg(user)
+      const callerWithoutOrg = createCallerWithoutOrg(
+        apiKeyToken,
+        user
+      )
 
       const error = await callerWithoutOrg
         .getNotificationPreferences()
@@ -140,22 +143,24 @@ describe('organizationsRouter - notification preferences', () => {
     })
 
     it('throws NOT_FOUND when membership does not exist', async () => {
-      const nanoid = Date.now().toString()
-      const userWithoutMembership = await adminTransaction(
-        async ({ transaction }) => {
-          return insertUser(
-            {
-              id: `user-no-membership-${nanoid}`,
-              email: `no-membership-${nanoid}@example.com`,
-              name: 'User Without Membership',
-              betterAuthId: `auth-no-membership-${nanoid}`,
-            },
-            transaction
-          )
-        }
-      )
+      // Setup a second organization to get a user without membership in the first org
+      const secondOrgSetup = await setupOrg()
+      const secondUserSetup = await setupUserAndApiKey({
+        organizationId: secondOrgSetup.organization.id,
+        livemode: true,
+      })
 
-      const caller = createCaller(organization, userWithoutMembership)
+      if (!secondUserSetup.apiKey.token) {
+        throw new Error('Second user API key token not found')
+      }
+
+      // Create caller with secondUser's API key but targeting the first organization
+      // This user has no membership in the first organization
+      const caller = createCaller(
+        organization,
+        secondUserSetup.apiKey.token,
+        secondUserSetup.user
+      )
       const error = await caller
         .getNotificationPreferences()
         .catch((e) => e)
@@ -168,7 +173,7 @@ describe('organizationsRouter - notification preferences', () => {
 
   describe('updateNotificationPreferences', () => {
     it('updates notification preferences and returns normalized result', async () => {
-      const caller = createCaller(organization, user)
+      const caller = createCaller(organization, apiKeyToken, user)
 
       const result = await caller.updateNotificationPreferences({
         preferences: {
@@ -188,7 +193,7 @@ describe('organizationsRouter - notification preferences', () => {
     })
 
     it('merges partial updates with existing preferences', async () => {
-      const caller = createCaller(organization, user)
+      const caller = createCaller(organization, apiKeyToken, user)
 
       await caller.updateNotificationPreferences({
         preferences: {
@@ -210,7 +215,7 @@ describe('organizationsRouter - notification preferences', () => {
     })
 
     it('returns all notification preference fields with defaults', async () => {
-      const caller = createCaller(organization, user)
+      const caller = createCaller(organization, apiKeyToken, user)
 
       const result = await caller.updateNotificationPreferences({
         preferences: {
@@ -225,8 +230,6 @@ describe('organizationsRouter - notification preferences', () => {
         'subscriptionCanceled',
         'subscriptionCancellationScheduled',
         'paymentFailed',
-        'onboardingCompleted',
-        'payoutsEnabled',
       ]
 
       for (const key of expectedKeys) {
@@ -235,7 +238,10 @@ describe('organizationsRouter - notification preferences', () => {
     })
 
     it('throws BAD_REQUEST when organizationId is missing', async () => {
-      const callerWithoutOrg = createCallerWithoutOrg(user)
+      const callerWithoutOrg = createCallerWithoutOrg(
+        apiKeyToken,
+        user
+      )
 
       const error = await callerWithoutOrg
         .updateNotificationPreferences({
@@ -249,22 +255,24 @@ describe('organizationsRouter - notification preferences', () => {
     })
 
     it('throws NOT_FOUND when membership does not exist', async () => {
-      const nanoid = Date.now().toString()
-      const userWithoutMembership = await adminTransaction(
-        async ({ transaction }) => {
-          return insertUser(
-            {
-              id: `user-no-membership-${nanoid}`,
-              email: `no-membership-${nanoid}@example.com`,
-              name: 'User Without Membership',
-              betterAuthId: `auth-no-membership-${nanoid}`,
-            },
-            transaction
-          )
-        }
-      )
+      // Setup a second organization to get a user without membership in the first org
+      const secondOrgSetup = await setupOrg()
+      const secondUserSetup = await setupUserAndApiKey({
+        organizationId: secondOrgSetup.organization.id,
+        livemode: true,
+      })
 
-      const caller = createCaller(organization, userWithoutMembership)
+      if (!secondUserSetup.apiKey.token) {
+        throw new Error('Second user API key token not found')
+      }
+
+      // Create caller with secondUser's API key but targeting the first organization
+      // This user has no membership in the first organization
+      const caller = createCaller(
+        organization,
+        secondUserSetup.apiKey.token,
+        secondUserSetup.user
+      )
       const error = await caller
         .updateNotificationPreferences({
           preferences: { testModeNotifications: true },
@@ -277,7 +285,7 @@ describe('organizationsRouter - notification preferences', () => {
     })
 
     it('handles updates with all preferences disabled', async () => {
-      const caller = createCaller(organization, user)
+      const caller = createCaller(organization, apiKeyToken, user)
 
       const result = await caller.updateNotificationPreferences({
         preferences: {
@@ -287,8 +295,6 @@ describe('organizationsRouter - notification preferences', () => {
           subscriptionCanceled: false,
           subscriptionCancellationScheduled: false,
           paymentFailed: false,
-          onboardingCompleted: false,
-          payoutsEnabled: false,
         },
       })
 
@@ -298,7 +304,7 @@ describe('organizationsRouter - notification preferences', () => {
     })
 
     it('handles updates with all preferences enabled', async () => {
-      const caller = createCaller(organization, user)
+      const caller = createCaller(organization, apiKeyToken, user)
 
       const result = await caller.updateNotificationPreferences({
         preferences: {
@@ -308,8 +314,6 @@ describe('organizationsRouter - notification preferences', () => {
           subscriptionCanceled: true,
           subscriptionCancellationScheduled: true,
           paymentFailed: true,
-          onboardingCompleted: true,
-          payoutsEnabled: true,
         },
       })
 
