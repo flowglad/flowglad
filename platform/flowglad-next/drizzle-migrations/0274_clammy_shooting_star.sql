@@ -12,6 +12,12 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 
+-- Step 2b: Drop old unique constraint before cloning
+-- This must happen before Step 3 because cloning creates multiple discounts
+-- with the same code/organization/livemode (differentiated by pricing_model_id)
+DROP INDEX IF EXISTS "discounts_code_organization_id_livemode_unique_idx";
+--> statement-breakpoint
+
 -- Step 3: Migrate existing discounts by cloning per pricing model
 DO $$
 DECLARE
@@ -505,13 +511,9 @@ END $$;
 ALTER TABLE "discounts" ALTER COLUMN "pricing_model_id" SET NOT NULL;
 --> statement-breakpoint
 
--- Step 5: Drop old unique constraint
-DROP INDEX IF EXISTS "discounts_code_organization_id_livemode_unique_idx";
---> statement-breakpoint
-
--- Step 6: Add new unique constraint
+-- Step 5: Add new unique constraint
 CREATE UNIQUE INDEX IF NOT EXISTS "discounts_code_pricing_model_id_unique_idx" ON "discounts" USING btree ("code","pricing_model_id");
 --> statement-breakpoint
 
--- Step 7: Create pricing_model_id index for query performance
+-- Step 6: Create pricing_model_id index for query performance
 CREATE INDEX IF NOT EXISTS "discounts_pricing_model_id_idx" ON "discounts" USING btree ("pricing_model_id");
