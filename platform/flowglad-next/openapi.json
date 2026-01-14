@@ -8472,6 +8472,26 @@
               "type": "string"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "resourceSlugs",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "in": "query",
+            "name": "resourceIds",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         ],
         "responses": {
