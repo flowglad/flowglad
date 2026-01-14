@@ -115,8 +115,9 @@ export const processTerminalCheckoutSessionSetupIntent = async (
 export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
   async (
     setupIntent: CoreSripeSetupIntent,
-    transaction: DbTransaction
+    ctx: TransactionEffectsContext
   ) => {
+    const { transaction } = ctx
     const initialCheckoutSession =
       await checkoutSessionFromSetupIntent(setupIntent, transaction)
     if (checkoutSessionIsInTerminalState(initialCheckoutSession)) {
@@ -157,13 +158,11 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
       )
 
     const {
-      result: {
-        purchase,
-        customer,
-        discount,
-        feeCalculation,
-        discountRedemption,
-      },
+      purchase,
+      customer,
+      discount,
+      feeCalculation,
+      discountRedemption,
     } = await processPurchaseBookkeepingForCheckoutSession(
       {
         checkoutSession,
@@ -171,7 +170,7 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
           ? stripeIdFromObjectOrId(setupIntent.customer)
           : null,
       },
-      transaction
+      ctx
     )
     const { paymentMethod } =
       await pullStripeSetupIntentDataToDatabase(
@@ -819,7 +818,7 @@ export const processSetupIntentSucceeded = async (
   const successProcessedResult =
     await processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
       setupIntent,
-      transaction
+      ctx
     )
 
   const withSetupIntent = Object.assign(successProcessedResult, {
