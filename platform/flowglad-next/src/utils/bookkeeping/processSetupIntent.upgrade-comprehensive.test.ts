@@ -35,7 +35,10 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
-import { createNoopContext } from '@/test-utils/transactionCallbacks'
+import {
+  createCapturingContext,
+  createNoopContext,
+} from '@/test-utils/transactionCallbacks'
 import {
   CancellationReason,
   CheckoutSessionStatus,
@@ -1978,18 +1981,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         livemode: checkoutSession.livemode,
       })
       await comprehensiveAdminTransaction(async ({ transaction }) => {
+        const { ctx, effects } = createCapturingContext(transaction)
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          createNoopContext(transaction)
+          ctx
         )
 
-        // Check eventsToInsert structure
-        expect(Array.isArray(result.eventsToInsert)).toBe(true)
-        expect(result.eventsToInsert!.length).toBeGreaterThan(0)
-
-        const events = result.eventsToInsert!
-        // Exactly one SubscriptionCreated event per new subscription
-        const subscriptionCreatedEvents = events.filter(
+        // SubscriptionCreated events are emitted via callback, check captured effects
+        const subscriptionCreatedEvents = effects.events.filter(
           (event) =>
             event.type === FlowgladEventType.SubscriptionCreated
         )
@@ -1999,8 +1998,11 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           subscriptionCreatedEvents[0].occurredAt
         )
 
-        // And exactly one PurchaseCompleted event for the paid checkout
-        const purchaseCompletedEvents = events.filter(
+        // PurchaseCompleted event is returned in eventsToInsert
+        expect(Array.isArray(result.eventsToInsert)).toBe(true)
+        const purchaseCompletedEvents = (
+          result.eventsToInsert ?? []
+        ).filter(
           (event) =>
             event.type === FlowgladEventType.PurchaseCompleted
         )
