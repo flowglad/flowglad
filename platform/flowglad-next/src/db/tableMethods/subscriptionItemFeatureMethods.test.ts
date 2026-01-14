@@ -12,13 +12,11 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { db } from '@/db/client'
 import {
   resourceSubscriptionItemFeatureClientSelectSchema,
   resourceSubscriptionItemFeatureInsertSchema,
   resourceSubscriptionItemFeatureSelectSchema,
   type SubscriptionItemFeature,
-  subscriptionItemFeatures,
 } from '@/db/schema/subscriptionItemFeatures'
 import {
   CurrencyCode,
@@ -1032,9 +1030,7 @@ describe('selectSubscriptionItemFeaturesWithFeatureSlug', () => {
   let toggleProductFeature: ProductFeature.Record
 
   beforeEach(async () => {
-    // Clear table for isolation
-    await db.delete(subscriptionItemFeatures)
-
+    // Each test uses its own unique subscriptionItem.id, so no global cleanup needed
     const orgData = await setupOrg()
     product = orgData.product
 
