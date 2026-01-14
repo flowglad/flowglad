@@ -25,7 +25,7 @@ import {
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@/db/tableUtils'
-import { devOnlyProcedure, router } from '@/server/trpc'
+import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -42,7 +42,7 @@ const resourcesPaginatedListSchema = createPaginatedListQuerySchema(
   resourcesClientSelectSchema
 )
 
-const listProcedure = devOnlyProcedure
+const listProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(z.object({ pricingModelId: z.string() }))
   .output(
@@ -64,7 +64,7 @@ const listProcedure = devOnlyProcedure
     )
   )
 
-const getProcedure = devOnlyProcedure
+const getProcedure = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ resource: resourcesClientSelectSchema }))
@@ -80,7 +80,7 @@ const getProcedure = devOnlyProcedure
     )
   )
 
-const createProcedure = devOnlyProcedure
+const createProcedure = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createResourceSchema)
   .output(z.object({ resource: resourcesClientSelectSchema }))
@@ -108,7 +108,7 @@ const createProcedure = devOnlyProcedure
     )
   )
 
-const updateProcedure = devOnlyProcedure
+const updateProcedure = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editResourceSchema)
   .output(z.object({ resource: resourcesClientSelectSchema }))
@@ -127,7 +127,7 @@ const updateProcedure = devOnlyProcedure
     )
   )
 
-const listPaginatedProcedure = devOnlyProcedure
+const listPaginatedProcedure = protectedProcedure
   .input(resourcesPaginatedSelectSchema)
   .output(resourcesPaginatedListSchema)
   .query(async ({ input, ctx }) => {
@@ -141,7 +141,7 @@ const listPaginatedProcedure = devOnlyProcedure
     )
   })
 
-const getTableRowsProcedure = devOnlyProcedure
+const getTableRowsProcedure = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
