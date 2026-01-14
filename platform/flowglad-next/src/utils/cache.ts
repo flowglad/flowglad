@@ -650,11 +650,6 @@ export const CacheDependency = {
   /** Invalidate when items for this subscription change */
   subscriptionItems: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionItems:${subscriptionId}`,
-  /** Invalidate when features for this subscription item change */
-  subscriptionItemFeatures: (
-    subscriptionItemId: string
-  ): CacheDependencyKey =>
-    `subscriptionItemFeatures:${subscriptionItemId}`,
   /** Invalidate when ledger entries for this subscription change */
   subscriptionLedger: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionLedger:${subscriptionId}`,

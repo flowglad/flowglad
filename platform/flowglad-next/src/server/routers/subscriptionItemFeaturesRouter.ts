@@ -1,10 +1,7 @@
 import { TRPCError } from '@trpc/server'
 import { kebabCase } from 'change-case'
 import { z } from 'zod'
-import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import {
   createSubscriptionItemFeatureInputSchema,
   editSubscriptionItemFeatureInputSchema,
@@ -21,7 +18,6 @@ import {
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { idInputSchema } from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
-import { CacheDependency } from '@/utils/cache'
 import {
   createPostOpenApiMeta,
   generateOpenApiMetas,
@@ -70,9 +66,9 @@ const createSubscriptionItemFeature = protectedProcedure
   .input(createSubscriptionItemFeatureInputSchema)
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
-    authenticatedProcedureComprehensiveTransaction(
+    authenticatedProcedureTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const { transaction, invalidateCache } = transactionCtx
+        const { transaction } = transactionCtx
         const { organizationId } = ctx
         if (!organizationId) {
           throw new TRPCError({
@@ -83,7 +79,7 @@ const createSubscriptionItemFeature = protectedProcedure
         }
         // FIXME: Potentially validate that the featureId, productFeatureId, and subscriptionId belong to the org
 
-        const { id: subscriptionItemFeatureId, subscriptionItemId } =
+        const { id: subscriptionItemFeatureId } =
           await insertSubscriptionItemFeature(
             {
               ...input.subscriptionItemFeature,
@@ -96,10 +92,7 @@ const createSubscriptionItemFeature = protectedProcedure
             subscriptionItemFeatureId,
             transaction
           )
-        invalidateCache(
-          CacheDependency.subscriptionItemFeatures(subscriptionItemId)
-        )
-        return { result: { subscriptionItemFeature } }
+        return { subscriptionItemFeature }
       }
     )
   )
@@ -109,22 +102,9 @@ const updateSubscriptionItemFeature = protectedProcedure
   .input(editSubscriptionItemFeatureInputSchema)
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
-    authenticatedProcedureComprehensiveTransaction(
+    authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
-        const { transaction, invalidateCache } = transactionCtx
-        // Get existing record to obtain subscriptionItemId for cache invalidation
-        const existingFeature =
-          await selectSubscriptionItemFeatureById(
-            input.id,
-            transaction
-          )
-        if (!existingFeature) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: `SubscriptionItemFeature with id ${input.id} not found.`,
-          })
-        }
-
+        const { transaction } = transactionCtx
         const updatePayload = {
           ...input.subscriptionItemFeature,
           id: input.id,
@@ -139,12 +119,7 @@ const updateSubscriptionItemFeature = protectedProcedure
             input.id,
             transaction
           )
-        invalidateCache(
-          CacheDependency.subscriptionItemFeatures(
-            existingFeature.subscriptionItemId
-          )
-        )
-        return { result: { subscriptionItemFeature } }
+        return { subscriptionItemFeature }
       }
     )
   )
@@ -189,9 +164,9 @@ const expireSubscriptionItemFeature = protectedProcedure
   .input(expireSubscriptionItemFeatureInputSchema)
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
-    authenticatedProcedureComprehensiveTransaction(
+    authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
-        const { transaction, invalidateCache } = transactionCtx
+        const { transaction } = transactionCtx
         const { id, expiredAt } = input
         // Ensure the feature exists before attempting to deactivate
         const existingFeature =
@@ -214,12 +189,7 @@ const expireSubscriptionItemFeature = protectedProcedure
             subscriptionItemFeatureId,
             transaction
           )
-        invalidateCache(
-          CacheDependency.subscriptionItemFeatures(
-            existingFeature.subscriptionItemId
-          )
-        )
-        return { result: { subscriptionItemFeature } }
+        return { subscriptionItemFeature }
       }
     )
   )

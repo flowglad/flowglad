@@ -156,12 +156,9 @@ export const selectFeaturesTableRowData =
  */
 export const updateFeatureTransaction = async (
   featureUpdate: Feature.Update,
-  params: Pick<
-    TransactionEffectsContext,
-    'transaction' | 'invalidateCache'
-  >
+  params: Pick<TransactionEffectsContext, 'transaction'>
 ): Promise<Feature.Record> => {
-  const { transaction, invalidateCache } = params
+  const { transaction } = params
   // Step 1: Get the current feature state to detect changes
   const oldFeature = await selectFeatureById(
     featureUpdate.id,
@@ -197,10 +194,8 @@ export const updateFeatureTransaction = async (
         // Feature deactivated - expire product features
         // This prevents NEW subscriptions from getting the feature
         // Note: expireProductFeaturesByFeatureId also detaches existing subscriptionItemFeatures
-        // and calls invalidateCache directly
         await expireProductFeaturesByFeatureId(productFeatureIds, {
           transaction,
-          invalidateCache,
         })
       } else if (featureUpdate.active === true) {
         // Feature reactivated - unexpire product features

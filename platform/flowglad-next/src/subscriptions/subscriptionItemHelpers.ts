@@ -589,25 +589,8 @@ export const handleSubscriptionItemAdjustment = async (
       transaction,
     })
 
-  // Collect subscription item IDs that need feature cache invalidation:
-  // 1. Expired items (their features were expired)
-  // 2. Created/updated items (their features were created)
-  // 3. Manual item if it had overlapping features expired
-  const subscriptionItemIdsWithFeatureChanges = new Set<string>([
-    ...itemsToExpire.map((item) => item.id),
-    ...createdOrUpdatedSubscriptionItems.map((item) => item.id),
-    ...(manualItem && createdFeatures.length > 0
-      ? [manualItem.id]
-      : []),
-  ])
-
-  // Invalidate cache for subscription items and their features
-  invalidateCache(
-    CacheDependency.subscriptionItems(subscriptionId),
-    ...Array.from(subscriptionItemIdsWithFeatureChanges).map((id) =>
-      CacheDependency.subscriptionItemFeatures(id)
-    )
-  )
+  // Invalidate cache for subscription items
+  invalidateCache(CacheDependency.subscriptionItems(subscriptionId))
 
   return {
     createdOrUpdatedSubscriptionItems,

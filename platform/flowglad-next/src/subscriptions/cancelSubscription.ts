@@ -385,13 +385,6 @@ export const cancelSubscriptionImmediately = async (
     transaction
   )
 
-  // Add cache invalidation for each expired subscription item's features
-  invalidateCache(
-    ...itemsToExpire.map((item) =>
-      CacheDependency.subscriptionItemFeatures(item.id)
-    )
-  )
-
   // Release all active resource claims for this subscription
   await releaseAllResourceClaimsForSubscription(
     subscription.id,

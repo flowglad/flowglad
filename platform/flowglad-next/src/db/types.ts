@@ -109,7 +109,7 @@ interface TransactionCallbacks {
    *
    * @example
    * invalidateCache(
-   *   CacheDependency.subscriptionItemFeatures(itemId),
+   *   CacheDependency.subscriptionItems(subscriptionId),
    *   CacheDependency.customerSubscriptions(customerId)
    * )
    */

@@ -262,12 +262,11 @@ export const syncProductFeaturesForMultipleProducts = async (
   }
 
   // Step 3: Batch expire unwanted product features
-  // Note: expireProductFeaturesByFeatureId calls invalidateCache directly
   let expiredProductFeatures: ProductFeature.Record[] = []
   if (productFeatureIdsToExpire.length > 0) {
     const expireResult = await expireProductFeaturesByFeatureId(
       productFeatureIdsToExpire,
-      { transaction, invalidateCache }
+      { transaction }
     )
     expiredProductFeatures = expireResult.expiredProductFeature
   }

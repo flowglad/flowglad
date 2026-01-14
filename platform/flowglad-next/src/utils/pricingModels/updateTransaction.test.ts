@@ -11,6 +11,7 @@ import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
+import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
@@ -630,7 +631,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              } as SetupPricingModelInput,
             },
             { transaction, invalidateCache }
           )
@@ -746,7 +747,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              } as SetupPricingModelInput,
             },
             { transaction, invalidateCache }
           )
@@ -873,7 +874,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              } as SetupPricingModelInput,
             },
             { transaction, invalidateCache }
           )
@@ -924,7 +925,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              } as SetupPricingModelInput,
             },
             { transaction, invalidateCache }
           )
@@ -987,7 +988,7 @@ describe('updatePricingModelTransaction', () => {
               ],
             },
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       )
 
@@ -1054,7 +1055,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
       )
 
@@ -1128,7 +1129,7 @@ describe('updatePricingModelTransaction', () => {
               ],
             },
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       )
 
@@ -1200,7 +1201,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
       )
 
@@ -1258,7 +1259,7 @@ describe('updatePricingModelTransaction', () => {
               ],
             },
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       )
 
@@ -1315,7 +1316,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow(
@@ -1378,7 +1379,7 @@ describe('updatePricingModelTransaction', () => {
               ],
             },
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       )
 
@@ -1427,7 +1428,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
       )
 
@@ -1523,7 +1524,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
       )
 

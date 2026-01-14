@@ -408,11 +408,6 @@ describe('CacheDependency helpers', () => {
     expect(key).toBe('subscriptionItems:sub_456')
   })
 
-  it('creates consistent subscriptionItemFeatures dependency keys', () => {
-    const key = CacheDependency.subscriptionItemFeatures('si_789')
-    expect(key).toBe('subscriptionItemFeatures:si_789')
-  })
-
   it('creates consistent subscriptionLedger dependency keys', () => {
     const key = CacheDependency.subscriptionLedger('sub_456')
     expect(key).toBe('subscriptionLedger:sub_456')

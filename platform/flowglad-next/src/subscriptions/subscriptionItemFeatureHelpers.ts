@@ -49,7 +49,6 @@ import {
   UsageCreditStatus,
   UsageCreditType,
 } from '@/types'
-import { CacheDependency } from '@/utils/cache'
 
 /**
  * Retrieves a map of price IDs to their associated features and productFeatures.
@@ -715,10 +714,6 @@ export const addFeatureToSubscriptionItem = async (
       ctx
     )
   }
-
-  ctx.invalidateCache(
-    CacheDependency.subscriptionItemFeatures(manualSubscriptionItem.id)
-  )
 
   return { subscriptionItemFeature }
 }
