@@ -119,14 +119,23 @@ export const updateProduct = protectedProcedure
   .output(singleProductOutputSchema)
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({
-        transaction,
-        input,
-        livemode,
-        organizationId,
-        userId,
-        invalidateCache,
-      }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction, invalidateCache } = transactionCtx
+        const { livemode, organizationId } = ctx
+        const userId = ctx.user?.id
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User ID is required for this operation.',
+          })
+        }
         try {
           const updatedProduct = await editProductPricingModel(
             {
@@ -245,7 +254,12 @@ export const getTableRows = protectedProcedure
     createPaginatedTableRowOutputSchema(productsTableRowDataSchema)
   )
   .query(
-    authenticatedProcedureTransaction(selectProductsCursorPaginated)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectProductsCursorPaginated({ input, transaction })
+      }
+    )
   )
 
 const getCountsByStatusSchema = z.object({})

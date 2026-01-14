@@ -71,8 +71,9 @@ const createSubscriptionItemFeature = protectedProcedure
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transaction, ctx, invalidateCache }) => {
-        const organizationId = ctx.organizationId
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction, invalidateCache } = transactionCtx
+        const { organizationId } = ctx
         if (!organizationId) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
@@ -109,7 +110,8 @@ const updateSubscriptionItemFeature = protectedProcedure
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transaction, invalidateCache }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction, invalidateCache } = transactionCtx
         // Get existing record to obtain subscriptionItemId for cache invalidation
         const existingFeature =
           await selectSubscriptionItemFeatureById(
@@ -153,7 +155,8 @@ const getSubscriptionItemFeature = protectedProcedure
   .output(subscriptionItemFeatureClientResponse)
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const [subscriptionItemFeature] =
           await selectClientSubscriptionItemFeatureAndFeatureById(
             input.id,
@@ -187,7 +190,8 @@ const expireSubscriptionItemFeature = protectedProcedure
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transaction, invalidateCache }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction, invalidateCache } = transactionCtx
         const { id, expiredAt } = input
         // Ensure the feature exists before attempting to deactivate
         const existingFeature =

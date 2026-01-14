@@ -40,14 +40,20 @@ export const createUsageMeter = protectedProcedure
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({
-        input,
-        transaction,
-        userId,
-        livemode,
-        organizationId,
-        invalidateCache,
-      }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction, invalidateCache } = transactionCtx
+        const { livemode, organizationId } = ctx
+        const userId = ctx.user?.id
+        if (!userId) {
+          throw new Error(
+            'userId is required to create a usage meter'
+          )
+        }
+        if (!organizationId) {
+          throw new Error(
+            'organizationId is required to create a usage meter'
+          )
+        }
         try {
           const { usageMeter } = await createUsageMeterTransaction(
             {
@@ -79,7 +85,8 @@ const listUsageMetersProcedure = protectedProcedure
   .output(usageMeterPaginatedListSchema)
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         return selectUsageMetersPaginated(input, transaction)
       }
     )
@@ -91,7 +98,8 @@ const updateUsageMeter = protectedProcedure
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         try {
           const usageMeter = await updateUsageMeterDB(
             {
@@ -118,7 +126,8 @@ const getUsageMeter = protectedProcedure
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const usageMeter = await selectUsageMeterById(
           input.id,
           transaction
@@ -141,7 +150,13 @@ const getTableRowsProcedure = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      selectUsageMetersCursorPaginated
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectUsageMetersCursorPaginated({
+          input,
+          transaction,
+        })
+      }
     )
   )
 

@@ -42,7 +42,8 @@ export const createOrRestoreProductFeature = protectedProcedure
   )
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         // Determine livemode from the associated product
         // The RLS on productFeatures ensures user has access to the product
         // and its organization, and that livemode matches current context.
@@ -105,7 +106,8 @@ const listProductFeatures = protectedProcedure
   .output(productFeaturesPaginatedListSchema) // Output schema from productFeatures.ts
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         // selectProductFeaturesPaginated expects { cursor?, limit? } and transaction
         // The input (productFeaturesPaginatedSelectSchema) should match this structure.
         return selectProductFeaturesPaginated(input, transaction)
@@ -121,7 +123,8 @@ export const getProductFeature = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const productFeature = await selectProductFeatureById(
           input.id,
           transaction
@@ -151,11 +154,11 @@ export const expireProductFeature = protectedProcedure
   .output(z.object({ success: z.boolean() })) // Indicate success
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transaction, invalidateCache }) => {
-        await expireProductFeaturesByFeatureId([input.id], {
-          transaction,
-          invalidateCache,
-        })
+      async ({ input, transactionCtx }) => {
+        await expireProductFeaturesByFeatureId(
+          [input.id],
+          transactionCtx
+        )
         return {
           result: { success: true },
         }

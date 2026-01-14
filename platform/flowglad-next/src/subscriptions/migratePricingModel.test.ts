@@ -1289,19 +1289,16 @@ describe('Pricing Model Migration Test Suite', async () => {
                 externalId: customer.externalId,
                 newPricingModelId: pricingModel2.id,
               },
-              transaction,
-              ctx: { apiKey: undefined },
-              livemode: false,
-              userId: 'test-user-id',
-              organizationId: organization.id,
-              effects: {
-                cacheInvalidations: [],
-                eventsToInsert: [],
-                ledgerCommands: [],
+              ctx: {
+                apiKey: undefined,
+                organizationId: organization.id,
               },
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-              enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              transactionCtx: {
+                transaction,
+                invalidateCache: noopInvalidateCache,
+                emitEvent: noopEmitEvent,
+                enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              },
             }
           )
         }
@@ -1337,19 +1334,16 @@ describe('Pricing Model Migration Test Suite', async () => {
                 externalId: customer.externalId,
                 newPricingModelId: pricingModel2.id,
               },
-              transaction,
-              ctx: { apiKey: undefined },
-              livemode: false,
-              userId: 'test-user-id',
-              organizationId: undefined as unknown as string,
-              effects: {
-                cacheInvalidations: [],
-                eventsToInsert: [],
-                ledgerCommands: [],
+              ctx: {
+                apiKey: undefined,
+                organizationId: undefined as unknown as string,
               },
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-              enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              transactionCtx: {
+                transaction,
+                invalidateCache: noopInvalidateCache,
+                emitEvent: noopEmitEvent,
+                enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              },
             }
           )
         })
@@ -1365,19 +1359,16 @@ describe('Pricing Model Migration Test Suite', async () => {
                 externalId: 'non-existent-customer',
                 newPricingModelId: pricingModel2.id,
               },
-              transaction,
-              ctx: { apiKey: undefined },
-              livemode: false,
-              userId: 'test-user-id',
-              organizationId: organization.id,
-              effects: {
-                cacheInvalidations: [],
-                eventsToInsert: [],
-                ledgerCommands: [],
+              ctx: {
+                apiKey: undefined,
+                organizationId: organization.id,
               },
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-              enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              transactionCtx: {
+                transaction,
+                invalidateCache: noopInvalidateCache,
+                emitEvent: noopEmitEvent,
+                enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              },
             }
           )
         })
@@ -1395,19 +1386,16 @@ describe('Pricing Model Migration Test Suite', async () => {
                 externalId: customer.externalId,
                 newPricingModelId: 'non-existent-pricing-model',
               },
-              transaction,
-              ctx: { apiKey: undefined },
-              livemode: false,
-              userId: 'test-user-id',
-              organizationId: organization.id,
-              effects: {
-                cacheInvalidations: [],
-                eventsToInsert: [],
-                ledgerCommands: [],
+              ctx: {
+                apiKey: undefined,
+                organizationId: organization.id,
               },
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-              enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              transactionCtx: {
+                transaction,
+                invalidateCache: noopInvalidateCache,
+                emitEvent: noopEmitEvent,
+                enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              },
             }
           )
         })
@@ -1430,19 +1418,16 @@ describe('Pricing Model Migration Test Suite', async () => {
                 externalId: customer.externalId,
                 newPricingModelId: otherPricingModel.id,
               },
-              transaction,
-              ctx: { apiKey: undefined },
-              livemode: false,
-              userId: 'test-user-id',
-              organizationId: organization.id,
-              effects: {
-                cacheInvalidations: [],
-                eventsToInsert: [],
-                ledgerCommands: [],
+              ctx: {
+                apiKey: undefined,
+                organizationId: organization.id,
               },
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-              enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              transactionCtx: {
+                transaction,
+                invalidateCache: noopInvalidateCache,
+                emitEvent: noopEmitEvent,
+                enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              },
             }
           )
         })
@@ -1505,19 +1490,16 @@ describe('Pricing Model Migration Test Suite', async () => {
                 externalId: customer.externalId,
                 newPricingModelId: livePricingModel.id,
               },
-              transaction,
-              ctx: { apiKey: undefined },
-              livemode: false,
-              userId: 'test-user-id',
-              organizationId: organization.id,
-              effects: {
-                cacheInvalidations: [],
-                eventsToInsert: [],
-                ledgerCommands: [],
+              ctx: {
+                apiKey: undefined,
+                organizationId: organization.id,
               },
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-              enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              transactionCtx: {
+                transaction,
+                invalidateCache: noopInvalidateCache,
+                emitEvent: noopEmitEvent,
+                enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              },
             }
           )
         })
@@ -1736,19 +1718,16 @@ describe('Pricing Model Migration Test Suite', async () => {
               externalId: customer.externalId,
               newPricingModelId: pricingModel2.id,
             },
-            transaction,
-            ctx: { apiKey: undefined },
-            livemode: false,
-            userId: 'test-user-id',
-            organizationId: organization.id,
-            effects: {
-              cacheInvalidations: [],
-              eventsToInsert: [],
-              ledgerCommands: [],
+            ctx: {
+              apiKey: undefined,
+              organizationId: organization.id,
             },
-            invalidateCache: callbacks.invalidateCache,
-            emitEvent: callbacks.emitEvent,
-            enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
+            transactionCtx: {
+              transaction,
+              invalidateCache: callbacks.invalidateCache,
+              emitEvent: callbacks.emitEvent,
+              enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
+            },
           })
           return effects
         }

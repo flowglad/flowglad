@@ -475,14 +475,13 @@ const createSubscriptionProcedure = protectedProcedure
   .output(z.object({ subscription: subscriptionClientSelectSchema }))
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({
-        input,
-        transaction,
-        ctx,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        } = transactionCtx
         if (!ctx.organization) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
@@ -674,7 +673,12 @@ const getTableRows = protectedProcedure
     )
   )
   .query(
-    authenticatedProcedureTransaction(selectSubscriptionsTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectSubscriptionsTableRowData({ input, transaction })
+      }
+    )
   )
 
 // TRPC-only procedure, not exposed as REST API
@@ -687,7 +691,8 @@ const updatePaymentMethodProcedure = protectedProcedure
   )
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const subscription = await selectSubscriptionById(
           input.id,
           transaction

@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import type { ComprehensiveAuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
+import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { Event } from '@/db/schema/events'
@@ -584,7 +584,7 @@ export const scheduleSubscriptionCancellation = async (
 }
 
 type CancelSubscriptionProcedureParams =
-  ComprehensiveAuthenticatedProcedureTransactionParams<
+  AuthenticatedProcedureTransactionParams<
     ScheduleSubscriptionCancellationParams,
     { apiKey?: string }
   >
@@ -603,19 +603,22 @@ type CancelSubscriptionProcedureParams =
  *
  * @param params - Procedure transaction parameters
  * @param params.input - Cancellation request with subscription ID and timing arrangement
- * @param params.transaction - Active database transaction
+ * @param params.transactionCtx - Transaction context with database transaction and effect callbacks
  * @param params.ctx - Request context (may contain apiKey)
  * @returns Promise resolving to TransactionOutput with the updated subscription (formatted for client) and events to insert
  */
 export const cancelSubscriptionProcedureTransaction = async ({
   input,
-  transaction,
-  invalidateCache,
-  emitEvent,
-  enqueueLedgerCommand,
+  transactionCtx,
 }: CancelSubscriptionProcedureParams): Promise<
   TransactionOutput<{ subscription: Subscription.ClientRecord }>
 > => {
+  const {
+    transaction,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  } = transactionCtx
   // Construct context for internal function calls
   const ctx: TransactionEffectsContext = {
     transaction,
@@ -917,7 +920,7 @@ export const uncancelSubscription = async (
 }
 
 type UncancelSubscriptionProcedureParams =
-  ComprehensiveAuthenticatedProcedureTransactionParams<
+  AuthenticatedProcedureTransactionParams<
     { id: string },
     { apiKey?: string }
   >
@@ -928,18 +931,21 @@ type UncancelSubscriptionProcedureParams =
  *
  * @param params - Procedure transaction parameters
  * @param params.input - Uncancel request with subscription ID
- * @param params.transaction - Active database transaction
+ * @param params.transactionCtx - Transaction context with database transaction and effect callbacks
  * @returns Promise resolving to TransactionOutput with the updated subscription
  */
 export const uncancelSubscriptionProcedureTransaction = async ({
   input,
-  transaction,
-  invalidateCache,
-  emitEvent,
-  enqueueLedgerCommand,
+  transactionCtx,
 }: UncancelSubscriptionProcedureParams): Promise<
   TransactionOutput<{ subscription: Subscription.ClientRecord }>
 > => {
+  const {
+    transaction,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  } = transactionCtx
   const ctx: TransactionEffectsContext = {
     transaction,
     invalidateCache,

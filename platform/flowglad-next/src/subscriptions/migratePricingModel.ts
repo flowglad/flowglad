@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import type { ComprehensiveAuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
+import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Subscription } from '@/db/schema/subscriptions'
 import {
@@ -342,19 +342,16 @@ async function createDefaultSubscriptionOnPricingModel(
  * Validates inputs, performs the migration, and updates the customer's pricing model ID.
  */
 type MigrateCustomerPricingModelProcedureParams =
-  ComprehensiveAuthenticatedProcedureTransactionParams<
+  AuthenticatedProcedureTransactionParams<
     { externalId: string; newPricingModelId: string },
-    { apiKey?: string }
+    { apiKey?: string; organizationId?: string }
   >
 
 export const migrateCustomerPricingModelProcedureTransaction =
   async ({
     input,
-    transaction,
-    organizationId,
-    invalidateCache,
-    emitEvent,
-    enqueueLedgerCommand,
+    ctx,
+    transactionCtx,
   }: MigrateCustomerPricingModelProcedureParams): Promise<
     TransactionOutput<{
       customer: Customer.ClientRecord
@@ -362,8 +359,15 @@ export const migrateCustomerPricingModelProcedureTransaction =
       newSubscription: Subscription.ClientRecord
     }>
   > => {
+    const {
+      transaction,
+      invalidateCache,
+      emitEvent,
+      enqueueLedgerCommand,
+    } = transactionCtx
+    const { organizationId } = ctx
     const { externalId, newPricingModelId } = input
-    const ctx: TransactionEffectsContext = {
+    const effectsCtx: TransactionEffectsContext = {
       transaction,
       invalidateCache,
       emitEvent,
@@ -427,7 +431,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
         oldPricingModelId: customer.pricingModelId,
         newPricingModelId,
       },
-      ctx
+      effectsCtx
     )
 
     return {
