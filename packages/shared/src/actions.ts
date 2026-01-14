@@ -416,6 +416,142 @@ export const updateCustomerSchema = z.object({
   externalId: z.string(),
 })
 
+/**
+ * Schema for fetching all resources for a customer's subscription.
+ * Returns capacity, claimed count, and available count for all resources.
+ */
+export const getResourcesSchema = z.object({
+  subscriptionId: z.string().optional(),
+})
+
+export type GetResourcesParams = z.infer<typeof getResourcesSchema>
+
+/**
+ * Schema for claiming resources from a subscription's capacity.
+ *
+ * Supports three mutually exclusive modes:
+ * - `quantity`: Create N anonymous claims without external identifiers
+ * - `externalId`: Create a named claim with a single external identifier (idempotent)
+ * - `externalIds`: Create multiple named claims with external identifiers (idempotent)
+ */
+export const claimResourceSchema = z
+  .object({
+    resourceSlug: z.string(),
+    subscriptionId: z.string().optional(),
+    metadata: z
+      .record(
+        z.string(),
+        z.union([z.string(), z.number(), z.boolean()])
+      )
+      .optional(),
+    quantity: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe(
+        'Create N anonymous claims without external identifiers'
+      ),
+    externalId: z
+      .string()
+      .max(255)
+      .optional()
+      .describe('Create a named claim with this external identifier'),
+    externalIds: z
+      .array(z.string().max(255))
+      .nonempty()
+      .optional()
+      .describe(
+        'Create multiple named claims with these external identifiers'
+      ),
+  })
+  .refine(
+    (data) => {
+      const provided = [
+        data.quantity,
+        data.externalId,
+        data.externalIds,
+      ].filter((v) => v !== undefined)
+      return provided.length === 1
+    },
+    {
+      message:
+        'Exactly one of quantity, externalId, or externalIds must be provided',
+    }
+  )
+
+export type ClaimResourceParams = z.infer<typeof claimResourceSchema>
+
+/**
+ * Schema for releasing claimed resources back to the subscription's available pool.
+ *
+ * Supports four mutually exclusive modes:
+ * - `quantity`: Release N anonymous claims in FIFO order (oldest first)
+ * - `externalId`: Release a named claim by its external identifier
+ * - `externalIds`: Release multiple named claims by their external identifiers
+ * - `claimIds`: Release specific claims by their database IDs
+ */
+export const releaseResourceSchema = z
+  .object({
+    resourceSlug: z.string(),
+    subscriptionId: z.string().optional(),
+    quantity: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe('Release N anonymous claims (FIFO)'),
+    externalId: z
+      .string()
+      .max(255)
+      .optional()
+      .describe('Release a named claim by external identifier'),
+    externalIds: z
+      .array(z.string().max(255))
+      .nonempty()
+      .optional()
+      .describe(
+        'Release multiple named claims by external identifiers'
+      ),
+    claimIds: z
+      .array(z.string())
+      .nonempty()
+      .optional()
+      .describe('Release specific claims by their IDs'),
+  })
+  .refine(
+    (data) => {
+      const provided = [
+        data.quantity,
+        data.externalId,
+        data.externalIds,
+        data.claimIds,
+      ].filter((v) => v !== undefined)
+      return provided.length === 1
+    },
+    {
+      message:
+        'Exactly one of quantity, externalId, externalIds, or claimIds must be provided',
+    }
+  )
+
+export type ReleaseResourceParams = z.infer<
+  typeof releaseResourceSchema
+>
+
+/**
+ * Schema for listing active resource claims for a subscription.
+ * Can optionally filter by resource type.
+ */
+export const listResourceClaimsSchema = z.object({
+  subscriptionId: z.string().optional(),
+  resourceSlug: z.string().optional(),
+})
+
+export type ListResourceClaimsParams = z.infer<
+  typeof listResourceClaimsSchema
+>
+
 export const flowgladActionValidators = {
   [FlowgladActionKey.GetCustomerBilling]: {
     method: HTTPMethod.POST,
@@ -464,5 +600,21 @@ export const flowgladActionValidators = {
   [FlowgladActionKey.CreateUsageEvent]: {
     method: HTTPMethod.POST,
     inputValidator: clientCreateUsageEventSchema,
+  },
+  [FlowgladActionKey.GetResources]: {
+    method: HTTPMethod.POST,
+    inputValidator: getResourcesSchema,
+  },
+  [FlowgladActionKey.ClaimResource]: {
+    method: HTTPMethod.POST,
+    inputValidator: claimResourceSchema,
+  },
+  [FlowgladActionKey.ReleaseResource]: {
+    method: HTTPMethod.POST,
+    inputValidator: releaseResourceSchema,
+  },
+  [FlowgladActionKey.ListResourceClaims]: {
+    method: HTTPMethod.POST,
+    inputValidator: listResourceClaimsSchema,
   },
 } as const satisfies FlowgladActionValidatorMap
