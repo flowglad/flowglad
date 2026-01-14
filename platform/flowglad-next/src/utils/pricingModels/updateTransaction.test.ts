@@ -893,7 +893,9 @@ describe('updatePricingModelTransaction', () => {
                 name: 'Test Pricing Model',
                 isDefault: false,
                 usageMeters: [],
-                resources: [{ slug: 'seats', name: 'Seats' }],
+                resources: [
+                  { slug: 'seats', name: 'Seats', active: true },
+                ],
                 features: [
                   {
                     type: FeatureType.Toggle,
