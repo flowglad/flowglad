@@ -112,7 +112,9 @@ export function DashboardChart({
   const metricConfig = METRICS[selectedMetric]
 
   // Tooltip state management
-  const { tooltipData, tooltipCallback } = useChartTooltip()
+  const { tooltipData, tooltipCallback } = useChartTooltip(
+    `${selectedMetric}:${interval}:${fromDate.toISOString()}:${toDate.toISOString()}:${productId ?? ''}`
+  )
 
   // Fetch data for the selected metric
   const {
@@ -138,10 +140,11 @@ export function DashboardChart({
     }
 
     // If tooltip is active, show the hovered value
-    const tooltipValue = tooltipData?.payload?.[0]?.value as
-      | number
-      | undefined
-    if (tooltipValue !== undefined) {
+    const tooltipValue = tooltipData?.payload?.[0]?.value
+    if (
+      typeof tooltipValue === 'number' &&
+      Number.isFinite(tooltipValue)
+    ) {
       return metricConfig.formatValue(tooltipValue, currency)
     }
 
