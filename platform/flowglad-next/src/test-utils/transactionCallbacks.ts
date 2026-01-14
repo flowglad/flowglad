@@ -1,6 +1,8 @@
 import type { LedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { Event } from '@/db/schema/events'
 import type {
+  ComprehensiveAdminTransactionParams,
+  ComprehensiveAuthenticatedTransactionParams,
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
@@ -124,5 +126,34 @@ export function createCapturingContext(transaction: DbTransaction): {
       ...callbacks,
     },
     effects,
+  }
+}
+
+/**
+ * Extracts TransactionEffectsContext from ComprehensiveAdminTransactionParams.
+ * Use this when calling functions that expect TransactionEffectsContext from within
+ * comprehensiveAdminTransaction callbacks, to ensure effects are properly tracked.
+ *
+ * @example
+ * ```typescript
+ * await comprehensiveAdminTransaction(async (params) => {
+ *   await attemptToTransitionSubscriptionBillingPeriod(
+ *     billingPeriod,
+ *     extractEffectsContext(params)
+ *   )
+ *   return { result: null }
+ * })
+ * ```
+ */
+export function extractEffectsContext(
+  params:
+    | ComprehensiveAdminTransactionParams
+    | ComprehensiveAuthenticatedTransactionParams
+): TransactionEffectsContext {
+  return {
+    transaction: params.transaction,
+    invalidateCache: params.invalidateCache,
+    emitEvent: params.emitEvent,
+    enqueueLedgerCommand: params.enqueueLedgerCommand,
   }
 }

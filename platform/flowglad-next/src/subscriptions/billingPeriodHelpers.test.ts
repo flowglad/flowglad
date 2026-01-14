@@ -61,6 +61,7 @@ import {
 import {
   createCapturingContext,
   createNoopContext,
+  extractEffectsContext,
 } from '@/test-utils/transactionCallbacks'
 import {
   BillingPeriodStatus,
@@ -860,10 +861,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
 
@@ -922,10 +923,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
 
@@ -964,10 +965,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
 
@@ -1005,10 +1006,10 @@ describe('Ledger Interactions', () => {
 
       // execution:
       const { subscription: updatedSub } =
-        await comprehensiveAdminTransaction(async ({ transaction }) =>
+        await comprehensiveAdminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
-            createNoopContext(transaction)
+            extractEffectsContext(params)
           )
         )
       canceledSub = updatedSub
@@ -1034,10 +1035,10 @@ describe('Ledger Interactions', () => {
 
     it('should not grant usage credits if the subscription has no credit entitlements', async () => {
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
 
@@ -1107,10 +1108,10 @@ describe('Ledger Interactions', () => {
 
       // execution:
       const { subscription: updatedSub } =
-        await comprehensiveAdminTransaction(async ({ transaction }) =>
+        await comprehensiveAdminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
-            createNoopContext(transaction)
+            extractEffectsContext(params)
           )
         )
       pastDueSub = updatedSub
@@ -1199,10 +1200,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
 
@@ -1286,10 +1287,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
 
@@ -1388,10 +1389,10 @@ describe('Ledger Interactions', () => {
       })
 
       // Action: Transition the billing period. Since pastBillingPeriod exists, this is a subsequent transition.
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
 
@@ -1459,10 +1460,10 @@ describe('Ledger Interactions', () => {
           },
         ],
       })
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
 
@@ -1567,10 +1568,10 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
 
@@ -1674,10 +1675,10 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
 
@@ -1740,10 +1741,10 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
 
@@ -1806,10 +1807,10 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
 
@@ -1932,10 +1933,10 @@ describe('Ledger Interactions', () => {
       })
 
       // Action
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
       // Assertions
@@ -2056,10 +2057,10 @@ describe('Ledger Interactions', () => {
       })
 
       // Action:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
 
@@ -2206,10 +2207,10 @@ describe('Ledger Interactions', () => {
       })
 
       // Action:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          extractEffectsContext(params)
         )
       )
 

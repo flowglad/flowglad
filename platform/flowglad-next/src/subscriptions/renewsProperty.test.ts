@@ -36,7 +36,10 @@ import {
   createBillingPeriodAndItems,
 } from '@/subscriptions/billingPeriodHelpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
-import { createNoopContext } from '@/test-utils/transactionCallbacks'
+import {
+  createNoopContext,
+  extractEffectsContext,
+} from '@/test-utils/transactionCallbacks'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -759,7 +762,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Create subscription with credit trial
         const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
+          async (params) => {
             return createSubscriptionWorkflow(
               {
                 organization,
@@ -774,7 +777,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId: `si_credits_${core.nanoid()}`,
                 autoStart: true,
               },
-              createNoopContext(transaction)
+              extractEffectsContext(params)
             )
           }
         )
