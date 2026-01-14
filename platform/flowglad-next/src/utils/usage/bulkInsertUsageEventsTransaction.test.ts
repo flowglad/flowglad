@@ -161,6 +161,91 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
     })
 
+    it('should correctly resolve a mix of explicit priceId and usageMeterSlug in bulk insert', async () => {
+      // Create a default price for the usage meter
+      const defaultPrice = await setupPrice({
+        name: 'Default Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+      })
+
+      // Create a non-default price for the same usage meter
+      const explicitPrice = await setupPrice({
+        name: 'Explicit Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 1000, // $10
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+      })
+
+      const result = await adminTransaction(async ({ transaction }) =>
+        bulkInsertUsageEventsTransaction(
+          {
+            input: {
+              usageEvents: [
+                // Event 1: uses explicit priceId (should keep that price)
+                {
+                  subscriptionId: subscription.id,
+                  priceId: explicitPrice.id,
+                  amount: 100,
+                  transactionId: `txn_explicit_${Date.now()}_1`,
+                },
+                // Event 2: uses usageMeterSlug (should get default price)
+                {
+                  subscriptionId: subscription.id,
+                  usageMeterSlug: usageMeter.slug ?? undefined,
+                  amount: 200,
+                  transactionId: `txn_slug_${Date.now()}_2`,
+                },
+                // Event 3: another explicit priceId
+                {
+                  subscriptionId: subscription.id,
+                  priceId: explicitPrice.id,
+                  amount: 300,
+                  transactionId: `txn_explicit_${Date.now()}_3`,
+                },
+              ],
+            },
+            livemode: true,
+          },
+          transaction
+        )
+      )
+
+      expect(result.result.usageEvents).toHaveLength(3)
+
+      // Event 1: should have the explicit priceId
+      const event1 = result.result.usageEvents.find(
+        (e) => e.amount === 100
+      )
+      expect(event1?.priceId).toBe(explicitPrice.id)
+      expect(event1?.usageMeterId).toBe(usageMeter.id)
+
+      // Event 2: should have the default priceId (resolved from slug)
+      const event2 = result.result.usageEvents.find(
+        (e) => e.amount === 200
+      )
+      expect(event2?.priceId).toBe(defaultPrice.id)
+      expect(event2?.usageMeterId).toBe(usageMeter.id)
+
+      // Event 3: should have the explicit priceId
+      const event3 = result.result.usageEvents.find(
+        (e) => e.amount === 300
+      )
+      expect(event3?.priceId).toBe(explicitPrice.id)
+      expect(event3?.usageMeterId).toBe(usageMeter.id)
+    })
+
     it('should throw error when priceSlug not found', async () => {
       await expect(
         adminTransaction(async ({ transaction }) =>
