@@ -2,6 +2,7 @@ export type {
   AdjustSubscriptionParams,
   BulkCreateUsageEventsParams,
   CancelSubscriptionParams,
+  ClaimResourceParams,
   ClientCreateUsageEventParams,
   CreateActivateSubscriptionCheckoutSessionParams,
   CreateAddPaymentMethodCheckoutSessionParams,
@@ -9,6 +10,9 @@ export type {
   CreateSubscriptionParams,
   CreateUsageEventParams,
   FlowgladActionValidatorMap,
+  GetResourcesParams,
+  ListResourceClaimsParams,
+  ReleaseResourceParams,
   TerseSubscriptionItem,
   UncancelSubscriptionParams,
 } from './actions'
@@ -17,12 +21,16 @@ export {
   adjustSubscriptionParamsSchema,
   bulkCreateUsageEventsSchema,
   cancelSubscriptionSchema,
+  claimResourceSchema,
   createActivateSubscriptionCheckoutSessionSchema,
   createAddPaymentMethodCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
   createSubscriptionSchema,
   createUsageEventSchema,
   flowgladActionValidators,
+  getResourcesSchema,
+  listResourceClaimsSchema,
+  releaseResourceSchema,
   subscriptionAdjustmentTiming,
   terseSubscriptionItemSchema,
   uncancelSubscriptionSchema,
@@ -35,6 +43,10 @@ export * from './types/customer'
 export * from './types/invoice'
 export * from './types/payment'
 export * from './types/paymentMethod'
+export {
+  type ResourceClaim,
+  type ResourceUsage,
+} from './types/resource'
 export {
   type BillingWithChecks,
   type FeatureItem,
