@@ -5,6 +5,7 @@ import * as R from 'ramda'
 import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -44,6 +45,10 @@ export const discounts = pgTable(
       'organization_id',
       organizations
     ),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
     name: text('name').notNull(),
     code: text('code').notNull(),
     amount: integer('amount').notNull(),
@@ -63,11 +68,11 @@ export const discounts = pgTable(
   },
   livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
     constructIndex(TABLE_NAME, [table.code]),
     constructUniqueIndex(TABLE_NAME, [
       table.code,
-      table.organizationId,
-      table.livemode,
+      table.pricingModelId,
     ]),
     enableCustomerReadPolicy(
       `Enable read for customers (${TABLE_NAME})`,
@@ -92,6 +97,7 @@ const columnRefinements = {
   amountType: core.createSafeZodEnum(DiscountAmountType),
   duration: core.createSafeZodEnum(DiscountDuration),
   numberOfPayments: core.safeZodPositiveInteger.nullable(),
+  pricingModelId: z.string(),
   code: z
     .string()
     .transform((code) => code.toUpperCase())
@@ -132,6 +138,14 @@ export const {
 } = buildSchemas(discounts, {
   discriminator: 'duration',
   refine: { ...columnRefinements, ...defaultDiscountsRefinements },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
+  client: {
+    readOnlyColumns: {
+      pricingModelId: true,
+    },
+  },
   entityName: 'DefaultDiscount',
 })
 
@@ -150,6 +164,14 @@ export const {
     ...columnRefinements,
     ...numberOfPaymentsDiscountsRefinements,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
+  client: {
+    readOnlyColumns: {
+      pricingModelId: true,
+    },
+  },
   entityName: 'NumberOfPaymentsDiscount',
 })
 
@@ -165,6 +187,14 @@ export const {
 } = buildSchemas(discounts, {
   discriminator: 'duration',
   refine: { ...columnRefinements, ...foreverDiscountsRefinements },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
+  client: {
+    readOnlyColumns: {
+      pricingModelId: true,
+    },
+  },
   entityName: 'ForeverDiscount',
 })
 
