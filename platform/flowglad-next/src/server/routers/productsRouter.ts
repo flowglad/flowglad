@@ -2,8 +2,10 @@ import { TRPCError } from '@trpc/server'
 import * as R from 'ramda'
 import { z } from 'zod'
 import {
+  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
+  comprehensiveAuthenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   createProductSchema,
@@ -61,10 +63,16 @@ export const createProduct = protectedProcedure
       // Validate that default products cannot be created manually
       validateProductCreation(input.product)
 
-      const result = await authenticatedTransaction(
-        async ({ transaction, userId, livemode, organizationId }) => {
+      const result = await comprehensiveAuthenticatedTransaction(
+        async ({
+          transaction,
+          userId,
+          livemode,
+          organizationId,
+          invalidateCache,
+        }) => {
           const { product, price, featureIds } = input
-          return createProductTransaction(
+          const txResult = await createProductTransaction(
             {
               product,
               prices: [
@@ -75,8 +83,15 @@ export const createProduct = protectedProcedure
               ],
               featureIds,
             },
-            { transaction, userId, livemode, organizationId }
+            {
+              transaction,
+              userId,
+              livemode,
+              organizationId,
+              invalidateCache,
+            }
           )
+          return { result: txResult }
         },
         {
           apiKey: ctx.apiKey,
@@ -103,13 +118,14 @@ export const updateProduct = protectedProcedure
   .input(editProductSchema)
   .output(singleProductOutputSchema)
   .mutation(
-    authenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({
         transaction,
         input,
         livemode,
         organizationId,
         userId,
+        invalidateCache,
       }) => {
         try {
           const updatedProduct = await editProductPricingModel(
@@ -118,11 +134,19 @@ export const updateProduct = protectedProcedure
               featureIds: input.featureIds,
               price: input.price,
             },
-            { transaction, livemode, organizationId, userId }
+            {
+              transaction,
+              livemode,
+              organizationId,
+              userId,
+              invalidateCache,
+            }
           )
 
           return {
-            product: updatedProduct,
+            result: {
+              product: updatedProduct,
+            },
           }
         } catch (error) {
           // Re-throw with enhanced error handling

@@ -1,5 +1,8 @@
 import { z } from 'zod'
-import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedProcedureComprehensiveTransaction,
+  authenticatedProcedureTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   createUsageMeterSchema,
   editUsageMeterSchema,
@@ -36,13 +39,14 @@ export const createUsageMeter = protectedProcedure
   .input(createUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(
-    authenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({
         input,
         transaction,
         userId,
         livemode,
         organizationId,
+        invalidateCache,
       }) => {
         try {
           const { usageMeter } = await createUsageMeterTransaction(
@@ -50,9 +54,15 @@ export const createUsageMeter = protectedProcedure
               usageMeter: input.usageMeter,
               price: input.price,
             },
-            { transaction, userId, livemode, organizationId }
+            {
+              transaction,
+              userId,
+              livemode,
+              organizationId,
+              invalidateCache,
+            }
           )
-          return { usageMeter }
+          return { result: { usageMeter } }
         } catch (error) {
           errorHandlers.usageMeter.handle(error, {
             operation: 'create',

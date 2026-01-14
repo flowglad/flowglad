@@ -5,7 +5,10 @@ import {
   setupProductFeature,
   setupToggleFeature,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import type { Feature } from '@/db/schema/features'
 import type { Organization } from '@/db/schema/organizations'
 import type { Product } from '@/db/schema/products'
@@ -439,15 +442,18 @@ describe('syncProductFeatures', () => {
     const desiredFeatureIds = [featureA.id, featureB.id]
 
     // - Call `syncProductFeatures` with the product details and the list of desired feature IDs.
-    const result = await adminTransaction(async ({ transaction }) => {
-      return syncProductFeatures(
-        {
-          product,
-          desiredFeatureIds,
-        },
-        { transaction }
-      )
-    })
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const syncResult = await syncProductFeatures(
+          {
+            product,
+            desiredFeatureIds,
+          },
+          { transaction, invalidateCache }
+        )
+        return { result: syncResult }
+      }
+    )
 
     // - The function should return an array containing two newly created `ProductFeature.Record`s.
     expect(result).toHaveLength(2)
@@ -489,15 +495,18 @@ describe('syncProductFeatures', () => {
       organizationId: organization.id,
     })
     // - Call `syncProductFeatures` with an empty `desiredFeatureIds` array.
-    const result = await adminTransaction(async ({ transaction }) => {
-      return syncProductFeatures(
-        {
-          product,
-          desiredFeatureIds: [],
-        },
-        { transaction }
-      )
-    })
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const syncResult = await syncProductFeatures(
+          {
+            product,
+            desiredFeatureIds: [],
+          },
+          { transaction, invalidateCache }
+        )
+        return { result: syncResult }
+      }
+    )
 
     // - The function should return an empty array.
     expect(result).toHaveLength(0)
@@ -526,15 +535,18 @@ describe('syncProductFeatures', () => {
     })
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` matching the two expired features.
-    const result = await adminTransaction(async ({ transaction }) => {
-      return syncProductFeatures(
-        {
-          product,
-          desiredFeatureIds: [featureA.id, featureB.id],
-        },
-        { transaction }
-      )
-    })
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const syncResult = await syncProductFeatures(
+          {
+            product,
+            desiredFeatureIds: [featureA.id, featureB.id],
+          },
+          { transaction, invalidateCache }
+        )
+        return { result: syncResult }
+      }
+    )
     // - The function should return an array of the two now-active `ProductFeature.Record`s.
     expect(result).toHaveLength(2)
     expect(result.every((pf) => !pf.expiredAt)).toBe(true)
@@ -572,15 +584,22 @@ describe('syncProductFeatures', () => {
     // - Feature D is a new feature that doesn't have a product feature record yet.
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` for Feature A, Feature C, and Feature D.
-    const result = await adminTransaction(async ({ transaction }) => {
-      return syncProductFeatures(
-        {
-          product,
-          desiredFeatureIds: [featureA.id, featureC.id, featureD.id],
-        },
-        { transaction }
-      )
-    })
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const syncResult = await syncProductFeatures(
+          {
+            product,
+            desiredFeatureIds: [
+              featureA.id,
+              featureC.id,
+              featureD.id,
+            ],
+          },
+          { transaction, invalidateCache }
+        )
+        return { result: syncResult }
+      }
+    )
 
     // - The function's return value should contain the records for the created Feature D and the restored Feature C.
     expect(result).toHaveLength(2)
@@ -624,15 +643,18 @@ describe('syncProductFeatures', () => {
     })
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` = `['feature_A_id']`.
-    const result = await adminTransaction(async ({ transaction }) => {
-      return syncProductFeatures(
-        {
-          product,
-          desiredFeatureIds: [featureA.id],
-        },
-        { transaction }
-      )
-    })
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const syncResult = await syncProductFeatures(
+          {
+            product,
+            desiredFeatureIds: [featureA.id],
+          },
+          { transaction, invalidateCache }
+        )
+        return { result: syncResult }
+      }
+    )
 
     // - The function should return an empty array, as no new or un-expired records are produced.
     expect(result).toHaveLength(0)

@@ -21,6 +21,7 @@ import {
 import type {
   AuthenticatedTransactionParams,
   DbTransaction,
+  TransactionEffectsContext,
 } from '@/db/types'
 import { CacheDependency } from '@/utils/cache'
 import { features, featuresSelectSchema } from '../schema/features'
@@ -99,7 +100,7 @@ export const selectProductFeaturesPaginated =
 export const expireProductFeaturesByFeatureId = async (
   productFeatureIds: string[],
   params: Pick<
-    AuthenticatedTransactionParams,
+    TransactionEffectsContext,
     'transaction' | 'invalidateCache'
   >
 ): Promise<{
@@ -133,7 +134,7 @@ export const expireProductFeaturesByFeatureId = async (
       )
     ),
   ]
-  invalidateCache?.(
+  invalidateCache(
     ...subscriptionItemIds.map((id) =>
       CacheDependency.subscriptionItemFeatures(id)
     )
@@ -327,7 +328,7 @@ export const syncProductFeatures = async (
     desiredFeatureIds: string[]
   },
   transactionParams: Pick<
-    AuthenticatedTransactionParams,
+    TransactionEffectsContext,
     'transaction' | 'invalidateCache'
   >
 ) => {

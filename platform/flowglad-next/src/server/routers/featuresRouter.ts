@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import {
+  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
@@ -91,7 +92,7 @@ export const updateFeature = protectedProcedure
   .input(editFeatureSchema)
   .output(z.object({ feature: featuresClientSelectSchema }))
   .mutation(
-    authenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({ input, transaction, invalidateCache }) => {
         const feature = await updateFeatureTransaction(
           {
@@ -100,7 +101,7 @@ export const updateFeature = protectedProcedure
           },
           { transaction, invalidateCache }
         )
-        return { feature }
+        return { result: { feature } }
       }
     )
   )

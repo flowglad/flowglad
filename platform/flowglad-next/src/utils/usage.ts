@@ -2,7 +2,10 @@ import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
-import type { AuthenticatedTransactionParams } from '@/db/types'
+import type {
+  AuthenticatedTransactionParams,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { IntervalUnit, PriceType } from '@/types'
 import { createProductTransaction } from '@/utils/pricingModel'
 
@@ -30,7 +33,9 @@ export const createUsageMeterTransaction = async (
     livemode,
     organizationId,
     userId,
-  }: AuthenticatedTransactionParams
+    invalidateCache,
+  }: Omit<AuthenticatedTransactionParams, 'invalidateCache'> &
+    Pick<TransactionEffectsContext, 'invalidateCache'>
 ): Promise<{
   usageMeter: UsageMeter.Record
   product: Product.Record
@@ -85,7 +90,7 @@ export const createUsageMeterTransaction = async (
         },
       ],
     },
-    { transaction, livemode, organizationId, userId }
+    { transaction, livemode, organizationId, userId, invalidateCache }
   )
 
   return {

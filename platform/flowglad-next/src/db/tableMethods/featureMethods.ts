@@ -21,8 +21,8 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type {
-  AuthenticatedTransactionParams,
   DbTransaction,
+  TransactionEffectsContext,
 } from '@/db/types'
 import type { PricingModel } from '../schema/pricingModels'
 import { selectPricingModels } from './pricingModelMethods'
@@ -157,7 +157,7 @@ export const selectFeaturesTableRowData =
 export const updateFeatureTransaction = async (
   featureUpdate: Feature.Update,
   params: Pick<
-    AuthenticatedTransactionParams,
+    TransactionEffectsContext,
     'transaction' | 'invalidateCache'
   >
 ): Promise<Feature.Record> => {

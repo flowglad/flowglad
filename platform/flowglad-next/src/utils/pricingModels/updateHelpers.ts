@@ -23,8 +23,8 @@ import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import type {
-  AuthenticatedTransactionParams,
   DbTransaction,
+  TransactionEffectsContext,
 } from '@/db/types'
 
 /**
@@ -173,7 +173,7 @@ export const syncProductFeaturesForMultipleProducts = async (
     livemode: boolean
   },
   transactionParams: Pick<
-    AuthenticatedTransactionParams,
+    TransactionEffectsContext,
     'transaction' | 'invalidateCache'
   >
 ): Promise<{

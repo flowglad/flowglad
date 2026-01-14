@@ -39,7 +39,7 @@ import {
   bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId,
   updateUsageMeter,
 } from '@/db/tableMethods/usageMeterMethods'
-import type { DbTransaction } from '@/db/types'
+import type { TransactionEffectsContext } from '@/db/types'
 import { FeatureType, PriceType } from '@/types'
 import {
   computeUpdateObject,
@@ -114,7 +114,7 @@ export type UpdatePricingModelResult = {
  * @param params - Configuration object
  * @param params.pricingModelId - ID of the pricing model to update
  * @param params.proposedInput - The proposed new state of the pricing model
- * @param transaction - Database transaction
+ * @param transactionParams - Transaction params including invalidateCache callback
  * @returns Structured result with all created/updated/deactivated records
  */
 export const updatePricingModelTransaction = async (
@@ -125,8 +125,12 @@ export const updatePricingModelTransaction = async (
     pricingModelId: string
     proposedInput: SetupPricingModelInput
   },
-  transaction: DbTransaction
+  transactionParams: Pick<
+    TransactionEffectsContext,
+    'transaction' | 'invalidateCache'
+  >
 ): Promise<UpdatePricingModelResult> => {
+  const { transaction, invalidateCache } = transactionParams
   // Step 1: Fetch existing pricing model data and organization
   const [existingInput, pricingModel] = await Promise.all([
     getPricingModelSetupData(pricingModelId, transaction),
@@ -896,7 +900,7 @@ export const updatePricingModelTransaction = async (
         organizationId: pricingModel.organizationId,
         livemode: pricingModel.livemode,
       },
-      { transaction }
+      { transaction, invalidateCache }
     )
 
   result.productFeatures.added = productFeaturesResult.added
