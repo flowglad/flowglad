@@ -80,6 +80,40 @@ export function useMetricData(
       { enabled: metric === 'subscribers' && !!organizationId }
     )
 
+  // ─────────────────────────────────────────────────────────────────
+  // Query Registry: Maps metrics to their queries for unified access
+  // Adding a new metric? Just add it here and TypeScript will guide you.
+  // ─────────────────────────────────────────────────────────────────
+  const queryRegistry = {
+    revenue: revenueQuery,
+    mrr: mrrQuery,
+    subscribers: subscribersQuery,
+  } as const
+
+  // Type safety: This will cause a TypeScript error if MetricType is extended but registry is not updated
+  const _registryTypeCheck: Record<
+    MetricType,
+    (typeof queryRegistry)[keyof typeof queryRegistry]
+  > = queryRegistry
+
+  // ─────────────────────────────────────────────────────────────────
+  // UNIFIED Loading State: Defined ONCE, works for ALL metrics
+  //
+  // We show loading state when:
+  // 1. isPending: Query has never successfully returned data
+  // 2. !data: Observer doesn't have data available yet
+  //
+  // This handles the critical edge case where:
+  // - Query succeeded before (isPending=false) from another chart instance
+  // - Cache has fresh data so no fetch is needed (isFetching=false)
+  // - But observer hasn't synced with cache yet (data=undefined)
+  //
+  // The previous fix `isPending || (isFetching && !data)` missed this
+  // because the AND condition doesn't trigger when isFetching is false.
+  // ─────────────────────────────────────────────────────────────────
+  const activeQuery = queryRegistry[metric]
+  const isLoading = activeQuery.isPending || !activeQuery.data
+
   // Transform revenue data to chart format
   const transformRevenueData = (): {
     data: ChartDataPoint[]
@@ -161,32 +195,25 @@ export function useMetricData(
     return { data, rawValues }
   }
 
-  // Get data and loading state based on selected metric
-  const getMetricResult = (): {
+  // ─────────────────────────────────────────────────────────────────
+  // Data Selection: Get transformed data for current metric
+  // Note: isLoading is NOT computed here - it's unified above
+  // ─────────────────────────────────────────────────────────────────
+  const getTransformedData = (): {
     data: ChartDataPoint[]
     rawValues: number[]
-    isLoading: boolean
   } => {
     switch (metric) {
       case 'revenue':
-        return {
-          ...transformRevenueData(),
-          isLoading: revenueQuery.isLoading,
-        }
+        return transformRevenueData()
       case 'mrr':
-        return {
-          ...transformMrrData(),
-          isLoading: mrrQuery.isLoading,
-        }
+        return transformMrrData()
       case 'subscribers':
-        return {
-          ...transformSubscribersData(),
-          isLoading: subscribersQuery.isLoading,
-        }
+        return transformSubscribersData()
     }
   }
 
-  const result = getMetricResult()
+  const result = getTransformedData()
 
   // Calculate max value for Y-axis scaling
   const maxValue =
@@ -195,7 +222,7 @@ export function useMetricData(
   return {
     data: result.data,
     rawValues: result.rawValues,
-    isLoading: result.isLoading,
+    isLoading, // ← From unified logic above, NOT per-case
     maxValue,
   }
 }
