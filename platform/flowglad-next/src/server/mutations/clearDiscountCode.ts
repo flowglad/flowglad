@@ -1,7 +1,6 @@
 import { adminTransaction } from '@/db/adminTransaction'
 import { productIdOrPurchaseIdSchema } from '@/db/schema/discounts'
 import { publicProcedure } from '@/server/trpc'
-import { createNoopContext } from '@/test-utils/transactionCallbacks'
 import { editCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
 import {
   findProductCheckoutSession,
@@ -36,7 +35,7 @@ export const clearDiscountCode = publicProcedure
           },
           purchaseId: maybePurchaseId,
         },
-        createNoopContext(transaction)
+        transaction
       )
     })
   })

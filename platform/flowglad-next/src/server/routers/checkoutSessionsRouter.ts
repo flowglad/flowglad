@@ -34,7 +34,6 @@ import {
   publicProcedure,
   router,
 } from '@/server/trpc'
-import { createNoopContext } from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -234,7 +233,7 @@ export const setBillingAddressProcedure = publicProcedure
           checkoutSessionId: input.id,
           billingAddress: input.billingAddress,
         },
-        createNoopContext(transaction)
+        transaction
       )
       return {
         checkoutSession: result.checkoutSession,

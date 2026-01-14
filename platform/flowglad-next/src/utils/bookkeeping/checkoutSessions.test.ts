@@ -32,10 +32,7 @@ import {
 } from '@/db/tableMethods/purchaseMethods'
 import type { DbTransaction } from '@/db/types'
 import { selectEventsByCustomer } from '@/test/helpers/databaseHelpers'
-import {
-  createNoopContext,
-  extractEffectsContext,
-} from '@/test-utils/transactionCallbacks'
+import { extractEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -325,7 +322,7 @@ describe('Checkout Sessions', async () => {
                 automaticallyUpdateSubscriptions: null,
               },
             },
-            createNoopContext(transaction)
+            transaction
           )
         })
       ).rejects.toThrow('Checkout session is not open')
@@ -358,7 +355,7 @@ describe('Checkout Sessions', async () => {
                 type: CheckoutSessionType.Product,
               },
             },
-            createNoopContext(transaction)
+            transaction
           )
         }
       )
@@ -391,7 +388,7 @@ describe('Checkout Sessions', async () => {
             {
               checkoutSession: updatedCheckoutSession,
             },
-            createNoopContext(transaction)
+            transaction
           )
           return selectLatestFeeCalculation(
             {
@@ -441,7 +438,7 @@ describe('Checkout Sessions', async () => {
                 priceId: price.id,
               },
             },
-            createNoopContext(transaction)
+            transaction
           )
           return selectLatestFeeCalculation(
             {
@@ -476,7 +473,7 @@ describe('Checkout Sessions', async () => {
                 type: CheckoutSessionType.Product,
               },
             },
-            createNoopContext(transaction)
+            transaction
           )
           return selectLatestFeeCalculation(
             {
@@ -519,7 +516,7 @@ describe('Checkout Sessions', async () => {
               },
               purchaseId: purchase.id,
             },
-            createNoopContext(transaction)
+            transaction
           )
         })
       ).rejects.toThrow('Purchase is not pending')
@@ -552,7 +549,7 @@ describe('Checkout Sessions', async () => {
             },
             purchaseId: purchase.id,
           },
-          createNoopContext(transaction)
+          transaction
         )
       })
 
@@ -597,7 +594,7 @@ describe('Checkout Sessions', async () => {
                 automaticallyUpdateSubscriptions: null,
               },
             },
-            createNoopContext(transaction)
+            transaction
           )
           return selectLatestFeeCalculation(
             {
@@ -701,7 +698,7 @@ describe('Checkout Sessions', async () => {
                 discountId: fullDiscount.id,
               },
             },
-            createNoopContext(transaction)
+            transaction
           )
         }
       )
@@ -1262,7 +1259,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
               checkoutSessionId: morCheckoutSession.id,
               billingAddress,
             },
-            createNoopContext(transaction)
+            transaction
           )
         }
       )
@@ -1299,7 +1296,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
               checkoutSessionId: morCheckoutSession.id,
               billingAddress: caAddress,
             },
-            createNoopContext(transaction)
+            transaction
           )
         }
       )
@@ -1324,7 +1321,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
               checkoutSessionId: morCheckoutSession.id,
               billingAddress: orAddress,
             },
-            createNoopContext(transaction)
+            transaction
           )
         }
       )
@@ -1381,7 +1378,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
               checkoutSessionId: notFeeReadySession.id,
               billingAddress,
             },
-            createNoopContext(transaction)
+            transaction
           )
         }
       )
@@ -1446,7 +1443,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
               checkoutSessionId: platformCheckoutSession.id,
               billingAddress,
             },
-            createNoopContext(transaction)
+            transaction
           )
         }
       )
@@ -1478,7 +1475,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
               checkoutSessionId: 'non-existent-id',
               billingAddress,
             },
-            createNoopContext(transaction)
+            transaction
           )
         })
       ).rejects.toThrow('No checkout sessions found with id:')
@@ -1512,7 +1509,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
               checkoutSessionId: checkoutSession.id,
               billingAddress,
             },
-            createNoopContext(transaction)
+            transaction
           )
         })
       ).rejects.toThrow('Checkout session is not open')

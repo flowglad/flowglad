@@ -46,7 +46,6 @@ import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { insertPrice } from '@/db/tableMethods/priceMethods'
 import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
-import { createNoopContext } from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -446,7 +445,7 @@ export const provideBillingAddressBehavior = defineBehavior({
           checkoutSessionId,
           billingAddress,
         },
-        createNoopContext(transaction)
+        transaction
       )
 
       return {

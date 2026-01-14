@@ -46,7 +46,10 @@ import {
   updatePurchase,
   upsertPurchaseById,
 } from '@/db/tableMethods/purchaseMethods'
-import type { TransactionEffectsContext } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import {
   CheckoutSessionStatus,
   FeeCalculationType,
@@ -73,9 +76,8 @@ import { createInitialInvoiceForPurchase } from './invoices'
 
 export const editCheckoutSession = async (
   input: EditCheckoutSessionInput,
-  ctx: TransactionEffectsContext
+  transaction: DbTransaction
 ) => {
-  const { transaction } = ctx
   const { checkoutSession, purchaseId } = input
   const previousCheckoutSession = await selectCheckoutSessionById(
     checkoutSession.id,
@@ -191,12 +193,11 @@ export const editCheckoutSessionBillingAddress = async (
     checkoutSessionId: string
     billingAddress: BillingAddress
   },
-  ctx: TransactionEffectsContext
+  transaction: DbTransaction
 ): Promise<{
   checkoutSession: CheckoutSession.Record
   feeCalculation: FeeCalculation.Record | null
 }> => {
-  const { transaction } = ctx
   const previousCheckoutSession = await selectCheckoutSessionById(
     input.checkoutSessionId,
     transaction
