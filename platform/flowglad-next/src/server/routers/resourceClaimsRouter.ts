@@ -439,143 +439,138 @@ const listResourceUsagesProcedure = devOnlyProcedure
   .input(listResourceUsagesInputSchema)
   .output(listResourceUsagesOutputSchema)
   .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transaction, organizationId }) => {
-        const { subscription } = await validateSubscriptionOwnership(
-          input.subscriptionId,
-          organizationId,
-          transaction
-        )
+    authenticatedProcedureTransaction(async (params) => {
+      const { input, transaction, organizationId } = params
+      const { subscription } = await validateSubscriptionOwnership(
+        input.subscriptionId,
+        organizationId,
+        transaction
+      )
 
-        const subscriptionItemsList = await selectSubscriptionItems(
-          { subscriptionId: input.subscriptionId },
-          transaction
-        )
+      const subscriptionItemsList = await selectSubscriptionItems(
+        { subscriptionId: input.subscriptionId },
+        transaction
+      )
 
-        if (subscriptionItemsList.length === 0) {
-          return []
-        }
-
-        const subscriptionItemIds = subscriptionItemsList.map(
-          (item) => item.id
-        )
-        const allFeatures = await selectSubscriptionItemFeatures(
-          { subscriptionItemId: subscriptionItemIds },
-          transaction
-        )
-
-        const resourceFeatures = allFeatures.filter(
-          (
-            feature
-          ): feature is SubscriptionItemFeature.ResourceRecord =>
-            feature.type === FeatureType.Resource &&
-            feature.resourceId !== null
-        )
-
-        if (resourceFeatures.length === 0) {
-          return []
-        }
-
-        const resourceIds = Array.from(
-          new Set(resourceFeatures.map((f) => f.resourceId!))
-        )
-
-        const resourcesResult = await selectResources(
-          {
-            id: resourceIds,
-            pricingModelId: subscription.pricingModelId,
-            organizationId,
-          },
-          transaction
-        )
-
-        // Apply filtering based on input parameters
-        let filteredResources = resourcesResult
-        if (input.resourceSlugs && input.resourceSlugs.length > 0) {
-          const slugSet = new Set(input.resourceSlugs)
-          filteredResources = resourcesResult.filter((r) =>
-            slugSet.has(r.slug)
-          )
-        } else if (
-          input.resourceIds &&
-          input.resourceIds.length > 0
-        ) {
-          const idSet = new Set(input.resourceIds)
-          filteredResources = resourcesResult.filter((r) =>
-            idSet.has(r.id)
-          )
-        }
-
-        const resourcesById = new Map(
-          filteredResources.map((r) => [r.id, r])
-        )
-
-        const featureIds = resourceFeatures.map((f) => f.id)
-        const claimCountsByFeatureId =
-          await countActiveClaimsForSubscriptionItemFeatures(
-            featureIds,
-            transaction
-          )
-
-        const usageResults = resourceFeatures
-          .map((feature) => {
-            const resource = resourcesById.get(feature.resourceId!)
-            if (!resource) {
-              return null
-            }
-
-            const capacity = feature.amount
-            const claimed =
-              claimCountsByFeatureId.get(feature.id) ?? 0
-
-            return {
-              resourceSlug: resource.slug,
-              resourceId: resource.id,
-              capacity,
-              claimed,
-              available: capacity - claimed,
-            }
-          })
-          .filter(
-            (
-              result
-            ): result is {
-              resourceSlug: string
-              resourceId: string
-              capacity: number
-              claimed: number
-              available: number
-            } => result !== null
-          )
-
-        const usageResourceIds = usageResults.map((u) => u.resourceId)
-        const claims =
-          usageResourceIds.length === 0
-            ? []
-            : await selectActiveResourceClaims(
-                {
-                  subscriptionId: input.subscriptionId,
-                  resourceId: usageResourceIds,
-                },
-                transaction
-              )
-
-        const claimsByResourceId = new Map<string, typeof claims>()
-        for (const claim of claims) {
-          const existing = claimsByResourceId.get(claim.resourceId)
-          if (existing) {
-            existing.push(claim)
-          } else {
-            claimsByResourceId.set(claim.resourceId, [claim])
-          }
-        }
-
-        return usageResults.map((usage) => ({
-          usage,
-          claims: claimsByResourceId.get(usage.resourceId) ?? [],
-        }))
+      if (subscriptionItemsList.length === 0) {
+        return []
       }
-    )
+
+      const subscriptionItemIds = subscriptionItemsList.map(
+        (item) => item.id
+      )
+      const allFeatures = await selectSubscriptionItemFeatures(
+        { subscriptionItemId: subscriptionItemIds },
+        transaction
+      )
+
+      const resourceFeatures = allFeatures.filter(
+        (
+          feature
+        ): feature is SubscriptionItemFeature.ResourceRecord =>
+          feature.type === FeatureType.Resource &&
+          feature.resourceId !== null
+      )
+
+      if (resourceFeatures.length === 0) {
+        return []
+      }
+
+      const resourceIds = Array.from(
+        new Set(resourceFeatures.map((f) => f.resourceId!))
+      )
+
+      const resourcesResult = await selectResources(
+        {
+          id: resourceIds,
+          pricingModelId: subscription.pricingModelId,
+          organizationId,
+        },
+        transaction
+      )
+
+      // Apply filtering based on input parameters
+      let filteredResources = resourcesResult
+      if (input.resourceSlugs && input.resourceSlugs.length > 0) {
+        const slugSet = new Set(input.resourceSlugs)
+        filteredResources = resourcesResult.filter((r) =>
+          slugSet.has(r.slug)
+        )
+      } else if (input.resourceIds && input.resourceIds.length > 0) {
+        const idSet = new Set(input.resourceIds)
+        filteredResources = resourcesResult.filter((r) =>
+          idSet.has(r.id)
+        )
+      }
+
+      const resourcesById = new Map(
+        filteredResources.map((r) => [r.id, r])
+      )
+
+      const featureIds = resourceFeatures.map((f) => f.id)
+      const claimCountsByFeatureId =
+        await countActiveClaimsForSubscriptionItemFeatures(
+          featureIds,
+          transaction
+        )
+
+      const usageResults = resourceFeatures
+        .map((feature) => {
+          const resource = resourcesById.get(feature.resourceId!)
+          if (!resource) {
+            return null
+          }
+
+          const capacity = feature.amount
+          const claimed = claimCountsByFeatureId.get(feature.id) ?? 0
+
+          return {
+            resourceSlug: resource.slug,
+            resourceId: resource.id,
+            capacity,
+            claimed,
+            available: capacity - claimed,
+          }
+        })
+        .filter(
+          (
+            result
+          ): result is {
+            resourceSlug: string
+            resourceId: string
+            capacity: number
+            claimed: number
+            available: number
+          } => result !== null
+        )
+
+      const usageResourceIds = usageResults.map((u) => u.resourceId)
+      const claims =
+        usageResourceIds.length === 0
+          ? []
+          : await selectActiveResourceClaims(
+              {
+                subscriptionId: input.subscriptionId,
+                resourceId: usageResourceIds,
+              },
+              transaction
+            )
+
+      const claimsByResourceId = new Map<string, typeof claims>()
+      for (const claim of claims) {
+        const existing = claimsByResourceId.get(claim.resourceId)
+        if (existing) {
+          existing.push(claim)
+        } else {
+          claimsByResourceId.set(claim.resourceId, [claim])
+        }
+      }
+
+      return usageResults.map((usage) => ({
+        usage,
+        claims: claimsByResourceId.get(usage.resourceId) ?? [],
+      }))
+    })
   )
 
 const listClaimsProcedure = devOnlyProcedure
