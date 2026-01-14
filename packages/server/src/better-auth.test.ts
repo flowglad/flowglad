@@ -150,12 +150,18 @@ describe('flowgladPlugin', () => {
       'createSubscription',
       'updateCustomer',
       'createUsageEvent',
+      'getResources',
+      'claimResource',
+      'releaseResource',
+      'listResourceClaims',
     ]
 
     for (const endpoint of expectedEndpoints) {
       expect(plugin.endpoints).toHaveProperty(endpoint)
     }
-    expect(Object.keys(plugin.endpoints)).toHaveLength(12)
+    expect(Object.keys(plugin.endpoints)).toHaveLength(
+      expectedEndpoints.length
+    )
   })
 
   it('includes after hooks for sign-up and organization creation', () => {
