@@ -58,6 +58,7 @@ import {
   billingPeriodAndItemsInsertsFromSubscription,
   createBillingPeriodAndItems,
 } from '@/subscriptions/billingPeriodHelpers'
+import { createNoopContext } from '@/test-utils/transactionCallbacks'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -149,7 +150,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         updatedBillingPeriod,
-        transaction
+        createNoopContext(transaction)
       )
 
       // Expect that the subscription's current billing period dates are updated (i.e. a new period was created)
@@ -172,7 +173,7 @@ describe('Subscription Billing Period Transition', async () => {
       await expect(
         attemptToTransitionSubscriptionBillingPeriod(
           futureBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       ).rejects.toThrow(/Cannot close billing period/)
     })
@@ -203,7 +204,7 @@ describe('Subscription Billing Period Transition', async () => {
         result: { subscription: updatedSub },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         billingPeriod,
-        transaction
+        createNoopContext(transaction)
       )
 
       // Verify that the current (old) billing period is now Completed
@@ -239,7 +240,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         billingPeriod,
-        transaction
+        createNoopContext(transaction)
       )
 
       expect(newBillingRun).toBeNull()
@@ -273,7 +274,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         updatedBillingPeriod,
-        transaction
+        createNoopContext(transaction)
       )
 
       expect(updatedSub.status).toBe(SubscriptionStatus.Canceled)
@@ -302,7 +303,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         updatedBillingPeriod,
-        transaction
+        createNoopContext(transaction)
       )
 
       // Verify that subscription billing period dates have been updated to new period values
@@ -353,7 +354,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         updatedBillingPeriod,
-        transaction
+        createNoopContext(transaction)
       )
 
       // Expect no billing run is created and subscription status is updated to PastDue
@@ -396,7 +397,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         updatedBillingPeriod,
-        transaction
+        createNoopContext(transaction)
       )
 
       // Since attemptToCreateFutureBillingPeriodForSubscription returns null,
@@ -448,7 +449,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         updatedBillingPeriod,
-        transaction
+        createNoopContext(transaction)
       )
       const allBPeriods = await selectBillingPeriods(
         { subscriptionId: subscription.id },
@@ -496,7 +497,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         updatedBillingPeriod,
-        transaction
+        createNoopContext(transaction)
       )
       // Expect that the subscription's current billing period dates are updated.
       expect(updatedSub.currentBillingPeriodStart).not.toEqual(
@@ -609,7 +610,7 @@ describe('Subscription Billing Period Transition', async () => {
       await expect(
         attemptToTransitionSubscriptionBillingPeriod(
           billingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       ).rejects.toThrow(
         `Cannot transition subscription ${subscription.id} in credit trial status`
@@ -692,7 +693,7 @@ describe('Subscription Billing Period Transition', async () => {
           },
         } = await attemptToTransitionSubscriptionBillingPeriod(
           updatedBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
 
         // doNotCharge subscription should remain Active (not PastDue)
@@ -736,7 +737,7 @@ describe('Subscription Billing Period Transition', async () => {
           },
         } = await attemptToTransitionSubscriptionBillingPeriod(
           updatedBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
 
         // Should remain Active
@@ -842,7 +843,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
 
@@ -904,7 +905,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
 
@@ -946,7 +947,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
 
@@ -987,7 +988,7 @@ describe('Ledger Interactions', () => {
         await comprehensiveAdminTransaction(async ({ transaction }) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
-            transaction
+            createNoopContext(transaction)
           )
         )
       canceledSub = updatedSub
@@ -1016,7 +1017,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
 
@@ -1089,7 +1090,7 @@ describe('Ledger Interactions', () => {
         await comprehensiveAdminTransaction(async ({ transaction }) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
-            transaction
+            createNoopContext(transaction)
           )
         )
       pastDueSub = updatedSub
@@ -1181,7 +1182,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
 
@@ -1268,7 +1269,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
 
@@ -1370,7 +1371,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
 
@@ -1441,7 +1442,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
 
@@ -1549,7 +1550,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
 
@@ -1656,7 +1657,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
 
@@ -1722,7 +1723,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
 
@@ -1788,7 +1789,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
 
@@ -1914,7 +1915,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
       // Assertions
@@ -2038,7 +2039,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
 
@@ -2188,7 +2189,7 @@ describe('Ledger Interactions', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createNoopContext(transaction)
         )
       )
 

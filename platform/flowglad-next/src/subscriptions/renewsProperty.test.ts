@@ -36,6 +36,7 @@ import {
   createBillingPeriodAndItems,
 } from '@/subscriptions/billingPeriodHelpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
+import { createNoopContext } from '@/test-utils/transactionCallbacks'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -94,7 +95,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId,
                 autoStart: true,
               },
-              transaction
+              createNoopContext(transaction)
             )
           }
         )
@@ -136,7 +137,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId,
                 autoStart: true,
               },
-              transaction
+              createNoopContext(transaction)
             )
           }
         )
@@ -173,7 +174,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId,
                 autoStart: true,
               },
-              transaction
+              createNoopContext(transaction)
             )
           }
         )
@@ -210,7 +211,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 trialEnd,
                 autoStart: true,
               },
-              transaction
+              createNoopContext(transaction)
             )
           }
         )
@@ -255,7 +256,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           adminTransaction(async ({ transaction }) => {
             return attemptToTransitionSubscriptionBillingPeriod(
               testBillingPeriod,
-              transaction
+              createNoopContext(transaction)
             )
           })
         ).rejects.toThrow(/credit trial/)
@@ -288,7 +289,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 interval: IntervalUnit.Month,
                 intervalCount: 1,
               },
-              transaction
+              createNoopContext(transaction)
             )
 
             const billingPeriods = await selectBillingPeriods(
@@ -338,7 +339,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               interval: IntervalUnit.Month,
               intervalCount: 1,
             },
-            transaction
+            createNoopContext(transaction)
           )
           const billingRuns = await selectBillingRuns(
             { subscriptionId: nonRenewingSubscription.id },
@@ -380,10 +381,21 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Transition billing period
         const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
+          async ({
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const ctx = {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
             return attemptToTransitionSubscriptionBillingPeriod(
               currentBillingPeriod,
-              transaction
+              ctx
             )
           }
         )
@@ -450,10 +462,21 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
+          async ({
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const ctx = {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
             return attemptToTransitionSubscriptionBillingPeriod(
               billingPeriod,
-              transaction
+              ctx
             )
           }
         )
@@ -501,10 +524,21 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
+          async ({
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const ctx = {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
             return attemptToTransitionSubscriptionBillingPeriod(
               billingPeriod,
-              transaction
+              ctx
             )
           }
         )
@@ -559,10 +593,21 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
+          async ({
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const ctx = {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
             return attemptToTransitionSubscriptionBillingPeriod(
               billingPeriod,
-              transaction
+              ctx
             )
           }
         )
@@ -639,12 +684,25 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Attempting to transition should throw error for non-renewing subscription
         await expect(
-          comprehensiveAdminTransaction(async ({ transaction }) => {
-            return attemptToTransitionSubscriptionBillingPeriod(
-              billingPeriod,
-              transaction
-            )
-          })
+          comprehensiveAdminTransaction(
+            async ({
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }) => {
+              const ctx = {
+                transaction,
+                invalidateCache,
+                emitEvent,
+                enqueueLedgerCommand,
+              }
+              return attemptToTransitionSubscriptionBillingPeriod(
+                billingPeriod,
+                ctx
+              )
+            }
+          )
         ).rejects.toThrow(
           'Non-renewing subscriptions cannot have billing periods'
         )
@@ -716,7 +774,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId: `si_credits_${core.nanoid()}`,
                 autoStart: true,
               },
-              transaction
+              createNoopContext(transaction)
             )
           }
         )
@@ -954,7 +1012,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId: `si_no_runs_${core.nanoid()}`,
                 autoStart: true,
               },
-              transaction
+              createNoopContext(transaction)
             )
           }
         )
@@ -1010,7 +1068,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 stripeSetupIntentId: `si_period_start_${core.nanoid()}`,
                 autoStart: true,
               },
-              transaction
+              createNoopContext(transaction)
             )
           }
         )
