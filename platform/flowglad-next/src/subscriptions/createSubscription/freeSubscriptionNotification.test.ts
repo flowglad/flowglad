@@ -12,7 +12,7 @@ import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import {
-  createNoopContext,
+  createDiscardingEffectsContext,
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
@@ -118,7 +118,7 @@ describe('Free Subscription Notification Behavior', () => {
     await adminTransaction(async ({ transaction }) => {
       await createSubscriptionWorkflow(
         params,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -163,7 +163,7 @@ describe('Free Subscription Notification Behavior', () => {
     await adminTransaction(async ({ transaction }) => {
       await createSubscriptionWorkflow(
         params,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -213,7 +213,7 @@ describe('Free Subscription Notification Behavior', () => {
     await adminTransaction(async ({ transaction }) => {
       await createSubscriptionWorkflow(
         params,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 

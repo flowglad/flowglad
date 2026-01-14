@@ -137,24 +137,34 @@ describe('Pay as You Go Workflow E2E', () => {
       )
     })
     const { customer, subscription } =
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await createCustomerBookkeeping(
-          {
-            customer: {
-              organizationId: organization.id,
-              pricingModelId: pricingModel.id,
-              name: 'Test Customer',
-              externalId: 'test-customer' + core.nanoid(),
-              email: 'test@test.com',
+      await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          return await createCustomerBookkeeping(
+            {
+              customer: {
+                organizationId: organization.id,
+                pricingModelId: pricingModel.id,
+                name: 'Test Customer',
+                externalId: 'test-customer' + core.nanoid(),
+                email: 'test@test.com',
+              },
             },
-          },
-          {
-            transaction,
-            organizationId: organization.id,
-            livemode: true,
-          }
-        )
-      })
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode: true,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
+          )
+        }
+      )
 
     if (!subscription) {
       throw new Error('No subscription')

@@ -45,8 +45,8 @@ import {
 } from '@/subscriptions/migratePricingModel'
 import {
   createCapturingCallbacks,
-  createCapturingContext,
-  createNoopContext,
+  createCapturingEffectsContext,
+  createDiscardingEffectsContext,
   noopEmitEvent,
   noopEnqueueLedgerCommand,
   noopInvalidateCache,
@@ -144,7 +144,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       // Execute migration
       const { result, effects } = await adminTransaction(
         async ({ transaction }) => {
-          const { ctx, effects } = createCapturingContext(transaction)
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
           const result = await migratePricingModelForCustomer(
             {
               customer,
@@ -242,7 +243,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -350,7 +351,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -389,7 +390,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       // Execute migration on customer with no subscriptions
       const { result, effects } = await adminTransaction(
         async ({ transaction }) => {
-          const { ctx, effects } = createCapturingContext(transaction)
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
           const result = await migratePricingModelForCustomer(
             {
               customer,
@@ -449,7 +451,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: emptyPricingModel.id,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow('No default product found for pricing model')
@@ -479,7 +481,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       // Execute migration (same pricing model)
       const { result, effects } = await adminTransaction(
         async ({ transaction }) => {
-          const { ctx, effects } = createCapturingContext(transaction)
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
           const result = await migratePricingModelForCustomer(
             {
               customer: updatedCustomer,
@@ -553,7 +556,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -654,7 +657,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -781,7 +784,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -905,7 +908,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1031,7 +1034,7 @@ describe('Pricing Model Migration Test Suite', async () => {
             oldPricingModelId: pricingModel1.id,
             newPricingModelId: pricingModel2.id,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -1137,7 +1140,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: pricingModel2.id,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
           return result.result.canceledSubscriptions[0].canceledAt
         }
@@ -1197,7 +1200,7 @@ describe('Pricing Model Migration Test Suite', async () => {
             oldPricingModelId: pricingModel1.id,
             newPricingModelId: pricingModel2.id,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -1238,7 +1241,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: 'non-existent-id',
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow('No pricing models found with id')
@@ -1260,7 +1263,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               oldPricingModelId: pricingModel1.id,
               newPricingModelId: otherPricingModel.id,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow('does not belong to organization')
@@ -1541,7 +1544,7 @@ describe('Pricing Model Migration Test Suite', async () => {
             oldPricingModelId: pricingModel1.id,
             newPricingModelId: pricingModel2.id,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -1597,7 +1600,7 @@ describe('Pricing Model Migration Test Suite', async () => {
             oldPricingModelId: pricingModel1.id,
             newPricingModelId: pricingModel2.id,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -1633,7 +1636,8 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       const effects = await adminTransaction(
         async ({ transaction }) => {
-          const { ctx, effects } = createCapturingContext(transaction)
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
           await migratePricingModelForCustomer(
             {
               customer,
@@ -1656,7 +1660,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       // Customer with no subscriptions
       const effects = await adminTransaction(
         async ({ transaction }) => {
-          const { ctx, effects } = createCapturingContext(transaction)
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
           await migratePricingModelForCustomer(
             {
               customer,
@@ -1691,7 +1696,8 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       const effects = await adminTransaction(
         async ({ transaction }) => {
-          const { ctx, effects } = createCapturingContext(transaction)
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
           await migratePricingModelForCustomer(
             {
               customer,
