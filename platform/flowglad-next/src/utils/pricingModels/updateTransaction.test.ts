@@ -18,15 +18,6 @@ import type { SetupPricingModelInput } from './setupSchemas'
 import { setupPricingModelTransaction } from './setupTransaction'
 import { updatePricingModelTransaction } from './updateTransaction'
 
-/**
- * Temporary type for tests that include resources.
- * Once Patch 1 (schema changes) is implemented, SetupPricingModelInput
- * will include resources and this type can be removed.
- */
-type SetupPricingModelInputWithResources = SetupPricingModelInput & {
-  resources?: Array<{ slug: string; name: string; active?: boolean }>
-}
-
 let organization: Organization.Record
 
 beforeEach(async () => {
@@ -506,14 +497,6 @@ describe('updatePricingModelTransaction', () => {
     })
   })
 
-  /**
-   * Resource update tests - these tests require Patch 6 (setupHelpers) to be implemented
-   * so that getPricingModelSetupData returns resources in existingInput.
-   * Once Patch 6 is done, unskip these tests.
-   *
-   * Note: Type assertions are used because Patch 1 (schema changes) adds 'resources'
-   * to SetupPricingModelInput. Remove assertions once Patch 1 is implemented.
-   */
   describe('resource updates', () => {
     it('creates new resources when added to proposed input', async () => {
       const setupResult = await createBasicPricingModel()
@@ -563,7 +546,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              },
             },
             transaction
           )
@@ -624,7 +607,7 @@ describe('updatePricingModelTransaction', () => {
                   features: ['feature-a'],
                 },
               ],
-            } as SetupPricingModelInputWithResources,
+            },
           },
           transaction
         )
@@ -672,7 +655,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              },
             },
             transaction
           )
@@ -733,7 +716,7 @@ describe('updatePricingModelTransaction', () => {
                   features: ['feature-a'],
                 },
               ],
-            } as SetupPricingModelInputWithResources,
+            },
           },
           transaction
         )
@@ -781,7 +764,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              },
             },
             transaction
           )
@@ -851,7 +834,7 @@ describe('updatePricingModelTransaction', () => {
                   features: ['feature-a'],
                 },
               ],
-            } as SetupPricingModelInputWithResources,
+            },
           },
           transaction
         )
@@ -901,7 +884,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              },
             },
             transaction
           )
@@ -913,16 +896,6 @@ describe('updatePricingModelTransaction', () => {
     })
   })
 
-  /**
-   * Resource feature update tests - these tests require:
-   * - Patch 1 (schema changes) for Resource feature type in setup schema
-   * - Patch 3 (updateHelpers) for resources in ID resolution
-   * - Patch 4 (updateTransaction) for resource diffing
-   * - Patch 5 (updateTransaction) for Resource feature handling
-   * - Patch 6 (setupHelpers) for resources in export
-   *
-   * Unskip these tests once all patches are implemented.
-   */
   describe('resource feature updates', () => {
     it('creates new Resource features with correct resourceId', async () => {
       // First create a pricing model with a resource but no Resource features
@@ -969,7 +942,7 @@ describe('updatePricingModelTransaction', () => {
                   features: ['feature-a'],
                 },
               ],
-            } as SetupPricingModelInputWithResources,
+            },
           },
           transaction
         )
@@ -1036,7 +1009,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a', 'seat-grant'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              },
             },
             transaction
           )
@@ -1110,7 +1083,7 @@ describe('updatePricingModelTransaction', () => {
                   features: ['feature-a', 'resource-grant'],
                 },
               ],
-            } as SetupPricingModelInputWithResources,
+            },
           },
           transaction
         )
@@ -1182,7 +1155,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a', 'resource-grant'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              },
             },
             transaction
           )
@@ -1240,7 +1213,7 @@ describe('updatePricingModelTransaction', () => {
                   features: ['feature-a'],
                 },
               ],
-            } as SetupPricingModelInputWithResources,
+            },
           },
           transaction
         )
@@ -1297,7 +1270,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a', 'invalid-grant'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              },
             },
             transaction
           )
@@ -1360,7 +1333,7 @@ describe('updatePricingModelTransaction', () => {
                   features: ['feature-a', 'seat-grant'],
                 },
               ],
-            } as SetupPricingModelInputWithResources,
+            },
           },
           transaction
         )
@@ -1409,7 +1382,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              },
             },
             transaction
           )
@@ -1505,7 +1478,7 @@ describe('updatePricingModelTransaction', () => {
                     ],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              },
             },
             transaction
           )

@@ -229,8 +229,16 @@ export const updatePricingModelTransaction = async (
     )
   }
 
-  // Step 8b: Handle resources
-  // Resources are optional in the input schema, so we default to empty arrays
+  /**
+   * Step 8b: Handle resources
+   *
+   * Creates new resources, updates existing ones, and deactivates removed ones.
+   * Resources must be processed before features because Resource features
+   * need to resolve resourceSlug → resourceId.
+   *
+   * Note: Resources are optional in the input schema until Patch 1 (setupSchemas)
+   * adds them to the discriminated union, so we default to empty arrays.
+   */
   type ResourceInput = {
     slug: string
     name: string
