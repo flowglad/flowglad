@@ -19,7 +19,6 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type {
-  AuthenticatedTransactionParams,
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'

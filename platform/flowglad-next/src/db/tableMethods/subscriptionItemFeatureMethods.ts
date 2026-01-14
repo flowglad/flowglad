@@ -148,9 +148,7 @@ export const selectSubscriptionItemFeaturesWithFeatureSlug = async (
  */
 export const selectSubscriptionItemFeaturesWithFeatureSlugs = async (
   subscriptionItemIds: string[],
-  transaction: DbTransaction,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _livemode?: boolean
+  transaction: DbTransaction
 ): Promise<SubscriptionItemFeature.ClientRecord[]> => {
   if (subscriptionItemIds.length === 0) {
     return []
