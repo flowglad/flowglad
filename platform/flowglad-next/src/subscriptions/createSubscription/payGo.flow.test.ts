@@ -201,8 +201,8 @@ describe('Pay as You Go Workflow E2E', () => {
 
     // 2. Create a usage event for the subscription
     const staticTransctionId = 'test-' + core.nanoid()
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
-      return await ingestAndProcessUsageEvent(
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const usageEvent = await ingestAndProcessUsageEvent(
         {
           input: {
             usageEvent: {
@@ -217,8 +217,9 @@ describe('Pay as You Go Workflow E2E', () => {
           },
           livemode: true,
         },
-        transaction
+        ctx
       )
+      return { result: usageEvent }
     })
 
     // 3. Call @customerBillingTransaction again and assert final state
@@ -240,8 +241,8 @@ describe('Pay as You Go Workflow E2E', () => {
     })
 
     // 4. Create a usage event for the subscription
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
-      return await ingestAndProcessUsageEvent(
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const usageEvent = await ingestAndProcessUsageEvent(
         {
           input: {
             usageEvent: {
@@ -256,8 +257,9 @@ describe('Pay as You Go Workflow E2E', () => {
           },
           livemode: true,
         },
-        transaction
+        ctx
       )
+      return { result: usageEvent }
     })
 
     // 5. Call @customerBillingTransaction again and assert final state
@@ -393,8 +395,8 @@ describe('Pay as You Go Workflow E2E', () => {
 
     // 6. Create a usage event after payment
     const newTransactionId = 'test2-' + core.nanoid()
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
-      return await ingestAndProcessUsageEvent(
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const usageEvent = await ingestAndProcessUsageEvent(
         {
           input: {
             usageEvent: {
@@ -409,8 +411,9 @@ describe('Pay as You Go Workflow E2E', () => {
           },
           livemode: true,
         },
-        transaction
+        ctx
       )
+      return { result: usageEvent }
     })
 
     // 7. Call @customerBillingTransaction again and assert final state after new usage

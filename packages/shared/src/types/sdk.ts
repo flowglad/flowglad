@@ -13,6 +13,10 @@ export enum FlowgladActionKey {
   CreateSubscription = 'subscriptions/create',
   UpdateCustomer = 'customers/update',
   CreateUsageEvent = 'usage-events/create',
+  GetResources = 'resources',
+  ClaimResource = 'resources/claim',
+  ReleaseResource = 'resources/release',
+  ListResourceClaims = 'resources/claims',
 }
 
 export enum HTTPMethod {

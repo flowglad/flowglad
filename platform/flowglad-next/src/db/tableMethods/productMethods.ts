@@ -1,6 +1,7 @@
-import { eq, inArray, notExists, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, notExists, sql } from 'drizzle-orm'
 import * as R from 'ramda'
 import { z } from 'zod'
+import { payments } from '@/db/schema/payments'
 import {
   Price,
   prices,
@@ -19,6 +20,8 @@ import {
   productsSelectSchema,
   productsUpdateSchema,
 } from '@/db/schema/products'
+import { purchases } from '@/db/schema/purchases'
+import { subscriptions } from '@/db/schema/subscriptions'
 import {
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
@@ -32,7 +35,7 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
-import { PriceType } from '@/types'
+import { PaymentStatus, PriceType } from '@/types'
 import { groupBy } from '@/utils/core'
 import type { DbTransaction } from '../types'
 import { selectMembershipAndOrganizations } from './membershipMethods'
@@ -118,6 +121,95 @@ export interface ProductRow {
   prices: Price.ClientRecord[]
   product: Product.ClientRecord
   pricingModel?: PricingModel.ClientRecord
+}
+
+/**
+ * Aggregates total revenue per product from both purchases and subscriptions.
+ *
+ * Join paths:
+ * - Purchase-based: payments → purchases (via purchaseId) → prices (via priceId) → products (via productId)
+ * - Subscription-based: payments → subscriptions (via subscriptionId) → prices (via priceId) → products (via productId)
+ *
+ * Only counts succeeded payments, subtracting any refunded amounts.
+ * Subscription payments (where purchaseId is null) are included via the subscription path
+ * to avoid double-counting.
+ *
+ * @param productIds - Array of product IDs to aggregate revenue for
+ * @param transaction - Database transaction
+ * @returns Map of productId → totalRevenue (in cents)
+ */
+export const aggregateRevenueByProductIds = async (
+  productIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, number>> => {
+  if (productIds.length === 0) {
+    return new Map()
+  }
+
+  // Query for purchase-based revenue (payments with purchaseId)
+  const purchaseRevenueResults = await transaction
+    .select({
+      productId: prices.productId,
+      totalRevenue:
+        sql<number>`COALESCE(SUM(${payments.amount} - COALESCE(${payments.refundedAmount}, 0)), 0)`.mapWith(
+          Number
+        ),
+    })
+    .from(payments)
+    .innerJoin(purchases, eq(payments.purchaseId, purchases.id))
+    .innerJoin(prices, eq(purchases.priceId, prices.id))
+    .where(
+      and(
+        inArray(prices.productId, productIds),
+        eq(payments.status, PaymentStatus.Succeeded)
+      )
+    )
+    .groupBy(prices.productId)
+
+  // Query for subscription-based revenue (payments with subscriptionId but no purchaseId)
+  const subscriptionRevenueResults = await transaction
+    .select({
+      productId: prices.productId,
+      totalRevenue:
+        sql<number>`COALESCE(SUM(${payments.amount} - COALESCE(${payments.refundedAmount}, 0)), 0)`.mapWith(
+          Number
+        ),
+    })
+    .from(payments)
+    .innerJoin(
+      subscriptions,
+      eq(payments.subscriptionId, subscriptions.id)
+    )
+    .innerJoin(prices, eq(subscriptions.priceId, prices.id))
+    .where(
+      and(
+        inArray(prices.productId, productIds),
+        eq(payments.status, PaymentStatus.Succeeded),
+        isNull(payments.purchaseId) // Only count subscription payments not linked to a purchase
+      )
+    )
+    .groupBy(prices.productId)
+
+  // Combine results from both queries
+  const revenueMap = new Map<string, number>()
+
+  for (const row of purchaseRevenueResults) {
+    if (row.productId) {
+      revenueMap.set(row.productId, row.totalRevenue)
+    }
+  }
+
+  for (const row of subscriptionRevenueResults) {
+    if (row.productId) {
+      const existingRevenue = revenueMap.get(row.productId) ?? 0
+      revenueMap.set(
+        row.productId,
+        existingRevenue + row.totalRevenue
+      )
+    }
+  }
+
+  return revenueMap
 }
 
 export const getProductTableRows = async (
@@ -219,18 +311,22 @@ export const selectProductsCursorPaginated =
     config,
     productsTableRowDataSchema,
     async (data, transaction) => {
-      const pricesForProducts = await selectPrices(
-        {
-          productId: data.map((product) => product.id),
-        },
-        transaction
-      )
-      const pricingModelsForProducts = await selectPricingModels(
-        {
-          id: data.map((product) => product.pricingModelId),
-        },
-        transaction
-      )
+      const productIds = data.map((product) => product.id)
+
+      // Fetch related data in parallel for efficiency
+      const [
+        pricesForProducts,
+        pricingModelsForProducts,
+        revenueByProduct,
+      ] = await Promise.all([
+        selectPrices({ productId: productIds }, transaction),
+        selectPricingModels(
+          { id: data.map((product) => product.pricingModelId) },
+          transaction
+        ),
+        aggregateRevenueByProductIds(productIds, transaction),
+      ])
+
       // Filter to only include prices with productId (non-usage prices)
       // and group by productId
       const pricesByProductId: Record<string, Price.ClientRecord[]> =
@@ -249,11 +345,12 @@ export const selectProductsCursorPaginated =
         PricingModel.ClientRecord[]
       > = groupBy((c) => c.id, pricingModelsForProducts)
 
-      // Format products with prices and pricingModels
+      // Format products with prices, pricingModels, and revenue
       return data.map((product) => ({
         product,
         prices: pricesByProductId[product.id] ?? [],
         pricingModel: pricingModelsById[product.pricingModelId]?.[0],
+        totalRevenue: revenueByProduct.get(product.id) ?? 0,
       }))
     },
     // Searchable columns for ILIKE search on name and slug

@@ -275,10 +275,21 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
     // Second transaction: Actually perform the cancellation (admin-scoped, bypasses RLS)
     // Note: Validation above ensures only AtEndOfCurrentBillingPeriod reaches here
     return await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async ({
+        transaction,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        const ctx = {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }
         const subscription = await scheduleSubscriptionCancellation(
           input,
-          transaction
+          ctx
         )
         return {
           result: {
@@ -358,13 +369,24 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
 
     // Second transaction: Actually perform the uncancel (admin-scoped, bypasses RLS)
     return await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async ({
+        transaction,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        const ctx = {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }
         const subscription = await selectSubscriptionById(
           input.id,
           transaction
         )
         const { result: updatedSubscription } =
-          await uncancelSubscription(subscription, transaction)
+          await uncancelSubscription(subscription, ctx)
         return {
           result: {
             subscription: {

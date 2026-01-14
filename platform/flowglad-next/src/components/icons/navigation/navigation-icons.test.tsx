@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { render, screen } from '@testing-library/react'
 import { Gauge } from 'lucide-react'
 import React from 'react'

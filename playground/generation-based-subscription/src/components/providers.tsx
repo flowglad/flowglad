@@ -51,7 +51,10 @@ export function FlowgladProviderWrapper(props: {
   const loadBilling = !!session?.user
 
   return (
-    <FlowgladProvider loadBilling={loadBilling}>
+    <FlowgladProvider
+      loadBilling={loadBilling}
+      betterAuthBasePath="/api/auth"
+    >
       {props.children}
     </FlowgladProvider>
   )

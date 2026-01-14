@@ -8,6 +8,7 @@ import {
   createAuthEndpoint,
   createAuthMiddleware,
 } from 'better-auth/plugins'
+import { z } from 'zod'
 import { FlowgladServer } from './FlowgladServer'
 import { routeToHandlerMap } from './subrouteHandlers'
 
@@ -61,6 +62,10 @@ export const endpointKeyToActionKey: Record<
   createSubscription: FlowgladActionKey.CreateSubscription,
   updateCustomer: FlowgladActionKey.UpdateCustomer,
   createUsageEvent: FlowgladActionKey.CreateUsageEvent,
+  getResources: FlowgladActionKey.GetResources,
+  claimResource: FlowgladActionKey.ClaimResource,
+  releaseResource: FlowgladActionKey.ReleaseResource,
+  listResourceClaims: FlowgladActionKey.ListResourceClaims,
 }
 
 /**
@@ -88,6 +93,10 @@ const _actionKeyToEndpointKey = {
   [FlowgladActionKey.CreateSubscription]: 'createSubscription',
   [FlowgladActionKey.UpdateCustomer]: 'updateCustomer',
   [FlowgladActionKey.CreateUsageEvent]: 'createUsageEvent',
+  [FlowgladActionKey.GetResources]: 'getResources',
+  [FlowgladActionKey.ClaimResource]: 'claimResource',
+  [FlowgladActionKey.ReleaseResource]: 'releaseResource',
+  [FlowgladActionKey.ListResourceClaims]: 'listResourceClaims',
 } satisfies Record<
   FlowgladActionKey,
   keyof typeof endpointKeyToActionKey
@@ -290,6 +299,9 @@ const createFlowgladBillingEndpoint = <T extends FlowgladActionKey>(
     `/flowglad/${actionKey}`,
     {
       method: 'POST',
+      // Use a permissive schema so Better Call parses the JSON body for us
+      // Handlers will do their own validation
+      body: z.record(z.string(), z.any()),
       metadata: {
         isAction: true,
       },
@@ -325,38 +337,10 @@ const createFlowgladBillingEndpoint = <T extends FlowgladActionKey>(
         )
       }
 
-      // 3. Validate input using existing Zod validators
+      // 3. Get request body (already parsed by Better Call due to body schema)
+      // Handlers will do their own validation (consistent with standalone requestHandler)
       const validator = flowgladActionValidators[actionKey]
-      let rawBody: unknown = {}
-      try {
-        rawBody = await ctx.request?.json()
-      } catch {
-        // Empty body is OK for some endpoints
-      }
-
-      // Inject externalId into the body for routes that need it
-      const bodyWithExternalId = {
-        ...(typeof rawBody === 'object' && rawBody !== null
-          ? rawBody
-          : {}),
-        externalId: customerResult.externalId,
-      }
-
-      const parsed = validator.inputValidator.safeParse(
-        bodyWithExternalId
-      )
-      if (!parsed.success) {
-        return ctx.json(
-          {
-            error: {
-              code: 'VALIDATION_ERROR',
-              message: 'Invalid request body',
-              details: parsed.error.flatten(),
-            },
-          },
-          { status: 400 }
-        )
-      }
+      const rawBody = ctx.body ?? {}
 
       // 4. Create FlowgladServer and delegate to handler
       const apiKey = options.apiKey || process.env.FLOWGLAD_SECRET_KEY
@@ -386,14 +370,13 @@ const createFlowgladBillingEndpoint = <T extends FlowgladActionKey>(
 
       // 5. Call the handler
       const handler = routeToHandlerMap[actionKey]
-      // The handler type expects specific data based on the action key,
-      // but TypeScript can't narrow the parsed.data type. We know it's
-      // valid because it passed validation, so we cast it.
+      // Pass the raw body to the handler - it will do its own validation
+      // (consistent with how the standalone requestHandler works)
       const result = await handler(
         {
           method: validator.method,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data: parsed.data as any,
+          data: rawBody as any,
         },
         flowgladServer
       )
@@ -507,6 +490,23 @@ export const flowgladPlugin = (
       ),
       createUsageEvent: createFlowgladBillingEndpoint(
         FlowgladActionKey.CreateUsageEvent,
+        options
+      ),
+      // Resource claim endpoints - to be fully implemented in later patches
+      getResources: createFlowgladBillingEndpoint(
+        FlowgladActionKey.GetResources,
+        options
+      ),
+      claimResource: createFlowgladBillingEndpoint(
+        FlowgladActionKey.ClaimResource,
+        options
+      ),
+      releaseResource: createFlowgladBillingEndpoint(
+        FlowgladActionKey.ReleaseResource,
+        options
+      ),
+      listResourceClaims: createFlowgladBillingEndpoint(
+        FlowgladActionKey.ListResourceClaims,
         options
       ),
     },

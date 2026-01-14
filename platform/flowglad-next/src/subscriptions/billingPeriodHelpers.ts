@@ -25,7 +25,10 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import {
   BillingPeriodStatus,
@@ -202,7 +205,7 @@ export const attemptBillingPeriodClose = async (
 
 export const attemptToTransitionSubscriptionBillingPeriod = async (
   currentBillingPeriod: BillingPeriod.Record,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<
   TransactionOutput<{
     subscription: Subscription.StandardRecord
@@ -210,6 +213,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     updatedBillingPeriod: BillingPeriod.Record
   }>
 > => {
+  const { transaction, invalidateCache } = ctx
   if (
     !currentBillingPeriod.endDate ||
     isNaN(currentBillingPeriod.endDate)
@@ -267,6 +271,10 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
         `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods (should never hit this)`
       )
     }
+    const cacheKey = CacheDependency.customerSubscriptions(
+      subscription.customerId
+    )
+    invalidateCache(cacheKey)
     return {
       result: {
         subscription,
@@ -274,11 +282,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
         updatedBillingPeriod,
       },
       eventsToInsert: [],
-      cacheInvalidations: [
-        CacheDependency.customerSubscriptions(
-          subscription.customerId
-        ),
-      ],
+      cacheInvalidations: [cacheKey],
     }
   }
 
@@ -311,6 +315,10 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
         `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods (should never hit this)`
       )
     }
+    const cacheKey = CacheDependency.customerSubscriptions(
+      subscription.customerId
+    )
+    invalidateCache(cacheKey)
     return {
       result: {
         subscription,
@@ -318,11 +326,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
         updatedBillingPeriod,
       },
       eventsToInsert: [],
-      cacheInvalidations: [
-        CacheDependency.customerSubscriptions(
-          subscription.customerId
-        ),
-      ],
+      cacheInvalidations: [cacheKey],
     }
   }
   const newBillingPeriod = result.billingPeriod
@@ -431,6 +435,10 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
         (feature) => feature.type === FeatureType.UsageCreditGrant
       ),
     }
+  const cacheKey = CacheDependency.customerSubscriptions(
+    subscription.customerId
+  )
+  invalidateCache(cacheKey)
   return {
     result: { subscription, billingRun, updatedBillingPeriod },
     eventsToInsert: [],
@@ -441,9 +449,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       subscriptionId: subscription.id,
       payload: ledgerCommandPayload,
     },
-    cacheInvalidations: [
-      CacheDependency.customerSubscriptions(subscription.customerId),
-    ],
+    cacheInvalidations: [cacheKey],
   }
 }
 

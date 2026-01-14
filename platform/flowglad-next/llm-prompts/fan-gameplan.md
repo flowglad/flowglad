@@ -2,6 +2,12 @@
 
 I'm providing a gameplan with patches and a dependency graph (includes a **Project Name** in kebab-case).
 
+**Directory Structure (Required):** Patch files must be created at:
+```
+llm-prompts/patches/{project-name}/patch-{N}.md
+```
+This structure is required for compatibility with `fan-patches.sh`, which spins up parallel Claude Code sessions.
+
 ## Your Task
 
 1. Extract the **Project Name** from the gameplan (e.g., `subscription-adjustments`)

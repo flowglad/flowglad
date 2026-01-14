@@ -1,5 +1,5 @@
 {
-  "id": "3a97e877-4736-460e-81e6-9c24fdf7980e",
+  "id": "e029b83b-0e1b-4d68-8f5f-166672c14baf",
   "prevId": "79a359e8-3dec-4c38-ba39-ab0e3a36a143",
   "version": "7",
   "dialect": "postgresql",
@@ -6815,20 +6815,13 @@
           "to": ["customer"],
           "using": "\"active\" = true AND (\n            \"product_id\" IN (SELECT \"id\" FROM \"products\")\n            OR (\"product_id\" IS NULL AND \"usage_meter_id\" IN (SELECT \"id\" FROM \"usage_meters\"))\n          )"
         },
-        "On update, ensure usage meter belongs to same pricing model": {
-          "name": "On update, ensure usage meter belongs to same pricing model",
-          "as": "PERMISSIVE",
-          "for": "UPDATE",
-          "to": ["merchant"],
-          "withCheck": "\"usage_meter_id\" IS NULL\n  OR \"usage_meter_id\" IN (\n    SELECT \"id\" FROM \"usage_meters\"\n    WHERE \"usage_meters\".\"pricing_model_id\" = \"prices\".\"pricing_model_id\"\n  )"
-        },
         "Merchant access via product or usage meter FK": {
           "name": "Merchant access via product or usage meter FK",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
           "using": "(\n            (\"type\" = 'usage' AND \"usage_meter_id\" IN (SELECT \"id\" FROM \"usage_meters\"))\n            OR (\"type\" != 'usage' AND \"product_id\" IN (SELECT \"id\" FROM \"products\"))\n          )",
-          "withCheck": "(\n            (\"type\" = 'usage' AND \"usage_meter_id\" IN (SELECT \"id\" FROM \"usage_meters\"))\n            OR (\"type\" != 'usage' AND \"product_id\" IN (SELECT \"id\" FROM \"products\"))\n          )"
+          "withCheck": "(\n            (\"type\" = 'usage' AND \"usage_meter_id\" IN (\n              SELECT \"id\" FROM \"usage_meters\"\n              WHERE \"usage_meters\".\"pricing_model_id\" = \"prices\".\"pricing_model_id\"\n            ))\n            OR (\"type\" != 'usage' AND \"product_id\" IN (\n              SELECT \"id\" FROM \"products\"\n              WHERE \"products\".\"pricing_model_id\" = \"prices\".\"pricing_model_id\"\n            ))\n          )"
         },
         "Check mode (prices)": {
           "name": "Check mode (prices)",

@@ -755,6 +755,8 @@ export const productsTableRowDataSchema = z.object({
   product: productsClientSelectSchema,
   prices: z.array(pricesClientSelectSchema),
   pricingModel: pricingModelsClientSelectSchema.optional(),
+  /** Total revenue for this product (only populated when includeRevenueAggregates is true) */
+  totalRevenue: z.number().optional(),
 })
 
 export type ProductsTableRowData = z.infer<

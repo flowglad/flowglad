@@ -471,7 +471,7 @@ describe.sequential('memberships RLS - notificationPreferences', () => {
               id: org1Membership.id,
               notificationPreferences: {
                 testModeNotifications: true,
-                payoutsEnabled: false,
+                subscriptionCreated: false,
               },
             },
             transaction
@@ -496,9 +496,9 @@ describe.sequential('memberships RLS - notificationPreferences', () => {
         memberships[0]
       )
       expect(prefs.testModeNotifications).toBe(true)
-      expect(prefs.payoutsEnabled).toBe(false)
+      expect(prefs.subscriptionCreated).toBe(false)
       // Defaults should still apply for unset preferences
-      expect(prefs.subscriptionCreated).toBe(true)
+      expect(prefs.subscriptionAdjusted).toBe(true)
     })
   })
 })

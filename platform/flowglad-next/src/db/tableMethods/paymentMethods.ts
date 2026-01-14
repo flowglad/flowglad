@@ -43,6 +43,7 @@ import {
 import type { GetRevenueDataInput } from '../schema/payments'
 import { prices } from '../schema/prices'
 import { purchases } from '../schema/purchases'
+import { subscriptions } from '../schema/subscriptions'
 import { selectCustomers } from './customerMethods'
 import { selectInvoiceById } from './invoiceMethods'
 import { derivePricingModelIdFromPurchase } from './purchaseMethods'
@@ -240,6 +241,16 @@ export const upsertPaymentByStripeChargeId = async (
   return upsertedPayments[0]
 }
 
+/**
+ * Selects revenue data for an organization over a date range, optionally filtered by product.
+ *
+ * When productId is specified, includes both:
+ * - Purchase-based revenue: payments → purchases → prices → products
+ * - Subscription-based revenue: payments → subscriptions → prices → products
+ *
+ * Subscription payments (where purchaseId is null) are included via the subscription path
+ * to avoid double-counting.
+ */
 export const selectRevenueDataForOrganization = async (
   params: GetRevenueDataInput,
   transaction: DbTransaction
@@ -251,6 +262,53 @@ export const selectRevenueDataForOrganization = async (
     toDate,
   } = params
 
+  // When filtering by productId, we need to include both purchase-based and subscription-based revenue
+  const productFilterQuery = params.productId
+    ? sql`
+        -- Purchase-based revenue (payments with purchaseId)
+        SELECT 
+          date_trunc(${revenueChartIntervalUnit}, (${payments.chargeDate} AT TIME ZONE 'UTC')) as date,
+          SUM(${payments.amount} - COALESCE(${payments.refundedAmount}, 0)) as revenue
+        FROM ${payments}
+        INNER JOIN ${purchases} ON ${payments.purchaseId} = ${purchases.id}
+        INNER JOIN ${prices} ON ${purchases.priceId} = ${prices.id}
+        WHERE 
+          ${payments.organizationId} = ${organizationId}
+          AND ${payments.chargeDate} >= ${new Date(fromDate).toISOString()}
+          AND ${payments.chargeDate} <= ${new Date(toDate).toISOString()}
+          AND ${prices.productId} = ${params.productId}
+        GROUP BY 1
+        
+        UNION ALL
+        
+        -- Subscription-based revenue (payments with subscriptionId but no purchaseId)
+        SELECT 
+          date_trunc(${revenueChartIntervalUnit}, (${payments.chargeDate} AT TIME ZONE 'UTC')) as date,
+          SUM(${payments.amount} - COALESCE(${payments.refundedAmount}, 0)) as revenue
+        FROM ${payments}
+        INNER JOIN ${subscriptions} ON ${payments.subscriptionId} = ${subscriptions.id}
+        INNER JOIN ${prices} ON ${subscriptions.priceId} = ${prices.id}
+        WHERE 
+          ${payments.organizationId} = ${organizationId}
+          AND ${payments.chargeDate} >= ${new Date(fromDate).toISOString()}
+          AND ${payments.chargeDate} <= ${new Date(toDate).toISOString()}
+          AND ${prices.productId} = ${params.productId}
+          AND ${payments.purchaseId} IS NULL
+        GROUP BY 1
+      `
+    : sql`
+        -- All revenue (no product filter)
+        SELECT 
+          date_trunc(${revenueChartIntervalUnit}, (${payments.chargeDate} AT TIME ZONE 'UTC')) as date,
+          SUM(${payments.amount} - COALESCE(${payments.refundedAmount}, 0)) as revenue
+        FROM ${payments}
+        WHERE 
+          ${payments.organizationId} = ${organizationId}
+          AND ${payments.chargeDate} >= ${new Date(fromDate).toISOString()}
+          AND ${payments.chargeDate} <= ${new Date(toDate).toISOString()}
+        GROUP BY 1
+      `
+
   const result = (await transaction.execute(
     sql`
       WITH dates AS (
@@ -260,26 +318,13 @@ export const selectRevenueDataForOrganization = async (
           (1 || ' ' || ${revenueChartIntervalUnit})::interval
         ) AS date
       ),
+      combined_revenues AS (
+        ${productFilterQuery}
+      ),
       revenues AS (
-        SELECT 
-          date_trunc(${revenueChartIntervalUnit}, (${payments.chargeDate} AT TIME ZONE 'UTC')) as date,
-          SUM(${payments.amount} - COALESCE(${payments.refundedAmount}, 0)) as revenue
-        FROM ${payments}
-        ${
-          params.productId
-            ? sql`INNER JOIN ${purchases} ON ${payments.purchaseId} = ${purchases.id} INNER JOIN ${prices} ON ${purchases.priceId} = ${prices.id}`
-            : sql``
-        }
-        WHERE 
-          ${payments.organizationId} = ${organizationId}
-          AND ${payments.chargeDate} >= ${new Date(fromDate).toISOString()}
-          AND ${payments.chargeDate} <= ${new Date(toDate).toISOString()}
-          ${
-            params.productId
-              ? sql`AND ${prices.productId} = ${params.productId}`
-              : sql``
-          }
-        GROUP BY 1
+        SELECT date, SUM(revenue) as revenue
+        FROM combined_revenues
+        GROUP BY date
       )
       SELECT
         dates.date,
