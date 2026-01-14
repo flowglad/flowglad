@@ -1,7 +1,6 @@
 import type Stripe from 'stripe'
 import type {
   BillingPeriodTransitionLedgerCommand,
-  LedgerCommand,
   SettleInvoiceUsageCostsLedgerCommand,
 } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { BillingRun } from '@/db/schema/billingRuns'
@@ -41,10 +40,7 @@ import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionIt
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type {
-  DbTransaction,
-  TransactionEffectsContext,
-} from '@/db/types'
+import type { TransactionEffectsContext } from '@/db/types'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
 import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
@@ -57,10 +53,7 @@ import {
 } from '@/types'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { createStripeTaxTransactionIfNeededForPayment } from '@/utils/bookkeeping/stripeTaxTransactions'
-import {
-  CacheDependency,
-  type CacheDependencyKey,
-} from '@/utils/cache'
+import { CacheDependency } from '@/utils/cache'
 import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import {
   sendAwaitingPaymentConfirmationEmail,
@@ -230,7 +223,12 @@ export const processOutcomeForBillingRun = async (
     processingSkipped?: boolean
   }>
 > => {
-  const { transaction, invalidateCache, emitEvent } = ctx
+  const {
+    transaction,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  } = ctx
   const { input, adjustmentParams } = params
   const event = 'type' in input ? input.data.object : input
   const timestamp = 'type' in input ? input.created : event.created
@@ -278,7 +276,6 @@ export const processOutcomeForBillingRun = async (
         payment,
         processingSkipped: true,
       },
-      ledgerCommand: undefined,
     }
   }
 
@@ -363,7 +360,6 @@ export const processOutcomeForBillingRun = async (
         billingRun,
         payment,
       },
-      ledgerCommands: [],
     }
   }
 
@@ -541,16 +537,16 @@ export const processOutcomeForBillingRun = async (
     (userAndMembership) => userAndMembership.user
   )
 
-  // Track cache invalidations from subscription item adjustments and status changes
-  const customerSubscriptionsCacheKey =
+  // Queue cache invalidations via effects context
+  invalidateCache(
     CacheDependency.customerSubscriptions(subscription.customerId)
-  // Queue via effects context
-  invalidateCache(customerSubscriptionsCacheKey)
-  // Also return for backward compatibility
-  const cacheInvalidations: CacheDependencyKey[] = [
-    customerSubscriptionsCacheKey,
-    ...(subscriptionItemAdjustmentResult?.cacheInvalidations ?? []),
-  ]
+  )
+  // Also invalidate any cache keys from subscription item adjustments
+  if (subscriptionItemAdjustmentResult?.cacheInvalidations) {
+    invalidateCache(
+      ...subscriptionItemAdjustmentResult.cacheInvalidations
+    )
+  }
 
   const notificationParams: BillingRunNotificationParams = {
     invoice,
@@ -623,8 +619,6 @@ export const processOutcomeForBillingRun = async (
     })
   }
 
-  const ledgerCommands: LedgerCommand[] = []
-
   if (
     event.status === 'succeeded' &&
     invoice.status === InvoiceStatus.Paid
@@ -659,8 +653,8 @@ export const processOutcomeForBillingRun = async (
         .filter((bp) => bp.startDate < billingPeriod.startDate)
         .sort((a, b) => b.startDate - a.startDate)[0] || null
 
-    // Construct the billing period transition command
-    ledgerCommands.push({
+    // Enqueue billing period transition command
+    enqueueLedgerCommand({
       type: LedgerTransactionType.BillingPeriodTransition,
       organizationId: organization.id,
       subscriptionId: subscription.id,
@@ -678,7 +672,7 @@ export const processOutcomeForBillingRun = async (
   }
 
   if (invoice.status === InvoiceStatus.Paid) {
-    ledgerCommands.push({
+    enqueueLedgerCommand({
       type: LedgerTransactionType.SettleInvoiceUsageCosts,
       payload: {
         invoice,
@@ -697,8 +691,6 @@ export const processOutcomeForBillingRun = async (
       billingRun,
       payment,
     },
-    ledgerCommands: ledgerCommands,
-    cacheInvalidations,
   }
 }
 

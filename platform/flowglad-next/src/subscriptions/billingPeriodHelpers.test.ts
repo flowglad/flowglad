@@ -58,7 +58,10 @@ import {
   billingPeriodAndItemsInsertsFromSubscription,
   createBillingPeriodAndItems,
 } from '@/subscriptions/billingPeriodHelpers'
-import { createNoopContext } from '@/test-utils/transactionCallbacks'
+import {
+  createCapturingContext,
+  createNoopContext,
+} from '@/test-utils/transactionCallbacks'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -471,9 +474,8 @@ describe('Subscription Billing Period Transition', async () => {
       }
       await expect(
         attemptToTransitionSubscriptionBillingPeriod(
-          // @ts-expect-error
-          invalidBillingPeriod,
-          transaction
+          invalidBillingPeriod as unknown as BillingPeriod.Record,
+          createNoopContext(transaction)
         )
       ).rejects.toThrow()
     })
@@ -508,7 +510,7 @@ describe('Subscription Billing Period Transition', async () => {
     })
   })
 
-  it('should throw an error when billing period endDate is missing', async () => {
+  it('should throw an error when billing period endDate is missing (duplicate test)', async () => {
     await adminTransaction(async ({ transaction }) => {
       const invalidBillingPeriod = {
         ...billingPeriod,
@@ -516,11 +518,44 @@ describe('Subscription Billing Period Transition', async () => {
       }
       await expect(
         attemptToTransitionSubscriptionBillingPeriod(
-          // @ts-expect-error
-          invalidBillingPeriod,
-          transaction
+          invalidBillingPeriod as unknown as BillingPeriod.Record,
+          createNoopContext(transaction)
         )
       ).rejects.toThrow()
+    })
+  })
+
+  it('calls enqueueLedgerCommand with BillingPeriodTransitionLedgerCommand when transitioning to a new billing period', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      // Mark the current billing period as completed (terminal state)
+      const completedBillingPeriod = await updateBillingPeriod(
+        {
+          id: billingPeriod.id,
+          status: BillingPeriodStatus.Completed,
+        },
+        transaction
+      )
+
+      // Create a capturing context to verify the ledger command
+      const { ctx, effects } = createCapturingContext(transaction)
+
+      // Call the transition function
+      await attemptToTransitionSubscriptionBillingPeriod(
+        completedBillingPeriod,
+        ctx
+      )
+
+      // Verify that enqueueLedgerCommand was called with a BillingPeriodTransition command
+      expect(effects.ledgerCommands.length).toBe(1)
+      expect(effects.ledgerCommands[0].type).toBe(
+        LedgerTransactionType.BillingPeriodTransition
+      )
+      expect(effects.ledgerCommands[0].subscriptionId).toBe(
+        subscription.id
+      )
+      expect(effects.ledgerCommands[0].organizationId).toBe(
+        organization.id
+      )
     })
   })
 
