@@ -6,8 +6,11 @@ import {
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
   membershipsClientSelectSchema,
   membershipsTableRowDataSchema,
+  type NotificationPreferences,
+  notificationPreferencesSchema,
 } from '@/db/schema/memberships'
 import {
   createOrganizationSchema,
@@ -16,8 +19,10 @@ import {
 } from '@/db/schema/organizations'
 import { getRevenueDataInputSchema } from '@/db/schema/payments'
 import {
+  getMembershipNotificationPreferences,
   selectFocusedMembershipAndOrganization,
   selectMembershipAndOrganizationsByBetterAuthUserId,
+  selectMemberships,
   selectMembershipsAndOrganizationsByMembershipWhere,
   selectMembershipsAndUsersByMembershipWhere,
   selectMembershipsTableRowData,
@@ -139,6 +144,7 @@ const getMRRCalculationInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
   granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  productId: z.string().nullish(),
 })
 
 const getMRR = protectedProcedure
@@ -160,7 +166,10 @@ const getMRR = protectedProcedure
 
         return calculateMRRByMonth(
           ctx.organizationId!,
-          input,
+          {
+            ...input,
+            productId: input.productId ?? undefined,
+          },
           transaction
         )
       }
@@ -205,6 +214,7 @@ const getActiveSubscribersInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
   granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  productId: z.string().nullish(),
 })
 
 const getActiveSubscribers = protectedProcedure
@@ -226,7 +236,10 @@ const getActiveSubscribers = protectedProcedure
 
         return calculateActiveSubscribersByMonth(
           ctx.organizationId!,
-          input,
+          {
+            ...input,
+            productId: input.productId ?? undefined,
+          },
           transaction
         )
       }
@@ -440,6 +453,93 @@ const getMembersTableRowData = protectedProcedure
     })
   })
 
+/**
+ * Get notification preferences for the current user in their current organization.
+ * Returns the merged preferences (stored values + defaults).
+ */
+const getNotificationPreferences = protectedProcedure
+  .output(notificationPreferencesSchema)
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ transaction, userId, ctx }) => {
+        const [membership] = await selectMemberships(
+          { userId, organizationId: ctx.organizationId! },
+          transaction
+        )
+        if (!membership) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Membership not found',
+          })
+        }
+        return getMembershipNotificationPreferences(membership)
+      }
+    )
+  )
+
+/**
+ * Input schema for updating notification preferences.
+ * Uses a schema WITHOUT defaults to allow partial updates.
+ * Only the fields explicitly provided will be updated.
+ */
+const updateNotificationPreferencesInputSchema = z.object({
+  preferences: z
+    .object({
+      testModeNotifications: z.boolean().optional(),
+      subscriptionCreated: z.boolean().optional(),
+      subscriptionAdjusted: z.boolean().optional(),
+      subscriptionCanceled: z.boolean().optional(),
+      subscriptionCancellationScheduled: z.boolean().optional(),
+      paymentFailed: z.boolean().optional(),
+    })
+    .partial(),
+})
+
+const updateNotificationPreferencesOutputSchema = z.object({
+  preferences: notificationPreferencesSchema,
+})
+
+/**
+ * Update notification preferences for the current user in their current organization.
+ * Only updates the specified preferences, preserving unspecified ones.
+ */
+const updateNotificationPreferences = protectedProcedure
+  .input(updateNotificationPreferencesInputSchema)
+  .output(updateNotificationPreferencesOutputSchema)
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction, userId, ctx }) => {
+        const [membership] = await selectMemberships(
+          { userId, organizationId: ctx.organizationId! },
+          transaction
+        )
+        if (!membership) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Membership not found',
+          })
+        }
+        const currentPrefs =
+          (membership.notificationPreferences as Partial<NotificationPreferences>) ??
+          {}
+        const updatedPrefs = { ...currentPrefs, ...input.preferences }
+        const updatedMembership = await updateMembership(
+          {
+            id: membership.id,
+            notificationPreferences: updatedPrefs,
+          },
+          transaction
+        )
+        // Return full preferences merged with defaults to ensure all fields are present
+        // Use the actual saved preferences from the database, not the computed values
+        return {
+          preferences:
+            getMembershipNotificationPreferences(updatedMembership),
+        }
+      }
+    )
+  )
+
 export const organizationsRouter = router({
   create: createOrganization,
   update: updateOrganization,
@@ -452,6 +552,9 @@ export const organizationsRouter = router({
   inviteUser: inviteUserToOrganization,
   getCodebaseMarkdown: getCodebaseMarkdown,
   updateCodebaseMarkdown: updateCodebaseMarkdown,
+  // Notification preferences for the current user
+  getNotificationPreferences: getNotificationPreferences,
+  updateNotificationPreferences: updateNotificationPreferences,
   // Revenue is a sub-resource of organizations
   getRevenue: getRevenueData,
   // MRR-related endpoints for the billing dashboard

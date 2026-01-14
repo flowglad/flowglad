@@ -1,7 +1,6 @@
 import { TRPCError } from '@trpc/server'
-import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
+import type { ComprehensiveAuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
 import type { Customer } from '@/db/schema/customers'
-import type { Event } from '@/db/schema/events'
 import type { Subscription } from '@/db/schema/subscriptions'
 import {
   selectCustomerByExternalIdAndOrganizationId,
@@ -20,11 +19,10 @@ import {
   subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type { TransactionEffectsContext } from '@/db/types'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import { CancellationReason } from '@/types'
-import type { CacheDependencyKey } from '@/utils/cache'
 
 /**
  * Cancels a subscription immediately for pricing model migration.
@@ -33,7 +31,7 @@ import type { CacheDependencyKey } from '@/utils/cache'
 const cancelSubscriptionForMigration = async (
   subscription: Subscription.Record,
   customer: Customer.Record,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<TransactionOutput<Subscription.Record>> => {
   return cancelSubscriptionImmediately(
     {
@@ -43,7 +41,7 @@ const cancelSubscriptionForMigration = async (
       skipReassignDefaultSubscription: true,
       cancellationReason: CancellationReason.PricingModelMigration,
     },
-    transaction
+    ctx
   )
 }
 
@@ -65,15 +63,16 @@ export interface MigratePricingModelForCustomerResult {
  * 2. Creating a new default free plan subscription on the new pricing model
  *
  * @param params - Migration parameters including customer and pricing model IDs
- * @param transaction - Database transaction
- * @returns Transaction output with migration result and events
+ * @param ctx - Transaction context with database transaction and effect callbacks.
+ * @returns Transaction output with migration result
  */
 export const migratePricingModelForCustomer = async (
   params: MigratePricingModelForCustomerParams,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<
   TransactionOutput<MigratePricingModelForCustomerResult>
 > => {
+  const { transaction } = ctx
   const { customer, oldPricingModelId, newPricingModelId } = params
 
   // If customer is already on the target pricing model, it's a no-op
@@ -110,15 +109,12 @@ export const migratePricingModelForCustomer = async (
 
     if (subscriptionsOnNewPricingModel.length === 0) {
       // Create default subscription
-      const {
-        newSubscription,
-        eventsToInsert,
-        cacheInvalidations: createInvalidations,
-      } = await createDefaultSubscriptionOnPricingModel(
-        customer,
-        newPricingModelId,
-        transaction
-      )
+      const newSubscription =
+        await createDefaultSubscriptionOnPricingModel(
+          customer,
+          newPricingModelId,
+          ctx
+        )
 
       // Update customer with new pricing model ID
       const updatedCustomer = await updateCustomerDb(
@@ -135,8 +131,6 @@ export const migratePricingModelForCustomer = async (
           canceledSubscriptions: [],
           newSubscription,
         },
-        eventsToInsert,
-        cacheInvalidations: createInvalidations,
       }
     }
 
@@ -166,21 +160,13 @@ export const migratePricingModelForCustomer = async (
       }
     }
 
-    let eventsToInsert: Event.Insert[] = []
-    const cacheInvalidations: CacheDependencyKey[] = []
     if (!defaultFreeSubscription) {
-      const created = await createDefaultSubscriptionOnPricingModel(
-        customer,
-        newPricingModelId,
-        transaction
-      )
-      defaultFreeSubscription = created.newSubscription
-      if (created.eventsToInsert) {
-        eventsToInsert.push(...created.eventsToInsert)
-      }
-      if (created.cacheInvalidations) {
-        cacheInvalidations.push(...created.cacheInvalidations)
-      }
+      defaultFreeSubscription =
+        await createDefaultSubscriptionOnPricingModel(
+          customer,
+          newPricingModelId,
+          ctx
+        )
     }
 
     // Update customer with new pricing model ID (ensures it's set even in no-op case)
@@ -199,8 +185,6 @@ export const migratePricingModelForCustomer = async (
         canceledSubscriptions: [],
         newSubscription: defaultFreeSubscription,
       },
-      eventsToInsert,
-      cacheInvalidations,
     }
   }
 
@@ -238,44 +222,24 @@ export const migratePricingModelForCustomer = async (
 
   // Cancel all current subscriptions
   const canceledSubscriptions: Subscription.Record[] = []
-  const eventsToInsert: Event.Insert[] = []
-  const cacheInvalidations: CacheDependencyKey[] = []
 
   for (const subscription of currentSubscriptions) {
-    const {
-      result: canceledSubscription,
-      eventsToInsert: cancelEvents,
-      cacheInvalidations: cancelInvalidations,
-    } = await cancelSubscriptionForMigration(
-      subscription,
-      customer,
-      transaction
-    )
+    const { result: canceledSubscription } =
+      await cancelSubscriptionForMigration(
+        subscription,
+        customer,
+        ctx
+      )
     canceledSubscriptions.push(canceledSubscription)
-    if (cancelEvents) {
-      eventsToInsert.push(...cancelEvents)
-    }
-    if (cancelInvalidations) {
-      cacheInvalidations.push(...cancelInvalidations)
-    }
   }
 
   // Create default subscription on new pricing model
-  const {
-    newSubscription,
-    eventsToInsert: createEvents,
-    cacheInvalidations: createInvalidations,
-  } = await createDefaultSubscriptionOnPricingModel(
-    customer,
-    newPricingModelId,
-    transaction
-  )
-  if (createEvents) {
-    eventsToInsert.push(...createEvents)
-  }
-  if (createInvalidations) {
-    cacheInvalidations.push(...createInvalidations)
-  }
+  const newSubscription =
+    await createDefaultSubscriptionOnPricingModel(
+      customer,
+      newPricingModelId,
+      ctx
+    )
 
   // Update customer with new pricing model ID
   const updatedCustomer = await updateCustomerDb(
@@ -292,8 +256,6 @@ export const migratePricingModelForCustomer = async (
       canceledSubscriptions,
       newSubscription,
     },
-    eventsToInsert,
-    cacheInvalidations,
   }
 }
 
@@ -304,12 +266,9 @@ export const migratePricingModelForCustomer = async (
 async function createDefaultSubscriptionOnPricingModel(
   customer: Customer.Record,
   pricingModelId: string,
-  transaction: DbTransaction
-): Promise<{
-  newSubscription: Subscription.Record
-  eventsToInsert: Event.Insert[]
-  cacheInvalidations: CacheDependencyKey[]
-}> {
+  ctx: TransactionEffectsContext
+): Promise<Subscription.Record> {
+  const { transaction } = ctx
   const organization = await selectOrganizationById(
     customer.organizationId,
     transaction
@@ -372,14 +331,10 @@ async function createDefaultSubscriptionOnPricingModel(
       autoStart: true,
       name: `${defaultProduct.name} Subscription`,
     },
-    transaction
+    ctx
   )
 
-  return {
-    newSubscription: subscriptionResult.result.subscription,
-    eventsToInsert: subscriptionResult.eventsToInsert || [],
-    cacheInvalidations: subscriptionResult.cacheInvalidations || [],
-  }
+  return subscriptionResult.result.subscription
 }
 
 /**
@@ -387,13 +342,8 @@ async function createDefaultSubscriptionOnPricingModel(
  * Validates inputs, performs the migration, and updates the customer's pricing model ID.
  */
 type MigrateCustomerPricingModelProcedureParams =
-  AuthenticatedProcedureTransactionParams<
+  ComprehensiveAuthenticatedProcedureTransactionParams<
     { externalId: string; newPricingModelId: string },
-    {
-      customer: Customer.ClientRecord
-      canceledSubscriptions: Subscription.ClientRecord[]
-      newSubscription: Subscription.ClientRecord
-    },
     { apiKey?: string }
   >
 
@@ -402,6 +352,9 @@ export const migrateCustomerPricingModelProcedureTransaction =
     input,
     transaction,
     organizationId,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
   }: MigrateCustomerPricingModelProcedureParams): Promise<
     TransactionOutput<{
       customer: Customer.ClientRecord
@@ -410,6 +363,12 @@ export const migrateCustomerPricingModelProcedureTransaction =
     }>
   > => {
     const { externalId, newPricingModelId } = input
+    const ctx: TransactionEffectsContext = {
+      transaction,
+      invalidateCache,
+      emitEvent,
+      enqueueLedgerCommand,
+    }
 
     if (!organizationId) {
       throw new TRPCError({
@@ -462,15 +421,14 @@ export const migrateCustomerPricingModelProcedureTransaction =
     }
 
     // Perform the migration
-    const { result, eventsToInsert, cacheInvalidations } =
-      await migratePricingModelForCustomer(
-        {
-          customer,
-          oldPricingModelId: customer.pricingModelId,
-          newPricingModelId,
-        },
-        transaction
-      )
+    const { result } = await migratePricingModelForCustomer(
+      {
+        customer,
+        oldPricingModelId: customer.pricingModelId,
+        newPricingModelId,
+      },
+      ctx
+    )
 
     return {
       result: {
@@ -482,7 +440,5 @@ export const migrateCustomerPricingModelProcedureTransaction =
           result.newSubscription
         ),
       },
-      eventsToInsert,
-      cacheInvalidations,
     }
   }

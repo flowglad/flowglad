@@ -15,14 +15,12 @@ export const stripePaymentIntentPaymentFailedTask = task({
       async () => {
         const metadata = payload.data.object.metadata
         if ('billingRunId' in metadata) {
-          return comprehensiveAdminTransaction(
-            async ({ transaction }) => {
-              return await processOutcomeForBillingRun(
-                { input: payload },
-                transaction
-              )
-            }
-          )
+          return comprehensiveAdminTransaction(async (ctx) => {
+            return await processOutcomeForBillingRun(
+              { input: payload },
+              ctx
+            )
+          })
         } else {
           logger.log(
             'Payment intent payment failed, no action taken (not a billing run)',

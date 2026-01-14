@@ -1,5 +1,7 @@
 import { endOfMonth, startOfMonth } from 'date-fns'
-import { and, eq, lte } from 'drizzle-orm'
+import { and, eq, inArray, lte } from 'drizzle-orm'
+import { prices } from '@/db/schema/prices'
+import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import { subscriptions } from '@/db/schema/subscriptions'
 import {
   currentSubscriptionStatuses,
@@ -18,6 +20,7 @@ export interface SubscriberCalculationOptions {
   startDate: Date
   endDate: Date
   granularity: RevenueChartIntervalUnit
+  productId?: string // Optional product ID to filter subscribers by
 }
 
 export interface SubscriberBreakdown {
@@ -112,7 +115,7 @@ export async function calculateActiveSubscribersByMonth(
   options: SubscriberCalculationOptions,
   transaction: DbTransaction
 ): Promise<MonthlyActiveSubscribers[]> {
-  const { startDate, endDate, granularity } = options
+  const { startDate, endDate, granularity, productId } = options
 
   // Generate array of interval buckets between startDate and endDate using UTC
   // This matches PostgreSQL's generate_series with date_trunc behavior
@@ -126,12 +129,32 @@ export async function calculateActiveSubscribersByMonth(
   }
 
   // Get all subscriptions that were active during the entire period
-  const allSubscriptions = await getActiveSubscriptionsForPeriod(
+  let allSubscriptions = await getActiveSubscriptionsForPeriod(
     organizationId,
     startDate,
     endDate,
     transaction
   )
+
+  // Filter by product if specified
+  if (productId) {
+    // Get subscription IDs that have items linked to this product
+    const subscriptionsWithProduct = await transaction
+      .selectDistinct({
+        subscriptionId: subscriptionItems.subscriptionId,
+      })
+      .from(subscriptionItems)
+      .innerJoin(prices, eq(subscriptionItems.priceId, prices.id))
+      .where(eq(prices.productId, productId))
+
+    const validSubscriptionIds = new Set(
+      subscriptionsWithProduct.map((s) => s.subscriptionId)
+    )
+
+    allSubscriptions = allSubscriptions.filter((sub) =>
+      validSubscriptionIds.has(sub.id)
+    )
+  }
 
   // Calculate active subscribers for each interval
   const subscribersByInterval = intervals.map((intervalStart) => {

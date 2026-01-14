@@ -4,6 +4,7 @@ import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { ProductFeature } from '@/db/schema/productFeatures'
 import type { Product } from '@/db/schema/products'
+import type { Resource } from '@/db/schema/resources'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug } from '@/db/tableMethods/featureMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -11,6 +12,7 @@ import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
 import { safelyInsertPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId } from '@/db/tableMethods/productFeatureMethods'
 import { bulkInsertProducts } from '@/db/tableMethods/productMethods'
+import { bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug } from '@/db/tableMethods/resourceMethods'
 import { bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId } from '@/db/tableMethods/usageMeterMethods'
 import type { DbTransaction } from '@/db/types'
 import { FeatureType, IntervalUnit, PriceType } from '@/types'
@@ -99,6 +101,27 @@ export const setupPricingModelTransaction = async (
   const usageMetersBySlug = new Map(
     usageMeters.map((usageMeter) => [usageMeter.slug, usageMeter])
   )
+
+  // Create resources before features (Resource features need to resolve resourceSlug → resourceId)
+  const resourceInserts: Resource.Insert[] = (
+    input.resources ?? []
+  ).map((resource) => ({
+    slug: resource.slug,
+    name: resource.name,
+    pricingModelId: pricingModel.id,
+    organizationId,
+    livemode,
+    active: resource.active ?? true,
+  }))
+  const resources =
+    await bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug(
+      resourceInserts,
+      transaction
+    )
+  const resourcesBySlug = new Map(
+    resources.map((resource) => [resource.slug, resource])
+  )
+
   const featureInserts: Feature.Insert[] = input.features.map(
     (feature) => {
       const coreParams: Pick<
@@ -130,15 +153,37 @@ export const setupPricingModelTransaction = async (
           ...coreParams,
           type: FeatureType.UsageCreditGrant,
           usageMeterId: usageMeter.id,
+          resourceId: null,
           amount: feature.amount,
           renewalFrequency: feature.renewalFrequency,
           active: feature.active ?? true,
         }
       }
+
+      if (feature.type === FeatureType.Resource) {
+        const resource = resourcesBySlug.get(feature.resourceSlug)
+        if (!resource) {
+          throw new Error(
+            `Resource with slug ${feature.resourceSlug} does not exist`
+          )
+        }
+        return {
+          ...coreParams,
+          type: FeatureType.Resource,
+          resourceId: resource.id,
+          usageMeterId: null,
+          amount: feature.amount,
+          renewalFrequency: null,
+          active: feature.active ?? true,
+        }
+      }
+
+      // Toggle type (default)
       return {
         ...coreParams,
         type: FeatureType.Toggle,
         usageMeterId: null,
+        resourceId: null,
         amount: null,
         renewalFrequency: null,
         // using provided feature.active here rather than always defaulting to true,
@@ -360,5 +405,6 @@ export const setupPricingModelTransaction = async (
     features,
     productFeatures,
     usageMeters,
+    resources,
   }
 }

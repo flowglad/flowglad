@@ -17,13 +17,12 @@ import {
   constructIndex,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   metadataSchema,
   notNullStringForeignKey,
   nullableStringForeignKey,
   orgIdEqualsCurrentSQL,
-  pgEnumColumn,
   tableBase,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
@@ -66,29 +65,26 @@ export const usageCreditBalanceAdjustments = pgTable(
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.adjustedUsageCreditId]),
-      constructIndex(TABLE_NAME, [table.adjustedByUserId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"adjusted_usage_credit_id" in (select "id" from "usage_credits")`,
-        }
-      ),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          to: 'all',
-          using: orgIdEqualsCurrentSQL(),
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.adjustedUsageCreditId]),
+    constructIndex(TABLE_NAME, [table.adjustedByUserId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"adjusted_usage_credit_id" in (select "id" from "usage_credits")`,
+      }
+    ),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        to: 'all',
+        using: orgIdEqualsCurrentSQL(),
+      }
+    ),
+  ])
 ).enableRLS()
 
 const columnRefinements = {

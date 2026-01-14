@@ -1,6 +1,7 @@
 import { ChevronLeft, MoreHorizontal } from 'lucide-react'
 import type { ReactNode } from 'react'
 import React from 'react'
+import { LAYOUT_TOKENS } from '@/components/charts/constants'
 import { cn } from '@/lib/utils'
 import { Button } from './button'
 import {
@@ -96,9 +97,10 @@ export function PageHeaderNew({
   return (
     <div
       className={cn(
-        'flex flex-col items-start justify-center w-full',
+        'flex flex-col items-start justify-center w-full gap-2',
         !hideBorder && 'border-b border-dashed border-border',
-        'px-6 pt-20 pb-2',
+        LAYOUT_TOKENS.page.class,
+        'pt-20 pb-2',
         className
       )}
     >
@@ -135,7 +137,7 @@ export function PageHeaderNew({
 
       {/* Status badges and description */}
       {(badges.length > 0 || description) && (
-        <div className="flex flex-wrap items-center gap-2 w-full px-0 py-2">
+        <div className="flex flex-wrap items-center gap-2 w-full px-0">
           <TooltipProvider delayDuration={300}>
             {badges.map((badge, index) => {
               const badgeContent = (

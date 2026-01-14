@@ -236,12 +236,17 @@ export const createFreePlanPriceInsert = (
 }
 export const createCustomerBookkeeping = async (
   payload: {
-    customer: Omit<Customer.Insert, 'livemode'>
+    customer: Omit<Customer.Insert, 'livemode' | 'pricingModelId'> & {
+      pricingModelId?: string
+    }
   },
   {
     transaction,
     organizationId,
     livemode,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
   }: Omit<AuthenticatedTransactionParams, 'userId'>
 ): Promise<
   TransactionOutput<{
@@ -268,11 +273,18 @@ export const createCustomerBookkeeping = async (
         { organizationId: payload.customer.organizationId, livemode },
         transaction
       )
+
+  if (!pricingModel) {
+    throw new Error(
+      `No pricing model found for customer. Organization: ${payload.customer.organizationId}, livemode: ${livemode}`
+    )
+  }
+
   let customer = await insertCustomer(
     {
       ...payload.customer,
       livemode,
-      pricingModelId: pricingModel?.id ?? null,
+      pricingModelId: pricingModel.id,
     },
     transaction
   )
@@ -316,21 +328,11 @@ export const createCustomerBookkeeping = async (
     processedAt: null,
   })
 
-  const pricingModelToUse =
-    pricingModel ??
-    (await selectDefaultPricingModel(
-      {
-        organizationId: customer.organizationId,
-        livemode: customer.livemode,
-      },
-      transaction
-    ))
-
   // Create default subscription for the customer
   // Use customer's organizationId to ensure consistency
   try {
-    // Determine which pricing model to use
-    const pricingModelId = pricingModelToUse!.id
+    // Use the pricing model from customer creation
+    const pricingModelId = pricingModel.id
     // Get the default product for this pricing model
     const [product] = await selectPricesAndProductsByProductWhere(
       {
@@ -349,6 +351,12 @@ export const createCustomerBookkeeping = async (
           customer.organizationId,
           transaction
         )
+
+        // Create capturing callbacks to collect events locally while also calling provided callbacks
+        const capturingEmitEvent = (...events: Event.Insert[]) => {
+          eventsToInsert.push(...events)
+          emitEvent?.(...events)
+        }
 
         // Create the subscription
         const subscriptionResult = await createSubscriptionWorkflow(
@@ -376,10 +384,16 @@ export const createCustomerBookkeeping = async (
             autoStart: true,
             name: `${defaultProduct.name} Subscription`,
           },
-          transaction
+          {
+            transaction,
+            invalidateCache: invalidateCache ?? (() => {}),
+            emitEvent: capturingEmitEvent,
+            enqueueLedgerCommand: enqueueLedgerCommand ?? (() => {}),
+          }
         )
 
-        // Merge events from subscription creation
+        // Events from subscription creation are already captured via capturingEmitEvent
+        // Also merge any events returned in the result for backwards compatibility
         if (subscriptionResult.eventsToInsert) {
           eventsToInsert.push(...subscriptionResult.eventsToInsert)
         }

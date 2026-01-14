@@ -9,7 +9,7 @@ import {
   constructUniqueIndex,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   orgIdEqualsCurrentSQL,
@@ -35,7 +35,7 @@ export const resources = pgTable(
     name: text('name').notNull(),
     active: boolean('active').notNull().default(true),
   },
-  (table) => [
+  livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
     constructUniqueIndex(TABLE_NAME, [
@@ -57,8 +57,7 @@ export const resources = pgTable(
         using: sql`"organization_id" = current_organization_id() and "active" = true and "pricing_model_id" in (select "pricing_model_id" from "customers")`,
       }
     ),
-    livemodePolicy(TABLE_NAME),
-  ]
+  ])
 ).enableRLS()
 
 const hiddenColumns = {

@@ -11,10 +11,14 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import { CustomersDataTable } from '@/app/customers/data-table'
-import { ResourcesDataTable } from '@/app/resources/data-table'
+// FIXME: FEATURE - Resource UI is temporarily disabled while resource features are gated behind devOnlyProcedure
+// import { ResourcesDataTable } from '@/app/resources/data-table'
 import { UsageMetersDataTable } from '@/app/usage-meters/data-table'
-import CreateResourceModal from '@/components/components/CreateResourceModal'
+// FIXME: FEATURE - Resource UI is temporarily disabled while resource features are gated behind devOnlyProcedure
+// import CreateResourceModal from '@/components/components/CreateResourceModal'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
+// FIXME: FEATURE - Resource UI is temporarily disabled while resource features are gated behind devOnlyProcedure
+// import EditResourceModal from '@/components/components/EditResourceModal'
 import { ExpandSection } from '@/components/ExpandSection'
 import { FeaturesDataTable } from '@/components/features/data-table'
 import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
@@ -38,6 +42,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import type { PricingModel } from '@/db/schema/pricingModels'
+// FIXME: FEATURE - Resource UI is temporarily disabled while resource features are gated behind devOnlyProcedure
+// import type { Resource } from '@/db/schema/resources'
 
 export type InnerPricingModelDetailsPageProps = {
   pricingModel: PricingModel.ClientRecord
@@ -65,8 +71,13 @@ function InnerPricingModelDetailsPage({
     isCreateUsageMeterModalOpen,
     setIsCreateUsageMeterModalOpen,
   ] = useState(false)
-  const [isCreateResourceModalOpen, setIsCreateResourceModalOpen] =
-    useState(false)
+  // FIXME: FEATURE - Resource UI is temporarily disabled while resource features are gated behind devOnlyProcedure
+  // const [isCreateResourceModalOpen, setIsCreateResourceModalOpen] =
+  //   useState(false)
+  // const [isEditResourceModalOpen, setIsEditResourceModalOpen] =
+  //   useState(false)
+  // const [resourceToEdit, setResourceToEdit] =
+  //   useState<Resource.ClientRecord | null>(null)
   const [activeProductFilter, setActiveProductFilter] =
     useState<string>('active')
   const [activeFeatureFilter, setActiveFeatureFilter] =
@@ -294,6 +305,7 @@ function InnerPricingModelDetailsPage({
             buttonVariant="secondary"
           />
         </ExpandSection>
+        {/* FIXME: FEATURE - Resource UI is temporarily disabled while resource features are gated behind devOnlyProcedure
         <ExpandSection
           title="Resources"
           defaultExpanded={false}
@@ -304,9 +316,14 @@ function InnerPricingModelDetailsPage({
             onCreateResource={() =>
               setIsCreateResourceModalOpen(true)
             }
+            onEditResource={(resource) => {
+              setResourceToEdit(resource)
+              setIsEditResourceModalOpen(true)
+            }}
             buttonVariant="secondary"
           />
         </ExpandSection>
+        */}
         <ExpandSection
           title="Customers"
           defaultExpanded={false}
@@ -349,12 +366,21 @@ function InnerPricingModelDetailsPage({
         defaultPricingModelId={pricingModel.id}
         hidePricingModelSelect={true}
       />
+      {/* FIXME: FEATURE - Resource UI is temporarily disabled while resource features are gated behind devOnlyProcedure
       <CreateResourceModal
         isOpen={isCreateResourceModalOpen}
         setIsOpen={setIsCreateResourceModalOpen}
         defaultPricingModelId={pricingModel.id}
         hidePricingModelSelect={true}
       />
+      {resourceToEdit && (
+        <EditResourceModal
+          isOpen={isEditResourceModalOpen}
+          setIsOpen={setIsEditResourceModalOpen}
+          resource={resourceToEdit}
+        />
+      )}
+      */}
       <PricingModelIntegrationGuideModal
         isOpen={isGetIntegrationGuideModalOpen}
         setIsOpen={setIsGetIntegrationGuideModalOpen}

@@ -12,7 +12,10 @@ import {
   setupCustomer,
   setupOrg,
   setupPaymentMethod,
+  setupPrice,
+  setupProduct,
   setupSubscription,
+  setupSubscriptionItem,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
@@ -21,6 +24,7 @@ import type { DbTransaction } from '@/db/types'
 import {
   BillingPeriodStatus,
   IntervalUnit,
+  PriceType,
   RevenueChartIntervalUnit,
   SubscriptionItemType,
   SubscriptionStatus,
@@ -1145,5 +1149,348 @@ describe('Edge Cases and Error Handling', () => {
 
     // Expected overlap: 31 days in Jan 2024 / (3 years * 365 days) ≈ 0.0283
     expect(overlapPercentage).toBeCloseTo(0.0283, 3)
+  })
+})
+
+describe('calculateMRRByMonth with productId filter', () => {
+  it('should return MRR for all products when productId is null', async () => {
+    const { organization, price } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    const startDate = new Date('2023-01-01T05:00:00.000Z')
+    const endDate = new Date('2023-01-31T05:00:00.000Z')
+
+    // Create a subscription with billing period
+    const subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: price.id,
+      interval: IntervalUnit.Month,
+      intervalCount: 1,
+      status: SubscriptionStatus.Active,
+    })
+
+    const billingPeriod = await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate,
+      endDate,
+      status: BillingPeriodStatus.Active,
+    })
+
+    await setupBillingPeriodItem({
+      billingPeriodId: billingPeriod.id,
+      quantity: 1,
+      unitPrice: 100,
+      name: 'Test Item',
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return calculateMRRByMonth(
+        organization.id,
+        {
+          startDate,
+          endDate,
+          granularity: RevenueChartIntervalUnit.Month,
+          productId: undefined, // No filter
+        },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].amount).toBe(100)
+  })
+
+  it('should return MRR only for the specified product when productId is provided', async () => {
+    const {
+      organization,
+      product: productA,
+      price: priceA,
+      pricingModel,
+    } = await setupOrg()
+
+    // Create a second product with its own price
+    const productB = await setupProduct({
+      organizationId: organization.id,
+      name: 'Product B',
+      pricingModelId: pricingModel.id,
+    })
+    const priceB = await setupPrice({
+      productId: productB.id,
+      name: 'Product B Price',
+      unitPrice: 200,
+      livemode: true,
+      isDefault: true,
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+    })
+
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    const startDate = new Date('2023-01-01T05:00:00.000Z')
+    const endDate = new Date('2023-01-31T05:00:00.000Z')
+
+    // Create subscription for Product A ($100/month)
+    const subscriptionA = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: priceA.id,
+      interval: IntervalUnit.Month,
+      intervalCount: 1,
+      status: SubscriptionStatus.Active,
+    })
+
+    // Create subscription item to link subscription to product via price
+    await setupSubscriptionItem({
+      subscriptionId: subscriptionA.id,
+      name: 'Product A Subscription Item',
+      quantity: 1,
+      unitPrice: 100,
+      priceId: priceA.id,
+    })
+
+    const billingPeriodA = await setupBillingPeriod({
+      subscriptionId: subscriptionA.id,
+      startDate,
+      endDate,
+      status: BillingPeriodStatus.Active,
+    })
+
+    await setupBillingPeriodItem({
+      billingPeriodId: billingPeriodA.id,
+      quantity: 1,
+      unitPrice: 100,
+      name: 'Product A Item',
+    })
+
+    // Create subscription for Product B ($200/month)
+    const subscriptionB = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: priceB.id,
+      interval: IntervalUnit.Month,
+      intervalCount: 1,
+      status: SubscriptionStatus.Active,
+    })
+
+    // Create subscription item to link subscription to product via price
+    await setupSubscriptionItem({
+      subscriptionId: subscriptionB.id,
+      name: 'Product B Subscription Item',
+      quantity: 1,
+      unitPrice: 200,
+      priceId: priceB.id,
+    })
+
+    const billingPeriodB = await setupBillingPeriod({
+      subscriptionId: subscriptionB.id,
+      startDate,
+      endDate,
+      status: BillingPeriodStatus.Active,
+    })
+
+    await setupBillingPeriodItem({
+      billingPeriodId: billingPeriodB.id,
+      quantity: 1,
+      unitPrice: 200,
+      name: 'Product B Item',
+    })
+
+    // Query for Product A only
+    const resultA = await adminTransaction(
+      async ({ transaction }) => {
+        return calculateMRRByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+            productId: productA.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultA).toHaveLength(1)
+    expect(resultA[0].amount).toBe(100)
+
+    // Query for Product B only
+    const resultB = await adminTransaction(
+      async ({ transaction }) => {
+        return calculateMRRByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+            productId: productB.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultB).toHaveLength(1)
+    expect(resultB[0].amount).toBe(200)
+
+    // Query for all products (no filter)
+    const resultAll = await adminTransaction(
+      async ({ transaction }) => {
+        return calculateMRRByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultAll).toHaveLength(1)
+    expect(resultAll[0].amount).toBe(300) // $100 + $200
+  })
+
+  it('should return zero MRR when product has no billing periods', async () => {
+    const {
+      organization,
+      product: productA,
+      price: priceA,
+      pricingModel,
+    } = await setupOrg()
+
+    // Create a second product with no subscriptions
+    const productB = await setupProduct({
+      organizationId: organization.id,
+      name: 'Product B - No Subscriptions',
+      pricingModelId: pricingModel.id,
+    })
+
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    const startDate = new Date('2023-01-01T05:00:00.000Z')
+    const endDate = new Date('2023-01-31T05:00:00.000Z')
+
+    // Create subscription for Product A only
+    const subscriptionA = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: priceA.id,
+      interval: IntervalUnit.Month,
+      intervalCount: 1,
+      status: SubscriptionStatus.Active,
+    })
+
+    const billingPeriodA = await setupBillingPeriod({
+      subscriptionId: subscriptionA.id,
+      startDate,
+      endDate,
+      status: BillingPeriodStatus.Active,
+    })
+
+    await setupBillingPeriodItem({
+      billingPeriodId: billingPeriodA.id,
+      quantity: 1,
+      unitPrice: 100,
+      name: 'Product A Item',
+    })
+
+    // Query for Product B (which has no subscriptions)
+    const result = await adminTransaction(async ({ transaction }) => {
+      return calculateMRRByMonth(
+        organization.id,
+        {
+          startDate,
+          endDate,
+          granularity: RevenueChartIntervalUnit.Month,
+          productId: productB.id,
+        },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].amount).toBe(0)
+  })
+
+  it('should return zero MRR when productId does not exist', async () => {
+    const { organization, price } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    const startDate = new Date('2023-01-01T05:00:00.000Z')
+    const endDate = new Date('2023-01-31T05:00:00.000Z')
+
+    // Create a subscription with billing period
+    const subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: price.id,
+      interval: IntervalUnit.Month,
+      intervalCount: 1,
+      status: SubscriptionStatus.Active,
+    })
+
+    const billingPeriod = await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate,
+      endDate,
+      status: BillingPeriodStatus.Active,
+    })
+
+    await setupBillingPeriodItem({
+      billingPeriodId: billingPeriod.id,
+      quantity: 1,
+      unitPrice: 100,
+      name: 'Test Item',
+    })
+
+    // Query with non-existent productId
+    const result = await adminTransaction(async ({ transaction }) => {
+      return calculateMRRByMonth(
+        organization.id,
+        {
+          startDate,
+          endDate,
+          granularity: RevenueChartIntervalUnit.Month,
+          productId: 'non_existent_product_id',
+        },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].amount).toBe(0)
   })
 })

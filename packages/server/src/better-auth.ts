@@ -1,10 +1,16 @@
+import {
+  FlowgladActionKey,
+  flowgladActionValidators,
+} from '@flowglad/shared'
 import type { BetterAuthPlugin } from 'better-auth'
 import { getSessionFromCtx } from 'better-auth/api'
 import {
   createAuthEndpoint,
   createAuthMiddleware,
 } from 'better-auth/plugins'
+import { z } from 'zod'
 import { FlowgladServer } from './FlowgladServer'
+import { routeToHandlerMap } from './subrouteHandlers'
 
 type InnerSession = {
   user: {
@@ -13,6 +19,121 @@ type InnerSession = {
     email?: string | null
     organizationId?: string | null
   }
+}
+
+/**
+ * The session type returned by getSessionFromCtx in Better Auth.
+ * Contains both session and user information.
+ */
+// Export for testing
+export type BetterAuthSessionResult = {
+  session: {
+    id: string
+    userId: string
+    activeOrganizationId?: string
+    [key: string]: unknown
+  }
+  user: {
+    id: string
+    name?: string | null
+    email?: string | null
+    [key: string]: unknown
+  }
+}
+
+/**
+ * Mapping from camelCase endpoint keys to FlowgladActionKey values.
+ * Used for exhaustiveness testing to ensure all action keys have endpoints.
+ */
+export const endpointKeyToActionKey: Record<
+  string,
+  FlowgladActionKey
+> = {
+  getCustomerBilling: FlowgladActionKey.GetCustomerBilling,
+  findOrCreateCustomer: FlowgladActionKey.FindOrCreateCustomer,
+  createCheckoutSession: FlowgladActionKey.CreateCheckoutSession,
+  createAddPaymentMethodCheckoutSession:
+    FlowgladActionKey.CreateAddPaymentMethodCheckoutSession,
+  createActivateSubscriptionCheckoutSession:
+    FlowgladActionKey.CreateActivateSubscriptionCheckoutSession,
+  cancelSubscription: FlowgladActionKey.CancelSubscription,
+  uncancelSubscription: FlowgladActionKey.UncancelSubscription,
+  adjustSubscription: FlowgladActionKey.AdjustSubscription,
+  createSubscription: FlowgladActionKey.CreateSubscription,
+  updateCustomer: FlowgladActionKey.UpdateCustomer,
+  createUsageEvent: FlowgladActionKey.CreateUsageEvent,
+  getResources: FlowgladActionKey.GetResources,
+  claimResource: FlowgladActionKey.ClaimResource,
+  releaseResource: FlowgladActionKey.ReleaseResource,
+  listResourceClaims: FlowgladActionKey.ListResourceClaims,
+}
+
+/**
+ * Compile-time exhaustiveness check for endpointKeyToActionKey.
+ *
+ * This object uses `satisfies` to cause a TypeScript compile error if any
+ * FlowgladActionKey value is missing. Unlike `as`, `satisfies` validates
+ * without bypassing type checking.
+ *
+ * When a new FlowgladActionKey is added:
+ * 1. TypeScript will error here until you add the mapping
+ * 2. The mapping must point to a key that exists in endpointKeyToActionKey
+ */
+const _actionKeyToEndpointKey = {
+  [FlowgladActionKey.GetCustomerBilling]: 'getCustomerBilling',
+  [FlowgladActionKey.FindOrCreateCustomer]: 'findOrCreateCustomer',
+  [FlowgladActionKey.CreateCheckoutSession]: 'createCheckoutSession',
+  [FlowgladActionKey.CreateAddPaymentMethodCheckoutSession]:
+    'createAddPaymentMethodCheckoutSession',
+  [FlowgladActionKey.CreateActivateSubscriptionCheckoutSession]:
+    'createActivateSubscriptionCheckoutSession',
+  [FlowgladActionKey.CancelSubscription]: 'cancelSubscription',
+  [FlowgladActionKey.UncancelSubscription]: 'uncancelSubscription',
+  [FlowgladActionKey.AdjustSubscription]: 'adjustSubscription',
+  [FlowgladActionKey.CreateSubscription]: 'createSubscription',
+  [FlowgladActionKey.UpdateCustomer]: 'updateCustomer',
+  [FlowgladActionKey.CreateUsageEvent]: 'createUsageEvent',
+  [FlowgladActionKey.GetResources]: 'getResources',
+  [FlowgladActionKey.ClaimResource]: 'claimResource',
+  [FlowgladActionKey.ReleaseResource]: 'releaseResource',
+  [FlowgladActionKey.ListResourceClaims]: 'listResourceClaims',
+} satisfies Record<
+  FlowgladActionKey,
+  keyof typeof endpointKeyToActionKey
+>
+
+/**
+ * Error response format for Better Auth endpoints.
+ * Consistent format: { error: { code, message, details? } }
+ */
+interface FlowgladEndpointError {
+  code: string
+  message: string
+  details?: unknown
+}
+
+/**
+ * Resolves the customer external ID from a Better Auth session.
+ * Returns an error if organization billing is configured but no active organization exists.
+ */
+// Export for testing
+export const resolveCustomerExternalId = (
+  options: FlowgladBetterAuthPluginOptions,
+  session: BetterAuthSessionResult
+): { externalId: string } | { error: FlowgladEndpointError } => {
+  if (options.customerType === 'organization') {
+    if (!session.session.activeOrganizationId) {
+      return {
+        error: {
+          code: 'NO_ACTIVE_ORGANIZATION',
+          message:
+            'Organization billing requires an active organization. Please select or create an organization first.',
+        },
+      }
+    }
+    return { externalId: session.session.activeOrganizationId }
+  }
+  return { externalId: session.session.userId }
 }
 
 export type FlowgladBetterAuthPluginOptions = {
@@ -165,12 +286,132 @@ export const createFlowgladCustomerForOrganization = async (
   await createFlowgladCustomer(options, session)
 }
 
+/**
+ * Creates a Flowglad endpoint for a given action key.
+ * Each endpoint handles authentication, customer resolution, input validation,
+ * and delegates to the existing routeToHandlerMap handlers.
+ */
+const createFlowgladBillingEndpoint = <T extends FlowgladActionKey>(
+  actionKey: T,
+  options: FlowgladBetterAuthPluginOptions
+) => {
+  return createAuthEndpoint(
+    `/flowglad/${actionKey}`,
+    {
+      method: 'POST',
+      // Use a permissive schema so Better Call parses the JSON body for us
+      // Handlers will do their own validation
+      body: z.record(z.string(), z.any()),
+      metadata: {
+        isAction: true,
+      },
+    },
+    async (ctx) => {
+      // 1. Authenticate
+      const sessionResult = await getSessionFromCtx(ctx)
+      if (!sessionResult) {
+        return ctx.json(
+          {
+            error: {
+              code: 'UNAUTHORIZED',
+              message: 'Authentication required',
+            },
+          },
+          { status: 401 }
+        )
+      }
+
+      // Cast to our expected session type
+      const session =
+        sessionResult as unknown as BetterAuthSessionResult
+
+      // 2. Resolve customer ID with explicit error for missing org
+      const customerResult = resolveCustomerExternalId(
+        options,
+        session
+      )
+      if ('error' in customerResult) {
+        return ctx.json(
+          { error: customerResult.error },
+          { status: 400 }
+        )
+      }
+
+      // 3. Get request body (already parsed by Better Call due to body schema)
+      // Handlers will do their own validation (consistent with standalone requestHandler)
+      const validator = flowgladActionValidators[actionKey]
+      const rawBody = ctx.body ?? {}
+
+      // 4. Create FlowgladServer and delegate to handler
+      const apiKey = options.apiKey || process.env.FLOWGLAD_SECRET_KEY
+      const flowgladServerConfig: {
+        customerExternalId: string
+        getCustomerDetails: () => Promise<{
+          name: string
+          email: string
+        }>
+        apiKey?: string
+        baseURL?: string
+      } = {
+        customerExternalId: customerResult.externalId,
+        getCustomerDetails: async () => ({
+          name: session.user.name || '',
+          email: session.user.email || '',
+        }),
+      }
+      if (apiKey) {
+        flowgladServerConfig.apiKey = apiKey
+      }
+      if (options.baseURL) {
+        flowgladServerConfig.baseURL = options.baseURL
+      }
+
+      const flowgladServer = new FlowgladServer(flowgladServerConfig)
+
+      // 5. Call the handler
+      const handler = routeToHandlerMap[actionKey]
+      // Pass the raw body to the handler - it will do its own validation
+      // (consistent with how the standalone requestHandler works)
+      const result = await handler(
+        {
+          method: validator.method,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data: rawBody as any,
+        },
+        flowgladServer
+      )
+
+      if (result.error) {
+        return ctx.json(
+          {
+            error: {
+              code: result.error.code,
+              message:
+                typeof result.error.json?.message === 'string'
+                  ? result.error.json.message
+                  : `Flowglad API error: ${result.error.code}`,
+              details: result.error.json,
+            },
+          },
+          { status: result.status }
+        )
+      }
+
+      return ctx.json(
+        { data: result.data },
+        { status: result.status }
+      )
+    }
+  )
+}
+
 export const flowgladPlugin = (
   options: FlowgladBetterAuthPluginOptions
 ) => {
   return {
     id: 'flowglad',
     endpoints: {
+      // Utility endpoint for getting the external ID
       getExternalId: createAuthEndpoint(
         '/flowglad/get-external-id',
         {
@@ -202,6 +443,71 @@ export const flowgladPlugin = (
             externalId,
           })
         }
+      ),
+
+      // Billing endpoints - one for each FlowgladActionKey
+      getCustomerBilling: createFlowgladBillingEndpoint(
+        FlowgladActionKey.GetCustomerBilling,
+        options
+      ),
+      findOrCreateCustomer: createFlowgladBillingEndpoint(
+        FlowgladActionKey.FindOrCreateCustomer,
+        options
+      ),
+      createCheckoutSession: createFlowgladBillingEndpoint(
+        FlowgladActionKey.CreateCheckoutSession,
+        options
+      ),
+      createAddPaymentMethodCheckoutSession:
+        createFlowgladBillingEndpoint(
+          FlowgladActionKey.CreateAddPaymentMethodCheckoutSession,
+          options
+        ),
+      createActivateSubscriptionCheckoutSession:
+        createFlowgladBillingEndpoint(
+          FlowgladActionKey.CreateActivateSubscriptionCheckoutSession,
+          options
+        ),
+      cancelSubscription: createFlowgladBillingEndpoint(
+        FlowgladActionKey.CancelSubscription,
+        options
+      ),
+      uncancelSubscription: createFlowgladBillingEndpoint(
+        FlowgladActionKey.UncancelSubscription,
+        options
+      ),
+      adjustSubscription: createFlowgladBillingEndpoint(
+        FlowgladActionKey.AdjustSubscription,
+        options
+      ),
+      createSubscription: createFlowgladBillingEndpoint(
+        FlowgladActionKey.CreateSubscription,
+        options
+      ),
+      updateCustomer: createFlowgladBillingEndpoint(
+        FlowgladActionKey.UpdateCustomer,
+        options
+      ),
+      createUsageEvent: createFlowgladBillingEndpoint(
+        FlowgladActionKey.CreateUsageEvent,
+        options
+      ),
+      // Resource claim endpoints - to be fully implemented in later patches
+      getResources: createFlowgladBillingEndpoint(
+        FlowgladActionKey.GetResources,
+        options
+      ),
+      claimResource: createFlowgladBillingEndpoint(
+        FlowgladActionKey.ClaimResource,
+        options
+      ),
+      releaseResource: createFlowgladBillingEndpoint(
+        FlowgladActionKey.ReleaseResource,
+        options
+      ),
+      listResourceClaims: createFlowgladBillingEndpoint(
+        FlowgladActionKey.ListResourceClaims,
+        options
       ),
     },
     hooks: {
