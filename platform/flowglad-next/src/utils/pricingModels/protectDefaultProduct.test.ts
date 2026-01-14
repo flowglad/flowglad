@@ -97,7 +97,8 @@ const createPricingModelInput = (
     features: [],
     products,
     usageMeters: [],
-  } as SetupPricingModelInput
+    resources: [],
+  }
 }
 
 describe('findDefaultProduct', () => {

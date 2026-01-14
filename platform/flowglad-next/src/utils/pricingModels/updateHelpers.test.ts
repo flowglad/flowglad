@@ -13,7 +13,7 @@ import {
   IntervalUnit,
   PriceType,
 } from '@/types'
-import type { SetupPricingModelInput } from './setupSchemas'
+import type { SetupPricingModelRawInput } from './setupSchemas'
 import { setupPricingModelTransaction } from './setupTransaction'
 import {
   resolveExistingIds,
@@ -36,7 +36,7 @@ afterEach(async () => {
 describe('resolveExistingIds', () => {
   it('should create slug-to-id maps for all child entities', async () => {
     // Setup: create pricing model with features, products, prices, usage meters
-    const input: SetupPricingModelInput = {
+    const input: SetupPricingModelRawInput = {
       name: 'Test Pricing Model',
       isDefault: false,
       usageMeters: [
@@ -246,7 +246,7 @@ describe('resolveExistingIds', () => {
 
   it('returns empty maps for pricing models with no features or usage meters', async () => {
     // Setup: pricing model with no child records
-    const input: SetupPricingModelInput = {
+    const input: SetupPricingModelRawInput = {
       name: 'Empty Model',
       isDefault: false,
       usageMeters: [],
@@ -301,7 +301,7 @@ describe('resolveExistingIds', () => {
 
   it('includes resources in the returned ID maps', async () => {
     // Setup: create pricing model
-    const input: SetupPricingModelInput = {
+    const input: SetupPricingModelRawInput = {
       name: 'Resource Test Model',
       isDefault: false,
       usageMeters: [],
@@ -393,7 +393,7 @@ describe('resolveExistingIds', () => {
 
   it('returns empty resources map when no resources exist', async () => {
     // Setup: create pricing model without resources
-    const input: SetupPricingModelInput = {
+    const input: SetupPricingModelRawInput = {
       name: 'No Resources Model',
       isDefault: false,
       usageMeters: [],
@@ -445,7 +445,7 @@ describe('resolveExistingIds', () => {
 describe('syncProductFeaturesForMultipleProducts', () => {
   it('should batch add feature associations for multiple products', async () => {
     // Setup: create products with some features, then add more
-    const input: SetupPricingModelInput = {
+    const input: SetupPricingModelRawInput = {
       name: 'Sync Test Model',
       isDefault: false,
       usageMeters: [],
@@ -592,7 +592,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
   it('should batch remove feature associations for multiple products', async () => {
     // Setup
-    const input: SetupPricingModelInput = {
+    const input: SetupPricingModelRawInput = {
       name: 'Removal Test Model',
       isDefault: false,
       usageMeters: [],
@@ -740,7 +740,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
   it('expires old features and creates new ones when completely replacing product features', async () => {
     // Setup
-    const input: SetupPricingModelInput = {
+    const input: SetupPricingModelRawInput = {
       name: 'Replacement Test Model',
       isDefault: false,
       usageMeters: [],
@@ -919,7 +919,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
   it('only modifies changed product features while leaving unchanged ones intact', async () => {
     // Setup
-    const input: SetupPricingModelInput = {
+    const input: SetupPricingModelRawInput = {
       name: 'Mixed Changes Test Model',
       isDefault: false,
       usageMeters: [],
@@ -1120,7 +1120,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
   it('unexpires previously expired features when re-added and returns them in added array', async () => {
     // Setup: create product with feature-a and feature-b
-    const input: SetupPricingModelInput = {
+    const input: SetupPricingModelRawInput = {
       name: 'Unexpire Test Model',
       isDefault: false,
       usageMeters: [],
@@ -1259,7 +1259,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
   it('skips re-expiring already expired features', async () => {
     // Setup
-    const input: SetupPricingModelInput = {
+    const input: SetupPricingModelRawInput = {
       name: 'Already Expired Test Model',
       isDefault: false,
       usageMeters: [],

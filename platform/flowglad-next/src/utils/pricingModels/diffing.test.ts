@@ -1816,6 +1816,7 @@ describe('diffPricingModel', () => {
       features: overrides.features ?? [],
       products: overrides.products ?? [],
       usageMeters: overrides.usageMeters ?? [],
+      resources: overrides.resources ?? [],
     }
   }
 

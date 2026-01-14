@@ -8,6 +8,7 @@
 import * as R from 'ramda'
 import { z } from 'zod'
 import {
+  resourceFeatureClientUpdateSchema,
   toggleFeatureClientUpdateSchema,
   usageCreditGrantFeatureClientUpdateSchema,
 } from '@/db/schema/features'
@@ -491,7 +492,9 @@ export const validateFeatureDiff = (
     const schema =
       existing.type === FeatureType.Toggle
         ? toggleFeatureClientUpdateSchema
-        : usageCreditGrantFeatureClientUpdateSchema
+        : existing.type === FeatureType.UsageCreditGrant
+          ? usageCreditGrantFeatureClientUpdateSchema
+          : resourceFeatureClientUpdateSchema
 
     // Handle usageMeterSlug -> usageMeterId transformation for UsageCreditGrant features
     // In the setup schema, we use usageMeterSlug, but the client update schema expects usageMeterId
@@ -507,6 +510,14 @@ export const validateFeatureDiff = (
       ).usageMeterSlug
       delete (transformedUpdate as Record<string, unknown>)
         .usageMeterSlug
+    }
+    if ('resourceSlug' in transformedUpdate) {
+      // Transform resourceSlug to resourceId to align with the client update schema
+      ;(transformedUpdate as Record<string, unknown>).resourceId = (
+        transformedUpdate as Record<string, unknown>
+      ).resourceSlug
+      delete (transformedUpdate as Record<string, unknown>)
+        .resourceSlug
     }
 
     // Try to parse with strict mode

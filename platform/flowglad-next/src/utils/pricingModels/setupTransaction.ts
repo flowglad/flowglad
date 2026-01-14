@@ -17,8 +17,8 @@ import { FeatureType, IntervalUnit, PriceType } from '@/types'
 import { hashData } from '@/utils/backendCore'
 import { validateDefaultProductSchema } from '@/utils/defaultProductValidation'
 import {
-  type SetupPricingModelInput,
   type SetupPricingModelProductInput,
+  type SetupPricingModelRawInput,
   validateSetupPricingModelInput,
 } from '@/utils/pricingModels/setupSchemas'
 
@@ -35,7 +35,7 @@ export const setupPricingModelTransaction = async (
     organizationId,
     livemode,
   }: {
-    input: SetupPricingModelInput
+    input: SetupPricingModelRawInput
     organizationId: string
     livemode: boolean
   },

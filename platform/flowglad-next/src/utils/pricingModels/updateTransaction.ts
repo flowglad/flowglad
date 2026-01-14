@@ -50,6 +50,7 @@ import { protectDefaultProduct } from './protectDefaultProduct'
 import { getPricingModelSetupData } from './setupHelpers'
 import {
   type SetupPricingModelInput,
+  type SetupPricingModelRawInput,
   validateSetupPricingModelInput,
 } from './setupSchemas'
 import { externalIdFromProductData } from './setupTransaction'
@@ -123,7 +124,7 @@ export const updatePricingModelTransaction = async (
     proposedInput: rawProposedInput,
   }: {
     pricingModelId: string
-    proposedInput: SetupPricingModelInput
+    proposedInput: SetupPricingModelRawInput
   },
   transaction: DbTransaction
 ): Promise<UpdatePricingModelResult> => {

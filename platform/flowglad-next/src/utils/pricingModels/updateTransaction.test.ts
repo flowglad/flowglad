@@ -14,18 +14,9 @@ import {
   IntervalUnit,
   PriceType,
 } from '@/types'
-import type { SetupPricingModelInput } from './setupSchemas'
+import type { SetupPricingModelRawInput } from './setupSchemas'
 import { setupPricingModelTransaction } from './setupTransaction'
 import { updatePricingModelTransaction } from './updateTransaction'
-
-/**
- * Temporary type for tests that include resources.
- * Once Patch 1 (schema changes) is implemented, SetupPricingModelInput
- * will include resources and this type can be removed.
- */
-type SetupPricingModelInputWithResources = SetupPricingModelInput & {
-  resources?: Array<{ slug: string; name: string; active?: boolean }>
-}
 
 let organization: Organization.Record
 
@@ -45,10 +36,10 @@ afterEach(async () => {
  * Automatically adds usage price products for any usage meters in overrides.
  */
 const createBasicPricingModel = async (
-  overrides: Partial<SetupPricingModelInput> = {}
+  overrides: Partial<SetupPricingModelRawInput> = {}
 ) => {
   // If usage meters are provided, create corresponding usage price products
-  const usageMeterProducts: SetupPricingModelInput['products'] = (
+  const usageMeterProducts: SetupPricingModelRawInput['products'] = (
     overrides.usageMeters ?? []
   ).map((meter) => ({
     product: {
@@ -72,7 +63,7 @@ const createBasicPricingModel = async (
     features: [],
   }))
 
-  const baseProducts: SetupPricingModelInput['products'] = [
+  const baseProducts: SetupPricingModelRawInput['products'] = [
     {
       product: {
         name: 'Starter Plan',
@@ -100,7 +91,7 @@ const createBasicPricingModel = async (
     ? overrides.products
     : [...baseProducts, ...usageMeterProducts]
 
-  const input: SetupPricingModelInput = {
+  const input: SetupPricingModelRawInput = {
     name: 'Test Pricing Model',
     isDefault: false,
     usageMeters: [],
@@ -512,7 +503,7 @@ describe('updatePricingModelTransaction', () => {
    * Once Patch 6 is done, unskip these tests.
    *
    * Note: Type assertions are used because Patch 1 (schema changes) adds 'resources'
-   * to SetupPricingModelInput. Remove assertions once Patch 1 is implemented.
+   * to SetupPricingModelRawInput. Remove assertions once Patch 1 is implemented.
    */
   describe('resource updates', () => {
     it.skip('creates new resources when added to proposed input', async () => {
@@ -563,7 +554,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              } as SetupPricingModelRawInput,
             },
             transaction
           )
@@ -624,7 +615,7 @@ describe('updatePricingModelTransaction', () => {
                   features: ['feature-a'],
                 },
               ],
-            } as SetupPricingModelInputWithResources,
+            } as SetupPricingModelRawInput,
           },
           transaction
         )
@@ -672,7 +663,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              } as SetupPricingModelRawInput,
             },
             transaction
           )
@@ -733,7 +724,7 @@ describe('updatePricingModelTransaction', () => {
                   features: ['feature-a'],
                 },
               ],
-            } as SetupPricingModelInputWithResources,
+            } as SetupPricingModelRawInput,
           },
           transaction
         )
@@ -781,7 +772,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              } as SetupPricingModelRawInput,
             },
             transaction
           )
@@ -851,7 +842,7 @@ describe('updatePricingModelTransaction', () => {
                   features: ['feature-a'],
                 },
               ],
-            } as SetupPricingModelInputWithResources,
+            } as SetupPricingModelRawInput,
           },
           transaction
         )
@@ -899,7 +890,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              } as SetupPricingModelRawInput,
             },
             transaction
           )
@@ -911,18 +902,8 @@ describe('updatePricingModelTransaction', () => {
     })
   })
 
-  /**
-   * Resource feature update tests - these tests require:
-   * - Patch 1 (schema changes) for Resource feature type in setup schema
-   * - Patch 3 (updateHelpers) for resources in ID resolution
-   * - Patch 4 (updateTransaction) for resource diffing
-   * - Patch 5 (updateTransaction) for Resource feature handling
-   * - Patch 6 (setupHelpers) for resources in export
-   *
-   * Unskip these tests once all patches are implemented.
-   */
   describe('resource feature updates', () => {
-    it.skip('creates new Resource features with correct resourceId', async () => {
+    it('creates new Resource features with correct resourceId', async () => {
       // First create a pricing model with a resource but no Resource features
       const setupResult = await createBasicPricingModel()
 
@@ -967,7 +948,7 @@ describe('updatePricingModelTransaction', () => {
                   features: ['feature-a'],
                 },
               ],
-            } as SetupPricingModelInputWithResources,
+            } as SetupPricingModelRawInput,
           },
           transaction
         )
@@ -1034,7 +1015,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a', 'seat-grant'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              } as SetupPricingModelRawInput,
             },
             transaction
           )
@@ -1050,7 +1031,7 @@ describe('updatePricingModelTransaction', () => {
       expect(createdFeature.renewalFrequency).toBeNull()
     })
 
-    it.skip('transforms resourceSlug to resourceId when updating Resource feature', async () => {
+    it('transforms resourceSlug to resourceId when updating Resource feature', async () => {
       // First create a pricing model with two resources and a Resource feature
       const setupResult = await createBasicPricingModel()
 
@@ -1108,7 +1089,7 @@ describe('updatePricingModelTransaction', () => {
                   features: ['feature-a', 'resource-grant'],
                 },
               ],
-            } as SetupPricingModelInputWithResources,
+            } as SetupPricingModelRawInput,
           },
           transaction
         )
@@ -1180,7 +1161,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a', 'resource-grant'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              } as SetupPricingModelRawInput,
             },
             transaction
           )
@@ -1194,7 +1175,7 @@ describe('updatePricingModelTransaction', () => {
       expect(updatedFeature.amount).toBe(10)
     })
 
-    it.skip('throws when Resource feature references non-existent resource', async () => {
+    it('throws when Resource feature references non-existent resource', async () => {
       const setupResult = await createBasicPricingModel()
 
       // Add a resource first
@@ -1238,7 +1219,7 @@ describe('updatePricingModelTransaction', () => {
                   features: ['feature-a'],
                 },
               ],
-            } as SetupPricingModelInputWithResources,
+            } as SetupPricingModelRawInput,
           },
           transaction
         )
@@ -1295,7 +1276,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a', 'invalid-grant'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              } as SetupPricingModelRawInput,
             },
             transaction
           )
@@ -1303,7 +1284,7 @@ describe('updatePricingModelTransaction', () => {
       ).rejects.toThrow('Resource non-existent-resource not found')
     })
 
-    it.skip('deactivates Resource features when removed from proposed input', async () => {
+    it('deactivates Resource features when removed from proposed input', async () => {
       const setupResult = await createBasicPricingModel()
 
       // Add a resource and Resource feature
@@ -1356,7 +1337,7 @@ describe('updatePricingModelTransaction', () => {
                   features: ['feature-a', 'seat-grant'],
                 },
               ],
-            } as SetupPricingModelInputWithResources,
+            } as SetupPricingModelRawInput,
           },
           transaction
         )
@@ -1405,7 +1386,7 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              } as SetupPricingModelRawInput,
             },
             transaction
           )
@@ -1431,7 +1412,7 @@ describe('updatePricingModelTransaction', () => {
       expect(seatGrantFeature!.active).toBe(false)
     })
 
-    it.skip('creates new resources and Resource features that use those resources in the same update', async () => {
+    it('creates new resources and Resource features that use those resources in the same update', async () => {
       const setupResult = await createBasicPricingModel()
 
       // Add both resources and Resource features in a single update
@@ -1501,7 +1482,7 @@ describe('updatePricingModelTransaction', () => {
                     ],
                   },
                 ],
-              } as SetupPricingModelInputWithResources,
+              } as SetupPricingModelRawInput,
             },
             transaction
           )

@@ -11,8 +11,8 @@ import {
 } from '@/types'
 import { hashData } from '@/utils/backendCore'
 import type {
-  SetupPricingModelInput,
   SetupPricingModelProductInput,
+  SetupPricingModelRawInput,
 } from '@/utils/pricingModels/setupSchemas'
 import {
   externalIdFromProductData,
@@ -116,7 +116,7 @@ describe('setupPricingModelTransaction (integration)', () => {
   })
 
   it('throws when a UsageCreditGrant feature has no matching usage meter', async () => {
-    const input: SetupPricingModelInput = {
+    const input: SetupPricingModelRawInput = {
       name: 'PricingModel',
       isDefault: false,
       usageMeters: [],
@@ -171,7 +171,7 @@ describe('setupPricingModelTransaction (integration)', () => {
   })
 
   it('creates pricingModel, features, products, prices, and productFeatures on happy path', async () => {
-    const input: SetupPricingModelInput = {
+    const input: SetupPricingModelRawInput = {
       name: 'MyPricingModel',
       isDefault: true,
       usageMeters: [{ slug: 'um', name: 'UM' }],
@@ -307,7 +307,7 @@ describe('setupPricingModelTransaction (integration)', () => {
 
   describe('Default Product Auto-Generation', () => {
     it('should auto-generate default free plan when no default product provided', async () => {
-      const input: SetupPricingModelInput = {
+      const input: SetupPricingModelRawInput = {
         name: 'Test Pricing Model',
         isDefault: false,
         usageMeters: [],
@@ -342,7 +342,7 @@ describe('setupPricingModelTransaction (integration)', () => {
     })
 
     it('should use organization default currency for auto-generated price', async () => {
-      const input: SetupPricingModelInput = {
+      const input: SetupPricingModelRawInput = {
         name: 'Test Pricing Model',
         isDefault: false,
         usageMeters: [],
@@ -366,7 +366,7 @@ describe('setupPricingModelTransaction (integration)', () => {
 
   describe('Default Product Validation', () => {
     it('should accept valid user-provided default product', async () => {
-      const input: SetupPricingModelInput = {
+      const input: SetupPricingModelRawInput = {
         name: 'Test Pricing Model',
         isDefault: false,
         usageMeters: [],
@@ -415,7 +415,7 @@ describe('setupPricingModelTransaction (integration)', () => {
     })
 
     it('should reject multiple default products', async () => {
-      const input: SetupPricingModelInput = {
+      const input: SetupPricingModelRawInput = {
         name: 'Test Pricing Model',
         isDefault: false,
         usageMeters: [],
@@ -487,7 +487,7 @@ describe('setupPricingModelTransaction (integration)', () => {
     })
 
     it('should reject default product with non-zero price', async () => {
-      const input: SetupPricingModelInput = {
+      const input: SetupPricingModelRawInput = {
         name: 'Test Pricing Model',
         isDefault: false,
         usageMeters: [],
@@ -537,7 +537,7 @@ describe('setupPricingModelTransaction (integration)', () => {
     })
 
     it('should reject default product with trials', async () => {
-      const input: SetupPricingModelInput = {
+      const input: SetupPricingModelRawInput = {
         name: 'Test Pricing Model',
         isDefault: false,
         usageMeters: [],
@@ -590,7 +590,7 @@ describe('setupPricingModelTransaction (integration)', () => {
   describe('Input Validation', () => {
     it('should reject input with names exceeding length limits', async () => {
       const longName = 'A'.repeat(300) // Exceeds 255 character limit
-      const input: SetupPricingModelInput = {
+      const input: SetupPricingModelRawInput = {
         name: longName,
         isDefault: false,
         usageMeters: [],
@@ -613,7 +613,7 @@ describe('setupPricingModelTransaction (integration)', () => {
     })
 
     it('should reject input with empty name', async () => {
-      const input: SetupPricingModelInput = {
+      const input: SetupPricingModelRawInput = {
         name: '',
         isDefault: false,
         usageMeters: [],
@@ -636,7 +636,7 @@ describe('setupPricingModelTransaction (integration)', () => {
     })
 
     it('should reject input with invalid currency codes', async () => {
-      const input: SetupPricingModelInput = {
+      const input: SetupPricingModelRawInput = {
         name: 'Test Pricing Model',
         isDefault: false,
         usageMeters: [],

@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import type {
-  SetupPricingModelInput,
   SetupPricingModelProductInput,
+  SetupPricingModelRawInput,
 } from '@/utils/pricingModels/setupSchemas'
 
 /**
@@ -27,10 +27,11 @@ export interface TemplateProductInput
 }
 
 /**
- * Template-specific input that uses TemplateProductInput instead of SetupPricingModelProductInput
+ * Template-specific input that uses TemplateProductInput instead of SetupPricingModelProductInput.
+ * Uses SetupPricingModelRawInput so resources and isDefault are optional.
  */
 export interface TemplateSetupInput
-  extends Omit<SetupPricingModelInput, 'products'> {
+  extends Omit<SetupPricingModelRawInput, 'products'> {
   products: TemplateProductInput[]
 }
 

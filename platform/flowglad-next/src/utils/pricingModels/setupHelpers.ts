@@ -2,6 +2,7 @@ import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
+import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import type { DbTransaction } from '@/db/types'
 import { FeatureType, PriceType } from '@/types'
@@ -43,6 +44,17 @@ export async function getPricingModelSetupData(
   // Create a map of usage meter IDs to slugs for later transformation
   const usageMeterIdToSlug = new Map(
     usageMeters.map((meter) => [meter.id, meter.slug])
+  )
+
+  // Fetch all resources for this pricing model
+  const resources = await selectResources(
+    { pricingModelId: pricingModel.id, active: true },
+    transaction
+  )
+
+  // Create a map of resource IDs to slugs for later transformation
+  const resourceIdToSlug = new Map(
+    resources.map((resource) => [resource.id, resource.slug])
   )
 
   // Fetch all features for this pricing model
@@ -104,7 +116,7 @@ export async function getPricingModelSetupData(
     aggregationType: meter.aggregationType,
   }))
 
-  // Transform features (omit pricingModelId, replace usageMeterId with usageMeterSlug)
+  // Transform features (omit pricingModelId, replace usageMeterId/resourceId with slugs)
   const transformedFeatures = features.map((feature) => {
     if (feature.type === FeatureType.UsageCreditGrant) {
       if (!feature.usageMeterId) {
@@ -128,6 +140,27 @@ export async function getPricingModelSetupData(
         usageMeterSlug,
         amount: feature.amount!,
         renewalFrequency: feature.renewalFrequency!,
+        active: feature.active,
+      }
+    } else if (feature.type === FeatureType.Resource) {
+      if (!feature.resourceId) {
+        throw new Error(
+          `Feature ${feature.slug} is a Resource but has no resourceId`
+        )
+      }
+      const resourceSlug = resourceIdToSlug.get(feature.resourceId)
+      if (!resourceSlug) {
+        throw new Error(
+          `Resource with ID ${feature.resourceId} not found`
+        )
+      }
+      return {
+        type: FeatureType.Resource as const,
+        slug: feature.slug,
+        name: feature.name,
+        description: feature.description,
+        resourceSlug,
+        amount: feature.amount!,
         active: feature.active,
       }
     } else {
@@ -234,11 +267,19 @@ export async function getPricingModelSetupData(
     }
   )
 
+  // Transform resources (omit pricingModelId)
+  const transformedResources = resources.map((resource) => ({
+    slug: resource.slug,
+    name: resource.name,
+    active: resource.active,
+  }))
+
   return validateSetupPricingModelInput({
     name: pricingModel.name,
     isDefault: pricingModel.isDefault,
     features: transformedFeatures,
     products: transformedProducts,
     usageMeters: transformedUsageMeters,
+    resources: transformedResources,
   })
 }
