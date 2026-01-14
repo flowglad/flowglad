@@ -175,7 +175,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.pricingModel.name).toBe('New Name')
@@ -235,7 +236,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.pricingModel.isDefault).toBe(true)
@@ -338,7 +340,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.usageMeters.created).toHaveLength(1)
@@ -419,7 +422,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.usageMeters.updated).toHaveLength(1)
@@ -505,7 +509,8 @@ describe('updatePricingModelTransaction', () => {
               { transaction, invalidateCache }
             )
             return { result }
-          }
+          },
+          { livemode: false }
         )
       ).rejects.toThrow('Usage meters cannot be removed')
     })
@@ -565,7 +570,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.resources.created).toHaveLength(2)
@@ -680,7 +686,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.resources.updated).toHaveLength(1)
@@ -795,7 +802,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.resources.deactivated).toHaveLength(1)
@@ -1606,7 +1614,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.features.created).toHaveLength(1)
@@ -1661,7 +1670,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.features.updated).toHaveLength(1)
@@ -1757,7 +1767,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.features.deactivated).toHaveLength(1)
@@ -1845,7 +1856,8 @@ describe('updatePricingModelTransaction', () => {
               { transaction, invalidateCache }
             )
             return { result }
-          }
+          },
+          { livemode: false }
         )
       ).rejects.toThrow('Feature type cannot be changed')
     })
@@ -1920,7 +1932,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.products.created).toHaveLength(1)
@@ -1984,7 +1997,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.products.updated).toHaveLength(1)
@@ -2093,7 +2107,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       // 1 product deactivated: 'pro' (explicitly removed)
@@ -2162,7 +2177,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       // Price for starter changed (1999 -> 2999), plus free product deactivated
@@ -2281,7 +2297,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.productFeatures.added).toHaveLength(1)
@@ -2382,7 +2399,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.productFeatures.added).toHaveLength(0)
@@ -2437,7 +2455,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.productFeatures.added).toHaveLength(0)
@@ -2521,7 +2540,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.features.created).toHaveLength(1)
@@ -2625,7 +2645,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       expect(updateResult.usageMeters.created).toHaveLength(1)
@@ -2781,7 +2802,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       // Pricing model renamed
@@ -2953,7 +2975,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       // Verify database state
@@ -3117,7 +3140,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       // Verify the default product was NOT deactivated (it was auto-added back)
@@ -3217,7 +3241,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       // Verify database state
@@ -3344,7 +3369,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       // Verify database state
@@ -3502,7 +3528,8 @@ describe('updatePricingModelTransaction', () => {
             { transaction, invalidateCache }
           )
           return { result }
-        }
+        },
+        { livemode: false }
       )
 
       // Verify database state - should have exactly 2 active products (no duplicates)
