@@ -232,8 +232,8 @@ describe('resourceClaimsRouteConfigs', () => {
         expect(result).toEqual(expected)
       })
 
-      // Nested resource getter (getUsage) and lister (listClaims) expect full match array
-      const fullMatchRoutes = [
+      // Nested resource getter (getUsage) and lister (listClaims) expect sliced matches (consistent with POST routes)
+      const getterRoutes = [
         {
           key: 'GET /resource-claims/:subscriptionId/usage',
           path: 'resource-claims/subscription-usage-202/usage',
@@ -246,10 +246,10 @@ describe('resourceClaimsRouteConfigs', () => {
         },
       ]
 
-      fullMatchRoutes.forEach(({ key, path, expected }) => {
+      getterRoutes.forEach(({ key, path, expected }) => {
         const routeConfig = findRouteConfig(key)
         const fullMatch = routeConfig!.pattern.exec(path)
-        const result = routeConfig!.mapParams(fullMatch as string[])
+        const result = routeConfig!.mapParams(fullMatch!.slice(1))
         expect(result).toEqual(expected)
       })
     })
@@ -334,8 +334,8 @@ describe('resourceClaimsRouteConfigs', () => {
         expect(result).toHaveProperty(idKey, 'test-sub')
       })
 
-      // Nested resource getter (getUsage) and lister (listClaims) expect full match array
-      const fullMatchRoutes = [
+      // Nested resource getter (getUsage) and lister (listClaims) expect sliced matches (consistent with POST routes)
+      const getterRoutes = [
         {
           key: 'GET /resource-claims/:subscriptionId/usage',
           path: 'resource-claims/test-sub/usage',
@@ -350,10 +350,10 @@ describe('resourceClaimsRouteConfigs', () => {
         },
       ]
 
-      fullMatchRoutes.forEach(({ key, path }) => {
+      getterRoutes.forEach(({ key, path }) => {
         const config = findRouteConfig(key)
         const fullMatch = config!.pattern.exec(path)
-        const result = config!.mapParams(fullMatch as string[])
+        const result = config!.mapParams(fullMatch!.slice(1))
         expect(result).toHaveProperty('subscriptionId', 'test-sub')
       })
     })

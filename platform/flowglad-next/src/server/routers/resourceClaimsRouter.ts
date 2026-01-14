@@ -485,8 +485,26 @@ const listResourceUsagesProcedure = devOnlyProcedure
           },
           transaction
         )
+
+        // Apply filtering based on input parameters
+        let filteredResources = resourcesResult
+        if (input.resourceSlugs && input.resourceSlugs.length > 0) {
+          const slugSet = new Set(input.resourceSlugs)
+          filteredResources = resourcesResult.filter((r) =>
+            slugSet.has(r.slug)
+          )
+        } else if (
+          input.resourceIds &&
+          input.resourceIds.length > 0
+        ) {
+          const idSet = new Set(input.resourceIds)
+          filteredResources = resourcesResult.filter((r) =>
+            idSet.has(r.id)
+          )
+        }
+
         const resourcesById = new Map(
-          resourcesResult.map((r) => [r.id, r])
+          filteredResources.map((r) => [r.id, r])
         )
 
         const featureIds = resourceFeatures.map((f) => f.id)

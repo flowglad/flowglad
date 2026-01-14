@@ -232,6 +232,68 @@ describe('trpcToRest', () => {
         amount: 100,
       })
     })
+
+    it('should use custom routeParams for POST custom actions', () => {
+      // When routeParams specifies a custom param name like 'subscriptionId',
+      // the route should use that instead of the default 'id'
+      const result = trpcToRest('resourceClaims.claim', {
+        routeParams: ['subscriptionId'],
+      })
+
+      // Should create POST /resource-claims/:subscriptionId/claim
+      expect(result).toEqual({
+        'POST /resource-claims/:subscriptionId/claim': {
+          procedure: 'resourceClaims.claim',
+          pattern: expect.any(RegExp),
+          mapParams: expect.any(Function),
+        },
+      })
+
+      const routeKey = 'POST /resource-claims/:subscriptionId/claim'
+      const pattern = result[routeKey].pattern
+
+      // Pattern should match the expected path
+      expect(pattern.test('resource-claims/sub_123/claim')).toBe(true)
+      expect(pattern.test('resource-claims/sub_123')).toBe(false)
+      expect(pattern.test('resource-claims/claim')).toBe(false)
+
+      // mapParams should use the custom param name
+      const matches = pattern
+        .exec('resource-claims/sub_123/claim')!
+        .slice(1)
+      const testBody = { resourceSlug: 'seats', quantity: 5 }
+      const params = result[routeKey].mapParams(matches, testBody)
+
+      expect(params).toEqual({
+        subscriptionId: 'sub_123',
+        resourceSlug: 'seats',
+        quantity: 5,
+      })
+    })
+
+    it('should default to id when routeParams is not provided for POST custom actions', () => {
+      // When no routeParams is provided, should default to 'id'
+      const result = trpcToRest('subscriptions.cancel')
+
+      expect(result).toEqual({
+        'POST /subscriptions/:id/cancel': {
+          procedure: 'subscriptions.cancel',
+          pattern: expect.any(RegExp),
+          mapParams: expect.any(Function),
+        },
+      })
+
+      const routeKey = 'POST /subscriptions/:id/cancel'
+      const pattern = result[routeKey].pattern
+      const matches = pattern
+        .exec('subscriptions/sub_abc/cancel')!
+        .slice(1)
+      const params = result[routeKey].mapParams(matches, {})
+
+      expect(params).toEqual({
+        id: 'sub_abc',
+      })
+    })
   })
 
   describe('Parameter extraction edge cases', () => {
