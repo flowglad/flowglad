@@ -44,7 +44,19 @@ export default defineConfig(({ mode }) => {
         '**/dist/**',
         '**/*.integration.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       ],
-      environment: 'jsdom',
+      /**
+       * Default to 'node' environment for proper MSW support.
+       *
+       * MSW's setupServer from 'msw/node' uses Node.js-specific HTTP
+       * interception that doesn't work correctly in jsdom environments.
+       * Since most tests are backend/integration tests that need MSW,
+       * we use 'node' as the default.
+       *
+       * For React component tests that need DOM APIs, add this comment
+       * at the top of the test file:
+       *   @vitest-environment jsdom
+       */
+      environment: 'node',
       setupFiles: ['./vitest.setup.ts'],
       env: loadEnv(mode, process.cwd(), ''),
       deps: {
