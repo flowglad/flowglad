@@ -50,7 +50,7 @@ const columns = {
   billingAddress: jsonb('billing_address'),
   externalId: text('external_id').notNull(),
   userId: nullableStringForeignKey('user_id', users),
-  pricingModelId: nullableStringForeignKey(
+  pricingModelId: notNullStringForeignKey(
     'pricing_model_id',
     pricingModels
   ),
@@ -62,13 +62,9 @@ const columns = {
 export const customers = pgTable(
   TABLE_NAME,
   columns,
-  livemodePolicyTable(TABLE_NAME, (table) => [
-    constructIndex(TABLE_NAME, [table.organizationId]),
-    constructIndex(TABLE_NAME, [
-      table.email,
-      table.organizationId,
-      table.livemode,
-    ]),
+  livemodePolicyTable(TABLE_NAME, (table, livemodeIndex) => [
+    livemodeIndex([table.organizationId]),
+    constructIndex(TABLE_NAME, [table.email]),
     constructIndex(TABLE_NAME, [table.userId]),
     /**
      * Cannot have a unique index on email, because Stripe can have multiple
@@ -82,16 +78,17 @@ export const customers = pgTable(
     // ]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
     constructUniqueIndex(TABLE_NAME, [
-      table.organizationId,
+      table.pricingModelId,
       table.externalId,
-      table.livemode,
     ]),
     constructUniqueIndex(TABLE_NAME, [
-      table.organizationId,
+      table.pricingModelId,
       table.invoiceNumberBase,
-      table.livemode,
     ]),
-    constructUniqueIndex(TABLE_NAME, [table.stripeCustomerId]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.stripeCustomerId,
+      table.pricingModelId,
+    ]),
     constructGinIndex(TABLE_NAME, table.email),
     constructGinIndex(TABLE_NAME, table.name),
     merchantPolicy('Enable all actions for own organizations', {
@@ -120,6 +117,7 @@ const readOnlyColumns = {
   billingAddress: true,
   invoiceNumberBase: true,
   organizationId: true,
+  pricingModelId: true,
 } as const
 
 const hiddenColumns = {
@@ -166,7 +164,6 @@ export const editCustomerInputSchema = z.object({
   customer: customerClientUpdateSchema.omit({
     externalId: true,
     id: true,
-    pricingModelId: true,
   }),
   externalId: z.string(),
 })

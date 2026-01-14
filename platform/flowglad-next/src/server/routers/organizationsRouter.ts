@@ -6,8 +6,10 @@ import {
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
   membershipsClientSelectSchema,
   membershipsTableRowDataSchema,
+  type NotificationPreferences,
   notificationPreferencesSchema,
 } from '@/db/schema/memberships'
 import {
@@ -142,6 +144,7 @@ const getMRRCalculationInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
   granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  productId: z.string().nullish(),
 })
 
 const getMRR = protectedProcedure
@@ -163,7 +166,10 @@ const getMRR = protectedProcedure
 
         return calculateMRRByMonth(
           ctx.organizationId!,
-          input,
+          {
+            ...input,
+            productId: input.productId ?? undefined,
+          },
           transaction
         )
       }
@@ -208,6 +214,7 @@ const getActiveSubscribersInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
   granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  productId: z.string().nullish(),
 })
 
 const getActiveSubscribers = protectedProcedure
@@ -229,7 +236,10 @@ const getActiveSubscribers = protectedProcedure
 
         return calculateActiveSubscribersByMonth(
           ctx.organizationId!,
-          input,
+          {
+            ...input,
+            productId: input.productId ?? undefined,
+          },
           transaction
         )
       }
@@ -467,12 +477,26 @@ const getNotificationPreferences = protectedProcedure
     )
   )
 
+/**
+ * Input schema for updating notification preferences.
+ * Uses a schema WITHOUT defaults to allow partial updates.
+ * Only the fields explicitly provided will be updated.
+ */
 const updateNotificationPreferencesInputSchema = z.object({
-  preferences: notificationPreferencesSchema.partial(),
+  preferences: z
+    .object({
+      testModeNotifications: z.boolean().optional(),
+      subscriptionCreated: z.boolean().optional(),
+      subscriptionAdjusted: z.boolean().optional(),
+      subscriptionCanceled: z.boolean().optional(),
+      subscriptionCancellationScheduled: z.boolean().optional(),
+      paymentFailed: z.boolean().optional(),
+    })
+    .partial(),
 })
 
 const updateNotificationPreferencesOutputSchema = z.object({
-  preferences: z.record(z.string(), z.boolean()),
+  preferences: notificationPreferencesSchema,
 })
 
 /**
@@ -496,19 +520,22 @@ const updateNotificationPreferences = protectedProcedure
           })
         }
         const currentPrefs =
-          (membership.notificationPreferences as Record<
-            string,
-            boolean
-          >) ?? {}
+          (membership.notificationPreferences as Partial<NotificationPreferences>) ??
+          {}
         const updatedPrefs = { ...currentPrefs, ...input.preferences }
-        await updateMembership(
+        const updatedMembership = await updateMembership(
           {
             id: membership.id,
             notificationPreferences: updatedPrefs,
           },
           transaction
         )
-        return { preferences: updatedPrefs }
+        // Return full preferences merged with defaults to ensure all fields are present
+        // Use the actual saved preferences from the database, not the computed values
+        return {
+          preferences:
+            getMembershipNotificationPreferences(updatedMembership),
+        }
       }
     )
   )

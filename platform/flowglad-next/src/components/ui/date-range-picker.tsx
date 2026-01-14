@@ -438,9 +438,11 @@ export function DateRangePicker({
         <PopoverTrigger asChild>
           <Button
             id="date"
-            variant="secondary"
-            size="sm"
-            className={cn(!fromDate && 'text-muted-foreground')}
+            variant="ghost"
+            className={cn(
+              'text-foreground',
+              !fromDate && 'text-muted-foreground'
+            )}
             disabled={disabled}
           >
             {formatDateRange()}
@@ -448,7 +450,7 @@ export function DateRangePicker({
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-auto max-w-[92.5vw] overflow-hidden p-0 rounded-md"
+          className="w-auto max-w-[92.5vw] overflow-hidden p-0"
           align="start"
         >
           <div className="flex flex-col sm:flex-row">
@@ -461,8 +463,7 @@ export function DateRangePicker({
                   size="sm"
                   className={cn(
                     'shrink-0 font-normal sm:border-0 sm:bg-transparent sm:rounded-none sm:justify-start sm:px-5',
-                    isPresetActive(preset) &&
-                      'font-medium bg-accent sm:bg-accent'
+                    isPresetActive(preset) && 'font-medium'
                   )}
                   onClick={() => handlePresetClick(preset)}
                 >

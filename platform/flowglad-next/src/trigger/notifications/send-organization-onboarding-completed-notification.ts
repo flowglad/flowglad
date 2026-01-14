@@ -9,7 +9,6 @@ import {
 } from '@/utils/backendCore'
 import core, { isNil } from '@/utils/core'
 import { sendOrganizationOnboardingCompletedNotificationEmail } from '@/utils/email'
-import { filterEligibleRecipients } from '@/utils/notifications'
 
 const notifyFlowgladTeamPayoutsEnabled = async (params: {
   organizationId: string
@@ -84,12 +83,9 @@ const sendOrganizationOnboardingCompletedNotificationTask = task({
       throw new Error('Organization not found')
     }
 
-    // Onboarding completed is always a livemode event
-    const eligibleRecipients = filterEligibleRecipients(
-      usersAndMemberships,
-      'onboardingCompleted',
-      true
-    )
+    // Onboarding completed is always a livemode event - send to all members
+    // (no specific notification preference exists for account-level notifications)
+    const eligibleRecipients = usersAndMemberships
 
     if (eligibleRecipients.length === 0) {
       // Still notify Flowglad team even if no user recipients

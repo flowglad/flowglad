@@ -12,6 +12,7 @@ import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { ProductFeature } from '@/db/schema/productFeatures'
 import type { Product } from '@/db/schema/products'
+import type { Resource } from '@/db/schema/resources'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import {
   bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug,
@@ -31,12 +32,20 @@ import {
   updateProduct,
 } from '@/db/tableMethods/productMethods'
 import {
+  bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug,
+  updateResource,
+} from '@/db/tableMethods/resourceMethods'
+import {
   bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId,
   updateUsageMeter,
 } from '@/db/tableMethods/usageMeterMethods'
 import type { DbTransaction } from '@/db/types'
 import { FeatureType, PriceType } from '@/types'
-import { computeUpdateObject, diffPricingModel } from './diffing'
+import {
+  computeUpdateObject,
+  diffPricingModel,
+  diffSluggedResources,
+} from './diffing'
 import { protectDefaultProduct } from './protectDefaultProduct'
 import { getPricingModelSetupData } from './setupHelpers'
 import {
@@ -72,6 +81,11 @@ export type UpdatePricingModelResult = {
   usageMeters: {
     created: UsageMeter.Record[]
     updated: UsageMeter.Record[]
+  }
+  resources: {
+    created: Resource.Record[]
+    updated: Resource.Record[]
+    deactivated: Resource.Record[]
   }
   productFeatures: {
     added: ProductFeature.Record[]
@@ -147,6 +161,7 @@ export const updatePricingModelTransaction = async (
     products: { created: [], updated: [], deactivated: [] },
     prices: { created: [], updated: [], deactivated: [] },
     usageMeters: { created: [], updated: [] },
+    resources: { created: [], updated: [], deactivated: [] },
     productFeatures: { added: [], removed: [] },
   }
 
@@ -211,6 +226,93 @@ export const updatePricingModelTransaction = async (
   if (usageMeterUpdatePromises.length > 0) {
     result.usageMeters.updated = await Promise.all(
       usageMeterUpdatePromises
+    )
+  }
+
+  // Step 8b: Handle resources
+  // Resources are optional in the input schema, so we default to empty arrays
+  type ResourceInput = {
+    slug: string
+    name: string
+    active?: boolean
+  }
+  const existingResources: ResourceInput[] =
+    (existingInput as { resources?: ResourceInput[] }).resources ?? []
+  const proposedResources: ResourceInput[] =
+    (proposedInput as { resources?: ResourceInput[] }).resources ?? []
+  const resourceDiff = diffSluggedResources(
+    existingResources,
+    proposedResources
+  )
+
+  // Batch create new resources
+  if (resourceDiff.toCreate.length > 0) {
+    const resourceInserts: Resource.Insert[] =
+      resourceDiff.toCreate.map((resource) => ({
+        slug: resource.slug,
+        name: resource.name,
+        pricingModelId,
+        organizationId: pricingModel.organizationId,
+        livemode: pricingModel.livemode,
+        active: resource.active ?? true,
+      }))
+
+    const createdResources =
+      await bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug(
+        resourceInserts,
+        transaction
+      )
+    result.resources.created = createdResources
+    // Merge newly created resource IDs into map
+    for (const resource of createdResources) {
+      idMaps.resources.set(resource.slug, resource.id)
+    }
+  }
+
+  // Update existing resources (parallel)
+  const resourceUpdatePromises = resourceDiff.toUpdate
+    .map(({ existing, proposed }) => {
+      const updateObj = computeUpdateObject(existing, proposed)
+      if (Object.keys(updateObj).length === 0) return null
+
+      const resourceId = idMaps.resources.get(existing.slug)
+      if (!resourceId) {
+        throw new Error(
+          `Resource ${existing.slug} not found in ID map`
+        )
+      }
+      return updateResource(
+        { id: resourceId, ...updateObj },
+        transaction
+      )
+    })
+    .filter((p): p is Promise<Resource.Record> => p !== null)
+
+  if (resourceUpdatePromises.length > 0) {
+    result.resources.updated = await Promise.all(
+      resourceUpdatePromises
+    )
+  }
+
+  // Deactivate removed resources (parallel)
+  const resourceDeactivatePromises = resourceDiff.toRemove.map(
+    (resourceInput) => {
+      const resourceId = idMaps.resources.get(resourceInput.slug)
+      if (!resourceId) {
+        throw new Error(
+          `Resource ${resourceInput.slug} not found in ID map for deactivation`
+        )
+      }
+      return updateResource(
+        { id: resourceId, active: false },
+        transaction
+      )
+    }
+  )
+
+  if (resourceDeactivatePromises.length > 0) {
+    result.resources.deactivated = await Promise.all(
+      resourceDeactivatePromises
     )
   }
 

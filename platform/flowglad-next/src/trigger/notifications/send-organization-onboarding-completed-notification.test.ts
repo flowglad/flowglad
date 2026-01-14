@@ -3,7 +3,6 @@ import { setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { isNil } from '@/utils/core'
-import { filterEligibleRecipients } from '@/utils/notifications'
 import { createUserWithPreferences } from './notification-test-utils'
 
 const mockSafeSend = vi.fn().mockResolvedValue(undefined)
@@ -23,6 +22,7 @@ vi.mock('@/utils/email', async (importOriginal) => {
 /**
  * Simulates the onboarding-completed notification trigger task logic.
  * Note: This trigger always treats events as livemode (livemode=true).
+ * Account-level notifications are sent to all members (no specific preference).
  */
 const simulateSendOnboardingCompletedNotification = async (
   organizationId: string
@@ -38,12 +38,9 @@ const simulateSendOnboardingCompletedNotification = async (
     }
   )
 
-  // Onboarding completed is always a livemode event
-  const eligibleRecipients = filterEligibleRecipients(
-    usersAndMemberships,
-    'onboardingCompleted',
-    true // always livemode
-  )
+  // Onboarding completed is always a livemode event - send to all members
+  // (no specific notification preference exists for account-level notifications)
+  const eligibleRecipients = usersAndMemberships
 
   if (eligibleRecipients.length === 0) {
     // Note: The actual trigger still notifies Flowglad team here
@@ -84,24 +81,23 @@ describe('send-organization-onboarding-completed-notification', () => {
   })
 
   describe('recipient filtering for onboardingCompleted notifications', () => {
-    it('always treats events as livemode, so testModeNotifications setting is ignored', async () => {
-      // Both users should receive notification regardless of testModeNotifications
-      // because onboarding completed is always a livemode event
+    it('sends notifications to all organization members regardless of notification preferences', async () => {
+      // Account-level notifications like onboarding completed are sent to all members
       await createUserWithPreferences({
         organizationId,
-        email: 'testmode-disabled@test.com',
+        email: 'user1@test.com',
         notificationPreferences: {
           testModeNotifications: false,
-          onboardingCompleted: true,
+          subscriptionCreated: false,
         },
       })
 
       await createUserWithPreferences({
         organizationId,
-        email: 'testmode-enabled@test.com',
+        email: 'user2@test.com',
         notificationPreferences: {
           testModeNotifications: true,
-          onboardingCompleted: true,
+          subscriptionCreated: true,
         },
       })
 
@@ -116,59 +112,8 @@ describe('send-organization-onboarding-completed-notification', () => {
       expect(mockSendOnboardingEmail).toHaveBeenCalledTimes(1)
       const callArg = mockSendOnboardingEmail.mock.calls[0][0]
       expect(callArg.to).toHaveLength(2)
-      expect(callArg.to).toContain('testmode-disabled@test.com')
-      expect(callArg.to).toContain('testmode-enabled@test.com')
-    })
-
-    it('sends email only to users with onboardingCompleted=true', async () => {
-      await createUserWithPreferences({
-        organizationId,
-        email: 'opted-in@test.com',
-        notificationPreferences: {
-          onboardingCompleted: true,
-        },
-      })
-
-      await createUserWithPreferences({
-        organizationId,
-        email: 'opted-out@test.com',
-        notificationPreferences: {
-          onboardingCompleted: false,
-        },
-      })
-
-      const result =
-        await simulateSendOnboardingCompletedNotification(
-          organizationId
-        )
-
-      expect(result.message).toBe(
-        'Organization onboarding completed notification sent successfully'
-      )
-      expect(mockSendOnboardingEmail).toHaveBeenCalledTimes(1)
-      expect(mockSendOnboardingEmail).toHaveBeenCalledWith({
-        to: ['opted-in@test.com'],
-      })
-    })
-
-    it('returns early when all users have onboardingCompleted disabled', async () => {
-      await createUserWithPreferences({
-        organizationId,
-        email: 'user@test.com',
-        notificationPreferences: {
-          onboardingCompleted: false,
-        },
-      })
-
-      const result =
-        await simulateSendOnboardingCompletedNotification(
-          organizationId
-        )
-
-      expect(result.message).toBe(
-        'No recipients opted in for this notification'
-      )
-      expect(mockSendOnboardingEmail).not.toHaveBeenCalled()
+      expect(callArg.to).toContain('user1@test.com')
+      expect(callArg.to).toContain('user2@test.com')
     })
 
     it('returns early when no users exist in the organization', async () => {
@@ -183,7 +128,7 @@ describe('send-organization-onboarding-completed-notification', () => {
       expect(mockSendOnboardingEmail).not.toHaveBeenCalled()
     })
 
-    it('uses default preferences (onboardingCompleted=true) for users with empty preferences', async () => {
+    it('sends email to users with default/empty preferences', async () => {
       await createUserWithPreferences({
         organizationId,
         email: 'default-prefs@test.com',

@@ -59,6 +59,16 @@ export const memberships = pgTable(
           using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND (current_auth_type() = 'api_key' OR "focused" = true)`,
         }
       ),
+      merchantPolicy(
+        'Enable update for own membership in current organization',
+        {
+          as: 'permissive',
+          to: 'merchant',
+          for: 'update',
+          using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id()`,
+          withCheck: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id()`,
+        }
+      ),
       // no livemode policy for memberships, because memberships are used to determine access to
       // everything else.
       // livemodePolicy(TABLE_NAME),
@@ -68,9 +78,9 @@ export const memberships = pgTable(
 
 /**
  * Zod schema for notification preferences stored in the JSONB column.
- * Contains 8 fields:
+ * Contains 6 fields:
  * - testModeNotifications: Controls whether test mode emails are sent (defaults to false)
- * - 7 notification type preferences: Each controls a specific notification type (all default to true)
+ * - 5 notification type preferences: Each controls a specific notification type (all default to true)
  */
 export const notificationPreferencesSchema = z.object({
   testModeNotifications: z.boolean().default(false),
@@ -79,8 +89,6 @@ export const notificationPreferencesSchema = z.object({
   subscriptionCanceled: z.boolean().default(true),
   subscriptionCancellationScheduled: z.boolean().default(true),
   paymentFailed: z.boolean().default(true),
-  onboardingCompleted: z.boolean().default(true),
-  payoutsEnabled: z.boolean().default(true),
 })
 
 export type NotificationPreferences = z.infer<

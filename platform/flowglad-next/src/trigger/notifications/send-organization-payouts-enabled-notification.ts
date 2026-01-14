@@ -8,7 +8,6 @@ import {
 } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
 import { sendOrganizationPayoutsEnabledNotificationEmail } from '@/utils/email'
-import { filterEligibleRecipients } from '@/utils/notifications'
 
 const sendOrganizationPayoutsEnabledNotificationTask = task({
   id: 'send-organization-payouts-enabled-notification',
@@ -50,12 +49,9 @@ const sendOrganizationPayoutsEnabledNotificationTask = task({
         }
       })
 
-    // Payouts enabled is always a livemode event
-    const eligibleRecipients = filterEligibleRecipients(
-      usersAndMemberships,
-      'payoutsEnabled',
-      true
-    )
+    // Payouts enabled is always a livemode event - send to all members
+    // (no specific notification preference exists for account-level notifications)
+    const eligibleRecipients = usersAndMemberships
 
     if (eligibleRecipients.length === 0) {
       return {

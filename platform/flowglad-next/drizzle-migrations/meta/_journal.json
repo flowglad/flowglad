@@ -1884,6 +1884,34 @@
       "when": 1768252988100,
       "tag": "0269_nebulous_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 270,
+      "version": "7",
+      "when": 1768260471201,
+      "tag": "0270_gigantic_goliath",
+      "breakpoints": true
+    },
+    {
+      "idx": 271,
+      "version": "7",
+      "when": 1768270587804,
+      "tag": "0271_chubby_skullbuster",
+      "breakpoints": true
+    },
+    {
+      "idx": 272,
+      "version": "7",
+      "when": 1768328438117,
+      "tag": "0272_parched_cammi",
+      "breakpoints": true
+    },
+    {
+      "idx": 273,
+      "version": "7",
+      "when": 1768329864138,
+      "tag": "0273_careful_ben_urich",
+      "breakpoints": true
     }
   ]
 }
