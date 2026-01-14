@@ -33,7 +33,9 @@ export const createUsageMeterTransaction = async (
     livemode,
     organizationId,
     userId,
-  }: Omit<AuthenticatedTransactionParams, 'invalidateCache'>
+    invalidateCache,
+  }: Omit<AuthenticatedTransactionParams, 'invalidateCache'> &
+    Pick<TransactionEffectsContext, 'invalidateCache'>
 ): Promise<{
   usageMeter: UsageMeter.Record
   product: Product.Record
@@ -88,7 +90,7 @@ export const createUsageMeterTransaction = async (
         },
       ],
     },
-    { transaction, livemode, organizationId, userId }
+    { transaction, livemode, organizationId, userId, invalidateCache }
   )
 
   return {

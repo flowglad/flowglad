@@ -42,7 +42,7 @@ export const createUsageMeter = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
+        const { transaction, invalidateCache } = transactionCtx
         const { livemode, organizationId } = ctx
         const userId = ctx.user?.id
         if (!userId) {
@@ -66,6 +66,7 @@ export const createUsageMeter = protectedProcedure
               userId,
               livemode,
               organizationId,
+              invalidateCache,
             }
           )
           return Result.ok({ usageMeter })

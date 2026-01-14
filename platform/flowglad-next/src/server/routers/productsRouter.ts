@@ -62,7 +62,7 @@ export const createProduct = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
+        const { transaction, invalidateCache } = transactionCtx
         const { livemode, organizationId } = ctx
         const userId = ctx.user?.id
         if (!organizationId) {
@@ -99,6 +99,7 @@ export const createProduct = protectedProcedure
               userId,
               livemode,
               organizationId,
+              invalidateCache,
             }
           )
           return Result.ok({
@@ -126,7 +127,7 @@ export const updateProduct = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
+        const { transaction, invalidateCache } = transactionCtx
         const { livemode, organizationId } = ctx
         const userId = ctx.user?.id
         if (!organizationId) {
@@ -154,6 +155,7 @@ export const updateProduct = protectedProcedure
               livemode,
               organizationId,
               userId,
+              invalidateCache,
             }
           )
 

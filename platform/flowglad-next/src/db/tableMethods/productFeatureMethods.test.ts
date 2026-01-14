@@ -444,13 +444,13 @@ describe('syncProductFeatures', () => {
 
     // - Call `syncProductFeatures` with the product details and the list of desired feature IDs.
     const result = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, invalidateCache }) => {
         const syncResult = await syncProductFeatures(
           {
             product,
             desiredFeatureIds,
           },
-          { transaction }
+          { transaction, invalidateCache }
         )
         return Result.ok(syncResult)
       }
@@ -497,13 +497,13 @@ describe('syncProductFeatures', () => {
     })
     // - Call `syncProductFeatures` with an empty `desiredFeatureIds` array.
     const result = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, invalidateCache }) => {
         const syncResult = await syncProductFeatures(
           {
             product,
             desiredFeatureIds: [],
           },
-          { transaction }
+          { transaction, invalidateCache }
         )
         return Result.ok(syncResult)
       }
@@ -537,13 +537,13 @@ describe('syncProductFeatures', () => {
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` matching the two expired features.
     const result = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, invalidateCache }) => {
         const syncResult = await syncProductFeatures(
           {
             product,
             desiredFeatureIds: [featureA.id, featureB.id],
           },
-          { transaction }
+          { transaction, invalidateCache }
         )
         return Result.ok(syncResult)
       }
@@ -586,7 +586,7 @@ describe('syncProductFeatures', () => {
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` for Feature A, Feature C, and Feature D.
     const result = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, invalidateCache }) => {
         const syncResult = await syncProductFeatures(
           {
             product,
@@ -596,7 +596,7 @@ describe('syncProductFeatures', () => {
               featureD.id,
             ],
           },
-          { transaction }
+          { transaction, invalidateCache }
         )
         return Result.ok(syncResult)
       }
@@ -645,13 +645,13 @@ describe('syncProductFeatures', () => {
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` = `['feature_A_id']`.
     const result = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, invalidateCache }) => {
         const syncResult = await syncProductFeatures(
           {
             product,
             desiredFeatureIds: [featureA.id],
           },
-          { transaction }
+          { transaction, invalidateCache }
         )
         return Result.ok(syncResult)
       }
