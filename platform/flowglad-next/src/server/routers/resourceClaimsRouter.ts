@@ -405,6 +405,7 @@ const listResourceUsagesInputSchema = z
     subscriptionId: z.string(),
     resourceSlugs: z
       .array(z.string())
+      .max(100)
       .optional()
       .describe(
         'List of resource slugs to filter by. If not provided, will return usage for all resources on the subscription.'
