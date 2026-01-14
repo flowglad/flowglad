@@ -7,6 +7,13 @@ const isValidURL = (url: string) => {
   }
 }
 
+/**
+ * Validates a URL string and throws an error if invalid.
+ * @param url - The URL string to validate
+ * @param propName - The name of the property being validated (used in error messages)
+ * @param allowRelative - If true, allows relative paths starting with '/' in addition to full URLs
+ * @throws {Error} When the URL is invalid according to the validation rules
+ */
 export const validateUrl = (
   url: string | undefined,
   propName: string,
