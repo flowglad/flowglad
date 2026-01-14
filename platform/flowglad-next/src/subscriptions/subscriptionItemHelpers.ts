@@ -421,7 +421,7 @@ const grantProratedCreditsForFeatures = async (params: {
  * @param params.subscriptionId - The subscription ID to adjust
  * @param params.newSubscriptionItems - Items to keep/update (with `id`) or create (without `id`)
  * @param params.adjustmentDate - The date/time when the adjustment occurs
- * @param params.transaction - The database transaction
+ * @param ctx - Transaction context with database transaction and effect callbacks
  * @returns A promise resolving to the created/updated items, features, credits, and ledger entries
  */
 export const handleSubscriptionItemAdjustment = async (

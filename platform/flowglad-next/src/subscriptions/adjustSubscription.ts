@@ -42,7 +42,6 @@ import {
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
-import { CacheDependency } from '@/utils/cache'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
   createBillingRun,
@@ -355,7 +354,7 @@ export interface AdjustSubscriptionResult {
  *
  * @param input - The adjustment parameters including new subscription items and timing
  * @param organization - The organization making the adjustment
- * @param transaction - The database transaction
+ * @param ctx - Transaction context with database transaction and effect callbacks
  * @returns The updated subscription, subscription items, and metadata about the adjustment
  */
 export const adjustSubscription = async (
@@ -363,7 +362,7 @@ export const adjustSubscription = async (
   organization: Organization.Record,
   ctx: TransactionEffectsContext
 ): Promise<AdjustSubscriptionResult> => {
-  const { transaction, invalidateCache } = ctx
+  const { transaction } = ctx
   const { adjustment, id } = input
   const { newSubscriptionItems } = adjustment
   const requestedTiming = adjustment.timing
@@ -871,12 +870,9 @@ export const adjustSubscription = async (
     id,
     transaction
   )
-  // For billing run path, invalidate cache after billing run completes
-  // The actual subscription item changes happen in processOutcomeForBillingRun
-  // But we still need to signal that subscription data has changed
-  if (pendingBillingRunId) {
-    invalidateCache(CacheDependency.subscriptionItems(id))
-  }
+  // Note: For billing run path, cache invalidation happens in
+  // handleSubscriptionItemAdjustment (called by processOutcomeForBillingRun)
+  // after the actual subscription item changes are applied.
 
   return {
     subscription: standardSubscriptionSelectSchema.parse(
