@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { describe, expect, it } from 'vitest'
 import { IntervalUnit } from '@/types'
 import { intervalLabel } from './billing-header'
