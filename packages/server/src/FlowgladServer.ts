@@ -702,7 +702,7 @@ export class FlowgladServer {
    */
   public claimResource = async (
     params: ClaimResourceParams
-  ): Promise<{ claims: ResourceClaim[]; usage: ResourceUsage }> => {
+  ): Promise<FlowgladNode.ResourceClaimClaimResponse> => {
     // Auto-resolve subscriptionId if not provided
     let subscriptionId = params.subscriptionId
     if (!subscriptionId) {
@@ -729,19 +729,13 @@ export class FlowgladServer {
       throw new Error('Subscription is not owned by the current user')
     }
 
-    return this.flowgladNode.post(
-      `/api/v1/resource-claims/${subscriptionId}/claim`,
-      {
-        body: {
-          resourceSlug: params.resourceSlug,
-          subscriptionId,
-          metadata: params.metadata,
-          quantity: params.quantity,
-          externalId: params.externalId,
-          externalIds: params.externalIds,
-        },
-      }
-    )
+    return this.flowgladNode.resourceClaims.claim(subscriptionId, {
+      resourceSlug: params.resourceSlug,
+      metadata: params.metadata,
+      quantity: params.quantity,
+      externalId: params.externalId,
+      externalIds: params.externalIds,
+    })
   }
 
   /**
@@ -805,10 +799,7 @@ export class FlowgladServer {
    */
   public releaseResource = async (
     params: ReleaseResourceParams
-  ): Promise<{
-    releasedClaims: ResourceClaim[]
-    usage: ResourceUsage
-  }> => {
+  ): Promise<FlowgladNode.ResourceClaimReleaseResponse> => {
     // Auto-resolve subscriptionId if not provided
     let subscriptionId = params.subscriptionId
     if (!subscriptionId) {
@@ -835,19 +826,13 @@ export class FlowgladServer {
       throw new Error('Subscription is not owned by the current user')
     }
 
-    return this.flowgladNode.post(
-      `/api/v1/resource-claims/${subscriptionId}/release`,
-      {
-        body: {
-          resourceSlug: params.resourceSlug,
-          subscriptionId,
-          quantity: params.quantity,
-          externalId: params.externalId,
-          externalIds: params.externalIds,
-          claimIds: params.claimIds,
-        },
-      }
-    )
+    return this.flowgladNode.resourceClaims.release(subscriptionId, {
+      resourceSlug: params.resourceSlug,
+      quantity: params.quantity,
+      externalId: params.externalId,
+      externalIds: params.externalIds,
+      claimIds: params.claimIds,
+    })
   }
 
   /**
