@@ -11,6 +11,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
+import { useCallback } from 'react'
 import { useFlowgladConfig } from './FlowgladConfigContext'
 import { getFlowgladRoute } from './FlowgladContext'
 
@@ -605,28 +606,34 @@ export const useResource = (
     (r) => r.resourceSlug === resourceSlug
   )
 
-  // Pre-bind resourceSlug to claim function
-  const claim = async (
-    params: Omit<ClaimResourceParams, 'resourceSlug'>
-  ): Promise<{ claims: ResourceClaim[]; usage: ResourceUsage }> => {
-    return claimAll({
-      ...params,
-      resourceSlug,
-    } as ClaimResourceParams)
-  }
+  // Pre-bind resourceSlug to claim function (memoized to prevent re-renders)
+  const claim = useCallback(
+    async (
+      params: Omit<ClaimResourceParams, 'resourceSlug'>
+    ): Promise<{ claims: ResourceClaim[]; usage: ResourceUsage }> => {
+      return claimAll({
+        ...params,
+        resourceSlug,
+      } as ClaimResourceParams)
+    },
+    [claimAll, resourceSlug]
+  )
 
-  // Pre-bind resourceSlug to release function
-  const release = async (
-    params: Omit<ReleaseResourceParams, 'resourceSlug'>
-  ): Promise<{
-    releasedClaims: ResourceClaim[]
-    usage: ResourceUsage
-  }> => {
-    return releaseAll({
-      ...params,
-      resourceSlug,
-    } as ReleaseResourceParams)
-  }
+  // Pre-bind resourceSlug to release function (memoized to prevent re-renders)
+  const release = useCallback(
+    async (
+      params: Omit<ReleaseResourceParams, 'resourceSlug'>
+    ): Promise<{
+      releasedClaims: ResourceClaim[]
+      usage: ResourceUsage
+    }> => {
+      return releaseAll({
+        ...params,
+        resourceSlug,
+      } as ReleaseResourceParams)
+    },
+    [releaseAll, resourceSlug]
+  )
 
   // Combine errors
   const combinedError = error ?? claimsError ?? null
