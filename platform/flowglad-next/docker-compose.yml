@@ -29,7 +29,7 @@ services:
       - '3000:3000'
     environment:
       - DATABASE_URL=postgresql://flowglad:flowglad_dev_password@postgres:5432/flowglad_db
-      - NODE_ENV=production
+      - NODE_ENV=development
     depends_on:
       postgres:
         condition: service_healthy
