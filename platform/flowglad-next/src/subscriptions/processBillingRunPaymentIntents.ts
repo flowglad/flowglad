@@ -1,12 +1,10 @@
 import type Stripe from 'stripe'
 import type {
   BillingPeriodTransitionLedgerCommand,
-  LedgerCommand,
   SettleInvoiceUsageCostsLedgerCommand,
 } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import type { Customer } from '@/db/schema/customers'
-import type { Event } from '@/db/schema/events'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Organization } from '@/db/schema/organizations'
@@ -41,8 +39,7 @@ import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type { TransactionEffectsContext } from '@/db/types'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
 import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
@@ -55,10 +52,7 @@ import {
 } from '@/types'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { createStripeTaxTransactionIfNeededForPayment } from '@/utils/bookkeeping/stripeTaxTransactions'
-import {
-  CacheDependency,
-  type CacheDependencyKey,
-} from '@/utils/cache'
+import { CacheDependency } from '@/utils/cache'
 import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import {
   sendAwaitingPaymentConfirmationEmail,
@@ -218,16 +212,20 @@ const processAwaitingPaymentConfirmationNotifications = async (
 
 export const processOutcomeForBillingRun = async (
   params: ProcessOutcomeForBillingRunParams,
-  transaction: DbTransaction
-): Promise<
-  TransactionOutput<{
-    invoice: Invoice.Record
-    invoiceLineItems: InvoiceLineItem.Record[]
-    billingRun: BillingRun.Record
-    payment: Payment.Record
-    processingSkipped?: boolean
-  }>
-> => {
+  ctx: TransactionEffectsContext
+): Promise<{
+  invoice: Invoice.Record
+  invoiceLineItems: InvoiceLineItem.Record[]
+  billingRun: BillingRun.Record
+  payment: Payment.Record
+  processingSkipped?: boolean
+}> => {
+  const {
+    transaction,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  } = ctx
   const { input, adjustmentParams } = params
   const event = 'type' in input ? input.data.object : input
   const timestamp = 'type' in input ? input.created : event.created
@@ -268,14 +266,11 @@ export const processOutcomeForBillingRun = async (
       transaction
     )
     return {
-      result: {
-        invoice: result.invoice,
-        invoiceLineItems: result.invoiceLineItems,
-        billingRun,
-        payment,
-        processingSkipped: true,
-      },
-      ledgerCommand: undefined,
+      invoice: result.invoice,
+      invoiceLineItems: result.invoiceLineItems,
+      billingRun,
+      payment,
+      processingSkipped: true,
     }
   }
 
@@ -317,10 +312,10 @@ export const processOutcomeForBillingRun = async (
       `Invoice for billing period ${billingRun.billingPeriodId} not found.`
     )
   }
-  const {
-    result: { payment },
-    eventsToInsert: childeventsToInsert,
-  } = await processPaymentIntentStatusUpdated(event, transaction)
+  const { payment } = await processPaymentIntentStatusUpdated(
+    event,
+    ctx
+  )
 
   if (billingRunStatus === BillingRunStatus.Succeeded) {
     await createStripeTaxTransactionIfNeededForPayment(
@@ -354,14 +349,10 @@ export const processOutcomeForBillingRun = async (
     }
 
     return {
-      result: {
-        invoice,
-        invoiceLineItems: [],
-        billingRun,
-        payment,
-      },
-      ledgerCommands: [],
-      eventsToInsert: childeventsToInsert || [],
+      invoice,
+      invoiceLineItems: [],
+      billingRun,
+      payment,
     }
   }
 
@@ -447,12 +438,14 @@ export const processOutcomeForBillingRun = async (
       )
 
     subscriptionItemAdjustmentResult =
-      await handleSubscriptionItemAdjustment({
-        subscriptionId: subscription.id,
-        newSubscriptionItems: adjustmentParams.newSubscriptionItems,
-        adjustmentDate: adjustmentParams.adjustmentDate,
-        transaction,
-      })
+      await handleSubscriptionItemAdjustment(
+        {
+          subscriptionId: subscription.id,
+          newSubscriptionItems: adjustmentParams.newSubscriptionItems,
+          adjustmentDate: adjustmentParams.adjustmentDate,
+        },
+        ctx
+      )
 
     // Sync subscription record with updated items
     await syncSubscriptionWithActiveItems(
@@ -538,17 +531,13 @@ export const processOutcomeForBillingRun = async (
   const organizationMemberUsers = usersAndMemberships.map(
     (userAndMembership) => userAndMembership.user
   )
-  const eventsToInsert: Event.Insert[] = []
-  if (childeventsToInsert && childeventsToInsert.length > 0) {
-    eventsToInsert.push(...childeventsToInsert)
-  }
 
-  // Track cache invalidations from subscription item adjustments and status changes
-  const cacheInvalidations: CacheDependencyKey[] = [
-    // Always invalidate customerSubscriptions since status may change
-    CacheDependency.customerSubscriptions(subscription.customerId),
-    ...(subscriptionItemAdjustmentResult?.cacheInvalidations ?? []),
-  ]
+  // Queue cache invalidations via effects context
+  // Note: handleSubscriptionItemAdjustment now calls invalidateCache internally
+  // so we only need to invalidate customer subscriptions here
+  invalidateCache(
+    CacheDependency.customerSubscriptions(subscription.customerId)
+  )
 
   const notificationParams: BillingRunNotificationParams = {
     invoice,
@@ -576,19 +565,7 @@ export const processOutcomeForBillingRun = async (
     // Do not cancel if first payment fails for free or default plans
     if (firstPayment && !subscription.isFreePlan) {
       // First payment failure - cancel subscription immediately
-      const {
-        result: canceledSubscription,
-        eventsToInsert: cancelEvents,
-      } = await cancelSubscriptionImmediately(
-        {
-          subscription,
-        },
-        transaction
-      )
-
-      if (cancelEvents && cancelEvents.length > 0) {
-        eventsToInsert.push(...cancelEvents)
-      }
+      await cancelSubscriptionImmediately({ subscription }, ctx)
     } else {
       // nth payment failures logic
       const maybeRetry = await scheduleBillingRunRetry(
@@ -633,8 +610,6 @@ export const processOutcomeForBillingRun = async (
     })
   }
 
-  const ledgerCommands: LedgerCommand[] = []
-
   if (
     event.status === 'succeeded' &&
     invoice.status === InvoiceStatus.Paid
@@ -669,8 +644,8 @@ export const processOutcomeForBillingRun = async (
         .filter((bp) => bp.startDate < billingPeriod.startDate)
         .sort((a, b) => b.startDate - a.startDate)[0] || null
 
-    // Construct the billing period transition command
-    ledgerCommands.push({
+    // Enqueue billing period transition command
+    enqueueLedgerCommand({
       type: LedgerTransactionType.BillingPeriodTransition,
       organizationId: organization.id,
       subscriptionId: subscription.id,
@@ -684,11 +659,11 @@ export const processOutcomeForBillingRun = async (
           (item) => item.type === FeatureType.UsageCreditGrant
         ),
       },
-    } as BillingPeriodTransitionLedgerCommand)
+    } satisfies BillingPeriodTransitionLedgerCommand)
   }
 
   if (invoice.status === InvoiceStatus.Paid) {
-    ledgerCommands.push({
+    enqueueLedgerCommand({
       type: LedgerTransactionType.SettleInvoiceUsageCosts,
       payload: {
         invoice,
@@ -697,19 +672,14 @@ export const processOutcomeForBillingRun = async (
       livemode: invoice.livemode,
       organizationId: invoice.organizationId,
       subscriptionId: invoice.subscriptionId!,
-    } as SettleInvoiceUsageCostsLedgerCommand)
+    } satisfies SettleInvoiceUsageCostsLedgerCommand)
   }
 
   return {
-    result: {
-      invoice,
-      invoiceLineItems,
-      billingRun,
-      payment,
-    },
-    ledgerCommands: ledgerCommands,
-    eventsToInsert,
-    cacheInvalidations,
+    invoice,
+    invoiceLineItems,
+    billingRun,
+    payment,
   }
 }
 

@@ -11,7 +11,10 @@ import {
   setupSubscriptionItem,
   setupToggleFeature,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import type { Feature } from '@/db/schema/features'
 import {
   resourceFeatureInsertSchema,
@@ -288,7 +291,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
   describe('when feature is deactivated (active: true → false)', () => {
     it('should expire all associated productFeatures', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
         // Deactivate the feature
         await updateFeatureTransaction(
           {
@@ -296,7 +299,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: FeatureType.Toggle,
             active: false,
           },
-          transaction
+          { transaction }
         )
 
         // Verify productFeature is now expired
@@ -310,11 +313,13 @@ describe('updateFeatureTransaction - active state synchronization', () => {
         expect(productFeatures[0].expiredAt).toBeLessThanOrEqual(
           Date.now()
         )
+
+        return { result: undefined }
       })
     })
 
     it('should detach existing subscriptionItemFeatures but preserve them', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
         // First create a subscriptionItemFeature
         const subscriptionItemFeatureInsert =
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
@@ -341,7 +346,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: FeatureType.Toggle,
             active: false,
           },
-          transaction
+          { transaction }
         )
 
         // Verify subscriptionItemFeature is detached but preserved
@@ -359,11 +364,13 @@ describe('updateFeatureTransaction - active state synchronization', () => {
         )
         expect(detachedFeature.featureId).toBe(feature.id) // Still has featureId
         expect(detachedFeature.expiredAt).toBeNull() // Not expired, just detached
+
+        return { result: undefined }
       })
     })
 
     it('should prevent new subscriptions from getting the feature', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
         // Deactivate the feature
         await updateFeatureTransaction(
           {
@@ -371,7 +378,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: FeatureType.Toggle,
             active: false,
           },
-          transaction
+          { transaction }
         )
 
         // Try to create subscription features for a new subscription item
@@ -391,6 +398,8 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
         // Should not create any features because the productFeature is expired
         expect(createdFeatures.length).toBe(0)
+
+        return { result: undefined }
       })
     })
   })
@@ -398,20 +407,21 @@ describe('updateFeatureTransaction - active state synchronization', () => {
   describe('when feature is reactivated (active: false → true)', () => {
     beforeEach(async () => {
       // First deactivate the feature
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
         await updateFeatureTransaction(
           {
             id: feature.id,
             type: FeatureType.Toggle,
             active: false,
           },
-          transaction
+          { transaction }
         )
+        return { result: undefined }
       })
     })
 
     it('should unexpire all associated productFeatures', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
         // Verify it's expired first
         const expiredFeatures = await selectProductFeatures(
           { featureId: feature.id },
@@ -426,7 +436,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: FeatureType.Toggle,
             active: true,
           },
-          transaction
+          { transaction }
         )
 
         // Verify productFeature is now unexpired
@@ -438,11 +448,13 @@ describe('updateFeatureTransaction - active state synchronization', () => {
         expect(productFeatures.length).toBe(1)
         // expiredAt can be null or 0 (epoch) due to timestamptzMs type conversion
         expect([null, 0]).toContain(productFeatures[0].expiredAt)
+
+        return { result: undefined }
       })
     })
 
     it('should allow new subscriptions to get the feature again', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
         // Reactivate the feature
         await updateFeatureTransaction(
           {
@@ -450,7 +462,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: FeatureType.Toggle,
             active: true,
           },
-          transaction
+          { transaction }
         )
 
         // Create subscription features for a new subscription item
@@ -471,11 +483,13 @@ describe('updateFeatureTransaction - active state synchronization', () => {
         // Should create the feature because productFeature is unexpired
         expect(createdFeatures.length).toBeGreaterThan(0)
         expect(createdFeatures[0].featureId).toBe(feature.id)
+
+        return { result: undefined }
       })
     })
 
     it('should NOT automatically grant feature to subscriptions created while inactive', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
         // Create a subscription item while feature is inactive
         const itemWhileInactive = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -502,7 +516,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: FeatureType.Toggle,
             active: true,
           },
-          transaction
+          { transaction }
         )
 
         // Verify the old subscription item still doesn't have it
@@ -513,13 +527,15 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
         // Still no features for this subscription item
         expect(existingFeatures.length).toBe(0)
+
+        return { result: undefined }
       })
     })
   })
 
   describe('when active field is not changed', () => {
     it('should not trigger productFeature sync when updating other fields', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
         // Get initial state
         const initialProductFeatures = await selectProductFeatures(
           { featureId: feature.id },
@@ -535,7 +551,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             name: 'Updated Name',
             description: 'Updated description',
           },
-          transaction
+          { transaction }
         )
 
         // Verify productFeature expiredAt hasn't changed
@@ -545,6 +561,8 @@ describe('updateFeatureTransaction - active state synchronization', () => {
         )
 
         expect(productFeatures[0].expiredAt).toBe(initialExpiredAt)
+
+        return { result: undefined }
       })
     })
   })

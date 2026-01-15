@@ -2,8 +2,10 @@ import { TRPCError } from '@trpc/server'
 import * as R from 'ramda'
 import { z } from 'zod'
 import {
+  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
+  comprehensiveAuthenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   createProductSchema,
@@ -56,15 +58,31 @@ export const createProduct = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createProductSchema)
   .output(singleProductOutputSchema)
-  .mutation(async ({ input, ctx }) => {
-    try {
-      // Validate that default products cannot be created manually
-      validateProductCreation(input.product)
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { livemode, organizationId } = ctx
+        const userId = ctx.user?.id
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User ID is required for this operation.',
+          })
+        }
+        try {
+          // Validate that default products cannot be created manually
+          validateProductCreation(input.product)
 
-      const result = await authenticatedTransaction(
-        async ({ transaction, userId, livemode, organizationId }) => {
           const { product, price, featureIds } = input
-          return createProductTransaction(
+          const txResult = await createProductTransaction(
             {
               product,
               prices: [
@@ -75,42 +93,56 @@ export const createProduct = protectedProcedure
               ],
               featureIds,
             },
-            { transaction, userId, livemode, organizationId }
+            {
+              transaction,
+              userId,
+              livemode,
+              organizationId,
+            }
           )
-        },
-        {
-          apiKey: ctx.apiKey,
+          return {
+            result: {
+              product: txResult.product,
+            },
+          }
+        } catch (error) {
+          errorHandlers.product.handle(error, {
+            operation: 'create',
+            details: {
+              productName: input.product.name,
+              hasPrice: !!input.price,
+              hasFeatures: !!input.featureIds,
+            },
+          })
+          throw error
         }
-      )
-      return {
-        product: result.product,
       }
-    } catch (error) {
-      errorHandlers.product.handle(error, {
-        operation: 'create',
-        details: {
-          productName: input.product.name,
-          hasPrice: !!input.price,
-          hasFeatures: !!input.featureIds,
-        },
-      })
-      throw error
-    }
-  })
+    )
+  )
 
 export const updateProduct = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editProductSchema)
   .output(singleProductOutputSchema)
   .mutation(
-    authenticatedProcedureTransaction(
-      async ({
-        transaction,
-        input,
-        livemode,
-        organizationId,
-        userId,
-      }) => {
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { livemode, organizationId } = ctx
+        const userId = ctx.user?.id
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User ID is required for this operation.',
+          })
+        }
         try {
           const updatedProduct = await editProductPricingModel(
             {
@@ -118,11 +150,18 @@ export const updateProduct = protectedProcedure
               featureIds: input.featureIds,
               price: input.price,
             },
-            { transaction, livemode, organizationId, userId }
+            {
+              transaction,
+              livemode,
+              organizationId,
+              userId,
+            }
           )
 
           return {
-            product: updatedProduct,
+            result: {
+              product: updatedProduct,
+            },
           }
         } catch (error) {
           // Re-throw with enhanced error handling
@@ -221,7 +260,12 @@ export const getTableRows = protectedProcedure
     createPaginatedTableRowOutputSchema(productsTableRowDataSchema)
   )
   .query(
-    authenticatedProcedureTransaction(selectProductsCursorPaginated)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectProductsCursorPaginated({ input, transaction })
+      }
+    )
   )
 
 const getCountsByStatusSchema = z.object({})

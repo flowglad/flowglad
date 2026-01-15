@@ -137,24 +137,34 @@ describe('Pay as You Go Workflow E2E', () => {
       )
     })
     const { customer, subscription } =
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await createCustomerBookkeeping(
-          {
-            customer: {
-              organizationId: organization.id,
-              pricingModelId: pricingModel.id,
-              name: 'Test Customer',
-              externalId: 'test-customer' + core.nanoid(),
-              email: 'test@test.com',
+      await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          return await createCustomerBookkeeping(
+            {
+              customer: {
+                organizationId: organization.id,
+                pricingModelId: pricingModel.id,
+                name: 'Test Customer',
+                externalId: 'test-customer' + core.nanoid(),
+                email: 'test@test.com',
+              },
             },
-          },
-          {
-            transaction,
-            organizationId: organization.id,
-            livemode: true,
-          }
-        )
-      })
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode: true,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
+          )
+        }
+      )
 
     if (!subscription) {
       throw new Error('No subscription')
@@ -202,8 +212,8 @@ describe('Pay as You Go Workflow E2E', () => {
 
     // 2. Create a usage event for the subscription
     const staticTransctionId = 'test-' + core.nanoid()
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
-      return await ingestAndProcessUsageEvent(
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const usageEvent = await ingestAndProcessUsageEvent(
         {
           input: {
             usageEvent: {
@@ -218,8 +228,9 @@ describe('Pay as You Go Workflow E2E', () => {
           },
           livemode: true,
         },
-        transaction
+        ctx
       )
+      return { result: usageEvent }
     })
 
     // 3. Call @customerBillingTransaction again and assert final state
@@ -241,8 +252,8 @@ describe('Pay as You Go Workflow E2E', () => {
     })
 
     // 4. Create a usage event for the subscription
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
-      return await ingestAndProcessUsageEvent(
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const usageEvent = await ingestAndProcessUsageEvent(
         {
           input: {
             usageEvent: {
@@ -257,8 +268,9 @@ describe('Pay as You Go Workflow E2E', () => {
           },
           livemode: true,
         },
-        transaction
+        ctx
       )
+      return { result: usageEvent }
     })
 
     // 5. Call @customerBillingTransaction again and assert final state
@@ -288,7 +300,8 @@ describe('Pay as You Go Workflow E2E', () => {
 
     // 2. Call @createCheckoutSessionTransaction to create an ActivateSubscription checkout session
     const checkoutSession = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async (ctx) => {
+        const { transaction } = ctx
         const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
           {
             type: CheckoutSessionType.Product,
@@ -334,7 +347,7 @@ describe('Pay as You Go Workflow E2E', () => {
         // 3. Call @confirmCheckoutSession.ts to finalize it
         await confirmCheckoutSessionTransaction(
           { id: checkoutSession.id },
-          transaction
+          ctx
         )
 
         // expect a feeCalculation for the checkout session
@@ -347,7 +360,7 @@ describe('Pay as You Go Workflow E2E', () => {
       }
     )
 
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
       // 4. Call @processSetupIntentSucceeded with a stubbed paymentIntent
       const paymentIntent: CoreStripePaymentIntent = {
         id: 'si_123',
@@ -359,10 +372,11 @@ describe('Pay as You Go Workflow E2E', () => {
         },
       }
 
-      return processPaymentIntentStatusUpdated(
+      const result = await processPaymentIntentStatusUpdated(
         paymentIntent,
-        transaction
+        ctx
       )
+      return { result }
     })
 
     await comprehensiveAdminTransaction(async ({ transaction }) => {
@@ -394,8 +408,8 @@ describe('Pay as You Go Workflow E2E', () => {
 
     // 6. Create a usage event after payment
     const newTransactionId = 'test2-' + core.nanoid()
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
-      return await ingestAndProcessUsageEvent(
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const usageEvent = await ingestAndProcessUsageEvent(
         {
           input: {
             usageEvent: {
@@ -410,8 +424,9 @@ describe('Pay as You Go Workflow E2E', () => {
           },
           livemode: true,
         },
-        transaction
+        ctx
       )
+      return { result: usageEvent }
     })
 
     // 7. Call @customerBillingTransaction again and assert final state after new usage

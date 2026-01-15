@@ -216,14 +216,22 @@ export const getTableRows = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(pricesTableRowOutputSchema)
   )
-  .query(authenticatedProcedureTransaction(selectPricesTableRowData))
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectPricesTableRowData({ input, transaction })
+      }
+    )
+  )
 
 export const listUsagePricesForProduct = protectedProcedure
   .input(z.object({ productId: z.string() }))
   .output(z.array(usagePriceClientSelectSchema))
   .query(
     authenticatedProcedureTransaction(
-      async ({ transaction, input }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const prices = await selectPrices(
           {
             type: PriceType.Usage,
@@ -244,7 +252,8 @@ export const setPriceAsDefault = protectedProcedure
   .output(z.object({ price: pricesClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const oldPrice = await selectPriceById(input.id, transaction)
         const price = await safelyUpdatePrice(
           { id: input.id, isDefault: true, type: oldPrice.type },
@@ -260,7 +269,8 @@ export const archivePrice = protectedProcedure
   .output(z.object({ price: pricesClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const oldPrice = await selectPriceById(input.id, transaction)
         const price = await safelyUpdatePrice(
           { id: input.id, active: false, type: oldPrice.type },

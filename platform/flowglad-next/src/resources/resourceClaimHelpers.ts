@@ -164,18 +164,40 @@ export type ReleaseResourceInput = z.infer<
 /**
  * Schema for getting resource usage.
  */
-export const getResourceUsageInputSchema = z.object({
-  resourceSlug: z
-    .string()
-    .optional()
-    .describe('Optional resource slug to get usage for'),
-  subscriptionId: z
-    .string()
-    .optional()
-    .describe(
-      'Optional subscription ID. If not provided, will use the first active subscription.'
-    ),
-})
+export const getResourceUsageInputSchema = z
+  .object({
+    resourceSlug: z
+      .string()
+      .optional()
+      .describe(
+        'The slug of the resource to get usage for. Exactly one of resourceSlug or resourceId must be provided.'
+      ),
+    resourceId: z
+      .string()
+      .optional()
+      .describe(
+        'The ID of the resource to get usage for. Exactly one of resourceSlug or resourceId must be provided.'
+      ),
+    subscriptionId: z
+      .string()
+      .optional()
+      .describe(
+        'Optional subscription ID. If not provided, will use the first active subscription.'
+      ),
+  })
+  .refine(
+    (data) => {
+      const provided = [
+        data.resourceSlug !== undefined,
+        data.resourceId !== undefined,
+      ].filter(Boolean)
+      return provided.length === 1
+    },
+    {
+      message:
+        'Exactly one of resourceSlug or resourceId must be provided',
+    }
+  )
 
 export type GetResourceUsageInput = z.infer<
   typeof getResourceUsageInputSchema

@@ -58,7 +58,8 @@ export const createCheckoutSession = protectedProcedure
   .output(singleCheckoutSessionOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, ctx, transaction }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const { checkoutSession: checkoutSessionInput } = input
         const checkoutSessionType = checkoutSessionInput.type
         if (

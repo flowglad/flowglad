@@ -19,6 +19,11 @@ import {
 } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
 import {
+  createDiscardingEffectsContext,
+  noopEmitEvent,
+  noopInvalidateCache,
+} from '@/test-utils/transactionCallbacks'
+import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   IntervalUnit,
@@ -86,45 +91,47 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
     })
     // 1. Create product and price via createProductTransaction
     const { product: createdProduct, prices } =
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        const result = await createProductTransaction(
-          {
-            product: {
-              name: 'Test API Product',
-              description: 'Test',
-              imageURL: 'https://flowglad.com/logo.png',
-              active: true,
-              singularQuantityLabel: 'unit',
-              pluralQuantityLabel: 'units',
-              pricingModelId: pricingModel.id,
-              default: false,
-              slug: `flowglad-test-product-price+${core.nanoid()}`,
-            },
-            prices: [
-              {
-                name: 'Time Trial Price',
-                type: PriceType.Subscription,
-                unitPrice: 10,
-                intervalUnit: IntervalUnit.Month,
-                intervalCount: 1,
-                isDefault: true,
+      await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await createProductTransaction(
+            {
+              product: {
+                name: 'Test API Product',
+                description: 'Test',
+                imageURL: 'https://flowglad.com/logo.png',
                 active: true,
-                trialPeriodDays,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
+                singularQuantityLabel: 'unit',
+                pluralQuantityLabel: 'units',
+                pricingModelId: pricingModel.id,
+                default: false,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
-            ],
-          },
-          {
-            userId: user.id,
-            transaction,
-            livemode: true,
-            organizationId: organization.id,
-          }
-        )
-        return { result }
-      })
+              prices: [
+                {
+                  name: 'Time Trial Price',
+                  type: PriceType.Subscription,
+                  unitPrice: 10,
+                  intervalUnit: IntervalUnit.Month,
+                  intervalCount: 1,
+                  isDefault: true,
+                  active: true,
+                  trialPeriodDays,
+                  usageMeterId: null,
+                  usageEventsPerUnit: null,
+                  slug: `flowglad-test-product-price+${core.nanoid()}`,
+                },
+              ],
+            },
+            {
+              userId: user.id,
+              transaction,
+              livemode: true,
+              organizationId: organization.id,
+            }
+          )
+          return { result }
+        }
+      )
     // 2. Associate the toggle feature with the created product
     await setupProductFeature({
       organizationId: organization.id,
@@ -163,7 +170,8 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
     expect(ci2.price.id).toBe(price.id)
 
     const checkoutSession = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async (ctx) => {
+        const { transaction } = ctx
         // 1. Create checkout session
         const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
           {
@@ -212,7 +220,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
         // 3. Confirm checkout session
         await confirmCheckoutSessionTransaction(
           { id: checkoutSession.id },
-          transaction
+          ctx
         )
         // 4. Expect fee calculation exists
         const feeCalculations = await selectFeeCalculations(
@@ -249,7 +257,10 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
           checkoutSessionId: checkoutSession.id,
         },
       }
-      await processSetupIntentSucceeded(setupIntent, transaction)
+      await processSetupIntentSucceeded(
+        setupIntent,
+        createDiscardingEffectsContext(transaction)
+      )
       // 6. Final billing state
       const billingState = await customerBillingTransaction(
         {

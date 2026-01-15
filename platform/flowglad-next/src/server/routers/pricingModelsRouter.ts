@@ -157,7 +157,8 @@ const updatePricingModelProcedure = protectedProcedure
   )
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const pricingModel = await safelyUpdatePricingModel(
           {
             ...input.pricingModel,
@@ -290,7 +291,12 @@ const getTableRowsProcedure = protectedProcedure
     )
   )
   .query(
-    authenticatedProcedureTransaction(selectPricingModelsTableRows)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectPricingModelsTableRows({ input, transaction })
+      }
+    )
   )
 
 const setupPricingModelProcedure = protectedProcedure
@@ -311,7 +317,8 @@ const setupPricingModelProcedure = protectedProcedure
   )
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transaction, ctx }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const result = await setupPricingModelTransaction(
           {
             input,
@@ -345,7 +352,8 @@ const exportPricingModelProcedure = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const data = await getPricingModelSetupData(
           input.id,
           transaction

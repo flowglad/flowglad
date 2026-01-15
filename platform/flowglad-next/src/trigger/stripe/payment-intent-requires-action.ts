@@ -1,9 +1,7 @@
 import { logger, task } from '@trigger.dev/sdk'
 import type Stripe from 'stripe'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import type { TransactionEffectsContext } from '@/db/types'
 import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 
 export const stripePaymentIntentRequiresActionTask = task({
@@ -14,14 +12,19 @@ export const stripePaymentIntentRequiresActionTask = task({
   ) => {
     const metadata = payload.data.object.metadata
     if ('billingRunId' in metadata) {
-      return comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return await processOutcomeForBillingRun(
-            { input: payload },
-            transaction
-          )
+      return comprehensiveAdminTransaction(async (params) => {
+        const effectsCtx: TransactionEffectsContext = {
+          transaction: params.transaction,
+          invalidateCache: params.invalidateCache,
+          emitEvent: params.emitEvent,
+          enqueueLedgerCommand: params.enqueueLedgerCommand,
         }
-      )
+        const result = await processOutcomeForBillingRun(
+          { input: payload },
+          effectsCtx
+        )
+        return { result }
+      })
     } else {
       logger.log(
         'Payment intent requires action, no action taken (not a billing run)',

@@ -2,6 +2,12 @@
 
 I'm providing a gameplan with patches and a dependency graph (includes a **Project Name** in kebab-case).
 
+**Directory Structure (Required):** Patch files must be created at:
+```
+llm-prompts/patches/{project-name}/patch-{N}.md
+```
+This structure is required for compatibility with `fan-patches.sh`, which spins up parallel Claude Code sessions.
+
 ## Your Task
 
 1. Extract the **Project Name** from the gameplan (e.g., `subscription-adjustments`)
@@ -54,10 +60,21 @@ I'm providing a gameplan with patches and a dependency graph (includes a **Proje
 - Branch from: `{base branch determined in step 5 for this patch}`
 - Branch name: `{project-name}/patch-{N}-{descriptive-slug}`
 - PR base: `{base branch determined in step 5 for this patch}`
-- After completing, run `bun run check` to verify lint/typecheck passes.
+
+**IMPORTANT: Open a draft PR immediately after your first commit.** Do not wait until implementation is complete. This ensures the PR title format is correct from the start.
+
+After your first commit, run:
+```bash
+gh pr create --draft --title "[{project-name}] Patch {N}: {Title}" --body "Work in progress" --base {base branch}
+```
+
+Then continue implementing. When finished:
+1. Run `bun run check` to verify lint/typecheck passes
+2. Update the PR description with a proper summary
+3. Mark the PR as ready for review when complete
 
 ## PR Title (CRITICAL)
-**You MUST use this EXACT title format when creating the PR:**
+**You MUST use this EXACT title format:**
 
 `[{project-name}] Patch {N}: {Title}`
 

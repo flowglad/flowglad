@@ -49,6 +49,7 @@ import {
 import type {
   AuthenticatedTransactionParams,
   DbTransaction,
+  TransactionEffectsContext,
 } from '@/db/types'
 import {
   DestinationEnvironment,
@@ -228,8 +229,12 @@ export const createProductTransaction = async (
     prices: CreateProductPriceInput[]
     featureIds?: string[]
   },
-  { userId, transaction, livemode }: AuthenticatedTransactionParams
+  transactionParams: Omit<
+    AuthenticatedTransactionParams,
+    'invalidateCache'
+  >
 ) => {
+  const { userId, transaction, livemode } = transactionParams
   // Validate that usage prices are not created with featureIds
   if (payload.featureIds && payload.featureIds.length > 0) {
     const hasUsagePrice = payload.prices.some(
@@ -285,7 +290,7 @@ export const createProductTransaction = async (
         product: createdProduct,
         desiredFeatureIds: payload.featureIds,
       },
-      transaction
+      { transaction }
     )
   }
   const pricesWithSafelyDefaultPrice = payload.prices.some(
@@ -323,13 +328,12 @@ export const editProductTransaction = async (
     featureIds?: string[]
     price?: Price.ClientInsert
   },
-  {
-    transaction,
-    livemode,
-    organizationId,
-    userId,
-  }: AuthenticatedTransactionParams
+  transactionParams: Omit<
+    AuthenticatedTransactionParams,
+    'invalidateCache'
+  >
 ) => {
+  const { transaction, livemode, organizationId } = transactionParams
   const { product, featureIds, price } = payload
 
   // Fetch the existing product to check if it's a default product
@@ -392,7 +396,7 @@ export const editProductTransaction = async (
         product: updatedProduct,
         desiredFeatureIds: featureIds,
       },
-      transaction
+      { transaction }
     )
   }
   /**

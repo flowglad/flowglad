@@ -83,59 +83,87 @@ const AuthLoadingFallback = () => {
 }
 
 /**
- * Skeleton component for a single chart section
+ * Skeleton component for a single chart section (large/primary chart)
  */
 const ChartSkeleton = () => {
   return (
     <div className="w-full relative flex flex-col">
       {/* Chart title */}
-      <div className="flex flex-row gap-2 justify-between px-4">
+      <div className="flex flex-row gap-2 justify-between px-page">
         <Skeleton className="h-5 w-32" />
       </div>
       {/* Chart value */}
-      <div className="px-4 mt-1">
-        <Skeleton className="w-36 h-12" />
+      <div className="px-page mt-1">
+        <Skeleton className="w-36 h-7" />
       </div>
       {/* Chart area */}
-      <div className="-mb-2 mt-2 flex items-center">
-        <Skeleton className="h-80 w-full" />
+      <div className="mt-3 flex items-center">
+        <Skeleton className="h-60 w-full" />
       </div>
     </div>
   )
 }
 
 /**
- * Specialized loading fallback for dashboard-style pages
- * Mirrors the exact layout of InternalDashboard with InnerPageContainerNew
+ * Specialized loading fallback for dashboard-style pages.
+ * Uses the same layout classes as PageContainer to prevent width shift
+ * when transitioning from loading to loaded state.
  */
 export const DashboardLoadingFallback = () => {
   return (
-    <div className="h-full flex justify-between items-center gap-2.5">
-      <div className="h-full w-full max-w-[38rem] mx-auto flex gap-8 border-l border-r border-dashed border-sidebar-border">
-        <div className="h-full w-full flex flex-col">
-          {/* PageHeaderNew skeleton */}
-          <div className="flex flex-col items-start justify-center w-full px-4 pt-20 pb-2">
-            {/* Headline wrapper */}
-            <div className="flex flex-col gap-1 items-start w-full">
-              {/* Page title skeleton - "Hello, [Name]" */}
-              <Skeleton className="h-8 w-48" />
-            </div>
-            {/* Description / DateRangePicker skeleton */}
-            <div className="flex flex-wrap items-center gap-2 w-full px-0 py-2">
-              <Skeleton className="h-8 w-64" />
-            </div>
-          </div>
+    <div className="h-full w-full flex-1 flex flex-col md:border-r md:border-dashed border-sidebar-border">
+      {/* PageHeaderNew skeleton */}
+      <div className="flex flex-col items-start justify-center w-full px-page pt-20 pb-2">
+        {/* Headline wrapper */}
+        <div className="flex flex-col gap-1 items-start w-full">
+          {/* Page title skeleton - "Hello, [Name]" */}
+          <Skeleton className="h-8 w-48" />
+        </div>
+        {/* Description / DateRangePicker skeleton */}
+        <div className="flex flex-wrap items-center gap-2 w-full px-0 py-2">
+          <Skeleton className="h-8 w-64" />
+        </div>
+      </div>
 
-          {/* Charts container */}
-          <div className="w-full flex flex-col gap-12 pb-16">
-            {/* Revenue Chart */}
-            <ChartSkeleton />
-            {/* Monthly Recurring Revenue Chart */}
-            <ChartSkeleton />
-            {/* Active Subscribers Chart */}
-            <ChartSkeleton />
+      {/* Charts container */}
+      <div className="w-full flex flex-col pb-16">
+        {/* Primary Chart skeleton */}
+        <div className="py-6">
+          <ChartSkeleton />
+        </div>
+        {/* Divider */}
+        <div className="w-full border-t border-dashed border-border" />
+        {/* Secondary Charts grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2">
+          <div className="py-6 md:border-r md:border-dashed md:border-border">
+            <ChartSkeletonSmall />
+          </div>
+          <div className="py-6 max-md:border-t max-md:border-dashed max-md:border-border">
+            <ChartSkeletonSmall />
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Small chart skeleton for secondary charts in the grid
+ */
+const ChartSkeletonSmall = () => {
+  return (
+    <div className="w-full relative flex flex-col">
+      {/* Chart title */}
+      <div className="flex flex-row gap-2 justify-between px-page">
+        <Skeleton className="h-5 w-32" />
+      </div>
+      {/* Chart value */}
+      <div className="px-page mt-1">
+        <Skeleton className="w-24 h-5" />
+      </div>
+      {/* Chart area */}
+      <div className="mt-3 flex items-center">
+        <Skeleton className="h-32 w-full" />
       </div>
     </div>
   )

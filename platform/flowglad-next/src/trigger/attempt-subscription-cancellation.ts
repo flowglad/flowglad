@@ -1,10 +1,6 @@
 import { logger, task } from '@trigger.dev/sdk'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import type { Subscription } from '@/db/schema/subscriptions'
-import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import { SubscriptionStatus } from '@/types'
 import { storeTelemetry } from '@/utils/redis'
@@ -32,13 +28,8 @@ export const attemptSubscriptionCancellationTask = task({
       }
     }
     const canceledSubscription = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
-        return cancelSubscriptionImmediately(
-          {
-            subscription,
-          },
-          transaction
-        )
+      async (ctx) => {
+        return cancelSubscriptionImmediately({ subscription }, ctx)
       }
     )
 

@@ -18,6 +18,23 @@ bun run check
 ## Running Tests
 If you are trying to run tests to see whether they pass, you must use `bun run test`. `bun run test:watch` will run the test suite in watch mode and leave you waiting for timeouts.
 
+### Test Environments
+The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs like Stripe.
+
+**Tests using React or DOM APIs** must include this directive at the top of the file:
+```typescript
+/**
+ * @vitest-environment jsdom
+ */
+```
+
+This includes:
+- React component tests (`.test.tsx` files)
+- React hook tests using `renderHook` from `@testing-library/react`
+- Any test that needs DOM APIs like `document` or `window`
+
+This tells Vitest to run that specific test file in a jsdom environment.
+
 ## When Writing TRPC Code
 1. Always specify mutation and query outputs using `.output()`
 2. If possible, do not write raw ORM code in the procedures. It's pure tech debt. Instead, use db/tableMethods/fooMethods.ts where you can.

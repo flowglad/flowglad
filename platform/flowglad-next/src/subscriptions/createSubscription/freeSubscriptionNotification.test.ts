@@ -11,6 +11,11 @@ import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
+import {
+  createDiscardingEffectsContext,
+  noopEmitEvent,
+  noopInvalidateCache,
+} from '@/test-utils/transactionCallbacks'
 import { IntervalUnit, PriceType } from '@/types'
 import { core } from '@/utils/core'
 import type { CreateSubscriptionParams } from './types'
@@ -111,7 +116,10 @@ describe('Free Subscription Notification Behavior', () => {
     }
 
     await adminTransaction(async ({ transaction }) => {
-      await createSubscriptionWorkflow(params, transaction)
+      await createSubscriptionWorkflow(
+        params,
+        createDiscardingEffectsContext(transaction)
+      )
     })
 
     // Verify notification was NOT sent for free subscription
@@ -153,7 +161,10 @@ describe('Free Subscription Notification Behavior', () => {
     }
 
     await adminTransaction(async ({ transaction }) => {
-      await createSubscriptionWorkflow(params, transaction)
+      await createSubscriptionWorkflow(
+        params,
+        createDiscardingEffectsContext(transaction)
+      )
     })
 
     // Verify notification WAS sent for paid subscription
@@ -200,7 +211,10 @@ describe('Free Subscription Notification Behavior', () => {
     }
 
     await adminTransaction(async ({ transaction }) => {
-      await createSubscriptionWorkflow(params, transaction)
+      await createSubscriptionWorkflow(
+        params,
+        createDiscardingEffectsContext(transaction)
+      )
     })
 
     // Verify notification was NOT sent even though slug is not 'free'

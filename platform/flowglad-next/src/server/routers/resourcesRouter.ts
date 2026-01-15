@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -25,7 +26,7 @@ import {
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@/db/tableUtils'
-import { protectedProcedure, router } from '@/server/trpc'
+import { devOnlyProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -42,7 +43,7 @@ const resourcesPaginatedListSchema = createPaginatedListQuerySchema(
   resourcesClientSelectSchema
 )
 
-const listProcedure = protectedProcedure
+const listProcedure = devOnlyProcedure
   .meta(openApiMetas.LIST)
   .input(z.object({ pricingModelId: z.string() }))
   .output(
@@ -52,7 +53,8 @@ const listProcedure = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const resources = await selectResources(
           {
             pricingModelId: input.pricingModelId,
@@ -64,13 +66,14 @@ const listProcedure = protectedProcedure
     )
   )
 
-const getProcedure = protectedProcedure
+const getProcedure = devOnlyProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ resource: resourcesClientSelectSchema }))
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const resource = await selectResourceById(
           input.id,
           transaction
@@ -80,13 +83,22 @@ const getProcedure = protectedProcedure
     )
   )
 
-const createProcedure = protectedProcedure
+const createProcedure = devOnlyProcedure
   .meta(openApiMetas.POST)
   .input(createResourceSchema)
   .output(z.object({ resource: resourcesClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId, livemode }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { livemode } = ctx
+        const userId = ctx.user?.id
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User authentication required',
+          })
+        }
         const [{ organization }] =
           await selectMembershipAndOrganizations(
             {
@@ -108,13 +120,14 @@ const createProcedure = protectedProcedure
     )
   )
 
-const updateProcedure = protectedProcedure
+const updateProcedure = devOnlyProcedure
   .meta(openApiMetas.PUT)
   .input(editResourceSchema)
   .output(z.object({ resource: resourcesClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const resource = await updateResource(
           {
             ...input.resource,
@@ -127,7 +140,7 @@ const updateProcedure = protectedProcedure
     )
   )
 
-const listPaginatedProcedure = protectedProcedure
+const listPaginatedProcedure = devOnlyProcedure
   .input(resourcesPaginatedSelectSchema)
   .output(resourcesPaginatedListSchema)
   .query(async ({ input, ctx }) => {
@@ -141,7 +154,7 @@ const listPaginatedProcedure = protectedProcedure
     )
   })
 
-const getTableRowsProcedure = protectedProcedure
+const getTableRowsProcedure = devOnlyProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
@@ -154,7 +167,12 @@ const getTableRowsProcedure = protectedProcedure
     createPaginatedTableRowOutputSchema(resourcesTableRowOutputSchema)
   )
   .query(
-    authenticatedProcedureTransaction(selectResourcesTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectResourcesTableRowData({ input, transaction })
+      }
+    )
   )
 
 export const resourcesRouter = router({

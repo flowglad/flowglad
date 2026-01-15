@@ -44,12 +44,14 @@ export * from './types/invoice'
 export * from './types/payment'
 export * from './types/paymentMethod'
 export {
+  type ResourceClaim,
+  type ResourceUsage,
+} from './types/resource'
+export {
   type BillingWithChecks,
   type FeatureItem,
   FlowgladActionKey,
   HTTPMethod,
-  type ResourceClaim,
-  type ResourceUsage,
   type SubscriptionExperimentalFields,
   type UsageMeterBalance,
 } from './types/sdk'
