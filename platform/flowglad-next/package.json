@@ -38,7 +38,14 @@
     "validate:registry": "bun run src/scripts/validate-registry.ts",
     "test:telemetry": "bun run scripts/verify-telemetry.ts",
     "openapi:generate": "bun run src/scripts/openApiDoc.ts",
-    "openapi:generate-diffables": "bun src/scripts/makeOpenApiDiffable.ts openapi.json temp-openapi__diffable.json && bun src/scripts/openApiDoc.ts temp-openapi-head.json && bun src/scripts/makeOpenApiDiffable.ts temp-openapi-head.json"
+    "openapi:generate-diffables": "bun src/scripts/makeOpenApiDiffable.ts openapi.json temp-openapi__diffable.json && bun src/scripts/openApiDoc.ts temp-openapi-head.json && bun src/scripts/makeOpenApiDiffable.ts temp-openapi-head.json",
+    "db:local:start": "supabase start",
+    "db:local:stop": "supabase stop",
+    "db:local:status": "supabase status",
+    "db:clone:staging": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --staging",
+    "db:clone:prod": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --prod",
+    "db:clone:staging:schema": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --staging --schema-only",
+    "db:clone:prod:schema": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --prod --schema-only"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.69",
