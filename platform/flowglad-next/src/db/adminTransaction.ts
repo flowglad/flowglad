@@ -84,6 +84,11 @@ const executeComprehensiveAdminTransaction = async <T>(
 
     const output = await fn(paramsForFn)
 
+    // Check for error early to skip effects and roll back transaction
+    if (isError(output)) {
+      throw output.error
+    }
+
     // Coalesce effects from accumulator and output, then process
     const coalesced = coalesceEffects(effects)
     const counts = await processEffectsInTransaction(
@@ -136,11 +141,7 @@ export async function comprehensiveAdminTransaction<T>(
   const { livemode = true } = options
   const effectiveLivemode = isNil(livemode) ? true : livemode
 
-  const {
-    output,
-    processedEventsCount,
-    processedLedgerCommandsCount,
-  } = await traced(
+  const { output } = await traced(
     {
       options: {
         spanName: 'db.comprehensiveAdminTransaction',

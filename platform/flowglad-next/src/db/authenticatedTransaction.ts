@@ -132,6 +132,11 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
 
     const output = await fn(paramsForFn)
 
+    // Check for error early to skip effects and roll back transaction
+    if (isError(output)) {
+      throw output.error
+    }
+
     // Coalesce effects from accumulator and output, then process
     const coalesced = coalesceEffects(effects)
     const counts = await processEffectsInTransaction(
@@ -173,11 +178,7 @@ export async function comprehensiveAuthenticatedTransaction<T>(
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
   // Static attributes are set at span creation for debugging failed transactions
-  const {
-    output,
-    processedEventsCount,
-    processedLedgerCommandsCount,
-  } = await traced(
+  const { output } = await traced(
     {
       options: {
         spanName: 'db.comprehensiveAuthenticatedTransaction',
