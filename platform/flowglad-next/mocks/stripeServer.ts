@@ -346,15 +346,14 @@ export const stripeHandlers = [
     'https://api.stripe.com/v1/customers',
     async ({ request }) => {
       const customerId = `cus_${nanoid()}`
-      const body = (await request.json()) as {
-        email?: string
-        name?: string
-      }
+      // Stripe SDK sends form-encoded data, not JSON
+      const body = await request.text()
+      const params = new URLSearchParams(body)
       return HttpResponse.json({
         id: customerId,
         object: 'customer',
-        email: body.email,
-        name: body.name,
+        email: params.get('email'),
+        name: params.get('name'),
         livemode: false,
         created: Math.floor(Date.now() / 1000),
       })
@@ -365,15 +364,14 @@ export const stripeHandlers = [
     'https://api.stripe.com:443/v1/customers',
     async ({ request }) => {
       const customerId = `cus_${nanoid()}`
-      const body = (await request.json()) as {
-        email?: string
-        name?: string
-      }
+      // Stripe SDK sends form-encoded data, not JSON
+      const body = await request.text()
+      const params = new URLSearchParams(body)
       return HttpResponse.json({
         id: customerId,
         object: 'customer',
-        email: body.email,
-        name: body.name,
+        email: params.get('email'),
+        name: params.get('name'),
         livemode: false,
         created: Math.floor(Date.now() / 1000),
       })

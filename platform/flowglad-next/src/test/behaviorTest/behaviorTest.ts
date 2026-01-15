@@ -197,7 +197,9 @@ export function behaviorTest(config: BehaviorTestConfig): void {
           let hasResult = false
 
           try {
-            for (const step of chain) {
+            for (let i = 0; i < chain.length; i++) {
+              const step = chain[i]
+
               // Run behavior
               const result = await step.behavior.run(
                 resolvedDeps,

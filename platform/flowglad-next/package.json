@@ -226,7 +226,7 @@
     "esbuild-plugin-babel": "^0.2.3",
     "import-in-the-middle": "1.11.2",
     "jsdom": "26.1.0",
-    "msw": "^2.7.0",
+    "msw": "^2.12.7",
     "node-loader": "^2.1.0",
     "patch-package": "^8.0.1",
     "postcss": "^8",
