@@ -796,6 +796,106 @@ describe('SubscriptionItemFeatureHelpers', () => {
       })
     })
 
+    it('handles concurrent credit grants without creating duplicates (race condition prevention)', async () => {
+      const [{ feature: usageFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [
+            {
+              name: 'Race Condition Test Feature',
+              type: FeatureType.UsageCreditGrant,
+              amount: 500,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              usageMeterName: 'race-condition-test-meter',
+            },
+          ]
+        )
+
+      await setupLedgerAccount({
+        subscriptionId: subscription.id,
+        usageMeterId: usageFeature.usageMeterId!,
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+
+      // Call addFeatureToSubscriptionItem multiple times with grantCreditsImmediately=true
+      // Each call should attempt to grant credits, but only one credit should be created
+      // due to the INSERT ... ON CONFLICT DO NOTHING mechanism in grantImmediateUsageCredits
+      await adminTransaction(async ({ transaction }) => {
+        // First call - should create the credit
+        const firstResult = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            grantCreditsImmediately: true,
+          },
+          transaction
+        )
+
+        // First call should return a ledger command (credit was created)
+        expect(firstResult.ledgerCommand).toBeDefined()
+        expect(firstResult.ledgerCommand?.type).toBe(
+          LedgerTransactionType.CreditGrantRecognized
+        )
+
+        // Second call - the check in grantImmediateUsageCredits should detect existing credit
+        const secondResult = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            grantCreditsImmediately: true,
+          },
+          transaction
+        )
+
+        // Second call should NOT return a ledger command (credit already exists)
+        // This is the key behavior from the race condition fix
+        expect(secondResult.ledgerCommand).toBeUndefined()
+
+        // Third call - same as second
+        const thirdResult = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            grantCreditsImmediately: true,
+          },
+          transaction
+        )
+
+        expect(thirdResult.ledgerCommand).toBeUndefined()
+
+        // All calls should reference the same subscription item feature (deduplication via upsert)
+        expect(secondResult.result.subscriptionItemFeature.id).toBe(
+          firstResult.result.subscriptionItemFeature.id
+        )
+        expect(thirdResult.result.subscriptionItemFeature.id).toBe(
+          firstResult.result.subscriptionItemFeature.id
+        )
+
+        // Verify only one usage credit was created despite multiple calls
+        // This is the key fix for issue #1121 - prevents duplicate credit grants
+        const usageCreditRecords = await selectUsageCredits(
+          {
+            subscriptionId: subscription.id,
+            usageMeterId: usageFeature.usageMeterId!,
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.ManualAdjustment,
+          },
+          transaction
+        )
+
+        // Only 1 credit record should exist
+        expect(usageCreditRecords.length).toBe(1)
+        expect(usageCreditRecords[0].issuedAmount).toBe(
+          usageFeature.amount
+        )
+      })
+    })
+
     it('rejects features outside the subscription pricing model', async () => {
       await adminTransaction(async ({ transaction }) => {
         const mismatchedFeature = await insertFeature(
