@@ -110,21 +110,13 @@ export const confirmCheckoutSessionTransaction = async (
           transaction,
           organizationId: checkoutSession.organizationId,
           livemode: checkoutSession.livemode,
+          invalidateCache: ctx.invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
         }
       )
 
-      customer = customerResult.result.customer
-
-      // Emit events from customer creation
-      if (customerResult.eventsToInsert?.length) {
-        emitEvent(...customerResult.eventsToInsert)
-      }
-      // Enqueue ledger command from customer creation
-      if (customerResult.ledgerCommand) {
-        enqueueLedgerCommand(customerResult.ledgerCommand)
-      }
+      customer = customerResult.customer
     }
     /**
      * Set the customer id if the checkout session doesn't have one,

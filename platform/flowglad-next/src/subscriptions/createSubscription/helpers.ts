@@ -207,7 +207,6 @@ export const safelyProcessCreationForExistingSubscription = async (
       billingPeriodItems: billingPeriodAndItems.billingPeriodItems,
       billingRun,
     },
-    eventsToInsert: [],
   }
 }
 

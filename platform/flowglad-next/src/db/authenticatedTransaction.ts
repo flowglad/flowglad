@@ -9,15 +9,12 @@ import core from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
-import type { Event } from './schema/events'
-import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
 import {
-  coalesceEffects,
   createEffectsAccumulator,
   invalidateCacheAfterCommit,
   processEffectsInTransaction,
 } from './transactionEffectsHelpers'
-import type { TransactionOutput } from './transactionEnhacementTypes'
+import { isError, type Result } from './transactionEnhacementTypes'
 
 interface AuthenticatedTransactionOptions {
   apiKey?: string
@@ -53,10 +50,10 @@ export async function authenticatedTransaction<T>(
 const executeComprehensiveAuthenticatedTransaction = async <T>(
   fn: (
     params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<TransactionOutput<T>>,
+  ) => Promise<Result<T>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<{
-  output: TransactionOutput<T>
+  output: Result<T>
   userId: string
   organizationId?: string
   livemode: boolean
@@ -85,9 +82,6 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
     enqueueLedgerCommand,
   } = createEffectsAccumulator()
 
-  // Track coalesced effects for post-commit processing
-  let coalescedCacheInvalidations: typeof effects.cacheInvalidations =
-    []
   let processedEventsCount = 0
   let processedLedgerCommandsCount = 0
 
@@ -134,15 +128,18 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
 
     const output = await fn(paramsForFn)
 
-    // Coalesce effects from accumulator and output, then process
-    const coalesced = coalesceEffects(effects, output)
+    // Check for error early to skip effects and roll back transaction
+    if (isError(output)) {
+      throw output.error
+    }
+
+    // Process accumulated effects
     const counts = await processEffectsInTransaction(
-      coalesced,
+      effects,
       transaction
     )
     processedEventsCount = counts.eventsCount
     processedLedgerCommandsCount = counts.ledgerCommandsCount
-    coalescedCacheInvalidations = coalesced.cacheInvalidations
 
     // RESET ROLE is not strictly necessary with SET LOCAL ROLE, as the role is session-local.
     // However, keeping it doesn't harm and can be an explicit cleanup.
@@ -152,7 +149,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
   })
 
   // Transaction committed successfully - now invalidate caches
-  invalidateCacheAfterCommit(coalescedCacheInvalidations)
+  invalidateCacheAfterCommit(effects.cacheInvalidations)
 
   return {
     output,
@@ -171,15 +168,11 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
 export async function comprehensiveAuthenticatedTransaction<T>(
   fn: (
     params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<TransactionOutput<T>>,
+  ) => Promise<Result<T>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
   // Static attributes are set at span creation for debugging failed transactions
-  const {
-    output,
-    processedEventsCount,
-    processedLedgerCommandsCount,
-  } = await traced(
+  const { output } = await traced(
     {
       options: {
         spanName: 'db.comprehensiveAuthenticatedTransaction',
@@ -201,26 +194,10 @@ export async function comprehensiveAuthenticatedTransaction<T>(
     () => executeComprehensiveAuthenticatedTransaction(fn, options)
   )()
 
+  if (isError(output)) {
+    throw output.error
+  }
   return output.result
-}
-
-/**
- * Wrapper around comprehensiveAuthenticatedTransaction for functions that return
- * a tuple of [result, events]. Adapts the old signature to TransactionOutput.
- */
-export function eventfulAuthenticatedTransaction<T>(
-  fn: (
-    params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<[T, Event.Insert[]]>,
-  options: AuthenticatedTransactionOptions = {}
-): Promise<T> {
-  return comprehensiveAuthenticatedTransaction(async (params) => {
-    const [result, eventInserts] = await fn(params)
-    return {
-      result,
-      eventsToInsert: eventInserts,
-    }
-  }, options)
 }
 
 export type AuthenticatedProcedureResolver<
@@ -272,7 +249,7 @@ export const authenticatedProcedureComprehensiveTransaction = <
 >(
   handler: (
     params: AuthenticatedProcedureTransactionParams<TInput, TContext>
-  ) => Promise<TransactionOutput<TOutput>>
+  ) => Promise<Result<TOutput>>
 ) => {
   return async (opts: { input: TInput; ctx: TContext }) => {
     return comprehensiveAuthenticatedTransaction(
@@ -295,25 +272,4 @@ export const authenticatedProcedureComprehensiveTransaction = <
       }
     )
   }
-}
-
-export function eventfulAuthenticatedProcedureTransaction<
-  TInput,
-  TOutput,
-  TContext extends { apiKey?: string; customerId?: string },
->(
-  handler: (
-    params: AuthenticatedProcedureTransactionParams<TInput, TContext>
-  ) => Promise<[TOutput, Event.Insert[]]>
-) {
-  return authenticatedProcedureTransaction<TInput, TOutput, TContext>(
-    async (params) => {
-      const [result, eventInserts] = await handler(params)
-      await bulkInsertOrDoNothingEventsByHash(
-        eventInserts,
-        params.transactionCtx.transaction
-      )
-      return result
-    }
-  )
 }

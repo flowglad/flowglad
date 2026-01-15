@@ -13,7 +13,7 @@ import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import { bulkInsertOrDoNothingUsageEventsByTransactionId } from '@/db/tableMethods/usageEventMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type { TransactionEffectsContext } from '@/db/types'
 import { PriceType, UsageMeterAggregationType } from '@/types'
 import { generateLedgerCommandsForBulkUsageEvents } from '@/utils/usage/usageEventHelpers'
 
@@ -24,13 +24,13 @@ type BulkInsertUsageEventsInput = z.infer<
 /**
  * Bulk inserts usage events with support for priceId, priceSlug, usageMeterId, or usageMeterSlug.
  * Resolves slugs to IDs, validates pricing model membership, and handles idempotency via transactionId.
- * Generates ledger commands for newly inserted events (not deduplicated ones).
+ * Generates ledger commands for newly inserted events (not deduplicated ones) via enqueueLedgerCommand callback.
  *
  * @param input - The bulk insert input containing an array of usage events
  * @param input.input - Zod-validated input schema (enforces exactly one identifier per event)
  * @param input.livemode - Whether this is a live mode operation
- * @param transaction - Database transaction to execute within
- * @returns Transaction output with inserted usage events and generated ledger commands
+ * @param ctx - Transaction effects context with callbacks
+ * @returns Transaction output with inserted usage events
  * @throws {TRPCError} For all errors with appropriate error codes (NOT_FOUND, BAD_REQUEST, INTERNAL_SERVER_ERROR)
  */
 export const bulkInsertUsageEventsTransaction = async (
@@ -41,10 +41,11 @@ export const bulkInsertUsageEventsTransaction = async (
     input: BulkInsertUsageEventsInput
     livemode: boolean
   },
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<
   TransactionOutput<{ usageEvents: UsageEvent.ClientRecord[] }>
 > => {
+  const { transaction, enqueueLedgerCommand } = ctx
   const usageInsertsWithoutBillingPeriodId = input.usageEvents.map(
     (usageEvent) => ({
       ...usageEvent,
@@ -604,7 +605,7 @@ export const bulkInsertUsageEventsTransaction = async (
       transaction
     )
 
-  // Generate ledger commands for the inserted usage events
+  // Generate ledger commands for the inserted usage events and enqueue them
   const ledgerCommands =
     await generateLedgerCommandsForBulkUsageEvents(
       {
@@ -613,9 +614,11 @@ export const bulkInsertUsageEventsTransaction = async (
       },
       transaction
     )
+  for (const command of ledgerCommands) {
+    enqueueLedgerCommand(command)
+  }
 
   return {
     result: { usageEvents: insertedUsageEvents },
-    ledgerCommands,
   }
 }
