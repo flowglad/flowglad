@@ -41,8 +41,8 @@ import {
   createSubscriptionFeatureItems,
 } from '@/subscriptions/subscriptionItemFeatureHelpers'
 import {
-  createCapturingContext,
-  createNoopContext,
+  createCapturingEffectsContext,
+  createDiscardingEffectsContext,
 } from '@/test-utils/transactionCallbacks'
 import {
   CurrencyCode,
@@ -560,7 +560,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
             featureId: toggleFeature.id,
             grantCreditsImmediately: false,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
         const secondResult = await addFeatureToSubscriptionItem(
           {
@@ -568,7 +568,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
             featureId: toggleFeature.id,
             grantCreditsImmediately: false,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
         expect(secondResult.subscriptionItemFeature.id).toBe(
           firstResult.subscriptionItemFeature.id
@@ -603,7 +603,8 @@ describe('SubscriptionItemFeatureHelpers', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        const { ctx, effects } = createCapturingContext(transaction)
+        const { ctx, effects } =
+          createCapturingEffectsContext(transaction)
         const result = await addFeatureToSubscriptionItem(
           {
             subscriptionItemId: subscriptionItem.id,
@@ -695,7 +696,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
       await adminTransaction(async ({ transaction }) => {
         const { ctx: firstCtx, effects: firstEffects } =
-          createCapturingContext(transaction)
+          createCapturingEffectsContext(transaction)
         const firstResult = await addFeatureToSubscriptionItem(
           {
             subscriptionItemId: subscriptionItem.id,
@@ -705,7 +706,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           firstCtx
         )
         const { ctx: secondCtx, effects: secondEffects } =
-          createCapturingContext(transaction)
+          createCapturingEffectsContext(transaction)
         const secondResult = await addFeatureToSubscriptionItem(
           {
             subscriptionItemId: subscriptionItem.id,
@@ -843,7 +844,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
               featureId: mismatchedFeature.id,
               grantCreditsImmediately: false,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         ).rejects.toThrow(/pricing model/i)
       })
@@ -874,7 +875,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
             featureId: standaloneFeature.id,
             grantCreditsImmediately: false,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         const manualSubscriptionItems = await selectSubscriptionItems(
@@ -916,7 +917,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
             featureId: toggleFeature.id,
             grantCreditsImmediately: false,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         expect(result.subscriptionItemFeature.manuallyCreated).toBe(
@@ -958,7 +959,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
             featureId: usageFeature.id,
             grantCreditsImmediately: false,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         expect(result.subscriptionItemFeature.manuallyCreated).toBe(
@@ -994,7 +995,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
             featureId: feature1.id,
             grantCreditsImmediately: false,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         const result2 = await addFeatureToSubscriptionItem(
@@ -1003,7 +1004,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
             featureId: feature2.id,
             grantCreditsImmediately: false,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         // Both features should be on the same manual subscription item
@@ -1054,7 +1055,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         await adminTransaction(async ({ transaction }) => {
           // First call - should grant credits
           const { ctx: firstCtx, effects: firstEffects } =
-            createCapturingContext(transaction)
+            createCapturingEffectsContext(transaction)
           await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
@@ -1070,7 +1071,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
           // Second call - should NOT grant duplicate credits
           const { ctx: secondCtx, effects: secondEffects } =
-            createCapturingContext(transaction)
+            createCapturingEffectsContext(transaction)
           await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
@@ -1129,7 +1130,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
                 featureId: usageFeature.id,
                 grantCreditsImmediately: true,
               },
-              createNoopContext(transaction)
+              createDiscardingEffectsContext(transaction)
             )
           }
 
@@ -1191,7 +1192,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         await adminTransaction(async ({ transaction }) => {
           // Grant credits for feature A
           const { ctx: ctxA, effects: effectsA } =
-            createCapturingContext(transaction)
+            createCapturingEffectsContext(transaction)
           await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
@@ -1207,7 +1208,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
           // Grant credits for feature B
           const { ctx: ctxB, effects: effectsB } =
-            createCapturingContext(transaction)
+            createCapturingEffectsContext(transaction)
           await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
@@ -1275,13 +1276,14 @@ describe('SubscriptionItemFeatureHelpers', () => {
               featureId: usageFeature.id,
               grantCreditsImmediately: true,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
           const firstSubFeatureId = result1.subscriptionItemFeature.id
 
           // Second call updates sub_item_feature (same ID due to upsert)
           // but should NOT grant duplicate credits
-          const { ctx, effects } = createCapturingContext(transaction)
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
           const result2 = await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
@@ -1346,7 +1348,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         await adminTransaction(async ({ transaction }) => {
           // First call - grants credits with null billingPeriodId
           const { ctx: firstCtx, effects: firstEffects } =
-            createCapturingContext(transaction)
+            createCapturingEffectsContext(transaction)
           await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
@@ -1373,7 +1375,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
           // Second call - should be deduplicated via isNull(billingPeriodId) check
           const { ctx: secondCtx, effects: secondEffects } =
-            createCapturingContext(transaction)
+            createCapturingEffectsContext(transaction)
           await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
@@ -1435,7 +1437,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         await adminTransaction(async ({ transaction }) => {
           // First call - grants credits with the billing period
           const { ctx: firstCtx, effects: firstEffects } =
-            createCapturingContext(transaction)
+            createCapturingEffectsContext(transaction)
           await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
@@ -1464,7 +1466,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
           // Second call - should be deduplicated within the same billing period
           const { ctx: secondCtx, effects: secondEffects } =
-            createCapturingContext(transaction)
+            createCapturingEffectsContext(transaction)
           await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
@@ -1542,7 +1544,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
                 featureId: usageFeature.id,
                 grantCreditsImmediately: false, // Don't grant yet
               },
-              createNoopContext(transaction)
+              createDiscardingEffectsContext(transaction)
             )
           const subItemFeatureId =
             manualFeatureResult.subscriptionItemFeature.id
@@ -1585,7 +1587,8 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
           // Now call addFeatureToSubscriptionItem with grantCreditsImmediately: true
           // This should grant credits for period 2, NOT be blocked by the period 1 credit
-          const { ctx, effects } = createCapturingContext(transaction)
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
           await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,

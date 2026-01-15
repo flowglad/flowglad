@@ -47,7 +47,7 @@ import { createDateNotPassedFilter } from '../tableUtils'
 import { selectUsageMeterBalancesForSubscriptions } from './ledgerEntryMethods'
 import {
   expireSubscriptionItemFeaturesForSubscriptionItems,
-  selectSubscriptionItemFeaturesWithFeatureSlug,
+  selectSubscriptionItemFeaturesWithFeatureSlugs,
 } from './subscriptionItemFeatureMethods'
 import {
   derivePricingModelIdFromSubscription,
@@ -574,16 +574,20 @@ export const selectRichSubscriptionsAndActiveItems = async (
     .map(({ subscriptionItem }) => subscriptionItem)
 
   // Step 5: Fetch related data in parallel for better performance
+  // Step 5a: Fetch features - use bulk cache for efficiency
+  // Uses MGET for single Redis round-trip, then single DB query for all misses
+  const activeSubscriptionItemIds = activeSubscriptionItems.map(
+    (item) => item.id
+  )
+  const allSubscriptionItemFeaturesPromise =
+    selectSubscriptionItemFeaturesWithFeatureSlugs(
+      activeSubscriptionItemIds,
+      transaction
+    )
+
   const [allSubscriptionItemFeatures, usageMeterBalances] =
     await Promise.all([
-      selectSubscriptionItemFeaturesWithFeatureSlug(
-        {
-          subscriptionItemId: activeSubscriptionItems.map(
-            (item) => item.id
-          ),
-        },
-        transaction
-      ),
+      allSubscriptionItemFeaturesPromise,
       selectUsageMeterBalancesForSubscriptions(
         { subscriptionId: subscriptionIds },
         transaction

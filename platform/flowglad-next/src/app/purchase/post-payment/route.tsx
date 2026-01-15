@@ -52,16 +52,12 @@ const processPaymentIntent = async ({
     throw new Error(`Payment intent not found: ${paymentIntentId}`)
   }
   const { payment, purchase, invoice, checkoutSession } =
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
-      const paymentResult = await processPaymentIntentStatusUpdated(
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      const { payment } = await processPaymentIntentStatusUpdated(
         paymentIntent,
-        transaction
+        ctx
       )
-      const {
-        result: { payment },
-        eventsToInsert,
-        ledgerCommand,
-      } = paymentResult
       if (!payment.purchaseId) {
         throw new Error(
           `No purchase id found for payment ${payment.id}`
@@ -101,8 +97,6 @@ const processPaymentIntent = async ({
       }
       return {
         result: { payment, purchase, checkoutSession, invoice },
-        eventsToInsert,
-        ledgerCommand,
       }
     })
   return {
@@ -134,7 +128,8 @@ const processCheckoutSession = async ({
   request,
 }: ProcessCheckoutSessionParams): Promise<ProcessCheckoutSessionResult> => {
   const result = await comprehensiveAdminTransaction(
-    async ({ transaction }) => {
+    async (params) => {
+      const { transaction } = params
       const [checkoutSession] = await selectCheckoutSessions(
         {
           id: checkoutSessionId,
@@ -146,18 +141,19 @@ const processCheckoutSession = async ({
           `Purchase session not found: ${checkoutSessionId}`
         )
       }
-      const result = await processNonPaymentCheckoutSession(
-        checkoutSession,
-        transaction
-      )
+      const { purchase, invoice } =
+        await processNonPaymentCheckoutSession(checkoutSession, {
+          transaction,
+          invalidateCache: params.invalidateCache,
+          emitEvent: params.emitEvent,
+          enqueueLedgerCommand: params.enqueueLedgerCommand,
+        })
       return {
         result: {
           checkoutSession,
-          purchase: result.result.purchase,
-          invoice: result.result.invoice,
+          purchase,
+          invoice,
         },
-        eventsToInsert: result.eventsToInsert,
-        ledgerCommand: result.ledgerCommand,
       }
     }
   )

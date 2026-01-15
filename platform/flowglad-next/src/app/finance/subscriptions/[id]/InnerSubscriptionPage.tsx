@@ -10,8 +10,7 @@ import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
 import { ItemFeature } from '@/components/ItemFeature'
 import PageContainer from '@/components/PageContainer'
 import { ProductCard } from '@/components/ProductCard'
-// FIXME: FEATURE - Resource UI is temporarily disabled while resource features are gated behind devOnlyProcedure
-// import { SubscriptionResourceUsage } from '@/components/subscriptions/SubscriptionResourceUsage'
+import { SubscriptionResourceUsage } from '@/components/subscriptions/SubscriptionResourceUsage'
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import {
@@ -35,7 +34,7 @@ import {
   FeatureUsageGrantFrequency,
   SubscriptionStatus,
 } from '@/types'
-import core from '@/utils/core'
+import core, { IS_DEV } from '@/utils/core'
 import { formatBillingPeriod, getCurrencyParts } from '@/utils/stripe'
 import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
 import { BillingHistorySection } from './BillingHistorySection'
@@ -280,13 +279,17 @@ const InnerSubscriptionPage = ({
             )}
           </div>
         </ExpandSection>
-        {/* FIXME: FEATURE - Resource UI is temporarily disabled while resource features are gated behind devOnlyProcedure
-        <ExpandSection title="Resource Usage" defaultExpanded={false}>
-          <SubscriptionResourceUsage
-            subscriptionId={subscription.id}
-          />
-        </ExpandSection>
-        */}
+        {/* FIXME: Resource UI is temporarily dev-only while resource features are gated behind devOnlyProcedure. Remove IS_DEV check when resources are ready for production. */}
+        {IS_DEV && (
+          <ExpandSection
+            title="Resource Usage"
+            defaultExpanded={false}
+          >
+            <SubscriptionResourceUsage
+              subscriptionId={subscription.id}
+            />
+          </ExpandSection>
+        )}
         <BillingHistorySection
           subscriptionId={subscription.id}
           customerId={subscription.customerId}

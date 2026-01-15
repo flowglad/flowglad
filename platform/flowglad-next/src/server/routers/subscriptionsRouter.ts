@@ -5,6 +5,7 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
+  comprehensiveAuthenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import { Customer } from '@/db/schema/customers'
 import { Organization } from '@/db/schema/organizations'
@@ -77,7 +78,7 @@ import {
   SubscriptionAdjustmentTiming,
   SubscriptionStatus,
 } from '@/types'
-import { invalidateDependencies } from '@/utils/cache'
+import { CacheDependency } from '@/utils/cache'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { addFeatureToSubscription } from '../mutations/addFeatureToSubscription'
 import { protectedProcedure, router } from '../trpc'
@@ -309,18 +310,22 @@ const adjustSubscriptionProcedure = protectedProcedure
 
     // Step 1: Perform the adjustment in a transaction
     // This triggers the billing run but doesn't wait for it
-    const adjustmentResult = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return adjustSubscription(
-          input,
-          ctx.organization!,
-          transaction
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    // Cache invalidations are handled automatically by the comprehensive transaction
+    const adjustmentResult =
+      await comprehensiveAuthenticatedTransaction(
+        async (transactionCtx) => {
+          return {
+            result: await adjustSubscription(
+              input,
+              ctx.organization!,
+              transactionCtx
+            ),
+          }
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
 
     const {
       subscription,
@@ -328,15 +333,7 @@ const adjustSubscriptionProcedure = protectedProcedure
       resolvedTiming,
       isUpgrade,
       pendingBillingRunId,
-      cacheInvalidations,
     } = adjustmentResult
-
-    // Invalidate caches after transaction committed (fire-and-forget)
-    // Deduplicate to reduce unnecessary Redis operations
-    if (cacheInvalidations.length > 0) {
-      const uniqueInvalidations = [...new Set(cacheInvalidations)]
-      void invalidateDependencies(uniqueInvalidations)
-    }
 
     // Step 2: If there's a pending billing run, wait for it to complete
     // This happens outside the transaction since it can take several seconds
@@ -649,14 +646,13 @@ const createSubscriptionProcedure = protectedProcedure
   .output(z.object({ subscription: subscriptionClientSelectSchema }))
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({
-        input,
-        transaction,
-        ctx,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        } = transactionCtx
         if (!ctx.organization) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
@@ -788,7 +784,12 @@ const getTableRows = protectedProcedure
     )
   )
   .query(
-    authenticatedProcedureTransaction(selectSubscriptionsTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectSubscriptionsTableRowData({ input, transaction })
+      }
+    )
   )
 
 // TRPC-only procedure, not exposed as REST API
@@ -800,8 +801,9 @@ const updatePaymentMethodProcedure = protectedProcedure
     })
   )
   .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction, invalidateCache } = transactionCtx
         const subscription = await selectSubscriptionById(
           input.id,
           transaction
@@ -831,13 +833,22 @@ const updatePaymentMethodProcedure = protectedProcedure
           transaction
         )
 
+        // Invalidate cache for customer subscriptions
+        invalidateCache(
+          CacheDependency.customerSubscriptions(
+            subscription.customerId
+          )
+        )
+
         return {
-          subscription: {
-            ...updatedSubscription,
-            current: isSubscriptionCurrent(
-              updatedSubscription.status,
-              updatedSubscription.cancellationReason
-            ),
+          result: {
+            subscription: {
+              ...updatedSubscription,
+              current: isSubscriptionCurrent(
+                updatedSubscription.status,
+                updatedSubscription.cancellationReason
+              ),
+            },
           },
         }
       }

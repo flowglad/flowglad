@@ -39,7 +39,7 @@ import {
   bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId,
   updateUsageMeter,
 } from '@/db/tableMethods/usageMeterMethods'
-import type { DbTransaction } from '@/db/types'
+import type { TransactionEffectsContext } from '@/db/types'
 import { FeatureType, PriceType } from '@/types'
 import {
   computeUpdateObject,
@@ -117,7 +117,7 @@ export type UpdatePricingModelResult = {
  * @param params - Configuration object
  * @param params.pricingModelId - ID of the pricing model to update
  * @param params.proposedInput - The proposed new state of the pricing model
- * @param transaction - Database transaction
+ * @param transactionParams - Transaction params including invalidateCache callback
  * @returns Structured result with all created/updated/deactivated records
  */
 export const updatePricingModelTransaction = async (
@@ -128,8 +128,12 @@ export const updatePricingModelTransaction = async (
     pricingModelId: string
     proposedInput: SetupPricingModelInput
   },
-  transaction: DbTransaction
+  transactionParams: Pick<
+    TransactionEffectsContext,
+    'transaction' | 'invalidateCache'
+  >
 ): Promise<UpdatePricingModelResult> => {
+  const { transaction, invalidateCache } = transactionParams
   // Step 1: Fetch existing pricing model data and organization
   const [existingInput, pricingModel] = await Promise.all([
     getPricingModelSetupData(pricingModelId, transaction),
@@ -402,8 +406,16 @@ export const updatePricingModelTransaction = async (
     }
   }
 
-  // Step 8b: Handle resources
-  // Resources are optional in the input schema, so we default to empty arrays
+  /**
+   * Step 8b: Handle resources
+   *
+   * Creates new resources, updates existing ones, and deactivates removed ones.
+   * Resources must be processed before features because Resource features
+   * need to resolve resourceSlug → resourceId.
+   *
+   * Note: Resources are optional in the input schema until Patch 1 (setupSchemas)
+   * adds them to the discriminated union, so we default to empty arrays.
+   */
   type ResourceInput = {
     slug: string
     name: string
@@ -523,16 +535,58 @@ export const updatePricingModelTransaction = async (
             ...coreParams,
             type: FeatureType.UsageCreditGrant,
             usageMeterId,
+            resourceId: null,
             amount: feature.amount,
             renewalFrequency: feature.renewalFrequency,
             active: feature.active ?? true,
           }
         }
 
+        // Handle Resource type
+        // Note: This branch requires Patch 1 (setupSchemas) to add Resource to the
+        // discriminated union. Until then, we use type assertions to handle the case.
+        const featureAsUnknown = feature as unknown as {
+          type: string
+          resourceSlug?: string
+          amount?: number
+          active?: boolean
+        }
+        if (featureAsUnknown.type === FeatureType.Resource) {
+          if (!featureAsUnknown.resourceSlug) {
+            throw new Error(
+              `Resource feature ${coreParams.slug} requires resourceSlug`
+            )
+          }
+          if (typeof featureAsUnknown.amount !== 'number') {
+            throw new Error(
+              `Resource feature ${coreParams.slug} requires numeric amount`
+            )
+          }
+          const resourceId = idMaps.resources.get(
+            featureAsUnknown.resourceSlug
+          )
+          if (!resourceId) {
+            throw new Error(
+              `Resource ${featureAsUnknown.resourceSlug} not found`
+            )
+          }
+          return {
+            ...coreParams,
+            type: FeatureType.Resource,
+            resourceId,
+            usageMeterId: null,
+            amount: featureAsUnknown.amount,
+            renewalFrequency: null,
+            active: featureAsUnknown.active ?? true,
+          }
+        }
+
+        // Toggle type (default)
         return {
           ...coreParams,
           type: FeatureType.Toggle,
           usageMeterId: null,
+          resourceId: null,
           amount: null,
           renewalFrequency: null,
           active: feature.active ?? true,
@@ -568,6 +622,25 @@ export const updatePricingModelTransaction = async (
         }
         transformedUpdate.usageMeterId = newUsageMeterId
         delete transformedUpdate.usageMeterSlug
+      }
+
+      // Handle resourceSlug -> resourceId transformation
+      // Note: Type assertion needed until Patch 1 adds Resource to the schema
+      if ('resourceSlug' in transformedUpdate) {
+        const existingType = (existing as unknown as { type: string })
+          .type
+        if (existingType !== FeatureType.Resource) {
+          throw new Error(
+            `Feature ${existing.slug} has resourceSlug but is type ${existingType}, not Resource`
+          )
+        }
+        const newSlug = transformedUpdate.resourceSlug as string
+        const newResourceId = idMaps.resources.get(newSlug)
+        if (!newResourceId) {
+          throw new Error(`Resource ${newSlug} not found`)
+        }
+        transformedUpdate.resourceId = newResourceId
+        delete transformedUpdate.resourceSlug
       }
 
       if (Object.keys(transformedUpdate).length === 0) return null
@@ -867,7 +940,7 @@ export const updatePricingModelTransaction = async (
         organizationId: pricingModel.organizationId,
         livemode: pricingModel.livemode,
       },
-      transaction
+      { transaction, invalidateCache }
     )
 
   result.productFeatures.added = productFeaturesResult.added

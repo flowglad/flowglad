@@ -1,4 +1,3 @@
-import type { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { Event } from '@/db/schema/events'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
@@ -61,7 +60,12 @@ export const createSubscriptionWorkflow = async (
   >
 > => {
   // Destructure context for cleaner code below
-  const { transaction, invalidateCache, emitEvent } = ctx
+  const {
+    transaction,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  } = ctx
 
   // FIXME: Re-enable this once usage prices are fully deprecated
   if (
@@ -270,7 +274,7 @@ export const createSubscriptionWorkflow = async (
       preservedBillingPeriodStart: params.preservedBillingPeriodStart,
       isDefaultPlan: params.product.default,
     },
-    transaction
+    ctx
   )
   // Don't send notifications for free subscriptions
   // A subscription is considered free if unitPrice is 0, not based on slug
@@ -334,10 +338,8 @@ export const createSubscriptionWorkflow = async (
     },
   ]
 
-  let ledgerCommand: BillingPeriodTransitionLedgerCommand | undefined
-
-  /* 
-    Create the ledger command here if we are not expecting a payment intent
+  /*
+    Enqueue the ledger command here if we are not expecting a payment intent
     Cases:
       - Subscription status must not be incomplete
       - Subscription is non-renewing
@@ -351,7 +353,7 @@ export const createSubscriptionWorkflow = async (
       updatedSubscription.isFreePlan === true ||
       updatedSubscription.status === SubscriptionStatus.Trialing)
   ) {
-    ledgerCommand = {
+    enqueueLedgerCommand({
       organizationId: updatedSubscription.organizationId,
       subscriptionId: updatedSubscription.id,
       livemode: updatedSubscription.livemode,
@@ -363,7 +365,7 @@ export const createSubscriptionWorkflow = async (
         billingPeriodItems,
         billingRun,
       }),
-    }
+    })
   }
 
   const transactionResult:
@@ -400,6 +402,5 @@ export const createSubscriptionWorkflow = async (
 
   return {
     result: transactionResult,
-    ledgerCommand,
   }
 }

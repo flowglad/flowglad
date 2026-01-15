@@ -15,7 +15,7 @@ import type { Product } from '@/db/schema/products'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { createSubscriptionInputSchema } from '@/server/routers/subscriptionsRouter'
 import {
-  createNoopContext,
+  createDiscardingEffectsContext,
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
@@ -145,7 +145,7 @@ describe('doNotCharge subscription creation', () => {
     } = await adminTransaction(async ({ transaction }) => {
       return createSubscriptionWorkflow(
         params,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -185,7 +185,7 @@ describe('doNotCharge subscription creation', () => {
     } = await adminTransaction(async ({ transaction }) => {
       return createSubscriptionWorkflow(
         params,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -218,7 +218,7 @@ describe('doNotCharge subscription creation', () => {
     await adminTransaction(async ({ transaction }) => {
       await createSubscriptionWorkflow(
         params,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -268,7 +268,7 @@ describe('doNotCharge subscription creation', () => {
     } = await adminTransaction(async ({ transaction }) => {
       return createSubscriptionWorkflow(
         params,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -315,7 +315,7 @@ describe('doNotCharge subscription creation', () => {
     } = await adminTransaction(async ({ transaction }) => {
       return createSubscriptionWorkflow(
         params,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -351,7 +351,7 @@ describe('doNotCharge subscription creation', () => {
     } = await adminTransaction(async ({ transaction }) => {
       return createSubscriptionWorkflow(
         params,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -387,7 +387,7 @@ describe('doNotCharge subscription creation', () => {
     } = await adminTransaction(async ({ transaction }) => {
       return createSubscriptionWorkflow(
         params,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -487,7 +487,7 @@ describe('doNotCharge subscription creation', () => {
     } = await adminTransaction(async ({ transaction }) => {
       return createSubscriptionWorkflow(
         params,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -525,7 +525,7 @@ describe('doNotCharge subscription creation', () => {
     } = await adminTransaction(async ({ transaction }) => {
       return createSubscriptionWorkflow(
         params,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -568,7 +568,7 @@ describe('doNotCharge subscription creation', () => {
     } = await adminTransaction(async ({ transaction }) => {
       return createSubscriptionWorkflow(
         params,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -608,7 +608,7 @@ describe('doNotCharge subscription creation', () => {
       } = await adminTransaction(async ({ transaction }) => {
         return createSubscriptionWorkflow(
           params,
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       })
 

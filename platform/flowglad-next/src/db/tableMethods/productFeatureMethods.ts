@@ -18,7 +18,10 @@ import {
   type ORMMethodCreatorConfig,
   whereClauseFromObject,
 } from '@/db/tableUtils'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { features, featuresSelectSchema } from '../schema/features'
 import type { Product } from '../schema/products'
 import { createDateNotPassedFilter } from '../tableUtils'
@@ -94,8 +97,13 @@ export const selectProductFeaturesPaginated =
 
 export const expireProductFeaturesByFeatureId = async (
   productFeatureIds: string[],
-  transaction: DbTransaction
-) => {
+  params: Pick<TransactionEffectsContext, 'transaction'>
+): Promise<{
+  expiredProductFeature: ProductFeature.Record[]
+  detachedSubscriptionItemFeatures: import('@/db/schema/subscriptionItemFeatures').SubscriptionItemFeature.Record[]
+}> => {
+  const { transaction } = params
+
   // First, detach any existing subscription item features
   const detachedSubscriptionItemFeatures =
     await detachSubscriptionItemFeaturesFromProductFeature(
@@ -114,7 +122,9 @@ export const expireProductFeaturesByFeatureId = async (
     .returning()
 
   return {
-    expiredProductFeature,
+    expiredProductFeature: productFeaturesSelectSchema
+      .array()
+      .parse(expiredProductFeature),
     detachedSubscriptionItemFeatures,
   }
 }
@@ -298,9 +308,10 @@ export const syncProductFeatures = async (
     >
     desiredFeatureIds: string[]
   },
-  transaction: DbTransaction
+  transactionParams: Pick<TransactionEffectsContext, 'transaction'>
 ) => {
   const { product, desiredFeatureIds } = params
+  const { transaction } = transactionParams
 
   // Early return if no features to sync
   if (!desiredFeatureIds || desiredFeatureIds.length === 0) {
@@ -316,7 +327,7 @@ export const syncProductFeatures = async (
       if (activeFeatures.length > 0) {
         await expireProductFeaturesByFeatureId(
           activeFeatures.map((pf) => pf.id),
-          transaction
+          { transaction }
         )
       }
     }
@@ -343,7 +354,7 @@ export const syncProductFeatures = async (
   if (productFeaturesToExpire.length > 0) {
     await expireProductFeaturesByFeatureId(
       productFeaturesToExpire.map((pf) => pf.id),
-      transaction
+      { transaction }
     )
   }
 

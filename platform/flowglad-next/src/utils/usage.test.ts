@@ -6,7 +6,10 @@ import {
   setupUsageMeter,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
@@ -37,10 +40,10 @@ describe('createUsageMeterTransaction', () => {
   })
 
   describe('Successful creation', () => {
-    it('creates usage meter and price with matching slugs (no product)', async () => {
-      const result = await adminTransaction(
+    it('should create usage meter, product, and price with matching slugs', async () => {
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
-          return createUsageMeterTransaction(
+          const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
                 name: 'API Calls',
@@ -55,6 +58,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
+          return { result: usageMeterResult }
         }
       )
 
@@ -81,10 +85,10 @@ describe('createUsageMeterTransaction', () => {
       expect(result.price.currency).toBe(organization.defaultCurrency)
     })
 
-    it('creates usage meter with aggregationType', async () => {
-      const result = await adminTransaction(
+    it('should create usage meter with aggregationType', async () => {
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
-          return createUsageMeterTransaction(
+          const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
                 name: 'Unique Users',
@@ -101,6 +105,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
+          return { result: usageMeterResult }
         }
       )
 
@@ -125,8 +130,8 @@ describe('createUsageMeterTransaction', () => {
 
       // Attempt to create usage meter with the same slug
       await expect(
-        adminTransaction(async ({ transaction }) => {
-          return createUsageMeterTransaction(
+        comprehensiveAdminTransaction(async ({ transaction }) => {
+          const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
                 name: 'New Usage Meter',
@@ -141,6 +146,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
+          return { result: usageMeterResult }
         })
       ).rejects.toThrow()
 
@@ -184,11 +190,10 @@ describe('createUsageMeterTransaction', () => {
         livemode: false,
       })
 
-      // Create usage meter with the same slug - this should succeed
-      // because usage prices and product prices have separate namespaces
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return createUsageMeterTransaction(
+      // Attempt to create usage meter with the same slug
+      await expect(
+        comprehensiveAdminTransaction(async ({ transaction }) => {
+          const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
                 name: 'New Usage Meter',
@@ -203,33 +208,20 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
-        }
-      )
+          return { result: usageMeterResult }
+        })
+      ).rejects.toThrow()
 
-      // Verify both were created
-      expect(result.usageMeter.slug).toBe(slug)
-      expect(result.price.slug).toBe(slug)
-      expect(result.price.type).toBe(PriceType.Usage)
-      expect(result.price.productId).toBeNull()
-
-      // Verify we now have both prices with the same slug in the pricing model
-      const pricesWithSlug = await adminTransaction(
+      // Verify no usage meter was created (transaction rolled back)
+      const usageMeters = await adminTransaction(
         async ({ transaction }) => {
-          return selectPrices(
+          return selectUsageMeters(
             { slug, pricingModelId: pricingModel.id },
             transaction
           )
         }
       )
-      expect(pricesWithSlug).toHaveLength(2)
-      const subscriptionPrice = pricesWithSlug.find(
-        (p) => p.type === PriceType.Subscription
-      )
-      const usagePrice = pricesWithSlug.find(
-        (p) => p.type === PriceType.Usage
-      )
-      expect(subscriptionPrice?.type).toBe(PriceType.Subscription)
-      expect(usagePrice?.type).toBe(PriceType.Usage)
+      expect(usageMeters).toHaveLength(0)
     })
 
     it('allows usage meter creation with unique slug even when other slugs exist', async () => {
@@ -258,9 +250,9 @@ describe('createUsageMeterTransaction', () => {
       })
 
       // Should succeed because the slug is unique
-      const result = await adminTransaction(
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
-          return createUsageMeterTransaction(
+          const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
                 name: 'New Usage Meter',
@@ -275,6 +267,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
+          return { result: usageMeterResult }
         }
       )
 
@@ -318,8 +311,8 @@ describe('createUsageMeterTransaction', () => {
 
       // Attempt to create usage meter (should fail due to slug collision)
       await expect(
-        adminTransaction(async ({ transaction }) => {
-          return createUsageMeterTransaction(
+        comprehensiveAdminTransaction(async ({ transaction }) => {
+          const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
                 name: 'Should Not Create',
@@ -334,6 +327,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
+          return { result: usageMeterResult }
         })
       ).rejects.toThrow()
 
@@ -362,10 +356,10 @@ describe('createUsageMeterTransaction', () => {
   })
 
   describe('Custom price fields', () => {
-    it('creates usage meter with custom unitPrice and usageEventsPerUnit', async () => {
-      const result = await adminTransaction(
+    it('should create usage meter with custom unitPrice and usageEventsPerUnit', async () => {
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
-          return createUsageMeterTransaction(
+          const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
                 name: 'Custom Price API Calls',
@@ -384,6 +378,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
+          return { result: usageMeterResult }
         }
       )
 
@@ -394,10 +389,10 @@ describe('createUsageMeterTransaction', () => {
       expect(result.price.productId).toBeNull()
     })
 
-    it('creates usage meter without price values (use defaults)', async () => {
-      const result = await adminTransaction(
+    it('should create usage meter without price values (use defaults)', async () => {
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
-          return createUsageMeterTransaction(
+          const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
                 name: 'Default Price API Calls',
@@ -413,6 +408,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
+          return { result: usageMeterResult }
         }
       )
 
@@ -423,10 +419,10 @@ describe('createUsageMeterTransaction', () => {
       expect(result.price.productId).toBeNull()
     })
 
-    it('respects custom unitPrice when usageEventsPerUnit is not provided', async () => {
-      const result = await adminTransaction(
+    it('should respect custom unitPrice when usageEventsPerUnit is not provided', async () => {
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
-          return createUsageMeterTransaction(
+          const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
                 name: 'Partial Custom Price',
@@ -444,6 +440,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
+          return { result: usageMeterResult }
         }
       )
 

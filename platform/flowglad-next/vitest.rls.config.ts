@@ -39,9 +39,6 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       setupFiles: ['./vitest.setup.ts'],
       env: loadEnv(mode, process.cwd(), ''),
-      deps: {
-        inline: [/@stackframe\/stack-shared/],
-      },
       server: {
         deps: {
           inline: [/@stackframe\/stack-shared/],

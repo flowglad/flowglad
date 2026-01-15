@@ -12,10 +12,12 @@ import {
   pricesPaginatedListSchema,
   pricesPaginatedSelectSchema,
   pricesTableRowDataSchema,
+  usagePriceClientSelectSchema,
 } from '@/db/schema/prices'
 import {
   safelyUpdatePrice,
   selectPriceById,
+  selectPrices,
   selectPricesPaginated,
   selectPricesTableRowData,
 } from '@/db/tableMethods/priceMethods'
@@ -217,14 +219,44 @@ export const getTableRows = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(pricesTableRowDataSchema)
   )
-  .query(authenticatedProcedureTransaction(selectPricesTableRowData))
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectPricesTableRowData({ input, transaction })
+      }
+    )
+  )
+
+export const listUsagePricesForProduct = protectedProcedure
+  .input(z.object({ productId: z.string() }))
+  .output(z.array(usagePriceClientSelectSchema))
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const prices = await selectPrices(
+          {
+            type: PriceType.Usage,
+            productId: input.productId,
+            active: true,
+          },
+          transaction
+        )
+        return prices.filter(
+          (price) => price.type === PriceType.Usage
+        )
+      }
+    )
+  )
 
 export const setPriceAsDefault = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ price: pricesClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const oldPrice = await selectPriceById(input.id, transaction)
         const price = await safelyUpdatePrice(
           { id: input.id, isDefault: true, type: oldPrice.type },
@@ -240,7 +272,8 @@ export const archivePrice = protectedProcedure
   .output(z.object({ price: pricesClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const oldPrice = await selectPriceById(input.id, transaction)
         const price = await safelyUpdatePrice(
           { id: input.id, active: false, type: oldPrice.type },

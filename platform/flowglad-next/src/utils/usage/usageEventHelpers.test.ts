@@ -30,7 +30,7 @@ import type { CreateUsageEventInput } from '@/db/schema/usageEvents'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
-import { createNoopContext } from '@/test-utils/transactionCallbacks'
+import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   CurrencyCode,
   IntervalUnit,
@@ -345,7 +345,7 @@ describe('usageEventHelpers', () => {
             },
             livemode: true,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -365,7 +365,7 @@ describe('usageEventHelpers', () => {
         adminTransaction(async ({ transaction }) => {
           return ingestAndProcessUsageEvent(
             { input: inputMainSub, livemode: true },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow(

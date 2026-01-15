@@ -3,7 +3,6 @@ import type { BillingRun } from '@/db/schema/billingRuns'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { Customer } from '@/db/schema/customers'
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
-import { Event } from '@/db/schema/events'
 import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
@@ -23,10 +22,7 @@ import {
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import {
-  selectPurchaseById,
-  updatePurchase,
-} from '@/db/tableMethods/purchaseMethods'
+import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   safelyUpdateSubscriptionsForCustomerToNewPaymentMethod,
@@ -119,8 +115,9 @@ export const processTerminalCheckoutSessionSetupIntent = async (
 export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
   async (
     setupIntent: CoreSripeSetupIntent,
-    transaction: DbTransaction
+    ctx: TransactionEffectsContext
   ) => {
+    const { transaction } = ctx
     const initialCheckoutSession =
       await checkoutSessionFromSetupIntent(setupIntent, transaction)
     if (checkoutSessionIsInTerminalState(initialCheckoutSession)) {
@@ -161,13 +158,11 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
       )
 
     const {
-      result: {
-        purchase,
-        customer,
-        discount,
-        feeCalculation,
-        discountRedemption,
-      },
+      purchase,
+      customer,
+      discount,
+      feeCalculation,
+      discountRedemption,
     } = await processPurchaseBookkeepingForCheckoutSession(
       {
         checkoutSession,
@@ -175,7 +170,7 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
           ? stripeIdFromObjectOrId(setupIntent.customer)
           : null,
       },
-      transaction
+      ctx
     )
     const { paymentMethod } =
       await pullStripeSetupIntentDataToDatabase(
@@ -422,7 +417,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
   ): Promise<
     TransactionOutput<ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult>
   > => {
-    const { transaction } = ctx
+    const { transaction, emitEvent } = ctx
     if (!customer) {
       throw new Error(
         `Customer is required for setup intent ${setupIntent.id}`
@@ -504,11 +499,6 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       ctx
     )
 
-    const eventInserts: Event.Insert[] = []
-    if (output.eventsToInsert) {
-      eventInserts.push(...output.eventsToInsert)
-    }
-
     const updatedPurchase = await updatePurchase(
       {
         id: purchase.id,
@@ -519,7 +509,8 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       transaction
     )
 
-    eventInserts.push({
+    // Emit purchase completed event
+    emitEvent({
       type: FlowgladEventType.PurchaseCompleted,
       occurredAt: now,
       organizationId: organization.id,
@@ -539,8 +530,6 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     })
 
     return {
-      ...output,
-      eventsToInsert: eventInserts,
       result: {
         purchase: updatedPurchase,
         checkoutSession,
@@ -568,8 +557,9 @@ export interface ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededR
 const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
   async (
     setupIntent: CoreSripeSetupIntent,
-    transaction: DbTransaction
+    ctx: TransactionEffectsContext
   ): Promise<ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult> => {
+    const { transaction } = ctx
     const initialCheckoutSession =
       await checkoutSessionFromSetupIntent(setupIntent, transaction)
     const checkoutSession = await updateCheckoutSession(
@@ -641,7 +631,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
         defaultPaymentMethod: paymentMethod,
         autoStart: true,
       },
-      transaction
+      ctx
     )
 
     // Fetch the subscription again to get the updated status after activation
@@ -744,7 +734,6 @@ export const processSetupIntentSucceeded = async (
           subscription,
           purchase: null,
         },
-        eventsToInsert: [],
       }
     }
     if (checkoutSession.type === CheckoutSessionType.Purchase) {
@@ -791,7 +780,6 @@ export const processSetupIntentSucceeded = async (
         billingRun: null,
         purchase: null,
       },
-      eventsToInsert: [],
     }
   }
 
@@ -807,7 +795,6 @@ export const processSetupIntentSucceeded = async (
     )
     return {
       result,
-      eventsToInsert: [],
     }
   }
 
@@ -821,7 +808,6 @@ export const processSetupIntentSucceeded = async (
     )
     return {
       result,
-      eventsToInsert: [],
     }
   }
 
@@ -832,23 +818,20 @@ export const processSetupIntentSucceeded = async (
     const result =
       await processActivateSubscriptionCheckoutSessionSetupIntentSucceeded(
         setupIntent,
-        transaction
+        ctx
       )
-    const cacheKey = CacheDependency.customerSubscriptions(
-      result.customer.id
+    invalidateCache(
+      CacheDependency.customerSubscriptions(result.customer.id)
     )
-    invalidateCache(cacheKey)
     return {
       result,
-      eventsToInsert: [],
-      cacheInvalidations: [cacheKey],
     }
   }
 
   const successProcessedResult =
     await processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
       setupIntent,
-      transaction
+      ctx
     )
 
   const withSetupIntent = Object.assign(successProcessedResult, {

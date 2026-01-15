@@ -4,4 +4,4 @@ export type ResourceClaim =
   Flowglad.ResourceClaimClaimResponse['claims'][number]
 
 export type ResourceUsage =
-  Flowglad.ResourceClaimUsageResponse['usage'][number]
+  Flowglad.ResourceClaimUsageResponse['usage']

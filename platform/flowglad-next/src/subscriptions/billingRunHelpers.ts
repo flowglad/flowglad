@@ -49,7 +49,10 @@ import {
 } from '@/db/tableMethods/paymentMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
 import {
@@ -971,14 +974,21 @@ export const executeBillingRun = async (
       confirmationResult.status === 'succeeded' ||
       confirmationResult.status === 'requires_payment_method'
     ) {
-      await comprehensiveAdminTransaction(async (ctx) => {
-        return await processOutcomeForBillingRun(
+      await comprehensiveAdminTransaction(async (params) => {
+        const effectsCtx: TransactionEffectsContext = {
+          transaction: params.transaction,
+          invalidateCache: params.invalidateCache,
+          emitEvent: params.emitEvent,
+          enqueueLedgerCommand: params.enqueueLedgerCommand,
+        }
+        const result = await processOutcomeForBillingRun(
           {
             input: confirmationResult,
             adjustmentParams: adjustmentParams,
           },
-          ctx
+          effectsCtx
         )
+        return { result }
       })
     }
 

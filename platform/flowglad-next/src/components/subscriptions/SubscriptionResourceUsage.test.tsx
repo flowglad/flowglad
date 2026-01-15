@@ -11,7 +11,7 @@ import { SubscriptionResourceUsage } from './SubscriptionResourceUsage'
 vi.mock('@/app/_trpc/client', () => ({
   trpc: {
     resourceClaims: {
-      getUsage: {
+      listResourceUsages: {
         useQuery: vi.fn(),
       },
     },
@@ -25,21 +25,26 @@ describe('SubscriptionResourceUsage', () => {
 
   it('displays resource usage with correct capacity/claimed/available values', async () => {
     // setup: mock getUsage to return usage data
-    vi.mocked(trpc.resourceClaims.getUsage.useQuery).mockReturnValue({
-      data: {
-        usage: [
-          {
+    vi.mocked(
+      trpc.resourceClaims.listResourceUsages.useQuery
+    ).mockReturnValue({
+      data: [
+        {
+          usage: {
             resourceSlug: 'seats',
             resourceId: 'res_123',
             capacity: 10,
             claimed: 3,
             available: 7,
           },
-        ],
-      },
+          claims: [],
+        },
+      ],
       isLoading: false,
       error: null,
-    } as ReturnType<typeof trpc.resourceClaims.getUsage.useQuery>)
+    } as ReturnType<
+      typeof trpc.resourceClaims.listResourceUsages.useQuery
+    >)
 
     render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
 
@@ -58,11 +63,15 @@ describe('SubscriptionResourceUsage', () => {
 
   it('shows empty state when subscription has no resource features', async () => {
     // setup: mock getUsage returns empty usage array
-    vi.mocked(trpc.resourceClaims.getUsage.useQuery).mockReturnValue({
-      data: { usage: [] },
+    vi.mocked(
+      trpc.resourceClaims.listResourceUsages.useQuery
+    ).mockReturnValue({
+      data: [],
       isLoading: false,
       error: null,
-    } as ReturnType<typeof trpc.resourceClaims.getUsage.useQuery>)
+    } as ReturnType<
+      typeof trpc.resourceClaims.listResourceUsages.useQuery
+    >)
 
     const { container } = render(
       <SubscriptionResourceUsage subscriptionId="sub_123" />
@@ -74,11 +83,15 @@ describe('SubscriptionResourceUsage', () => {
 
   it('shows loading state while fetching usage data', async () => {
     // setup: mock loading state
-    vi.mocked(trpc.resourceClaims.getUsage.useQuery).mockReturnValue({
+    vi.mocked(
+      trpc.resourceClaims.listResourceUsages.useQuery
+    ).mockReturnValue({
       data: undefined,
       isLoading: true,
       error: null,
-    } as ReturnType<typeof trpc.resourceClaims.getUsage.useQuery>)
+    } as ReturnType<
+      typeof trpc.resourceClaims.listResourceUsages.useQuery
+    >)
 
     render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
 
@@ -90,35 +103,46 @@ describe('SubscriptionResourceUsage', () => {
 
   it('displays multiple resources when subscription has multiple resource features', async () => {
     // setup: mock getUsage with multiple resources
-    vi.mocked(trpc.resourceClaims.getUsage.useQuery).mockReturnValue({
-      data: {
-        usage: [
-          {
+    vi.mocked(
+      trpc.resourceClaims.listResourceUsages.useQuery
+    ).mockReturnValue({
+      data: [
+        {
+          usage: {
             resourceSlug: 'seats',
             resourceId: 'res_123',
             capacity: 10,
             claimed: 3,
             available: 7,
           },
-          {
+          claims: [],
+        },
+        {
+          usage: {
             resourceSlug: 'api-keys',
             resourceId: 'res_456',
             capacity: 5,
             claimed: 2,
             available: 3,
           },
-          {
+          claims: [],
+        },
+        {
+          usage: {
             resourceSlug: 'projects',
             resourceId: 'res_789',
             capacity: 100,
             claimed: 50,
             available: 50,
           },
-        ],
-      },
+          claims: [],
+        },
+      ],
       isLoading: false,
       error: null,
-    } as ReturnType<typeof trpc.resourceClaims.getUsage.useQuery>)
+    } as ReturnType<
+      typeof trpc.resourceClaims.listResourceUsages.useQuery
+    >)
 
     render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
 
@@ -138,12 +162,14 @@ describe('SubscriptionResourceUsage', () => {
 
   it('shows error message when fetch fails', async () => {
     // setup: mock error state
-    vi.mocked(trpc.resourceClaims.getUsage.useQuery).mockReturnValue({
+    vi.mocked(
+      trpc.resourceClaims.listResourceUsages.useQuery
+    ).mockReturnValue({
       data: undefined,
       isLoading: false,
       error: { message: 'Failed to fetch' },
     } as unknown as ReturnType<
-      typeof trpc.resourceClaims.getUsage.useQuery
+      typeof trpc.resourceClaims.listResourceUsages.useQuery
     >)
 
     render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
@@ -156,21 +182,26 @@ describe('SubscriptionResourceUsage', () => {
 
   it('handles zero capacity gracefully', async () => {
     // setup: mock getUsage with zero capacity (edge case)
-    vi.mocked(trpc.resourceClaims.getUsage.useQuery).mockReturnValue({
-      data: {
-        usage: [
-          {
+    vi.mocked(
+      trpc.resourceClaims.listResourceUsages.useQuery
+    ).mockReturnValue({
+      data: [
+        {
+          usage: {
             resourceSlug: 'seats',
             resourceId: 'res_123',
             capacity: 0,
             claimed: 0,
             available: 0,
           },
-        ],
-      },
+          claims: [],
+        },
+      ],
       isLoading: false,
       error: null,
-    } as ReturnType<typeof trpc.resourceClaims.getUsage.useQuery>)
+    } as ReturnType<
+      typeof trpc.resourceClaims.listResourceUsages.useQuery
+    >)
 
     render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
 
@@ -183,21 +214,26 @@ describe('SubscriptionResourceUsage', () => {
 
   it('handles fully utilized resource', async () => {
     // setup: mock getUsage with fully claimed resource
-    vi.mocked(trpc.resourceClaims.getUsage.useQuery).mockReturnValue({
-      data: {
-        usage: [
-          {
+    vi.mocked(
+      trpc.resourceClaims.listResourceUsages.useQuery
+    ).mockReturnValue({
+      data: [
+        {
+          usage: {
             resourceSlug: 'seats',
             resourceId: 'res_123',
             capacity: 5,
             claimed: 5,
             available: 0,
           },
-        ],
-      },
+          claims: [],
+        },
+      ],
       isLoading: false,
       error: null,
-    } as ReturnType<typeof trpc.resourceClaims.getUsage.useQuery>)
+    } as ReturnType<
+      typeof trpc.resourceClaims.listResourceUsages.useQuery
+    >)
 
     render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
 
@@ -211,21 +247,26 @@ describe('SubscriptionResourceUsage', () => {
 
   it('applies custom className', async () => {
     // setup: render with custom className
-    vi.mocked(trpc.resourceClaims.getUsage.useQuery).mockReturnValue({
-      data: {
-        usage: [
-          {
+    vi.mocked(
+      trpc.resourceClaims.listResourceUsages.useQuery
+    ).mockReturnValue({
+      data: [
+        {
+          usage: {
             resourceSlug: 'seats',
             resourceId: 'res_123',
             capacity: 10,
             claimed: 3,
             available: 7,
           },
-        ],
-      },
+          claims: [],
+        },
+      ],
       isLoading: false,
       error: null,
-    } as ReturnType<typeof trpc.resourceClaims.getUsage.useQuery>)
+    } as ReturnType<
+      typeof trpc.resourceClaims.listResourceUsages.useQuery
+    >)
 
     const { container } = render(
       <SubscriptionResourceUsage
@@ -240,21 +281,26 @@ describe('SubscriptionResourceUsage', () => {
 
   it('caps progress bar at 100% when resource is over-claimed', async () => {
     // setup: mock getUsage with over-claimed resource (claimed > capacity)
-    vi.mocked(trpc.resourceClaims.getUsage.useQuery).mockReturnValue({
-      data: {
-        usage: [
-          {
+    vi.mocked(
+      trpc.resourceClaims.listResourceUsages.useQuery
+    ).mockReturnValue({
+      data: [
+        {
+          usage: {
             resourceSlug: 'seats',
             resourceId: 'res_123',
             capacity: 5,
             claimed: 7,
             available: -2,
           },
-        ],
-      },
+          claims: [],
+        },
+      ],
       isLoading: false,
       error: null,
-    } as ReturnType<typeof trpc.resourceClaims.getUsage.useQuery>)
+    } as ReturnType<
+      typeof trpc.resourceClaims.listResourceUsages.useQuery
+    >)
 
     render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
 

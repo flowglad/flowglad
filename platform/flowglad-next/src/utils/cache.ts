@@ -46,8 +46,8 @@ async function registerDependencies(
 ): Promise<void> {
   if (dependencies.length === 0) return
 
-  const client = redis()
   try {
+    const client = redis()
     await Promise.all(
       dependencies.map(async (dep) => {
         const registryKey = dependencyRegistryKey(dep)
@@ -404,7 +404,6 @@ async function cachedBulkLookupImpl<TKey, TResult>(
   groupByKey: (item: TResult) => TKey,
   span: ReturnType<ReturnType<typeof trace.getTracer>['startSpan']>
 ): Promise<Map<TKey, TResult[]>> {
-  const redisClient = redis()
   const ttl = getTtlForNamespace(config.namespace)
 
   // Build cache keys for all input keys
@@ -422,6 +421,7 @@ async function cachedBulkLookupImpl<TKey, TResult>(
 
   // Step 1: Bulk fetch from cache using MGET
   try {
+    const redisClient = redis()
     const startTime = Date.now()
     const cachedValues = (await redisClient.mget(
       ...fullCacheKeys
@@ -474,6 +474,7 @@ async function cachedBulkLookupImpl<TKey, TResult>(
       }
     }
 
+    span.setAttribute('cache.hit', missedKeys.length === 0)
     span.setAttribute('cache.bulk_hit_count', hitCount)
     span.setAttribute('cache.bulk_miss_count', missedKeys.length)
 
@@ -496,6 +497,7 @@ async function cachedBulkLookupImpl<TKey, TResult>(
     // Fail open - all keys become misses
     const errorMessage =
       error instanceof Error ? error.message : String(error)
+    span.setAttribute('cache.hit', false)
     span.setAttribute('cache.bulk_error', errorMessage)
     logger.error('Bulk cache read error', {
       namespace: config.namespace,
@@ -540,6 +542,7 @@ async function cachedBulkLookupImpl<TKey, TResult>(
         const dependencies = config.dependenciesFn(key)
 
         try {
+          const redisClient = redis()
           await redisClient.set(fullKey, JSON.stringify(items), {
             ex: ttl,
           })
@@ -647,11 +650,6 @@ export const CacheDependency = {
   /** Invalidate when items for this subscription change */
   subscriptionItems: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionItems:${subscriptionId}`,
-  /** Invalidate when features for this subscription item change */
-  subscriptionItemFeatures: (
-    subscriptionItemId: string
-  ): CacheDependencyKey =>
-    `subscriptionItemFeatures:${subscriptionItemId}`,
   /** Invalidate when ledger entries for this subscription change */
   subscriptionLedger: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionLedger:${subscriptionId}`,

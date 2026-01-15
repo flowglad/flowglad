@@ -46,8 +46,8 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import {
-  createCapturingContext,
-  createNoopContext,
+  createCapturingEffectsContext,
+  createDiscardingEffectsContext,
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
@@ -116,7 +116,7 @@ describe('createSubscriptionWorkflow', async () => {
             stripeSetupIntentId,
             autoStart: true, // Ensures billingRun is created for the first test
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       }
     )
@@ -181,7 +181,7 @@ describe('createSubscriptionWorkflow', async () => {
             stripeSetupIntentId: stripeSetupIntentIdNew, // New intent ID
             // autoStart behavior for the second subscription attempt can be default or true
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       })
     ).rejects.toThrow(
@@ -219,7 +219,7 @@ describe('createSubscriptionWorkflow', async () => {
           stripeSetupIntentId: stripeSetupIntentIdPast,
           autoStart: true,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
 
       await updateSubscription(
@@ -253,7 +253,7 @@ describe('createSubscriptionWorkflow', async () => {
             stripeSetupIntentId: stripeSetupIntentIdCurrent,
             autoStart: true,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       })
     ).resolves.toMatchObject({})
@@ -295,7 +295,7 @@ describe('createSubscriptionWorkflow', async () => {
           stripeSetupIntentId: stripeSetupIntentIdTrial,
           autoStart: true, // autoStart influences initial status
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -362,7 +362,7 @@ describe('createSubscriptionWorkflow', async () => {
               stripeSetupIntentId: stripeSetupIntentIdUsage,
               autoStart: true,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow(
@@ -427,7 +427,7 @@ describe('createSubscriptionWorkflow', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -467,7 +467,7 @@ describe('createSubscriptionWorkflow', async () => {
             stripeSetupIntentId: stripeSetupIntentIdSubType,
             autoStart: true,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       })
       expect(subTypeSubscription.runBillingAtPeriodStart).toBe(true)
@@ -515,7 +515,7 @@ describe('createSubscriptionWorkflow', async () => {
               stripeSetupIntentId: stripeSetupIntentIdSingle,
               // autoStart: true, // Not relevant for this check
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow('Price is not a subscription')
@@ -557,7 +557,7 @@ describe('createSubscriptionWorkflow', async () => {
               customer: defaultProductCustomer,
               autoStart: true, // Enable autoStart to get an active subscription
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -647,7 +647,7 @@ describe('createSubscriptionWorkflow', async () => {
               firstSubscription.stripeSetupIntentId!,
             autoStart: true, // Or false, depending on what it should do with incomplete
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       }
     )
@@ -671,7 +671,7 @@ describe('createSubscriptionWorkflow', async () => {
               firstSubscription.stripeSetupIntentId!,
             autoStart: true,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       }
     )
@@ -707,7 +707,7 @@ describe('createSubscriptionWorkflow', async () => {
           // defaultPaymentMethod is omitted
           // autoStart can be true or false, outcome should be no billing run
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
     expect(noPmBillingRun).toBeNull()
@@ -744,7 +744,7 @@ describe('createSubscriptionWorkflow', async () => {
           // defaultPaymentMethod is omitted in params to createSubscriptionWorkflow
           autoStart: true, // Important for billing run creation
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
     expect(custPmBillingRun).toMatchObject({
@@ -781,7 +781,7 @@ describe('createSubscriptionWorkflow', async () => {
             stripeSetupIntentId: stripeSetupIntentIdMismatch,
             autoStart: true,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       })
     ).rejects.toThrow(
@@ -838,7 +838,7 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
           stripeSetupIntentId,
           autoStart: true,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
     expect(billingRun).toMatchObject({
@@ -877,7 +877,7 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
           stripeSetupIntentId,
           autoStart: true,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
     expect(billingRun).toBeNull()
@@ -917,7 +917,7 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
           stripeSetupIntentId,
           autoStart: false, // Key for this test
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
     // expect(subscription.status).toBe(SubscriptionStatus.Incomplete)
@@ -958,7 +958,7 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
           stripeSetupIntentId,
           // autoStart is not provided (defaults to false in createSubscriptionWorkflow logic)
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
     expect(subscription.status).toBe(SubscriptionStatus.Incomplete)
@@ -1021,7 +1021,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
           stripeSetupIntentId,
           autoStart: true,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -1122,7 +1122,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
           stripeSetupIntentId,
           autoStart: true,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -1199,7 +1199,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
           stripeSetupIntentId,
           autoStart: true,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -1254,7 +1254,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
           stripeSetupIntentId,
           autoStart: true,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -1323,7 +1323,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
           stripeSetupIntentId,
           autoStart: true,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -1445,7 +1445,7 @@ describe('createSubscriptionWorkflow ledger account creation', async () => {
           stripeSetupIntentId,
           autoStart: true,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -1527,7 +1527,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
             autoStart: true,
             discountRedemption,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       }
     )
@@ -1615,7 +1615,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
             autoStart: true,
             discountRedemption: discountRedemptions[0], // Currently only supports one discount
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       }
     )
@@ -1701,7 +1701,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
             trialEnd,
             discountRedemption,
           },
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
         return {
           result,
@@ -1760,16 +1760,11 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       })
 
       const stripeSetupIntentId = `setupintent_nonrenewing_${core.nanoid()}`
-      const workflowResult = await adminTransaction(
-        async ({
-          transaction,
-        }): Promise<
-          TransactionOutput<
-            | StandardCreateSubscriptionResult
-            | NonRenewingCreateSubscriptionResult
-          >
-        > => {
-          return createSubscriptionWorkflow(
+      const { workflowResult, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const workflowResult = await createSubscriptionWorkflow(
             {
               organization,
               product: defaultProduct,
@@ -1784,13 +1779,14 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: true,
             },
-            createNoopContext(transaction)
+            ctx
           )
+          return { workflowResult, effects }
         }
       )
 
-      expect(typeof workflowResult.ledgerCommand).toBe('object')
-      expect(workflowResult.ledgerCommand?.type).toBe(
+      expect(effects.ledgerCommands).toHaveLength(1)
+      expect(effects.ledgerCommands[0].type).toBe(
         LedgerTransactionType.BillingPeriodTransition
       )
       expect(workflowResult.result.subscription).toMatchObject({})
@@ -1819,16 +1815,11 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       })
 
       const stripeSetupIntentId = `setupintent_free_${core.nanoid()}`
-      const workflowResult = await adminTransaction(
-        async ({
-          transaction,
-        }): Promise<
-          TransactionOutput<
-            | StandardCreateSubscriptionResult
-            | NonRenewingCreateSubscriptionResult
-          >
-        > => {
-          return createSubscriptionWorkflow(
+      const { workflowResult, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const workflowResult = await createSubscriptionWorkflow(
             {
               organization,
               product: {
@@ -1846,16 +1837,17 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: true,
             },
-            createNoopContext(transaction)
+            ctx
           )
+          return { workflowResult, effects }
         }
       )
 
       // Check if subscription is marked as free plan
       const createdSubscription = workflowResult.result.subscription
       expect(createdSubscription.isFreePlan).toBe(true)
-      expect(typeof workflowResult.ledgerCommand).toBe('object')
-      expect(workflowResult.ledgerCommand?.type).toBe(
+      expect(effects.ledgerCommands).toHaveLength(1)
+      expect(effects.ledgerCommands[0].type).toBe(
         LedgerTransactionType.BillingPeriodTransition
       )
     })
@@ -1894,7 +1886,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: true,
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1939,7 +1931,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: false, // Don't auto-start, which will create Incomplete status
             },
-            createNoopContext(transaction)
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1949,6 +1941,74 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
         SubscriptionStatus.Incomplete
       )
       expect(workflowResult.ledgerCommand).toBeUndefined()
+    })
+
+    it('should create billing period transition ledger command for trial subscription', async () => {
+      const newCustomer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const newPaymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: newCustomer.id,
+      })
+
+      // Create a price with trial period
+      const trialPrice = await setupPrice({
+        productId: product.id,
+        name: 'Trial Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
+        trialPeriodDays: 14,
+      })
+
+      const stripeSetupIntentId = `setupintent_trial_${core.nanoid()}`
+      const { workflowResult, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const workflowResult = await createSubscriptionWorkflow(
+            {
+              organization,
+              product: {
+                ...product,
+                default: false, // Not default plan
+              },
+              price: trialPrice,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: newPaymentMethod,
+              customer: newCustomer,
+              stripeSetupIntentId,
+              autoStart: true,
+              trialEnd: new Date(
+                Date.now() + 14 * 24 * 60 * 60 * 1000
+              ), // 14 days from now
+            },
+            ctx
+          )
+          return { workflowResult, effects }
+        }
+      )
+
+      // Verify subscription is in trial status
+      const createdSubscription = workflowResult.result.subscription
+      expect(createdSubscription.status).toBe(
+        SubscriptionStatus.Trialing
+      )
+
+      // Trial subscriptions should call enqueueLedgerCommand with BillingPeriodTransition
+      expect(effects.ledgerCommands).toHaveLength(1)
+      expect(effects.ledgerCommands[0].type).toBe(
+        LedgerTransactionType.BillingPeriodTransition
+      )
     })
   })
 })
@@ -2039,7 +2099,7 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
           autoStart: true,
           preserveBillingCycleAnchor: true,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
     // FIXME: we have to do this bc createSubscriptionWorkflow doesn't accept a time argument.
@@ -2167,7 +2227,7 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
           autoStart: true,
           // preserveBillingCycleAnchor is not set (falsey)
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -2237,7 +2297,8 @@ describe('createSubscriptionWorkflow cache invalidations', async () => {
 
     await adminTransaction(async ({ transaction }) => {
       const stripeSetupIntentId = `setupintent_cache_test_${core.nanoid()}`
-      const { ctx, effects } = createCapturingContext(transaction)
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
       capturedEffects = effects
       return createSubscriptionWorkflow(
         {
@@ -2289,7 +2350,8 @@ describe('createSubscriptionWorkflow cache invalidations', async () => {
 
     await adminTransaction(async ({ transaction }) => {
       const stripeSetupIntentId = `setupintent_cache_cust_${core.nanoid()}`
-      const { ctx, effects } = createCapturingContext(transaction)
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
       capturedEffects = effects
       return createSubscriptionWorkflow(
         {
@@ -2369,7 +2431,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           trialEnd,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -2426,7 +2488,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           trialEnd: firstTrialEnd,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -2466,7 +2528,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           trialEnd: secondTrialEnd, // Explicitly provide trialEnd
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -2523,7 +2585,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           trialEnd: firstTrialEnd,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -2563,7 +2625,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           trialEnd: secondTrialEnd,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -2620,7 +2682,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           trialEnd: firstTrialEnd,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -2659,7 +2721,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           // trialEnd not provided, but price has trialPeriodDays
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -2727,7 +2789,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           autoStart: true,
           trialEnd: firstTrialEnd,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -2765,7 +2827,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           stripeSetupIntentId,
           autoStart: true,
         },
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
     })
 

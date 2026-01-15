@@ -151,7 +151,12 @@ const getTableRowsProcedure = protectedProcedure
     )
   )
   .query(
-    authenticatedProcedureTransaction(selectInvoicesTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectInvoicesTableRowData({ input, transaction })
+      }
+    )
   )
 
 export const invoicesRouter = router({

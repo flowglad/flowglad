@@ -109,7 +109,7 @@ describe('filterEligibleRecipients', () => {
     })
     const membershipB = createMockMembership(
       { userId: 'user_b' },
-      { subscriptionCreated: true }
+      { testModeNotifications: false, subscriptionCreated: true }
     )
 
     const usersAndMemberships = [
@@ -143,7 +143,7 @@ describe('filterEligibleRecipients', () => {
     expect(result[0].user.id).toBe('user_a')
   })
 
-  it('excludes users with empty preferences for testmode events', () => {
+  it('includes users with empty preferences for testmode events (testModeNotifications defaults to true)', () => {
     const user = createMockUser({ id: 'user_a', email: 'a@test.com' })
     const membership = createMockMembership({ userId: 'user_a' }, {})
 
@@ -155,7 +155,8 @@ describe('filterEligibleRecipients', () => {
       false
     )
 
-    expect(result).toHaveLength(0)
+    expect(result).toHaveLength(1)
+    expect(result[0].user.id).toBe('user_a')
   })
 
   it('correctly filters for different notification types', () => {
@@ -248,7 +249,12 @@ describe('filterEligibleRecipients', () => {
       'paymentFailed',
       false
     )
-    expect(testmodeResult).toHaveLength(1)
-    expect(testmodeResult[0].user.id).toBe('user_a')
+    // userA has testModeNotifications: true, paymentFailed: true -> included
+    // userB has testModeNotifications: false, paymentFailed: true -> excluded
+    // userC has testModeNotifications: true, paymentFailed: false -> excluded
+    // userD has empty prefs (defaults: testModeNotifications: true, paymentFailed: true) -> included
+    expect(testmodeResult).toHaveLength(2)
+    expect(testmodeResult.map((r) => r.user.id)).toContain('user_a')
+    expect(testmodeResult.map((r) => r.user.id)).toContain('user_d')
   })
 })

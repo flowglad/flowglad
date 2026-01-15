@@ -1,9 +1,5 @@
 import type Stripe from 'stripe'
-import type {
-  CreditGrantRecognizedLedgerCommand,
-  LedgerCommand,
-} from '@/db/ledgerManager/ledgerManagerTypes'
-import type { Event } from '@/db/schema/events'
+import type { CreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import type { Payment } from '@/db/schema/payments'
 import { Price } from '@/db/schema/prices'
@@ -27,8 +23,10 @@ import {
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
 import { bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter } from '@/db/tableMethods/usageCreditMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-failed-notification'
 import { idempotentSendOrganizationPaymentFailedNotification } from '@/trigger/notifications/send-organization-payment-failed-notification'
 import {
@@ -109,11 +107,11 @@ export const upsertPaymentForStripeCharge = async (
     charge: Stripe.Charge
     paymentIntentMetadata: StripeIntentMetadata
   },
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<{
   payment: Payment.Record
-  eventsToInsert: Event.Insert[]
 }> => {
+  const { transaction, emitEvent } = ctx
   const paymentIntentId = charge.payment_intent
     ? stripeIdFromObjectOrId(charge.payment_intent)
     : null
@@ -135,8 +133,6 @@ export const upsertPaymentForStripeCharge = async (
   let livemode: Nullish<boolean> = null
   let customerId: Nullish<string> = null
   let currency: Nullish<CurrencyCode> = null
-  let subscriptionId: Nullish<string> = null
-  let checkoutSessionEvents: Event.Insert[] = []
   let feeCalculation: FeeCalculation.Record | null = null
   if (paymentIntentMetadata.type === IntentMetadataType.BillingRun) {
     const billingRun = await selectBillingRunById(
@@ -164,7 +160,6 @@ export const upsertPaymentForStripeCharge = async (
     customerId = subscription.customerId
     organizationId = subscription.organizationId
     livemode = subscription.livemode
-    subscriptionId = subscription.id
     feeCalculation = await selectFeeCalculationForPaymentIntent(
       {
         type: IntentMetadataType.BillingRun,
@@ -183,16 +178,16 @@ export const upsertPaymentForStripeCharge = async (
       transaction
     )
     const {
-      result: { checkoutSession, purchase: updatedPurchase, invoice },
-      eventsToInsert: eventsFromCheckoutSession = [],
+      checkoutSession,
+      purchase: updatedPurchase,
+      invoice,
     } = await processStripeChargeForCheckoutSession(
       {
         checkoutSessionId: paymentIntentMetadata.checkoutSessionId,
         charge,
       },
-      transaction
+      ctx
     )
-    checkoutSessionEvents = eventsFromCheckoutSession
     invoiceId = invoice?.id ?? null
     currency = invoice?.currency ?? null
     if (!checkoutSession.organizationId) {
@@ -206,9 +201,6 @@ export const upsertPaymentForStripeCharge = async (
     purchaseId = purchase?.id ?? null
     livemode = checkoutSession.livemode
     customerId = purchase?.customerId || invoice?.customerId || null
-    // hard assumption
-    // checkoutSessionId payment intents are only for anonymous single payment purchases
-    subscriptionId = null
   } else {
     throw new Error(
       'No invoice, purchase, or subscription found for payment intent'
@@ -292,7 +284,6 @@ export const upsertPaymentForStripeCharge = async (
     )
   return {
     payment: latestPayment,
-    eventsToInsert: checkoutSessionEvents,
   }
 }
 
@@ -478,13 +469,14 @@ export const ledgerCommandForPaymentSucceeded = async (
  * If the payment has already been marked succeeded, return.
  * Otherwise, we need to create a payment record and mark it succeeded.
  * @param paymentIntent
- * @param transaction
+ * @param ctx
  * @returns
  */
 export const processPaymentIntentStatusUpdated = async (
   paymentIntent: CoreStripePaymentIntent,
-  transaction: DbTransaction
-): Promise<TransactionOutput<{ payment: Payment.Record }>> => {
+  ctx: TransactionEffectsContext
+): Promise<{ payment: Payment.Record }> => {
+  const { transaction, emitEvent, enqueueLedgerCommand } = ctx
   const metadata = stripeIntentMetadataSchema.parse(
     paymentIntent.metadata
   )
@@ -507,16 +499,15 @@ export const processPaymentIntentStatusUpdated = async (
       `No charge found for payment intent ${paymentIntent.id}`
     )
   }
-  const { payment, eventsToInsert: checkoutSessionEvents } =
-    await upsertPaymentForStripeCharge(
-      {
-        charge: latestCharge,
-        paymentIntentMetadata: stripeIntentMetadataSchema.parse(
-          paymentIntent.metadata
-        ),
-      },
-      transaction
-    )
+  const { payment } = await upsertPaymentForStripeCharge(
+    {
+      charge: latestCharge,
+      paymentIntentMetadata: stripeIntentMetadataSchema.parse(
+        paymentIntent.metadata
+      ),
+    },
+    ctx
+  )
   // Fetch customer data for event payload
   // Re-fetch purchase after update to get the latest status
   const purchase = payment.purchaseId
@@ -527,10 +518,8 @@ export const processPaymentIntentStatusUpdated = async (
     transaction
   )
   const timestamp = Date.now()
-  const eventInserts: Event.Insert[] = []
-  let ledgerCommand: LedgerCommand | undefined
   if (paymentIntent.status === 'succeeded') {
-    eventInserts.push({
+    emitEvent({
       type: FlowgladEventType.PaymentSucceeded,
       occurredAt: timestamp,
       organizationId: payment.organizationId,
@@ -554,17 +543,20 @@ export const processPaymentIntentStatusUpdated = async (
         transaction
       )
       if (checkoutSession.priceId) {
-        ledgerCommand = await ledgerCommandForPaymentSucceeded(
+        const ledgerCommand = await ledgerCommandForPaymentSucceeded(
           {
             priceId: checkoutSession.priceId,
             payment,
           },
           transaction
         )
+        if (ledgerCommand) {
+          enqueueLedgerCommand(ledgerCommand)
+        }
       }
     }
   } else if (paymentIntent.status === 'canceled') {
-    eventInserts.push({
+    emitEvent({
       type: FlowgladEventType.PaymentFailed,
       occurredAt: timestamp,
       organizationId: payment.organizationId,
@@ -595,7 +587,7 @@ export const processPaymentIntentStatusUpdated = async (
       )
     }
 
-    eventInserts.push({
+    emitEvent({
       type: FlowgladEventType.PurchaseCompleted,
       occurredAt: timestamp,
       organizationId: payment.organizationId,
@@ -614,9 +606,5 @@ export const processPaymentIntentStatusUpdated = async (
       processedAt: null,
     })
   }
-  return {
-    result: { payment },
-    eventsToInsert: [...checkoutSessionEvents, ...eventInserts],
-    ledgerCommand,
-  }
+  return { payment }
 }
