@@ -117,7 +117,15 @@ const createCustomerProcedure = protectedProcedure
                   organizationId,
                 },
               },
-              { transaction, livemode, organizationId }
+              {
+                transaction,
+                livemode,
+                organizationId,
+                invalidateCache: transactionCtx.invalidateCache,
+                emitEvent: transactionCtx.emitEvent,
+                enqueueLedgerCommand:
+                  transactionCtx.enqueueLedgerCommand,
+              }
             )
 
           if (ctx.path) {
@@ -139,8 +147,6 @@ const createCustomerProcedure = protectedProcedure
                   createdCustomerOutput.result.subscriptionItems,
               },
             },
-            eventsToInsert: createdCustomerOutput.eventsToInsert,
-            ledgerCommand: createdCustomerOutput.ledgerCommand,
           }
         } catch (error) {
           errorHandlers.customer.handle(error, {

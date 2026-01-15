@@ -301,7 +301,6 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
               ),
             },
           },
-          eventsToInsert: [],
         }
       },
       {
@@ -397,7 +396,6 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
               ),
             },
           },
-          eventsToInsert: [],
         }
       },
       {
