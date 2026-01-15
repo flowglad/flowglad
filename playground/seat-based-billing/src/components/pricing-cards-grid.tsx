@@ -91,8 +91,11 @@ export function PricingCardsGrid() {
         const plan: PricingPlan = {
           name: product.name,
           displayPrice: displayPrice,
+          unitPrice: price.unitPrice,
           slug: price.slug,
           features: featureNames,
+          singularQuantityLabel: product.singularQuantityLabel,
+          pluralQuantityLabel: product.pluralQuantityLabel,
         }
 
         if (product.description) {

@@ -1,10 +1,11 @@
 'use client'
 
 import { useBilling } from '@flowglad/nextjs'
-import { Check } from 'lucide-react'
+import { Check, Minus, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Card,
   CardContent,
@@ -20,9 +21,15 @@ export interface PricingPlan {
   name: string
   description?: string
   displayPrice: string
+  /** Unit price in cents */
+  unitPrice: number
   slug: string
   features: string[]
   isPopular?: boolean
+  /** Label for a single unit (e.g., "seat") */
+  singularQuantityLabel?: string | null
+  /** Label for multiple units (e.g., "seats") */
+  pluralQuantityLabel?: string | null
 }
 
 interface PricingCardProps {
@@ -42,6 +49,7 @@ export function PricingCard({
   const billing = useBilling()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [quantity, setQuantity] = useState(1)
 
   if (!billing.loaded) {
     return <div>Loading...</div>
@@ -56,13 +64,38 @@ export function PricingCard({
   }
 
   const priceSlug = plan.slug
-  const displayPrice = plan.displayPrice
+
+  // Check if this plan supports quantity selection (has quantity labels and is not free)
+  const supportsQuantity = Boolean(
+    plan.singularQuantityLabel && plan.unitPrice > 0
+  )
+
+  // Calculate total price based on quantity
+  const totalPriceCents = plan.unitPrice * quantity
+  const formatPrice = (cents: number): string => {
+    const dollars = cents / 100
+    return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+  }
+  const displayPrice = supportsQuantity
+    ? formatPrice(totalPriceCents)
+    : plan.displayPrice
+
+  // Get the quantity label to display
+  const quantityLabel =
+    quantity === 1
+      ? plan.singularQuantityLabel
+      : (plan.pluralQuantityLabel ?? plan.singularQuantityLabel)
 
   // Check if this plan is a default plan by checking the pricing model
   const isDefaultPlan = isDefaultPlanBySlug(
     billing.pricingModel,
     priceSlug
   )
+
+  const handleQuantityChange = (newQuantity: number) => {
+    const clamped = Math.max(1, Math.min(100, newQuantity))
+    setQuantity(clamped)
+  }
 
   const handleCheckout = async () => {
     setError(null)
@@ -71,6 +104,7 @@ export function PricingCard({
     try {
       await billing.createCheckoutSession({
         priceSlug: priceSlug,
+        quantity: supportsQuantity ? quantity : undefined,
         successUrl: `${window.location.origin}/`,
         cancelUrl: window.location.href,
         autoRedirect: true,
@@ -120,7 +154,56 @@ export function PricingCard({
               /month
             </span>
           </div>
+          {supportsQuantity && (
+            <div className="text-xs text-muted-foreground mt-1">
+              {formatPrice(plan.unitPrice)} per{' '}
+              {plan.singularQuantityLabel}
+            </div>
+          )}
         </div>
+
+        {/* Quantity Selector */}
+        {supportsQuantity && (
+          <div className="mt-3 md:mt-4">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handleQuantityChange(quantity - 1)}
+                disabled={quantity <= 1}
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <Input
+                type="number"
+                min={1}
+                max={100}
+                value={quantity}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  handleQuantityChange(
+                    parseInt(e.target.value, 10) || 1
+                  )
+                }
+                className="w-16 text-center h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handleQuantityChange(quantity + 1)}
+                disabled={quantity >= 100}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {quantityLabel}
+              </span>
+            </div>
+          </div>
+        )}
       </CardHeader>
 
       {!hideFeatures && (
