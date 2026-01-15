@@ -13,6 +13,7 @@ export type {
   GetResourcesParams,
   ListResourceClaimsParams,
   ReleaseResourceParams,
+  SubscriptionAdjustmentTiming,
   TerseSubscriptionItem,
   UncancelSubscriptionParams,
 } from './actions'
@@ -32,6 +33,7 @@ export {
   listResourceClaimsSchema,
   releaseResourceSchema,
   subscriptionAdjustmentTiming,
+  subscriptionAdjustmentTimingSchema,
   terseSubscriptionItemSchema,
   uncancelSubscriptionSchema,
   updateCustomerSchema,
