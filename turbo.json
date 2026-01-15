@@ -9,6 +9,10 @@
       "dependsOn": ["^check", "^build:declarations"],
       "outputs": []
     },
+    "typecheck": {
+      "dependsOn": ["^typecheck", "^build:declarations"],
+      "outputs": []
+    },
     "build:declarations": {
       "dependsOn": ["^build:declarations"],
       "outputs": ["dist/types/**"]
