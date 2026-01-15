@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
 import {
   selectProductFeatures,
@@ -548,9 +551,9 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     )!
 
     // Sync: add feature-c to product A, add feature-y to product B
-    const syncResult = await adminTransaction(
-      async ({ transaction }) =>
-        syncProductFeaturesForMultipleProducts(
+    const syncResult = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
               {
@@ -570,8 +573,10 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction, invalidateCache }
         )
+        return { result }
+      }
     )
 
     // Expect: creates productFeatures for c and y
@@ -695,9 +700,9 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     )!
 
     // Sync: remove feature-c from product A, remove feature-y from product B
-    const syncResult = await adminTransaction(
-      async ({ transaction }) =>
-        syncProductFeaturesForMultipleProducts(
+    const syncResult = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
               {
@@ -713,8 +718,10 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction, invalidateCache }
         )
+        return { result }
+      }
     )
 
     // Expect: expires productFeatures for c and y
@@ -859,9 +866,9 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     // Sync: completely replace features
     // Product A: [a, b] -> [c, d]
     // Product B: [x, y] -> [z]
-    const syncResult = await adminTransaction(
-      async ({ transaction }) =>
-        syncProductFeaturesForMultipleProducts(
+    const syncResult = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
               {
@@ -877,8 +884,10 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction, invalidateCache }
         )
+        return { result }
+      }
     )
 
     // Expect: removes a, b, x, y and adds c, d, z
@@ -1051,9 +1060,9 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     // Product A: [a, b] -> [a, b] (no change)
     // Product B: [x] -> [x, y] (add y)
     // Product C: [p, q] -> [p] (remove q)
-    const syncResult = await adminTransaction(
-      async ({ transaction }) =>
-        syncProductFeaturesForMultipleProducts(
+    const syncResult = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
               {
@@ -1073,8 +1082,10 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction, invalidateCache }
         )
+        return { result }
+      }
     )
 
     // Expect: only y added and q removed
@@ -1100,17 +1111,19 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
   it('returns empty added and removed arrays when given empty products list', async () => {
     // Test: call with empty productsWithFeatures array
-    const syncResult = await adminTransaction(
-      async ({ transaction }) =>
-        syncProductFeaturesForMultipleProducts(
+    const syncResult = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [],
             featureSlugToIdMap: new Map(),
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction, invalidateCache }
         )
+        return { result }
+      }
     )
 
     // Expect: returns empty added and removed arrays, no errors
@@ -1183,9 +1196,9 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
 
     // Step 1: Remove feature-b (this will expire it)
-    const removeResult = await adminTransaction(
-      async ({ transaction }) =>
-        syncProductFeaturesForMultipleProducts(
+    const removeResult = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
               {
@@ -1197,8 +1210,10 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction, invalidateCache }
         )
+        return { result }
+      }
     )
 
     // Verify feature-b was removed (expired)
@@ -1209,9 +1224,9 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     expect(typeof removeResult.removed[0].expiredAt).toBe('number')
 
     // Step 2: Re-add feature-b (this should unexpire it)
-    const reAddResult = await adminTransaction(
-      async ({ transaction }) =>
-        syncProductFeaturesForMultipleProducts(
+    const reAddResult = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
               {
@@ -1223,8 +1238,10 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction, invalidateCache }
         )
+        return { result }
+      }
     )
 
     // Verify feature-b was added back (unexpired)
@@ -1344,9 +1361,9 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
 
     // Sync: request only feature-a (feature-b is already expired)
-    const syncResult = await adminTransaction(
-      async ({ transaction }) =>
-        syncProductFeaturesForMultipleProducts(
+    const syncResult = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
               {
@@ -1358,8 +1375,10 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          { transaction, invalidateCache }
         )
+        return { result }
+      }
     )
 
     // Expect: no removals because feature-b was already expired

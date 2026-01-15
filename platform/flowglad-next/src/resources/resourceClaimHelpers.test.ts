@@ -31,6 +31,7 @@ import {
 import {
   claimResourceTransaction,
   getResourceUsage,
+  getResourceUsageInputSchema,
   releaseAllResourceClaimsForSubscription,
   releaseAllResourceClaimsForSubscriptionItemFeature,
   releaseResourceTransaction,
@@ -1156,5 +1157,87 @@ describe('resourceClaimHelpers', () => {
         })
       ).rejects.toThrow('No active claim found with externalId')
     })
+  })
+})
+
+describe('getResourceUsageInputSchema', () => {
+  it('parses successfully when only resourceSlug is provided', () => {
+    const result = getResourceUsageInputSchema.safeParse({
+      resourceSlug: 'seats',
+    })
+
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual({
+      resourceSlug: 'seats',
+    })
+  })
+
+  it('parses successfully when only resourceId is provided', () => {
+    const result = getResourceUsageInputSchema.safeParse({
+      resourceId: 'res_123',
+    })
+
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual({
+      resourceId: 'res_123',
+    })
+  })
+
+  it('parses successfully when resourceSlug and optional subscriptionId are provided', () => {
+    const result = getResourceUsageInputSchema.safeParse({
+      resourceSlug: 'seats',
+      subscriptionId: 'sub_456',
+    })
+
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual({
+      resourceSlug: 'seats',
+      subscriptionId: 'sub_456',
+    })
+  })
+
+  it('parses successfully when resourceId and optional subscriptionId are provided', () => {
+    const result = getResourceUsageInputSchema.safeParse({
+      resourceId: 'res_123',
+      subscriptionId: 'sub_456',
+    })
+
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual({
+      resourceId: 'res_123',
+      subscriptionId: 'sub_456',
+    })
+  })
+
+  it('rejects when both resourceSlug and resourceId are provided', () => {
+    const result = getResourceUsageInputSchema.safeParse({
+      resourceSlug: 'seats',
+      resourceId: 'res_123',
+    })
+
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].message).toBe(
+      'Exactly one of resourceSlug or resourceId must be provided'
+    )
+  })
+
+  it('rejects when neither resourceSlug nor resourceId is provided', () => {
+    const result = getResourceUsageInputSchema.safeParse({})
+
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].message).toBe(
+      'Exactly one of resourceSlug or resourceId must be provided'
+    )
+  })
+
+  it('rejects when only subscriptionId is provided without resource identifier', () => {
+    const result = getResourceUsageInputSchema.safeParse({
+      subscriptionId: 'sub_456',
+    })
+
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].message).toBe(
+      'Exactly one of resourceSlug or resourceId must be provided'
+    )
   })
 })

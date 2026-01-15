@@ -92,12 +92,9 @@ describeIfRedisKey('Cache Integration Tests', () => {
     expect(callCount).toBe(1)
 
     // Verify the value is stored in Redis
-    const storedValue = await client.get(fullCacheKey)
-    expect(typeof storedValue).toBe('object')
-    const parsedStoredValue =
-      typeof storedValue === 'string'
-        ? JSON.parse(storedValue)
-        : storedValue
+    const storedValue = await client.get<string>(fullCacheKey)
+    expect(typeof storedValue).toBe('string')
+    const parsedStoredValue = JSON.parse(storedValue!)
     expect(parsedStoredValue).toEqual({
       id: 'customer_123',
       name: 'Test Customer',
@@ -225,9 +222,6 @@ describeIfRedisKey('Cache Integration Tests', () => {
     )
     expect(CacheDependency.subscriptionItems('sub_456')).toBe(
       'subscriptionItems:sub_456'
-    )
-    expect(CacheDependency.subscriptionItemFeatures('si_789')).toBe(
-      'subscriptionItemFeatures:si_789'
     )
     expect(CacheDependency.subscriptionLedger('sub_456')).toBe(
       'subscriptionLedger:sub_456'
@@ -763,7 +757,7 @@ describeIfRedisKey(
 
       // Verify data is in Redis
       const cachedValue = await client.get(cacheKey)
-      expect(typeof cachedValue).toBe('object')
+      expect(typeof cachedValue).toBe('string')
 
       // Second call - should return cached result
       const result2 = await adminTransaction(
@@ -811,12 +805,9 @@ describeIfRedisKey(
       expect(result).toEqual([])
 
       // Verify the empty array is cached
-      const cachedValue = await client.get(cacheKey)
-      expect(typeof cachedValue).toBe('object')
-      const parsedValue =
-        typeof cachedValue === 'string'
-          ? JSON.parse(cachedValue)
-          : cachedValue
+      const cachedValue = await client.get<string>(cacheKey)
+      expect(typeof cachedValue).toBe('string')
+      const parsedValue = JSON.parse(cachedValue!)
       expect(parsedValue).toEqual([])
     })
 
@@ -874,7 +865,7 @@ describeIfRedisKey(
 
       // Verify cache is populated
       const beforeInvalidation = await client.get(cacheKey)
-      expect(typeof beforeInvalidation).toBe('object')
+      expect(typeof beforeInvalidation).toBe('string')
 
       // Verify dependency is registered
       const registeredKeys = await client.smembers(registryKey)
@@ -927,7 +918,7 @@ describeIfRedisKey(
 
       // Verify cache is populated
       const beforeTransaction = await client.get(cacheKey)
-      expect(typeof beforeTransaction).toBe('object')
+      expect(typeof beforeTransaction).toBe('string')
 
       // Call comprehensiveAdminTransaction with a function that uses invalidateCache
       await comprehensiveAdminTransaction(
@@ -990,8 +981,8 @@ describeIfRedisKey(
       await client.sadd(registryKey2, cacheKey2)
 
       // Verify both caches are populated
-      expect(typeof (await client.get(cacheKey1))).toBe('object')
-      expect(typeof (await client.get(cacheKey2))).toBe('object')
+      expect(typeof (await client.get(cacheKey1))).toBe('string')
+      expect(typeof (await client.get(cacheKey2))).toBe('string')
 
       // Call comprehensiveAdminTransaction with multiple invalidateCache calls
       await comprehensiveAdminTransaction(
@@ -1094,17 +1085,12 @@ describeIfRedisKey(
       await client.sadd(registryKey1, cacheKey1)
       await client.sadd(registryKey2, cacheKey2)
 
-      // Use callback for one key and return value for another
-      // This tests the merge behavior in comprehensiveAdminTransaction
+      // Use callback for both keys
       await comprehensiveAdminTransaction(
         async ({ invalidateCache }) => {
-          // Use callback for first key
           invalidateCache(depKey1)
-          // Return second key in cacheInvalidations array
-          return {
-            result: 'success',
-            cacheInvalidations: [depKey2],
-          }
+          invalidateCache(depKey2)
+          return { result: 'success' }
         }
       )
 

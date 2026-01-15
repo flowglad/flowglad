@@ -89,7 +89,7 @@ export const SubscriptionResourceUsage = ({
   className,
 }: SubscriptionResourceUsageProps) => {
   const { data, isLoading, error } =
-    trpc.resourceClaims.getUsage.useQuery({
+    trpc.resourceClaims.listResourceUsages.useQuery({
       subscriptionId,
     })
 
@@ -115,19 +115,19 @@ export const SubscriptionResourceUsage = ({
     )
   }
 
-  if (!data?.usage || data.usage.length === 0) {
+  if (!data || data.length === 0) {
     return null
   }
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
-      {data.usage.map((resource) => (
+      {data.map(({ usage }) => (
         <ResourceUsageItem
-          key={resource.resourceId}
-          resourceSlug={resource.resourceSlug}
-          capacity={resource.capacity}
-          claimed={resource.claimed}
-          available={resource.available}
+          key={usage.resourceId}
+          resourceSlug={usage.resourceSlug}
+          capacity={usage.capacity}
+          claimed={usage.claimed}
+          available={usage.available}
         />
       ))}
     </div>

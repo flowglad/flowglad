@@ -8,25 +8,25 @@ export const addFeatureToSubscription = protectedProcedure
   .input(addFeatureToSubscriptionInputSchema)
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transaction }) => {
-        const { result, ledgerCommand } =
-          await addFeatureToSubscriptionItem(input, transaction)
+      async ({ input, transactionCtx }) => {
+        const { subscriptionItemFeature } =
+          await addFeatureToSubscriptionItem(input, transactionCtx)
+        const { transaction } = transactionCtx
 
         const [enrichedFeature] =
           await selectClientSubscriptionItemFeatureAndFeatureById(
-            result.subscriptionItemFeature.id,
+            subscriptionItemFeature.id,
             transaction
           )
 
         if (!enrichedFeature) {
           throw new Error(
-            `Failed to load subscription item feature ${result.subscriptionItemFeature.id} after creation.`
+            `Failed to load subscription item feature ${subscriptionItemFeature.id} after creation.`
           )
         }
 
         return {
           result: { subscriptionItemFeature: enrichedFeature },
-          ledgerCommand,
         }
       }
     )

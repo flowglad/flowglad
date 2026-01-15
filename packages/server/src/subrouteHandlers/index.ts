@@ -10,6 +10,12 @@ import {
   updateCustomer,
 } from './customerHandlers'
 import {
+  claimResource,
+  getResources,
+  listResourceClaims,
+  releaseResource,
+} from './resourceHandlers'
+import {
   adjustSubscription,
   cancelSubscription,
   uncancelSubscription,
@@ -42,4 +48,8 @@ export const routeToHandlerMap: {
     }
   },
   [FlowgladActionKey.CreateUsageEvent]: createUsageEvent,
+  [FlowgladActionKey.GetResources]: getResources,
+  [FlowgladActionKey.ClaimResource]: claimResource,
+  [FlowgladActionKey.ReleaseResource]: releaseResource,
+  [FlowgladActionKey.ListResourceClaims]: listResourceClaims,
 }

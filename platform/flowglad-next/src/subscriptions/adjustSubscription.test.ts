@@ -21,7 +21,10 @@ import {
   setupUsageCreditGrantFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
@@ -278,7 +281,8 @@ describe('adjustSubscription Integration Tests', async () => {
         paymentMethodId: paymentMethod.id,
         priceId: price.id,
       })
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -300,7 +304,7 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow('Subscription is in terminal state')
 
@@ -315,14 +319,16 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow('Subscription is in terminal state')
+        return { result: null }
       })
     })
 
     it('should throw error for non-renewing / credit trial subscriptions', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const creditTrialSubscription = await updateSubscription(
           {
             id: subscription.id,
@@ -359,11 +365,12 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow(
           'Non-renewing subscriptions cannot be adjusted'
         )
+        return { result: null }
       })
     })
 
@@ -382,7 +389,8 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 0,
       })
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await expect(
           adjustSubscription(
             {
@@ -394,11 +402,12 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow(
           'Cannot adjust doNotCharge subscriptions. Cancel and create a new subscription instead.'
         )
+        return { result: null }
       })
     })
 
@@ -444,7 +453,8 @@ describe('adjustSubscription Integration Tests', async () => {
         },
       ]
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -466,16 +476,18 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow(
           /Only recurring prices can be used in subscriptions\. Price .+ is of type usage/
         )
+        return { result: null }
       })
     })
 
     it('should throw when adjusting a non-existent subscription id', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await expect(
           adjustSubscription(
             {
@@ -487,9 +499,10 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow()
+        return { result: null }
       })
     })
   })
@@ -506,7 +519,8 @@ describe('adjustSubscription Integration Tests', async () => {
         status: BillingPeriodStatus.Active,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
           {
             ...subscriptionItemCore,
@@ -530,11 +544,12 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow(
           'Subscription item quantity must be greater than zero'
         )
+        return { result: null }
       })
     })
 
@@ -546,7 +561,8 @@ describe('adjustSubscription Integration Tests', async () => {
         status: BillingPeriodStatus.Active,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
           {
             ...subscriptionItemCore,
@@ -570,11 +586,12 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow(
           'Subscription item quantity must be greater than zero'
         )
+        return { result: null }
       })
     })
 
@@ -586,7 +603,8 @@ describe('adjustSubscription Integration Tests', async () => {
         status: BillingPeriodStatus.Active,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
           {
             ...subscriptionItemCore,
@@ -610,11 +628,12 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow(
           'Subscription item unit price cannot be negative'
         )
+        return { result: null }
       })
     })
 
@@ -625,7 +644,8 @@ describe('adjustSubscription Integration Tests', async () => {
         endDate: Date.now() + 3600000,
         status: BillingPeriodStatus.Active,
       })
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
           {
             ...subscriptionItemCore,
@@ -648,7 +668,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         const bp = await selectCurrentBillingPeriodForSubscription(
@@ -663,6 +683,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(bpItems.length).toBe(0)
+        return { result: null }
       })
     })
   })
@@ -679,7 +700,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -712,11 +734,12 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow(
           'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades'
         )
+        return { result: null }
       })
     })
   })
@@ -733,7 +756,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -785,7 +809,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         const mockTrigger = getMockTrigger()
@@ -796,6 +820,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(result.subscriptionItems[0].name).toBe(
           'Item 1 Updated'
         )
+        return { result: null }
       })
     })
 
@@ -807,7 +832,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -859,11 +885,12 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).not.toHaveBeenCalled()
+        return { result: null }
       })
     })
 
@@ -881,7 +908,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 200,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -941,7 +969,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         const mockTrigger = getMockTrigger()
@@ -957,6 +985,7 @@ describe('adjustSubscription Integration Tests', async () => {
           (item) => item.name === 'Item 3'
         )
         expect(typeof item3Result).toBe('object')
+        return { result: null }
       })
     })
 
@@ -968,7 +997,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -1011,11 +1041,12 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         expect(result.subscription.name).toBe(originalName)
         expect(result.subscriptionItems.length).toBe(0)
+        return { result: null }
       })
     })
   })
@@ -1032,7 +1063,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -1064,7 +1096,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         const mockTrigger = getMockTrigger()
@@ -1088,6 +1120,7 @@ describe('adjustSubscription Integration Tests', async () => {
             adjustmentDate: expect.any(Number),
           }),
         })
+        return { result: null }
       })
     })
 
@@ -1099,7 +1132,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -1131,13 +1165,14 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         expect(result.subscription.name).toBeNull()
         expect(result.subscriptionItems.length).toBe(1)
         expect(result.subscriptionItems[0].name).toBe('Item 1')
         expect(result.subscriptionItems[0].unitPrice).toBe(100)
+        return { result: null }
       })
     })
 
@@ -1149,7 +1184,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -1186,7 +1222,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         const bpItems = await selectBillingPeriodItems(
@@ -1200,6 +1236,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(netChargeItems.length).toBe(1)
         expect(netChargeItems[0].unitPrice).toBeGreaterThan(0)
+        return { result: null }
       })
     })
 
@@ -1211,7 +1248,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -1247,7 +1285,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         const mockTrigger = getMockTrigger()
@@ -1273,6 +1311,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems.length
         ).toBe(2)
+        return { result: null }
       })
     })
 
@@ -1284,7 +1323,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 4999,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const start = Date.now() - 5 * 24 * 60 * 60 * 1000
         const end = Date.now() + 25 * 24 * 60 * 60 * 1000
         await updateBillingPeriod(
@@ -1345,7 +1385,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         const bpItems = await selectBillingPeriodItems(
@@ -1369,6 +1409,7 @@ describe('adjustSubscription Integration Tests', async () => {
         } else {
           expect(mockTrigger).toHaveBeenCalled()
         }
+        return { result: null }
       })
     })
   })
@@ -1385,7 +1426,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -1422,7 +1464,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         const bpItems = await selectBillingPeriodItems(
@@ -1435,6 +1477,7 @@ describe('adjustSubscription Integration Tests', async () => {
           item.name?.includes('Proration')
         )
         expect(prorationItems.length).toBeGreaterThan(0)
+        return { result: null }
       })
     })
 
@@ -1446,7 +1489,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -1483,7 +1527,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         const bpItems = await selectBillingPeriodItems(
@@ -1499,6 +1543,7 @@ describe('adjustSubscription Integration Tests', async () => {
         } else {
           expect(bpItems.length).toEqual(bpItemsBefore.length)
         }
+        return { result: null }
       })
     })
   })
@@ -1515,7 +1560,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
         const newEndDate = Date.now() + 30 * 24 * 60 * 60 * 1000
 
@@ -1580,7 +1626,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         const mockTrigger = getMockTrigger()
@@ -1598,6 +1644,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(typeof futureItem).toBe('object')
         expect(toMs(futureItem!.addedDate)!).toBe(newEndDate)
+        return { result: null }
       })
     })
 
@@ -1609,7 +1656,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 1000,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const futureDate = Date.now() + 7 * 24 * 60 * 60 * 1000
         await updateBillingPeriod(
           {
@@ -1673,11 +1721,12 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         expect(result.subscription.name).toBe('Current Plan')
         expect(result.subscription.priceId).toBe(price.id)
+        return { result: null }
       })
     })
 
@@ -1690,7 +1739,8 @@ describe('adjustSubscription Integration Tests', async () => {
         priceId: price.id,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
         const newEndDate = Date.now() + 30 * 24 * 60 * 60 * 1000
 
@@ -1762,7 +1812,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         const updatedItems =
@@ -1788,6 +1838,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(toMs(newItem!.addedDate)!).toEqual(
           toMs(currentBillingPeriod!.endDate)!
         )
+        return { result: null }
       })
     })
   })
@@ -1797,7 +1848,8 @@ describe('adjustSubscription Integration Tests', async () => {
   ========================================================================== */
   describe('Edge Cases', () => {
     it('should trigger billing run if net charge > 0, or sync immediately if net charge = 0 when no existing subscription items exist', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -1829,7 +1881,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         const mockTrigger = getMockTrigger()
@@ -1855,6 +1907,7 @@ describe('adjustSubscription Integration Tests', async () => {
             newItems.length
           )
         }
+        return { result: null }
       })
     })
 
@@ -1866,7 +1919,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -1889,7 +1943,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         const mockTrigger = getMockTrigger()
@@ -1903,6 +1957,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.subscriptionItems.length).toBe(0)
           expect(result.subscription.name).toBe(originalName)
         }
+        return { result: null }
       })
     })
 
@@ -1919,7 +1974,8 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 100,
       })
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
           {
             id: item.id,
@@ -1950,14 +2006,16 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow()
+        return { result: null }
       })
     })
 
     it('should throw error when attempting adjustment with billing periods in the past or future', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const pastBP = await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -1995,7 +2053,7 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow()
 
@@ -2036,9 +2094,10 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow()
+        return { result: null }
       })
     })
   })
@@ -2048,7 +2107,8 @@ describe('adjustSubscription Integration Tests', async () => {
   ========================================================================== */
   describe('syncSubscriptionWithActiveItems', () => {
     it('should sync subscription with currently active items', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = new Date()
         const futureDate = addDays(now, 1).getTime()
         const currentItem = await setupSubscriptionItem({
@@ -2086,11 +2146,13 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(synced.name).toBe('Current Plan')
         expect(synced.priceId).toBe(currentItem.priceId)
+        return { result: null }
       })
     })
 
     it('should handle multiple items becoming active and choose the most expensive as primary', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const pastDate = subDays(new Date(now), 1).getTime()
 
@@ -2134,11 +2196,13 @@ describe('adjustSubscription Integration Tests', async () => {
 
         expect(synced.name).toBe('Premium Feature')
         expect(synced.priceId).toBe(premiumItem.priceId)
+        return { result: null }
       })
     })
 
     it('should handle subscription becoming active but not primary (lower price than existing)', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
 
         const expensiveItem = await setupSubscriptionItem({
@@ -2171,11 +2235,13 @@ describe('adjustSubscription Integration Tests', async () => {
 
         expect(synced.name).toBe('Enterprise Plan')
         expect(synced.priceId).toBe(expensiveItem.priceId)
+        return { result: null }
       })
     })
 
     it('should update primary when current primary item gets cancelled', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
 
         const primaryItem = await setupSubscriptionItem({
@@ -2235,11 +2301,13 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(syncedAfter.name).toBe('Standard Plan')
         expect(syncedAfter.priceId).toBe(secondaryItem.priceId)
+        return { result: null }
       })
     })
 
     it('should handle multiple items becoming active and inactive simultaneously', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
 
         await setupSubscriptionItem({
@@ -2291,11 +2359,13 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(synced.name).toBe('New Premium')
         expect(synced.priceId).toBe(newPremiumItem.priceId)
+        return { result: null }
       })
     })
 
     it('should maintain subscription state when all items expire with no replacements', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
 
         const activeItem = await setupSubscriptionItem({
@@ -2338,11 +2408,13 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(syncedAfterExpiry.name).toBe('Active Plan')
         expect(syncedAfterExpiry.priceId).toBe(price.id)
         expect(syncedAfterExpiry.id).toBe(subscription.id)
+        return { result: null }
       })
     })
 
     it('should handle quantity changes affecting total price calculations', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
 
         await setupSubscriptionItem({
@@ -2375,11 +2447,13 @@ describe('adjustSubscription Integration Tests', async () => {
 
         expect(synced.name).toBe('High Quantity')
         expect(synced.priceId).toBe(highQuantityItem.priceId)
+        return { result: null }
       })
     })
 
     it('should use addedDate as tiebreaker when items have same total price', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
 
         await setupSubscriptionItem({
@@ -2412,6 +2486,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         expect(synced.name).toBe('Newer Item')
         expect(synced.priceId).toBe(newerItem.priceId)
+        return { result: null }
       })
     })
   })
@@ -2481,7 +2556,8 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 100,
       })
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -2516,10 +2592,11 @@ describe('adjustSubscription Integration Tests', async () => {
                 },
               },
               organization,
-              transaction
+              ctx
             )
           })
         ).rejects.toThrow()
+        return { result: null }
       })
     })
   })
@@ -2536,7 +2613,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 4999,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -2588,7 +2666,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         // Verify notification mocks were called
@@ -2616,6 +2694,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(orgPayload.adjustmentType).toBe('downgrade')
         expect(typeof orgPayload.currency).toBe('string')
         expect(orgPayload.currency.length).toBeGreaterThan(0)
+        return { result: null }
       })
     })
 
@@ -2627,7 +2706,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -2659,7 +2739,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         // Verify notifications are NOT called for upgrade path (billing run is triggered instead)
@@ -2672,6 +2752,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // But billing run should be triggered
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
+        return { result: null }
       })
     })
   })
@@ -2705,7 +2786,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -2737,7 +2819,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         // Should resolve to Immediately for upgrades
@@ -2749,6 +2831,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Billing run should be triggered for upgrades
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
+        return { result: null }
       })
     })
 
@@ -2760,7 +2843,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 4999,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
         const newEndDate = Date.now() + 30 * 24 * 60 * 60 * 1000
 
@@ -2825,7 +2909,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         // Should resolve to AtEndOfCurrentBillingPeriod for downgrades
@@ -2837,6 +2921,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Billing run should NOT be triggered for downgrades
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).not.toHaveBeenCalled()
+        return { result: null }
       })
     })
 
@@ -2848,7 +2933,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 1000,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -2900,7 +2986,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         // Same price = not an upgrade
@@ -2909,6 +2995,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(result.resolvedTiming).toBe(
           SubscriptionAdjustmentTiming.Immediately
         )
+        return { result: null }
       })
     })
   })
@@ -2938,7 +3025,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -2967,7 +3055,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         // Should trigger billing run for upgrade
@@ -2986,6 +3074,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0].name
         ).toBe('Premium via Slug')
+        return { result: null }
       })
     })
 
@@ -2997,7 +3086,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -3026,9 +3116,10 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow(/Price "nonexistent-slug" not found/)
+        return { result: null }
       })
     })
 
@@ -3053,7 +3144,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -3082,7 +3174,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         // Should trigger billing run for upgrade (3 * testPrice.unitPrice > 100)
@@ -3105,6 +3197,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0].name
         ).toBe(testPrice.name)
+        return { result: null }
       })
     })
 
@@ -3118,7 +3211,8 @@ describe('adjustSubscription Integration Tests', async () => {
 
       const uniqueSlug = `premium-mixed-${Date.now()}`
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const slugPrice = await insertPrice(
           {
             ...nulledPriceColumns,
@@ -3188,7 +3282,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         // Should trigger billing run for upgrade
@@ -3219,6 +3313,7 @@ describe('adjustSubscription Integration Tests', async () => {
         ).find((i) => i.priceId === idPrice.id)
         expect(idItem).toMatchObject({ quantity: 2 })
         expect(idItem!.quantity).toBe(2)
+        return { result: null }
       })
     })
 
@@ -3246,7 +3341,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -3275,7 +3371,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         // Should trigger billing run for upgrade
@@ -3294,6 +3390,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0].name
         ).toBe(uuidPrice.name)
+        return { result: null }
       })
     })
   })
@@ -3310,7 +3407,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -3349,7 +3447,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         // Should NOT trigger billing run since proration is disabled
@@ -3372,6 +3470,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(bpItemsAfter.length).toBe(bpItemsBefore.length)
+        return { result: null }
       })
     })
 
@@ -3383,7 +3482,8 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -3417,7 +3517,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         // Should report as upgrade
@@ -3428,6 +3528,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(result.resolvedTiming).toBe(
           SubscriptionAdjustmentTiming.Immediately
         )
+        return { result: null }
       })
     })
   })
@@ -3462,7 +3563,8 @@ describe('adjustSubscription Integration Tests', async () => {
         priceId: price.id,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
           {
             ...subscriptionItemCore,
@@ -3488,9 +3590,10 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             },
             organization,
-            transaction
+            ctx
           )
         ).rejects.toThrow(/free/i)
+        return { result: null }
       })
     })
   })
@@ -3582,7 +3685,8 @@ describe('adjustSubscription Integration Tests', async () => {
         amount: 100,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const adjustmentDate = Date.now()
         const newStartDate = adjustmentDate - 15 * 24 * 60 * 60 * 1000 // 15 days ago
         const newEndDate = adjustmentDate + 15 * 24 * 60 * 60 * 1000 // 15 days from now
@@ -3699,7 +3803,7 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           },
           organization,
-          transaction
+          ctx
         )
 
         // ============================================================
@@ -3808,6 +3912,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Since no billing run was triggered (downgrade protection),
         // the subscription should be synced immediately
         expect(result.subscription.name).toBe('Basic Plan')
+        return { result: null }
       })
     })
   })

@@ -20,7 +20,10 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import type { PricingModel } from '../schema/pricingModels'
 import { selectPricingModels } from './pricingModelMethods'
 import {
@@ -153,8 +156,9 @@ export const selectFeaturesTableRowData =
  */
 export const updateFeatureTransaction = async (
   featureUpdate: Feature.Update,
-  transaction: DbTransaction
+  params: Pick<TransactionEffectsContext, 'transaction'>
 ): Promise<Feature.Record> => {
+  const { transaction } = params
   // Step 1: Get the current feature state to detect changes
   const oldFeature = await selectFeatureById(
     featureUpdate.id,
@@ -190,10 +194,9 @@ export const updateFeatureTransaction = async (
         // Feature deactivated - expire product features
         // This prevents NEW subscriptions from getting the feature
         // Note: expireProductFeaturesByFeatureId also detaches existing subscriptionItemFeatures
-        await expireProductFeaturesByFeatureId(
-          productFeatureIds,
-          transaction
-        )
+        await expireProductFeaturesByFeatureId(productFeatureIds, {
+          transaction,
+        })
       } else if (featureUpdate.active === true) {
         // Feature reactivated - unexpire product features
         // This allows NEW subscriptions to get the feature again

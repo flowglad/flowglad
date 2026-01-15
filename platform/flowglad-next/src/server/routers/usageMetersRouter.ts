@@ -1,5 +1,8 @@
 import { z } from 'zod'
-import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedProcedureComprehensiveTransaction,
+  authenticatedProcedureTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   createUsageMeterSchema,
   editUsageMeterSchema,
@@ -36,23 +39,35 @@ export const createUsageMeter = protectedProcedure
   .input(createUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(
-    authenticatedProcedureTransaction(
-      async ({
-        input,
-        transaction,
-        userId,
-        livemode,
-        organizationId,
-      }) => {
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { livemode, organizationId } = ctx
+        const userId = ctx.user?.id
+        if (!userId) {
+          throw new Error(
+            'userId is required to create a usage meter'
+          )
+        }
+        if (!organizationId) {
+          throw new Error(
+            'organizationId is required to create a usage meter'
+          )
+        }
         try {
           const { usageMeter } = await createUsageMeterTransaction(
             {
               usageMeter: input.usageMeter,
               price: input.price,
             },
-            { transaction, userId, livemode, organizationId }
+            {
+              transaction,
+              userId,
+              livemode,
+              organizationId,
+            }
           )
-          return { usageMeter }
+          return { result: { usageMeter } }
         } catch (error) {
           errorHandlers.usageMeter.handle(error, {
             operation: 'create',
@@ -69,7 +84,8 @@ const listUsageMetersProcedure = protectedProcedure
   .output(usageMeterPaginatedListSchema)
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         return selectUsageMetersPaginated(input, transaction)
       }
     )
@@ -81,7 +97,8 @@ const updateUsageMeter = protectedProcedure
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         try {
           const usageMeter = await updateUsageMeterDB(
             {
@@ -108,7 +125,8 @@ const getUsageMeter = protectedProcedure
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const usageMeter = await selectUsageMeterById(
           input.id,
           transaction
@@ -131,7 +149,13 @@ const getTableRowsProcedure = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      selectUsageMetersCursorPaginated
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectUsageMetersCursorPaginated({
+          input,
+          transaction,
+        })
+      }
     )
   )
 

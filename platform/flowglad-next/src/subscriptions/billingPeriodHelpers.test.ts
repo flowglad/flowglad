@@ -58,7 +58,11 @@ import {
   billingPeriodAndItemsInsertsFromSubscription,
   createBillingPeriodAndItems,
 } from '@/subscriptions/billingPeriodHelpers'
-import { createNoopContext } from '@/test-utils/transactionCallbacks'
+import {
+  createCapturingEffectsContext,
+  createDiscardingEffectsContext,
+  createProcessingEffectsContext,
+} from '@/test-utils/transactionCallbacks'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -150,7 +154,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         updatedBillingPeriod,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
 
       // Expect that the subscription's current billing period dates are updated (i.e. a new period was created)
@@ -173,7 +177,7 @@ describe('Subscription Billing Period Transition', async () => {
       await expect(
         attemptToTransitionSubscriptionBillingPeriod(
           futureBillingPeriod,
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       ).rejects.toThrow(/Cannot close billing period/)
     })
@@ -204,7 +208,7 @@ describe('Subscription Billing Period Transition', async () => {
         result: { subscription: updatedSub },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         billingPeriod,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
 
       // Verify that the current (old) billing period is now Completed
@@ -240,7 +244,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         billingPeriod,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
 
       expect(newBillingRun).toBeNull()
@@ -274,7 +278,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         updatedBillingPeriod,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
 
       expect(updatedSub.status).toBe(SubscriptionStatus.Canceled)
@@ -303,7 +307,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         updatedBillingPeriod,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
 
       // Verify that subscription billing period dates have been updated to new period values
@@ -354,7 +358,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         updatedBillingPeriod,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
 
       // Expect no billing run is created and subscription status is updated to PastDue
@@ -397,7 +401,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         updatedBillingPeriod,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
 
       // Since attemptToCreateFutureBillingPeriodForSubscription returns null,
@@ -449,7 +453,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         updatedBillingPeriod,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
       const allBPeriods = await selectBillingPeriods(
         { subscriptionId: subscription.id },
@@ -471,9 +475,8 @@ describe('Subscription Billing Period Transition', async () => {
       }
       await expect(
         attemptToTransitionSubscriptionBillingPeriod(
-          // @ts-expect-error
-          invalidBillingPeriod,
-          transaction
+          invalidBillingPeriod as unknown as BillingPeriod.Record,
+          createDiscardingEffectsContext(transaction)
         )
       ).rejects.toThrow()
     })
@@ -497,7 +500,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
       } = await attemptToTransitionSubscriptionBillingPeriod(
         updatedBillingPeriod,
-        createNoopContext(transaction)
+        createDiscardingEffectsContext(transaction)
       )
       // Expect that the subscription's current billing period dates are updated.
       expect(updatedSub.currentBillingPeriodStart).not.toEqual(
@@ -508,19 +511,38 @@ describe('Subscription Billing Period Transition', async () => {
     })
   })
 
-  it('should throw an error when billing period endDate is missing', async () => {
+  it('calls enqueueLedgerCommand with BillingPeriodTransitionLedgerCommand when transitioning to a new billing period', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const invalidBillingPeriod = {
-        ...billingPeriod,
-        endDate: null,
-      }
-      await expect(
-        attemptToTransitionSubscriptionBillingPeriod(
-          // @ts-expect-error
-          invalidBillingPeriod,
-          transaction
-        )
-      ).rejects.toThrow()
+      // Mark the current billing period as completed (terminal state)
+      const completedBillingPeriod = await updateBillingPeriod(
+        {
+          id: billingPeriod.id,
+          status: BillingPeriodStatus.Completed,
+        },
+        transaction
+      )
+
+      // Create a capturing context to verify the ledger command
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
+
+      // Call the transition function
+      await attemptToTransitionSubscriptionBillingPeriod(
+        completedBillingPeriod,
+        ctx
+      )
+
+      // Verify that enqueueLedgerCommand was called with a BillingPeriodTransition command
+      expect(effects.ledgerCommands.length).toBe(1)
+      expect(effects.ledgerCommands[0].type).toBe(
+        LedgerTransactionType.BillingPeriodTransition
+      )
+      expect(effects.ledgerCommands[0].subscriptionId).toBe(
+        subscription.id
+      )
+      expect(effects.ledgerCommands[0].organizationId).toBe(
+        organization.id
+      )
     })
   })
 
@@ -610,7 +632,7 @@ describe('Subscription Billing Period Transition', async () => {
       await expect(
         attemptToTransitionSubscriptionBillingPeriod(
           billingPeriod,
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
       ).rejects.toThrow(
         `Cannot transition subscription ${subscription.id} in credit trial status`
@@ -693,7 +715,7 @@ describe('Subscription Billing Period Transition', async () => {
           },
         } = await attemptToTransitionSubscriptionBillingPeriod(
           updatedBillingPeriod,
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         // doNotCharge subscription should remain Active (not PastDue)
@@ -737,7 +759,7 @@ describe('Subscription Billing Period Transition', async () => {
           },
         } = await attemptToTransitionSubscriptionBillingPeriod(
           updatedBillingPeriod,
-          createNoopContext(transaction)
+          createDiscardingEffectsContext(transaction)
         )
 
         // Should remain Active
@@ -840,10 +862,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -902,10 +924,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -944,10 +966,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -985,10 +1007,10 @@ describe('Ledger Interactions', () => {
 
       // execution:
       const { subscription: updatedSub } =
-        await comprehensiveAdminTransaction(async ({ transaction }) =>
+        await comprehensiveAdminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
-            createNoopContext(transaction)
+            createProcessingEffectsContext(params)
           )
         )
       canceledSub = updatedSub
@@ -1014,10 +1036,10 @@ describe('Ledger Interactions', () => {
 
     it('should not grant usage credits if the subscription has no credit entitlements', async () => {
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1087,10 +1109,10 @@ describe('Ledger Interactions', () => {
 
       // execution:
       const { subscription: updatedSub } =
-        await comprehensiveAdminTransaction(async ({ transaction }) =>
+        await comprehensiveAdminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
-            createNoopContext(transaction)
+            createProcessingEffectsContext(params)
           )
         )
       pastDueSub = updatedSub
@@ -1179,10 +1201,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1266,10 +1288,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1368,10 +1390,10 @@ describe('Ledger Interactions', () => {
       })
 
       // Action: Transition the billing period. Since pastBillingPeriod exists, this is a subsequent transition.
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1439,10 +1461,10 @@ describe('Ledger Interactions', () => {
           },
         ],
       })
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1547,10 +1569,10 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1654,10 +1676,10 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1720,10 +1742,10 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1786,10 +1808,10 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1912,10 +1934,10 @@ describe('Ledger Interactions', () => {
       })
 
       // Action
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
       // Assertions
@@ -2036,10 +2058,10 @@ describe('Ledger Interactions', () => {
       })
 
       // Action:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -2186,10 +2208,10 @@ describe('Ledger Interactions', () => {
       })
 
       // Action:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          createNoopContext(transaction)
+          createProcessingEffectsContext(params)
         )
       )
 

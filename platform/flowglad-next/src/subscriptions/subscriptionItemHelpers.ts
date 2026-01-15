@@ -29,7 +29,10 @@ import {
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
@@ -42,10 +45,7 @@ import {
   UsageCreditStatus,
   UsageCreditType,
 } from '@/types'
-import {
-  CacheDependency,
-  type CacheDependencyKey,
-} from '@/utils/cache'
+import { CacheDependency } from '@/utils/cache'
 import { calculateSplitInBillingPeriodBasedOnAdjustmentDate } from './adjustSubscription'
 import { createSubscriptionFeatureItems } from './subscriptionItemFeatureHelpers'
 
@@ -421,30 +421,28 @@ const grantProratedCreditsForFeatures = async (params: {
  * @param params.subscriptionId - The subscription ID to adjust
  * @param params.newSubscriptionItems - Items to keep/update (with `id`) or create (without `id`)
  * @param params.adjustmentDate - The date/time when the adjustment occurs
- * @param params.transaction - The database transaction
+ * @param ctx - Transaction context with database transaction and effect callbacks
  * @returns A promise resolving to the created/updated items, features, credits, and ledger entries
  */
-export const handleSubscriptionItemAdjustment = async (params: {
-  subscriptionId: string
-  newSubscriptionItems: (
-    | SubscriptionItem.Insert
-    | SubscriptionItem.Record
-  )[]
-  adjustmentDate: Date | number
-  transaction: DbTransaction
-}): Promise<{
+export const handleSubscriptionItemAdjustment = async (
+  params: {
+    subscriptionId: string
+    newSubscriptionItems: (
+      | SubscriptionItem.Insert
+      | SubscriptionItem.Record
+    )[]
+    adjustmentDate: Date | number
+  },
+  ctx: TransactionEffectsContext
+): Promise<{
   createdOrUpdatedSubscriptionItems: SubscriptionItem.Record[]
   createdFeatures: SubscriptionItemFeature.Record[]
   usageCredits: UsageCredit.Record[]
   ledgerEntries: LedgerEntry.CreditGrantRecognizedRecord[]
-  cacheInvalidations: CacheDependencyKey[]
 }> => {
-  const {
-    subscriptionId,
-    newSubscriptionItems,
-    adjustmentDate,
-    transaction,
-  } = params
+  const { subscriptionId, newSubscriptionItems, adjustmentDate } =
+    params
+  const { transaction, invalidateCache } = ctx
 
   // Get all currently active subscription items
   const currentlyActiveItems =
@@ -591,13 +589,13 @@ export const handleSubscriptionItemAdjustment = async (params: {
       transaction,
     })
 
+  // Invalidate cache for subscription items
+  invalidateCache(CacheDependency.subscriptionItems(subscriptionId))
+
   return {
     createdOrUpdatedSubscriptionItems,
     createdFeatures,
     usageCredits,
     ledgerEntries,
-    cacheInvalidations: [
-      CacheDependency.subscriptionItems(subscriptionId),
-    ],
   }
 }

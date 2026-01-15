@@ -4,7 +4,6 @@ import { processLedgerCommand } from './ledgerManager/ledgerManager'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 import type { Event } from './schema/events'
 import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
-import type { TransactionOutput } from './transactionEnhacementTypes'
 import type { DbTransaction, TransactionEffects } from './types'
 
 /**
@@ -36,74 +35,31 @@ export function createEffectsAccumulator() {
 }
 
 /**
- * Result of coalescing effects from both the accumulator and the transaction output.
- */
-export interface CoalescedEffects {
-  allEvents: Event.Insert[]
-  allLedgerCommands: LedgerCommand[]
-  cacheInvalidations: CacheDependencyKey[]
-}
-
-/**
- * Coalesces effects from the accumulator and the transaction output.
- * Validates that only one of ledgerCommand or ledgerCommands is provided.
- */
-export function coalesceEffects<T>(
-  effects: TransactionEffects,
-  output: TransactionOutput<T>
-): CoalescedEffects {
-  // Validate that only one of ledgerCommand or ledgerCommands is provided in output
-  if (
-    output.ledgerCommand &&
-    output.ledgerCommands &&
-    output.ledgerCommands.length > 0
-  ) {
-    throw new Error(
-      'Cannot provide both ledgerCommand and ledgerCommands. Please provide only one.'
-    )
-  }
-
-  // Merge effects with output - effects accumulator takes precedence for arrays
-  const allEvents = [
-    ...effects.eventsToInsert,
-    ...(output.eventsToInsert ?? []),
-  ]
-  const allLedgerCommands = [
-    ...effects.ledgerCommands,
-    ...(output.ledgerCommand ? [output.ledgerCommand] : []),
-    ...(output.ledgerCommands ?? []),
-  ]
-  const cacheInvalidations = [
-    ...effects.cacheInvalidations,
-    ...(output.cacheInvalidations ?? []),
-  ]
-
-  return { allEvents, allLedgerCommands, cacheInvalidations }
-}
-
-/**
- * Processes the coalesced events and ledger commands within a transaction.
+ * Processes the accumulated events and ledger commands within a transaction.
  * Returns the counts for observability.
  */
 export async function processEffectsInTransaction(
-  coalesced: CoalescedEffects,
+  effects: TransactionEffects,
   transaction: DbTransaction
 ): Promise<{ eventsCount: number; ledgerCommandsCount: number }> {
-  const { allEvents, allLedgerCommands } = coalesced
+  const { eventsToInsert, ledgerCommands } = effects
 
   // Process events if any
-  if (allEvents.length > 0) {
-    await bulkInsertOrDoNothingEventsByHash(allEvents, transaction)
+  if (eventsToInsert.length > 0) {
+    await bulkInsertOrDoNothingEventsByHash(
+      eventsToInsert,
+      transaction
+    )
   }
 
   // Process ledger commands if any
-  for (const command of allLedgerCommands) {
+  for (const command of ledgerCommands) {
     await processLedgerCommand(command, transaction)
   }
 
   return {
-    eventsCount: allEvents.length,
-    ledgerCommandsCount: allLedgerCommands.length,
+    eventsCount: eventsToInsert.length,
+    ledgerCommandsCount: ledgerCommands.length,
   }
 }
 
