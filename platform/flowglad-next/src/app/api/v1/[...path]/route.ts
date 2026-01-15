@@ -12,45 +12,13 @@ import {
 import type { NextRequestWithUnkeyContext } from '@unkey/nextjs'
 import { headers } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
+import { routes } from '@/app/api/v1/[...path]/restRoutes'
 import { appRouter } from '@/server'
-import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsRouter'
-import {
-  customerBillingRouteConfig,
-  customersRouteConfigs,
-} from '@/server/routers/customersRouter'
-import { discountsRouteConfigs } from '@/server/routers/discountsRouter'
-import { featuresRouteConfigs } from '@/server/routers/featuresRouter'
-import { invoiceLineItemsRouteConfigs } from '@/server/routers/invoiceLineItemsRouter'
-import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
-import { paymentMethodsRouteConfigs } from '@/server/routers/paymentMethodsRouter'
-import {
-  paymentsRouteConfigs,
-  refundPaymentRouteConfig,
-} from '@/server/routers/paymentsRouter'
-import { pricesRouteConfigs } from '@/server/routers/pricesRouter'
-import {
-  getDefaultPricingModelRouteConfig,
-  pricingModelsRouteConfigs,
-  setupPricingModelRouteConfig,
-} from '@/server/routers/pricingModelsRouter'
-import { productFeaturesRouteConfigs } from '@/server/routers/productFeaturesRouter'
-import { productsRouteConfigs } from '@/server/routers/productsRouter'
-import { purchasesRouteConfigs } from '@/server/routers/purchasesRouter'
-import { resourceClaimsRouteConfigs } from '@/server/routers/resourceClaimsRouter'
-import { subscriptionItemFeaturesRouteConfigs } from '@/server/routers/subscriptionItemFeaturesRouter'
-import { subscriptionsRouteConfigs } from '@/server/routers/subscriptionsRouter'
-import {
-  usageEventsBulkRouteConfig,
-  usageEventsRouteConfigs,
-} from '@/server/routers/usageEventsRouter'
-import { usageMetersRouteConfigs } from '@/server/routers/usageMetersRouter'
-import { webhooksRouteConfigs } from '@/server/routers/webhooksRouter'
 import { createApiContext } from '@/server/trpcContext'
 import { type ApiEnvironment, FlowgladApiKeyType } from '@/types'
 import { getApiKeyHeader } from '@/utils/apiKeyHelpers'
 import core from '@/utils/core'
 import { logger } from '@/utils/logger'
-import { type RouteConfig, trpcToRest } from '@/utils/openapi'
 import {
   type PaginationParams,
   parseAndValidateCursor,
@@ -80,47 +48,8 @@ const parseErrorMessage = (rawMessage: string) => {
   return parsedMessage
 }
 
-const routeConfigs = [
-  ...customersRouteConfigs,
-  ...subscriptionsRouteConfigs,
-  ...checkoutSessionsRouteConfigs,
-  ...pricesRouteConfigs,
-  ...invoicesRouteConfigs,
-  ...invoiceLineItemsRouteConfigs,
-  ...paymentMethodsRouteConfigs,
-  ...paymentsRouteConfigs,
-  ...purchasesRouteConfigs,
-  ...pricingModelsRouteConfigs,
-  ...usageMetersRouteConfigs,
-  ...usageEventsRouteConfigs,
-  ...webhooksRouteConfigs,
-  ...featuresRouteConfigs,
-  ...productFeaturesRouteConfigs,
-  ...resourceClaimsRouteConfigs,
-]
-
-const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(
-  (acc, route) => {
-    return { ...acc, ...route }
-  },
-  {} as Record<string, RouteConfig>
-)
-
-const routes: Record<string, RouteConfig> = {
-  ...getDefaultPricingModelRouteConfig,
-  ...setupPricingModelRouteConfig,
-  ...refundPaymentRouteConfig,
-  ...customerBillingRouteConfig,
-  ...usageEventsBulkRouteConfig,
-  ...discountsRouteConfigs,
-  ...productsRouteConfigs,
-  ...subscriptionItemFeaturesRouteConfigs,
-  ...trpcToRest('utils.ping'),
-  // note it's important to add the array routes last
-  // because the more specific patterns above will match first,
-  // so e.g. /pricing-models/default will not attempt to match to /pricing-models/:id => id="default"
-  ...arrayRoutes,
-} as const
+// NOTE: consolidated REST route mapping lives in `restRoutes.ts` so it can be unit-tested
+// without importing Next.js route handler modules.
 
 type TRPCResponse =
   | {
