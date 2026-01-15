@@ -7,14 +7,12 @@ import type {
 import { isNil } from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
-import type { Event } from './schema/events'
 import {
-  coalesceEffects,
   createEffectsAccumulator,
   invalidateCacheAfterCommit,
   processEffectsInTransaction,
 } from './transactionEffectsHelpers'
-import type { TransactionOutput } from './transactionEnhacementTypes'
+import { isError, type Result } from './transactionEnhacementTypes'
 
 interface AdminTransactionOptions {
   livemode?: boolean
@@ -45,10 +43,10 @@ export async function adminTransaction<T>(
 const executeComprehensiveAdminTransaction = async <T>(
   fn: (
     params: ComprehensiveAdminTransactionParams
-  ) => Promise<TransactionOutput<T>>,
+  ) => Promise<Result<T>>,
   effectiveLivemode: boolean
 ): Promise<{
-  output: TransactionOutput<T>
+  output: Result<T>
   processedEventsCount: number
   processedLedgerCommandsCount: number
 }> => {
@@ -60,9 +58,6 @@ const executeComprehensiveAdminTransaction = async <T>(
     enqueueLedgerCommand,
   } = createEffectsAccumulator()
 
-  // Track coalesced effects for post-commit processing
-  let coalescedCacheInvalidations: typeof effects.cacheInvalidations =
-    []
   let processedEventsCount = 0
   let processedLedgerCommandsCount = 0
 
@@ -85,22 +80,25 @@ const executeComprehensiveAdminTransaction = async <T>(
 
     const output = await fn(paramsForFn)
 
-    // Coalesce effects from accumulator and output, then process
-    const coalesced = coalesceEffects(effects, output)
+    // Check for error early to skip effects and roll back transaction
+    if (isError(output)) {
+      throw output.error
+    }
+
+    // Process accumulated effects
     const counts = await processEffectsInTransaction(
-      coalesced,
+      effects,
       transaction
     )
     processedEventsCount = counts.eventsCount
     processedLedgerCommandsCount = counts.ledgerCommandsCount
-    coalescedCacheInvalidations = coalesced.cacheInvalidations
 
     // Return the full output so tracing can extract metrics
     return output
   })
 
   // Transaction committed successfully - now invalidate caches
-  invalidateCacheAfterCommit(coalescedCacheInvalidations)
+  invalidateCacheAfterCommit(effects.cacheInvalidations)
 
   return {
     output,
@@ -111,39 +109,33 @@ const executeComprehensiveAdminTransaction = async <T>(
 
 /**
  * Executes a function within an admin database transaction and automatically processes
- * events and ledger commands from the transaction output.
+ * events and ledger commands via callback functions.
  *
- * @param fn - Function that receives admin transaction parameters and returns a TransactionOutput
- *   containing the result, optional events to insert, and optional ledger commands to process
+ * @param fn - Function that receives admin transaction parameters (including emitEvent, enqueueLedgerCommand,
+ *   invalidateCache callbacks) and returns a TransactionOutput containing the result
  * @param options - Transaction options including livemode flag
  * @returns Promise resolving to the result value from the transaction function
  *
  * @example
  * ```ts
- * const result = await comprehensiveAdminTransaction(async (params) => {
+ * const result = await comprehensiveAdminTransaction(async ({ transaction, emitEvent, enqueueLedgerCommand }) => {
  *   // ... perform operations ...
- *   return {
- *     result: someValue,
- *     eventsToInsert: [event1, event2],
- *     ledgerCommand: { type: 'credit', amount: 100 }
- *   }
+ *   emitEvent(event1, event2)
+ *   enqueueLedgerCommand({ type: 'credit', amount: 100 })
+ *   return { result: someValue }
  * })
  * ```
  */
 export async function comprehensiveAdminTransaction<T>(
   fn: (
     params: ComprehensiveAdminTransactionParams
-  ) => Promise<TransactionOutput<T>>,
+  ) => Promise<Result<T>>,
   options: AdminTransactionOptions = {}
 ): Promise<T> {
   const { livemode = true } = options
   const effectiveLivemode = isNil(livemode) ? true : livemode
 
-  const {
-    output,
-    processedEventsCount,
-    processedLedgerCommandsCount,
-  } = await traced(
+  const { output } = await traced(
     {
       options: {
         spanName: 'db.comprehensiveAdminTransaction',
@@ -164,24 +156,8 @@ export async function comprehensiveAdminTransaction<T>(
     () => executeComprehensiveAdminTransaction(fn, effectiveLivemode)
   )()
 
+  if (isError(output)) {
+    throw output.error
+  }
   return output.result
-}
-
-/**
- * Wrapper around comprehensiveAdminTransaction for functions that return
- * a tuple of [result, events]. Adapts the old signature to TransactionOutput.
- */
-export async function eventfulAdminTransaction<T>(
-  fn: (
-    params: ComprehensiveAdminTransactionParams
-  ) => Promise<[T, Event.Insert[]]>,
-  options: AdminTransactionOptions = {}
-): Promise<T> {
-  return comprehensiveAdminTransaction(async (params) => {
-    const [result, eventInserts] = await fn(params)
-    return {
-      result,
-      eventsToInsert: eventInserts,
-    }
-  }, options)
 }
