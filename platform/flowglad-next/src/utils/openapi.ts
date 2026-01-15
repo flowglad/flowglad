@@ -229,6 +229,12 @@ export const trpcToRest = (
   procedureName: string,
   params?: {
     routeParams?: string[]
+    /**
+     * Used to override the derived nested route suffix for procedures like:
+     * - listClaims -> "claims"
+     * - listResourceUsages -> (derived "resourceusages", but you may want "usages")
+     */
+    routeSuffix?: string
   }
 ): Record<string, RouteConfig> => {
   // Split procedure name into entity and action
@@ -328,13 +334,18 @@ export const trpcToRest = (
       if (action.startsWith('get')) {
         const resource = action.slice(3).toLowerCase()
         // Use camelCase for the entity ID key (e.g., resourceClaimsId not resource-claimsId)
-        const entityIdKey = `${camelCase(entity)}Id`
+        const entityIdKey =
+          params?.routeParams?.[0] ?? `${camelCase(entity)}Id`
+        const idParam = params?.routeParams?.[0] ?? 'id'
+        const routeSuffix = params?.routeSuffix ?? resource
         return {
-          [`GET /${entity}/:id/${resource}`]: {
+          [`GET /${entity}/:${idParam}/${routeSuffix}`]: {
             procedure: procedureName,
-            pattern: new RegExp(`^${entity}/([^\\/]+)/${resource}$`),
+            pattern: new RegExp(
+              `^${entity}/([^\\/]+)/${routeSuffix}$`
+            ),
             mapParams: (matches) => ({
-              [entityIdKey]: matches[1],
+              [entityIdKey]: matches[0],
             }),
           },
         }
@@ -344,26 +355,32 @@ export const trpcToRest = (
       if (action.startsWith('list')) {
         const resource = action.slice(4).toLowerCase()
         // Use camelCase for the entity ID key (e.g., resourceClaimsId not resource-claimsId)
-        const entityIdKey = `${camelCase(entity)}Id`
+        const entityIdKey =
+          params?.routeParams?.[0] ?? `${camelCase(entity)}Id`
+        const idParam = params?.routeParams?.[0] ?? 'id'
+        const routeSuffix = params?.routeSuffix ?? resource
         return {
-          [`GET /${entity}/:id/${resource}`]: {
+          [`GET /${entity}/:${idParam}/${routeSuffix}`]: {
             procedure: procedureName,
-            pattern: new RegExp(`^${entity}/([^\\/]+)/${resource}$`),
+            pattern: new RegExp(
+              `^${entity}/([^\\/]+)/${routeSuffix}$`
+            ),
             mapParams: (matches) => ({
-              [entityIdKey]: matches[1],
+              [entityIdKey]: matches[0],
             }),
           },
         }
       }
 
       // For other custom actions, create a POST endpoint
+      const idParam = params?.routeParams?.[0] ?? 'id'
       return {
-        [`POST /${entity}/:id/${action}`]: {
+        [`POST /${entity}/:${idParam}/${action}`]: {
           procedure: procedureName,
           pattern: new RegExp(`^${entity}/([^\\/]+)/${action}$`),
           mapParams: (matches, body) => ({
             ...body,
-            id: matches[0],
+            [idParam]: matches[0],
           }),
         },
       }
