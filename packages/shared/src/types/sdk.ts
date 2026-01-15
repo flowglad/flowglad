@@ -17,6 +17,7 @@ export enum FlowgladActionKey {
   ClaimResource = 'resources/claim',
   ReleaseResource = 'resources/release',
   ListResourceClaims = 'resources/claims',
+  GetDefaultPricingModel = 'pricing-models/default',
 }
 
 export enum HTTPMethod {

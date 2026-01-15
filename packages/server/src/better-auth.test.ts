@@ -1,6 +1,7 @@
 import {
   FlowgladActionKey,
   flowgladActionValidators,
+  publicActionKeys,
 } from '@flowglad/shared'
 import { describe, expect, it } from 'vitest'
 import {
@@ -102,11 +103,14 @@ describe('resolveCustomerExternalId', () => {
 })
 
 describe('endpointKeyToActionKey exhaustiveness', () => {
-  it('covers every FlowgladActionKey value exactly once', () => {
-    const allActionKeys = Object.values(FlowgladActionKey)
+  it('covers every authenticated FlowgladActionKey value exactly once', () => {
+    // Public action keys (like GetDefaultPricingModel) don't go through Better Auth
+    const allActionKeys = Object.values(FlowgladActionKey).filter(
+      (key) => !publicActionKeys.has(key)
+    )
     const mappedActionKeys = Object.values(endpointKeyToActionKey)
 
-    // Every FlowgladActionKey must be in the mapping
+    // Every authenticated FlowgladActionKey must be in the mapping
     for (const actionKey of allActionKeys) {
       expect(mappedActionKeys).toContain(actionKey)
     }
@@ -116,7 +120,7 @@ describe('endpointKeyToActionKey exhaustiveness', () => {
       mappedActionKeys.length
     )
 
-    // Same count: ensures bidirectional completeness
+    // Same count: ensures bidirectional completeness for authenticated routes
     expect(mappedActionKeys.length).toBe(allActionKeys.length)
   })
 

@@ -1,4 +1,5 @@
 import { FlowgladActionKey } from '@flowglad/shared'
+import type { FlowgladServerAdmin } from '../FlowgladServerAdmin'
 import {
   createActivateSubscriptionCheckoutSession,
   createAddPaymentMethodCheckoutSession,
@@ -9,6 +10,11 @@ import {
   getCustomerBilling,
   updateCustomer,
 } from './customerHandlers'
+import {
+  getDefaultPricingModel,
+  type PublicRouteHandlerParams,
+  type PublicRouteHandlerResult,
+} from './pricingHandlers'
 import {
   claimResource,
   getResources,
@@ -23,8 +29,29 @@ import {
 import type { SubRouteHandler } from './types'
 import { createUsageEvent } from './usageEventHandlers'
 
+/**
+ * Type for public route handlers that use FlowgladServerAdmin instead of FlowgladServer.
+ */
+export type PublicRouteHandler = (
+  params: PublicRouteHandlerParams,
+  admin: FlowgladServerAdmin
+) => Promise<PublicRouteHandlerResult>
+
+/**
+ * Map of public routes to their handlers.
+ * These routes bypass authentication and use FlowgladServerAdmin directly.
+ */
+export const publicRouteToHandlerMap: Partial<
+  Record<FlowgladActionKey, PublicRouteHandler>
+> = {
+  [FlowgladActionKey.GetDefaultPricingModel]: getDefaultPricingModel,
+}
+
 export const routeToHandlerMap: {
-  [K in FlowgladActionKey]: SubRouteHandler<K>
+  [K in Exclude<
+    FlowgladActionKey,
+    FlowgladActionKey.GetDefaultPricingModel
+  >]: SubRouteHandler<K>
 } = {
   [FlowgladActionKey.GetCustomerBilling]: getCustomerBilling,
   [FlowgladActionKey.FindOrCreateCustomer]: findOrCreateCustomer,

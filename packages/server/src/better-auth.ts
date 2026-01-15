@@ -1,6 +1,7 @@
 import {
   FlowgladActionKey,
   flowgladActionValidators,
+  publicActionKeys,
 } from '@flowglad/shared'
 import type { BetterAuthPlugin } from 'better-auth'
 import { getSessionFromCtx } from 'better-auth/api'
@@ -69,14 +70,26 @@ export const endpointKeyToActionKey: Record<
 }
 
 /**
+ * Type that excludes public action keys from FlowgladActionKey.
+ * Public routes bypass authentication and don't need Better Auth endpoints.
+ */
+type AuthenticatedFlowgladActionKey = Exclude<
+  FlowgladActionKey,
+  FlowgladActionKey.GetDefaultPricingModel
+>
+
+/**
  * Compile-time exhaustiveness check for endpointKeyToActionKey.
  *
  * This object uses `satisfies` to cause a TypeScript compile error if any
- * FlowgladActionKey value is missing. Unlike `as`, `satisfies` validates
- * without bypassing type checking.
+ * authenticated FlowgladActionKey value is missing. Unlike `as`, `satisfies`
+ * validates without bypassing type checking.
+ *
+ * Note: Public action keys (like GetDefaultPricingModel) are excluded since they
+ * don't require authentication and aren't routed through Better Auth.
  *
  * When a new FlowgladActionKey is added:
- * 1. TypeScript will error here until you add the mapping
+ * 1. TypeScript will error here until you add the mapping (unless it's public)
  * 2. The mapping must point to a key that exists in endpointKeyToActionKey
  */
 const _actionKeyToEndpointKey = {
@@ -98,7 +111,7 @@ const _actionKeyToEndpointKey = {
   [FlowgladActionKey.ReleaseResource]: 'releaseResource',
   [FlowgladActionKey.ListResourceClaims]: 'listResourceClaims',
 } satisfies Record<
-  FlowgladActionKey,
+  AuthenticatedFlowgladActionKey,
   keyof typeof endpointKeyToActionKey
 >
 
@@ -291,7 +304,9 @@ export const createFlowgladCustomerForOrganization = async (
  * Each endpoint handles authentication, customer resolution, input validation,
  * and delegates to the existing routeToHandlerMap handlers.
  */
-const createFlowgladBillingEndpoint = <T extends FlowgladActionKey>(
+const createFlowgladBillingEndpoint = <
+  T extends AuthenticatedFlowgladActionKey,
+>(
   actionKey: T,
   options: FlowgladBetterAuthPluginOptions
 ) => {

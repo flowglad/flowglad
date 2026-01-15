@@ -12,7 +12,9 @@ import {
   createUsageEventSchema,
   flowgladActionValidators,
   getResourcesSchema,
+  isPublicActionKey,
   listResourceClaimsSchema,
+  publicActionKeys,
   releaseResourceSchema,
   subscriptionAdjustmentTiming,
   subscriptionAdjustmentTimingSchema,
@@ -1358,6 +1360,7 @@ describe('flowgladActionValidators', () => {
       FlowgladActionKey.ClaimResource,
       FlowgladActionKey.ReleaseResource,
       FlowgladActionKey.ListResourceClaims,
+      FlowgladActionKey.GetDefaultPricingModel,
     ]
 
     for (const key of expectedKeys) {
@@ -1373,13 +1376,19 @@ describe('flowgladActionValidators', () => {
     }
   })
 
-  it('all validators use POST method', () => {
+  it('most validators use POST method, except GetDefaultPricingModel which uses GET', () => {
     for (const key of Object.keys(
       flowgladActionValidators
     ) as FlowgladActionKey[]) {
-      expect(flowgladActionValidators[key].method).toBe(
-        HTTPMethod.POST
-      )
+      if (key === FlowgladActionKey.GetDefaultPricingModel) {
+        expect(flowgladActionValidators[key].method).toBe(
+          HTTPMethod.GET
+        )
+      } else {
+        expect(flowgladActionValidators[key].method).toBe(
+          HTTPMethod.POST
+        )
+      }
     }
   })
 
@@ -1530,5 +1539,79 @@ describe('subscriptionAdjustmentTiming constant values', () => {
     expect(keys).toContain('Immediately')
     expect(keys).toContain('AtEndOfCurrentBillingPeriod')
     expect(keys).toContain('Auto')
+  })
+})
+
+describe('publicActionKeys', () => {
+  it('contains GetDefaultPricingModel', () => {
+    expect(
+      publicActionKeys.has(FlowgladActionKey.GetDefaultPricingModel)
+    ).toBe(true)
+  })
+
+  it('does not contain authenticated routes', () => {
+    expect(
+      publicActionKeys.has(FlowgladActionKey.GetCustomerBilling)
+    ).toBe(false)
+    expect(
+      publicActionKeys.has(FlowgladActionKey.CreateCheckoutSession)
+    ).toBe(false)
+    expect(
+      publicActionKeys.has(FlowgladActionKey.CancelSubscription)
+    ).toBe(false)
+  })
+
+  it('contains exactly the expected public routes', () => {
+    expect(publicActionKeys.size).toBe(1)
+  })
+})
+
+describe('isPublicActionKey', () => {
+  it('returns true for GetDefaultPricingModel', () => {
+    expect(
+      isPublicActionKey(FlowgladActionKey.GetDefaultPricingModel)
+    ).toBe(true)
+  })
+
+  it('returns false for authenticated routes', () => {
+    expect(
+      isPublicActionKey(FlowgladActionKey.GetCustomerBilling)
+    ).toBe(false)
+    expect(
+      isPublicActionKey(FlowgladActionKey.FindOrCreateCustomer)
+    ).toBe(false)
+    expect(
+      isPublicActionKey(FlowgladActionKey.CreateCheckoutSession)
+    ).toBe(false)
+    expect(
+      isPublicActionKey(FlowgladActionKey.CancelSubscription)
+    ).toBe(false)
+    expect(
+      isPublicActionKey(FlowgladActionKey.UncancelSubscription)
+    ).toBe(false)
+    expect(
+      isPublicActionKey(FlowgladActionKey.AdjustSubscription)
+    ).toBe(false)
+    expect(
+      isPublicActionKey(FlowgladActionKey.CreateSubscription)
+    ).toBe(false)
+    expect(isPublicActionKey(FlowgladActionKey.UpdateCustomer)).toBe(
+      false
+    )
+    expect(
+      isPublicActionKey(FlowgladActionKey.CreateUsageEvent)
+    ).toBe(false)
+    expect(isPublicActionKey(FlowgladActionKey.GetResources)).toBe(
+      false
+    )
+    expect(isPublicActionKey(FlowgladActionKey.ClaimResource)).toBe(
+      false
+    )
+    expect(isPublicActionKey(FlowgladActionKey.ReleaseResource)).toBe(
+      false
+    )
+    expect(
+      isPublicActionKey(FlowgladActionKey.ListResourceClaims)
+    ).toBe(false)
   })
 })

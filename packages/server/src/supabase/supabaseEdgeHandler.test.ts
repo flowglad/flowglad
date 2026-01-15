@@ -364,7 +364,7 @@ describe('supabaseEdgeHandler', () => {
       })
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
       )
 
       const response = await handler(req)
@@ -381,7 +381,7 @@ describe('supabaseEdgeHandler', () => {
       })
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
       )
 
       const response = await handler(req)
@@ -400,7 +400,7 @@ describe('supabaseEdgeHandler', () => {
       })
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
       )
 
       const response = await handler(req)
@@ -526,7 +526,7 @@ describe('supabaseEdgeHandler', () => {
       )
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing',
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing',
         {
           headers: {
             Authorization: 'Bearer token123',
@@ -562,7 +562,7 @@ describe('supabaseEdgeHandler', () => {
       )
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
       )
 
       await handler(req)
