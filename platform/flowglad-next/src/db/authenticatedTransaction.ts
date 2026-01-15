@@ -9,8 +9,6 @@ import core from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
-import type { Event } from './schema/events'
-import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
 import {
   coalesceEffects,
   createEffectsAccumulator,
@@ -204,25 +202,6 @@ export async function comprehensiveAuthenticatedTransaction<T>(
   return output.result
 }
 
-/**
- * Wrapper around comprehensiveAuthenticatedTransaction for functions that return
- * a tuple of [result, events]. Adapts the old signature to TransactionOutput.
- */
-export function eventfulAuthenticatedTransaction<T>(
-  fn: (
-    params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<[T, Event.Insert[]]>,
-  options: AuthenticatedTransactionOptions = {}
-): Promise<T> {
-  return comprehensiveAuthenticatedTransaction(async (params) => {
-    const [result, eventInserts] = await fn(params)
-    return {
-      result,
-      eventsToInsert: eventInserts,
-    }
-  }, options)
-}
-
 export type AuthenticatedProcedureResolver<
   TInput,
   TOutput,
@@ -295,25 +274,4 @@ export const authenticatedProcedureComprehensiveTransaction = <
       }
     )
   }
-}
-
-export function eventfulAuthenticatedProcedureTransaction<
-  TInput,
-  TOutput,
-  TContext extends { apiKey?: string; customerId?: string },
->(
-  handler: (
-    params: AuthenticatedProcedureTransactionParams<TInput, TContext>
-  ) => Promise<[TOutput, Event.Insert[]]>
-) {
-  return authenticatedProcedureTransaction<TInput, TOutput, TContext>(
-    async (params) => {
-      const [result, eventInserts] = await handler(params)
-      await bulkInsertOrDoNothingEventsByHash(
-        eventInserts,
-        params.transactionCtx.transaction
-      )
-      return result
-    }
-  )
 }

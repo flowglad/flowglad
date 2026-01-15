@@ -51,11 +51,7 @@ export function coalesceEffects<T>(
   effects: TransactionEffects,
   output: TransactionOutput<T>
 ): CoalescedEffects {
-  // Merge effects with output - effects accumulator takes precedence for arrays
-  const allEvents = [
-    ...effects.eventsToInsert,
-    ...(output.eventsToInsert ?? []),
-  ]
+  const allEvents = [...effects.eventsToInsert]
   const allLedgerCommands = [...effects.ledgerCommands]
   const cacheInvalidations = [
     ...effects.cacheInvalidations,

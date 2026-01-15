@@ -1,7 +1,6 @@
 import * as R from 'ramda'
 import { createDefaultPriceConfig } from '@/constants/defaultPlanConfig'
 import type { Customer } from '@/db/schema/customers'
-import type { Event } from '@/db/schema/events'
 import type { Payment } from '@/db/schema/payments'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
@@ -463,16 +462,11 @@ export const createPricingModelBookkeeping = async (
     transaction
   )
 
-  // 5. Create events
-  const timestamp = new Date()
-  const eventsToInsert: Event.Insert[] = []
-
   return {
     result: {
       pricingModel,
       defaultProduct,
       defaultPrice,
     },
-    eventsToInsert,
   }
 }

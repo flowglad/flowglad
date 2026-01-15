@@ -7,7 +7,6 @@ import type {
 import { isNil } from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
-import type { Event } from './schema/events'
 import {
   coalesceEffects,
   createEffectsAccumulator,
@@ -111,22 +110,20 @@ const executeComprehensiveAdminTransaction = async <T>(
 
 /**
  * Executes a function within an admin database transaction and automatically processes
- * events and ledger commands from the transaction output.
+ * events and ledger commands via callback functions.
  *
- * @param fn - Function that receives admin transaction parameters and returns a TransactionOutput
- *   containing the result, optional events to insert, and optional ledger commands to process
+ * @param fn - Function that receives admin transaction parameters (including emitEvent, enqueueLedgerCommand,
+ *   invalidateCache callbacks) and returns a TransactionOutput containing the result
  * @param options - Transaction options including livemode flag
  * @returns Promise resolving to the result value from the transaction function
  *
  * @example
  * ```ts
- * const result = await comprehensiveAdminTransaction(async (params) => {
+ * const result = await comprehensiveAdminTransaction(async ({ transaction, emitEvent, enqueueLedgerCommand }) => {
  *   // ... perform operations ...
- *   return {
- *     result: someValue,
- *     eventsToInsert: [event1, event2],
- *     ledgerCommand: { type: 'credit', amount: 100 }
- *   }
+ *   emitEvent(event1, event2)
+ *   enqueueLedgerCommand({ type: 'credit', amount: 100 })
+ *   return { result: someValue }
  * })
  * ```
  */
@@ -165,23 +162,4 @@ export async function comprehensiveAdminTransaction<T>(
   )()
 
   return output.result
-}
-
-/**
- * Wrapper around comprehensiveAdminTransaction for functions that return
- * a tuple of [result, events]. Adapts the old signature to TransactionOutput.
- */
-export async function eventfulAdminTransaction<T>(
-  fn: (
-    params: ComprehensiveAdminTransactionParams
-  ) => Promise<[T, Event.Insert[]]>,
-  options: AdminTransactionOptions = {}
-): Promise<T> {
-  return comprehensiveAdminTransaction(async (params) => {
-    const [result, eventInserts] = await fn(params)
-    return {
-      result,
-      eventsToInsert: eventInserts,
-    }
-  }, options)
 }
