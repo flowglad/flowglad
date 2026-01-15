@@ -16,7 +16,7 @@ git diff --cached --name-only -z --diff-filter=ACMR -- '*.ts' '*.tsx' '*.json' >
 
 if [ -s "$STAGED_TS_FILES_NUL" ]; then
   echo "🪄 Running Biome (format + lint) on staged files..."
-  xargs -0 bunx @biomejs/biome check --write < "$STAGED_TS_FILES_NUL"
+  xargs -0 bunx @biomejs/biome check --write -- < "$STAGED_TS_FILES_NUL"
   BIOME_STATUS=$?
   if [ $BIOME_STATUS -ne 0 ]; then
     echo "❌ Biome check failed. Please fix errors before committing."
@@ -24,7 +24,7 @@ if [ -s "$STAGED_TS_FILES_NUL" ]; then
     exit 1
   fi
   # Restage files after formatting
-  xargs -0 git add < "$STAGED_TS_FILES_NUL"
+  xargs -0 git add -- < "$STAGED_TS_FILES_NUL"
 fi
 rm -f "$STAGED_TS_FILES_NUL"
 
