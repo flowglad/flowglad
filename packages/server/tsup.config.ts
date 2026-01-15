@@ -11,6 +11,7 @@ export default defineConfig((overrideOptions) => {
     entry: [
       './src/**/*.{ts,tsx,js,jsx}',
       '!./src/**/*.test.{ts,tsx}',
+      '!./src/**/__tests__/**',
     ],
     // We want to preserve original file structure
     // so that the "use client" directives are not lost
