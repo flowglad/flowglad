@@ -1,6 +1,7 @@
 type MiddlewareLogicResponse =
   | {
       proceed: true
+      clearBillingPortalCookie?: boolean
     }
   | {
       proceed: false
@@ -78,6 +79,24 @@ export const middlewareLogic = (
     }
   }
 
+  // If user has a valid session, is accessing a non-billing-portal protected route,
+  // and has a billing portal cookie set, we should clear the cookie
+  // This fixes the issue where users get "stuck" in the billing portal
+  if (
+    sessionCookie &&
+    customerBillingPortalOrganizationId &&
+    isProtectedRoute &&
+    !pathName.startsWith('/billing-portal/') &&
+    !pathName.startsWith('/api/trpc/customerBillingPortal.')
+  ) {
+    return {
+      proceed: true,
+      clearBillingPortalCookie: true,
+    }
+  }
+
+  // Legacy behavior: redirect unauthenticated users with billing portal cookie
+  // This case handles when user is NOT logged in but has the cookie
   if (
     customerBillingPortalOrganizationId &&
     !pathName.startsWith(
@@ -96,3 +115,4 @@ export const middlewareLogic = (
   }
   return { proceed: true }
 }
+

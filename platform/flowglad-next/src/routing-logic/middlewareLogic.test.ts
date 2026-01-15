@@ -134,7 +134,7 @@ describe('middlewareLogic', () => {
         expect(result.proceed).toBe(true)
       })
 
-      it('should redirect to billing portal when path does not match organization', () => {
+      it('should clear billing portal cookie when authenticated user navigates to management portal', () => {
         const result = middlewareLogic({
           sessionCookie: 'valid_session_cookie',
           isProtectedRoute: true,
@@ -143,10 +143,10 @@ describe('middlewareLogic', () => {
           req: { nextUrl: 'https://example.com/dashboard' },
         })
 
-        expect(result.proceed).toBe(false)
-        if (!result.proceed) {
-          expect(result.redirect.url).toBe('/billing-portal/org_456')
-          expect(result.redirect.status).toBe(307)
+        // New behavior: proceed with cookie clearing flag instead of redirect
+        expect(result.proceed).toBe(true)
+        if (result.proceed) {
+          expect(result.clearBillingPortalCookie).toBe(true)
         }
       })
 
@@ -169,7 +169,7 @@ describe('middlewareLogic', () => {
         }
       })
 
-      it('should redirect for regular API routes when customerBillingPortalOrganizationId is set', () => {
+      it('should clear billing portal cookie for regular API routes when authenticated', () => {
         const result = middlewareLogic({
           sessionCookie: 'valid_session_cookie',
           isProtectedRoute: true,
@@ -178,10 +178,10 @@ describe('middlewareLogic', () => {
           req: { nextUrl: 'https://example.com/api/trpc/users.list' },
         })
 
-        expect(result.proceed).toBe(false)
-        if (!result.proceed) {
-          expect(result.redirect.url).toBe('/billing-portal/org_456')
-          expect(result.redirect.status).toBe(307)
+        // New behavior: proceed with cookie clearing flag instead of redirect
+        expect(result.proceed).toBe(true)
+        if (result.proceed) {
+          expect(result.clearBillingPortalCookie).toBe(true)
         }
       })
 

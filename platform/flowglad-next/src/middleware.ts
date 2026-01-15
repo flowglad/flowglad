@@ -2,7 +2,10 @@ import { getSessionCookie } from 'better-auth/cookies'
 import { type NextRequest, NextResponse } from 'next/server'
 import { middlewareLogic } from './routing-logic/middlewareLogic'
 import { isPublicRoute } from './routing-logic/publicRoutes'
-import { getCustomerBillingPortalOrganizationId } from './utils/customerBillingPortalState'
+import {
+  clearCustomerBillingPortalOrganizationId,
+  getCustomerBillingPortalOrganizationId,
+} from './utils/customerBillingPortalState'
 
 export default async function middleware(req: NextRequest) {
   // Handle CORS for staging
@@ -41,6 +44,12 @@ export default async function middleware(req: NextRequest) {
     )
   }
 
+  // Clear billing portal cookie if user is navigating to management portal
+  // This fixes the issue where users get "stuck" in the billing portal
+  if (logicResult.clearBillingPortalCookie) {
+    await clearCustomerBillingPortalOrganizationId()
+  }
+
   // Add pathname to headers for layout detection
   const requestHeaders = new Headers(req.headers)
   requestHeaders.set('x-pathname', req.nextUrl.pathname)
@@ -65,3 +74,4 @@ export const config = {
     '/(api|trpc)(.*)',
   ],
 }
+
