@@ -15,6 +15,6 @@ export default defineConfig({
     exclude: ['node_modules', 'dist'],
     testTimeout: 60000, // 60 seconds
     hookTimeout: 60000, // 60 seconds
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./src/subrouteHandlers/__tests__/setup.ts'],
   },
 })
