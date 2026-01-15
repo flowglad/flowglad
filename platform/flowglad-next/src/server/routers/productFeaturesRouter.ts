@@ -25,6 +25,7 @@ import {
   createPostOpenApiMeta,
   generateOpenApiMetas,
   RouteConfig,
+  trpcToRest,
 } from '@/utils/openapi'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -32,7 +33,9 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   tags: ['Product Features'], // plural, space-separated
 })
 
-export const productFeaturesRouteConfigs = routeConfigs
+export const productFeaturesRouteConfigs: Array<
+  Record<string, RouteConfig>
+> = [...routeConfigs, trpcToRest('productFeatures.expire')]
 
 export const createOrRestoreProductFeature = protectedProcedure
   .meta(openApiMetas.POST)
@@ -141,7 +144,8 @@ export const getProductFeature = protectedProcedure
 export const expireProductFeature = protectedProcedure
   .meta(
     createPostOpenApiMeta({
-      resource: 'productFeature',
+      // Use the canonical plural REST resource for consistency with `productFeatures.*` routes.
+      resource: 'productFeatures',
       routeSuffix: 'expire',
       requireIdParam: true,
       summary: 'Expire Product Feature',

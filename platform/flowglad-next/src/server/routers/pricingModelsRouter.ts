@@ -34,6 +34,7 @@ import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
 import {
   generateOpenApiMetas,
   type RouteConfig,
+  trpcToRest,
 } from '@/utils/openapi'
 import { clonePricingModelTransaction } from '@/utils/pricingModel'
 import {
@@ -50,7 +51,10 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   tags: ['Pricing Models'],
 })
 
-export const pricingModelsRouteConfigs = routeConfigs
+export const pricingModelsRouteConfigs = [
+  ...routeConfigs,
+  trpcToRest('pricingModels.clone'),
+]
 export const getDefaultPricingModelRouteConfig: Record<
   string,
   RouteConfig
