@@ -44,12 +44,9 @@ import {
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import {
   createCapturingEffectsContext,
   createDiscardingEffectsContext,
-  noopEmitEvent,
-  noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
 import {
   BillingPeriodStatus,
@@ -67,10 +64,6 @@ import {
 } from '@/types'
 import { CacheDependency } from '@/utils/cache'
 import { core } from '@/utils/core'
-import type {
-  NonRenewingCreateSubscriptionResult,
-  StandardCreateSubscriptionResult,
-} from './types'
 import { createSubscriptionWorkflow } from './workflow'
 
 describe('createSubscriptionWorkflow', async () => {
@@ -1864,16 +1857,11 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       })
 
       const stripeSetupIntentId = `setupintent_standard_${core.nanoid()}`
-      const workflowResult = await adminTransaction(
-        async ({
-          transaction,
-        }): Promise<
-          TransactionOutput<
-            | StandardCreateSubscriptionResult
-            | NonRenewingCreateSubscriptionResult
-          >
-        > => {
-          return createSubscriptionWorkflow(
+      const { workflowResult, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const workflowResult = await createSubscriptionWorkflow(
             {
               organization,
               product,
@@ -1888,12 +1876,13 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: true,
             },
-            createDiscardingEffectsContext(transaction)
+            ctx
           )
+          return { workflowResult, effects }
         }
       )
 
-      expect(workflowResult.ledgerCommands ?? []).toHaveLength(0)
+      expect(effects.ledgerCommands).toHaveLength(0)
       expect(workflowResult.result.subscription).toMatchObject({})
       // Standard subscriptions should renew by default (unless they're default products with non-subscription prices)
       expect(workflowResult.result.subscription.renews).toBe(true)
@@ -1909,16 +1898,11 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       })
 
       const stripeSetupIntentId = `setupintent_incomplete_${core.nanoid()}`
-      const workflowResult = await adminTransaction(
-        async ({
-          transaction,
-        }): Promise<
-          TransactionOutput<
-            | StandardCreateSubscriptionResult
-            | NonRenewingCreateSubscriptionResult
-          >
-        > => {
-          return createSubscriptionWorkflow(
+      const { workflowResult, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const workflowResult = await createSubscriptionWorkflow(
             {
               organization,
               product,
@@ -1933,8 +1917,9 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: false, // Don't auto-start, which will create Incomplete status
             },
-            createDiscardingEffectsContext(transaction)
+            ctx
           )
+          return { workflowResult, effects }
         }
       )
 
@@ -1942,7 +1927,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       expect(createdSubscription.status).toBe(
         SubscriptionStatus.Incomplete
       )
-      expect(workflowResult.ledgerCommands ?? []).toHaveLength(0)
+      expect(effects.ledgerCommands).toHaveLength(0)
     })
 
     it('should create billing period transition ledger command for trial subscription', async () => {

@@ -18,6 +18,10 @@ import type { Price } from '@/db/schema/prices'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import {
+  createCapturingEffectsContext,
+  createDiscardingEffectsContext,
+} from '@/test-utils/transactionCallbacks'
+import {
   CurrencyCode,
   IntervalUnit,
   LedgerTransactionType,
@@ -108,7 +112,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             livemode: true,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       )
 
@@ -135,7 +139,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             livemode: true,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       )
 
@@ -163,7 +167,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               },
               livemode: true,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow('Price with slug non-existent-slug not found')
@@ -186,7 +190,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               },
               livemode: true,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow(
@@ -230,7 +234,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               },
               livemode: true,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow('which is not a usage price')
@@ -267,7 +271,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               },
               livemode: true,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow("not found for this customer's pricing model")
@@ -321,7 +325,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               },
               livemode: true,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow("not found for this customer's pricing model")
@@ -384,7 +388,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               },
               livemode: true,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow('Billing period is required')
@@ -461,7 +465,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               },
               livemode: true,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow('Properties are required')
@@ -484,7 +488,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               },
               livemode: true,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow('Properties are required')
@@ -510,7 +514,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             livemode: true,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       )
       const after = Date.now()
@@ -530,9 +534,11 @@ describe('bulkInsertUsageEventsTransaction', () => {
     it('should not insert duplicate events with same transactionId', async () => {
       const transactionId = `txn_dedup_${Date.now()}`
 
-      const firstResult = await adminTransaction(
-        async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+      const { firstResult, firstEffects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const result = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -546,17 +552,21 @@ describe('bulkInsertUsageEventsTransaction', () => {
               },
               livemode: true,
             },
-            transaction
+            ctx
           )
+          return { firstResult: result, firstEffects: effects }
+        }
       )
 
       expect(firstResult.result.usageEvents).toHaveLength(1)
-      expect(firstResult.ledgerCommands?.length).toBe(1)
+      expect(firstEffects.ledgerCommands.length).toBe(1)
 
       // Resubmit the same payload
-      const secondResult = await adminTransaction(
-        async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+      const { secondResult, secondEffects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const result = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -570,14 +580,16 @@ describe('bulkInsertUsageEventsTransaction', () => {
               },
               livemode: true,
             },
-            transaction
+            ctx
           )
+          return { secondResult: result, secondEffects: effects }
+        }
       )
 
       // Should return empty array (no new events inserted)
       expect(secondResult.result.usageEvents).toHaveLength(0)
       // Should not generate ledger commands for deduped entries
-      expect(secondResult.ledgerCommands?.length).toBe(0)
+      expect(secondEffects.ledgerCommands.length).toBe(0)
     })
 
     it('should only generate ledger commands for newly inserted events', async () => {
@@ -585,9 +597,11 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const transactionId2 = `txn_ledger_2_${Date.now()}`
 
       // First bulk insert
-      const firstResult = await adminTransaction(
-        async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+      const { firstResult, firstEffects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const result = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -607,17 +621,21 @@ describe('bulkInsertUsageEventsTransaction', () => {
               },
               livemode: true,
             },
-            transaction
+            ctx
           )
+          return { firstResult: result, firstEffects: effects }
+        }
       )
 
       expect(firstResult.result.usageEvents).toHaveLength(2)
-      expect(firstResult.ledgerCommands?.length).toBe(2)
+      expect(firstEffects.ledgerCommands.length).toBe(2)
 
       // Resubmit with one duplicate and one new
-      const secondResult = await adminTransaction(
-        async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+      const { secondResult, secondEffects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const result = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -637,52 +655,59 @@ describe('bulkInsertUsageEventsTransaction', () => {
               },
               livemode: true,
             },
-            transaction
+            ctx
           )
+          return { secondResult: result, secondEffects: effects }
+        }
       )
 
       // Should only insert the new event
       expect(secondResult.result.usageEvents).toHaveLength(1)
       expect(secondResult.result.usageEvents[0].amount).toBe(300)
       // The first result should have generated commands for 2 events
-      expect(firstResult.ledgerCommands?.length).toBe(2)
+      expect(firstEffects.ledgerCommands.length).toBe(2)
       // The second result should only have commands for 1 new event (the duplicate should not generate commands)
       // This verifies that deduped entries don't generate ledger commands
-      expect(secondResult.ledgerCommands?.length).toBe(1)
+      expect(secondEffects.ledgerCommands.length).toBe(1)
     })
   })
 
   describe('happy path', () => {
     it('should successfully insert multiple usage events', async () => {
-      const result = await adminTransaction(async ({ transaction }) =>
-        bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: [
-                {
-                  subscriptionId: subscription.id,
-                  priceId: price.id,
-                  amount: 100,
-                  transactionId: `txn_happy_1_${Date.now()}`,
-                },
-                {
-                  subscriptionId: subscription.id,
-                  priceId: price.id,
-                  amount: 200,
-                  transactionId: `txn_happy_2_${Date.now()}`,
-                },
-              ],
+      const { result, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const result = await bulkInsertUsageEventsTransaction(
+            {
+              input: {
+                usageEvents: [
+                  {
+                    subscriptionId: subscription.id,
+                    priceId: price.id,
+                    amount: 100,
+                    transactionId: `txn_happy_1_${Date.now()}`,
+                  },
+                  {
+                    subscriptionId: subscription.id,
+                    priceId: price.id,
+                    amount: 200,
+                    transactionId: `txn_happy_2_${Date.now()}`,
+                  },
+                ],
+              },
+              livemode: true,
             },
-            livemode: true,
-          },
-          transaction
-        )
+            ctx
+          )
+          return { result, effects }
+        }
       )
 
       expect(result.result.usageEvents).toHaveLength(2)
       expect(result.result.usageEvents[0].amount).toBe(100)
       expect(result.result.usageEvents[1].amount).toBe(200)
-      expect(result.ledgerCommands?.length).toBe(2)
+      expect(effects.ledgerCommands.length).toBe(2)
     })
 
     it('should successfully bulk insert usage events for multiple customers and subscriptions', async () => {
@@ -727,41 +752,46 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       const timestamp = Date.now()
-      const result = await adminTransaction(async ({ transaction }) =>
-        bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: [
-                {
-                  subscriptionId: subscription.id,
-                  priceId: price.id,
-                  amount: 100,
-                  transactionId: `txn_multi_customer_1_${timestamp}`,
-                },
-                {
-                  subscriptionId: subscription2.id,
-                  priceId: price.id,
-                  amount: 200,
-                  transactionId: `txn_multi_customer_2_${timestamp}`,
-                },
-                {
-                  subscriptionId: subscription.id,
-                  priceSlug: price.slug ?? undefined,
-                  amount: 150,
-                  transactionId: `txn_multi_customer_3_${timestamp}`,
-                },
-                {
-                  subscriptionId: subscription2.id,
-                  priceSlug: price.slug ?? undefined,
-                  amount: 250,
-                  transactionId: `txn_multi_customer_4_${timestamp}`,
-                },
-              ],
+      const { result, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const result = await bulkInsertUsageEventsTransaction(
+            {
+              input: {
+                usageEvents: [
+                  {
+                    subscriptionId: subscription.id,
+                    priceId: price.id,
+                    amount: 100,
+                    transactionId: `txn_multi_customer_1_${timestamp}`,
+                  },
+                  {
+                    subscriptionId: subscription2.id,
+                    priceId: price.id,
+                    amount: 200,
+                    transactionId: `txn_multi_customer_2_${timestamp}`,
+                  },
+                  {
+                    subscriptionId: subscription.id,
+                    priceSlug: price.slug ?? undefined,
+                    amount: 150,
+                    transactionId: `txn_multi_customer_3_${timestamp}`,
+                  },
+                  {
+                    subscriptionId: subscription2.id,
+                    priceSlug: price.slug ?? undefined,
+                    amount: 250,
+                    transactionId: `txn_multi_customer_4_${timestamp}`,
+                  },
+                ],
+              },
+              livemode: true,
             },
-            livemode: true,
-          },
-          transaction
-        )
+            ctx
+          )
+          return { result, effects }
+        }
       )
 
       // Should successfully insert all 4 events
@@ -800,9 +830,9 @@ describe('bulkInsertUsageEventsTransaction', () => {
       expect(result.result.usageEvents[2].amount).toBe(150)
       expect(result.result.usageEvents[3].amount).toBe(250)
 
-      expect(result.ledgerCommands?.length).toBe(4)
+      expect(effects.ledgerCommands.length).toBe(4)
       // Verify each ledger command is linked to a usage event
-      result.ledgerCommands?.forEach((cmd) => {
+      effects.ledgerCommands.forEach((cmd) => {
         // Assert that this is a UsageEventProcessedLedgerCommand
         expect(cmd.type).toBe(
           LedgerTransactionType.UsageEventProcessed

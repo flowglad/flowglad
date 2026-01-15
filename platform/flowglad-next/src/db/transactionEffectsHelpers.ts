@@ -56,10 +56,7 @@ export function coalesceEffects<T>(
     ...effects.eventsToInsert,
     ...(output.eventsToInsert ?? []),
   ]
-  const allLedgerCommands = [
-    ...effects.ledgerCommands,
-    ...(output.ledgerCommands ?? []),
-  ]
+  const allLedgerCommands = [...effects.ledgerCommands]
   const cacheInvalidations = [
     ...effects.cacheInvalidations,
     ...(output.cacheInvalidations ?? []),
