@@ -28,12 +28,24 @@ if [ -s "$STAGED_TS_FILES_NUL" ]; then
 fi
 rm -f "$STAGED_TS_FILES_NUL"
 
-# Run TypeScript type checking across all packages
+# Run TypeScript type checking in parallel
 echo "🔍 Running TypeScript type checking..."
-cd "$ROOT_DIR" && bunx turbo run typecheck
-TSC_STATUS=$?
 
-if [ $TSC_STATUS -ne 0 ]; then
+# Typecheck @flowglad/* packages via turbo
+cd "$ROOT_DIR" && bunx turbo run typecheck &
+PID1=$!
+
+# Typecheck flowglad-next separately (not in turbo scope)
+cd "$ROOT_DIR/platform/flowglad-next" && bun run typecheck &
+PID2=$!
+
+wait $PID1
+STATUS1=$?
+
+wait $PID2
+STATUS2=$?
+
+if [ $STATUS1 -ne 0 ] || [ $STATUS2 -ne 0 ]; then
   echo "❌ TypeScript type checking failed. Please fix errors before committing."
   exit 1
 fi
