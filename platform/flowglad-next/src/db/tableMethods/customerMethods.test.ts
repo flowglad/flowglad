@@ -94,11 +94,10 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
     )
 
     expect(updatedCustomers).toHaveLength(2)
-    const map = new Map(updatedCustomers.map((c) => [c.id, c]))
-    expect(map.get(customer1.id)?.stackAuthHostedBillingUserId).toBe(
+    expect(updatedCustomers[0].stackAuthHostedBillingUserId).toBe(
       stackAuthHostedBillingUserId
     )
-    expect(map.get(customer2.id)?.stackAuthHostedBillingUserId).toBe(
+    expect(updatedCustomers[1].stackAuthHostedBillingUserId).toBe(
       stackAuthHostedBillingUserId
     )
   })
@@ -148,11 +147,10 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
     )
 
     expect(updatedCustomers).toHaveLength(2)
-    const map = new Map(updatedCustomers.map((c) => [c.id, c]))
-    expect(map.get(customer1.id)?.stackAuthHostedBillingUserId).toBe(
+    expect(updatedCustomers[0].stackAuthHostedBillingUserId).toBe(
       stackAuthHostedBillingUserId
     )
-    expect(map.get(customer2.id)?.stackAuthHostedBillingUserId).toBe(
+    expect(updatedCustomers[1].stackAuthHostedBillingUserId).toBe(
       stackAuthHostedBillingUserId
     )
   })
