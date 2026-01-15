@@ -135,9 +135,6 @@ bun run db:clone:staging:migrate
 
 # Test migrations against a production clone
 bun run db:clone:prod:migrate
-
-# Keep dump files for inspection (--inspect mode)
-bun run migrations:test:inspect
 ```
 
 If migrations fail, you'll see the error before affecting real databases. The local database remains available for debugging.
