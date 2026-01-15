@@ -1,23 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import {
-  findRouteConfigInFlattenedObject,
-  getAllRouteKeysFromFlattenedObject,
+  findRouteConfigInArray,
+  getAllRouteKeysFromArray,
   validateRouteConfigStructure,
 } from './routeConfigs.test-utils'
 import { subscriptionItemFeaturesRouteConfigs } from './subscriptionItemFeaturesRouter'
 
 describe('subscriptionItemFeaturesRouteConfigs', () => {
-  // Helper function to find route config in the flattened object
   const findRouteConfig = (routeKey: string) => {
-    return findRouteConfigInFlattenedObject(
+    return findRouteConfigInArray(
       subscriptionItemFeaturesRouteConfigs,
       routeKey
     )
   }
 
-  // Helper function to get all route keys from the flattened object
   const getAllRouteKeys = () => {
-    return getAllRouteKeysFromFlattenedObject(
+    return getAllRouteKeysFromArray(
       subscriptionItemFeaturesRouteConfigs
     )
   }
