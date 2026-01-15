@@ -868,12 +868,14 @@ describe('updatePricingModelTransaction', () => {
                     },
                     price: {
                       type: PriceType.Subscription,
+                      name: undefined,
                       slug: 'starter-monthly',
                       unitPrice: 1999,
                       isDefault: true,
                       active: true,
                       intervalCount: 1,
                       intervalUnit: IntervalUnit.Month,
+                      trialPeriodDays: undefined,
                       usageMeterId: null,
                       usageEventsPerUnit: null,
                     },
@@ -899,7 +901,9 @@ describe('updatePricingModelTransaction', () => {
                 name: 'Test Pricing Model',
                 isDefault: false,
                 usageMeters: [],
-                resources: [{ slug: 'seats', name: 'Seats' }],
+                resources: [
+                  { slug: 'seats', name: 'Seats', active: true },
+                ],
                 features: [
                   {
                     type: FeatureType.Toggle,
@@ -919,12 +923,14 @@ describe('updatePricingModelTransaction', () => {
                     },
                     price: {
                       type: PriceType.Subscription,
+                      name: undefined,
                       slug: 'starter-monthly',
                       unitPrice: 1999,
                       isDefault: true,
                       active: true,
                       intervalCount: 1,
                       intervalUnit: IntervalUnit.Month,
+                      trialPeriodDays: undefined,
                       usageMeterId: null,
                       usageEventsPerUnit: null,
                     },
