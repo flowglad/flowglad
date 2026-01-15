@@ -1612,14 +1612,16 @@ describe('selectCustomerPricingInfoBatch', () => {
     expect(result).toEqual(new Map())
   })
 
-  it('should handle customers with null pricingModelId', async () => {
+  it('should handle customers with different pricingModelIds', async () => {
+    // Note: pricingModelId cannot be null in the database schema (notNullStringForeignKey)
+    // setupCustomer automatically assigns default pricing model if undefined
     const customer1 = await setupCustomer({
       organizationId: organization.id,
-      pricingModelId: undefined,
+      pricingModelId: pricingModel1.id,
     })
     const customer2 = await setupCustomer({
       organizationId: organization.id,
-      pricingModelId: pricingModel1.id,
+      pricingModelId: pricingModel2.id,
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
@@ -1630,9 +1632,11 @@ describe('selectCustomerPricingInfoBatch', () => {
     })
 
     expect(result.size).toBe(2)
-    expect(result.get(customer1.id)?.pricingModelId).toBeNull()
-    expect(result.get(customer2.id)?.pricingModelId).toBe(
+    expect(result.get(customer1.id)?.pricingModelId).toBe(
       pricingModel1.id
+    )
+    expect(result.get(customer2.id)?.pricingModelId).toBe(
+      pricingModel2.id
     )
   })
 

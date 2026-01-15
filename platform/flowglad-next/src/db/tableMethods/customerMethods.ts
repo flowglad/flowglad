@@ -511,10 +511,12 @@ export const setUserIdForCustomerRecords = async (
 /**
  * Minimal customer data needed for pricing model resolution in bulk operations.
  * Only fetches the fields required to determine which pricing model applies to each customer.
+ *
+ * Note: pricingModelId is NOT NULL in the database schema, so it will always be a string.
  */
 export type CustomerPricingInfo = {
   id: string
-  pricingModelId: string | null
+  pricingModelId: string
   organizationId: string
   livemode: boolean
 }
