@@ -85,7 +85,7 @@ const executeComprehensiveAdminTransaction = async <T>(
     const output = await fn(paramsForFn)
 
     // Coalesce effects from accumulator and output, then process
-    const coalesced = coalesceEffects(effects, output)
+    const coalesced = coalesceEffects(effects)
     const counts = await processEffectsInTransaction(
       coalesced,
       transaction

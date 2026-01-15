@@ -1085,17 +1085,12 @@ describeIfRedisKey(
       await client.sadd(registryKey1, cacheKey1)
       await client.sadd(registryKey2, cacheKey2)
 
-      // Use callback for one key and return value for another
-      // This tests the merge behavior in comprehensiveAdminTransaction
+      // Use callback for both keys
       await comprehensiveAdminTransaction(
         async ({ invalidateCache }) => {
-          // Use callback for first key
           invalidateCache(depKey1)
-          // Return second key in cacheInvalidations array
-          return {
-            result: 'success',
-            cacheInvalidations: [depKey2],
-          }
+          invalidateCache(depKey2)
+          return { result: 'success' }
         }
       )
 

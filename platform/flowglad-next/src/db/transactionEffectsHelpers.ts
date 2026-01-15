@@ -4,7 +4,6 @@ import { processLedgerCommand } from './ledgerManager/ledgerManager'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 import type { Event } from './schema/events'
 import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
-import type { TransactionOutput } from './transactionEnhacementTypes'
 import type { DbTransaction, TransactionEffects } from './types'
 
 /**
@@ -45,20 +44,16 @@ export interface CoalescedEffects {
 }
 
 /**
- * Coalesces effects from the accumulator and the transaction output.
+ * Coalesces effects from the accumulator.
  */
-export function coalesceEffects<T>(
-  effects: TransactionEffects,
-  output: TransactionOutput<T>
+export function coalesceEffects(
+  effects: TransactionEffects
 ): CoalescedEffects {
-  const allEvents = [...effects.eventsToInsert]
-  const allLedgerCommands = [...effects.ledgerCommands]
-  const cacheInvalidations = [
-    ...effects.cacheInvalidations,
-    ...(output.cacheInvalidations ?? []),
-  ]
-
-  return { allEvents, allLedgerCommands, cacheInvalidations }
+  return {
+    allEvents: [...effects.eventsToInsert],
+    allLedgerCommands: [...effects.ledgerCommands],
+    cacheInvalidations: [...effects.cacheInvalidations],
+  }
 }
 
 /**
