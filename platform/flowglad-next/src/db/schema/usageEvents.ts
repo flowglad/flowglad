@@ -73,6 +73,8 @@ export const usageEvents = pgTable(
     constructIndex(TABLE_NAME, [table.subscriptionId]),
     constructIndex(TABLE_NAME, [table.priceId]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
+    // Compound index for efficient usage volume queries by meter and date range
+    constructIndex(TABLE_NAME, [table.usageMeterId, table.usageDate]),
     constructUniqueIndex(TABLE_NAME, [
       table.transactionId,
       table.usageMeterId,
