@@ -273,7 +273,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
 })
 
 describe('createAndFinalizeSubscriptionFeeCalculation', () => {
-  it('throws an error when subscription has a usage price without a product', async () => {
+  it('creates a fee calculation for subscription with a usage price (no product lookup required)', async () => {
     const orgData = await setupOrg()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
@@ -327,8 +327,9 @@ describe('createAndFinalizeSubscriptionFeeCalculation', () => {
     )
     const organizationCountry = countries[0]!
 
-    await expect(
-      adminTransaction(async ({ transaction }) =>
+    // Usage prices should now work without product lookup
+    const feeCalculation = await adminTransaction(
+      async ({ transaction }) =>
         createAndFinalizeSubscriptionFeeCalculation(
           {
             organization: {
@@ -347,9 +348,15 @@ describe('createAndFinalizeSubscriptionFeeCalculation', () => {
           },
           transaction
         )
-      )
-    ).rejects.toThrow(
-      `Cannot create fee calculation for usage price ${usagePrice.id} - usage prices don't have a product`
     )
+
+    // Verify fee calculation was created successfully
+    expect(feeCalculation.id).toMatch(/^feec_/)
+    expect(feeCalculation.billingPeriodId).toBe(billingPeriod.id)
+    expect(feeCalculation.organizationId).toBe(
+      orgData.organization.id
+    )
+    expect(feeCalculation.baseAmount).toBe(0) // No billing period items or usage overages
+    expect(feeCalculation.taxAmountFixed).toBe(0) // Platform mode, no tax calculation
   })
 })

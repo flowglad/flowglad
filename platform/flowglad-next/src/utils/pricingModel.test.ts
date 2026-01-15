@@ -2576,12 +2576,14 @@ describe('createProductTransaction', () => {
 
   it('should create a product with a usage price when there are no featureIds', async () => {
     // Setup: Create a usage meter for the usage price
+    // Must use livemode: true to match org1ApiKey.livemode, otherwise RLS
+    // livemode policy will filter out the usage meter during prices INSERT check
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       pricingModelId: sourcePricingModel.id,
       name: 'API Requests',
       slug: 'api-requests',
-      livemode: false,
+      livemode: true,
     })
 
     // Test: Create a usage price product without featureIds - should succeed

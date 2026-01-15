@@ -1636,7 +1636,6 @@ describeIfStripeKey('Tax Calculations', () => {
         price,
         billingAddress,
         discountInclusiveAmount: 10000,
-        product,
         livemode: false,
       })
 
@@ -1687,7 +1686,6 @@ describeIfStripeKey('Tax Calculations', () => {
         price,
         billingAddress,
         discountInclusiveAmount: 5000,
-        product,
         livemode: false,
       })
 
@@ -1722,7 +1720,6 @@ describeIfStripeKey('Tax Calculations', () => {
         price,
         billingAddress,
         discountInclusiveAmount: 7500,
-        product,
         livemode: false,
       })
 
@@ -1782,7 +1779,6 @@ describeIfStripeKey('Tax Calculations', () => {
         price,
         billingAddress,
         discountInclusiveAmount: 6000,
-        product,
         livemode: false,
       })
 
@@ -1828,7 +1824,6 @@ describeIfStripeKey('Tax Calculations', () => {
         price,
         billingAddress,
         discountInclusiveAmount: 10000,
-        product,
         livemode: false,
       })
 

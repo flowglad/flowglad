@@ -190,9 +190,10 @@ describe('createUsageMeterTransaction', () => {
         livemode: false,
       })
 
-      // Attempt to create usage meter with the same slug
-      await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) => {
+      // Create usage meter with the same slug - should succeed since
+      // usage meter prices and product prices are in separate namespaces
+      const result = await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
           const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
@@ -209,10 +210,14 @@ describe('createUsageMeterTransaction', () => {
             }
           )
           return { result: usageMeterResult }
-        })
-      ).rejects.toThrow()
+        }
+      )
 
-      // Verify no usage meter was created (transaction rolled back)
+      // Verify usage meter was created successfully
+      expect(result.usageMeter.slug).toBe(slug)
+      expect(result.usageMeter.name).toBe('New Usage Meter')
+
+      // Verify both the product price and usage meter price exist with same slug
       const usageMeters = await adminTransaction(
         async ({ transaction }) => {
           return selectUsageMeters(
@@ -221,7 +226,8 @@ describe('createUsageMeterTransaction', () => {
           )
         }
       )
-      expect(usageMeters).toHaveLength(0)
+      expect(usageMeters).toHaveLength(1)
+      expect(usageMeters[0].slug).toBe(slug)
     })
 
     it('allows usage meter creation with unique slug even when other slugs exist', async () => {
