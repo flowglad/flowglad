@@ -290,11 +290,14 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Batch unexpire all three
-    const result = await adminTransaction(async ({ transaction }) =>
-      batchUnexpireProductFeatures(
-        [pf1.id, pf2.id, pf3.id],
-        transaction
-      )
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const unexpireResult = await batchUnexpireProductFeatures(
+          [pf1.id, pf2.id, pf3.id],
+          { transaction, invalidateCache }
+        )
+        return { result: unexpireResult }
+      }
     )
 
     // Should return all three unexpired records
@@ -315,8 +318,14 @@ describe('batchUnexpireProductFeatures', () => {
   })
 
   it('returns empty array when given empty productFeatureIds list', async () => {
-    const result = await adminTransaction(async ({ transaction }) =>
-      batchUnexpireProductFeatures([], transaction)
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const unexpireResult = await batchUnexpireProductFeatures(
+          [],
+          { transaction, invalidateCache }
+        )
+        return { result: unexpireResult }
+      }
     )
 
     expect(result).toEqual([])
@@ -338,11 +347,14 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Try to unexpire both
-    const result = await adminTransaction(async ({ transaction }) =>
-      batchUnexpireProductFeatures(
-        [expiredPf.id, activePf.id],
-        transaction
-      )
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const unexpireResult = await batchUnexpireProductFeatures(
+          [expiredPf.id, activePf.id],
+          { transaction, invalidateCache }
+        )
+        return { result: unexpireResult }
+      }
     )
 
     // Should only return the one that was actually expired
@@ -367,8 +379,14 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Try to unexpire active features
-    const result = await adminTransaction(async ({ transaction }) =>
-      batchUnexpireProductFeatures([pf1.id, pf2.id], transaction)
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const unexpireResult = await batchUnexpireProductFeatures(
+          [pf1.id, pf2.id],
+          { transaction, invalidateCache }
+        )
+        return { result: unexpireResult }
+      }
     )
 
     // Should return empty array since nothing was actually unexpired
@@ -387,8 +405,14 @@ describe('batchUnexpireProductFeatures', () => {
     // Include a non-existent ID
     const fakeId = `product_feature_${core.nanoid()}`
 
-    const result = await adminTransaction(async ({ transaction }) =>
-      batchUnexpireProductFeatures([realPf.id, fakeId], transaction)
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const unexpireResult = await batchUnexpireProductFeatures(
+          [realPf.id, fakeId],
+          { transaction, invalidateCache }
+        )
+        return { result: unexpireResult }
+      }
     )
 
     // Should only return the real one that was unexpired
@@ -419,11 +443,14 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Unexpire all three
-    const result = await adminTransaction(async ({ transaction }) =>
-      batchUnexpireProductFeatures(
-        [expired1.id, active1.id, expired2.id],
-        transaction
-      )
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction, invalidateCache }) => {
+        const unexpireResult = await batchUnexpireProductFeatures(
+          [expired1.id, active1.id, expired2.id],
+          { transaction, invalidateCache }
+        )
+        return { result: unexpireResult }
+      }
     )
 
     // Should only return the two that were expired

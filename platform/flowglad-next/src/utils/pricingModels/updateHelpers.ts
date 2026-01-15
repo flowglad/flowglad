@@ -277,7 +277,7 @@ export const syncProductFeaturesForMultipleProducts = async (
   if (productFeatureIdsToUnexpire.length > 0) {
     unexpiredProductFeatures = await batchUnexpireProductFeatures(
       productFeatureIdsToUnexpire,
-      transaction
+      { transaction, invalidateCache }
     )
   }
 

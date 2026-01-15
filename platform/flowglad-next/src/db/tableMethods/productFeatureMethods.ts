@@ -296,13 +296,17 @@ export const unexpireProductFeatures = async (
  * This is more efficient for bulk operations across multiple products.
  *
  * @param productFeatureIds - Array of product feature IDs to unexpire
- * @param transaction - Database transaction
+ * @param params - Transaction params including invalidateCache for cache consistency
  * @returns Array of unexpired ProductFeature records
  */
 export const batchUnexpireProductFeatures = async (
   productFeatureIds: string[],
-  transaction: DbTransaction
+  params: Pick<
+    TransactionEffectsContext,
+    'transaction' | 'invalidateCache'
+  >
 ): Promise<ProductFeature.Record[]> => {
+  const { transaction, invalidateCache } = params
   if (productFeatureIds.length === 0) {
     return []
   }
@@ -316,7 +320,47 @@ export const batchUnexpireProductFeatures = async (
       )
     )
     .returning()
-  return unexpired.map((pf) => productFeaturesSelectSchema.parse(pf))
+
+  const parsedUnexpired = unexpired.map((pf) =>
+    productFeaturesSelectSchema.parse(pf)
+  )
+
+  // Invalidate subscription item feature caches for subscription items
+  // that use products associated with the unexpired product features.
+  // This ensures cache consistency when product features become active again.
+  // Subscription items are linked to products through prices (subscription_items.priceId -> prices.productId).
+  if (parsedUnexpired.length > 0) {
+    const productIds = [
+      ...new Set(parsedUnexpired.map((pf) => pf.productId)),
+    ]
+    const { selectPrices } = await import('./priceMethods')
+    const { selectSubscriptionItems } = await import(
+      './subscriptionItemMethods'
+    )
+    // Find prices for the affected products
+    const affectedPrices = await selectPrices(
+      { productId: productIds },
+      transaction
+    )
+    if (affectedPrices.length > 0) {
+      const priceIds = affectedPrices.map((p) => p.id)
+      // Find subscription items that use those prices
+      const affectedSubscriptionItems = await selectSubscriptionItems(
+        { priceId: priceIds },
+        transaction
+      )
+      const subscriptionItemIds = affectedSubscriptionItems.map(
+        (si) => si.id
+      )
+      invalidateCache(
+        ...subscriptionItemIds.map((id) =>
+          CacheDependency.subscriptionItemFeatures(id)
+        )
+      )
+    }
+  }
+
+  return parsedUnexpired
 }
 
 export const syncProductFeatures = async (
