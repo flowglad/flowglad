@@ -31,7 +31,7 @@ export const ResourceDetailModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg" allowContentOverflow>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ChartPie className="h-5 w-5" />

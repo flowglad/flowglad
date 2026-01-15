@@ -110,7 +110,12 @@ export const SubscriptionResourceUsage = ({
 
   if (isLoading) {
     return (
-      <div className={cn('grid grid-cols-2 gap-2 w-full', className)}>
+      <div
+        className={cn(
+          'grid grid-cols-1 sm:grid-cols-2 gap-2 w-full',
+          className
+        )}
+      >
         <ResourceUsageSkeleton />
         <ResourceUsageSkeleton />
       </div>
@@ -136,7 +141,12 @@ export const SubscriptionResourceUsage = ({
 
   return (
     <>
-      <div className={cn('grid grid-cols-2 gap-2 w-full', className)}>
+      <div
+        className={cn(
+          'grid grid-cols-1 sm:grid-cols-2 gap-2 w-full',
+          className
+        )}
+      >
         {data.map(({ usage }) => (
           <ResourceUsageItem
             key={usage.resourceId}
