@@ -5,7 +5,11 @@ import {
   setupPricingModel,
   setupProduct,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
+import type { Event } from '@/db/schema/events'
 import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
@@ -73,9 +77,22 @@ describe('createCustomerBookkeeping', () => {
       // - organization already has a default pricing model with default product and price
       // - create a new customer without specifying a pricing model
 
+      // Capture emitted events
+      const emittedEvents: Event.Insert[] = []
+
       // Create customer through the bookkeeping function
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          // Wrap emitEvent to capture events
+          const capturingEmitEvent = (event: Event.Insert) => {
+            emittedEvents.push(event)
+            emitEvent(event)
+          }
           const output = await createCustomerBookkeeping(
             {
               customer: {
@@ -89,9 +106,12 @@ describe('createCustomerBookkeeping', () => {
               transaction,
               organizationId: organization.id,
               livemode,
+              invalidateCache,
+              emitEvent: capturingEmitEvent,
+              enqueueLedgerCommand,
             }
           )
-          return output
+          return { result: output }
         }
       )
 
@@ -100,24 +120,20 @@ describe('createCustomerBookkeeping', () => {
       // - subscription should be created for the customer
       // - subscription should use the default product and price
       // - events should include CustomerCreated and SubscriptionCreated
-      expect(result.result.customer).toMatchObject({})
-      expect(result.result.customer.email).toContain('test+')
-      expect(result.result.customer.organizationId).toBe(
-        organization.id
-      )
+      expect(result.customer).toMatchObject({})
+      expect(result.customer.email).toContain('test+')
+      expect(result.customer.organizationId).toBe(organization.id)
 
-      expect(result.result.subscription).toMatchObject({})
-      expect(result.result.subscriptionItems).toMatchObject({})
-      expect(result.result.subscriptionItems?.length).toBeGreaterThan(
-        0
-      )
+      expect(result.subscription).toMatchObject({})
+      expect(result.subscriptionItems).toMatchObject({})
+      expect(result.subscriptionItems?.length).toBeGreaterThan(0)
 
       // Verify the subscription was actually created in the dataFree
       const subscriptionInDb = await adminTransaction(
         async ({ transaction }) => {
           const sub = await selectSubscriptionAndItems(
             {
-              customerId: result.result.customer.id,
+              customerId: result.customer.id,
             },
             transaction
           )
@@ -126,19 +142,18 @@ describe('createCustomerBookkeeping', () => {
       )
       expect(typeof subscriptionInDb).toBe('object')
       expect(subscriptionInDb?.subscription.customerId).toBe(
-        result.result.customer.id
+        result.customer.id
       )
 
-      // Verify events were created
-      expect(result.eventsToInsert).toMatchObject({})
-      expect(result.eventsToInsert?.length).toBeGreaterThan(0)
+      // Verify events were emitted
+      expect(emittedEvents.length).toBeGreaterThan(0)
       expect(
-        result.eventsToInsert?.some(
+        emittedEvents.some(
           (e) => e.type === FlowgladEventType.CustomerCreated
         )
       ).toBe(true)
       expect(
-        result.eventsToInsert?.some(
+        emittedEvents.some(
           (e) => e.type === FlowgladEventType.SubscriptionCreated
         )
       ).toBe(true)
@@ -179,8 +194,13 @@ describe('createCustomerBookkeeping', () => {
       })
 
       // Create customer with specified pricing model
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
           const output = await createCustomerBookkeeping(
             {
               customer: {
@@ -195,9 +215,12 @@ describe('createCustomerBookkeeping', () => {
               transaction,
               organizationId: organization.id,
               livemode: customProduct.livemode,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
             }
           )
-          return output
+          return { result: output }
         }
       )
 
@@ -205,19 +228,19 @@ describe('createCustomerBookkeeping', () => {
       // - customer should be created with the specified pricing model
       // - subscription should use the custom pricing model's default product and price
       // - subscription price should be 2000 (custom price) not 1000 (default price)
-      expect(result.result.customer).toMatchObject({})
-      expect(result.result.customer.pricingModelId).toBe(
+      expect(result.customer).toMatchObject({})
+      expect(result.customer.pricingModelId).toBe(
         customPricingModel.id
       )
 
-      expect(result.result.subscription).toMatchObject({})
+      expect(result.subscription).toMatchObject({})
 
       // Verify the subscription uses the correct price
       const subscriptionInDb = await adminTransaction(
         async ({ transaction }) => {
           const sub = await selectSubscriptionAndItems(
             {
-              customerId: result.result.customer.id,
+              customerId: result.customer.id,
             },
             transaction
           )
@@ -252,9 +275,21 @@ describe('createCustomerBookkeeping', () => {
         active: true,
       })
 
+      // Capture emitted events
+      const emittedEvents: Event.Insert[] = []
+
       // Create customer with the empty pricing model
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          const capturingEmitEvent = (event: Event.Insert) => {
+            emittedEvents.push(event)
+            emitEvent(event)
+          }
           const output = await createCustomerBookkeeping(
             {
               customer: {
@@ -269,9 +304,12 @@ describe('createCustomerBookkeeping', () => {
               transaction,
               organizationId: organization.id,
               livemode,
+              invalidateCache,
+              emitEvent: capturingEmitEvent,
+              enqueueLedgerCommand,
             }
           )
-          return output
+          return { result: output }
         }
       )
 
@@ -279,16 +317,16 @@ describe('createCustomerBookkeeping', () => {
       // - customer should be created successfully
       // - no subscription should be created
       // - only CustomerCreated event should exist
-      expect(result.result.customer).toMatchObject({})
-      expect(result.result.subscription).toBeUndefined()
-      expect(result.result.subscriptionItems).toBeUndefined()
+      expect(result.customer).toMatchObject({})
+      expect(result.subscription).toBeUndefined()
+      expect(result.subscriptionItems).toBeUndefined()
 
       // Verify no subscription exists in dataFree
       const subscriptionInDb = await adminTransaction(
         async ({ transaction }) => {
           const sub = await selectSubscriptionAndItems(
             {
-              customerId: result.result.customer.id,
+              customerId: result.customer.id,
             },
             transaction
           )
@@ -297,15 +335,14 @@ describe('createCustomerBookkeeping', () => {
       )
       expect(subscriptionInDb).toBeNull()
 
-      // Verify only CustomerCreated event exists
-      expect(result.eventsToInsert).toMatchObject({})
+      // Verify only CustomerCreated event was emitted
       expect(
-        result.eventsToInsert?.some(
+        emittedEvents.some(
           (e) => e.type === FlowgladEventType.CustomerCreated
         )
       ).toBe(true)
       expect(
-        result.eventsToInsert?.some(
+        emittedEvents.some(
           (e) => e.type === FlowgladEventType.SubscriptionCreated
         )
       ).toBe(false)
@@ -345,9 +382,21 @@ describe('createCustomerBookkeeping', () => {
       //   livemode,
       // })
 
+      // Capture emitted events
+      const emittedEvents: Event.Insert[] = []
+
       // Create customer
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          const capturingEmitEvent = (event: Event.Insert) => {
+            emittedEvents.push(event)
+            emitEvent(event)
+          }
           const output = await createCustomerBookkeeping(
             {
               customer: {
@@ -362,25 +411,28 @@ describe('createCustomerBookkeeping', () => {
               transaction,
               organizationId: organization.id,
               livemode,
+              invalidateCache,
+              emitEvent: capturingEmitEvent,
+              enqueueLedgerCommand,
             }
           )
-          return output
+          return { result: output }
         }
       )
       // expects:
       // - customer should be created successfully
       // - no subscription should be created since there's no default price
       // - only CustomerCreated event should exist
-      expect(result.result.customer).toMatchObject({})
-      expect(result.result.subscription).toBeUndefined()
-      expect(result.result.subscriptionItems).toBeUndefined()
+      expect(result.customer).toMatchObject({})
+      expect(result.subscription).toBeUndefined()
+      expect(result.subscriptionItems).toBeUndefined()
 
       // Verify no subscription exists in dataFree
       const subscriptionInDb = await adminTransaction(
         async ({ transaction }) => {
           const sub = await selectSubscriptionAndItems(
             {
-              customerId: result.result.customer.id,
+              customerId: result.customer.id,
             },
             transaction
           )
@@ -389,15 +441,14 @@ describe('createCustomerBookkeeping', () => {
       )
       expect(subscriptionInDb).toBeNull()
 
-      // Verify only CustomerCreated event exists
-      expect(result.eventsToInsert).toMatchObject({})
+      // Verify only CustomerCreated event was emitted
       expect(
-        result.eventsToInsert?.some(
+        emittedEvents.some(
           (e) => e.type === FlowgladEventType.CustomerCreated
         )
       ).toBe(true)
       expect(
-        result.eventsToInsert?.some(
+        emittedEvents.some(
           (e) => e.type === FlowgladEventType.SubscriptionCreated
         )
       ).toBe(false)
@@ -408,8 +459,13 @@ describe('createCustomerBookkeeping', () => {
       // - default price already has 14 day trial period
       // - create a customer and verify trial end date is set
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
           const output = await createCustomerBookkeeping(
             {
               customer: {
@@ -423,23 +479,26 @@ describe('createCustomerBookkeeping', () => {
               transaction,
               organizationId: organization.id,
               livemode,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
             }
           )
-          return output
+          return { result: output }
         }
       )
 
       // expects:
       // - customer and subscription should be created
       // - subscription should have a trial end date approximately 14 days from now
-      expect(result.result.customer).toMatchObject({})
-      expect(result.result.subscription).toMatchObject({})
+      expect(result.customer).toMatchObject({})
+      expect(result.subscription).toMatchObject({})
 
       const subscriptionInDb = await adminTransaction(
         async ({ transaction }) => {
           const sub = await selectSubscriptionAndItems(
             {
-              customerId: result.result.customer.id,
+              customerId: result.customer.id,
             },
             transaction
           )
@@ -495,25 +554,36 @@ describe('createCustomerBookkeeping', () => {
       // Attempt to create customer for the minimal org - should throw error
       let error: Error | null = null
       try {
-        await adminTransaction(async ({ transaction }) => {
-          await createCustomerBookkeeping(
-            {
-              customer: {
-                email: `test+${core.nanoid()}@example.com`,
-                name: 'Test Customer No Pricing Model',
-                organizationId: minimalOrg.id,
-                externalId: `ext_${core.nanoid()}`,
+        await comprehensiveAdminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            await createCustomerBookkeeping(
+              {
+                customer: {
+                  email: `test+${core.nanoid()}@example.com`,
+                  name: 'Test Customer No Pricing Model',
+                  organizationId: minimalOrg.id,
+                  externalId: `ext_${core.nanoid()}`,
+                },
               },
-            },
-            {
-              transaction,
-              organizationId: minimalOrg.id,
-              livemode,
-            }
-          )
-        })
-      } catch (err: any) {
-        error = err
+              {
+                transaction,
+                organizationId: minimalOrg.id,
+                livemode,
+                invalidateCache,
+                emitEvent,
+                enqueueLedgerCommand,
+              }
+            )
+            return { result: null }
+          }
+        )
+      } catch (err: unknown) {
+        error = err as Error
       }
 
       // expects:
@@ -531,23 +601,34 @@ describe('createCustomerBookkeeping', () => {
 
       // Attempt to create a customer with mismatched organizationId
       await expect(
-        adminTransaction(async ({ transaction }) => {
-          await createCustomerBookkeeping(
-            {
-              customer: {
-                email: `test+${core.nanoid()}@example.com`,
-                name: 'Cross Org Customer',
-                organizationId: otherOrganization.id, // Different from auth context
-                externalId: `ext_${core.nanoid()}`,
+        comprehensiveAdminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            await createCustomerBookkeeping(
+              {
+                customer: {
+                  email: `test+${core.nanoid()}@example.com`,
+                  name: 'Cross Org Customer',
+                  organizationId: otherOrganization.id, // Different from auth context
+                  externalId: `ext_${core.nanoid()}`,
+                },
               },
-            },
-            {
-              transaction,
-              organizationId: organization.id, // Auth context org
-              livemode,
-            }
-          )
-        })
+              {
+                transaction,
+                organizationId: organization.id, // Auth context org
+                livemode,
+                invalidateCache,
+                emitEvent,
+                enqueueLedgerCommand,
+              }
+            )
+            return { result: null }
+          }
+        )
       ).rejects.toThrow(
         'Customer organizationId must match authenticated organizationId'
       )
@@ -557,8 +638,13 @@ describe('createCustomerBookkeeping', () => {
       // setup:
       // - create a customer and verify the subscription has proper metadata
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
           const output = await createCustomerBookkeeping(
             {
               customer: {
@@ -572,22 +658,25 @@ describe('createCustomerBookkeeping', () => {
               transaction,
               organizationId: organization.id,
               livemode,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
             }
           )
-          return output
+          return { result: output }
         }
       )
 
       // expects:
       // - subscription should be created with proper name
       // - subscription name should include the default product name
-      expect(result.result.subscription).toMatchObject({})
+      expect(result.subscription).toMatchObject({})
 
       const subscriptionInDb = await adminTransaction(
         async ({ transaction }) => {
           const sub = await selectSubscriptionAndItems(
             {
-              customerId: result.result.customer.id,
+              customerId: result.customer.id,
             },
             transaction
           )
@@ -635,8 +724,13 @@ describe('createCustomerBookkeeping', () => {
       )
 
       // Create a customer without specifying pricing model (uses default)
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
           const output = await createCustomerBookkeeping(
             {
               customer: {
@@ -651,18 +745,21 @@ describe('createCustomerBookkeeping', () => {
               transaction,
               organizationId: organization.id,
               livemode,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
             }
           )
-          return output
+          return { result: output }
         }
       )
 
       // Verify customer and subscription were created
-      expect(result.result.customer).toMatchObject({})
-      expect(result.result.subscription).toMatchObject({})
+      expect(result.customer).toMatchObject({})
+      expect(result.subscription).toMatchObject({})
 
       // Check the subscription has renews = false for SinglePayment
-      const subscription = result.result.subscription!
+      const subscription = result.subscription!
       expect(subscription.renews).toBe(false)
       expect(subscription.currentBillingPeriodStart).toBeNull()
       expect(subscription.currentBillingPeriodEnd).toBeNull()
@@ -707,8 +804,13 @@ describe('createCustomerBookkeeping', () => {
       )
 
       // Create a customer without specifying pricing model (uses default)
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
           const output = await createCustomerBookkeeping(
             {
               customer: {
@@ -723,18 +825,21 @@ describe('createCustomerBookkeeping', () => {
               transaction,
               organizationId: organization.id,
               livemode,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
             }
           )
-          return output
+          return { result: output }
         }
       )
 
       // Verify customer and subscription were created
-      expect(result.result.customer).toMatchObject({})
-      expect(result.result.subscription).toMatchObject({})
+      expect(result.customer).toMatchObject({})
+      expect(result.subscription).toMatchObject({})
 
       // Check the subscription has renews = true for Subscription
-      const subscription = result.result.subscription!
+      const subscription = result.subscription!
       expect(subscription.renews).toBe(true)
       expect(subscription.currentBillingPeriodStart).toBeGreaterThan(
         0
@@ -802,63 +907,80 @@ describe('createCustomerBookkeeping', () => {
       )
 
       // Test 1: Customer with SinglePayment pricing model
-      const singlePaymentCustomerResult = await adminTransaction(
-        async ({ transaction }) => {
-          const output = await createCustomerBookkeeping(
-            {
-              customer: {
-                email: `test+${core.nanoid()}@example.com`,
-                name: 'Customer with SinglePayment Model',
-                organizationId: organization.id,
-                externalId: `ext_${core.nanoid()}`,
-                pricingModelId:
-                  singlePaymentPricingModel.result.pricingModel.id,
+      const singlePaymentCustomerResult =
+        await comprehensiveAdminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const output = await createCustomerBookkeeping(
+              {
+                customer: {
+                  email: `test+${core.nanoid()}@example.com`,
+                  name: 'Customer with SinglePayment Model',
+                  organizationId: organization.id,
+                  externalId: `ext_${core.nanoid()}`,
+                  pricingModelId:
+                    singlePaymentPricingModel.result.pricingModel.id,
+                },
               },
-            },
-            {
-              transaction,
-              organizationId: organization.id,
-              livemode,
-            }
-          )
-          return output
-        }
-      )
+              {
+                transaction,
+                organizationId: organization.id,
+                livemode,
+                invalidateCache,
+                emitEvent,
+                enqueueLedgerCommand,
+              }
+            )
+            return { result: output }
+          }
+        )
 
       // Verify SinglePayment subscription behavior
       const singlePaymentSub =
-        singlePaymentCustomerResult.result.subscription!
+        singlePaymentCustomerResult.subscription!
       expect(singlePaymentSub.renews).toBe(false)
       expect(singlePaymentSub.currentBillingPeriodStart).toBeNull()
       expect(singlePaymentSub.currentBillingPeriodEnd).toBeNull()
 
       // Test 2: Customer with Subscription pricing model
-      const subscriptionCustomerResult = await adminTransaction(
-        async ({ transaction }) => {
-          const output = await createCustomerBookkeeping(
-            {
-              customer: {
-                email: `test+${core.nanoid()}@example.com`,
-                name: 'Customer with Subscription Model',
-                organizationId: organization.id,
-                externalId: `ext_${core.nanoid()}`,
-                pricingModelId:
-                  subscriptionPricingModel.result.pricingModel.id,
+      const subscriptionCustomerResult =
+        await comprehensiveAdminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const output = await createCustomerBookkeeping(
+              {
+                customer: {
+                  email: `test+${core.nanoid()}@example.com`,
+                  name: 'Customer with Subscription Model',
+                  organizationId: organization.id,
+                  externalId: `ext_${core.nanoid()}`,
+                  pricingModelId:
+                    subscriptionPricingModel.result.pricingModel.id,
+                },
               },
-            },
-            {
-              transaction,
-              organizationId: organization.id,
-              livemode,
-            }
-          )
-          return output
-        }
-      )
+              {
+                transaction,
+                organizationId: organization.id,
+                livemode,
+                invalidateCache,
+                emitEvent,
+                enqueueLedgerCommand,
+              }
+            )
+            return { result: output }
+          }
+        )
 
       // Verify Subscription behavior
-      const subscriptionSub =
-        subscriptionCustomerResult.result.subscription!
+      const subscriptionSub = subscriptionCustomerResult.subscription!
       expect(subscriptionSub.renews).toBe(true)
       expect(typeof subscriptionSub.currentBillingPeriodStart).toBe(
         'number'

@@ -1721,7 +1721,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         ).rejects.toThrow(
           'Payment method required for subscription activation'
         )
-        return { eventsToInsert: [], result: null }
+        return { result: null }
       })
     })
   })
@@ -1782,7 +1782,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(updatedSub.defaultPaymentMethodId).toBe(newPM.id)
         // Verify renews is preserved
         expect(updatedSub.renews).toBe(targetSub.renews)
-        return { eventsToInsert: [], result: null }
+        return { result: null }
       })
     })
 
@@ -1849,7 +1849,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
         expect(updatedSub1.defaultPaymentMethodId).toBe(newPM.id)
         expect(updatedSub2.defaultPaymentMethodId).toBe(newPM.id)
-        return { eventsToInsert: [], result: null }
+        return { result: null }
       })
     })
   })
@@ -1907,7 +1907,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(subscriptions[0].defaultPaymentMethodId).toBe(
           paymentMethods[0].id
         )
-        return { eventsToInsert: [], result: null }
+        return { result: null }
       })
     })
   })
@@ -1953,7 +1953,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(subscriptions[0].name).toBe(
           'Premium Plan - Special Edition'
         )
-        return { eventsToInsert: [], result: null }
+        return { result: null }
       })
     })
   })

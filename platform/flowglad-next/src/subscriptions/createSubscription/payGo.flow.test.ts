@@ -144,7 +144,7 @@ describe('Pay as You Go Workflow E2E', () => {
           emitEvent,
           enqueueLedgerCommand,
         }) => {
-          return await createCustomerBookkeeping(
+          const result = await createCustomerBookkeeping(
             {
               customer: {
                 organizationId: organization.id,
@@ -163,6 +163,7 @@ describe('Pay as You Go Workflow E2E', () => {
               enqueueLedgerCommand,
             }
           )
+          return { result }
         }
       )
 

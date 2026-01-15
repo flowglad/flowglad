@@ -117,30 +117,36 @@ const createCustomerProcedure = protectedProcedure
                   organizationId,
                 },
               },
-              { transaction, livemode, organizationId }
+              {
+                transaction,
+                livemode,
+                organizationId,
+                invalidateCache: transactionCtx.invalidateCache,
+                emitEvent: transactionCtx.emitEvent,
+                enqueueLedgerCommand:
+                  transactionCtx.enqueueLedgerCommand,
+              }
             )
 
           if (ctx.path) {
             await revalidatePath(ctx.path)
           }
 
-          const subscription = createdCustomerOutput.result
-            .subscription
-            ? subscriptionWithCurrent(
-                createdCustomerOutput.result.subscription
-              )
-            : undefined
+          const {
+            customer: createdCustomer,
+            subscription,
+            subscriptionItems,
+          } = createdCustomerOutput
           return {
             result: {
               data: {
-                customer: createdCustomerOutput.result.customer,
-                subscription,
-                subscriptionItems:
-                  createdCustomerOutput.result.subscriptionItems,
+                customer: createdCustomer,
+                subscription: subscription
+                  ? subscriptionWithCurrent(subscription)
+                  : undefined,
+                subscriptionItems,
               },
             },
-            eventsToInsert: createdCustomerOutput.eventsToInsert,
-            ledgerCommand: createdCustomerOutput.ledgerCommand,
           }
         } catch (error) {
           errorHandlers.customer.handle(error, {
