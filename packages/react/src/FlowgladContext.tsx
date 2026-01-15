@@ -108,7 +108,7 @@ export type LoadedFlowgladContextValues = BillingWithChecks & {
    * // With timing override
    * await adjustSubscription({
    *   priceSlug: 'pro-monthly',
-   *   timing: 'at_end_of_period'
+   *   timing: 'at_end_of_current_billing_period'
    * })
    *
    * // Explicit subscription ID (for multi-subscription customers)
@@ -133,7 +133,7 @@ export type LoadedFlowgladContextValues = BillingWithChecks & {
    * @param params.subscriptionItems - Array of items for multi-item adjustments
    * @param params.quantity - Number of units (default: 1)
    * @param params.subscriptionId - Subscription ID (auto-resolves if customer has exactly 1 subscription)
-   * @param params.timing - 'immediately' | 'at_end_of_period' | 'auto' (default: 'auto')
+   * @param params.timing - 'immediately' | 'at_end_of_current_billing_period' | 'auto' (default: 'auto')
    * @param params.prorate - Whether to prorate (default: true for immediate, false for end-of-period)
    */
   adjustSubscription: (params: AdjustSubscriptionParams) => Promise<{

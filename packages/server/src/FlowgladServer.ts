@@ -342,7 +342,7 @@ export class FlowgladServer {
    * // With timing override
    * await flowglad.adjustSubscription({
    *   priceSlug: 'pro-monthly',
-   *   timing: 'at_end_of_period'
+   *   timing: 'at_end_of_current_billing_period'
    * })
    *
    * // Explicit subscription ID (for multi-subscription customers)
@@ -367,10 +367,10 @@ export class FlowgladServer {
    * @param params.subscriptionItems - Array of items for multi-item adjustments (mutually exclusive with priceSlug and priceId)
    * @param params.quantity - Number of units for single-price adjustments (default: 1)
    * @param params.subscriptionId - Subscription ID (auto-resolves if customer has exactly 1 subscription)
-   * @param params.timing - 'immediately' | 'at_end_of_period' | 'auto' (default: 'auto')
+   * @param params.timing - 'immediately' | 'at_end_of_current_billing_period' | 'auto' (default: 'auto')
    *   - 'auto': Upgrades happen immediately, downgrades at end of period
    *   - 'immediately': Apply change now with proration
-   *   - 'at_end_of_period': Apply change at next billing period
+   *   - 'at_end_of_current_billing_period': Apply change at next billing period
    * @param params.prorate - Whether to prorate (default: true for immediate, false for end-of-period)
    * @returns The adjusted subscription and its items
    * @throws {Error} If customer has no active subscriptions
@@ -411,17 +411,10 @@ export class FlowgladServer {
       throw new Error('Subscription is not owned by the current user')
     }
 
+    // Timing values from SDK now match backend directly
     const timing =
       parsedParams.timing ?? subscriptionAdjustmentTiming.Auto
     const prorate = parsedParams.prorate
-
-    const serverTiming =
-      timing === subscriptionAdjustmentTiming.Immediately
-        ? 'immediately'
-        : timing ===
-            subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
-          ? 'at_end_of_current_billing_period'
-          : 'auto'
 
     // Build newSubscriptionItems based on the params form
     let newSubscriptionItems: Array<{
@@ -467,13 +460,14 @@ export class FlowgladServer {
     }
 
     const adjustment =
-      serverTiming === 'at_end_of_current_billing_period'
+      timing ===
+      subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
         ? {
-            timing: serverTiming,
+            timing,
             newSubscriptionItems,
           }
         : {
-            timing: serverTiming,
+            timing,
             newSubscriptionItems,
             prorateCurrentBillingPeriod: prorate ?? true,
           }
