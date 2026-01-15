@@ -1484,6 +1484,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     // Create a discount first
     const discount = await setupDiscount({
       organizationId: organization.id,
+      pricingModelId: pricingModel.id,
       name: 'Test Discount',
       amount: 10, // 10% off
       amountType: DiscountAmountType.Percent,
@@ -1560,6 +1561,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     const discounts = await Promise.all([
       setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'Test Discount 1',
         amount: 10,
         amountType: DiscountAmountType.Percent,
@@ -1568,6 +1570,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       }),
       setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'Test Discount 2',
         amount: 15,
         amountType: DiscountAmountType.Percent,
@@ -1649,6 +1652,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
     const discount = await setupDiscount({
       organizationId: organization.id,
+      pricingModelId: pricingModel.id,
       name: 'Test Discount',
       amount: 10,
       amountType: DiscountAmountType.Percent,

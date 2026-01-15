@@ -23,6 +23,7 @@ import {
   updateDiscount as updateDiscountDB,
 } from '@/db/tableMethods/discountMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
+import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
@@ -54,9 +55,26 @@ export const createDiscount = protectedProcedure
             },
             transaction
           )
+
+        // Get pricingModelId from input or use default
+        let pricingModelId = input.discount.pricingModelId
+        if (!pricingModelId) {
+          const defaultPM = await selectDefaultPricingModel(
+            { organizationId: organization.id, livemode },
+            transaction
+          )
+          if (!defaultPM) {
+            throw new Error(
+              'No default pricing model found for organization'
+            )
+          }
+          pricingModelId = defaultPM.id
+        }
+
         return insertDiscount(
           {
             ...input.discount,
+            pricingModelId,
             organizationId: organization.id,
             livemode,
           },
@@ -111,6 +129,7 @@ const getTableRowsProcedure = protectedProcedure
     createPaginatedTableRowInputSchema(
       z.object({
         active: z.boolean().optional(),
+        pricingModelId: z.string().optional(),
       })
     )
   )

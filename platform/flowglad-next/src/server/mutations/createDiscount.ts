@@ -2,6 +2,7 @@ import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { createDiscountInputSchema } from '@/db/schema/discounts'
 import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
+import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { protectedProcedure } from '@/server/trpc'
 
 export const createDiscount = protectedProcedure
@@ -17,9 +18,26 @@ export const createDiscount = protectedProcedure
             },
             transaction
           )
+
+        // Get pricingModelId from input or use default
+        let pricingModelId = input.discount.pricingModelId
+        if (!pricingModelId) {
+          const defaultPM = await selectDefaultPricingModel(
+            { organizationId: organization.id, livemode },
+            transaction
+          )
+          if (!defaultPM) {
+            throw new Error(
+              'No default pricing model found for organization'
+            )
+          }
+          pricingModelId = defaultPM.id
+        }
+
         return insertDiscount(
           {
             ...input.discount,
+            pricingModelId,
             organizationId: organization.id,
             livemode,
           },

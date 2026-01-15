@@ -142,7 +142,7 @@ export const {
     pricingModelId: z.string().optional(),
   },
   client: {
-    readOnlyColumns: {
+    createOnlyColumns: {
       pricingModelId: true,
     },
   },
@@ -168,7 +168,7 @@ export const {
     pricingModelId: z.string().optional(),
   },
   client: {
-    readOnlyColumns: {
+    createOnlyColumns: {
       pricingModelId: true,
     },
   },
@@ -191,7 +191,7 @@ export const {
     pricingModelId: z.string().optional(),
   },
   client: {
-    readOnlyColumns: {
+    createOnlyColumns: {
       pricingModelId: true,
     },
   },
@@ -292,6 +292,10 @@ export const discountsPaginatedListWithRedemptionsSchema =
 export const discountsTableRowDataSchema = z.object({
   discount: discountClientSelectSchema,
   redemptionCount: z.number(),
+  pricingModel: z.object({
+    id: z.string(),
+    name: z.string(),
+  }),
 })
 
 export namespace Discount {

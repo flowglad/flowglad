@@ -1073,6 +1073,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       // Create a 100% off discount that equals the full price amount
       const fullDiscount = await setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'FULL100',
         code: core.nanoid().slice(0, 10),
         amount: price.unitPrice, // Full price coverage
