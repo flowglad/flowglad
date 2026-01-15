@@ -125,3 +125,90 @@ For paid subscriptions, a valid payment method must exist for the subscription. 
 *   **[API](/api-reference/subscriptions/uncancel-subscription):** Make a POST request to `/api/v1/subscriptions/{id}/uncancel`
 
 See the SDK documentation for detailed code examples.
+
+## Adjusting a Subscription
+
+Flowglad supports upgrading and downgrading subscriptions mid-billing cycle with automatic proration handling. This allows customers to change their plan at any time without waiting for the next billing period.
+
+### What is a Subscription Adjustment?
+
+A subscription adjustment changes the products or services a customer is subscribed to. This can be:
+*   **Upgrade:** Moving to a higher-priced plan (e.g., from Basic to Pro)
+*   **Downgrade:** Moving to a lower-priced plan (e.g., from Pro to Basic)
+*   **Lateral change:** Switching to a different plan at the same price point
+
+### Adjustment Timing
+
+When an adjustment occurs depends on the `timing` parameter:
+
+*   **Auto (default):** Flowglad automatically determines the best timing by comparing the total monetary value of subscription items:
+    *   Upgrades (new total > current total) apply immediately with proration (customer gets new features right away)
+    *   Downgrades (new total < current total) apply at the end of the current billing period (customer keeps current plan until they've used what they paid for)
+    *   Same-price changes (new total = current total) apply immediately (no financial impact)
+
+    The total is calculated as `unitPrice × quantity` summed across all subscription items.
+
+*   **Immediately:** The adjustment takes effect right away. For upgrades, the customer is charged the prorated difference for the remainder of the billing period. For downgrades, the plan changes immediately but no refund is issued.
+
+*   **At End of Current Billing Period:** The adjustment is scheduled for the end of the billing period. This is only valid for downgrades (changes with zero or negative net charge).
+
+### Proration
+
+Proration ensures fair billing when plans change mid-cycle. Flowglad uses a "fair value" calculation:
+
+1.  Calculate the value of the old plan for the time already used
+2.  Calculate the value of the new plan for the remaining time in the billing period
+3.  Determine the total fair value and compare against what has already been paid
+4.  Charge only the difference (for upgrades)
+
+**Example:** A customer on a $100/month plan upgrades to a $200/month plan halfway through the billing period:
+*   Old plan value (first half): $50
+*   New plan value (second half): $100
+*   Total fair value: $150
+*   Already paid: $100
+*   Proration charge: $50
+
+<Note>
+Downgrades do not issue refunds. When using `auto` timing, downgrades are scheduled for the end of the billing period so the customer continues to receive the value of their current plan.
+</Note>
+
+You can disable proration by setting `prorate: false` when adjusting. This applies the plan change immediately but delays the pricing change until the next billing period. This effectively gives the customer the upgraded features for free until the period ends.
+
+<Warning>
+The `prorate` option only applies to `immediately` and `auto` timing. When using `at_end_of_period`, there is no proration since the change takes effect at the start of the next billing cycle.
+</Warning>
+
+### Methods for Adjusting
+
+*   **[React SDK](/sdks/subscription-management#adjust-subscriptions):** Use the `adjustSubscription` method from the `useBilling()` hook for client-side implementation
+*   **[Server SDK](/sdks/subscription-management#adjust-subscriptions):** Use the `adjustSubscription` method from `FlowgladServer` for server-side implementation
+
+### Restrictions
+
+Subscription adjustments have the following restrictions:
+*   The subscription must be in an active state (not `canceled`, `incomplete_expired`, etc.)
+*   The subscription must be a renewing subscription (not a one-time purchase)
+*   The subscription cannot be a free plan (use `createSubscription` to upgrade from free)
+*   The subscription cannot have the `doNotCharge` flag set
+*   A valid payment method is required for proration charges (upgrades with `prorate: true`)
+*   The new price must belong to the same pricing model as the subscription
+*   Only recurring (subscription-type) prices can be used
+*   For downgrades with resource features (e.g., team seats), all resources over the new capacity must be released before the adjustment can proceed
+
+<Warning>
+For subscriptions on a free trial without a payment method attached, proration upgrades will fail because there is no way to charge for the prorated amount. To upgrade a trialing subscription without a payment method, either:
+1. Collect a payment method first using a checkout session
+2. Use `prorate: false` to skip the immediate charge (customer gets features now, pays at next billing period)
+</Warning>
+
+### Usage-Based Pricing and Adjustments
+
+Subscription adjustments only affect recurring (subscription-type) prices. **Usage-based pricing is not prorated during adjustments.**
+
+*   Usage charges continue to accumulate throughout the billing period regardless of any subscription adjustments
+*   Usage is billed at the end of the billing period based on actual consumption
+*   If you adjust a subscription mid-period, the customer will still be charged for all usage accrued during that period
+
+<Info>
+To include usage-based pricing in a subscription, add usage prices as separate subscription items when creating the subscription. These items are billed based on metered usage rather than the adjustment proration logic.
+</Info>
