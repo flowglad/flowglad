@@ -57,7 +57,12 @@ const getTableRows = protectedProcedure
     createPaginatedTableRowOutputSchema(purchasesTableRowDataSchema)
   )
   .query(
-    authenticatedProcedureTransaction(selectPurchasesTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectPurchasesTableRowData({ input, transaction })
+      }
+    )
   )
 
 export const purchasesRouter = router({

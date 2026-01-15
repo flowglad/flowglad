@@ -111,7 +111,15 @@ const getFocusedMembership = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ userId, transaction }) => {
+      async ({ ctx, transactionCtx }) => {
+        const userId = ctx.user?.id
+        const { transaction } = transactionCtx
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User authentication required',
+          })
+        }
         const focusedMembership =
           await selectFocusedMembershipAndOrganization(
             userId,
@@ -134,7 +142,8 @@ const getRevenueData = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, ctx, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         return selectRevenueDataForOrganization(input, transaction)
       }
     )
@@ -144,6 +153,7 @@ const getMRRCalculationInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
   granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  productId: z.string().nullish(),
 })
 
 const getMRR = protectedProcedure
@@ -158,14 +168,18 @@ const getMRR = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, ctx, transaction }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
         if (!ctx.organizationId) {
           throw new Error('organizationId is required')
         }
 
         return calculateMRRByMonth(
           ctx.organizationId!,
-          input,
+          {
+            ...input,
+            productId: input.productId ?? undefined,
+          },
           transaction
         )
       }
@@ -173,13 +187,16 @@ const getMRR = protectedProcedure
   )
 
 const getARR = protectedProcedure.query(
-  authenticatedProcedureTransaction(async ({ ctx, transaction }) => {
-    if (!ctx.organizationId) {
-      throw new Error('organizationId is required')
-    }
+  authenticatedProcedureTransaction(
+    async ({ ctx, transactionCtx }) => {
+      const { transaction } = transactionCtx
+      if (!ctx.organizationId) {
+        throw new Error('organizationId is required')
+      }
 
-    return calculateARR(ctx.organizationId!, transaction)
-  })
+      return calculateARR(ctx.organizationId!, transaction)
+    }
+  )
 )
 
 const getMRRBreakdownInputSchema = z.object({
@@ -191,7 +208,8 @@ const getMRRBreakdown = protectedProcedure
   .input(getMRRBreakdownInputSchema)
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, ctx, transaction }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
         if (!ctx.organizationId) {
           throw new Error('organizationId is required')
         }
@@ -210,6 +228,7 @@ const getActiveSubscribersInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
   granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  productId: z.string().nullish(),
 })
 
 const getActiveSubscribers = protectedProcedure
@@ -224,14 +243,18 @@ const getActiveSubscribers = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, ctx, transaction }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
         if (!ctx.organizationId) {
           throw new Error('organizationId is required')
         }
 
         return calculateActiveSubscribersByMonth(
           ctx.organizationId!,
-          input,
+          {
+            ...input,
+            productId: input.productId ?? undefined,
+          },
           transaction
         )
       }
@@ -247,7 +270,8 @@ const getSubscriberBreakdown = protectedProcedure
   .input(getSubscriberBreakdownInputSchema)
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, ctx, transaction }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
         if (!ctx.organizationId) {
           throw new Error('organizationId is required')
         }
@@ -263,16 +287,19 @@ const getSubscriberBreakdown = protectedProcedure
   )
 
 const getCurrentSubscribers = protectedProcedure.query(
-  authenticatedProcedureTransaction(async ({ ctx, transaction }) => {
-    if (!ctx.organizationId) {
-      throw new Error('organizationId is required')
-    }
+  authenticatedProcedureTransaction(
+    async ({ ctx, transactionCtx }) => {
+      const { transaction } = transactionCtx
+      if (!ctx.organizationId) {
+        throw new Error('organizationId is required')
+      }
 
-    return getCurrentActiveSubscribers(
-      { organizationId: ctx.organizationId! },
-      transaction
-    )
-  })
+      return getCurrentActiveSubscribers(
+        { organizationId: ctx.organizationId! },
+        transaction
+      )
+    }
+  )
 )
 
 const getOrganizations = protectedProcedure.query(async ({ ctx }) => {
@@ -362,7 +389,8 @@ const updateOrganization = protectedProcedure
   .input(editOrganizationSchema)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const { organization } = input
         await updateOrganizationDB(organization, transaction)
         return {
@@ -453,9 +481,23 @@ const getNotificationPreferences = protectedProcedure
   .output(notificationPreferencesSchema)
   .query(
     authenticatedProcedureTransaction(
-      async ({ transaction, userId, ctx }) => {
+      async ({ ctx, transactionCtx }) => {
+        const userId = ctx.user?.id
+        const { transaction } = transactionCtx
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User authentication required',
+          })
+        }
+        if (!ctx.organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'organizationId is required',
+          })
+        }
         const [membership] = await selectMemberships(
-          { userId, organizationId: ctx.organizationId! },
+          { userId, organizationId: ctx.organizationId },
           transaction
         )
         if (!membership) {
@@ -483,8 +525,7 @@ const updateNotificationPreferencesInputSchema = z.object({
       subscriptionCanceled: z.boolean().optional(),
       subscriptionCancellationScheduled: z.boolean().optional(),
       paymentFailed: z.boolean().optional(),
-      onboardingCompleted: z.boolean().optional(),
-      payoutsEnabled: z.boolean().optional(),
+      paymentSuccessful: z.boolean().optional(),
     })
     .partial(),
 })
@@ -502,9 +543,23 @@ const updateNotificationPreferences = protectedProcedure
   .output(updateNotificationPreferencesOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId, ctx }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const userId = ctx.user?.id
+        const { transaction } = transactionCtx
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User authentication required',
+          })
+        }
+        if (!ctx.organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'organizationId is required',
+          })
+        }
         const [membership] = await selectMemberships(
-          { userId, organizationId: ctx.organizationId! },
+          { userId, organizationId: ctx.organizationId },
           transaction
         )
         if (!membership) {
@@ -513,10 +568,12 @@ const updateNotificationPreferences = protectedProcedure
             message: 'Membership not found',
           })
         }
-        const currentPrefs =
+        // Get the raw stored preferences (partial object) to preserve existing values
+        const storedPrefs =
           (membership.notificationPreferences as Partial<NotificationPreferences>) ??
           {}
-        const updatedPrefs = { ...currentPrefs, ...input.preferences }
+        // Merge stored preferences with the new input preferences
+        const updatedPrefs = { ...storedPrefs, ...input.preferences }
         const updatedMembership = await updateMembership(
           {
             id: membership.id,
@@ -525,7 +582,6 @@ const updateNotificationPreferences = protectedProcedure
           transaction
         )
         // Return full preferences merged with defaults to ensure all fields are present
-        // Use the actual saved preferences from the database, not the computed values
         return {
           preferences:
             getMembershipNotificationPreferences(updatedMembership),

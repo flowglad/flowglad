@@ -23,7 +23,10 @@
 import type Stripe from 'stripe'
 import { expect } from 'vitest'
 import { teardownOrg } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Payment } from '@/db/schema/payments'
@@ -42,6 +45,7 @@ import {
   describeIfStripeKey,
   getStripeTestClient,
 } from '@/test/stripeIntegrationHelpers'
+import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   FeeCalculationType,
   PaymentStatus,
@@ -136,7 +140,8 @@ const confirmCheckoutSessionBehavior = defineBehavior({
     )
 
     // Update checkout session with payment intent ID and confirm
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const session = await selectCheckoutSessionById(
         prev.updatedCheckoutSession.id,
         transaction
@@ -154,10 +159,8 @@ const confirmCheckoutSessionBehavior = defineBehavior({
       )
 
       // Confirm the checkout session
-      await confirmCheckoutSessionTransaction(
-        { id: session.id },
-        transaction
-      )
+      await confirmCheckoutSessionTransaction({ id: session.id }, ctx)
+      return { result: null }
     })
 
     return {
@@ -243,19 +246,20 @@ const processPaymentSuccessBehavior = defineBehavior({
     }
 
     // Process the charge through our bookkeeping
-    const bookkeepingResult = await adminTransaction(
-      async ({ transaction }) => {
-        return processStripeChargeForCheckoutSession(
+    const bookkeepingResult = await comprehensiveAdminTransaction(
+      async (params) => {
+        const result = await processStripeChargeForCheckoutSession(
           {
             checkoutSessionId: prev.updatedCheckoutSession.id,
             charge,
           },
-          transaction
+          createProcessingEffectsContext(params)
         )
+        return { result }
       }
     )
 
-    const purchase = bookkeepingResult.result.purchase
+    const purchase = bookkeepingResult.purchase
     if (!purchase) {
       throw new Error('Purchase not created after payment success')
     }

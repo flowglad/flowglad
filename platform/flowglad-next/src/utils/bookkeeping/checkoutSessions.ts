@@ -46,8 +46,10 @@ import {
   updatePurchase,
   upsertPurchaseById,
 } from '@/db/tableMethods/purchaseMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import {
   CheckoutSessionStatus,
   FeeCalculationType,
@@ -321,16 +323,15 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     checkoutSession: CheckoutSession.Record
     stripeCustomerId: string | null
   },
-  transaction: DbTransaction
-): Promise<
-  TransactionOutput<{
-    purchase: Purchase.Record
-    customer: Customer.Record
-    discount: Discount.Record | null
-    feeCalculation: FeeCalculation.Record
-    discountRedemption: DiscountRedemption.Record | null
-  }>
-> => {
+  ctx: TransactionEffectsContext
+): Promise<{
+  purchase: Purchase.Record
+  customer: Customer.Record
+  discount: Discount.Record | null
+  feeCalculation: FeeCalculation.Record
+  discountRedemption: DiscountRedemption.Record | null
+}> => {
+  const { transaction, emitEvent, enqueueLedgerCommand } = ctx
   const [{ price, product }] =
     await selectPriceProductAndOrganizationByPriceWhere(
       { id: checkoutSession.priceId! },
@@ -338,8 +339,6 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     )
   let customer: Customer.Record | null = null
   let purchase: Purchase.Record | null = null
-  let customerEvents: Event.Insert[] = []
-  let customerLedgerCommand: any = null
 
   // Step 1: Try to find existing customer by checkout session customer ID (logged-in user)
   if (checkoutSession.purchaseId) {
@@ -412,9 +411,13 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     )
     customer = customerResult.result.customer
 
-    // Store events/ledger from customer creation to bubble up
-    customerEvents = customerResult.eventsToInsert || []
-    customerLedgerCommand = customerResult.ledgerCommand
+    // Emit events and ledger commands from customer creation
+    if (customerResult.eventsToInsert?.length) {
+      emitEvent(...customerResult.eventsToInsert)
+    }
+    if (customerResult.ledgerCommand) {
+      enqueueLedgerCommand(customerResult.ledgerCommand)
+    }
   }
   if (!purchase) {
     const corePurchaseFields = {
@@ -526,15 +529,11 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     }
   }
   return {
-    result: {
-      purchase,
-      customer,
-      discount,
-      feeCalculation,
-      discountRedemption,
-    },
-    eventsToInsert: customerEvents,
-    ledgerCommand: customerLedgerCommand,
+    purchase,
+    customer,
+    discount,
+    feeCalculation,
+    discountRedemption,
   }
 }
 
@@ -573,14 +572,13 @@ export const processStripeChargeForCheckoutSession = async (
       'status' | 'amount' | 'customer' | 'billing_details'
     >
   },
-  transaction: DbTransaction
-): Promise<
-  TransactionOutput<{
-    purchase: Purchase.Record | null
-    invoice: Invoice.Record | null
-    checkoutSession: CheckoutSession.Record
-  }>
-> => {
+  ctx: TransactionEffectsContext
+): Promise<{
+  purchase: Purchase.Record | null
+  invoice: Invoice.Record | null
+  checkoutSession: CheckoutSession.Record
+}> => {
+  const { transaction } = ctx
   let purchase: Purchase.Record | null = null
   let checkoutSession = await selectCheckoutSessionById(
     checkoutSessionId,
@@ -588,9 +586,6 @@ export const processStripeChargeForCheckoutSession = async (
   )
 
   let invoice: Invoice.Record | null = null
-  let purchaseBookkeepingResult: Awaited<
-    ReturnType<typeof processPurchaseBookkeepingForCheckoutSession>
-  > | null = null
 
   const checkoutSessionStatus =
     checkoutSessionStatusFromStripeCharge(charge)
@@ -598,7 +593,7 @@ export const processStripeChargeForCheckoutSession = async (
     checkoutSessionStatus === CheckoutSessionStatus.Succeeded ||
     checkoutSessionStatus === CheckoutSessionStatus.Pending
   ) {
-    purchaseBookkeepingResult =
+    const purchaseBookkeepingResult =
       await processPurchaseBookkeepingForCheckoutSession(
         {
           checkoutSession,
@@ -606,9 +601,9 @@ export const processStripeChargeForCheckoutSession = async (
             ? stripeIdFromObjectOrId(charge.customer)
             : null,
         },
-        transaction
+        ctx
       )
-    purchase = purchaseBookkeepingResult.result.purchase
+    purchase = purchaseBookkeepingResult.purchase
     if (purchase) {
       const invoiceForPurchase =
         await createInitialInvoiceForPurchase(
@@ -631,13 +626,9 @@ export const processStripeChargeForCheckoutSession = async (
     transaction
   )
   return {
-    result: {
-      purchase,
-      invoice,
-      checkoutSession,
-    },
-    eventsToInsert: purchaseBookkeepingResult?.eventsToInsert || [],
-    ledgerCommand: purchaseBookkeepingResult?.ledgerCommand,
+    purchase,
+    invoice,
+    checkoutSession,
   }
 }
 

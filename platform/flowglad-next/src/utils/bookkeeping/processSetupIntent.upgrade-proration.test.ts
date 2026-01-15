@@ -38,6 +38,11 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { calculateSplitInBillingPeriodBasedOnAdjustmentDate } from '@/subscriptions/adjustSubscription'
 import {
+  createDiscardingEffectsContext,
+  noopEmitEvent,
+  noopInvalidateCache,
+} from '@/test-utils/transactionCallbacks'
+import {
   CancellationReason,
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -206,7 +211,10 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
       })
 
       // Get the new subscription
@@ -260,7 +268,10 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
       })
 
       // Get billing period items
@@ -314,7 +325,10 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
       })
 
       const paidSubscription = await adminTransaction(
@@ -427,7 +441,10 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
       })
 
       const paidSubscription = await adminTransaction(
@@ -470,7 +487,10 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
       })
 
       const paidSubscription = await adminTransaction(
@@ -553,7 +573,10 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
       })
 
       const paidSubscription = await adminTransaction(
@@ -667,7 +690,10 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
       })
 
       const paidSubscription = await adminTransaction(
@@ -769,7 +795,10 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
       })
 
       const paidSubscription = await adminTransaction(
@@ -871,7 +900,10 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
       })
 
       const paidSubscription = await adminTransaction(
@@ -984,7 +1016,10 @@ describe('Subscription Upgrade with Proration', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
       })
 
       const paidSubscription = await adminTransaction(

@@ -12,6 +12,7 @@ import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { ProductFeature } from '@/db/schema/productFeatures'
 import type { Product } from '@/db/schema/products'
+import type { Resource } from '@/db/schema/resources'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import {
   bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug,
@@ -31,12 +32,20 @@ import {
   updateProduct,
 } from '@/db/tableMethods/productMethods'
 import {
+  bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug,
+  updateResource,
+} from '@/db/tableMethods/resourceMethods'
+import {
   bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId,
   updateUsageMeter,
 } from '@/db/tableMethods/usageMeterMethods'
-import type { DbTransaction } from '@/db/types'
+import type { TransactionEffectsContext } from '@/db/types'
 import { FeatureType, PriceType } from '@/types'
-import { computeUpdateObject, diffPricingModel } from './diffing'
+import {
+  computeUpdateObject,
+  diffPricingModel,
+  diffSluggedResources,
+} from './diffing'
 import { protectDefaultProduct } from './protectDefaultProduct'
 import { getPricingModelSetupData } from './setupHelpers'
 import {
@@ -73,6 +82,11 @@ export type UpdatePricingModelResult = {
     created: UsageMeter.Record[]
     updated: UsageMeter.Record[]
   }
+  resources: {
+    created: Resource.Record[]
+    updated: Resource.Record[]
+    deactivated: Resource.Record[]
+  }
   productFeatures: {
     added: ProductFeature.Record[]
     removed: ProductFeature.Record[]
@@ -100,7 +114,7 @@ export type UpdatePricingModelResult = {
  * @param params - Configuration object
  * @param params.pricingModelId - ID of the pricing model to update
  * @param params.proposedInput - The proposed new state of the pricing model
- * @param transaction - Database transaction
+ * @param transactionParams - Transaction params including invalidateCache callback
  * @returns Structured result with all created/updated/deactivated records
  */
 export const updatePricingModelTransaction = async (
@@ -111,8 +125,12 @@ export const updatePricingModelTransaction = async (
     pricingModelId: string
     proposedInput: SetupPricingModelInput
   },
-  transaction: DbTransaction
+  transactionParams: Pick<
+    TransactionEffectsContext,
+    'transaction' | 'invalidateCache'
+  >
 ): Promise<UpdatePricingModelResult> => {
+  const { transaction, invalidateCache } = transactionParams
   // Step 1: Fetch existing pricing model data and organization
   const [existingInput, pricingModel] = await Promise.all([
     getPricingModelSetupData(pricingModelId, transaction),
@@ -147,6 +165,7 @@ export const updatePricingModelTransaction = async (
     products: { created: [], updated: [], deactivated: [] },
     prices: { created: [], updated: [], deactivated: [] },
     usageMeters: { created: [], updated: [] },
+    resources: { created: [], updated: [], deactivated: [] },
     productFeatures: { added: [], removed: [] },
   }
 
@@ -214,6 +233,101 @@ export const updatePricingModelTransaction = async (
     )
   }
 
+  /**
+   * Step 8b: Handle resources
+   *
+   * Creates new resources, updates existing ones, and deactivates removed ones.
+   * Resources must be processed before features because Resource features
+   * need to resolve resourceSlug → resourceId.
+   *
+   * Note: Resources are optional in the input schema until Patch 1 (setupSchemas)
+   * adds them to the discriminated union, so we default to empty arrays.
+   */
+  type ResourceInput = {
+    slug: string
+    name: string
+    active?: boolean
+  }
+  const existingResources: ResourceInput[] =
+    (existingInput as { resources?: ResourceInput[] }).resources ?? []
+  const proposedResources: ResourceInput[] =
+    (proposedInput as { resources?: ResourceInput[] }).resources ?? []
+  const resourceDiff = diffSluggedResources(
+    existingResources,
+    proposedResources
+  )
+
+  // Batch create new resources
+  if (resourceDiff.toCreate.length > 0) {
+    const resourceInserts: Resource.Insert[] =
+      resourceDiff.toCreate.map((resource) => ({
+        slug: resource.slug,
+        name: resource.name,
+        pricingModelId,
+        organizationId: pricingModel.organizationId,
+        livemode: pricingModel.livemode,
+        active: resource.active ?? true,
+      }))
+
+    const createdResources =
+      await bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug(
+        resourceInserts,
+        transaction
+      )
+    result.resources.created = createdResources
+    // Merge newly created resource IDs into map
+    for (const resource of createdResources) {
+      idMaps.resources.set(resource.slug, resource.id)
+    }
+  }
+
+  // Update existing resources (parallel)
+  const resourceUpdatePromises = resourceDiff.toUpdate
+    .map(({ existing, proposed }) => {
+      const updateObj = computeUpdateObject(existing, proposed)
+      if (Object.keys(updateObj).length === 0) return null
+
+      const resourceId = idMaps.resources.get(existing.slug)
+      if (!resourceId) {
+        throw new Error(
+          `Resource ${existing.slug} not found in ID map`
+        )
+      }
+      return updateResource(
+        { id: resourceId, ...updateObj },
+        transaction
+      )
+    })
+    .filter((p): p is Promise<Resource.Record> => p !== null)
+
+  if (resourceUpdatePromises.length > 0) {
+    result.resources.updated = await Promise.all(
+      resourceUpdatePromises
+    )
+  }
+
+  // Deactivate removed resources (parallel)
+  const resourceDeactivatePromises = resourceDiff.toRemove.map(
+    (resourceInput) => {
+      const resourceId = idMaps.resources.get(resourceInput.slug)
+      if (!resourceId) {
+        throw new Error(
+          `Resource ${resourceInput.slug} not found in ID map for deactivation`
+        )
+      }
+      return updateResource(
+        { id: resourceId, active: false },
+        transaction
+      )
+    }
+  )
+
+  if (resourceDeactivatePromises.length > 0) {
+    result.resources.deactivated = await Promise.all(
+      resourceDeactivatePromises
+    )
+  }
+
   // Step 9: Batch create new features
   if (diff.features.toCreate.length > 0) {
     const featureInserts: Feature.Insert[] =
@@ -248,16 +362,58 @@ export const updatePricingModelTransaction = async (
             ...coreParams,
             type: FeatureType.UsageCreditGrant,
             usageMeterId,
+            resourceId: null,
             amount: feature.amount,
             renewalFrequency: feature.renewalFrequency,
             active: feature.active ?? true,
           }
         }
 
+        // Handle Resource type
+        // Note: This branch requires Patch 1 (setupSchemas) to add Resource to the
+        // discriminated union. Until then, we use type assertions to handle the case.
+        const featureAsUnknown = feature as unknown as {
+          type: string
+          resourceSlug?: string
+          amount?: number
+          active?: boolean
+        }
+        if (featureAsUnknown.type === FeatureType.Resource) {
+          if (!featureAsUnknown.resourceSlug) {
+            throw new Error(
+              `Resource feature ${coreParams.slug} requires resourceSlug`
+            )
+          }
+          if (typeof featureAsUnknown.amount !== 'number') {
+            throw new Error(
+              `Resource feature ${coreParams.slug} requires numeric amount`
+            )
+          }
+          const resourceId = idMaps.resources.get(
+            featureAsUnknown.resourceSlug
+          )
+          if (!resourceId) {
+            throw new Error(
+              `Resource ${featureAsUnknown.resourceSlug} not found`
+            )
+          }
+          return {
+            ...coreParams,
+            type: FeatureType.Resource,
+            resourceId,
+            usageMeterId: null,
+            amount: featureAsUnknown.amount,
+            renewalFrequency: null,
+            active: featureAsUnknown.active ?? true,
+          }
+        }
+
+        // Toggle type (default)
         return {
           ...coreParams,
           type: FeatureType.Toggle,
           usageMeterId: null,
+          resourceId: null,
           amount: null,
           renewalFrequency: null,
           active: feature.active ?? true,
@@ -293,6 +449,25 @@ export const updatePricingModelTransaction = async (
         }
         transformedUpdate.usageMeterId = newUsageMeterId
         delete transformedUpdate.usageMeterSlug
+      }
+
+      // Handle resourceSlug -> resourceId transformation
+      // Note: Type assertion needed until Patch 1 adds Resource to the schema
+      if ('resourceSlug' in transformedUpdate) {
+        const existingType = (existing as unknown as { type: string })
+          .type
+        if (existingType !== FeatureType.Resource) {
+          throw new Error(
+            `Feature ${existing.slug} has resourceSlug but is type ${existingType}, not Resource`
+          )
+        }
+        const newSlug = transformedUpdate.resourceSlug as string
+        const newResourceId = idMaps.resources.get(newSlug)
+        if (!newResourceId) {
+          throw new Error(`Resource ${newSlug} not found`)
+        }
+        transformedUpdate.resourceId = newResourceId
+        delete transformedUpdate.resourceSlug
       }
 
       if (Object.keys(transformedUpdate).length === 0) return null
@@ -725,7 +900,7 @@ export const updatePricingModelTransaction = async (
         organizationId: pricingModel.organizationId,
         livemode: pricingModel.livemode,
       },
-      transaction
+      { transaction, invalidateCache }
     )
 
   result.productFeatures.added = productFeaturesResult.added

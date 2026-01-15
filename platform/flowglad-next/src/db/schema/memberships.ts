@@ -78,19 +78,18 @@ export const memberships = pgTable(
 
 /**
  * Zod schema for notification preferences stored in the JSONB column.
- * Contains 8 fields:
- * - testModeNotifications: Controls whether test mode emails are sent (defaults to false)
- * - 7 notification type preferences: Each controls a specific notification type (all default to true)
+ * Contains 7 fields:
+ * - testModeNotifications: Controls whether test mode emails are sent (defaults to true)
+ * - 6 notification type preferences: Each controls a specific notification type (all default to true)
  */
 export const notificationPreferencesSchema = z.object({
-  testModeNotifications: z.boolean().default(false),
+  testModeNotifications: z.boolean().default(true),
   subscriptionCreated: z.boolean().default(true),
   subscriptionAdjusted: z.boolean().default(true),
   subscriptionCanceled: z.boolean().default(true),
   subscriptionCancellationScheduled: z.boolean().default(true),
   paymentFailed: z.boolean().default(true),
-  onboardingCompleted: z.boolean().default(true),
-  payoutsEnabled: z.boolean().default(true),
+  paymentSuccessful: z.boolean().default(true),
 })
 
 export type NotificationPreferences = z.infer<
@@ -100,7 +99,7 @@ export type NotificationPreferences = z.infer<
 /**
  * Default notification preferences for new memberships.
  * Derived from the schema defaults by parsing an empty object.
- * Test mode defaults to OFF, all notification types default to ON.
+ * Test mode defaults to ON, all notification types default to ON.
  */
 export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences =
   notificationPreferencesSchema.parse({})

@@ -547,23 +547,40 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               offset={8}
               position={{ y: 16 }}
               content={({ active, payload, label }) => {
-                const cleanPayload: TooltipProps['payload'] = payload
-                  ? payload.map((item) => ({
-                      category: String(item.dataKey ?? ''),
-                      value: Number(item.value ?? 0),
-                      index: String(
-                        (item.payload as Record<string, unknown>)?.[
-                          index
-                        ] ?? ''
-                      ),
-                      color: categoryColors.get(
-                        String(item.dataKey ?? '')
-                      ) as AvailableChartColorsKeys,
-                      type: item.type,
-                      payload:
-                        (item.payload as Record<string, unknown>) ??
-                        {},
-                    }))
+                // IMPORTANT: Do not coerce missing values to 0.
+                // During fast metric switching / re-renders, Recharts can briefly provide
+                // payload entries with `value: undefined`. Converting that to 0 causes the
+                // header value display to show "0" even when real chart data exists.
+                const cleanPayload: PayloadItem[] = payload
+                  ? payload.reduce<PayloadItem[]>((acc, item) => {
+                      const rawValue = item.value
+                      const value =
+                        typeof rawValue === 'number'
+                          ? rawValue
+                          : typeof rawValue === 'string'
+                            ? Number(rawValue)
+                            : Number.NaN
+
+                      if (!Number.isFinite(value)) return acc
+
+                      acc.push({
+                        category: String(item.dataKey ?? ''),
+                        value,
+                        index: String(
+                          (item.payload as Record<string, unknown>)?.[
+                            index
+                          ] ?? ''
+                        ),
+                        color: categoryColors.get(
+                          String(item.dataKey ?? '')
+                        ) as AvailableChartColorsKeys,
+                        type: item.type,
+                        payload:
+                          (item.payload as Record<string, unknown>) ??
+                          {},
+                      })
+                      return acc
+                    }, [])
                   : []
 
                 if (

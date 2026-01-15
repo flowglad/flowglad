@@ -168,7 +168,7 @@ describe.sequential('memberships RLS - notificationPreferences', () => {
       const prefs = getMembershipNotificationPreferences(
         memberships[0]
       )
-      expect(prefs.testModeNotifications).toBe(false) // default
+      expect(prefs.testModeNotifications).toBe(true) // default
       expect(prefs.subscriptionCreated).toBe(true) // default
     })
 
@@ -253,6 +253,7 @@ describe.sequential('memberships RLS - notificationPreferences', () => {
       expect(prefs.subscriptionAdjusted).toBe(true)
       expect(prefs.subscriptionCanceled).toBe(true)
       expect(prefs.paymentFailed).toBe(true)
+      expect(prefs.paymentSuccessful).toBe(true)
     })
 
     it('preserves existing preferences when updating partial preferences', async () => {
@@ -471,7 +472,7 @@ describe.sequential('memberships RLS - notificationPreferences', () => {
               id: org1Membership.id,
               notificationPreferences: {
                 testModeNotifications: true,
-                payoutsEnabled: false,
+                subscriptionCreated: false,
               },
             },
             transaction
@@ -496,9 +497,9 @@ describe.sequential('memberships RLS - notificationPreferences', () => {
         memberships[0]
       )
       expect(prefs.testModeNotifications).toBe(true)
-      expect(prefs.payoutsEnabled).toBe(false)
+      expect(prefs.subscriptionCreated).toBe(false)
       // Defaults should still apply for unset preferences
-      expect(prefs.subscriptionCreated).toBe(true)
+      expect(prefs.subscriptionAdjusted).toBe(true)
     })
   })
 })

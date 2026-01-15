@@ -33,7 +33,7 @@ import {
   FeatureUsageGrantFrequency,
   SubscriptionStatus,
 } from '@/types'
-import core from '@/utils/core'
+import core, { IS_DEV } from '@/utils/core'
 import { formatBillingPeriod, getCurrencyParts } from '@/utils/stripe'
 import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
 import { BillingHistorySection } from './BillingHistorySection'
@@ -273,11 +273,17 @@ const InnerSubscriptionPage = ({
             )}
           </div>
         </ExpandSection>
-        <ExpandSection title="Resource Usage" defaultExpanded={false}>
-          <SubscriptionResourceUsage
-            subscriptionId={subscription.id}
-          />
-        </ExpandSection>
+        {/* FIXME: Resource UI is temporarily dev-only while resource features are gated behind devOnlyProcedure. Remove IS_DEV check when resources are ready for production. */}
+        {IS_DEV && (
+          <ExpandSection
+            title="Resource Usage"
+            defaultExpanded={false}
+          >
+            <SubscriptionResourceUsage
+              subscriptionId={subscription.id}
+            />
+          </ExpandSection>
+        )}
         <BillingHistorySection
           subscriptionId={subscription.id}
           customerId={subscription.customerId}

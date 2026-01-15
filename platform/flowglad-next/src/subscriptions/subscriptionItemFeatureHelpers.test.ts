@@ -41,6 +41,10 @@ import {
   createSubscriptionFeatureItems,
 } from '@/subscriptions/subscriptionItemFeatureHelpers'
 import {
+  createCapturingEffectsContext,
+  createDiscardingEffectsContext,
+} from '@/test-utils/transactionCallbacks'
+import {
   CurrencyCode,
   FeatureType,
   FeatureUsageGrantFrequency,
@@ -556,7 +560,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
             featureId: toggleFeature.id,
             grantCreditsImmediately: false,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
         const secondResult = await addFeatureToSubscriptionItem(
           {
@@ -564,10 +568,10 @@ describe('SubscriptionItemFeatureHelpers', () => {
             featureId: toggleFeature.id,
             grantCreditsImmediately: false,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
-        expect(secondResult.result.subscriptionItemFeature.id).toBe(
-          firstResult.result.subscriptionItemFeature.id
+        expect(secondResult.subscriptionItemFeature.id).toBe(
+          firstResult.subscriptionItemFeature.id
         )
       })
     })
@@ -599,13 +603,15 @@ describe('SubscriptionItemFeatureHelpers', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
+        const { ctx, effects } =
+          createCapturingEffectsContext(transaction)
         const result = await addFeatureToSubscriptionItem(
           {
             subscriptionItemId: subscriptionItem.id,
             featureId: usageFeature.id,
             grantCreditsImmediately: true,
           },
-          transaction
+          ctx
         )
 
         const manualSubscriptionItems = await selectSubscriptionItems(
@@ -635,7 +641,8 @@ describe('SubscriptionItemFeatureHelpers', () => {
         const expectedRecurringGrantAmount =
           (usageFeature.amount ?? 0) * subscriptionItem.quantity
 
-        expect(result.ledgerCommand).toMatchObject({
+        expect(effects.ledgerCommands.length).toBe(1)
+        expect(effects.ledgerCommands[0]).toMatchObject({
           type: LedgerTransactionType.CreditGrantRecognized,
           payload: {
             usageCredit: expect.objectContaining({
@@ -688,25 +695,29 @@ describe('SubscriptionItemFeatureHelpers', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
+        const { ctx: firstCtx, effects: firstEffects } =
+          createCapturingEffectsContext(transaction)
         const firstResult = await addFeatureToSubscriptionItem(
           {
             subscriptionItemId: subscriptionItem.id,
             featureId: usageFeature.id,
             grantCreditsImmediately: false,
           },
-          transaction
+          firstCtx
         )
+        const { ctx: secondCtx, effects: secondEffects } =
+          createCapturingEffectsContext(transaction)
         const secondResult = await addFeatureToSubscriptionItem(
           {
             subscriptionItemId: subscriptionItem.id,
             featureId: usageFeature.id,
             grantCreditsImmediately: true,
           },
-          transaction
+          secondCtx
         )
 
-        expect(secondResult.result.subscriptionItemFeature.id).toBe(
-          firstResult.result.subscriptionItemFeature.id
+        expect(secondResult.subscriptionItemFeature.id).toBe(
+          firstResult.subscriptionItemFeature.id
         )
         const expectedImmediateGrantAmount = usageFeature.amount ?? 0
         const expectedRecurringGrantAmount =
@@ -714,7 +725,8 @@ describe('SubscriptionItemFeatureHelpers', () => {
         const expectedCumulativeGrantAmount =
           expectedRecurringGrantAmount + expectedRecurringGrantAmount
 
-        expect(secondResult.ledgerCommand).toMatchObject({
+        expect(secondEffects.ledgerCommands.length).toBe(1)
+        expect(secondEffects.ledgerCommands[0]).toMatchObject({
           type: LedgerTransactionType.CreditGrantRecognized,
           organizationId: subscription.organizationId,
           livemode: subscription.livemode,
@@ -726,7 +738,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
               livemode: subscription.livemode,
               usageMeterId: usageFeature.usageMeterId!,
               sourceReferenceId:
-                secondResult.result.subscriptionItemFeature.id,
+                secondResult.subscriptionItemFeature.id,
               sourceReferenceType:
                 UsageCreditSourceReferenceType.ManualAdjustment,
               creditType: UsageCreditType.Grant,
@@ -764,7 +776,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           transaction
         )
         // ensure no ledger command when not granting immediately
-        expect(firstResult.ledgerCommand).toBeUndefined()
+        expect(firstEffects.ledgerCommands.length).toBe(0)
         const activeGrant = featureGrants.find(
           (item) =>
             item.featureId === usageFeature.id &&
@@ -779,7 +791,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           })
         )
 
-        const usageCredits = await selectUsageCredits(
+        const usageCreditsResult = await selectUsageCredits(
           {
             subscriptionId: subscription.id,
             usageMeterId: usageFeature.usageMeterId!,
@@ -787,10 +799,10 @@ describe('SubscriptionItemFeatureHelpers', () => {
           transaction
         )
         expect(
-          usageCredits.some(
+          usageCreditsResult.some(
             (credit) =>
               credit.sourceReferenceId ===
-              secondResult.result.subscriptionItemFeature.id
+              secondResult.subscriptionItemFeature.id
           )
         ).toBe(true)
       })
@@ -832,7 +844,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
               featureId: mismatchedFeature.id,
               grantCreditsImmediately: false,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         ).rejects.toThrow(/pricing model/i)
       })
@@ -863,7 +875,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
             featureId: standaloneFeature.id,
             grantCreditsImmediately: false,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
 
         const manualSubscriptionItems = await selectSubscriptionItems(
@@ -878,7 +890,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         expect(manualSubscriptionItems.length).toEqual(1)
         const manualSubscriptionItem = manualSubscriptionItems[0]
 
-        expect(result.result.subscriptionItemFeature).toEqual(
+        expect(result.subscriptionItemFeature).toEqual(
           expect.objectContaining({
             subscriptionItemId: manualSubscriptionItem.id,
             featureId: standaloneFeature.id,
@@ -905,16 +917,16 @@ describe('SubscriptionItemFeatureHelpers', () => {
             featureId: toggleFeature.id,
             grantCreditsImmediately: false,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
 
-        expect(
-          result.result.subscriptionItemFeature.manuallyCreated
-        ).toBe(true)
+        expect(result.subscriptionItemFeature.manuallyCreated).toBe(
+          true
+        )
 
         // Verify in database
         const [sif] = await selectSubscriptionItemFeatures(
-          { id: [result.result.subscriptionItemFeature.id] },
+          { id: [result.subscriptionItemFeature.id] },
           transaction
         )
         expect(sif.manuallyCreated).toBe(true)
@@ -947,16 +959,16 @@ describe('SubscriptionItemFeatureHelpers', () => {
             featureId: usageFeature.id,
             grantCreditsImmediately: false,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
 
-        expect(
-          result.result.subscriptionItemFeature.manuallyCreated
-        ).toBe(true)
+        expect(result.subscriptionItemFeature.manuallyCreated).toBe(
+          true
+        )
 
         // Verify in database
         const [sif] = await selectSubscriptionItemFeatures(
-          { id: [result.result.subscriptionItemFeature.id] },
+          { id: [result.subscriptionItemFeature.id] },
           transaction
         )
         expect(sif.manuallyCreated).toBe(true)
@@ -983,7 +995,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
             featureId: feature1.id,
             grantCreditsImmediately: false,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
 
         const result2 = await addFeatureToSubscriptionItem(
@@ -992,15 +1004,13 @@ describe('SubscriptionItemFeatureHelpers', () => {
             featureId: feature2.id,
             grantCreditsImmediately: false,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
 
         // Both features should be on the same manual subscription item
         expect(
-          result1.result.subscriptionItemFeature.subscriptionItemId
-        ).toBe(
-          result2.result.subscriptionItemFeature.subscriptionItemId
-        )
+          result1.subscriptionItemFeature.subscriptionItemId
+        ).toBe(result2.subscriptionItemFeature.subscriptionItemId)
 
         // Verify only one manual item exists
         const manualItems = await selectSubscriptionItems(
@@ -1044,29 +1054,34 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
         await adminTransaction(async ({ transaction }) => {
           // First call - should grant credits
-          const firstResult = await addFeatureToSubscriptionItem(
+          const { ctx: firstCtx, effects: firstEffects } =
+            createCapturingEffectsContext(transaction)
+          await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
               featureId: usageFeature.id,
               grantCreditsImmediately: true,
             },
-            transaction
+            firstCtx
           )
-          expect(firstResult.ledgerCommand).toMatchObject({
+          expect(firstEffects.ledgerCommands.length).toBe(1)
+          expect(firstEffects.ledgerCommands[0]).toMatchObject({
             type: LedgerTransactionType.CreditGrantRecognized,
           })
 
           // Second call - should NOT grant duplicate credits
-          const secondResult = await addFeatureToSubscriptionItem(
+          const { ctx: secondCtx, effects: secondEffects } =
+            createCapturingEffectsContext(transaction)
+          await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
               featureId: usageFeature.id,
               grantCreditsImmediately: true,
             },
-            transaction
+            secondCtx
           )
           // Second call should not produce a ledger command (credit was deduplicated)
-          expect(secondResult.ledgerCommand).toBeUndefined()
+          expect(secondEffects.ledgerCommands.length).toBe(0)
 
           // Verify only 1 credit exists
           const usageCreditRecords = await selectUsageCredits(
@@ -1115,7 +1130,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
                 featureId: usageFeature.id,
                 grantCreditsImmediately: true,
               },
-              transaction
+              createDiscardingEffectsContext(transaction)
             )
           }
 
@@ -1176,28 +1191,34 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
         await adminTransaction(async ({ transaction }) => {
           // Grant credits for feature A
-          const resultA = await addFeatureToSubscriptionItem(
+          const { ctx: ctxA, effects: effectsA } =
+            createCapturingEffectsContext(transaction)
+          await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
               featureId: featureA.id,
               grantCreditsImmediately: true,
             },
-            transaction
+            ctxA
           )
-          expect(resultA.ledgerCommand).toMatchObject({
+          expect(effectsA.ledgerCommands.length).toBe(1)
+          expect(effectsA.ledgerCommands[0]).toMatchObject({
             type: LedgerTransactionType.CreditGrantRecognized,
           })
 
           // Grant credits for feature B
-          const resultB = await addFeatureToSubscriptionItem(
+          const { ctx: ctxB, effects: effectsB } =
+            createCapturingEffectsContext(transaction)
+          await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
               featureId: featureB.id,
               grantCreditsImmediately: true,
             },
-            transaction
+            ctxB
           )
-          expect(resultB.ledgerCommand).toMatchObject({
+          expect(effectsB.ledgerCommands.length).toBe(1)
+          expect(effectsB.ledgerCommands[0]).toMatchObject({
             type: LedgerTransactionType.CreditGrantRecognized,
           })
 
@@ -1255,29 +1276,30 @@ describe('SubscriptionItemFeatureHelpers', () => {
               featureId: usageFeature.id,
               grantCreditsImmediately: true,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
-          const firstSubFeatureId =
-            result1.result.subscriptionItemFeature.id
+          const firstSubFeatureId = result1.subscriptionItemFeature.id
 
           // Second call updates sub_item_feature (same ID due to upsert)
           // but should NOT grant duplicate credits
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
           const result2 = await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
               featureId: usageFeature.id,
               grantCreditsImmediately: true,
             },
-            transaction
+            ctx
           )
 
           // The subscription item feature ID should be the same (due to upsert)
-          expect(result2.result.subscriptionItemFeature.id).toBe(
+          expect(result2.subscriptionItemFeature.id).toBe(
             firstSubFeatureId
           )
 
           // But no duplicate credit should be created
-          expect(result2.ledgerCommand).toBeUndefined()
+          expect(effects.ledgerCommands.length).toBe(0)
 
           // Verify only 1 credit exists
           const usageCreditRecords = await selectUsageCredits(
@@ -1325,15 +1347,18 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
         await adminTransaction(async ({ transaction }) => {
           // First call - grants credits with null billingPeriodId
-          const firstResult = await addFeatureToSubscriptionItem(
+          const { ctx: firstCtx, effects: firstEffects } =
+            createCapturingEffectsContext(transaction)
+          await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
               featureId: usageFeature.id,
               grantCreditsImmediately: true,
             },
-            transaction
+            firstCtx
           )
-          expect(firstResult.ledgerCommand).toMatchObject({
+          expect(firstEffects.ledgerCommands.length).toBe(1)
+          expect(firstEffects.ledgerCommands[0]).toMatchObject({
             type: LedgerTransactionType.CreditGrantRecognized,
           })
 
@@ -1349,15 +1374,17 @@ describe('SubscriptionItemFeatureHelpers', () => {
           expect(creditsAfterFirst[0].billingPeriodId).toBeNull()
 
           // Second call - should be deduplicated via isNull(billingPeriodId) check
-          const secondResult = await addFeatureToSubscriptionItem(
+          const { ctx: secondCtx, effects: secondEffects } =
+            createCapturingEffectsContext(transaction)
+          await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
               featureId: usageFeature.id,
               grantCreditsImmediately: true,
             },
-            transaction
+            secondCtx
           )
-          expect(secondResult.ledgerCommand).toBeUndefined()
+          expect(secondEffects.ledgerCommands.length).toBe(0)
 
           // Verify still only 1 credit exists
           const creditsAfterSecond = await selectUsageCredits(
@@ -1409,15 +1436,18 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
         await adminTransaction(async ({ transaction }) => {
           // First call - grants credits with the billing period
-          const firstResult = await addFeatureToSubscriptionItem(
+          const { ctx: firstCtx, effects: firstEffects } =
+            createCapturingEffectsContext(transaction)
+          await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
               featureId: usageFeature.id,
               grantCreditsImmediately: true,
             },
-            transaction
+            firstCtx
           )
-          expect(firstResult.ledgerCommand).toMatchObject({
+          expect(firstEffects.ledgerCommands.length).toBe(1)
+          expect(firstEffects.ledgerCommands[0]).toMatchObject({
             type: LedgerTransactionType.CreditGrantRecognized,
           })
 
@@ -1435,15 +1465,17 @@ describe('SubscriptionItemFeatureHelpers', () => {
           )
 
           // Second call - should be deduplicated within the same billing period
-          const secondResult = await addFeatureToSubscriptionItem(
+          const { ctx: secondCtx, effects: secondEffects } =
+            createCapturingEffectsContext(transaction)
+          await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
               featureId: usageFeature.id,
               grantCreditsImmediately: true,
             },
-            transaction
+            secondCtx
           )
-          expect(secondResult.ledgerCommand).toBeUndefined()
+          expect(secondEffects.ledgerCommands.length).toBe(0)
 
           // Verify still only 1 credit exists
           const creditsAfterSecond = await selectUsageCredits(
@@ -1512,10 +1544,10 @@ describe('SubscriptionItemFeatureHelpers', () => {
                 featureId: usageFeature.id,
                 grantCreditsImmediately: false, // Don't grant yet
               },
-              transaction
+              createDiscardingEffectsContext(transaction)
             )
           const subItemFeatureId =
-            manualFeatureResult.result.subscriptionItemFeature.id
+            manualFeatureResult.subscriptionItemFeature.id
 
           // Directly insert a credit for billing period 1 (simulating a past grant)
           await insertUsageCredit(
@@ -1555,17 +1587,20 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
           // Now call addFeatureToSubscriptionItem with grantCreditsImmediately: true
           // This should grant credits for period 2, NOT be blocked by the period 1 credit
-          const result = await addFeatureToSubscriptionItem(
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
               featureId: usageFeature.id,
               grantCreditsImmediately: true,
             },
-            transaction
+            ctx
           )
 
           // Should have granted credits (not blocked by period 1 credit)
-          expect(result.ledgerCommand).toMatchObject({
+          expect(effects.ledgerCommands.length).toBe(1)
+          expect(effects.ledgerCommands[0]).toMatchObject({
             type: LedgerTransactionType.CreditGrantRecognized,
           })
 

@@ -1,4 +1,6 @@
+import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { unkeyServer } from '@/../mocks/unkeyServer'
 import {
   setupCustomer,
   setupMemberships,
@@ -397,8 +399,25 @@ describe('apiKeyHelpers', () => {
     })
 
     it('should NOT delete the database record if Unkey deletion fails', async () => {
+      // Configure MSW to return an error for deleteKey requests
+      unkeyServer.use(
+        http.post('https://api.unkey.com/v2/keys.deleteKey', () => {
+          return HttpResponse.json(
+            {
+              meta: { requestId: 'req_error_test' },
+              error: {
+                detail: 'Key not found',
+                status: 404,
+                title: 'Not Found',
+                type: 'NOT_FOUND',
+              },
+            },
+            { status: 404 }
+          )
+        })
+      )
+
       // Create a livemode API key WITH a fake unkeyId
-      // When we try to delete, Unkey will fail because this ID doesn't exist in Unkey
       const apiKeyWithUnkeyId = await adminTransaction(
         async ({ transaction }) => {
           return insertApiKey(

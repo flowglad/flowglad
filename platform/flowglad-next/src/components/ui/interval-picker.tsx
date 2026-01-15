@@ -74,10 +74,7 @@ export function IntervalPicker({
             <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent
-          className="w-auto p-1 rounded-md"
-          align="start"
-        >
+        <PopoverContent className="w-auto p-1" align="start">
           <div className="flex flex-col">
             {config.options.map((option) => (
               <Button

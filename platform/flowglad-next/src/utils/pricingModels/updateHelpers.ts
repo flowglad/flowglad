@@ -9,6 +9,7 @@ import type { Feature } from '@/db/schema/features'
 import type { Price } from '@/db/schema/prices'
 import type { ProductFeature } from '@/db/schema/productFeatures'
 import type { Product } from '@/db/schema/products'
+import type { Resource } from '@/db/schema/resources'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
@@ -19,8 +20,12 @@ import {
   selectProductFeatures,
 } from '@/db/tableMethods/productFeatureMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
+import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 
 /**
  * Maps of slugs to database IDs for all child entities of a pricing model.
@@ -34,6 +39,8 @@ export type ResolvedPricingModelIds = {
   prices: Map<string, string>
   /** Usage meter slug -> usage meter ID */
   usageMeters: Map<string, string>
+  /** Resource slug -> resource ID */
+  resources: Map<string, string>
 }
 
 /**
@@ -55,11 +62,13 @@ export const resolveExistingIds = async (
   transaction: DbTransaction
 ): Promise<ResolvedPricingModelIds> => {
   // Fetch all child entities in parallel for better performance
-  const [features, products, usageMeters] = await Promise.all([
-    selectFeatures({ pricingModelId }, transaction),
-    selectProducts({ pricingModelId }, transaction),
-    selectUsageMeters({ pricingModelId }, transaction),
-  ])
+  const [features, products, usageMeters, resources] =
+    await Promise.all([
+      selectFeatures({ pricingModelId }, transaction),
+      selectProducts({ pricingModelId }, transaction),
+      selectUsageMeters({ pricingModelId }, transaction),
+      selectResources({ pricingModelId }, transaction),
+    ])
 
   // Fetch prices for all products
   const productIds = products.map((p) => p.id)
@@ -93,11 +102,17 @@ export const resolveExistingIds = async (
     usageMeterMap.set(meter.slug, meter.id)
   }
 
+  const resourceMap = new Map<string, string>()
+  for (const resource of resources) {
+    resourceMap.set(resource.slug, resource.id)
+  }
+
   return {
     features: featureMap,
     products: productMap,
     prices: priceMap,
     usageMeters: usageMeterMap,
+    resources: resourceMap,
   }
 }
 
@@ -157,11 +172,15 @@ export const syncProductFeaturesForMultipleProducts = async (
     organizationId: string
     livemode: boolean
   },
-  transaction: DbTransaction
+  transactionParams: Pick<
+    TransactionEffectsContext,
+    'transaction' | 'invalidateCache'
+  >
 ): Promise<{
   added: ProductFeature.Record[]
   removed: ProductFeature.Record[]
 }> => {
+  const { transaction, invalidateCache } = transactionParams
   // Early return if no products to sync
   if (productsWithFeatures.length === 0) {
     return { added: [], removed: [] }
@@ -247,7 +266,7 @@ export const syncProductFeaturesForMultipleProducts = async (
   if (productFeatureIdsToExpire.length > 0) {
     const expireResult = await expireProductFeaturesByFeatureId(
       productFeatureIdsToExpire,
-      transaction
+      { transaction }
     )
     expiredProductFeatures = expireResult.expiredProductFeature
   }
