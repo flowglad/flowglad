@@ -130,14 +130,19 @@ export function AdjustSubscriptionGrid({
           displayPrice: displayPrice,
           slug: price.slug,
           features: featureNames,
+          unitPrice: price.unitPrice,
+          singularQuantityLabel:
+            product.singularQuantityLabel ?? undefined,
+          pluralQuantityLabel:
+            product.pluralQuantityLabel ?? undefined,
         }
 
         if (product.description) {
           plan.description = product.description
         }
 
-        // Determine if popular (hardcoded "Team" as popular for seat-based billing)
-        if (product.name === 'Team') {
+        // Determine if popular (Pro plan is the main paid tier for seat-based billing)
+        if (product.name === 'Pro') {
           plan.isPopular = true
         }
 
