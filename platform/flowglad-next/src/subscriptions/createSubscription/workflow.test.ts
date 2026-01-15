@@ -1944,6 +1944,74 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       )
       expect(workflowResult.ledgerCommand).toBeUndefined()
     })
+
+    it('should create billing period transition ledger command for trial subscription', async () => {
+      const newCustomer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const newPaymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: newCustomer.id,
+      })
+
+      // Create a price with trial period
+      const trialPrice = await setupPrice({
+        productId: product.id,
+        name: 'Trial Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
+        trialPeriodDays: 14,
+      })
+
+      const stripeSetupIntentId = `setupintent_trial_${core.nanoid()}`
+      const { workflowResult, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const workflowResult = await createSubscriptionWorkflow(
+            {
+              organization,
+              product: {
+                ...product,
+                default: false, // Not default plan
+              },
+              price: trialPrice,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: newPaymentMethod,
+              customer: newCustomer,
+              stripeSetupIntentId,
+              autoStart: true,
+              trialEnd: new Date(
+                Date.now() + 14 * 24 * 60 * 60 * 1000
+              ), // 14 days from now
+            },
+            ctx
+          )
+          return { workflowResult, effects }
+        }
+      )
+
+      // Verify subscription is in trial status
+      const createdSubscription = workflowResult.result.subscription
+      expect(createdSubscription.status).toBe(
+        SubscriptionStatus.Trialing
+      )
+
+      // Trial subscriptions should call enqueueLedgerCommand with BillingPeriodTransition
+      expect(effects.ledgerCommands).toHaveLength(1)
+      expect(effects.ledgerCommands[0].type).toBe(
+        LedgerTransactionType.BillingPeriodTransition
+      )
+    })
   })
 })
 
