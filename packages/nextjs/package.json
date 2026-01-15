@@ -12,7 +12,8 @@
     "build": "tsup",
     "clean": "rm -rf dist",
     "dev": "tsup --watch",
-    "check": "biome check . && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "check": "biome check . && bun run typecheck",
     "build:declarations": "tsc -p tsconfig.declarations.json",
     "format": "biome format --write .",
     "format:check": "biome format ."
