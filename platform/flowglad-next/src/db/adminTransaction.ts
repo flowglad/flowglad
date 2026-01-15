@@ -13,7 +13,7 @@ import {
   invalidateCacheAfterCommit,
   processEffectsInTransaction,
 } from './transactionEffectsHelpers'
-import type { TransactionOutput } from './transactionEnhacementTypes'
+import { isError, type Result } from './transactionEnhacementTypes'
 
 interface AdminTransactionOptions {
   livemode?: boolean
@@ -44,10 +44,10 @@ export async function adminTransaction<T>(
 const executeComprehensiveAdminTransaction = async <T>(
   fn: (
     params: ComprehensiveAdminTransactionParams
-  ) => Promise<TransactionOutput<T>>,
+  ) => Promise<Result<T>>,
   effectiveLivemode: boolean
 ): Promise<{
-  output: TransactionOutput<T>
+  output: Result<T>
   processedEventsCount: number
   processedLedgerCommandsCount: number
 }> => {
@@ -130,7 +130,7 @@ const executeComprehensiveAdminTransaction = async <T>(
 export async function comprehensiveAdminTransaction<T>(
   fn: (
     params: ComprehensiveAdminTransactionParams
-  ) => Promise<TransactionOutput<T>>,
+  ) => Promise<Result<T>>,
   options: AdminTransactionOptions = {}
 ): Promise<T> {
   const { livemode = true } = options
@@ -161,5 +161,8 @@ export async function comprehensiveAdminTransaction<T>(
     () => executeComprehensiveAdminTransaction(fn, effectiveLivemode)
   )()
 
+  if (isError(output)) {
+    throw output.error
+  }
   return output.result
 }

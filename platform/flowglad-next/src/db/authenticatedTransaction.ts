@@ -15,7 +15,7 @@ import {
   invalidateCacheAfterCommit,
   processEffectsInTransaction,
 } from './transactionEffectsHelpers'
-import type { TransactionOutput } from './transactionEnhacementTypes'
+import { isError, type Result } from './transactionEnhacementTypes'
 
 interface AuthenticatedTransactionOptions {
   apiKey?: string
@@ -51,10 +51,10 @@ export async function authenticatedTransaction<T>(
 const executeComprehensiveAuthenticatedTransaction = async <T>(
   fn: (
     params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<TransactionOutput<T>>,
+  ) => Promise<Result<T>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<{
-  output: TransactionOutput<T>
+  output: Result<T>
   userId: string
   organizationId?: string
   livemode: boolean
@@ -169,7 +169,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
 export async function comprehensiveAuthenticatedTransaction<T>(
   fn: (
     params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<TransactionOutput<T>>,
+  ) => Promise<Result<T>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
   // Static attributes are set at span creation for debugging failed transactions
@@ -199,6 +199,9 @@ export async function comprehensiveAuthenticatedTransaction<T>(
     () => executeComprehensiveAuthenticatedTransaction(fn, options)
   )()
 
+  if (isError(output)) {
+    throw output.error
+  }
   return output.result
 }
 
@@ -251,7 +254,7 @@ export const authenticatedProcedureComprehensiveTransaction = <
 >(
   handler: (
     params: AuthenticatedProcedureTransactionParams<TInput, TContext>
-  ) => Promise<TransactionOutput<TOutput>>
+  ) => Promise<Result<TOutput>>
 ) => {
   return async (opts: { input: TInput; ctx: TContext }) => {
     return comprehensiveAuthenticatedTransaction(
