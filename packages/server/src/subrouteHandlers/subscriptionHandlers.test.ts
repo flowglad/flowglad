@@ -2,15 +2,15 @@ import { HTTPMethod } from '@flowglad/shared'
 import { describe, expect, it, vi } from 'vitest'
 import type { FlowgladServer } from '../FlowgladServer'
 import {
+  assert200Success,
+  assert405MethodNotAllowed,
+  assert500Error,
+} from './__tests__/test-utils'
+import {
   adjustSubscription,
   cancelSubscription,
   uncancelSubscription,
 } from './subscriptionHandlers'
-import {
-  assert200Success,
-  assert405MethodNotAllowed,
-  assert500Error,
-} from './test-utils'
 
 const mockSubscription = {
   id: 'sub_123',
@@ -430,7 +430,7 @@ describe('Subscription subroute handlers', () => {
           data: {
             subscriptionId: 'sub_123',
             priceId: 'price_456',
-            timing: 'at_end_of_period',
+            timing: 'at_end_of_current_billing_period',
             quantity: 1,
           },
         },
@@ -441,7 +441,7 @@ describe('Subscription subroute handlers', () => {
       expect(mocks.adjustSubscription).toHaveBeenCalledWith({
         subscriptionId: 'sub_123',
         priceId: 'price_456',
-        timing: 'at_end_of_period',
+        timing: 'at_end_of_current_billing_period',
         quantity: 1,
       })
     })
