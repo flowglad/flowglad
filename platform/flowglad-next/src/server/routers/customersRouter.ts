@@ -132,19 +132,18 @@ const createCustomerProcedure = protectedProcedure
             await revalidatePath(ctx.path)
           }
 
-          const subscription = createdCustomerOutput.result
-            .subscription
+          const subscription = createdCustomerOutput.subscription
             ? subscriptionWithCurrent(
-                createdCustomerOutput.result.subscription
+                createdCustomerOutput.subscription
               )
             : undefined
           return {
             result: {
               data: {
-                customer: createdCustomerOutput.result.customer,
+                customer: createdCustomerOutput.customer,
                 subscription,
                 subscriptionItems:
-                  createdCustomerOutput.result.subscriptionItems,
+                  createdCustomerOutput.subscriptionItems,
               },
             },
           }

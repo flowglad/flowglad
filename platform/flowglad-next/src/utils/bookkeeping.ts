@@ -39,6 +39,7 @@ import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type {
   AuthenticatedTransactionParams,
   DbTransaction,
+  TransactionEffectsContext,
 } from '@/db/types'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import {
@@ -240,21 +241,23 @@ export const createCustomerBookkeeping = async (
       pricingModelId?: string
     }
   },
-  {
+  ctx: TransactionEffectsContext & {
+    organizationId: string
+    livemode: boolean
+  }
+): Promise<{
+  customer: Customer.Record
+  subscription?: Subscription.Record
+  subscriptionItems?: SubscriptionItem.Record[]
+}> => {
+  const {
     transaction,
     organizationId,
     livemode,
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
-  }: Omit<AuthenticatedTransactionParams, 'userId'>
-): Promise<
-  TransactionOutput<{
-    customer: Customer.Record
-    subscription?: Subscription.Record
-    subscriptionItems?: SubscriptionItem.Record[]
-  }>
-> => {
+  } = ctx
   // Security: Validate that customer organizationId matches auth context
   if (
     payload.customer.organizationId &&
@@ -306,10 +309,9 @@ export const createCustomerBookkeeping = async (
   }
 
   const timestamp = Date.now()
-  const eventsToInsert: Event.Insert[] = []
 
-  // Create customer created event
-  eventsToInsert.push({
+  // Emit customer created event via callback
+  emitEvent({
     type: FlowgladEventType.CustomerCreated,
     occurredAt: timestamp,
     organizationId: customer.organizationId,
@@ -352,13 +354,7 @@ export const createCustomerBookkeeping = async (
           transaction
         )
 
-        // Create capturing callbacks to collect events locally while also calling provided callbacks
-        const capturingEmitEvent = (...events: Event.Insert[]) => {
-          eventsToInsert.push(...events)
-          emitEvent?.(...events)
-        }
-
-        // Create the subscription
+        // Create the subscription - pass callbacks directly
         const subscriptionResult = await createSubscriptionWorkflow(
           {
             organization,
@@ -386,28 +382,17 @@ export const createCustomerBookkeeping = async (
           },
           {
             transaction,
-            invalidateCache: invalidateCache ?? (() => {}),
-            emitEvent: capturingEmitEvent,
-            enqueueLedgerCommand: enqueueLedgerCommand ?? (() => {}),
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
           }
         )
 
-        // Events from subscription creation are already captured via capturingEmitEvent
-        // Also merge any events returned in the result for backwards compatibility
-        if (subscriptionResult.eventsToInsert) {
-          eventsToInsert.push(...subscriptionResult.eventsToInsert)
-        }
-
-        // Return combined result with all events and ledger commands
         return {
-          result: {
-            customer,
-            subscription: subscriptionResult.result.subscription,
-            subscriptionItems:
-              subscriptionResult.result.subscriptionItems,
-          },
-          eventsToInsert,
-          ledgerCommand: subscriptionResult.ledgerCommand,
+          customer,
+          subscription: subscriptionResult.result.subscription,
+          subscriptionItems:
+            subscriptionResult.result.subscriptionItems,
         }
       }
     }
@@ -419,11 +404,8 @@ export const createCustomerBookkeeping = async (
     )
   }
 
-  // Return just the customer with events
-  return {
-    result: { customer },
-    eventsToInsert,
-  }
+  // Return just the customer
+  return { customer }
 }
 
 /**
