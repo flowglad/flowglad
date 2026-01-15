@@ -533,6 +533,7 @@ async function cachedBulkLookupImpl<TKey, TResult>(
       }
 
       // Add to results and write to cache
+      const writeClient = redis()
       for (const [key, items] of fetchedByKey) {
         results.set(key, items)
 
@@ -542,8 +543,7 @@ async function cachedBulkLookupImpl<TKey, TResult>(
         const dependencies = config.dependenciesFn(key)
 
         try {
-          const redisClient = redis()
-          await redisClient.set(fullKey, JSON.stringify(items), {
+          await writeClient.set(fullKey, JSON.stringify(items), {
             ex: ttl,
           })
           await registerDependencies(fullKey, dependencies)
