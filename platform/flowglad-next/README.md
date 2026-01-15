@@ -60,71 +60,90 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - **Fresh Database**: When setting up a fresh database, always run `bun run seed:countries` after migrations to populate the countries table.
 - **Idempotent**: The countries seeding script is safe to run multiple times - it won't duplicate data.
 
-## Testing Database Migrations
+## Local Database Development
 
-Before applying migrations to staging or production, you can test them against clones of those databases using Docker.
+You can clone staging or production databases to a local Supabase instance for development and testing migrations.
 
 ### Prerequisites
 
 - **Docker** must be running
-- **PostgreSQL client tools** (`pg_dump` and `psql`) must be installed:
+- **Supabase CLI** installed: `brew install supabase/tap/supabase`
+- **PostgreSQL client tools** (`psql`) installed:
   - macOS: `brew install libpq && brew link --force libpq`
   - Ubuntu: `sudo apt-get install postgresql-client`
+- **Supabase initialized**: Run `supabase init` once in `platform/flowglad-next` if not already done
 - **Environment variables**: `STAGING_DATABASE_URL` and `PROD_DATABASE_URL` must be set in your `.env.local` file
-  - Get connection strings from Supabase project > Connect > Connection string
-  - Type: URI, Source: Primary Database, Method: Session pooler > View parameters
-  - Format: `postgresql://[user]:[password]@[host]:5432/[database]`
+  - Get connection strings from Supabase Dashboard > Connect > Connection string
 
-### Usage
+### Database Cloning Commands
 
 ```bash
-# Test against staging database (keeps container running for inspection)
-bun run migrations:test:staging
+# Clone staging database (with data)
+bun run db:clone:staging
 
-# Test against production database (keeps container running for inspection)
-bun run migrations:test:prod
+# Clone production database (with data)
+bun run db:clone:prod
 
-# Test against both (staging first, then prod if staging passes)
-bun run migrations:test
+# Clone schema only (faster, no data)
+bun run db:clone:staging:schema
+bun run db:clone:prod:schema
+
+# Clone and run pending migrations (for testing migrations)
+bun run db:clone:staging:migrate
+bun run db:clone:prod:migrate
 ```
 
 ### How It Works
 
-1. **Creates a Docker container** with a fresh PostgreSQL instance
-2. **Clones the target database** using `pg_dump` from staging or production
-3. **Runs pending migrations** against the clone
-4. **Reports success or failure** - if migrations fail, you'll see the error before affecting real databases
+1. **Stops any existing local Supabase** and starts a fresh instance
+2. **Dumps roles, schema, and data** from the remote database using `supabase db dump`
+3. **Restores to local Supabase** with triggers disabled during data restore
+4. **Runs pending migrations** (if using `:migrate` variant)
+5. **Leaves the database running** for local development
 
-### Inspecting the Database After Migration
+### Using the Local Database
 
-When using `migrations:test:staging` or `migrations:test:prod`, the container stays running after the test completes. This allows you to:
+After cloning, the local Supabase instance stays running. You can:
 
-1. **Connect directly to inspect the migrated state**:
+1. **Connect directly**:
    ```bash
-   # Staging clone (port 5433)
-   psql "postgresql://test:test@localhost:5433/test_db"
-
-   # Production clone (port 5434)
-   psql "postgresql://test:test@localhost:5434/test_db"
+   psql "postgresql://postgres:postgres@localhost:54322/postgres"
    ```
 
-2. **Point your local app to the cloned database** to test application behavior:
+2. **Run the app against the local database**:
    ```bash
-   # Run the app against the staging clone
-   DATABASE_URL="postgresql://test:test@localhost:5433/test_db" bun run dev
+   DATABASE_URL="postgresql://postgres:postgres@localhost:54322/postgres" bun run dev
    ```
 
-3. **Press 'e'** to save migration output to a file for further debugging
+3. **Check Supabase status**:
+   ```bash
+   bun run db:local:status
+   ```
 
-4. **Press Enter** in the terminal when done to clean up the containers
+4. **Stop the local instance**:
+   ```bash
+   bun run db:local:stop
+   ```
 
-> **Note:** The `migrations:test:staging` and `migrations:test:prod` scripts automatically enable inspect mode. If running `migrations:test` directly, add `--inspect` to keep containers running for inspection.
+### Testing Migrations
+
+The `:migrate` variants are ideal for testing migrations before applying them to real databases:
+
+```bash
+# Test migrations against a staging clone
+bun run db:clone:staging:migrate
+
+# Test migrations against a production clone
+bun run db:clone:prod:migrate
+```
+
+If migrations fail, you'll see the error before affecting real databases. The local database remains available for debugging.
 
 ### Best Practices
 
 - Always test migrations against staging before production
-- Use `--inspect` mode to verify the database state looks correct after migration
-- If a migration fails, fix the issue and re-run the test before applying to real databases
+- Use schema-only clones for faster iteration when you don't need data
+- The local database persists until you stop it or run another clone command
 
 ## How to Read the Codebase
 
