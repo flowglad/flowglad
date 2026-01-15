@@ -6,12 +6,15 @@
  *   bun run db:clone:staging:schema       # Clone staging schema only
  *   bun run db:clone:prod                 # Clone prod with data
  *   bun run db:clone:prod:schema          # Clone prod schema only
+ *   bun run db:clone:staging:migrate      # Clone staging and run migrations
+ *   bun run db:clone:prod:migrate         # Clone prod and run migrations
  *
  * Flags:
- *   --staging       Clone from STAGING_DATABASE_URL
- *   --prod          Clone from PROD_DATABASE_URL
- *   --schema-only   Skip data, only clone schema (faster)
- *   --inspect       Keep containers running after clone for inspection
+ *   --staging         Clone from STAGING_DATABASE_URL
+ *   --prod            Clone from PROD_DATABASE_URL
+ *   --schema-only     Skip data, only clone schema (faster)
+ *   --run-migrations  Run pending migrations after cloning
+ *   --inspect         Keep dump files for inspection (not cleaned up)
  *
  * Prerequisites:
  *   - Supabase CLI installed: brew install supabase/tap/supabase
@@ -24,6 +27,7 @@ import { loadEnvConfig } from '@next/env'
 import { type ExecSyncOptions, execSync } from 'child_process'
 import fs from 'fs/promises'
 import path from 'path'
+import { sleep } from '../utils/core'
 
 // Load environment variables
 const projectDir = process.cwd()
@@ -50,6 +54,7 @@ const CONFIG = {
 interface CloneOptions {
   source: 'staging' | 'prod'
   schemaOnly: boolean
+  runMigrations: boolean
   inspect: boolean
 }
 
@@ -57,6 +62,12 @@ interface DumpResult {
   rolesFile: string
   schemaFile: string
   dataFile: string | null
+}
+
+interface MigrationResult {
+  success: boolean
+  output: string
+  error?: string
 }
 
 // ============================================================================
@@ -118,6 +129,7 @@ function parseArgs(): CloneOptions {
   const hasStaging = args.includes('--staging')
   const hasProd = args.includes('--prod')
   const schemaOnly = args.includes('--schema-only')
+  const runMigrations = args.includes('--run-migrations')
   const inspect = args.includes('--inspect')
 
   if (hasStaging && hasProd) {
@@ -131,6 +143,7 @@ function parseArgs(): CloneOptions {
   return {
     source: hasStaging ? 'staging' : 'prod',
     schemaOnly,
+    runMigrations,
     inspect,
   }
 }
@@ -242,10 +255,6 @@ async function waitForPostgres(): Promise<void> {
   throw new Error('Postgres failed to become ready in time')
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 // ============================================================================
 // Database Dump Operations
 // ============================================================================
@@ -302,6 +311,15 @@ async function dumpRemoteDatabase(
 // Database Restore Operations
 // ============================================================================
 
+/**
+ * Safely quote a PostgreSQL identifier to prevent SQL injection.
+ * Wraps the identifier in double quotes and escapes any embedded double quotes.
+ */
+function quoteIdentifier(identifier: string): string {
+  // PostgreSQL identifier quoting: wrap in double quotes, escape " as ""
+  return `"${identifier.replace(/"/g, '""')}"`
+}
+
 async function grantRolesToPostgres(): Promise<void> {
   log('Granting roles to postgres user...', '\uD83D\uDD11')
 
@@ -324,8 +342,10 @@ async function grantRolesToPostgres(): Promise<void> {
 
     for (const role of roles) {
       try {
+        // Use quoted identifier to safely handle special characters and prevent SQL injection
+        const quotedRole = quoteIdentifier(role)
         runCommand(
-          `psql "${CONFIG.LOCAL_DB_URL}" -c "GRANT ${role} TO postgres;"`,
+          `psql "${CONFIG.LOCAL_DB_URL}" -c "GRANT ${quotedRole} TO postgres;"`,
           { stdio: 'pipe' }
         )
         logSuccess(`Granted ${role} to postgres`)
@@ -378,6 +398,59 @@ async function restoreToLocal(dumpResult: DumpResult): Promise<void> {
 }
 
 // ============================================================================
+// Migration Operations
+// ============================================================================
+
+function runMigrations(): MigrationResult {
+  log('Running pending migrations...', '\uD83D\uDD04')
+
+  /**
+   * Note: We don't disable triggers for migrations (unlike data restore).
+   * The session_replication_role parameter requires superuser privileges which
+   * the local Supabase postgres user doesn't have when using Drizzle ORM connections.
+   * Migrations are typically DDL operations that don't trigger problematic triggers.
+   */
+
+  try {
+    const output = execSync(
+      `DATABASE_URL="${CONFIG.LOCAL_DB_URL}" bun run src/scripts/migrate.ts 2>&1`,
+      {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+        cwd: projectDir,
+        maxBuffer: 1024 * 1024 * 50, // 50MB buffer for large output
+      }
+    )
+
+    // Display the output
+    console.log(output)
+    logSuccess('Migrations applied successfully!')
+
+    return { success: true, output }
+  } catch (error) {
+    const execError = error as {
+      stdout?: string
+      stderr?: string
+      message?: string
+    }
+    const output = execError.stdout || execError.stderr || ''
+
+    // Display the error output
+    if (output) {
+      console.log(output)
+    }
+
+    logError('Migration failed!')
+
+    return {
+      success: false,
+      output,
+      error: execError.message || 'Unknown error',
+    }
+  }
+}
+
+// ============================================================================
 // Cleanup Operations
 // ============================================================================
 
@@ -413,6 +486,7 @@ async function main(): Promise<void> {
   const options = parseArgs()
   logInfo(`Source: ${options.source}`)
   logInfo(`Schema only: ${options.schemaOnly}`)
+  logInfo(`Run migrations: ${options.runMigrations}`)
   logInfo(`Inspect mode: ${options.inspect}`)
   console.log('')
 
@@ -424,16 +498,7 @@ async function main(): Promise<void> {
   const sourceUrl = getSourceDatabaseUrl(options.source)
   logInfo(`Cloning from ${options.source} database...`)
 
-  // Safety check for production
-  if (options.source === 'prod') {
-    console.log('')
-    logWarn('WARNING: You are cloning from PRODUCTION!')
-    logWarn('This will copy production data to your local machine.')
-    logWarn(
-      'Make sure this complies with your data handling policies.'
-    )
-    console.log('')
-  }
+  let migrationResult: MigrationResult | null = null
 
   try {
     // Step 1: Stop any existing local Supabase (idempotent)
@@ -451,7 +516,13 @@ async function main(): Promise<void> {
     await restoreToLocal(dumpResult)
     console.log('')
 
-    // Step 5: Cleanup (unless inspect mode)
+    // Step 5: Run migrations (if requested)
+    if (options.runMigrations) {
+      migrationResult = runMigrations()
+      console.log('')
+    }
+
+    // Step 6: Cleanup (unless inspect mode)
     if (!options.inspect) {
       await cleanupDumpFiles(dumpResult)
     } else {
@@ -463,7 +534,27 @@ async function main(): Promise<void> {
     // Success summary
     console.log('')
     log('='.repeat(60))
+
+    if (migrationResult && !migrationResult.success) {
+      logError('Clone completed but migrations FAILED')
+      log('='.repeat(60))
+      console.log('')
+      logInfo('The database is cloned but migrations did not apply.')
+      logInfo('Review the error above and fix the migration issues.')
+      console.log('')
+      logInfo('Useful commands:')
+      console.log(
+        '  bun run db:local:status  - Check Supabase status'
+      )
+      console.log('  bun run db:local:stop    - Stop local Supabase')
+      console.log('')
+      process.exit(1)
+    }
+
     logSuccess('Database clone completed successfully!')
+    if (options.runMigrations) {
+      logSuccess('Migrations applied successfully!')
+    }
     log('='.repeat(60))
     console.log('')
     logInfo('Local Supabase connection details:')

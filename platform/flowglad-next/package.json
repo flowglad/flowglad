@@ -30,9 +30,6 @@
     "migrations:drop": "drizzle-kit drop",
     "migrations:generate": "drizzle-kit generate",
     "migrations:push": "bun run src/scripts/migrate.ts",
-    "migrations:test": "bun run src/scripts/test-migrations.ts",
-    "migrations:test:staging": "bun run src/scripts/test-migrations.ts --staging --inspect",
-    "migrations:test:prod": "bun run src/scripts/test-migrations.ts --prod --inspect",
     "seed:countries": "bun run src/scripts/seed-countries.ts",
     "shadcn:build": "shadcn build --output 'public/ui'",
     "validate:registry": "bun run src/scripts/validate-registry.ts",
@@ -45,7 +42,9 @@
     "db:clone:staging": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --staging",
     "db:clone:prod": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --prod",
     "db:clone:staging:schema": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --staging --schema-only",
-    "db:clone:prod:schema": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --prod --schema-only"
+    "db:clone:prod:schema": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --prod --schema-only",
+    "db:clone:staging:migrate": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --staging --run-migrations",
+    "db:clone:prod:migrate": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --prod --run-migrations"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.69",
