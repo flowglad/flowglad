@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Price } from '@/db/schema/prices'
+import { Price } from '@/db/schema/prices'
 import type { Purchase } from '@/db/schema/purchases'
 import {
   insertCheckoutSession,
@@ -212,15 +212,18 @@ export const createNonInvoiceCheckoutSession = async (
     }
   }
 
-  // Validate that checkout sessions cannot be created for default products
-  const product = await selectProductById(
-    price.productId,
-    transaction
-  )
-  if (product.default) {
-    throw new Error(
-      'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
-    )
+  // Product lookup and validation only applies to non-usage prices.
+  // Usage prices don't have productId. Product is needed for:
+  // 1. Validating not a default product
+  // 2. Creating payment intents for single payment prices
+  let product = null
+  if (Price.hasProductId(price)) {
+    product = await selectProductById(price.productId, transaction)
+    if (product.default) {
+      throw new Error(
+        'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+      )
+    }
   }
 
   const checkoutSession = await insertCheckoutSession(
@@ -255,6 +258,12 @@ export const createNonInvoiceCheckoutSession = async (
       })
       stripeSetupIntentId = setupIntent.id
     } else {
+      // SinglePayment prices always have a product, so product should never be null here
+      if (!product) {
+        throw new Error(
+          `Product is required for single payment checkout session but was null for price ${price.id}`
+        )
+      }
       const paymentIntent =
         await createPaymentIntentForCheckoutSession({
           price,

@@ -90,7 +90,6 @@ describe('checkoutHelpers', () => {
           throw new Error('Usage price requires usageMeterId')
         }
         priceParams = {
-          productId: product.id,
           name: 'X',
           type: PriceType.Usage,
           unitPrice: 1000,
@@ -152,11 +151,8 @@ describe('checkoutHelpers', () => {
         type: PriceType.Subscription,
         expected: CheckoutFlowType.Subscription,
       },
-      {
-        label: 'Usage',
-        type: PriceType.Usage,
-        expected: CheckoutFlowType.Subscription,
-      },
+      // Note: Usage prices can't go through checkout directly - they don't have products
+      // Usage prices are added to subscriptions via subscription items
     ])('active %s → success', async ({ type, expected }) => {
       const { price } = await seedPrice(type)
       const result = await checkoutInfoForPriceWhere({

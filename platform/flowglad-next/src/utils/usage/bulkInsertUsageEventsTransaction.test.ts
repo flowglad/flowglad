@@ -65,7 +65,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
     })
 
     price = await setupPrice({
-      productId,
       name: 'Test Usage Price',
       type: PriceType.Usage,
       unitPrice: 10,
@@ -294,7 +293,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const otherPrice = await adminTransaction(
         async ({ transaction }) =>
           setupPrice({
-            productId: otherOrg.product.id,
             name: 'Other Usage Price',
             type: PriceType.Usage,
             unitPrice: 10,
@@ -348,7 +346,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const countDistinctPrice = await adminTransaction(
         async ({ transaction }) =>
           setupPrice({
-            productId,
             name: 'Count Distinct Price',
             type: PriceType.Usage,
             unitPrice: 10,
@@ -410,7 +407,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const countDistinctPrice = await adminTransaction(
         async ({ transaction }) =>
           setupPrice({
-            productId,
+            productId: undefined, // Usage prices don't have products
             name: 'Count Distinct Price Empty Props',
             type: PriceType.Usage,
             unitPrice: 10,

@@ -3310,7 +3310,6 @@ describe('ledgerEntryMethods', () => {
 
     it('should return actual price info and formatted currency name for events with priceId', async () => {
       const usageBasedPrice = await setupPrice({
-        productId: product.id,
         name: 'Test Usage Price',
         type: PriceType.Usage,
         unitPrice: 10,
@@ -3382,7 +3381,6 @@ describe('ledgerEntryMethods', () => {
 
     it('should return separate billing info entries for events with prices and events without prices', async () => {
       const usageBasedPrice = await setupPrice({
-        productId: product.id,
         name: 'Test Usage Price',
         type: PriceType.Usage,
         unitPrice: 10,

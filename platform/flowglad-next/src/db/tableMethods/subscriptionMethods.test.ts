@@ -7,6 +7,7 @@ import {
   setupPrice,
   setupProduct,
   setupSubscription,
+  setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { Customer } from '@/db/schema/customers'
@@ -599,7 +600,8 @@ describe('selectSubscriptionsTableRowData', () => {
         expect(resultBasic.items[0].subscription.id).toBe(
           subscription3.id
         )
-        expect(resultBasic.items[0].product.name).toBe('Basic Plan')
+        // Product may be null for usage prices, but this test uses subscription prices
+        expect(resultBasic.items[0].product!.name).toBe('Basic Plan')
 
         // Test whitespace trimming
         const resultTrimmed = await selectSubscriptionsTableRowData({
@@ -682,7 +684,8 @@ describe('selectSubscriptionsTableRowData', () => {
           expect(item.subscription.organizationId).toBe(
             organization.id
           )
-          expect(item.product.name).toBe('Premium Plan')
+          // Product may be null for usage prices, but this test uses subscription prices
+          expect(item.product!.name).toBe('Premium Plan')
         })
         expect(result.total).toBe(2)
       })
@@ -728,7 +731,8 @@ describe('selectSubscriptionsTableRowData', () => {
         expect(result.items.length).toBe(1)
         expect(result.items[0].subscription.id).toBe(subscription1.id)
         expect(result.items[0].customer.name).toBe('Alice Smith')
-        expect(result.items[0].product.name).toBe('Premium Plan')
+        // Product may be null for usage prices, but this test uses subscription prices
+        expect(result.items[0].product!.name).toBe('Premium Plan')
         expect(result.total).toBe(1)
 
         // Test pagination with search + filter
@@ -773,7 +777,8 @@ describe('selectSubscriptionsTableRowData', () => {
         expect(customerNames).toContain('Bob Jones')
         expect(customerNames).toContain('Bobby Johnson')
         allItems.forEach((item) => {
-          expect(item.product.name).toBe('Premium Plan')
+          // Product may be null for usage prices, but this test uses subscription prices
+          expect(item.product!.name).toBe('Premium Plan')
         })
       })
     })
@@ -1129,7 +1134,8 @@ describe('selectSubscriptionsTableRowData', () => {
         expect(subscriptionIds).toContain(subscription2.id)
         result.items.forEach((item) => {
           expect(item.subscription.isFreePlan).toBe(false)
-          expect(item.product.name).toBe('Premium Plan')
+          // Product may be null for usage prices, but this test uses subscription prices
+          expect(item.product!.name).toBe('Premium Plan')
         })
         expect(result.total).toBe(5)
       })
@@ -1220,6 +1226,76 @@ describe('selectSubscriptionsTableRowData', () => {
         expect(resultWithFilters.items.length).toBe(1)
         expect(resultWithFilters.total).toBe(1)
         expect(resultWithFilters.hasNextPage).toBe(false)
+      })
+    })
+  })
+
+  describe('usage price handling', () => {
+    it('returns subscription with null product when price is a usage price (which has null productId)', async () => {
+      // Setup a new organization with a usage meter and usage price
+      const { organization: org, pricingModel: pm } = await setupOrg()
+      const usageMeter = await setupUsageMeter({
+        organizationId: org.id,
+        pricingModelId: pm.id,
+        name: 'API Calls Meter',
+      })
+
+      // Create usage price (usage prices have null productId)
+      const usagePrice = await setupPrice({
+        type: PriceType.Usage,
+        name: 'Usage Price',
+        unitPrice: 10,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        usageMeterId: usageMeter.id,
+      })
+
+      const usageCustomer = await setupCustomer({
+        organizationId: org.id,
+        name: 'Usage Customer',
+        email: 'usage@example.com',
+      })
+
+      const usagePaymentMethod = await setupPaymentMethod({
+        organizationId: org.id,
+        customerId: usageCustomer.id,
+      })
+
+      // Create subscription with usage price
+      const usageSubscription = await setupSubscription({
+        organizationId: org.id,
+        customerId: usageCustomer.id,
+        paymentMethodId: usagePaymentMethod.id,
+        priceId: usagePrice.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectSubscriptionsTableRowData({
+          input: {
+            pageSize: 10,
+            filters: { organizationId: org.id },
+          },
+          transaction,
+        })
+
+        // Find the subscription with usage price
+        const usageSubRow = result.items.find(
+          (item) => item.subscription.id === usageSubscription.id
+        )
+
+        // Verify the subscription is returned with expected id
+        expect(usageSubRow?.subscription.id).toBe(
+          usageSubscription.id
+        )
+        expect(usageSubRow!.subscription.priceId).toBe(usagePrice.id)
+        expect(usageSubRow!.price.id).toBe(usagePrice.id)
+        expect(usageSubRow!.price.type).toBe(PriceType.Usage)
+        // Usage prices have null product
+        expect(usageSubRow!.product).toBeNull()
+        expect(usageSubRow!.customer.id).toBe(usageCustomer.id)
       })
     })
   })

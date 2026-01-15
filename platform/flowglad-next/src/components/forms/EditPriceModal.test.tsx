@@ -11,17 +11,30 @@ import { type CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { parseEditPriceDefaultValues } from './EditPriceModal'
 
 describe('parseEditPriceDefaultValues', () => {
-  const basePrice: Partial<Price.ClientRecord> = {
+  // Base fields shared by all price types (excluding productId which varies by type)
+  const basePriceWithoutProductId = {
     id: 'price_test123',
     name: 'Test Price',
     slug: 'test-price',
-    productId: 'product_test123',
     livemode: false,
     currency: 'USD' as CurrencyCode,
     isDefault: true,
     active: true,
     createdAt: Date.parse('2024-01-01'),
     updatedAt: Date.parse('2024-01-01'),
+  }
+
+  // For subscription/single-payment prices that require productId
+  const basePrice: Partial<Price.ClientRecord> = {
+    ...basePriceWithoutProductId,
+    productId: 'product_test123',
+  }
+
+  // For usage prices where productId is null
+  const baseUsagePrice = {
+    ...basePriceWithoutProductId,
+    productId: null,
+    pricingModelId: 'pm_test123',
   }
 
   describe('Valid Inputs - Should NOT Throw', () => {
@@ -212,8 +225,8 @@ describe('parseEditPriceDefaultValues', () => {
 
     describe('Usage Price Type', () => {
       it('should accept valid usage-based price', () => {
-        const validUsage: Price.ClientRecord = {
-          ...basePrice,
+        const validUsage = {
+          ...baseUsagePrice,
           type: PriceType.Usage,
           unitPrice: 50,
           intervalCount: 1,
@@ -240,8 +253,8 @@ describe('parseEditPriceDefaultValues', () => {
       })
 
       it('should accept usage price with different usage events per unit', () => {
-        const usagePrice: Price.ClientRecord = {
-          ...basePrice,
+        const usagePrice = {
+          ...baseUsagePrice,
           type: PriceType.Usage,
           unitPrice: 1000,
           intervalCount: 1,
@@ -337,16 +350,18 @@ describe('parseEditPriceDefaultValues', () => {
     })
 
     it('should throw for Usage type without usageMeterId', () => {
+      // Deliberately invalid: usageMeterId is null (should be string)
+      // Double assertion needed to test invalid input
       const usageWithoutMeter = {
-        ...basePrice,
+        ...baseUsagePrice,
         type: PriceType.Usage,
         unitPrice: 100,
         intervalCount: 1,
         intervalUnit: IntervalUnit.Month,
         trialPeriodDays: null,
         usageEventsPerUnit: 100,
-        usageMeterId: null as any,
-      } as Price.ClientRecord
+        usageMeterId: null,
+      } as unknown as Price.ClientRecord
 
       expect(() =>
         parseEditPriceDefaultValues(usageWithoutMeter)
@@ -354,16 +369,18 @@ describe('parseEditPriceDefaultValues', () => {
     })
 
     it('should throw for Usage type without usageEventsPerUnit', () => {
+      // Deliberately invalid: usageEventsPerUnit is null (should be number)
+      // Double assertion needed to test invalid input
       const usageWithoutEvents = {
-        ...basePrice,
+        ...baseUsagePrice,
         type: PriceType.Usage,
         unitPrice: 100,
         intervalCount: 1,
         intervalUnit: IntervalUnit.Month,
         trialPeriodDays: null,
-        usageEventsPerUnit: null as any,
+        usageEventsPerUnit: null,
         usageMeterId: 'meter_test123',
-      } as Price.ClientRecord
+      } as unknown as Price.ClientRecord
 
       expect(() =>
         parseEditPriceDefaultValues(usageWithoutEvents)

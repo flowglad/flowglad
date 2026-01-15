@@ -91,7 +91,10 @@ import { insertUsageCreditApplication } from '@/db/tableMethods/usageCreditAppli
 import { insertUsageCreditBalanceAdjustment } from '@/db/tableMethods/usageCreditBalanceAdjustmentMethods'
 import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
 import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
-import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
+import {
+  derivePricingModelIdFromUsageMeter,
+  insertUsageMeter,
+} from '@/db/tableMethods/usageMeterMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
 import {
   BillingPeriodStatus,
@@ -880,8 +883,7 @@ export const setupInvoice = async ({
 }
 
 // Strict validation schemas for setupPrice to catch test data errors
-const baseSetupPriceSchema = z.object({
-  productId: z.string(),
+const baseSetupPriceSchemaWithoutProductId = z.object({
   name: z.string(),
   unitPrice: z.number(),
   livemode: z.boolean(),
@@ -891,6 +893,11 @@ const baseSetupPriceSchema = z.object({
   active: z.boolean().optional(),
   slug: z.string().optional(),
 })
+
+const baseSetupPriceSchema =
+  baseSetupPriceSchemaWithoutProductId.extend({
+    productId: z.string(),
+  })
 
 const setupSinglePaymentPriceSchema = baseSetupPriceSchema.extend({
   type: z.literal(PriceType.SinglePayment),
@@ -909,12 +916,16 @@ const setupSubscriptionPriceSchema = baseSetupPriceSchema.extend({
   usageMeterId: z.never().optional(), // Subscriptions don't use usage meters
 })
 
+// Usage prices do NOT have productId - they belong to usage meters
+// Extends baseSetupPriceSchema (same as other price types) to enable proper
+// TypeScript discriminated union narrowing, then overrides productId to z.never().
 const setupUsagePriceSchema = baseSetupPriceSchema.extend({
   type: z.literal(PriceType.Usage),
   intervalUnit: z.nativeEnum(IntervalUnit).optional(),
   intervalCount: z.number().optional(),
-  usageMeterId: z.string(), // Required for Usage prices
+  usageMeterId: z.string(), // Required for Usage prices - replaces productId
   trialPeriodDays: z.never().optional(), // Usage prices don't have trial periods
+  productId: z.never().optional(), // Override: Usage prices do NOT have productId
 })
 
 const setupPriceInputSchema = z.discriminatedUnion('type', [
@@ -939,7 +950,6 @@ export const setupPrice = async (
   const validatedInput = setupPriceInputSchema.parse(input)
 
   const {
-    productId,
     name,
     type,
     unitPrice,
@@ -965,8 +975,20 @@ export const setupPrice = async (
       : undefined
   const usageMeterId =
     type === PriceType.Usage ? validatedInput.usageMeterId : undefined
+  // productId only exists for non-usage prices
+  const productId =
+    type !== PriceType.Usage ? validatedInput.productId : null
 
   return adminTransaction(async ({ transaction }) => {
+    // For usage prices, derive pricingModelId from usage meter
+    const pricingModelId =
+      type === PriceType.Usage && usageMeterId
+        ? await derivePricingModelIdFromUsageMeter(
+            usageMeterId,
+            transaction
+          )
+        : undefined
+
     const basePrice = {
       ...nulledPriceColumns,
       productId,
@@ -992,6 +1014,7 @@ export const setupPrice = async (
         trialPeriodDays: null,
         usageMeterId,
         usageEventsPerUnit: 1,
+        pricingModelId, // Derived from usage meter
       },
       [PriceType.Subscription]: {
         name,
@@ -2543,10 +2566,13 @@ export const setupUsageLedgerScenario = async (params: {
     pricingModelId: pricingModel.id,
   })
   // Build price params for Usage type, excluding incompatible fields from priceArgs
-  const { trialPeriodDays: _, ...compatiblePriceArgs } =
-    params.priceArgs ?? {}
+  // Usage prices don't have productId - they belong to usage meters
+  const {
+    trialPeriodDays: _,
+    productId: __,
+    ...compatiblePriceArgs
+  } = params.priceArgs ?? {}
   const price = await setupPrice({
-    productId: product.id,
     name: 'Test Price',
     unitPrice: 1000,
     livemode,

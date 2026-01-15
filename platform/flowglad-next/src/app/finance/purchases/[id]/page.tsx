@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { Price } from '@/db/schema/prices'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
@@ -29,9 +30,10 @@ const PurchasePage = async ({
         ? await selectPriceById(purchase.priceId, transaction)
         : null
 
-      const product = price
-        ? await selectProductById(price.productId, transaction)
-        : null
+      const product =
+        price && Price.hasProductId(price)
+          ? await selectProductById(price.productId, transaction)
+          : null
 
       return {
         purchase,

@@ -182,6 +182,18 @@ export const bulkInsertUsageEventsTransaction = async (
         }
       }
 
+      // Also look up usage prices that don't have a productId
+      // (usage prices belong to usage meters, not products)
+      const usagePricesFromDb = await selectPrices(
+        { pricingModelId: pricingModel.id, active: true },
+        transaction
+      )
+      for (const price of usagePricesFromDb) {
+        if (price.slug && !slugToPriceMap.has(price.slug)) {
+          slugToPriceMap.set(price.slug, price)
+        }
+      }
+
       for (const slug of slugs) {
         const price = slugToPriceMap.get(slug)
 
@@ -395,6 +407,16 @@ export const bulkInsertUsageEventsTransaction = async (
         for (const price of product.prices) {
           pricingModelPriceIds.add(price.id)
         }
+      }
+
+      // Also include usage prices that don't have a productId
+      // (usage prices belong to usage meters, not products)
+      const usagePricesFromDb = await selectPrices(
+        { pricingModelId: pricingModel.id, active: true },
+        transaction
+      )
+      for (const price of usagePricesFromDb) {
+        pricingModelPriceIds.add(price.id)
       }
 
       for (const { priceId, index } of events) {

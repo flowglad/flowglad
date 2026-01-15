@@ -22,6 +22,7 @@ import {
 import { useAuthContext } from '@/contexts/authContext'
 import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import {
   getSubscriptionDateInfo,
@@ -203,9 +204,12 @@ const InnerSubscriptionPage = ({
                   )
 
                 // Get product ID and name from the price
-                const productId = item.price.productId
-                const productName =
-                  productNames[productId] || 'Unnamed Product'
+                const productId = Price.clientHasProductId(item.price)
+                  ? item.price.productId
+                  : null
+                const productName = productId
+                  ? (productNames[productId] ?? 'Unnamed Product')
+                  : 'Usage-Based'
 
                 // Get appropriate date info based on subscription lifecycle state
                 // (handles active/renewing, cancellation scheduled, and canceled states)
@@ -228,7 +232,9 @@ const InnerSubscriptionPage = ({
                     variant="subscription"
                     quantity={item.quantity}
                     renewalDate={renewalDate}
-                    href={`/products/${productId}`}
+                    href={
+                      productId ? `/products/${productId}` : undefined
+                    }
                   />
                 )
               })}

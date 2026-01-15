@@ -104,7 +104,8 @@ const createUsagePriceInsert = (
   overrides?: Partial<Price.ClientUsageInsert>
 ): Price.ClientUsageInsert => {
   return {
-    productId: 'product-1',
+    // Usage prices don't have productId
+    productId: null,
     type: PriceType.Usage,
     unitPrice: 100,
     usageMeterId: 'meter-1',
@@ -126,7 +127,8 @@ const createUsagePriceRecord = (
 ): Price.ClientUsageRecord => {
   return {
     id: 'price-1',
-    productId: 'product-1',
+    // Usage prices don't have productId
+    productId: null,
     pricingModelId: 'test',
     type: PriceType.Usage,
     unitPrice: 100,

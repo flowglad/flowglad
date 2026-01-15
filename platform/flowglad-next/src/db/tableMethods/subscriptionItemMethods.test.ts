@@ -410,7 +410,7 @@ describe('subscriptionItemMethods', async () => {
       let feature: SubscriptionItemFeature.Record | undefined
       const featureSetup = await setupTestFeaturesAndProductFeatures({
         organizationId: organization.id,
-        productId: price.productId,
+        productId: price.productId!, // Test uses subscription price which has productId
         livemode: true,
         featureSpecs: [
           {
@@ -458,7 +458,7 @@ describe('subscriptionItemMethods', async () => {
       // Setup features
       const featureSetup = await setupTestFeaturesAndProductFeatures({
         organizationId: organization.id,
-        productId: price.productId,
+        productId: price.productId!, // Test uses subscription price which has productId
         livemode: true,
         featureSpecs: [
           {
@@ -864,7 +864,7 @@ describe('subscriptionItemMethods', async () => {
         const featureSetup =
           await setupTestFeaturesAndProductFeatures({
             organizationId: organization.id,
-            productId: price.productId,
+            productId: price.productId!, // Test uses subscription price which has productId
             livemode: true,
             featureSpecs: [
               {
@@ -968,7 +968,7 @@ describe('subscriptionItemMethods', async () => {
         const featureSetup =
           await setupTestFeaturesAndProductFeatures({
             organizationId: organization.id,
-            productId: price.productId,
+            productId: price.productId!, // Test uses subscription price which has productId
             livemode: true,
             featureSpecs: [
               {

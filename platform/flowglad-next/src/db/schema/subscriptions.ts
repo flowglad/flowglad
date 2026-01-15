@@ -335,7 +335,8 @@ export const subscriptionsTableRowDataSchema = z.object({
   subscription: subscriptionClientSelectSchema,
   customer: customerClientSelectSchema,
   price: pricesClientSelectSchema,
-  product: productsClientSelectSchema,
+  // Product may be null for usage-based subscriptions
+  product: productsClientSelectSchema.nullable(),
 })
 
 export const subscriptionsPaginatedSelectSchema =

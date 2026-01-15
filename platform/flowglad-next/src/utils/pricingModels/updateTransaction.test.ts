@@ -37,35 +37,41 @@ afterEach(async () => {
 
 /**
  * Helper to create a basic pricing model for testing updates.
- * Automatically adds usage price products for any usage meters in overrides.
+ * PR 5: Usage prices now belong to usage meters, not products.
  */
 const createBasicPricingModel = async (
   overrides: Partial<SetupPricingModelInput> = {}
 ) => {
-  // If usage meters are provided, create corresponding usage price products
-  const usageMeterProducts: SetupPricingModelInput['products'] = (
-    overrides.usageMeters ?? []
-  ).map((meter) => ({
-    product: {
-      name: `${meter.name} Usage`,
-      slug: `${meter.slug}-usage`,
-      default: false,
-      active: true,
-    },
-    price: {
-      type: PriceType.Usage,
-      slug: `${meter.slug}-usage-price`,
-      unitPrice: 10,
-      isDefault: true,
-      active: true,
-      intervalCount: 1,
-      intervalUnit: IntervalUnit.Month,
-      usageMeterSlug: meter.slug,
-      usageEventsPerUnit: 100,
-      trialPeriodDays: null,
-    },
-    features: [],
-  }))
+  // PR 5: Usage meters have nested structure with prices
+  // Transform any old-style flat usage meters to nested structure with default prices
+  const processedUsageMeters: SetupPricingModelInput['usageMeters'] =
+    (overrides.usageMeters ?? []).map((meter) => {
+      // If already in new format (has usageMeter property), use as-is
+      if ('usageMeter' in meter) {
+        return meter
+      }
+      // Otherwise, transform from old flat format
+      const meterData = meter as { slug: string; name: string }
+      return {
+        usageMeter: {
+          slug: meterData.slug,
+          name: meterData.name,
+        },
+        prices: [
+          {
+            type: PriceType.Usage as const,
+            slug: `${meterData.slug}-usage-price`,
+            unitPrice: 10,
+            isDefault: true,
+            active: true,
+            intervalCount: 1,
+            intervalUnit: IntervalUnit.Month,
+            usageEventsPerUnit: 100,
+            trialPeriodDays: null,
+          },
+        ],
+      }
+    })
 
   const baseProducts: SetupPricingModelInput['products'] = [
     {
@@ -90,15 +96,13 @@ const createBasicPricingModel = async (
     },
   ]
 
-  // Determine final products list
-  const finalProducts = overrides.products
-    ? overrides.products
-    : [...baseProducts, ...usageMeterProducts]
+  // PR 5: Products only contain subscription/single payment prices now
+  // No more usage price products - usage prices live under usage meters
+  const finalProducts = overrides.products ?? baseProducts
 
   const input: SetupPricingModelInput = {
     name: 'Test Pricing Model',
     isDefault: false,
-    usageMeters: [],
     features: [
       {
         type: FeatureType.Toggle,
@@ -109,6 +113,7 @@ const createBasicPricingModel = async (
       },
     ],
     ...overrides,
+    usageMeters: processedUsageMeters,
     products: finalProducts,
   }
 
@@ -248,7 +253,24 @@ describe('updatePricingModelTransaction', () => {
   describe('usage meter updates', () => {
     it('creates new usage meters', async () => {
       const setupResult = await createBasicPricingModel({
-        usageMeters: [{ slug: 'api-calls', name: 'API Calls' }],
+        usageMeters: [
+          {
+            usageMeter: { slug: 'api-calls', name: 'API Calls' },
+            prices: [
+              {
+                type: PriceType.Usage,
+                slug: 'api-calls-usage-price',
+                unitPrice: 10,
+                isDefault: true,
+                active: true,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                usageEventsPerUnit: 100,
+                trialPeriodDays: null,
+              },
+            ],
+          },
+        ],
       })
 
       const updateResult = await comprehensiveAdminTransaction(
@@ -260,8 +282,41 @@ describe('updatePricingModelTransaction', () => {
                 name: 'Test Pricing Model',
                 isDefault: false,
                 usageMeters: [
-                  { slug: 'api-calls', name: 'API Calls' },
-                  { slug: 'storage', name: 'Storage' },
+                  {
+                    usageMeter: {
+                      slug: 'api-calls',
+                      name: 'API Calls',
+                    },
+                    prices: [
+                      {
+                        type: PriceType.Usage,
+                        slug: 'api-calls-usage-price',
+                        unitPrice: 10,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageEventsPerUnit: 100,
+                        trialPeriodDays: null,
+                      },
+                    ],
+                  },
+                  {
+                    usageMeter: { slug: 'storage', name: 'Storage' },
+                    prices: [
+                      {
+                        type: PriceType.Usage,
+                        slug: 'storage-usage-price',
+                        unitPrice: 5,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageEventsPerUnit: 1000,
+                        trialPeriodDays: null,
+                      },
+                    ],
+                  },
                 ],
                 features: [
                   {
@@ -272,6 +327,7 @@ describe('updatePricingModelTransaction', () => {
                     active: true,
                   },
                 ],
+                // PR 5: Products only have subscription/single payment prices
                 products: [
                   {
                     product: {
@@ -292,48 +348,6 @@ describe('updatePricingModelTransaction', () => {
                       usageEventsPerUnit: null,
                     },
                     features: ['feature-a'],
-                  },
-                  {
-                    product: {
-                      name: 'API Calls Usage',
-                      slug: 'api-calls-usage',
-                      default: false,
-                      active: true,
-                    },
-                    price: {
-                      type: PriceType.Usage,
-                      slug: 'api-calls-usage-price',
-                      unitPrice: 10,
-                      isDefault: true,
-                      active: true,
-                      intervalCount: 1,
-                      intervalUnit: IntervalUnit.Month,
-                      usageMeterSlug: 'api-calls',
-                      usageEventsPerUnit: 100,
-                      trialPeriodDays: null,
-                    },
-                    features: [],
-                  },
-                  {
-                    product: {
-                      name: 'Storage Usage',
-                      slug: 'storage-usage',
-                      default: false,
-                      active: true,
-                    },
-                    price: {
-                      type: PriceType.Usage,
-                      slug: 'storage-usage-price',
-                      unitPrice: 5,
-                      isDefault: true,
-                      active: true,
-                      intervalCount: 1,
-                      intervalUnit: IntervalUnit.Month,
-                      usageMeterSlug: 'storage',
-                      usageEventsPerUnit: 1000,
-                      trialPeriodDays: null,
-                    },
-                    features: [],
                   },
                 ],
               },
@@ -348,11 +362,39 @@ describe('updatePricingModelTransaction', () => {
       expect(updateResult.usageMeters.created).toHaveLength(1)
       expect(updateResult.usageMeters.created[0].slug).toBe('storage')
       expect(updateResult.usageMeters.created[0].name).toBe('Storage')
+
+      // Verify usage meter prices were also created
+      // The new "storage" meter should have its price created
+      const storageUsagePrice = updateResult.prices.created.find(
+        (p) => p.slug === 'storage-usage-price'
+      )
+      expect(storageUsagePrice?.type).toBe(PriceType.Usage)
+      expect(storageUsagePrice?.unitPrice).toBe(5)
+      expect(storageUsagePrice?.usageMeterId).toBe(
+        updateResult.usageMeters.created[0].id
+      )
     })
 
     it('updates existing usage meter name', async () => {
       const setupResult = await createBasicPricingModel({
-        usageMeters: [{ slug: 'api-calls', name: 'API Calls' }],
+        usageMeters: [
+          {
+            usageMeter: { slug: 'api-calls', name: 'API Calls' },
+            prices: [
+              {
+                type: PriceType.Usage,
+                slug: 'api-calls-usage-price',
+                unitPrice: 10,
+                isDefault: true,
+                active: true,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                usageEventsPerUnit: 100,
+                trialPeriodDays: null,
+              },
+            ],
+          },
+        ],
       })
 
       const updateResult = await comprehensiveAdminTransaction(
@@ -364,7 +406,25 @@ describe('updatePricingModelTransaction', () => {
                 name: 'Test Pricing Model',
                 isDefault: false,
                 usageMeters: [
-                  { slug: 'api-calls', name: 'API Requests' },
+                  {
+                    usageMeter: {
+                      slug: 'api-calls',
+                      name: 'API Requests',
+                    },
+                    prices: [
+                      {
+                        type: PriceType.Usage,
+                        slug: 'api-calls-usage-price',
+                        unitPrice: 10,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageEventsPerUnit: 100,
+                        trialPeriodDays: null,
+                      },
+                    ],
+                  },
                 ],
                 features: [
                   {
@@ -395,27 +455,6 @@ describe('updatePricingModelTransaction', () => {
                       usageEventsPerUnit: null,
                     },
                     features: ['feature-a'],
-                  },
-                  {
-                    product: {
-                      name: 'API Calls Usage',
-                      slug: 'api-calls-usage',
-                      default: false,
-                      active: true,
-                    },
-                    price: {
-                      type: PriceType.Usage,
-                      slug: 'api-calls-usage-price',
-                      unitPrice: 10,
-                      isDefault: true,
-                      active: true,
-                      intervalCount: 1,
-                      intervalUnit: IntervalUnit.Month,
-                      usageMeterSlug: 'api-calls',
-                      usageEventsPerUnit: 100,
-                      trialPeriodDays: null,
-                    },
-                    features: [],
                   },
                 ],
               },
@@ -436,8 +475,38 @@ describe('updatePricingModelTransaction', () => {
     it('throws when trying to remove usage meters', async () => {
       const setupResult = await createBasicPricingModel({
         usageMeters: [
-          { slug: 'api-calls', name: 'API Calls' },
-          { slug: 'storage', name: 'Storage' },
+          {
+            usageMeter: { slug: 'api-calls', name: 'API Calls' },
+            prices: [
+              {
+                type: PriceType.Usage,
+                slug: 'api-calls-usage-price',
+                unitPrice: 10,
+                isDefault: true,
+                active: true,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                usageEventsPerUnit: 100,
+                trialPeriodDays: null,
+              },
+            ],
+          },
+          {
+            usageMeter: { slug: 'storage', name: 'Storage' },
+            prices: [
+              {
+                type: PriceType.Usage,
+                slug: 'storage-usage-price',
+                unitPrice: 5,
+                isDefault: true,
+                active: true,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                usageEventsPerUnit: 1,
+                trialPeriodDays: null,
+              },
+            ],
+          },
         ],
       })
 
@@ -451,7 +520,25 @@ describe('updatePricingModelTransaction', () => {
                   name: 'Test Pricing Model',
                   isDefault: false,
                   usageMeters: [
-                    { slug: 'api-calls', name: 'API Calls' },
+                    {
+                      usageMeter: {
+                        slug: 'api-calls',
+                        name: 'API Calls',
+                      },
+                      prices: [
+                        {
+                          type: PriceType.Usage,
+                          slug: 'api-calls-usage-price',
+                          unitPrice: 10,
+                          isDefault: true,
+                          active: true,
+                          intervalCount: 1,
+                          intervalUnit: IntervalUnit.Month,
+                          usageEventsPerUnit: 100,
+                          trialPeriodDays: null,
+                        },
+                      ],
+                    },
                   ],
                   features: [
                     {
@@ -482,27 +569,6 @@ describe('updatePricingModelTransaction', () => {
                         usageEventsPerUnit: null,
                       },
                       features: ['feature-a'],
-                    },
-                    {
-                      product: {
-                        name: 'API Calls Usage',
-                        slug: 'api-calls-usage',
-                        default: false,
-                        active: true,
-                      },
-                      price: {
-                        type: PriceType.Usage,
-                        slug: 'api-calls-usage-price',
-                        unitPrice: 10,
-                        isDefault: true,
-                        active: true,
-                        intervalCount: 1,
-                        intervalUnit: IntervalUnit.Month,
-                        usageMeterSlug: 'api-calls',
-                        usageEventsPerUnit: 100,
-                        trialPeriodDays: null,
-                      },
-                      features: [],
                     },
                   ],
                 },
@@ -1783,7 +1849,24 @@ describe('updatePricingModelTransaction', () => {
 
     it('throws when trying to change feature type', async () => {
       const setupResult = await createBasicPricingModel({
-        usageMeters: [{ slug: 'api-calls', name: 'API Calls' }],
+        usageMeters: [
+          {
+            usageMeter: { slug: 'api-calls', name: 'API Calls' },
+            prices: [
+              {
+                type: PriceType.Usage,
+                slug: 'api-calls-usage-price',
+                unitPrice: 10,
+                isDefault: true,
+                active: true,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                usageEventsPerUnit: 100,
+                trialPeriodDays: null,
+              },
+            ],
+          },
+        ],
       })
 
       await expect(
@@ -1796,7 +1879,25 @@ describe('updatePricingModelTransaction', () => {
                   name: 'Test Pricing Model',
                   isDefault: false,
                   usageMeters: [
-                    { slug: 'api-calls', name: 'API Calls' },
+                    {
+                      usageMeter: {
+                        slug: 'api-calls',
+                        name: 'API Calls',
+                      },
+                      prices: [
+                        {
+                          type: PriceType.Usage,
+                          slug: 'api-calls-usage-price',
+                          unitPrice: 10,
+                          isDefault: true,
+                          active: true,
+                          intervalCount: 1,
+                          intervalUnit: IntervalUnit.Month,
+                          usageEventsPerUnit: 100,
+                          trialPeriodDays: null,
+                        },
+                      ],
+                    },
                   ],
                   features: [
                     {
@@ -1831,27 +1932,6 @@ describe('updatePricingModelTransaction', () => {
                         usageEventsPerUnit: null,
                       },
                       features: ['feature-a'],
-                    },
-                    {
-                      product: {
-                        name: 'API Calls Usage',
-                        slug: 'api-calls-usage',
-                        default: false,
-                        active: true,
-                      },
-                      price: {
-                        type: PriceType.Usage,
-                        slug: 'api-calls-usage-price',
-                        unitPrice: 10,
-                        isDefault: true,
-                        active: true,
-                        intervalCount: 1,
-                        intervalUnit: IntervalUnit.Month,
-                        usageMeterSlug: 'api-calls',
-                        usageEventsPerUnit: 100,
-                        trialPeriodDays: null,
-                      },
-                      features: [],
                     },
                   ],
                 },
@@ -2578,7 +2658,25 @@ describe('updatePricingModelTransaction', () => {
                 name: 'Test Pricing Model',
                 isDefault: false,
                 usageMeters: [
-                  { slug: 'api-calls', name: 'API Calls' },
+                  {
+                    usageMeter: {
+                      slug: 'api-calls',
+                      name: 'API Calls',
+                    },
+                    prices: [
+                      {
+                        type: PriceType.Usage,
+                        slug: 'api-usage-price',
+                        unitPrice: 10,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageEventsPerUnit: 100,
+                        trialPeriodDays: null,
+                      },
+                    ],
+                  },
                 ],
                 features: [
                   {
@@ -2620,27 +2718,6 @@ describe('updatePricingModelTransaction', () => {
                       usageEventsPerUnit: null,
                     },
                     features: ['feature-a', 'api-credits'],
-                  },
-                  {
-                    product: {
-                      name: 'API Usage',
-                      slug: 'api-usage',
-                      default: false,
-                      active: true,
-                    },
-                    price: {
-                      type: PriceType.Usage,
-                      slug: 'api-usage-price',
-                      unitPrice: 10,
-                      isDefault: true,
-                      active: true,
-                      intervalCount: 1,
-                      intervalUnit: IntervalUnit.Month,
-                      usageMeterSlug: 'api-calls',
-                      usageEventsPerUnit: 100,
-                      trialPeriodDays: null,
-                    },
-                    features: [],
                   },
                 ],
               },
@@ -2912,7 +2989,25 @@ describe('updatePricingModelTransaction', () => {
                 name: 'Updated Pricing Model',
                 isDefault: false,
                 usageMeters: [
-                  { slug: 'api-calls', name: 'API Calls' },
+                  {
+                    usageMeter: {
+                      slug: 'api-calls',
+                      name: 'API Calls',
+                    },
+                    prices: [
+                      {
+                        type: PriceType.Usage,
+                        slug: 'api-usage-price',
+                        unitPrice: 10,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageEventsPerUnit: 100,
+                        trialPeriodDays: null,
+                      },
+                    ],
+                  },
                 ],
                 features: [
                   {
@@ -2950,27 +3045,6 @@ describe('updatePricingModelTransaction', () => {
                       usageEventsPerUnit: null,
                     },
                     features: ['feature-a', 'feature-b'],
-                  },
-                  {
-                    product: {
-                      name: 'API Usage',
-                      slug: 'api-usage',
-                      default: false,
-                      active: true,
-                    },
-                    price: {
-                      type: PriceType.Usage,
-                      slug: 'api-usage-price',
-                      unitPrice: 10,
-                      isDefault: true,
-                      active: true,
-                      intervalCount: 1,
-                      intervalUnit: IntervalUnit.Month,
-                      usageMeterSlug: 'api-calls',
-                      usageEventsPerUnit: 100,
-                      trialPeriodDays: null,
-                    },
-                    features: [],
                   },
                 ],
               },

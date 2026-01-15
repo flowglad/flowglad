@@ -1294,12 +1294,12 @@ export const encodeCursor = <T extends PgTableWithId>({
 export const decodeCursor = (cursor: string) => {
   const decoded = JSON.parse(Buffer.from(cursor, 'base64').toString())
   return {
-    parameters: decoded.parameters,
+    parameters: decoded.parameters ?? {},
     createdAt: decoded.createdAt
       ? new Date(decoded.createdAt)
       : undefined,
     id: decoded.id,
-    direction: decoded.direction,
+    direction: decoded.direction ?? 'forward',
   }
 }
 

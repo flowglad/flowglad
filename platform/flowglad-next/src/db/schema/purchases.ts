@@ -358,7 +358,8 @@ export const purchaseClientSelectSchema = z
 
 export const purchasesTableRowDataSchema = z.object({
   purchase: purchaseClientSelectSchema,
-  product: productsClientSelectSchema,
+  // Product may be null for usage-based purchases
+  product: productsClientSelectSchema.nullable(),
   customer: customerClientSelectSchema,
   revenue: z.number().optional(),
   currency: currencyCodeSchema,

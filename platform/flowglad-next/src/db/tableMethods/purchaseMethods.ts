@@ -48,6 +48,7 @@ import {
 } from '../schema/organizations'
 import { payments, paymentsSelectSchema } from '../schema/payments'
 import {
+  Price,
   prices,
   pricesSelectSchema,
   singlePaymentPriceSelectSchema,
@@ -451,8 +452,24 @@ export const selectPurchasesTableRowData =
       }
 
       return purchasesResult.map((purchase) => {
-        const price = pricesById.get(purchase.priceId)!
-        const product = productsById.get(price.productId)!
+        const rawPrice = pricesById.get(purchase.priceId)
+        // Usage prices (with null productId) are filtered out by the innerJoin above.
+        // If a purchase references a usage price, this is a data integrity issue
+        // since purchases should only be created for product-backed prices.
+        if (!rawPrice) {
+          throw new Error(
+            `Purchase ${purchase.id} references price ${purchase.priceId} which was not found. ` +
+              `This may indicate a usage price was incorrectly associated with a purchase.`
+          )
+        }
+        // Parse price early so Price.hasProductId type guard works.
+        // This is needed because raw DB rows have type: string, but the type guard
+        // expects the parsed Price.Record with narrowed type.
+        const parsedPrice = pricesSelectSchema.parse(rawPrice)
+        // Get product only for non-usage prices
+        const product = Price.hasProductId(parsedPrice)
+          ? productsById.get(parsedPrice.productId)
+          : undefined
         const customer = customersById.get(purchase.customerId)!
         const customerName = customer.name
         const customerEmail = customer.email
@@ -465,10 +482,13 @@ export const selectPurchasesTableRowData =
 
         return {
           purchase,
-          product: productsSelectSchema.parse(product),
+          // Product may be undefined for usage prices
+          product: product
+            ? productsSelectSchema.parse(product)
+            : null,
           customer: customersSelectSchema.parse(customer),
           revenue,
-          currency: price.currency as CurrencyCode,
+          currency: parsedPrice.currency as CurrencyCode,
           customerName,
           customerEmail,
         }

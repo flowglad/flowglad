@@ -712,14 +712,14 @@ describe('selectPricingModelForCustomer', () => {
       pricingModelId: fakePricingModelId,
     }
 
-    await expect(async () => {
-      await adminTransaction(async ({ transaction }) => {
+    await expect(
+      adminTransaction(async ({ transaction }) => {
         return selectPricingModelForCustomer(
           customerWithFakeOrgAndPricingModel,
           transaction
         )
       })
-    }).rejects.toThrow(
+    ).rejects.toThrow(
       `No default pricing model found for organization ${fakeOrgId}`
     )
   })
@@ -1271,7 +1271,7 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
     pricingModel = orgData.pricingModel
   })
 
-  it('countNonUsageProductsByPricingModelIds excludes usage products from count', async () => {
+  it('countNonUsageProductsByPricingModelIds counts all products (usage prices no longer have products)', async () => {
     // Create subscription products
     const subscriptionProduct1 = await setupProduct({
       organizationId: organization.id,
@@ -1311,21 +1311,14 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
       trialPeriodDays: 0,
     })
 
-    // Create a usage meter and usage product
+    // Create a usage meter (usage prices now belong to meters, not products)
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
       name: 'API Calls Meter',
     })
 
-    const usageProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Usage Product',
-    })
-
     await setupPrice({
-      productId: usageProduct.id,
       name: 'Usage Price',
       type: PriceType.Usage,
       intervalUnit: IntervalUnit.Month,
@@ -1347,13 +1340,14 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
       }
     )
 
-    // Should count subscription products + default product, but NOT usage product
+    // Should count all products (subscription products + default product)
+    // Usage prices no longer have products, so no products are excluded
     // Total: 2 subscription products + 1 default product = 3
     const count = countMap.get(pricingModel.id) ?? 0
     expect(count).toBe(3)
   })
 
-  it('selectPricingModelsTableRows returns non-usage product count', async () => {
+  it('selectPricingModelsTableRows returns all product count (usage prices no longer have products)', async () => {
     // Create subscription product
     const subscriptionProduct = await setupProduct({
       organizationId: organization.id,
@@ -1374,21 +1368,14 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
       trialPeriodDays: 0,
     })
 
-    // Create a usage meter and usage product
+    // Create a usage meter (usage prices now belong to meters, not products)
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
       name: 'API Calls Meter',
     })
 
-    const usageProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Usage Product',
-    })
-
     await setupPrice({
-      productId: usageProduct.id,
       name: 'Usage Price',
       type: PriceType.Usage,
       intervalUnit: IntervalUnit.Month,
@@ -1417,12 +1404,13 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
       (row) => row.pricingModel.id === pricingModel.id
     )
 
-    // Should count subscription product + default product, but NOT usage product
+    // Should count all products (subscription product + default product)
+    // Usage prices no longer have products, so no products are excluded
     // Total: 1 subscription product + 1 default product = 2
     expect(pricingModelRow!.productsCount).toBe(2)
   })
 
-  it('returns productsCount of 0 when pricing model contains only usage products', async () => {
+  it('returns productsCount of 0 when pricing model has only usage meters (no products)', async () => {
     // Create a new pricing model
     const emptyPricingModel = await setupPricingModel({
       organizationId: organization.id,
@@ -1430,21 +1418,14 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
       isDefault: false,
     })
 
-    // Create a usage meter and usage product
+    // Create a usage meter (usage prices now belong to meters, not products)
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       pricingModelId: emptyPricingModel.id,
       name: 'API Calls Meter 2',
     })
 
-    const usageProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: emptyPricingModel.id,
-      name: 'Only Usage Product',
-    })
-
     await setupPrice({
-      productId: usageProduct.id,
       name: 'Usage Price',
       type: PriceType.Usage,
       intervalUnit: IntervalUnit.Month,
@@ -1474,7 +1455,7 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
     )
 
     // Should be 0 since setupPricingModel doesn't create a default product,
-    // and the only product created has a usage price (which is excluded)
+    // and we only created usage meters (which don't have products)
     expect(pricingModelRow!.productsCount).toBe(0)
   })
 })

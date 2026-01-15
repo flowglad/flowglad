@@ -145,7 +145,6 @@ describe('insertSubscriptionAndItems', () => {
       })
       // - Create a price with type PriceType.Usage and startsWithCreditTrial = true, associated with the usage meter.
       const creditTrialPrice = await setupPrice({
-        productId: product.id,
         type: PriceType.Usage,
         name: 'Credit Trial Price',
         unitPrice: 0,
@@ -364,7 +363,6 @@ describe('insertSubscriptionAndItems', () => {
       })
       // - Create a price with type PriceType.Usage
       const usagePrice = await setupPrice({
-        productId: product.id,
         type: PriceType.Usage,
         name: 'Standard Usage Price',
         unitPrice: 10,

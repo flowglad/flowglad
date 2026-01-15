@@ -78,7 +78,6 @@ describe('usageEventHelpers', () => {
         pricingModelId: defaultPricingModelForOrg.id,
       })
       usagePrice = await setupPrice({
-        productId: defaultProductForOrg.id,
         name: 'Test Usage Price',
         type: PriceType.Usage,
         unitPrice: 10,
@@ -657,7 +656,6 @@ describe('usageEventHelpers', () => {
 
       // Setup price with this usage meter
       const distinctPrice = await setupPrice({
-        productId: orgSetup.product.id,
         name: 'Distinct Properties Price',
         type: PriceType.Usage,
         unitPrice: 10,
@@ -954,7 +952,6 @@ describe('usageEventHelpers', () => {
             pricingModelId: otherOrgSetup.pricingModel.id,
           })
           const otherPrice = await setupPrice({
-            productId: otherOrgSetup.product.id,
             name: 'Other Org Usage Price',
             type: PriceType.Usage,
             unitPrice: 10,
@@ -1344,7 +1341,6 @@ describe('usageEventHelpers', () => {
             pricingModelId: orgSetup.pricingModel.id,
           })
           const testPrice = await setupPrice({
-            productId: orgSetup.product.id,
             name: 'Test Usage Price with Slug',
             type: PriceType.Usage,
             unitPrice: 10,
@@ -1433,7 +1429,6 @@ describe('usageEventHelpers', () => {
 
         // Create a price with a slug in the second pricing model
         await setupPrice({
-          productId: secondProduct.id,
           name: 'Second Usage Price',
           type: PriceType.Usage,
           unitPrice: 20,
@@ -1534,7 +1529,6 @@ describe('usageEventHelpers', () => {
             slug: 'test-usage-meter-slug',
           })
           const testPrice = await setupPrice({
-            productId: orgSetup.product.id,
             name: 'Test Usage Price',
             type: PriceType.Usage,
             unitPrice: 10,
@@ -1653,7 +1647,6 @@ describe('usageEventHelpers', () => {
     })
 
     const distinctPrice = await setupPrice({
-      productId,
       name: 'Distinct Price',
       type: PriceType.Usage,
       unitPrice: 10,

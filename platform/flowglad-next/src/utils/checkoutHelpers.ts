@@ -181,6 +181,12 @@ export async function checkoutInfoForPriceWhere(
         priceWhere,
         transaction
       )
+    // Product checkout requires a product - usage prices (with null product) are not supported here
+    if (!product) {
+      throw new Error(
+        'Product checkout is only supported for product prices (subscription/single payment), not usage prices'
+      )
+    }
     if (!product.active || !price.active) {
       // FIXME: ERROR PAGE UI
       return {
@@ -359,6 +365,12 @@ export async function checkoutInfoForCheckoutSession(
       { id: checkoutSession.priceId },
       transaction
     )
+  // Product checkout requires a product - usage prices (with null product) are not supported here
+  if (!product) {
+    throw new Error(
+      'Product checkout is only supported for product prices (subscription/single payment), not usage prices'
+    )
+  }
   const feeCalculation = await selectLatestFeeCalculation(
     { checkoutSessionId: checkoutSession.id },
     transaction
