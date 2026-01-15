@@ -143,8 +143,13 @@ const getUsageInputSchemaWithRequiredSubscription =
  * Returns the subscription and its customerId if valid.
  */
 const validateSubscriptionOwnership = async (
-  subscriptionId: string,
-  organizationId: string,
+  {
+    subscriptionId,
+    organizationId,
+  }: {
+    subscriptionId: string
+    organizationId: string
+  },
   transaction: DbTransaction
 ): Promise<{
   subscription: Awaited<ReturnType<typeof selectSubscriptionById>>
@@ -195,8 +200,7 @@ const claimProcedure = devOnlyProcedure
           })
         }
         const { customerId } = await validateSubscriptionOwnership(
-          input.subscriptionId,
-          organizationId,
+          { subscriptionId: input.subscriptionId, organizationId },
           transaction
         )
 
@@ -241,8 +245,7 @@ const releaseProcedure = devOnlyProcedure
           })
         }
         const { customerId } = await validateSubscriptionOwnership(
-          input.subscriptionId,
-          organizationId,
+          { subscriptionId: input.subscriptionId, organizationId },
           transaction
         )
 
@@ -287,8 +290,7 @@ const getUsageProcedure = devOnlyProcedure
           })
         }
         const { subscription } = await validateSubscriptionOwnership(
-          input.subscriptionId,
-          organizationId,
+          { subscriptionId: input.subscriptionId, organizationId },
           transaction
         )
 
@@ -451,8 +453,7 @@ const listResourceUsagesProcedure = devOnlyProcedure
           })
         }
         const { subscription } = await validateSubscriptionOwnership(
-          input.subscriptionId,
-          organizationId,
+          { subscriptionId: input.subscriptionId, organizationId },
           transaction
         )
 
@@ -614,8 +615,7 @@ const listClaimsProcedure = devOnlyProcedure
           })
         }
         const { subscription } = await validateSubscriptionOwnership(
-          input.subscriptionId,
-          organizationId,
+          { subscriptionId: input.subscriptionId, organizationId },
           transaction
         )
 
