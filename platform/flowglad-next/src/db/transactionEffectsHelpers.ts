@@ -5,11 +5,7 @@ import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 import type { Event } from './schema/events'
 import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
 import type { TransactionOutput } from './transactionEnhacementTypes'
-import type {
-  DbTransaction,
-  TransactionEffects,
-  TransactionEffectsContext,
-} from './types'
+import type { DbTransaction, TransactionEffects } from './types'
 
 /**
  * Creates a fresh effects accumulator and the callback functions that push to it.
@@ -50,23 +46,11 @@ export interface CoalescedEffects {
 
 /**
  * Coalesces effects from the accumulator and the transaction output.
- * Validates that only one of ledgerCommand or ledgerCommands is provided.
  */
 export function coalesceEffects<T>(
   effects: TransactionEffects,
   output: TransactionOutput<T>
 ): CoalescedEffects {
-  // Validate that only one of ledgerCommand or ledgerCommands is provided in output
-  if (
-    output.ledgerCommand &&
-    output.ledgerCommands &&
-    output.ledgerCommands.length > 0
-  ) {
-    throw new Error(
-      'Cannot provide both ledgerCommand and ledgerCommands. Please provide only one.'
-    )
-  }
-
   // Merge effects with output - effects accumulator takes precedence for arrays
   const allEvents = [
     ...effects.eventsToInsert,
@@ -74,7 +58,6 @@ export function coalesceEffects<T>(
   ]
   const allLedgerCommands = [
     ...effects.ledgerCommands,
-    ...(output.ledgerCommand ? [output.ledgerCommand] : []),
     ...(output.ledgerCommands ?? []),
   ]
   const cacheInvalidations = [

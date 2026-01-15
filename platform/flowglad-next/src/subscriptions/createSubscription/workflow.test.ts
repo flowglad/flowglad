@@ -1893,7 +1893,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
         }
       )
 
-      expect(workflowResult.ledgerCommand).toBeUndefined()
+      expect(workflowResult.ledgerCommands ?? []).toHaveLength(0)
       expect(workflowResult.result.subscription).toMatchObject({})
       // Standard subscriptions should renew by default (unless they're default products with non-subscription prices)
       expect(workflowResult.result.subscription.renews).toBe(true)
@@ -1942,7 +1942,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       expect(createdSubscription.status).toBe(
         SubscriptionStatus.Incomplete
       )
-      expect(workflowResult.ledgerCommand).toBeUndefined()
+      expect(workflowResult.ledgerCommands ?? []).toHaveLength(0)
     })
 
     it('should create billing period transition ledger command for trial subscription', async () => {

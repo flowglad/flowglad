@@ -915,7 +915,6 @@ export const executeBillingRun = async (
               paymentIntent,
             },
             eventsToInsert: [],
-            ledgerCommand: undefined,
           }
         },
         {

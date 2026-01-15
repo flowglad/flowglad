@@ -6,7 +6,6 @@ import type { Event } from './schema/events'
 export interface TransactionOutput<T> {
   result: T
   eventsToInsert?: Event.Insert[]
-  ledgerCommand?: LedgerCommand
   ledgerCommands?: LedgerCommand[]
   /**
    * Cache dependency keys to invalidate AFTER the transaction commits.
