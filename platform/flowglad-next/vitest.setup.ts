@@ -3,10 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { webcrypto } from 'node:crypto'
 import { cleanup } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, vi } from 'vitest'
-import { stripeServer } from './mocks/stripeServer'
-import { svixServer } from './mocks/svixServer'
-import { triggerServer } from './mocks/triggerServer'
-import { unkeyServer } from './mocks/unkeyServer'
+import { server } from './mocks/server'
 import { seedDatabase } from './seedDatabase'
 
 // Ensure Unkey env vars are set for tests (MSW mocks the actual API calls)
@@ -42,27 +39,18 @@ vi.mock('@trigger.dev/core', async () => {
 
 // Start the mock server before all tests
 beforeAll(async () => {
-  stripeServer.listen()
-  triggerServer.listen()
-  svixServer.listen()
-  unkeyServer.listen()
+  server.listen({ onUnhandledRequest: 'warn' })
   await seedDatabase()
 })
 
 // Reset handlers after each test (optional, but recommended)
 afterEach(() => {
-  stripeServer.resetHandlers()
-  triggerServer.resetHandlers()
-  svixServer.resetHandlers()
-  unkeyServer.resetHandlers()
+  server.resetHandlers()
   cleanup()
 })
 
 // Stop the mock server after all tests
 afterAll(async () => {
-  stripeServer.close()
-  triggerServer.close()
-  svixServer.close()
-  unkeyServer.close()
+  server.close()
   //   await dropDatabase()
 })
