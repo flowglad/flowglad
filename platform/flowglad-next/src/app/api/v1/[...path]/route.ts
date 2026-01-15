@@ -36,6 +36,7 @@ import {
 import { productFeaturesRouteConfigs } from '@/server/routers/productFeaturesRouter'
 import { productsRouteConfigs } from '@/server/routers/productsRouter'
 import { purchasesRouteConfigs } from '@/server/routers/purchasesRouter'
+import { resourceClaimsRouteConfigs } from '@/server/routers/resourceClaimsRouter'
 import { subscriptionItemFeaturesRouteConfigs } from '@/server/routers/subscriptionItemFeaturesRouter'
 import { subscriptionsRouteConfigs } from '@/server/routers/subscriptionsRouter'
 import {
@@ -95,6 +96,7 @@ const routeConfigs = [
   ...webhooksRouteConfigs,
   ...featuresRouteConfigs,
   ...productFeaturesRouteConfigs,
+  ...resourceClaimsRouteConfigs,
 ]
 
 const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(
@@ -443,9 +445,11 @@ const innerHandler = async (
                 }
               }
             }
-            // Merge validated pagination params into mapped route input
+            // Merge all query params and validated pagination params into mapped route input
+            // This allows routes to receive arbitrary query params (e.g., resourceSlug, resourceId)
             const mergedInput = {
               ...(input ?? {}),
+              ...queryParamsObject,
               ...parsedPaginationParams,
             }
             newUrl.searchParams.set(

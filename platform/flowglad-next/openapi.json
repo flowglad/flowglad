@@ -8358,7 +8358,7 @@
       "get": {
         "operationId": "resourceClaims-getUsage",
         "summary": "Get Resource Usage",
-        "description": "Get resource usage information for a subscription. Optionally filter by resourceSlug.",
+        "description": "Get resource usage information for a subscription. Exactly one of resourceSlug or resourceId must be provided.",
         "tags": ["Resource Claims"],
         "security": [
           {
@@ -8380,6 +8380,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "resourceId",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8388,54 +8395,113 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "usage": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "resourceSlug": {
-                            "type": "string"
-                          },
-                          "resourceId": {
-                            "type": "string"
-                          },
-                          "capacity": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
-                          "claimed": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
-                          "available": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          }
-                        },
-                        "required": [
-                          "resourceSlug",
-                          "resourceId",
-                          "capacity",
-                          "claimed",
-                          "available"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "claims": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ResourceClaimClientSelectSchema"
-                      }
-                    }
-                  },
-                  "required": ["usage", "claims"],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ResourceUsage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resource-claims/{subscriptionId}/usages": {
+      "get": {
+        "operationId": "resourceClaims-listResourceUsages",
+        "summary": "List Resource Usages",
+        "description": "List resource usage information for all resources on the subscription.",
+        "tags": ["Resource Claims"],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subscriptionId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "resourceSlugs",
+            "schema": {
+              "maxItems": 100,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "in": "query",
+            "name": "resourceIds",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceUsageList"
                 }
               }
             }
@@ -19362,6 +19428,64 @@
           "releaseReason"
         ],
         "additionalProperties": false
+      },
+      "ResourceUsage": {
+        "description": "The usage data for a resource.",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/ResourceUsageData"
+          },
+          "claims": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResourceClaimClientSelectSchema"
+            }
+          }
+        },
+        "required": ["usage", "claims"],
+        "additionalProperties": false
+      },
+      "ResourceUsageData": {
+        "type": "object",
+        "properties": {
+          "resourceSlug": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "claimed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "available": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "resourceSlug",
+          "resourceId",
+          "capacity",
+          "claimed",
+          "available"
+        ],
+        "additionalProperties": false
+      },
+      "ResourceUsageList": {
+        "description": "List of resource usage data for the subscription.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ResourceUsage"
+        }
       },
       "SubscriptionItemRecordOutput": {
         "$ref": "#/components/schemas/StaticSubscriptionItemClientSelectSchemaOutput"
