@@ -59,6 +59,8 @@ const createMockClaim = (
   metadata: null,
   createdAt: Date.now(),
   updatedAt: Date.now(),
+  livemode: false,
+  organizationId: 'org_mock',
 })
 
 /**
