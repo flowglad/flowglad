@@ -159,7 +159,7 @@ export const {
     monthlyBillingVolumeFreeTier:
       core.safeZodNonNegativeInteger.optional(),
     stripeConnectContractType: z
-      .nativeEnum(StripeConnectContractType)
+      .enum(StripeConnectContractType)
       .optional(),
   },
   client: {

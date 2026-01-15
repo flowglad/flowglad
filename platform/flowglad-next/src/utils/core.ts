@@ -376,7 +376,7 @@ export const createSafeZodEnum = <
 >(
   enumType: T
 ) => {
-  // Use nativeEnum so the inferred type is the TS enum type
+  // Use z.enum for TS enums in Zod v4 (nativeEnum is deprecated)
   return z.enum(enumType)
 }
 
