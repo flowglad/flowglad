@@ -1,4 +1,11 @@
-import { and, eq, inArray, notExists, sql } from 'drizzle-orm'
+import {
+  and,
+  eq,
+  type InferSelectModel,
+  inArray,
+  notExists,
+  sql,
+} from 'drizzle-orm'
 import { z } from 'zod'
 import type { Customer } from '@/db/schema/customers'
 import {
@@ -449,11 +456,14 @@ export const selectPricingModelForCustomer = async (
 /**
  * Minimal price data needed for slug resolution in bulk usage event processing.
  * Only contains fields required to map price slugs to IDs.
+ *
+ * Note: type uses the inferred type from drizzle-orm's InferSelectModel
+ *
  */
 export type PriceSlugInfo = {
   id: string
   slug: string | null
-  type: PriceType
+  type: InferSelectModel<typeof prices>['type']
   usageMeterId: string | null
   active: boolean
 }
@@ -605,7 +615,7 @@ export const selectPricingModelSlugResolutionData = async (
     pricesByPricingModelId.get(row.productPricingModelId)!.push({
       id: row.priceId,
       slug: row.priceSlug,
-      type: row.priceType as PriceType,
+      type: row.priceType,
       usageMeterId: row.priceUsageMeterId,
       active: row.priceActive,
     })
