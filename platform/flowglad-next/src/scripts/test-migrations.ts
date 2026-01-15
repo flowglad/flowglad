@@ -11,10 +11,11 @@
  *   bun run migrations:test --prod       # Test against prod only (use with caution)
  *   bun run migrations:test --inspect    # Keep containers running for inspection after tests
  *
- * Interactive Export (--inspect mode):
- *   When using --inspect, you can press 'e' to export all migration output (including PostgreSQL
- *   NOTICE messages) to a timestamped log file for debugging. The containers remain running after
- *   export, and you can press Enter to clean up when done.
+ * Interactive Features (--inspect mode):
+ *   - Press 'e' to export all migration output (including PostgreSQL NOTICE messages) to a timestamped log file
+ *   - Press 'm' to re-run migrations without doing pg_dump again (useful for quickly running migrations again on the same pre-migration DB state after updating migration SQL files)
+ *   - Press Enter to clean up containers and exit
+ *   The containers remain running after export/re-run, allowing multiple iterations.
  *
  * Requirements:
  *   - Docker must be running
@@ -28,6 +29,7 @@
 
 import { loadEnvConfig } from '@next/env'
 import { execSync } from 'child_process'
+import * as fs from 'fs'
 import * as readline from 'readline'
 
 const TEST_CONTAINER_PREFIX = 'flowglad-migration-test'
@@ -45,9 +47,49 @@ interface TestResult {
   migrationOutput?: string
 }
 
-async function waitForEnterOrExport(
+interface ExecSyncError extends Error {
+  stderr?: string
+  stdout?: string
+  status?: number
+}
+
+function getExecErrorOutput(error: unknown): string {
+  const execError = error as ExecSyncError
+  return execError.stdout || execError.stderr || ''
+}
+
+async function checkMigrationState(port: number): Promise<string> {
+  try {
+    const result = execSync(
+      `psql "postgresql://test:test@localhost:${port}/test_db" -t -c "SELECT hash, created_at FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 10"`,
+      { encoding: 'utf-8', stdio: 'pipe' }
+    )
+    return result.trim()
+  } catch (error) {
+    return 'Unable to fetch migration state'
+  }
+}
+
+async function getMigrationCount(port: number): Promise<number> {
+  try {
+    const result = execSync(
+      `psql "postgresql://test:test@localhost:${port}/test_db" -t -c "SELECT COUNT(*) FROM drizzle.__drizzle_migrations"`,
+      { encoding: 'utf-8', stdio: 'pipe' }
+    )
+    return Number.parseInt(result.trim(), 10)
+  } catch (error) {
+    return 0
+  }
+}
+
+async function waitForUserAction(
   prompt: string,
-  migrationOutput?: string
+  migrationOutput: string | undefined,
+  port: number,
+  onRerunMigrations: () => Promise<{
+    output: string
+    success: boolean
+  }>
 ): Promise<void> {
   // Enable raw mode to capture single key presses
   if (process.stdin.isTTY) {
@@ -56,14 +98,18 @@ async function waitForEnterOrExport(
   process.stdin.resume()
   process.stdin.setEncoding('utf8')
 
-  return new Promise((resolve) => {
-    console.log(prompt)
+  const showPrompt = () => {
+    console.log('\n' + prompt)
     log(
-      'Press \x1b[1me\x1b[0m to export migration output to file, or \x1b[1mEnter\x1b[0m to cleanup and exit',
+      'Press \x1b[1me\x1b[0m to export, \x1b[1mm\x1b[0m to re-run migrations, or \x1b[1mEnter\x1b[0m to cleanup and exit',
       'info'
     )
+  }
 
-    const onData = (key: string) => {
+  return new Promise((resolve) => {
+    showPrompt()
+
+    const onData = async (key: string) => {
       // Handle Ctrl+C
       if (key === '\u0003') {
         if (process.stdin.isTTY) {
@@ -76,7 +122,6 @@ async function waitForEnterOrExport(
       // Handle 'e' key - export to file
       if (key === 'e' || key === 'E') {
         if (migrationOutput) {
-          const fs = require('fs')
           const timestamp = new Date()
             .toISOString()
             .replace(/:/g, '-')
@@ -89,10 +134,6 @@ async function waitForEnterOrExport(
               `Migration output exported to: ${filename}`,
               'success'
             )
-            log(
-              'Press \x1b[1mEnter\x1b[0m to cleanup and exit',
-              'info'
-            )
           } catch (error) {
             log(
               `Failed to export: ${error instanceof Error ? error.message : String(error)}`,
@@ -102,7 +143,56 @@ async function waitForEnterOrExport(
         } else {
           log('No migration output to export', 'warn')
         }
-        return // Don't resolve yet, wait for Enter
+        showPrompt()
+        return
+      }
+
+      // Handle 'm' key - re-run migrations
+      if (key === 'm' || key === 'M') {
+        console.log('\n')
+        log('Checking current migration state...', 'info')
+
+        const beforeCount = await getMigrationCount(port)
+        const beforeState = await checkMigrationState(port)
+
+        log(`Currently applied migrations: ${beforeCount}`, 'info')
+        if (
+          beforeState &&
+          beforeState !== 'Unable to fetch migration state'
+        ) {
+          log('Last 10 migrations:', 'info')
+          console.log(beforeState)
+        }
+
+        log(
+          '\nRe-running migrations (only pending will be applied)...',
+          'warn'
+        )
+
+        try {
+          const result = await onRerunMigrations()
+          migrationOutput = result.output // Update with new output
+
+          const afterCount = await getMigrationCount(port)
+          const newMigrations = afterCount - beforeCount
+
+          if (result.success) {
+            log(
+              `Migrations completed successfully! Applied ${newMigrations} new migration(s)`,
+              'success'
+            )
+          } else {
+            log('Migrations failed again', 'error')
+          }
+        } catch (error) {
+          log(
+            `Migration error: ${error instanceof Error ? error.message : String(error)}`,
+            'error'
+          )
+        }
+
+        showPrompt()
+        return
       }
 
       // Handle Enter key - cleanup and exit
@@ -160,7 +250,7 @@ function execCommandWithOutput(command: string): string {
       stdio: 'pipe',
     })
   } catch (error) {
-    const execError = error as { stderr?: string; stdout?: string }
+    const execError = error as ExecSyncError
     throw new Error(
       execError.stderr || execError.stdout || 'Command failed'
     )
@@ -255,12 +345,7 @@ function cloneDatabase(sourceUrl: string, targetPort: number): void {
     })
     log('Database cloned successfully', 'success')
   } catch (error) {
-    const execError = error as {
-      stderr?: string
-      stdout?: string
-      message?: string
-      status?: number
-    }
+    const execError = error as ExecSyncError
 
     // Log detailed error info for debugging
     if (execError.stderr) {
@@ -370,12 +455,7 @@ function runMigrations(targetPort: number): string {
     log('Migrations applied successfully', 'success')
     return result
   } catch (error) {
-    const execError = error as {
-      stderr?: string
-      stdout?: string
-      message?: string
-    }
-    const fullOutput = execError.stdout || execError.stderr || ''
+    const fullOutput = getExecErrorOutput(error)
 
     // Display the error output
     if (fullOutput) {
@@ -436,7 +516,7 @@ async function testMigration(
     const durationMs = Date.now() - startTime
 
     // Capture error output too
-    const execError = error as { stderr?: string; stdout?: string }
+    const execError = error as ExecSyncError
     if (execError.stdout || execError.stderr) {
       migrationOutput = `STDOUT:\n${execError.stdout || ''}\n\nSTDERR:\n${execError.stderr || ''}`
     }
@@ -635,16 +715,56 @@ async function main(): Promise<void> {
       }
 
       // Combine all migration outputs
-      const allOutput = results
+      let allOutput = results
         .map((r) => {
           return `\n${'='.repeat(60)}\n${r.environment.toUpperCase()} MIGRATION OUTPUT\n${'='.repeat(60)}\n${r.migrationOutput || 'No output captured'}`
         })
         .join('\n\n')
 
+      // Create a function to re-run migrations for the relevant results
+      const rerunMigrations = async () => {
+        const rerunResults: { output: string; success: boolean }[] =
+          []
+
+        for (const result of results) {
+          if (result.port) {
+            try {
+              const output = runMigrations(result.port)
+              rerunResults.push({ output, success: true })
+
+              // Update the result's migration output
+              result.migrationOutput = output
+            } catch (error) {
+              const output = getExecErrorOutput(error)
+              rerunResults.push({ output, success: false })
+
+              result.migrationOutput = output
+            }
+          }
+        }
+
+        // Combine all outputs
+        allOutput = results
+          .map((r) => {
+            return `\n${'='.repeat(60)}\n${r.environment.toUpperCase()} MIGRATION OUTPUT\n${'='.repeat(60)}\n${r.migrationOutput || 'No output captured'}`
+          })
+          .join('\n\n')
+
+        return {
+          output: allOutput,
+          success: rerunResults.every((r) => r.success),
+        }
+      }
+
+      // Use the first result's port for migration state checks
+      const primaryPort = results[0]?.port || TEST_PORT_STAGING
+
       console.log('\n')
-      await waitForEnterOrExport(
+      await waitForUserAction(
         'Press Enter to clean up containers and exit...',
-        allOutput
+        allOutput,
+        primaryPort,
+        rerunMigrations
       )
 
       // Clean up containers
