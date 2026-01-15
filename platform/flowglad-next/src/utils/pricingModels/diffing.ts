@@ -339,8 +339,11 @@ const getUsagePriceSlug = (
   // Note: `name` is intentionally excluded because it's a mutable display field.
   // Including `name` would cause price updates (name change only) to be treated
   // as replacements (delete + create) instead of updates, breaking price IDs.
+  // All immutable price fields must be included to prevent collisions.
   const currency = price.currency ?? 'USD'
-  return `__generated__${price.unitPrice}_${price.usageEventsPerUnit}_${currency}`
+  const intervalCount = price.intervalCount ?? 1
+  const intervalUnit = price.intervalUnit ?? 'month'
+  return `__generated__${price.unitPrice}_${price.usageEventsPerUnit}_${currency}_${intervalCount}_${intervalUnit}`
 }
 
 /**

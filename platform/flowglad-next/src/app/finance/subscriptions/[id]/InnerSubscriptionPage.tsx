@@ -22,7 +22,6 @@ import {
 import { useAuthContext } from '@/contexts/authContext'
 import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import {
   getSubscriptionDateInfo,
@@ -32,6 +31,7 @@ import type { RichSubscription } from '@/subscriptions/schemas'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
+  PriceType,
   SubscriptionStatus,
 } from '@/types'
 import core, { IS_DEV } from '@/utils/core'
@@ -204,9 +204,10 @@ const InnerSubscriptionPage = ({
                   )
 
                 // Get product ID and name from the price
-                const productId = Price.clientHasProductId(item.price)
-                  ? item.price.productId
-                  : null
+                const productId =
+                  item.price.type !== PriceType.Usage
+                    ? item.price.productId
+                    : null
                 const productName = productId
                   ? (productNames[productId] ?? 'Unnamed Product')
                   : 'Usage-Based'

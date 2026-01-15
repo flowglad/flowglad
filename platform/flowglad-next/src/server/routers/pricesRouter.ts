@@ -309,10 +309,21 @@ export const replaceUsagePrice = protectedProcedure
     return authenticatedTransaction(
       async ({ transaction, livemode, organizationId, userId }) => {
         // Verify the old price exists and is a usage price
-        const oldPrice = await selectPriceById(
-          input.oldPriceId,
-          transaction
-        )
+        let oldPrice
+        try {
+          oldPrice = await selectPriceById(
+            input.oldPriceId,
+            transaction
+          )
+        } catch (error) {
+          if (error instanceof NotFoundError) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: `Price with id "${input.oldPriceId}" not found`,
+            })
+          }
+          throw error
+        }
         if (oldPrice.type !== PriceType.Usage) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
