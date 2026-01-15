@@ -9,44 +9,33 @@ if [ -z "$ROOT_DIR" ]; then
   echo "❌ Could not resolve git repository root"
   exit 1
 fi
- 
-# Format staged TypeScript files with Biome (only staged .ts/.tsx files)
+
+# Run Biome check (format + lint) on staged files only
 STAGED_TS_FILES_NUL=$(mktemp)
 git diff --cached --name-only -z --diff-filter=ACMR -- '*.ts' '*.tsx' '*.json' > "$STAGED_TS_FILES_NUL"
 
 if [ -s "$STAGED_TS_FILES_NUL" ]; then
-  echo "🪄 Running Biome formatter on staged TypeScript files..."
-  xargs -0 bunx @biomejs/biome format --write < "$STAGED_TS_FILES_NUL"
+  echo "🪄 Running Biome (format + lint) on staged files..."
+  xargs -0 bunx @biomejs/biome check --write < "$STAGED_TS_FILES_NUL"
   BIOME_STATUS=$?
   if [ $BIOME_STATUS -ne 0 ]; then
-    echo "❌ Biome formatting failed. Please fix errors before committing."
+    echo "❌ Biome check failed. Please fix errors before committing."
     rm -f "$STAGED_TS_FILES_NUL"
     exit 1
   fi
-  # Restage formatted files
+  # Restage files after formatting
   xargs -0 git add < "$STAGED_TS_FILES_NUL"
 fi
 rm -f "$STAGED_TS_FILES_NUL"
 
-# Run linting and typechecking in parallel for all packages
-bun run --if-present --filter @flowglad/* check &
-PID1=$!
+# Run TypeScript type checking across all packages
+echo "🔍 Running TypeScript type checking..."
+cd "$ROOT_DIR" && bunx turbo run typecheck
+TSC_STATUS=$?
 
-# Run linting and typechecking for platform/flowglad-next
-cd "$ROOT_DIR/platform/flowglad-next" && bun run check &
-PID2=$!
-
-# Wait for each process and capture exit status
-wait $PID1
-STATUS1=$?
-
-wait $PID2
-STATUS2=$?
-
-# Check if any lint or typechecking task failed
-if [ $STATUS1 -ne 0 ] || [ $STATUS2 -ne 0 ]; then
-  echo "❌ Lint or typechecking checks failed. Please fix errors before committing."
+if [ $TSC_STATUS -ne 0 ]; then
+  echo "❌ TypeScript type checking failed. Please fix errors before committing."
   exit 1
 fi
 
-echo "✅ All lint and typechecking checks passed!"
+echo "✅ All checks passed!"
