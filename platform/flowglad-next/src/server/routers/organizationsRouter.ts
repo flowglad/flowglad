@@ -355,6 +355,7 @@ const getUsageVolume = protectedProcedure
             granularity: input.granularity,
             usageMeterId: input.usageMeterId,
             productId: input.productId ?? undefined,
+            livemode: ctx.livemode,
           },
           transaction
         )
@@ -390,6 +391,7 @@ const getUsageMetersWithEventsProcedure = protectedProcedure
 
         return getUsageMetersWithEvents(
           ctx.organizationId,
+          ctx.livemode,
           transaction
         )
       }

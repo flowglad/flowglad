@@ -19,6 +19,7 @@ export interface UsageCalculationOptions {
   granularity: RevenueChartIntervalUnit
   usageMeterId: string
   productId?: string
+  livemode: boolean
 }
 
 /**
@@ -166,6 +167,7 @@ async function calculateSumUsage(
     granularity,
     usageMeterId,
     pricingModelId,
+    livemode,
   } = options
   const intervalSql = granularityToPostgresSql(granularity)
 
@@ -175,7 +177,7 @@ async function calculateSumUsage(
 
   const conditions = [
     eq(usageEvents.usageMeterId, usageMeterId),
-    eq(usageEvents.livemode, true),
+    eq(usageEvents.livemode, livemode),
     gte(usageEvents.usageDate, startTimestamp),
     lte(usageEvents.usageDate, endTimestamp),
   ]
@@ -187,7 +189,7 @@ async function calculateSumUsage(
 
   const results = await transaction
     .select({
-      date: sql<Date>`date_trunc(${sql.raw(`'${intervalSql}'`)}, to_timestamp(${usageEvents.usageDate} / 1000.0) AT TIME ZONE 'UTC')`.as(
+      date: sql<Date>`date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC')`.as(
         'date'
       ),
       amount: sql<number>`COALESCE(SUM(${usageEvents.amount}), 0)`.as(
@@ -197,10 +199,10 @@ async function calculateSumUsage(
     .from(usageEvents)
     .where(and(...conditions))
     .groupBy(
-      sql`date_trunc(${sql.raw(`'${intervalSql}'`)}, to_timestamp(${usageEvents.usageDate} / 1000.0) AT TIME ZONE 'UTC')`
+      sql`date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC')`
     )
     .orderBy(
-      sql`date_trunc(${sql.raw(`'${intervalSql}'`)}, to_timestamp(${usageEvents.usageDate} / 1000.0) AT TIME ZONE 'UTC')`
+      sql`date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC')`
     )
 
   const resultMap = new Map<string, number>()
@@ -226,6 +228,7 @@ async function calculateCountDistinctUsage(
     granularity,
     usageMeterId,
     pricingModelId,
+    livemode,
   } = options
   const intervalSql = granularityToPostgresSql(granularity)
 
@@ -235,7 +238,7 @@ async function calculateCountDistinctUsage(
 
   const conditions = [
     eq(usageEvents.usageMeterId, usageMeterId),
-    eq(usageEvents.livemode, true),
+    eq(usageEvents.livemode, livemode),
     gte(usageEvents.usageDate, startTimestamp),
     lte(usageEvents.usageDate, endTimestamp),
   ]
@@ -247,7 +250,7 @@ async function calculateCountDistinctUsage(
 
   const results = await transaction
     .select({
-      date: sql<Date>`date_trunc(${sql.raw(`'${intervalSql}'`)}, to_timestamp(${usageEvents.usageDate} / 1000.0) AT TIME ZONE 'UTC')`.as(
+      date: sql<Date>`date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC')`.as(
         'date'
       ),
       amount:
@@ -258,10 +261,10 @@ async function calculateCountDistinctUsage(
     .from(usageEvents)
     .where(and(...conditions))
     .groupBy(
-      sql`date_trunc(${sql.raw(`'${intervalSql}'`)}, to_timestamp(${usageEvents.usageDate} / 1000.0) AT TIME ZONE 'UTC')`
+      sql`date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC')`
     )
     .orderBy(
-      sql`date_trunc(${sql.raw(`'${intervalSql}'`)}, to_timestamp(${usageEvents.usageDate} / 1000.0) AT TIME ZONE 'UTC')`
+      sql`date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC')`
     )
 
   const resultMap = new Map<string, number>()
@@ -371,19 +374,21 @@ export async function calculateUsageVolumeByInterval(
 }
 
 /**
- * Gets usage meters that have at least one livemode event.
+ * Gets usage meters that have at least one event matching the given livemode.
  * Returns ALL meters with events (decoupled from product filter).
  *
  * NOTE: No productId parameter - this function always returns ALL meters with
- * livemode events, regardless of product. The product filter only affects
+ * events matching the livemode, regardless of product. The product filter only affects
  * the DATA displayed (via getUsageVolume), not the meter list.
  *
  * @param organizationId - The organization ID
+ * @param livemode - Whether to filter for livemode (production) or testmode events
  * @param transaction - Database transaction
  * @returns Array of meters with events (id, name, aggregationType, pricingModelId)
  */
 export async function getUsageMetersWithEvents(
   organizationId: string,
+  livemode: boolean,
   transaction: DbTransaction
 ): Promise<UsageMeterWithEvents[]> {
   // Get customer IDs for this organization (for joining to usage events)
@@ -398,13 +403,13 @@ export async function getUsageMetersWithEvents(
 
   const customerIdList = customerIds.map((c) => c.id)
 
-  // Build conditions for usage events - only livemode events for org's customers
+  // Build conditions for usage events - filter by livemode for org's customers
   const eventConditions = [
-    eq(usageEvents.livemode, true),
+    eq(usageEvents.livemode, livemode),
     inArray(usageEvents.customerId, customerIdList),
   ]
 
-  // Get distinct meter IDs that have livemode events
+  // Get distinct meter IDs that have events matching the livemode
   const metersWithEvents = await transaction
     .selectDistinct({
       usageMeterId: usageEvents.usageMeterId,

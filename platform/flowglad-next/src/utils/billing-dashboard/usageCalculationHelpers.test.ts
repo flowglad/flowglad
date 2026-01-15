@@ -43,6 +43,7 @@ describe('calculateUsageVolumeByInterval', () => {
               endDate,
               granularity: RevenueChartIntervalUnit.Day,
               usageMeterId: usageMeter.id,
+              livemode: true,
             },
             transaction
           )
@@ -129,6 +130,7 @@ describe('calculateUsageVolumeByInterval', () => {
               endDate,
               granularity: RevenueChartIntervalUnit.Day,
               usageMeterId: usageMeter.id,
+              livemode: true,
             },
             transaction
           )
@@ -195,6 +197,7 @@ describe('calculateUsageVolumeByInterval', () => {
               endDate,
               granularity: RevenueChartIntervalUnit.Day,
               usageMeterId: usageMeter.id,
+              livemode: true,
             },
             transaction
           )
@@ -269,6 +272,7 @@ describe('calculateUsageVolumeByInterval', () => {
               endDate,
               granularity: RevenueChartIntervalUnit.Day,
               usageMeterId: usageMeter.id,
+              livemode: true,
             },
             transaction
           )
@@ -349,6 +353,7 @@ describe('calculateUsageVolumeByInterval', () => {
               endDate,
               granularity: RevenueChartIntervalUnit.Day,
               usageMeterId: usageMeter.id,
+              livemode: true,
             },
             transaction
           )
@@ -417,6 +422,7 @@ describe('calculateUsageVolumeByInterval', () => {
               endDate,
               granularity: RevenueChartIntervalUnit.Day,
               usageMeterId: usageMeter.id,
+              livemode: true,
             },
             transaction
           )
@@ -455,11 +461,12 @@ describe('calculateUsageVolumeByInterval', () => {
               endDate,
               granularity: RevenueChartIntervalUnit.Day,
               usageMeterId: usageMeter.id,
+              livemode: true,
             },
             transaction
           )
         })
-      ).rejects.toThrow('NOT_FOUND')
+      ).rejects.toThrow('Usage meter not found')
     })
   })
 
@@ -525,6 +532,7 @@ describe('calculateUsageVolumeByInterval', () => {
               granularity: RevenueChartIntervalUnit.Day,
               usageMeterId: usageMeter.id,
               productId: product1.id,
+              livemode: true,
             },
             transaction
           )
@@ -582,6 +590,7 @@ describe('calculateUsageVolumeByInterval', () => {
               granularity: RevenueChartIntervalUnit.Day,
               usageMeterId: usageMeter.id,
               productId: 'prod_nonexistent',
+              livemode: true,
             },
             transaction
           )
@@ -654,7 +663,11 @@ describe('getUsageMetersWithEvents', () => {
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
-      return getUsageMetersWithEvents(organization.id, transaction)
+      return getUsageMetersWithEvents(
+        organization.id,
+        true,
+        transaction
+      )
     })
 
     // Only meter A should be returned
@@ -674,7 +687,11 @@ describe('getUsageMetersWithEvents', () => {
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
-      return getUsageMetersWithEvents(organization.id, transaction)
+      return getUsageMetersWithEvents(
+        organization.id,
+        true,
+        transaction
+      )
     })
 
     expect(result).toHaveLength(0)
@@ -691,7 +708,11 @@ describe('getUsageMetersWithEvents', () => {
 
     // No customers created for this org
     const result = await adminTransaction(async ({ transaction }) => {
-      return getUsageMetersWithEvents(organization.id, transaction)
+      return getUsageMetersWithEvents(
+        organization.id,
+        true,
+        transaction
+      )
     })
 
     expect(result).toHaveLength(0)
@@ -758,7 +779,11 @@ describe('getUsageMetersWithEvents', () => {
 
     // getUsageMetersWithEvents should return BOTH meters (decoupled from product filter)
     const result = await adminTransaction(async ({ transaction }) => {
-      return getUsageMetersWithEvents(organization.id, transaction)
+      return getUsageMetersWithEvents(
+        organization.id,
+        true,
+        transaction
+      )
     })
 
     // Both meters should be returned regardless of their pricingModel
@@ -802,7 +827,11 @@ describe('getUsageMetersWithEvents', () => {
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
-      return getUsageMetersWithEvents(organization.id, transaction)
+      return getUsageMetersWithEvents(
+        organization.id,
+        true,
+        transaction
+      )
     })
 
     expect(result).toHaveLength(1)
@@ -869,7 +898,11 @@ describe('getUsageMetersWithEvents', () => {
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
-      return getUsageMetersWithEvents(organization.id, transaction)
+      return getUsageMetersWithEvents(
+        organization.id,
+        true,
+        transaction
+      )
     })
 
     expect(result).toHaveLength(2)
