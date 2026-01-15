@@ -35,50 +35,31 @@ export function createEffectsAccumulator() {
 }
 
 /**
- * Result of coalescing effects from both the accumulator and the transaction output.
- */
-export interface CoalescedEffects {
-  allEvents: Event.Insert[]
-  allLedgerCommands: LedgerCommand[]
-  cacheInvalidations: CacheDependencyKey[]
-}
-
-/**
- * Coalesces effects from the accumulator.
- */
-export function coalesceEffects(
-  effects: TransactionEffects
-): CoalescedEffects {
-  return {
-    allEvents: [...effects.eventsToInsert],
-    allLedgerCommands: [...effects.ledgerCommands],
-    cacheInvalidations: [...effects.cacheInvalidations],
-  }
-}
-
-/**
- * Processes the coalesced events and ledger commands within a transaction.
+ * Processes the accumulated events and ledger commands within a transaction.
  * Returns the counts for observability.
  */
 export async function processEffectsInTransaction(
-  coalesced: CoalescedEffects,
+  effects: TransactionEffects,
   transaction: DbTransaction
 ): Promise<{ eventsCount: number; ledgerCommandsCount: number }> {
-  const { allEvents, allLedgerCommands } = coalesced
+  const { eventsToInsert, ledgerCommands } = effects
 
   // Process events if any
-  if (allEvents.length > 0) {
-    await bulkInsertOrDoNothingEventsByHash(allEvents, transaction)
+  if (eventsToInsert.length > 0) {
+    await bulkInsertOrDoNothingEventsByHash(
+      eventsToInsert,
+      transaction
+    )
   }
 
   // Process ledger commands if any
-  for (const command of allLedgerCommands) {
+  for (const command of ledgerCommands) {
     await processLedgerCommand(command, transaction)
   }
 
   return {
-    eventsCount: allEvents.length,
-    ledgerCommandsCount: allLedgerCommands.length,
+    eventsCount: eventsToInsert.length,
+    ledgerCommandsCount: ledgerCommands.length,
   }
 }
 

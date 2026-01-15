@@ -10,7 +10,6 @@ import { traced } from '@/utils/tracing'
 import db from './client'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
 import {
-  coalesceEffects,
   createEffectsAccumulator,
   invalidateCacheAfterCommit,
   processEffectsInTransaction,
@@ -83,9 +82,6 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
     enqueueLedgerCommand,
   } = createEffectsAccumulator()
 
-  // Track coalesced effects for post-commit processing
-  let coalescedCacheInvalidations: typeof effects.cacheInvalidations =
-    []
   let processedEventsCount = 0
   let processedLedgerCommandsCount = 0
 
@@ -137,15 +133,13 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       throw output.error
     }
 
-    // Coalesce effects from accumulator and output, then process
-    const coalesced = coalesceEffects(effects)
+    // Process accumulated effects
     const counts = await processEffectsInTransaction(
-      coalesced,
+      effects,
       transaction
     )
     processedEventsCount = counts.eventsCount
     processedLedgerCommandsCount = counts.ledgerCommandsCount
-    coalescedCacheInvalidations = coalesced.cacheInvalidations
 
     // RESET ROLE is not strictly necessary with SET LOCAL ROLE, as the role is session-local.
     // However, keeping it doesn't harm and can be an explicit cleanup.
@@ -155,7 +149,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
   })
 
   // Transaction committed successfully - now invalidate caches
-  invalidateCacheAfterCommit(coalescedCacheInvalidations)
+  invalidateCacheAfterCommit(effects.cacheInvalidations)
 
   return {
     output,
