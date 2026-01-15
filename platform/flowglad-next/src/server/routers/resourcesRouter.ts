@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -52,7 +53,8 @@ const listProcedure = devOnlyProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const resources = await selectResources(
           {
             pricingModelId: input.pricingModelId,
@@ -70,7 +72,8 @@ const getProcedure = devOnlyProcedure
   .output(z.object({ resource: resourcesClientSelectSchema }))
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const resource = await selectResourceById(
           input.id,
           transaction
@@ -86,7 +89,16 @@ const createProcedure = devOnlyProcedure
   .output(z.object({ resource: resourcesClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId, livemode }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { livemode } = ctx
+        const userId = ctx.user?.id
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User authentication required',
+          })
+        }
         const [{ organization }] =
           await selectMembershipAndOrganizations(
             {
@@ -114,7 +126,8 @@ const updateProcedure = devOnlyProcedure
   .output(z.object({ resource: resourcesClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const resource = await updateResource(
           {
             ...input.resource,
@@ -154,7 +167,12 @@ const getTableRowsProcedure = devOnlyProcedure
     createPaginatedTableRowOutputSchema(resourcesTableRowOutputSchema)
   )
   .query(
-    authenticatedProcedureTransaction(selectResourcesTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectResourcesTableRowData({ input, transaction })
+      }
+    )
   )
 
 export const resourcesRouter = router({

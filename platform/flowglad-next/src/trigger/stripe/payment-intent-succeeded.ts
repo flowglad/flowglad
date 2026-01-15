@@ -1,12 +1,12 @@
 import { logger, task } from '@trigger.dev/sdk'
 import type Stripe from 'stripe'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import type { Event } from '@/db/schema/events'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
+import type { TransactionEffectsContext } from '@/db/types'
 import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 import { InvoiceStatus } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
@@ -35,11 +35,18 @@ export const stripePaymentIntentSucceededTask = task({
          */
         if ('billingRunId' in metadata) {
           const result = await comprehensiveAdminTransaction(
-            async (ctx) => {
-              return await processOutcomeForBillingRun(
+            async (params) => {
+              const effectsCtx: TransactionEffectsContext = {
+                transaction: params.transaction,
+                invalidateCache: params.invalidateCache,
+                emitEvent: params.emitEvent,
+                enqueueLedgerCommand: params.enqueueLedgerCommand,
+              }
+              const billingResult = await processOutcomeForBillingRun(
                 { input: payload },
-                ctx
+                effectsCtx
               )
+              return { result: billingResult }
             }
           )
           return result
@@ -51,79 +58,64 @@ export const stripePaymentIntentSucceededTask = task({
           organization,
           customer,
           payment,
-        } = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
-            const paymentResult =
-              await processPaymentIntentStatusUpdated(
-                payload.data.object,
-                transaction
-              )
-            const {
-              result: { payment },
-              eventsToInsert,
-              ledgerCommand,
-            } = paymentResult
+        } = await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const { payment } = await processPaymentIntentStatusUpdated(
+            payload.data.object,
+            ctx
+          )
 
-            if (!payment.purchaseId) {
-              throw new Error(
-                `Payment ${payment.id} has no purchaseId, cannot process payment intent succeeded event`
-              )
-            }
+          if (!payment.purchaseId) {
+            throw new Error(
+              `Payment ${payment.id} has no purchaseId, cannot process payment intent succeeded event`
+            )
+          }
 
-            const purchase = await selectPurchaseById(
-              payment.purchaseId,
+          const purchase = await selectPurchaseById(
+            payment.purchaseId,
+            transaction
+          )
+
+          const [invoice] =
+            await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+              { id: payment.invoiceId },
               transaction
             )
 
-            const [invoice] =
-              await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-                { id: payment.invoiceId },
-                transaction
-              )
+          const [customer] = await selectCustomers(
+            {
+              id: purchase.customerId,
+            },
+            transaction
+          )
 
-            const [customer] = await selectCustomers(
-              {
-                id: purchase.customerId,
-              },
+          const organization = await selectOrganizationById(
+            purchase.organizationId,
+            transaction
+          )
+
+          const membersForOrganization =
+            await selectMembershipsAndUsersByMembershipWhere(
+              { organizationId: organization.id },
               transaction
             )
 
-            const organization = await selectOrganizationById(
-              purchase.organizationId,
-              transaction
-            )
+          await safelyIncrementDiscountRedemptionSubscriptionPayment(
+            payment,
+            transaction
+          )
+          const result = {
+            invoice: invoice.invoice,
+            invoiceLineItems: invoice.invoiceLineItems,
+            purchase,
+            organization,
+            customer,
+            membersForOrganization,
+            payment,
+          }
 
-            const membersForOrganization =
-              await selectMembershipsAndUsersByMembershipWhere(
-                { organizationId: organization.id },
-                transaction
-              )
-
-            await safelyIncrementDiscountRedemptionSubscriptionPayment(
-              payment,
-              transaction
-            )
-            const result = {
-              invoice: invoice.invoice,
-              invoiceLineItems: invoice.invoiceLineItems,
-              purchase,
-              organization,
-              customer,
-              membersForOrganization,
-              payment,
-            }
-            const eventInserts: Event.Insert[] = [
-              ...(eventsToInsert ?? []),
-            ]
-
-            return {
-              result,
-              eventsToInsert: eventInserts,
-              ledgerCommand,
-            }
-          },
-          {}
-        )
+          return { result }
+        }, {})
 
         await comprehensiveAdminTransaction(
           async ({ transaction }) => {

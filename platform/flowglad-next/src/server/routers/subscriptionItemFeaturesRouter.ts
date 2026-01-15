@@ -67,8 +67,9 @@ const createSubscriptionItemFeature = protectedProcedure
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, ctx }) => {
-        const organizationId = ctx.organizationId
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { organizationId } = ctx
         if (!organizationId) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
@@ -102,7 +103,8 @@ const updateSubscriptionItemFeature = protectedProcedure
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const updatePayload = {
           ...input.subscriptionItemFeature,
           id: input.id,
@@ -128,7 +130,8 @@ const getSubscriptionItemFeature = protectedProcedure
   .output(subscriptionItemFeatureClientResponse)
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const [subscriptionItemFeature] =
           await selectClientSubscriptionItemFeatureAndFeatureById(
             input.id,
@@ -162,7 +165,8 @@ const expireSubscriptionItemFeature = protectedProcedure
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const { id, expiredAt } = input
         // Ensure the feature exists before attempting to deactivate
         const existingFeature =

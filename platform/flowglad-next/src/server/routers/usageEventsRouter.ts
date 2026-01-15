@@ -53,14 +53,13 @@ export const createUsageEvent = protectedProcedure
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({
-        input,
-        ctx,
-        transaction,
-        emitEvent,
-        invalidateCache,
-        enqueueLedgerCommand,
-      }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const {
+          transaction,
+          emitEvent,
+          invalidateCache,
+          enqueueLedgerCommand,
+        } = transactionCtx
         const resolvedInput = await resolveUsageEventInput(
           input,
           transaction
@@ -111,7 +110,8 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
   )
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transaction }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
         return bulkInsertUsageEventsTransaction(
           {
             input,
@@ -153,7 +153,12 @@ const getTableRowsProcedure = protectedProcedure
   .input(usageEventsPaginatedTableRowInputSchema)
   .output(usageEventsPaginatedTableRowOutputSchema)
   .query(
-    authenticatedProcedureTransaction(selectUsageEventsTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectUsageEventsTableRowData({ input, transaction })
+      }
+    )
   )
 
 export const usageEventsRouter = router({

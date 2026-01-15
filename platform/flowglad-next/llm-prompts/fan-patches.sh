@@ -6,10 +6,15 @@ set -e
 
 PROJECT_NAME="${1:?Usage: fan-patches.sh <project-name>}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-REPO_NAME=$(basename "$REPO_ROOT")
-PATCHES_DIR="$REPO_ROOT/llm-prompts/patches/$PROJECT_NAME"
-WORKTREES_BASE="$(dirname "$REPO_ROOT")"
+PACKAGE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+PATCHES_DIR="$PACKAGE_DIR/llm-prompts/patches/$PROJECT_NAME"
+
+# Find the actual git repo root (handles monorepos)
+GIT_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
+GIT_REPO_NAME=$(basename "$GIT_ROOT")
+
+# Create worktrees as siblings to the git repo, not inside it
+WORKTREES_BASE="$(dirname "$GIT_ROOT")"
 
 # Check dependencies
 if ! command -v tmux &> /dev/null; then
@@ -49,6 +54,18 @@ extract_base_branch() {
   echo "${branch:-main}"
 }
 
+# Find existing worktree for a branch (returns path or empty string)
+find_worktree_for_branch() {
+  local branch="$1"
+  git -C "$GIT_ROOT" worktree list --porcelain | awk -v branch="$branch" '
+    /^worktree / { path = substr($0, 10) }
+    /^branch refs\/heads\// {
+      b = substr($0, 19)
+      if (b == branch) { print path; exit }
+    }
+  '
+}
+
 # Create worktrees and collect info
 declare -a WORKTREE_PATHS
 declare -a BRANCH_NAMES
@@ -63,27 +80,30 @@ for PATCH_FILE in "${PATCH_FILES[@]}"; do
     BRANCH_NAME="$PROJECT_NAME/$PATCH_NAME"
   fi
 
-  WORKTREE_PATH="$WORKTREES_BASE/$REPO_NAME-$PATCH_NAME"
-
   echo "Setting up $PATCH_NAME..."
   echo "  Branch: $BRANCH_NAME (from $BASE_BRANCH)"
-  echo "  Worktree: $WORKTREE_PATH"
 
-  # Create worktree if it doesn't exist
-  if [ ! -d "$WORKTREE_PATH" ]; then
+  # Check if branch already has a worktree somewhere
+  EXISTING_WORKTREE=$(find_worktree_for_branch "$BRANCH_NAME")
+
+  if [ -n "$EXISTING_WORKTREE" ]; then
+    WORKTREE_PATH="$EXISTING_WORKTREE"
+    echo "  Worktree: $WORKTREE_PATH (existing)"
+  else
+    WORKTREE_PATH="$WORKTREES_BASE/$GIT_REPO_NAME--$PROJECT_NAME--$PATCH_NAME"
+    echo "  Worktree: $WORKTREE_PATH (new)"
+
     # Fetch latest and create branch from base
-    git -C "$REPO_ROOT" fetch origin "$BASE_BRANCH" 2>/dev/null || true
+    git -C "$GIT_ROOT" fetch origin "$BASE_BRANCH" 2>/dev/null || true
 
     # Create the branch if it doesn't exist
-    if ! git -C "$REPO_ROOT" show-ref --verify --quiet "refs/heads/$BRANCH_NAME"; then
-      git -C "$REPO_ROOT" branch "$BRANCH_NAME" "origin/$BASE_BRANCH" 2>/dev/null || \
-      git -C "$REPO_ROOT" branch "$BRANCH_NAME" "$BASE_BRANCH"
+    if ! git -C "$GIT_ROOT" show-ref --verify --quiet "refs/heads/$BRANCH_NAME"; then
+      git -C "$GIT_ROOT" branch "$BRANCH_NAME" "origin/$BASE_BRANCH" 2>/dev/null || \
+      git -C "$GIT_ROOT" branch "$BRANCH_NAME" "$BASE_BRANCH"
     fi
 
     # Create worktree
-    git -C "$REPO_ROOT" worktree add "$WORKTREE_PATH" "$BRANCH_NAME"
-  else
-    echo "  Worktree already exists, reusing..."
+    git -C "$GIT_ROOT" worktree add "$WORKTREE_PATH" "$BRANCH_NAME"
   fi
 
   WORKTREE_PATHS+=("$WORKTREE_PATH")
@@ -95,38 +115,70 @@ echo "All worktrees ready. Creating tmux session..."
 
 SESSION_NAME="$PROJECT_NAME"
 
-# Kill existing session if it exists
-tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
+# Check if session already exists
+SESSION_EXISTS=false
+if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  SESSION_EXISTS=true
+  echo "Session '$SESSION_NAME' already exists, adding windows to it..."
+fi
 
-# Create new session with first patch
-FIRST_PATCH="${PATCH_FILES[0]}"
-FIRST_PATCH_NAME=$(basename "$FIRST_PATCH" .md)
-FIRST_WORKTREE="${WORKTREE_PATHS[0]}"
+# Track if we're already inside this session
+INSIDE_SESSION=false
+if [ -n "$TMUX" ]; then
+  CURRENT_SESSION=$(tmux display-message -p '#S')
+  if [ "$CURRENT_SESSION" = "$SESSION_NAME" ]; then
+    INSIDE_SESSION=true
+  fi
+fi
 
-tmux new-session -d -s "$SESSION_NAME" -n "$FIRST_PATCH_NAME" -c "$FIRST_WORKTREE"
-tmux send-keys -t "$SESSION_NAME:$FIRST_PATCH_NAME" "claude '$FIRST_PATCH'" Enter
+# Create session if it doesn't exist (use first patch)
+if [ "$SESSION_EXISTS" = false ]; then
+  FIRST_PATCH="${PATCH_FILES[0]}"
+  FIRST_PATCH_NAME=$(basename "$FIRST_PATCH" .md)
+  FIRST_WORKTREE="${WORKTREE_PATHS[0]}"
 
-# Create additional windows for remaining patches
-for ((i=1; i<${#PATCH_FILES[@]}; i++)); do
+  tmux new-session -d -s "$SESSION_NAME" -n "$FIRST_PATCH_NAME" -c "$FIRST_WORKTREE"
+  tmux send-keys -t "$SESSION_NAME:$FIRST_PATCH_NAME" "claude '$FIRST_PATCH'" Enter
+  START_INDEX=1
+else
+  START_INDEX=0
+fi
+
+# Add windows for remaining patches (skip ones that already have windows)
+for ((i=START_INDEX; i<${#PATCH_FILES[@]}; i++)); do
   PATCH_FILE="${PATCH_FILES[$i]}"
   PATCH_NAME=$(basename "$PATCH_FILE" .md)
   WORKTREE_PATH="${WORKTREE_PATHS[$i]}"
+
+  # Check if window already exists
+  if tmux list-windows -t "$SESSION_NAME" -F '#W' 2>/dev/null | grep -q "^${PATCH_NAME}$"; then
+    echo "  Window '$PATCH_NAME' already exists, skipping..."
+    continue
+  fi
 
   tmux new-window -t "$SESSION_NAME" -n "$PATCH_NAME" -c "$WORKTREE_PATH"
   tmux send-keys -t "$SESSION_NAME:$PATCH_NAME" "claude '$PATCH_FILE'" Enter
 done
 
 echo ""
-echo "Created tmux session '$SESSION_NAME' with ${#PATCH_FILES[@]} windows."
+if [ "$SESSION_EXISTS" = true ]; then
+  echo "Added windows to tmux session '$SESSION_NAME'."
+else
+  echo "Created tmux session '$SESSION_NAME' with ${#PATCH_FILES[@]} windows."
+fi
 echo ""
 echo "Worktrees created:"
 for ((i=0; i<${#PATCH_FILES[@]}; i++)); do
   echo "  - $(basename "${PATCH_FILES[$i]}" .md): ${WORKTREE_PATHS[$i]}"
 done
 echo ""
-echo "To attach: tmux attach -t $SESSION_NAME"
 echo "Navigation: Ctrl-b n (next), Ctrl-b p (prev), Ctrl-b w (list)"
 echo ""
 
-# Attach to session
-tmux attach -t "$SESSION_NAME"
+# Attach to session (skip if already inside it)
+if [ "$INSIDE_SESSION" = true ]; then
+  echo "You're already in session '$SESSION_NAME'. Use Ctrl-b w to see all windows."
+else
+  echo "Attaching to session..."
+  tmux attach -t "$SESSION_NAME"
+fi

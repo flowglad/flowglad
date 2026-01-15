@@ -1638,6 +1638,172 @@ describe('selectRevenueDataForOrganization', () => {
       expect(revenueData.length).toBe(0) // Expect an empty array
     })
   })
+
+  describe('Scenario 9: Payment status filtering', () => {
+    it('should only include Succeeded and Refunded payments in revenue calculations', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const fromDate = new Date('2023-09-01T00:00:00.000Z')
+        const toDate = new Date('2023-09-30T23:59:59.999Z')
+        const revenueChartIntervalUnit =
+          RevenueChartIntervalUnit.Month
+        const chargeDate = new Date('2023-09-15T10:00:00.000Z')
+
+        const invoice = await setupInvoice({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+
+        // Payment 1: Succeeded - SHOULD be included ($100)
+        await setupPayment({
+          stripeChargeId: `ch_status_succeeded_${nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 10000,
+          refundedAmount: 0,
+          refunded: false,
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          chargeDate: chargeDate.getTime(),
+        })
+
+        // Payment 2: Refunded - SHOULD be included ($50 - $50 refund = $0 net)
+        await setupPayment({
+          stripeChargeId: `ch_status_refunded_${nanoid()}`,
+          status: PaymentStatus.Refunded,
+          amount: 5000,
+          refundedAmount: 5000,
+          refunded: true,
+          refundedAt: Date.now(),
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          chargeDate: chargeDate.getTime(),
+        })
+
+        // Payment 3: Failed - should NOT be included
+        await setupPayment({
+          stripeChargeId: `ch_status_failed_${nanoid()}`,
+          status: PaymentStatus.Failed,
+          amount: 20000, // $200 - should be excluded
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          chargeDate: chargeDate.getTime(),
+        })
+
+        // Payment 4: Processing - should NOT be included
+        await setupPayment({
+          stripeChargeId: `ch_status_processing_${nanoid()}`,
+          status: PaymentStatus.Processing,
+          amount: 15000, // $150 - should be excluded
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          chargeDate: chargeDate.getTime(),
+        })
+
+        // Payment 5: Canceled - should NOT be included
+        await setupPayment({
+          stripeChargeId: `ch_status_canceled_${nanoid()}`,
+          status: PaymentStatus.Canceled,
+          amount: 8000, // $80 - should be excluded
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          chargeDate: chargeDate.getTime(),
+        })
+
+        const revenueData = await selectRevenueDataForOrganization(
+          {
+            organizationId: organization.id,
+            revenueChartIntervalUnit,
+            fromDate: fromDate.getTime(),
+            toDate: toDate.getTime(),
+            productId: null,
+          },
+          transaction
+        )
+
+        expect(revenueData).toBeInstanceOf(Array)
+        expect(revenueData.length).toBe(1) // One item for September
+
+        const resultItem = revenueData[0]
+        expect(
+          resultItem.date.toISOString().startsWith('2023-09-01T')
+        ).toBe(true)
+
+        // Expected: Only Succeeded ($100) + Refunded ($50 - $50 = $0) = $100
+        // Failed ($200), Processing ($150), Canceled ($80) should all be excluded
+        expect(resultItem.revenue).toBe(10000) // 10000 cents = $100
+      })
+    })
+
+    it('should include partial refunds correctly with Succeeded status', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const fromDate = new Date('2023-10-01T00:00:00.000Z')
+        const toDate = new Date('2023-10-31T23:59:59.999Z')
+        const revenueChartIntervalUnit =
+          RevenueChartIntervalUnit.Month
+        const chargeDate = new Date('2023-10-15T10:00:00.000Z')
+
+        const invoice = await setupInvoice({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+
+        // Payment with partial refund (still Succeeded status)
+        // $100 payment with $30 refund = $70 net revenue
+        await setupPayment({
+          stripeChargeId: `ch_partial_refund_${nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 10000,
+          refundedAmount: 3000,
+          refunded: false, // Partial refund keeps refunded=false
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          chargeDate: chargeDate.getTime(),
+        })
+
+        // Failed payment should not be included
+        await setupPayment({
+          stripeChargeId: `ch_failed_payment_${nanoid()}`,
+          status: PaymentStatus.Failed,
+          amount: 50000, // $500 - should be excluded
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          chargeDate: chargeDate.getTime(),
+        })
+
+        const revenueData = await selectRevenueDataForOrganization(
+          {
+            organizationId: organization.id,
+            revenueChartIntervalUnit,
+            fromDate: fromDate.getTime(),
+            toDate: toDate.getTime(),
+            productId: null,
+          },
+          transaction
+        )
+
+        expect(revenueData.length).toBe(1)
+        // Expected: $100 - $30 = $70 net (Failed payment excluded)
+        expect(revenueData[0].revenue).toBe(7000) // 7000 cents = $70
+      })
+    })
+  })
 })
 
 describe('selectPaymentsCursorPaginatedWithTableRowData', () => {

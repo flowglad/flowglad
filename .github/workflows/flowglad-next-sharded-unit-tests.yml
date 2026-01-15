@@ -44,7 +44,7 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch || github.ref }}
       - name: Setup Node.js
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v3
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
         with:
           node-version: '18'
       - name: Setup Bun
@@ -104,7 +104,7 @@ jobs:
           # Use branch from input if provided, otherwise use current ref
           ref: ${{ github.event.inputs.branch || github.ref }}
       - name: Setup Node.js
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v3
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
         with:
           node-version: '18'
       - name: Setup Bun
@@ -153,7 +153,7 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch || github.ref }}
       - name: Setup Node.js
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v3
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
         with:
           node-version: '18'
       - name: Setup Bun

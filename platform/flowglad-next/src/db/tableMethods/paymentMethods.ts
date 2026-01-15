@@ -242,6 +242,17 @@ export const upsertPaymentByStripeChargeId = async (
 }
 
 /**
+ * Payment statuses that represent resolved payments where funds have been collected.
+ * Used to filter revenue calculations to only include actual collected revenue.
+ * - Succeeded: Payment completed successfully
+ * - Refunded: Payment was collected then refunded (refundedAmount tracks the refund)
+ */
+const revenuePaymentStatuses = [
+  PaymentStatus.Succeeded,
+  PaymentStatus.Refunded,
+]
+
+/**
  * Selects revenue data for an organization over a date range, optionally filtered by product.
  *
  * When productId is specified, includes both:
@@ -250,6 +261,9 @@ export const upsertPaymentByStripeChargeId = async (
  *
  * Subscription payments (where purchaseId is null) are included via the subscription path
  * to avoid double-counting.
+ *
+ * Only includes payments with resolved statuses (Succeeded, Refunded) to ensure
+ * accurate revenue reporting. Processing, Failed, and Canceled payments are excluded.
  */
 export const selectRevenueDataForOrganization = async (
   params: GetRevenueDataInput,
@@ -277,6 +291,10 @@ export const selectRevenueDataForOrganization = async (
           AND ${payments.chargeDate} >= ${new Date(fromDate).toISOString()}
           AND ${payments.chargeDate} <= ${new Date(toDate).toISOString()}
           AND ${prices.productId} = ${params.productId}
+          AND ${payments.status} IN (${sql.join(
+            revenuePaymentStatuses.map((status) => sql`${status}`),
+            sql`, `
+          )})
         GROUP BY 1
         
         UNION ALL
@@ -294,6 +312,10 @@ export const selectRevenueDataForOrganization = async (
           AND ${payments.chargeDate} <= ${new Date(toDate).toISOString()}
           AND ${prices.productId} = ${params.productId}
           AND ${payments.purchaseId} IS NULL
+          AND ${payments.status} IN (${sql.join(
+            revenuePaymentStatuses.map((status) => sql`${status}`),
+            sql`, `
+          )})
         GROUP BY 1
       `
     : sql`
@@ -306,6 +328,10 @@ export const selectRevenueDataForOrganization = async (
           ${payments.organizationId} = ${organizationId}
           AND ${payments.chargeDate} >= ${new Date(fromDate).toISOString()}
           AND ${payments.chargeDate} <= ${new Date(toDate).toISOString()}
+          AND ${payments.status} IN (${sql.join(
+            revenuePaymentStatuses.map((status) => sql`${status}`),
+            sql`, `
+          )})
         GROUP BY 1
       `
 
