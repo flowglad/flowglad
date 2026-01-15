@@ -60,6 +60,91 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - **Fresh Database**: When setting up a fresh database, always run `bun run seed:countries` after migrations to populate the countries table.
 - **Idempotent**: The countries seeding script is safe to run multiple times - it won't duplicate data.
 
+## Local Database Development
+
+You can clone staging or production databases to a local Supabase instance for development and testing migrations.
+
+### Prerequisites
+
+- **Docker** must be running
+- **Supabase CLI** installed: `brew install supabase/tap/supabase`
+- **PostgreSQL client tools** (`psql`) installed:
+  - macOS: `brew install libpq && brew link --force libpq`
+  - Ubuntu: `sudo apt-get install postgresql-client`
+- **Supabase initialized**: Run `supabase init` once in `platform/flowglad-next` if not already done
+- **Environment variables**: `STAGING_DATABASE_URL` and `PROD_DATABASE_URL` must be set in your `.env.local` file
+  - Get connection strings from Supabase Dashboard > Connect > Connection string
+
+### Database Cloning Commands
+
+```bash
+# Clone staging database (with data)
+bun run db:clone:staging
+
+# Clone production database (with data)
+bun run db:clone:prod
+
+# Clone schema only (faster, no data)
+bun run db:clone:staging:schema
+bun run db:clone:prod:schema
+
+# Clone and run pending migrations (for testing migrations)
+bun run db:clone:staging:migrate
+bun run db:clone:prod:migrate
+```
+
+### How It Works
+
+1. **Stops any existing local Supabase** and starts a fresh instance
+2. **Dumps roles, schema, and data** from the remote database using `supabase db dump`
+3. **Restores to local Supabase** with triggers disabled during data restore
+4. **Runs pending migrations** (if using `:migrate` variant)
+5. **Leaves the database running** for local development
+
+### Using the Local Database
+
+After cloning, the local Supabase instance stays running. You can:
+
+1. **Connect directly**:
+   ```bash
+   psql "postgresql://postgres:postgres@localhost:54322/postgres"
+   ```
+
+2. **Run the app against the local database**:
+   ```bash
+   DATABASE_URL="postgresql://postgres:postgres@localhost:54322/postgres" bun run dev
+   ```
+
+3. **Check Supabase status**:
+   ```bash
+   bun run db:local:status
+   ```
+
+4. **Stop the local instance**:
+   ```bash
+   bun run db:local:stop
+   ```
+
+### Testing Migrations
+
+The `:migrate` variants are ideal for testing migrations before applying them to real databases:
+
+```bash
+# Test migrations against a staging clone
+bun run db:clone:staging:migrate
+
+# Test migrations against a production clone
+bun run db:clone:prod:migrate
+```
+
+If migrations fail, you'll see the error before affecting real databases. The local database remains available for debugging.
+
+### Best Practices
+
+- Always test migrations against staging before production
+- Use schema-only clones for faster iteration when you don't need data
+- The local database persists until you stop it or run another clone command
+
 ## How to Read the Codebase
 
 ### Folders

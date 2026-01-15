@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import {
   fireEvent,
   render,

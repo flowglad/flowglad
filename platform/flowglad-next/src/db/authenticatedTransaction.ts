@@ -1,19 +1,20 @@
 import { SpanKind } from '@opentelemetry/api'
 import { sql } from 'drizzle-orm'
-import type { AuthenticatedTransactionParams } from '@/db/types'
-import {
-  type CacheDependencyKey,
-  invalidateDependencies,
-} from '@/utils/cache'
+import type {
+  AuthenticatedTransactionParams,
+  ComprehensiveAuthenticatedTransactionParams,
+  TransactionEffectsContext,
+} from '@/db/types'
 import core from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
-import { processLedgerCommand } from './ledgerManager/ledgerManager'
-import type { Event } from './schema/events'
-import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
-// New imports for ledger and transaction output types
-import type { TransactionOutput } from './transactionEnhacementTypes'
+import {
+  createEffectsAccumulator,
+  invalidateCacheAfterCommit,
+  processEffectsInTransaction,
+} from './transactionEffectsHelpers'
+import { isError, type Result } from './transactionEnhacementTypes'
 
 interface AuthenticatedTransactionOptions {
   apiKey?: string
@@ -44,18 +45,20 @@ export async function authenticatedTransaction<T>(
 
 /**
  * Core comprehensive authenticated transaction logic without tracing.
- * Returns the full TransactionOutput plus auth info so the traced wrapper can extract metrics.
+ * Returns the full TransactionOutput plus auth info and processed counts so the traced wrapper can extract accurate metrics.
  */
 const executeComprehensiveAuthenticatedTransaction = async <T>(
   fn: (
-    params: AuthenticatedTransactionParams
-  ) => Promise<TransactionOutput<T>>,
+    params: ComprehensiveAuthenticatedTransactionParams
+  ) => Promise<Result<T>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<{
-  output: TransactionOutput<T>
+  output: Result<T>
   userId: string
   organizationId?: string
   livemode: boolean
+  processedEventsCount: number
+  processedLedgerCommandsCount: number
 }> => {
   const { apiKey, __testOnlyOrganizationId, customerId } =
     options ?? {}
@@ -71,8 +74,16 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       customerId,
     })
 
-  // Collect cache invalidations to process after commit
-  let cacheInvalidations: CacheDependencyKey[] = []
+  // Create effects accumulator and callbacks
+  const {
+    effects,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  } = createEffectsAccumulator()
+
+  let processedEventsCount = 0
+  let processedLedgerCommandsCount = 0
 
   const output = await db.transaction(async (transaction) => {
     if (!jwtClaim) {
@@ -104,53 +115,31 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       )}', TRUE);`
     )
 
-    const paramsForFn = {
+    const paramsForFn: ComprehensiveAuthenticatedTransactionParams = {
       transaction,
       userId,
       livemode,
       organizationId,
+      effects,
+      invalidateCache,
+      emitEvent,
+      enqueueLedgerCommand,
     }
 
     const output = await fn(paramsForFn)
 
-    // Validate that only one of ledgerCommand or ledgerCommands is provided
-    if (
-      output.ledgerCommand &&
-      output.ledgerCommands &&
-      output.ledgerCommands.length > 0
-    ) {
-      throw new Error(
-        'Cannot provide both ledgerCommand and ledgerCommands. Please provide only one.'
-      )
+    // Check for error early to skip effects and roll back transaction
+    if (isError(output)) {
+      throw output.error
     }
 
-    // Process events if any
-    if (output.eventsToInsert && output.eventsToInsert.length > 0) {
-      await bulkInsertOrDoNothingEventsByHash(
-        output.eventsToInsert,
-        transaction
-      )
-    }
-
-    // Process ledger commands if any
-    if (output.ledgerCommand) {
-      await processLedgerCommand(output.ledgerCommand, transaction)
-    } else if (
-      output.ledgerCommands &&
-      output.ledgerCommands.length > 0
-    ) {
-      for (const command of output.ledgerCommands) {
-        await processLedgerCommand(command, transaction)
-      }
-    }
-
-    // Collect cache invalidations (don't process yet - wait for commit)
-    if (
-      output.cacheInvalidations &&
-      output.cacheInvalidations.length > 0
-    ) {
-      cacheInvalidations = output.cacheInvalidations
-    }
+    // Process accumulated effects
+    const counts = await processEffectsInTransaction(
+      effects,
+      transaction
+    )
+    processedEventsCount = counts.eventsCount
+    processedLedgerCommandsCount = counts.ledgerCommandsCount
 
     // RESET ROLE is not strictly necessary with SET LOCAL ROLE, as the role is session-local.
     // However, keeping it doesn't harm and can be an explicit cleanup.
@@ -160,18 +149,15 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
   })
 
   // Transaction committed successfully - now invalidate caches
-  // Fire-and-forget; errors are logged but don't fail the request
-  if (cacheInvalidations.length > 0) {
-    // Deduplicate cache invalidation keys to reduce unnecessary Redis operations
-    const uniqueInvalidations = [...new Set(cacheInvalidations)]
-    void invalidateDependencies(uniqueInvalidations)
-  }
+  invalidateCacheAfterCommit(effects.cacheInvalidations)
 
   return {
     output,
     userId,
     organizationId: jwtClaim?.organization_id,
     livemode,
+    processedEventsCount,
+    processedLedgerCommandsCount,
   }
 }
 
@@ -181,8 +167,8 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
  */
 export async function comprehensiveAuthenticatedTransaction<T>(
   fn: (
-    params: AuthenticatedTransactionParams
-  ) => Promise<TransactionOutput<T>>,
+    params: ComprehensiveAuthenticatedTransactionParams
+  ) => Promise<Result<T>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
   // Static attributes are set at span creation for debugging failed transactions
@@ -200,35 +186,18 @@ export async function comprehensiveAuthenticatedTransaction<T>(
         'db.user_id': data.userId,
         'db.organization_id': data.organizationId,
         'db.livemode': data.livemode,
-        'db.events_count': data.output.eventsToInsert?.length ?? 0,
-        'db.ledger_commands_count': data.output.ledgerCommand
-          ? 1
-          : (data.output.ledgerCommands?.length ?? 0),
+        // Use the actual processed counts, which include both effects callbacks and output
+        'db.events_count': data.processedEventsCount,
+        'db.ledger_commands_count': data.processedLedgerCommandsCount,
       }),
     },
     () => executeComprehensiveAuthenticatedTransaction(fn, options)
   )()
 
+  if (isError(output)) {
+    throw output.error
+  }
   return output.result
-}
-
-/**
- * Wrapper around comprehensiveAuthenticatedTransaction for functions that return
- * a tuple of [result, events]. Adapts the old signature to TransactionOutput.
- */
-export function eventfulAuthenticatedTransaction<T>(
-  fn: (
-    params: AuthenticatedTransactionParams
-  ) => Promise<[T, Event.Insert[]]>,
-  options: AuthenticatedTransactionOptions = {}
-): Promise<T> {
-  return comprehensiveAuthenticatedTransaction(async (params) => {
-    const [result, eventInserts] = await fn(params)
-    return {
-      result,
-      eventsToInsert: eventInserts,
-    }
-  }, options)
 }
 
 export type AuthenticatedProcedureResolver<
@@ -237,26 +206,18 @@ export type AuthenticatedProcedureResolver<
   TContext extends { apiKey?: string; customerId?: string },
 > = (input: TInput, ctx: TContext) => Promise<TOutput>
 
+/**
+ * Params for authenticated procedure transaction handlers.
+ * Provides transactionCtx (TransactionEffectsContext) for passing to business logic functions.
+ */
 export type AuthenticatedProcedureTransactionParams<
   TInput,
-  TOutput,
   TContext extends { apiKey?: string; customerId?: string },
-> = AuthenticatedTransactionParams & {
+> = {
   input: TInput
   ctx: TContext
+  transactionCtx: TransactionEffectsContext
 }
-
-export type AuthenticatedProcedureTransactionHandler<
-  TInput,
-  TOutput,
-  TContext extends { apiKey?: string; customerId?: string },
-> = (
-  params: AuthenticatedProcedureTransactionParams<
-    TInput,
-    TOutput,
-    TContext
-  >
-) => Promise<TOutput>
 
 /**
  * Creates an authenticated procedure that wraps a transaction handler.
@@ -267,11 +228,9 @@ export const authenticatedProcedureTransaction = <
   TOutput,
   TContext extends { apiKey?: string; customerId?: string },
 >(
-  handler: AuthenticatedProcedureTransactionHandler<
-    TInput,
-    TOutput,
-    TContext
-  >
+  handler: (
+    params: AuthenticatedProcedureTransactionParams<TInput, TContext>
+  ) => Promise<TOutput>
 ) => {
   return authenticatedProcedureComprehensiveTransaction<
     TInput,
@@ -289,46 +248,28 @@ export const authenticatedProcedureComprehensiveTransaction = <
   TContext extends { apiKey?: string; customerId?: string },
 >(
   handler: (
-    params: AuthenticatedProcedureTransactionParams<
-      TInput,
-      TOutput,
-      TContext
-    >
-  ) => Promise<TransactionOutput<TOutput>>
+    params: AuthenticatedProcedureTransactionParams<TInput, TContext>
+  ) => Promise<Result<TOutput>>
 ) => {
   return async (opts: { input: TInput; ctx: TContext }) => {
     return comprehensiveAuthenticatedTransaction(
-      (params) =>
-        handler({ ...params, input: opts.input, ctx: opts.ctx }),
+      (params) => {
+        const transactionCtx: TransactionEffectsContext = {
+          transaction: params.transaction,
+          invalidateCache: params.invalidateCache,
+          emitEvent: params.emitEvent,
+          enqueueLedgerCommand: params.enqueueLedgerCommand,
+        }
+        return handler({
+          input: opts.input,
+          ctx: opts.ctx,
+          transactionCtx,
+        })
+      },
       {
         apiKey: opts.ctx.apiKey,
         customerId: opts.ctx.customerId,
       }
     )
   }
-}
-
-export function eventfulAuthenticatedProcedureTransaction<
-  TInput,
-  TOutput,
-  TContext extends { apiKey?: string; customerId?: string },
->(
-  handler: (
-    params: AuthenticatedProcedureTransactionParams<
-      TInput,
-      TOutput,
-      TContext
-    >
-  ) => Promise<[TOutput, Event.Insert[]]>
-) {
-  return authenticatedProcedureTransaction<TInput, TOutput, TContext>(
-    async (params) => {
-      const [result, eventInserts] = await handler(params)
-      await bulkInsertOrDoNothingEventsByHash(
-        eventInserts,
-        params.transaction
-      )
-      return result
-    }
-  )
 }

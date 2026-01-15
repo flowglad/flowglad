@@ -118,7 +118,12 @@ const getTableRowsProcedure = protectedProcedure
     createPaginatedTableRowOutputSchema(discountsTableRowDataSchema)
   )
   .query(
-    authenticatedProcedureTransaction(selectDiscountsTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectDiscountsTableRowData({ input, transaction })
+      }
+    )
   )
 
 export const updateDiscount = protectedProcedure

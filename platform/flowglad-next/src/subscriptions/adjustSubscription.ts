@@ -28,7 +28,10 @@ import {
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
 import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
@@ -39,10 +42,6 @@ import {
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
-import {
-  CacheDependency,
-  type CacheDependencyKey,
-} from '@/utils/cache'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
   createBillingRun,
@@ -327,11 +326,6 @@ export interface AdjustSubscriptionResult {
    * The caller should wait for this run to complete before considering the adjustment done.
    */
   pendingBillingRunId?: string
-  /**
-   * Cache dependency keys to invalidate after the transaction commits.
-   * These should be passed to invalidateDependencies after the transaction.
-   */
-  cacheInvalidations: CacheDependencyKey[]
 }
 
 /**
@@ -360,14 +354,15 @@ export interface AdjustSubscriptionResult {
  *
  * @param input - The adjustment parameters including new subscription items and timing
  * @param organization - The organization making the adjustment
- * @param transaction - The database transaction
+ * @param ctx - Transaction context with database transaction and effect callbacks
  * @returns The updated subscription, subscription items, and metadata about the adjustment
  */
 export const adjustSubscription = async (
   input: AdjustSubscriptionParams,
   organization: Organization.Record,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<AdjustSubscriptionResult> => {
+  const { transaction } = ctx
   const { adjustment, id } = input
   const { newSubscriptionItems } = adjustment
   const requestedTiming = adjustment.timing
@@ -698,9 +693,6 @@ export const adjustSubscription = async (
   // Track pending billing run ID for immediate adjustments with proration
   let pendingBillingRunId: string | undefined
 
-  // Track cache invalidations - populated in non-billing-run path
-  let cacheInvalidations: CacheDependencyKey[] = []
-
   if (netChargeAmount > 0 && shouldProrate) {
     // Format description similar to createSubscription pattern: single-line with key info
     const prorationPercentage = (split.afterPercentage * 100).toFixed(
@@ -787,13 +779,14 @@ export const adjustSubscription = async (
       livemode: subscription.livemode,
     }))
 
-    const adjustmentResult = await handleSubscriptionItemAdjustment({
-      subscriptionId: id,
-      newSubscriptionItems: preparedItems,
-      adjustmentDate: adjustmentDate,
-      transaction,
-    })
-    cacheInvalidations = adjustmentResult.cacheInvalidations
+    await handleSubscriptionItemAdjustment(
+      {
+        subscriptionId: id,
+        newSubscriptionItems: preparedItems,
+        adjustmentDate: adjustmentDate,
+      },
+      ctx
+    )
 
     // For AtEndOfCurrentBillingPeriod, don't sync with future-dated items
     // Sync using current time to preserve the current subscription state
@@ -877,12 +870,9 @@ export const adjustSubscription = async (
     id,
     transaction
   )
-  // For billing run path, invalidate cache after billing run completes
-  // The actual subscription item changes happen in processOutcomeForBillingRun
-  // But we still need to signal that subscription data has changed
-  if (pendingBillingRunId && cacheInvalidations.length === 0) {
-    cacheInvalidations = [CacheDependency.subscriptionItems(id)]
-  }
+  // Note: For billing run path, cache invalidation happens in
+  // handleSubscriptionItemAdjustment (called by processOutcomeForBillingRun)
+  // after the actual subscription item changes are applied.
 
   return {
     subscription: standardSubscriptionSelectSchema.parse(
@@ -892,6 +882,5 @@ export const adjustSubscription = async (
     resolvedTiming,
     isUpgrade,
     pendingBillingRunId,
-    cacheInvalidations,
   }
 }

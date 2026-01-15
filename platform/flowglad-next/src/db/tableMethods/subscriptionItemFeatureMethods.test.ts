@@ -1011,3 +1011,115 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
     })
   })
 })
+
+/**
+ * Basic unit tests for selectSubscriptionItemFeaturesWithFeatureSlug.
+ *
+ * These tests verify the function returns correct data.
+ * Cache behavior is tested in integration tests (cache.integration.test.ts)
+ * since unit tests use a no-op Redis stub.
+ */
+describe('selectSubscriptionItemFeaturesWithFeatureSlug', () => {
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let subscription: Subscription.Record
+  let subscriptionItem: SubscriptionItem.Record
+  let toggleFeature: Feature.Record
+  let toggleProductFeature: ProductFeature.Record
+
+  beforeEach(async () => {
+    // Each test uses its own unique subscriptionItem.id, so no global cleanup needed
+    const orgData = await setupOrg()
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      unitPrice: 1000,
+      type: PriceType.Subscription,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    customer = await setupCustomer({
+      organizationId: orgData.organization.id,
+      email: 'cached-test@test.com',
+      livemode: true,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: orgData.organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+    })
+
+    subscriptionItem = await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      name: 'Test Subscription Item',
+      quantity: 1,
+      unitPrice: 1000,
+      priceId: price.id,
+    })
+
+    const featureData = await setupTestFeaturesAndProductFeatures({
+      organizationId: orgData.organization.id,
+      productId: product.id,
+      livemode: true,
+      featureSpecs: [
+        { name: 'Toggle Feature', type: FeatureType.Toggle },
+      ],
+    })
+    ;[
+      {
+        feature: toggleFeature,
+        productFeature: toggleProductFeature,
+      },
+    ] = featureData
+  })
+
+  it('returns features with name and slug for a subscription item', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      // Insert a subscription item feature
+      await insertSubscriptionItemFeature(
+        {
+          type: FeatureType.Toggle,
+          subscriptionItemId: subscriptionItem.id,
+          featureId: toggleFeature.id,
+          productFeatureId: toggleProductFeature.id,
+          usageMeterId: null,
+          amount: null,
+          renewalFrequency: null,
+          livemode: true,
+        },
+        transaction
+      )
+
+      const features =
+        await selectSubscriptionItemFeaturesWithFeatureSlug(
+          { subscriptionItemId: subscriptionItem.id },
+          transaction
+        )
+
+      expect(features.length).toBe(1)
+      expect(features[0].subscriptionItemId).toBe(subscriptionItem.id)
+      expect(features[0].featureId).toBe(toggleFeature.id)
+      expect(features[0].name).toBe(toggleFeature.name)
+      expect(features[0].slug).toBe(toggleFeature.slug)
+      expect(features[0].type).toBe(FeatureType.Toggle)
+    })
+  })
+
+  it('returns empty array for subscription item with no features', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const features =
+        await selectSubscriptionItemFeaturesWithFeatureSlug(
+          { subscriptionItemId: subscriptionItem.id },
+          transaction
+        )
+
+      expect(features).toEqual([])
+    })
+  })
+})

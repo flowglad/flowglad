@@ -90,6 +90,8 @@ const createMockFlowgladServer = (overrides: {
 
   const mockGet = vi.fn()
   const mockPost = vi.fn()
+  const mockResourceClaimsClaim = vi.fn()
+  const mockResourceClaimsRelease = vi.fn()
 
   // Access private properties for mocking
   // We use type assertion to bypass strict type checking for partial mocks
@@ -100,6 +102,10 @@ const createMockFlowgladServer = (overrides: {
     },
     customers: {
       retrieve: mockGetCustomer,
+    },
+    resourceClaims: {
+      claim: mockResourceClaimsClaim,
+      release: mockResourceClaimsRelease,
     },
     get: mockGet,
     post: mockPost,
@@ -117,6 +123,8 @@ const createMockFlowgladServer = (overrides: {
       subscriptionsRetrieve: mockSubscriptionsRetrieve,
       get: mockGet,
       post: mockPost,
+      resourceClaimsClaim: mockResourceClaimsClaim,
+      resourceClaimsRelease: mockResourceClaimsRelease,
     },
   }
 }
@@ -125,19 +133,25 @@ describe('FlowgladServer resource methods', () => {
   describe('getResources', () => {
     it('returns all resources with usage when customer has single subscription and no subscriptionId provided', async () => {
       const { server, mocks } = createMockFlowgladServer({})
-      mocks.get.mockResolvedValue({ resources: [mockResourceUsage] })
+      // Mock the /usages endpoint response format
+      mocks.get.mockResolvedValue([
+        { usage: mockResourceUsage, claims: [] },
+      ])
 
       const result = await server.getResources()
 
       expect(result).toEqual({ resources: [mockResourceUsage] })
       expect(mocks.get).toHaveBeenCalledWith(
-        `/api/v1/resource-claims/${mockSubscription.id}/usage`
+        `/api/v1/resource-claims/${mockSubscription.id}/usages`
       )
     })
 
     it('returns resources when subscriptionId is explicitly provided', async () => {
       const { server, mocks } = createMockFlowgladServer({})
-      mocks.get.mockResolvedValue({ resources: [mockResourceUsage] })
+      // Mock the /usages endpoint response format
+      mocks.get.mockResolvedValue([
+        { usage: mockResourceUsage, claims: [] },
+      ])
 
       const result = await server.getResources({
         subscriptionId: mockSubscription.id,
@@ -187,7 +201,7 @@ describe('FlowgladServer resource methods', () => {
   describe('claimResource', () => {
     it('auto-resolves subscriptionId when customer has single subscription', async () => {
       const { server, mocks } = createMockFlowgladServer({})
-      mocks.post.mockResolvedValue({
+      mocks.resourceClaimsClaim.mockResolvedValue({
         claims: [mockResourceClaim],
         usage: mockResourceUsage,
       })
@@ -201,14 +215,11 @@ describe('FlowgladServer resource methods', () => {
         claims: [mockResourceClaim],
         usage: mockResourceUsage,
       })
-      expect(mocks.post).toHaveBeenCalledWith(
-        `/api/v1/resource-claims/${mockSubscription.id}/claim`,
+      expect(mocks.resourceClaimsClaim).toHaveBeenCalledWith(
+        mockSubscription.id,
         expect.objectContaining({
-          body: expect.objectContaining({
-            resourceSlug: 'seats',
-            subscriptionId: mockSubscription.id,
-            quantity: 1,
-          }),
+          resourceSlug: 'seats',
+          quantity: 1,
         })
       )
     })
@@ -265,7 +276,7 @@ describe('FlowgladServer resource methods', () => {
 
     it('sends correct payload for anonymous claims with quantity', async () => {
       const { server, mocks } = createMockFlowgladServer({})
-      mocks.post.mockResolvedValue({
+      mocks.resourceClaimsClaim.mockResolvedValue({
         claims: [mockResourceClaim, mockResourceClaim],
         usage: { ...mockResourceUsage, claimed: 5, available: 5 },
       })
@@ -275,17 +286,14 @@ describe('FlowgladServer resource methods', () => {
         quantity: 2,
       })
 
-      expect(mocks.post).toHaveBeenCalledWith(
-        `/api/v1/resource-claims/${mockSubscription.id}/claim`,
+      expect(mocks.resourceClaimsClaim).toHaveBeenCalledWith(
+        mockSubscription.id,
         {
-          body: {
-            resourceSlug: 'seats',
-            subscriptionId: mockSubscription.id,
-            metadata: undefined,
-            quantity: 2,
-            externalId: undefined,
-            externalIds: undefined,
-          },
+          resourceSlug: 'seats',
+          metadata: undefined,
+          quantity: 2,
+          externalId: undefined,
+          externalIds: undefined,
         }
       )
     })
@@ -296,7 +304,7 @@ describe('FlowgladServer resource methods', () => {
         ...mockResourceClaim,
         externalId: 'user_123',
       }
-      mocks.post.mockResolvedValue({
+      mocks.resourceClaimsClaim.mockResolvedValue({
         claims: [namedClaim],
         usage: mockResourceUsage,
       })
@@ -307,24 +315,21 @@ describe('FlowgladServer resource methods', () => {
         metadata: { assignedTo: 'John Doe' },
       })
 
-      expect(mocks.post).toHaveBeenCalledWith(
-        `/api/v1/resource-claims/${mockSubscription.id}/claim`,
+      expect(mocks.resourceClaimsClaim).toHaveBeenCalledWith(
+        mockSubscription.id,
         {
-          body: {
-            resourceSlug: 'seats',
-            subscriptionId: mockSubscription.id,
-            metadata: { assignedTo: 'John Doe' },
-            quantity: undefined,
-            externalId: 'user_123',
-            externalIds: undefined,
-          },
+          resourceSlug: 'seats',
+          metadata: { assignedTo: 'John Doe' },
+          quantity: undefined,
+          externalId: 'user_123',
+          externalIds: undefined,
         }
       )
     })
 
     it('sends correct payload for named claims with externalIds array', async () => {
       const { server, mocks } = createMockFlowgladServer({})
-      mocks.post.mockResolvedValue({
+      mocks.resourceClaimsClaim.mockResolvedValue({
         claims: [
           { ...mockResourceClaim, externalId: 'user_1' },
           { ...mockResourceClaim, externalId: 'user_2' },
@@ -337,17 +342,14 @@ describe('FlowgladServer resource methods', () => {
         externalIds: ['user_1', 'user_2'],
       })
 
-      expect(mocks.post).toHaveBeenCalledWith(
-        `/api/v1/resource-claims/${mockSubscription.id}/claim`,
+      expect(mocks.resourceClaimsClaim).toHaveBeenCalledWith(
+        mockSubscription.id,
         {
-          body: {
-            resourceSlug: 'seats',
-            subscriptionId: mockSubscription.id,
-            metadata: undefined,
-            quantity: undefined,
-            externalId: undefined,
-            externalIds: ['user_1', 'user_2'],
-          },
+          resourceSlug: 'seats',
+          metadata: undefined,
+          quantity: undefined,
+          externalId: undefined,
+          externalIds: ['user_1', 'user_2'],
         }
       )
     })
@@ -360,7 +362,7 @@ describe('FlowgladServer resource methods', () => {
         ...mockResourceClaim,
         releasedAt: Date.now(),
       }
-      mocks.post.mockResolvedValue({
+      mocks.resourceClaimsRelease.mockResolvedValue({
         releasedClaims: [releasedClaim, releasedClaim],
         usage: { ...mockResourceUsage, claimed: 1, available: 9 },
       })
@@ -371,24 +373,21 @@ describe('FlowgladServer resource methods', () => {
       })
 
       expect(result.releasedClaims).toHaveLength(2)
-      expect(mocks.post).toHaveBeenCalledWith(
-        `/api/v1/resource-claims/${mockSubscription.id}/release`,
+      expect(mocks.resourceClaimsRelease).toHaveBeenCalledWith(
+        mockSubscription.id,
         {
-          body: {
-            resourceSlug: 'seats',
-            subscriptionId: mockSubscription.id,
-            quantity: 2,
-            externalId: undefined,
-            externalIds: undefined,
-            claimIds: undefined,
-          },
+          resourceSlug: 'seats',
+          quantity: 2,
+          externalId: undefined,
+          externalIds: undefined,
+          claimIds: undefined,
         }
       )
     })
 
     it('sends correct payload for releasing by externalId', async () => {
       const { server, mocks } = createMockFlowgladServer({})
-      mocks.post.mockResolvedValue({
+      mocks.resourceClaimsRelease.mockResolvedValue({
         releasedClaims: [
           {
             ...mockResourceClaim,
@@ -404,24 +403,21 @@ describe('FlowgladServer resource methods', () => {
         externalId: 'user_123',
       })
 
-      expect(mocks.post).toHaveBeenCalledWith(
-        `/api/v1/resource-claims/${mockSubscription.id}/release`,
+      expect(mocks.resourceClaimsRelease).toHaveBeenCalledWith(
+        mockSubscription.id,
         {
-          body: {
-            resourceSlug: 'seats',
-            subscriptionId: mockSubscription.id,
-            quantity: undefined,
-            externalId: 'user_123',
-            externalIds: undefined,
-            claimIds: undefined,
-          },
+          resourceSlug: 'seats',
+          quantity: undefined,
+          externalId: 'user_123',
+          externalIds: undefined,
+          claimIds: undefined,
         }
       )
     })
 
     it('sends correct payload for releasing by externalIds array', async () => {
       const { server, mocks } = createMockFlowgladServer({})
-      mocks.post.mockResolvedValue({
+      mocks.resourceClaimsRelease.mockResolvedValue({
         releasedClaims: [
           {
             ...mockResourceClaim,
@@ -442,24 +438,21 @@ describe('FlowgladServer resource methods', () => {
         externalIds: ['user_1', 'user_2'],
       })
 
-      expect(mocks.post).toHaveBeenCalledWith(
-        `/api/v1/resource-claims/${mockSubscription.id}/release`,
+      expect(mocks.resourceClaimsRelease).toHaveBeenCalledWith(
+        mockSubscription.id,
         {
-          body: {
-            resourceSlug: 'seats',
-            subscriptionId: mockSubscription.id,
-            quantity: undefined,
-            externalId: undefined,
-            externalIds: ['user_1', 'user_2'],
-            claimIds: undefined,
-          },
+          resourceSlug: 'seats',
+          quantity: undefined,
+          externalId: undefined,
+          externalIds: ['user_1', 'user_2'],
+          claimIds: undefined,
         }
       )
     })
 
     it('sends correct payload for releasing by claimIds', async () => {
       const { server, mocks } = createMockFlowgladServer({})
-      mocks.post.mockResolvedValue({
+      mocks.resourceClaimsRelease.mockResolvedValue({
         releasedClaims: [
           {
             ...mockResourceClaim,
@@ -480,17 +473,14 @@ describe('FlowgladServer resource methods', () => {
         claimIds: ['claim_1', 'claim_2'],
       })
 
-      expect(mocks.post).toHaveBeenCalledWith(
-        `/api/v1/resource-claims/${mockSubscription.id}/release`,
+      expect(mocks.resourceClaimsRelease).toHaveBeenCalledWith(
+        mockSubscription.id,
         {
-          body: {
-            resourceSlug: 'seats',
-            subscriptionId: mockSubscription.id,
-            quantity: undefined,
-            externalId: undefined,
-            externalIds: undefined,
-            claimIds: ['claim_1', 'claim_2'],
-          },
+          resourceSlug: 'seats',
+          quantity: undefined,
+          externalId: undefined,
+          externalIds: undefined,
+          claimIds: ['claim_1', 'claim_2'],
         }
       )
     })

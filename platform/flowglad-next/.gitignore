@@ -54,3 +54,10 @@ public/preview/preview.*.css
 public/ui/*.json
 
 prompts/*.ts
+
+# Supabase local
+supabase/.branches
+supabase/.temp
+
+# Database dump files
+.supabase-dumps/

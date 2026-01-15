@@ -371,41 +371,39 @@ describe('comprehensiveAuthenticatedTransaction', () => {
   })
 
   describe('Transaction Output Processing', () => {
-    it('should process events when eventsToInsert is provided', async () => {
+    it('should process events emitted via callback', async () => {
       // setup:
       // - use valid API key
-      // - create transaction function that returns TransactionOutput with eventsToInsert array
+      // - create transaction function that emits events via emitEvent callback
 
       // expects:
-      // - bulkInsertOrDoNothingEventsByHash should be called with the events array
+      // - events should be processed
       // - transaction should complete successfully
       // - result should be returned from output.result
-      const mockEvents: Event.Insert[] = [
-        {
-          type: FlowgladEventType.PaymentSucceeded,
-          livemode: true,
-          payload: {
-            object: EventNoun.Payment,
-            id: 'test_event_1',
-            customer: {
-              id: 'test_customer_id',
-              externalId: 'test_external_id',
-            },
+      const mockEvent: Event.Insert = {
+        type: FlowgladEventType.PaymentSucceeded,
+        livemode: true,
+        payload: {
+          object: EventNoun.Payment,
+          id: 'test_event_1',
+          customer: {
+            id: 'test_customer_id',
+            externalId: 'test_external_id',
           },
-          organizationId: testOrg1.id,
-          metadata: {},
-          hash: hashData(testOrg1.id),
-          occurredAt: Date.now(),
-          submittedAt: Date.now(),
-          processedAt: null,
         },
-      ]
+        organizationId: testOrg1.id,
+        metadata: {},
+        hash: hashData(testOrg1.id),
+        occurredAt: Date.now(),
+        submittedAt: Date.now(),
+        processedAt: null,
+      }
 
       const result = await comprehensiveAuthenticatedTransaction(
-        async () => ({
-          result: 'events_processed',
-          eventsToInsert: mockEvents,
-        }),
+        async ({ emitEvent }) => {
+          emitEvent(mockEvent)
+          return { result: 'events_processed' }
+        },
         { apiKey: apiKeyA.token }
       )
       expect(result).toBe('events_processed')
@@ -946,10 +944,10 @@ describe('Procedure Wrapper Functions', () => {
       const testContext = { apiKey: apiKeyA.token }
 
       const procedureHandler = authenticatedProcedureTransaction(
-        async ({ input, ctx, transaction, userId }) => {
+        async ({ input, ctx, transactionCtx }) => {
+          const { transaction } = transactionCtx
           expect(input).toEqual(testInput)
           expect(ctx).toEqual(testContext)
-          expect(typeof userId).toBe('string')
 
           // Verify we can use transaction
           const organizations = await selectOrganizations(
@@ -986,10 +984,20 @@ describe('Procedure Wrapper Functions', () => {
 
       const procedureHandler =
         authenticatedProcedureComprehensiveTransaction(
-          async ({ input, ctx, organizationId }) => {
+          async ({ input, ctx, transactionCtx }) => {
             expect(input).toEqual(testInput)
             expect(ctx).toEqual(testContext)
-            expect(organizationId).toBe(testOrg1.id)
+            // Verify transactionCtx has expected properties
+            expect(typeof transactionCtx.transaction.execute).toBe(
+              'function'
+            )
+            expect(typeof transactionCtx.invalidateCache).toBe(
+              'function'
+            )
+            expect(typeof transactionCtx.emitEvent).toBe('function')
+            expect(typeof transactionCtx.enqueueLedgerCommand).toBe(
+              'function'
+            )
 
             return {
               result: 'comprehensive_procedure_success',

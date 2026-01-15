@@ -26,7 +26,10 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { calculateSplitInBillingPeriodBasedOnAdjustmentDate } from '@/subscriptions/adjustSubscription'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import {
@@ -204,7 +207,6 @@ export const safelyProcessCreationForExistingSubscription = async (
       billingPeriodItems: billingPeriodAndItems.billingPeriodItems,
       billingRun,
     },
-    eventsToInsert: [],
   }
 }
 
@@ -314,8 +316,9 @@ export const activateSubscription = async (
     defaultPaymentMethod?: PaymentMethod.Record
     autoStart: boolean
   },
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction } = ctx
   const { subscription, subscriptionItems, defaultPaymentMethod } =
     params
   const { startDate, endDate } = generateNextBillingPeriod({
@@ -431,8 +434,9 @@ export const initiateSubscriptionTrialPeriod = async (
     defaultPaymentMethod: PaymentMethod.Record | null
     autoStart: boolean
   },
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction } = ctx
   const { subscription, subscriptionItems, defaultPaymentMethod } =
     params
   const scheduledFor = subscription.runBillingAtPeriodStart
@@ -493,8 +497,9 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     preservedBillingPeriodStart?: Date | number
     isDefaultPlan: boolean
   },
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction } = ctx
   const {
     subscription,
     defaultPaymentMethod,
@@ -537,7 +542,7 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     subscription.trialEnd &&
     subscription.status === SubscriptionStatus.Trialing
   ) {
-    return await initiateSubscriptionTrialPeriod(params, transaction)
+    return await initiateSubscriptionTrialPeriod(params, ctx)
   }
   /**
    * Initial active subscription: create the first billing period based on subscription.currentBillingPeriodStart/end
@@ -658,7 +663,7 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
       ...params,
       defaultPaymentMethod: defaultPaymentMethod ?? undefined,
     },
-    transaction
+    ctx
   )
 }
 

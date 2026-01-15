@@ -46,7 +46,9 @@ export const createWebhook = protectedProcedure
   )
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, ctx, livemode }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { livemode } = ctx
         const organization = ctx.organization
         if (!organization) {
           throw new Error('Organization not found')
@@ -78,7 +80,8 @@ export const updateWebhook = protectedProcedure
   .output(z.object({ webhook: webhookClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, ctx }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const webhook = await updateWebhookDB(
           {
             ...input.webhook,
@@ -105,7 +108,8 @@ export const getWebhook = protectedProcedure
   .output(z.object({ webhook: webhookClientSelectSchema }))
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const webhook = await selectWebhookById(input.id, transaction)
         return { webhook }
       }
@@ -117,7 +121,8 @@ export const requestWebhookSigningSecret = protectedProcedure
   .output(z.object({ secret: z.string() }))
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const { webhook, organization } =
           await selectWebhookAndOrganizationByWebhookId(
             input.webhookId,
@@ -144,7 +149,12 @@ export const getTableRows = protectedProcedure
     createPaginatedTableRowOutputSchema(webhooksTableRowDataSchema)
   )
   .query(
-    authenticatedProcedureTransaction(selectWebhooksTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectWebhooksTableRowData({ input, transaction })
+      }
+    )
   )
 
 export const webhooksRouter = router({

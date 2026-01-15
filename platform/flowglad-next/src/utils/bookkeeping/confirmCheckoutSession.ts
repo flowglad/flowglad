@@ -1,7 +1,5 @@
-import type { LedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import { feeReadyCheckoutSessionSelectSchema } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
-import type { Event } from '@/db/schema/events'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import {
   selectCheckoutSessionById,
@@ -13,8 +11,7 @@ import {
 } from '@/db/tableMethods/customerMethods'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { selectPurchaseAndCustomersByPurchaseWhere } from '@/db/tableMethods/purchaseMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type { TransactionEffectsContext } from '@/db/types'
 import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
@@ -35,8 +32,9 @@ import {
 
 export const confirmCheckoutSessionTransaction = async (
   input: { id: string; savePaymentMethodForFuture?: boolean },
-  transaction: DbTransaction
-): Promise<TransactionOutput<{ customer: Customer.Record }>> => {
+  ctx: TransactionEffectsContext
+): Promise<{ customer: Customer.Record }> => {
+  const { transaction, emitEvent, enqueueLedgerCommand } = ctx
   try {
     // Find purchase session
     const checkoutSession = await selectCheckoutSessionById(
@@ -71,8 +69,6 @@ export const confirmCheckoutSessionTransaction = async (
     }
 
     let customer: Customer.Record | null = null
-    let customerEvents: Event.Insert[] = []
-    let customerLedgerCommand: LedgerCommand | undefined
 
     if (checkoutSession.customerId) {
       // Find customer
@@ -114,14 +110,13 @@ export const confirmCheckoutSessionTransaction = async (
           transaction,
           organizationId: checkoutSession.organizationId,
           livemode: checkoutSession.livemode,
+          invalidateCache: ctx.invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
         }
       )
 
-      customer = customerResult.result.customer
-
-      // Store events/ledger from customer creation to bubble up
-      customerEvents = customerResult.eventsToInsert || []
-      customerLedgerCommand = customerResult.ledgerCommand
+      customer = customerResult.customer
     }
     /**
      * Set the customer id if the checkout session doesn't have one,
@@ -238,14 +233,7 @@ export const confirmCheckoutSessionTransaction = async (
         )
       }
     }
-    return {
-      result: {
-        customer,
-      },
-      eventsToInsert:
-        customerEvents.length > 0 ? customerEvents : undefined,
-      ledgerCommand: customerLedgerCommand,
-    }
+    return { customer }
   } catch (error) {
     core.error(error)
     throw error

@@ -92,15 +92,17 @@ const createCustomerProcedure = protectedProcedure
     authenticatedProcedureComprehensiveTransaction(
       async ({
         input,
-        transaction,
-        userId,
-        livemode,
         ctx,
-        organizationId,
+        transactionCtx,
       }): Promise<TransactionOutput<CreateCustomerOutputSchema>> => {
+        const { transaction } = transactionCtx
+        const { livemode, organizationId } = ctx
         try {
           if (!organizationId) {
-            throw new Error('organizationId is required')
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'organizationId is required',
+            })
           }
 
           const { customer } = input
@@ -115,30 +117,36 @@ const createCustomerProcedure = protectedProcedure
                   organizationId,
                 },
               },
-              { transaction, livemode, organizationId }
+              {
+                transaction,
+                livemode,
+                organizationId,
+                invalidateCache: transactionCtx.invalidateCache,
+                emitEvent: transactionCtx.emitEvent,
+                enqueueLedgerCommand:
+                  transactionCtx.enqueueLedgerCommand,
+              }
             )
 
           if (ctx.path) {
             await revalidatePath(ctx.path)
           }
 
-          const subscription = createdCustomerOutput.result
-            .subscription
-            ? subscriptionWithCurrent(
-                createdCustomerOutput.result.subscription
-              )
-            : undefined
+          const {
+            customer: createdCustomer,
+            subscription,
+            subscriptionItems,
+          } = createdCustomerOutput
           return {
             result: {
               data: {
-                customer: createdCustomerOutput.result.customer,
-                subscription,
-                subscriptionItems:
-                  createdCustomerOutput.result.subscriptionItems,
+                customer: createdCustomer,
+                subscription: subscription
+                  ? subscriptionWithCurrent(subscription)
+                  : undefined,
+                subscriptionItems,
               },
             },
-            eventsToInsert: createdCustomerOutput.eventsToInsert,
-            ledgerCommand: createdCustomerOutput.ledgerCommand,
           }
         } catch (error) {
           errorHandlers.customer.handle(error, {
@@ -157,7 +165,15 @@ export const updateCustomer = protectedProcedure
   .output(editCustomerOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, organizationId }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'organizationId is required',
+          })
+        }
         try {
           const { customer } = input
           const customerRecord =
@@ -206,7 +222,8 @@ export const getCustomerById = protectedProcedure
   .output(z.object({ customer: customerClientSelectSchema }))
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         try {
           const customer = await selectCustomerById(
             input.id,
@@ -233,7 +250,8 @@ export const getPricingModelForCustomer = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         try {
           const customer = await selectCustomerById(
             input.customerId,
@@ -398,7 +416,8 @@ const listCustomersProcedure = protectedProcedure
   .output(customersPaginatedListSchema)
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         return selectCustomersPaginated(input, transaction)
       }
     )
@@ -409,7 +428,13 @@ const getTableRowsProcedure = protectedProcedure
   .output(customersPaginatedTableRowOutputSchema)
   .query(
     authenticatedProcedureTransaction(
-      selectCustomersCursorPaginatedWithTableRowData
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input,
+          transaction,
+        })
+      }
     )
   )
 
@@ -435,13 +460,10 @@ const exportCsvProcedure = protectedProcedure
   )
   .mutation(
     authenticatedProcedureTransaction(
-      async ({
-        input,
-        transaction,
-        userId,
-        organizationId,
-        livemode,
-      }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { livemode, organizationId } = ctx
+        const userId = ctx.user?.id
         const { filters, searchQuery } = input
         // Maximum number of customers that can be exported via CSV without async export
         const CUSTOMER_LIMIT = 1000

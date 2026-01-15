@@ -8,6 +8,7 @@
 import * as R from 'ramda'
 import { z } from 'zod'
 import {
+  resourceFeatureClientUpdateSchema,
   toggleFeatureClientUpdateSchema,
   usageCreditGrantFeatureClientUpdateSchema,
 } from '@/db/schema/features'
@@ -488,10 +489,18 @@ export const validateFeatureDiff = (
     }
 
     // Select the appropriate schema based on feature type
-    const schema =
-      existing.type === FeatureType.Toggle
-        ? toggleFeatureClientUpdateSchema
-        : usageCreditGrantFeatureClientUpdateSchema
+    let schema
+    if (existing.type === FeatureType.Toggle) {
+      schema = toggleFeatureClientUpdateSchema
+    } else if (existing.type === FeatureType.UsageCreditGrant) {
+      schema = usageCreditGrantFeatureClientUpdateSchema
+    } else if (existing.type === FeatureType.Resource) {
+      schema = resourceFeatureClientUpdateSchema
+    } else {
+      throw new Error(
+        `Unknown feature type: ${(existing as { type: string }).type}`
+      )
+    }
 
     // Handle usageMeterSlug -> usageMeterId transformation for UsageCreditGrant features
     // In the setup schema, we use usageMeterSlug, but the client update schema expects usageMeterId
@@ -507,6 +516,17 @@ export const validateFeatureDiff = (
       ).usageMeterSlug
       delete (transformedUpdate as Record<string, unknown>)
         .usageMeterSlug
+    }
+
+    // Handle resourceSlug -> resourceId transformation for Resource features
+    // Similar to usageMeterSlug, the setup schema uses resourceSlug but the
+    // client update schema expects resourceId
+    if ('resourceSlug' in transformedUpdate) {
+      ;(transformedUpdate as Record<string, unknown>).resourceId = (
+        transformedUpdate as Record<string, unknown>
+      ).resourceSlug
+      delete (transformedUpdate as Record<string, unknown>)
+        .resourceSlug
     }
 
     // Try to parse with strict mode
