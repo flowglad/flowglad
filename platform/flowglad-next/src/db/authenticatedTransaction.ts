@@ -15,30 +15,6 @@ import {
   invalidateCacheAfterCommit,
   processEffectsInTransaction,
 } from './transactionEffectsHelpers'
-import type { TransactionOutput } from './transactionEnhacementTypes'
-
-/**
- * Type that accepts both the new Result pattern and the legacy TransactionOutput pattern.
- * This provides backwards compatibility during migration.
- */
-type ComprehensiveTransactionReturn<T> =
-  | Result<T, Error>
-  | TransactionOutput<T>
-
-/**
- * Normalizes the callback return value to a Result type.
- * Handles both legacy { result: T } pattern and new Result<T, Error> pattern.
- */
-function normalizeToResult<T>(
-  value: ComprehensiveTransactionReturn<T>
-): Result<T, Error> {
-  // Check if it's a better-result Result (has 'status' property)
-  if ('status' in value) {
-    return value
-  }
-  // Otherwise it's a legacy TransactionOutput { result: T }
-  return Result.ok(value.result)
-}
 
 interface AuthenticatedTransactionOptions {
   apiKey?: string
@@ -74,7 +50,7 @@ export async function authenticatedTransaction<T>(
 const executeComprehensiveAuthenticatedTransaction = async <T>(
   fn: (
     params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<ComprehensiveTransactionReturn<T>>,
+  ) => Promise<Result<T, Error>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<{
   output: Result<T, Error>
@@ -150,8 +126,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       enqueueLedgerCommand,
     }
 
-    const rawOutput = await fn(paramsForFn)
-    const output = normalizeToResult(rawOutput)
+    const output = await fn(paramsForFn)
 
     // Check for error early to skip effects and roll back transaction
     if (output.status === 'error') {
@@ -193,7 +168,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
 export async function comprehensiveAuthenticatedTransaction<T>(
   fn: (
     params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<ComprehensiveTransactionReturn<T>>,
+  ) => Promise<Result<T, Error>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
   // Static attributes are set at span creation for debugging failed transactions
@@ -274,7 +249,7 @@ export const authenticatedProcedureComprehensiveTransaction = <
 >(
   handler: (
     params: AuthenticatedProcedureTransactionParams<TInput, TContext>
-  ) => Promise<ComprehensiveTransactionReturn<TOutput>>
+  ) => Promise<Result<TOutput, Error>>
 ) => {
   return async (opts: { input: TInput; ctx: TContext }) => {
     return comprehensiveAuthenticatedTransaction(

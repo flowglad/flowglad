@@ -13,30 +13,6 @@ import {
   invalidateCacheAfterCommit,
   processEffectsInTransaction,
 } from './transactionEffectsHelpers'
-import type { TransactionOutput } from './transactionEnhacementTypes'
-
-/**
- * Type that accepts both the new Result pattern and the legacy TransactionOutput pattern.
- * This provides backwards compatibility during migration.
- */
-type ComprehensiveTransactionReturn<T> =
-  | Result<T, Error>
-  | TransactionOutput<T>
-
-/**
- * Normalizes the callback return value to a Result type.
- * Handles both legacy { result: T } pattern and new Result<T, Error> pattern.
- */
-function normalizeToResult<T>(
-  value: ComprehensiveTransactionReturn<T>
-): Result<T, Error> {
-  // Check if it's a better-result Result (has 'status' property)
-  if ('status' in value) {
-    return value
-  }
-  // Otherwise it's a legacy TransactionOutput { result: T }
-  return Result.ok(value.result)
-}
 
 interface AdminTransactionOptions {
   livemode?: boolean
@@ -67,7 +43,7 @@ export async function adminTransaction<T>(
 const executeComprehensiveAdminTransaction = async <T>(
   fn: (
     params: ComprehensiveAdminTransactionParams
-  ) => Promise<ComprehensiveTransactionReturn<T>>,
+  ) => Promise<Result<T, Error>>,
   effectiveLivemode: boolean
 ): Promise<{
   output: Result<T, Error>
@@ -102,8 +78,7 @@ const executeComprehensiveAdminTransaction = async <T>(
       enqueueLedgerCommand,
     }
 
-    const rawOutput = await fn(paramsForFn)
-    const output = normalizeToResult(rawOutput)
+    const output = await fn(paramsForFn)
 
     // Check for error early to skip effects and roll back transaction
     if (output.status === 'error') {
@@ -154,7 +129,7 @@ const executeComprehensiveAdminTransaction = async <T>(
 export async function comprehensiveAdminTransaction<T>(
   fn: (
     params: ComprehensiveAdminTransactionParams
-  ) => Promise<ComprehensiveTransactionReturn<T>>,
+  ) => Promise<Result<T, Error>>,
   options: AdminTransactionOptions = {}
 ): Promise<T> {
   const { livemode = true } = options

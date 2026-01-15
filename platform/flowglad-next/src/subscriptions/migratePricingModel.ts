@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Subscription } from '@/db/schema/subscriptions'
@@ -18,7 +19,6 @@ import {
   selectSubscriptions,
   subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { TransactionEffectsContext } from '@/db/types'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
@@ -32,7 +32,7 @@ const cancelSubscriptionForMigration = async (
   subscription: Subscription.Record,
   customer: Customer.Record,
   ctx: TransactionEffectsContext
-): Promise<TransactionOutput<Subscription.Record>> => {
+): Promise<Result<Subscription.Record, Error>> => {
   return cancelSubscriptionImmediately(
     {
       subscription,
@@ -69,9 +69,7 @@ export interface MigratePricingModelForCustomerResult {
 export const migratePricingModelForCustomer = async (
   params: MigratePricingModelForCustomerParams,
   ctx: TransactionEffectsContext
-): Promise<
-  TransactionOutput<MigratePricingModelForCustomerResult>
-> => {
+): Promise<Result<MigratePricingModelForCustomerResult, Error>> => {
   const { transaction } = ctx
   const { customer, oldPricingModelId, newPricingModelId } = params
 
@@ -125,13 +123,11 @@ export const migratePricingModelForCustomer = async (
         transaction
       )
 
-      return {
-        result: {
-          customer: updatedCustomer,
-          canceledSubscriptions: [],
-          newSubscription,
-        },
-      }
+      return Result.ok({
+        customer: updatedCustomer,
+        canceledSubscriptions: [],
+        newSubscription,
+      })
     }
 
     // Find the subscription with default free price associated with a default product
@@ -179,13 +175,11 @@ export const migratePricingModelForCustomer = async (
     )
 
     // Already on target model with subscriptions, nothing to do
-    return {
-      result: {
-        customer: updatedCustomer,
-        canceledSubscriptions: [],
-        newSubscription: defaultFreeSubscription,
-      },
-    }
+    return Result.ok({
+      customer: updatedCustomer,
+      canceledSubscriptions: [],
+      newSubscription: defaultFreeSubscription,
+    })
   }
 
   // Validate that the new pricing model exists
@@ -224,12 +218,13 @@ export const migratePricingModelForCustomer = async (
   const canceledSubscriptions: Subscription.Record[] = []
 
   for (const subscription of currentSubscriptions) {
-    const { result: canceledSubscription } =
+    const canceledSubscription = (
       await cancelSubscriptionForMigration(
         subscription,
         customer,
         ctx
       )
+    ).unwrap()
     canceledSubscriptions.push(canceledSubscription)
   }
 
@@ -250,13 +245,11 @@ export const migratePricingModelForCustomer = async (
     transaction
   )
 
-  return {
-    result: {
-      customer: updatedCustomer,
-      canceledSubscriptions,
-      newSubscription,
-    },
-  }
+  return Result.ok({
+    customer: updatedCustomer,
+    canceledSubscriptions,
+    newSubscription,
+  })
 }
 
 /**
@@ -311,30 +304,32 @@ async function createDefaultSubscriptionOnPricingModel(
     : undefined
 
   // Create the subscription
-  const subscriptionResult = await createSubscriptionWorkflow(
-    {
-      organization,
-      customer: {
-        id: customer.id,
-        stripeCustomerId: customer.stripeCustomerId,
+  const subscriptionResult = (
+    await createSubscriptionWorkflow(
+      {
+        organization,
+        customer: {
+          id: customer.id,
+          stripeCustomerId: customer.stripeCustomerId,
+          livemode: customer.livemode,
+          organizationId: customer.organizationId,
+        },
+        product: defaultProduct,
+        price: defaultPrice,
+        quantity: 1,
         livemode: customer.livemode,
-        organizationId: customer.organizationId,
+        startDate: new Date(),
+        interval: defaultPrice.intervalUnit,
+        intervalCount: defaultPrice.intervalCount,
+        trialEnd,
+        autoStart: true,
+        name: `${defaultProduct.name} Subscription`,
       },
-      product: defaultProduct,
-      price: defaultPrice,
-      quantity: 1,
-      livemode: customer.livemode,
-      startDate: new Date(),
-      interval: defaultPrice.intervalUnit,
-      intervalCount: defaultPrice.intervalCount,
-      trialEnd,
-      autoStart: true,
-      name: `${defaultProduct.name} Subscription`,
-    },
-    ctx
-  )
+      ctx
+    )
+  ).unwrap()
 
-  return subscriptionResult.result.subscription
+  return subscriptionResult.subscription
 }
 
 /**
@@ -353,11 +348,14 @@ export const migrateCustomerPricingModelProcedureTransaction =
     ctx,
     transactionCtx,
   }: MigrateCustomerPricingModelProcedureParams): Promise<
-    TransactionOutput<{
-      customer: Customer.ClientRecord
-      canceledSubscriptions: Subscription.ClientRecord[]
-      newSubscription: Subscription.ClientRecord
-    }>
+    Result<
+      {
+        customer: Customer.ClientRecord
+        canceledSubscriptions: Subscription.ClientRecord[]
+        newSubscription: Subscription.ClientRecord
+      },
+      Error
+    >
   > => {
     const { transaction } = transactionCtx
     const { organizationId } = ctx
@@ -414,24 +412,24 @@ export const migrateCustomerPricingModelProcedureTransaction =
     }
 
     // Perform the migration
-    const { result } = await migratePricingModelForCustomer(
-      {
-        customer,
-        oldPricingModelId: customer.pricingModelId,
-        newPricingModelId,
-      },
-      transactionCtx
-    )
+    const result = (
+      await migratePricingModelForCustomer(
+        {
+          customer,
+          oldPricingModelId: customer.pricingModelId,
+          newPricingModelId,
+        },
+        transactionCtx
+      )
+    ).unwrap()
 
-    return {
-      result: {
-        customer: result.customer,
-        canceledSubscriptions: result.canceledSubscriptions.map((s) =>
-          subscriptionWithCurrent(s)
-        ),
-        newSubscription: subscriptionWithCurrent(
-          result.newSubscription
-        ),
-      },
-    }
+    return Result.ok({
+      customer: result.customer,
+      canceledSubscriptions: result.canceledSubscriptions.map((s) =>
+        subscriptionWithCurrent(s)
+      ),
+      newSubscription: subscriptionWithCurrent(
+        result.newSubscription
+      ),
+    })
   }

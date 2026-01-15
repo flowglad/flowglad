@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -159,9 +160,7 @@ export const expireProductFeature = protectedProcedure
           [input.id],
           transactionCtx
         )
-        return {
-          result: { success: true },
-        }
+        return Result.ok({ success: true })
       }
     )
   )

@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import Stripe from 'stripe'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
@@ -30,7 +31,6 @@ import {
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type {
   DbTransaction,
   TransactionEffectsContext,
@@ -410,7 +410,10 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     },
     ctx: TransactionEffectsContext
   ): Promise<
-    TransactionOutput<ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult>
+    Result<
+      ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult,
+      Error
+    >
   > => {
     const { transaction, emitEvent } = ctx
     if (!customer) {
@@ -463,36 +466,38 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     const startDate = Date.now()
     const now = Date.now()
 
-    const output = await createSubscriptionWorkflow(
-      {
-        stripeSetupIntentId: setupIntent.id,
-        defaultPaymentMethod: paymentMethod,
-        organization,
-        price,
-        customer,
-        interval: price.intervalUnit,
-        intervalCount: price.intervalCount,
-        discountRedemption,
-        /**
-         * If the price has a trial period, set the trial end date to the
-         * end of the period
-         */
-        trialEnd: calculateTrialEnd({
-          hasHadTrial,
-          trialPeriodDays: price.trialPeriodDays,
-        }),
-        startDate,
-        preserveBillingCycleAnchor:
-          checkoutSession.preserveBillingCycleAnchor ?? false,
-        autoStart: true,
-        quantity: checkoutSession.quantity,
-        metadata: checkoutSession.outputMetadata ?? {},
-        name: checkoutSession.outputName ?? undefined,
-        product,
-        livemode: checkoutSession.livemode,
-      },
-      ctx
-    )
+    const output = (
+      await createSubscriptionWorkflow(
+        {
+          stripeSetupIntentId: setupIntent.id,
+          defaultPaymentMethod: paymentMethod,
+          organization,
+          price,
+          customer,
+          interval: price.intervalUnit,
+          intervalCount: price.intervalCount,
+          discountRedemption,
+          /**
+           * If the price has a trial period, set the trial end date to the
+           * end of the period
+           */
+          trialEnd: calculateTrialEnd({
+            hasHadTrial,
+            trialPeriodDays: price.trialPeriodDays,
+          }),
+          startDate,
+          preserveBillingCycleAnchor:
+            checkoutSession.preserveBillingCycleAnchor ?? false,
+          autoStart: true,
+          quantity: checkoutSession.quantity,
+          metadata: checkoutSession.outputMetadata ?? {},
+          name: checkoutSession.outputName ?? undefined,
+          product,
+          livemode: checkoutSession.livemode,
+        },
+        ctx
+      )
+    ).unwrap()
 
     const updatedPurchase = await updatePurchase(
       {
@@ -524,18 +529,16 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
     })
 
-    return {
-      result: {
-        purchase: updatedPurchase,
-        checkoutSession,
-        billingRun: output.result.billingRun,
-        price,
-        product,
-        organization,
-        customer,
-        type: checkoutSession.type,
-      },
-    }
+    return Result.ok({
+      purchase: updatedPurchase,
+      checkoutSession,
+      billingRun: output.billingRun,
+      price,
+      product,
+      organization,
+      customer,
+      type: checkoutSession.type,
+    })
   }
 
 export interface ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult {
@@ -666,11 +669,12 @@ export const processSetupIntentSucceeded = async (
   setupIntent: CoreSripeSetupIntent,
   ctx: TransactionEffectsContext
 ): Promise<
-  TransactionOutput<
+  Result<
     | ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult
     | ProcessAddPaymentMethodSetupIntentSucceededResult
     | ProcessTerminalCheckoutSessionSetupIntentResult
-    | ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult
+    | ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult,
+    Error
   >
 > => {
   const { transaction, invalidateCache } = ctx
@@ -718,18 +722,16 @@ export const processSetupIntentSucceeded = async (
         )
       }
 
-      return {
-        result: {
-          type: CheckoutSessionType.ActivateSubscription,
-          checkoutSession,
-          organization,
-          customer,
-          paymentMethod,
-          billingRun: null,
-          subscription,
-          purchase: null,
-        },
-      }
+      return Result.ok({
+        type: CheckoutSessionType.ActivateSubscription,
+        checkoutSession,
+        organization,
+        customer,
+        paymentMethod,
+        billingRun: null,
+        subscription,
+        purchase: null,
+      })
     }
     if (checkoutSession.type === CheckoutSessionType.Purchase) {
       throw new Error(
@@ -757,18 +759,16 @@ export const processSetupIntentSucceeded = async (
       )
     }
 
-    return {
-      result: {
-        type: checkoutSession.type,
-        checkoutSession,
-        price: priceResult[0].price,
-        product: priceResult[0].product,
-        organization: priceResult[0].organization,
-        customer,
-        billingRun: null,
-        purchase: null,
-      },
-    }
+    return Result.ok({
+      type: checkoutSession.type,
+      checkoutSession,
+      price: priceResult[0].price,
+      product: priceResult[0].product,
+      organization: priceResult[0].organization,
+      customer,
+      billingRun: null,
+      purchase: null,
+    })
   }
 
   const initialCheckoutSession = await checkoutSessionFromSetupIntent(
@@ -781,9 +781,7 @@ export const processSetupIntentSucceeded = async (
       initialCheckoutSession,
       transaction
     )
-    return {
-      result,
-    }
+    return Result.ok(result)
   }
 
   if (
@@ -794,9 +792,7 @@ export const processSetupIntentSucceeded = async (
       setupIntent,
       transaction
     )
-    return {
-      result,
-    }
+    return Result.ok(result)
   }
 
   if (
@@ -811,9 +807,7 @@ export const processSetupIntentSucceeded = async (
     invalidateCache(
       CacheDependency.customerSubscriptions(result.customer.id)
     )
-    return {
-      result,
-    }
+    return Result.ok(result)
   }
 
   const successProcessedResult =

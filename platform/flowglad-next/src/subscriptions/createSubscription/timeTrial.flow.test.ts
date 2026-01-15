@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupCustomer,
@@ -129,7 +130,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
               organizationId: organization.id,
             }
           )
-          return { result }
+          return Result.ok(result)
         }
       )
     // 2. Associate the toggle feature with the created product
@@ -228,7 +229,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
           transaction
         )
         expect(feeCalculations).toHaveLength(1)
-        return { result: checkoutSession }
+        return Result.ok(checkoutSession)
       }
     )
 
@@ -242,7 +243,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
       expect(sessionInfo.product.id).toBe(product.id)
       expect(sessionInfo.price.id).toBe(price.id)
       expect(typeof sessionInfo.feeCalculation).toBe('object')
-      return { result: null }
+      return Result.ok(null)
     })
 
     await comprehensiveAdminTransaction(async ({ transaction }) => {
@@ -295,7 +296,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
       expect(finalSession.status).toBe(
         CheckoutSessionStatus.Succeeded
       )
-      return { result: null }
+      return Result.ok(null)
     })
   })
 })

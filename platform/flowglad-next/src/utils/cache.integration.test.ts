@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { afterEach, beforeEach, expect, it } from 'vitest'
 import { z } from 'zod'
 import {
@@ -926,7 +927,7 @@ describeIfRedisKey(
           // Simulate what a workflow function does - call invalidateCache with dependency key
           // Non-null assertion: comprehensiveAdminTransaction always provides invalidateCache
           invalidateCache(dependencyKey)
-          return { result: 'success' }
+          return Result.ok('success')
         }
       )
 
@@ -989,7 +990,7 @@ describeIfRedisKey(
         async ({ invalidateCache }) => {
           invalidateCache(depKey1)
           invalidateCache(depKey2)
-          return { result: 'success' }
+          return Result.ok('success')
         }
       )
 
@@ -1032,7 +1033,7 @@ describeIfRedisKey(
           invalidateCache(dependencyKey)
           invalidateCache(dependencyKey)
           invalidateCache(dependencyKey)
-          return { result: 'success' }
+          return Result.ok('success')
         }
       )
 
@@ -1090,7 +1091,7 @@ describeIfRedisKey(
         async ({ invalidateCache }) => {
           invalidateCache(depKey1)
           invalidateCache(depKey2)
-          return { result: 'success' }
+          return Result.ok('success')
         }
       )
 

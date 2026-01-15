@@ -147,15 +147,13 @@ describe('Subscription Billing Period Transition', async () => {
         transaction
       )
       // Call the transition function
-      const {
-        result: {
-          subscription: updatedSub,
-          billingRun: newBillingRun,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        updatedBillingPeriod,
-        createDiscardingEffectsContext(transaction)
-      )
+      const { subscription: updatedSub, billingRun: newBillingRun } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
       // Expect that the subscription's current billing period dates are updated (i.e. a new period was created)
       expect(updatedSub.currentBillingPeriodStart).not.toEqual(
@@ -204,12 +202,12 @@ describe('Subscription Billing Period Transition', async () => {
     // Create a paid invoice for the billing period (simulate full payment)
     await adminTransaction(async ({ transaction }) => {
       // Set the billing period endDate in the past so closure logic runs
-      const {
-        result: { subscription: updatedSub },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        billingPeriod,
-        createDiscardingEffectsContext(transaction)
-      )
+      const { subscription: updatedSub } = (
+        await attemptToTransitionSubscriptionBillingPeriod(
+          billingPeriod,
+          createDiscardingEffectsContext(transaction)
+        )
+      ).unwrap()
 
       // Verify that the current (old) billing period is now Completed
       const allBPeriods = await selectBillingPeriods(
@@ -237,15 +235,13 @@ describe('Subscription Billing Period Transition', async () => {
         SubscriptionStatus.Canceled,
         transaction
       )
-      const {
-        result: {
-          subscription: updatedSub,
-          billingRun: newBillingRun,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        billingPeriod,
-        createDiscardingEffectsContext(transaction)
-      )
+      const { subscription: updatedSub, billingRun: newBillingRun } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            billingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
       expect(newBillingRun).toBeNull()
       expect(updatedSub.status).toBe(SubscriptionStatus.Canceled)
@@ -271,15 +267,13 @@ describe('Subscription Billing Period Transition', async () => {
         transaction
       )
 
-      const {
-        result: {
-          subscription: updatedSub,
-          billingRun: newBillingRun,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        updatedBillingPeriod,
-        createDiscardingEffectsContext(transaction)
-      )
+      const { subscription: updatedSub, billingRun: newBillingRun } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
       expect(updatedSub.status).toBe(SubscriptionStatus.Canceled)
       expect(typeof updatedSub.canceledAt).toBe('number')
@@ -300,15 +294,13 @@ describe('Subscription Billing Period Transition', async () => {
         transaction
       )
 
-      const {
-        result: {
-          subscription: updatedSub,
-          billingRun: newBillingRun,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        updatedBillingPeriod,
-        createDiscardingEffectsContext(transaction)
-      )
+      const { subscription: updatedSub, billingRun: newBillingRun } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
       // Verify that subscription billing period dates have been updated to new period values
       expect(updatedSub.currentBillingPeriodStart).not.toEqual(
@@ -351,15 +343,13 @@ describe('Subscription Billing Period Transition', async () => {
         transaction
       )
 
-      const {
-        result: {
-          subscription: updatedSub,
-          billingRun: newBillingRun,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        updatedBillingPeriod,
-        createDiscardingEffectsContext(transaction)
-      )
+      const { subscription: updatedSub, billingRun: newBillingRun } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
       // Expect no billing run is created and subscription status is updated to PastDue
       expect(newBillingRun).toBeNull()
@@ -394,15 +384,13 @@ describe('Subscription Billing Period Transition', async () => {
         },
         transaction
       )
-      const {
-        result: {
-          subscription: updatedSub,
-          billingRun: newBillingRun,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        updatedBillingPeriod,
-        createDiscardingEffectsContext(transaction)
-      )
+      const { subscription: updatedSub, billingRun: newBillingRun } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
       // Since attemptToCreateFutureBillingPeriodForSubscription returns null,
       // billingRun remains null and subscription status is set to PastDue.
@@ -446,15 +434,13 @@ describe('Subscription Billing Period Transition', async () => {
         },
         transaction
       )
-      const {
-        result: {
-          subscription: updatedSub,
-          updatedBillingPeriod: uBP,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        updatedBillingPeriod,
-        createDiscardingEffectsContext(transaction)
-      )
+      const { subscription: updatedSub, updatedBillingPeriod: uBP } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
       const allBPeriods = await selectBillingPeriods(
         { subscriptionId: subscription.id },
         transaction
@@ -493,15 +479,13 @@ describe('Subscription Billing Period Transition', async () => {
         transaction
       )
       // Call the transition function
-      const {
-        result: {
-          subscription: updatedSub,
-          billingRun: newBillingRun,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        updatedBillingPeriod,
-        createDiscardingEffectsContext(transaction)
-      )
+      const { subscription: updatedSub, billingRun: newBillingRun } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
       // Expect that the subscription's current billing period dates are updated.
       expect(updatedSub.currentBillingPeriodStart).not.toEqual(
         updatedBillingPeriod.startDate
@@ -709,14 +693,14 @@ describe('Subscription Billing Period Transition', async () => {
         )
 
         const {
-          result: {
-            subscription: updatedSub,
-            billingRun: newBillingRun,
-          },
-        } = await attemptToTransitionSubscriptionBillingPeriod(
-          updatedBillingPeriod,
-          createDiscardingEffectsContext(transaction)
-        )
+          subscription: updatedSub,
+          billingRun: newBillingRun,
+        } = (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
         // doNotCharge subscription should remain Active (not PastDue)
         expect(updatedSub.status).toBe(SubscriptionStatus.Active)
@@ -753,14 +737,14 @@ describe('Subscription Billing Period Transition', async () => {
         )
 
         const {
-          result: {
-            subscription: updatedSub,
-            billingRun: newBillingRun,
-          },
-        } = await attemptToTransitionSubscriptionBillingPeriod(
-          updatedBillingPeriod,
-          createDiscardingEffectsContext(transaction)
-        )
+          subscription: updatedSub,
+          billingRun: newBillingRun,
+        } = (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
         // Should remain Active
         expect(updatedSub.status).toBe(SubscriptionStatus.Active)

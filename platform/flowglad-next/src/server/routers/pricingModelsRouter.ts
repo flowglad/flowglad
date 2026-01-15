@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import yaml from 'json-to-pretty-yaml'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -141,7 +142,7 @@ const createPricingModelProcedure = protectedProcedure
       }
     )
     return {
-      pricingModel: result.result.pricingModel,
+      pricingModel: result.unwrap().pricingModel,
       // Note: We're not returning the default product/price in the API response
       // to maintain backward compatibility, but they are created
     }
@@ -166,7 +167,7 @@ const updatePricingModelProcedure = protectedProcedure
           },
           transaction
         )
-        return { result: { pricingModel } }
+        return Result.ok({ pricingModel })
       }
     )
   )
@@ -332,11 +333,9 @@ const setupPricingModelProcedure = protectedProcedure
             { id: result.pricingModel.id },
             transaction
           )
-        return {
-          result: {
-            pricingModel: pricingModelWithProductsAndUsageMeters,
-          },
-        }
+        return Result.ok({
+          pricingModel: pricingModelWithProductsAndUsageMeters,
+        })
       }
     )
   )

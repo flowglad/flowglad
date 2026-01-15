@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import Stripe from 'stripe'
 import {
   afterEach,
@@ -1306,10 +1307,12 @@ describe('Process setup intent', async () => {
               localFirstCheckoutSession as CheckoutSession.FeeReadyRecord,
               transaction
             )
-            const { result } = await processSetupIntentSucceeded(
-              localFirstSetupIntent,
-              createDiscardingEffectsContext(transaction)
-            )
+            const result = (
+              await processSetupIntentSucceeded(
+                localFirstSetupIntent,
+                createDiscardingEffectsContext(transaction)
+              )
+            ).unwrap()
             if (!('billingRun' in result)) {
               throw new Error('Billing run not found')
             }
@@ -1369,7 +1372,7 @@ describe('Process setup intent', async () => {
                 localSecondSetupIntent,
                 createDiscardingEffectsContext(transaction)
               )
-            const { result } =
+            const result = (
               await createSubscriptionFromSetupIntentableCheckoutSession(
                 {
                   ...initialResult,
@@ -1377,6 +1380,7 @@ describe('Process setup intent', async () => {
                 },
                 createDiscardingEffectsContext(transaction)
               )
+            ).unwrap()
             return {
               ...result,
               subscription: await selectSubscriptionById(
@@ -1419,10 +1423,12 @@ describe('Process setup intent', async () => {
               newCheckoutSession as CheckoutSession.FeeReadyRecord,
               transaction
             )
-            const { result } = await processSetupIntentSucceeded(
-              newSetupIntent,
-              createDiscardingEffectsContext(transaction)
-            )
+            const result = (
+              await processSetupIntentSucceeded(
+                newSetupIntent,
+                createDiscardingEffectsContext(transaction)
+              )
+            ).unwrap()
             if (!('billingRun' in result)) {
               throw new Error('Billing run not found')
             }

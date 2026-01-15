@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
@@ -2357,7 +2358,7 @@ describe('createProductTransaction', () => {
             organizationId: organization.id,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       {
         apiKey: org1ApiKeyToken,
@@ -2428,7 +2429,7 @@ describe('createProductTransaction', () => {
             organizationId: organization.id,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       {
         apiKey: org1ApiKeyToken,
@@ -2490,7 +2491,7 @@ describe('createProductTransaction', () => {
             organizationId: organization.id,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       {
         apiKey: org1ApiKeyToken,
@@ -2563,7 +2564,7 @@ describe('createProductTransaction', () => {
               organizationId: organization.id,
             }
           )
-          return { result: txResult }
+          return Result.ok(txResult)
         },
         {
           apiKey: org1ApiKeyToken,
@@ -2624,7 +2625,7 @@ describe('createProductTransaction', () => {
             organizationId: organization.id,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       {
         apiKey: org1ApiKeyToken,
@@ -2726,7 +2727,7 @@ describe('createProductTransaction', () => {
               organizationId: organization.id,
             }
           )
-          return { result: txResult }
+          return Result.ok(txResult)
         },
         {
           apiKey: org1ApiKeyToken,
@@ -2799,7 +2800,7 @@ describe('createProductTransaction', () => {
             organizationId: organization.id,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       {
         apiKey: org1ApiKeyToken,
@@ -2885,7 +2886,7 @@ describe('editProductTransaction - Feature Updates', () => {
             organizationId,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       { apiKey: apiKeyToken }
     )
@@ -2921,7 +2922,7 @@ describe('editProductTransaction - Feature Updates', () => {
             organizationId,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       { apiKey: apiKeyToken }
     )
@@ -2941,7 +2942,7 @@ describe('editProductTransaction - Feature Updates', () => {
             organizationId,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       { apiKey: apiKeyToken }
     )
@@ -2982,7 +2983,7 @@ describe('editProductTransaction - Feature Updates', () => {
             organizationId,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       { apiKey: apiKeyToken }
     )
@@ -3001,7 +3002,7 @@ describe('editProductTransaction - Feature Updates', () => {
             organizationId,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       { apiKey: apiKeyToken }
     )
@@ -3054,7 +3055,7 @@ describe('editProductTransaction - Feature Updates', () => {
               organizationId,
             }
           )
-          return { result: txResult }
+          return Result.ok(txResult)
         },
         { apiKey: apiKeyToken }
       )
@@ -3114,7 +3115,7 @@ describe('editProductTransaction - Feature Updates', () => {
             organizationId,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       { apiKey: apiKeyToken }
     )
@@ -3251,7 +3252,7 @@ describe('editProductTransaction - Price Updates', () => {
             organizationId,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       { apiKey: apiKeyToken }
     )
@@ -3306,7 +3307,7 @@ describe('editProductTransaction - Price Updates', () => {
             organizationId,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       { apiKey: apiKeyToken }
     )
@@ -3376,7 +3377,7 @@ describe('editProductTransaction - Price Updates', () => {
             organizationId,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       { apiKey: apiKeyToken }
     )
@@ -3462,7 +3463,7 @@ describe('editProductTransaction - Price Updates', () => {
             organizationId,
           }
         )
-        return { result: txResult }
+        return Result.ok(txResult)
       },
       { apiKey: apiKeyToken }
     )
@@ -3562,7 +3563,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               organizationId,
             }
           )
-          return { result: txResult }
+          return Result.ok(txResult)
         },
         { apiKey: apiKeyToken }
       )
@@ -3644,7 +3645,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               organizationId,
             }
           )
-          return { result: txResult }
+          return Result.ok(txResult)
         },
         { apiKey: apiKeyToken }
       )
@@ -3696,7 +3697,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               organizationId,
             }
           )
-          return { result: txResult }
+          return Result.ok(txResult)
         },
         { apiKey: apiKeyToken }
       )
@@ -3783,7 +3784,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               organizationId,
             }
           )
-          return { result: txResult }
+          return Result.ok(txResult)
         },
         { apiKey: apiKeyToken }
       )
@@ -3863,7 +3864,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                 organizationId,
               }
             )
-            return { result: txResult }
+            return Result.ok(txResult)
           },
           { apiKey: apiKeyToken }
         )
@@ -3912,7 +3913,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                 organizationId,
               }
             )
-            return { result: txResult }
+            return Result.ok(txResult)
           },
           { apiKey: apiKeyToken }
         )
@@ -3990,7 +3991,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               organizationId,
             }
           )
-          return { result: txResult }
+          return Result.ok(txResult)
         },
         { apiKey: apiKeyToken }
       )
@@ -4060,7 +4061,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               organizationId,
             }
           )
-          return { result: txResult }
+          return Result.ok(txResult)
         },
         { apiKey: apiKeyToken }
       )
@@ -4138,7 +4139,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               organizationId,
             }
           )
-          return { result: txResult }
+          return Result.ok(txResult)
         },
         { apiKey: apiKeyToken }
       )

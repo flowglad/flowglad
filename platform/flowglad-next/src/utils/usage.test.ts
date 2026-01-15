@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupOrg,
@@ -58,7 +59,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
-          return { result: usageMeterResult }
+          return Result.ok(usageMeterResult)
         }
       )
 
@@ -112,7 +113,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
-          return { result: usageMeterResult }
+          return Result.ok(usageMeterResult)
         }
       )
 
@@ -153,7 +154,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
-          return { result: usageMeterResult }
+          return Result.ok(usageMeterResult)
         })
       ).rejects.toThrow()
 
@@ -237,7 +238,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
-          return { result: usageMeterResult }
+          return Result.ok(usageMeterResult)
         })
       ).rejects.toThrow()
 
@@ -321,7 +322,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
-          return { result: usageMeterResult }
+          return Result.ok(usageMeterResult)
         }
       )
 
@@ -388,7 +389,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
-          return { result: usageMeterResult }
+          return Result.ok(usageMeterResult)
         })
       ).rejects.toThrow()
 
@@ -447,7 +448,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
-          return { result: usageMeterResult }
+          return Result.ok(usageMeterResult)
         }
       )
 
@@ -476,7 +477,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
-          return { result: usageMeterResult }
+          return Result.ok(usageMeterResult)
         }
       )
 
@@ -507,7 +508,7 @@ describe('createUsageMeterTransaction', () => {
               organizationId: organization.id,
             }
           )
-          return { result: usageMeterResult }
+          return Result.ok(usageMeterResult)
         }
       )
 

@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type { Event } from '@/db/schema/events'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
@@ -8,7 +9,6 @@ import {
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { TransactionEffectsContext } from '@/db/types'
 import { idempotentSendCustomerSubscriptionCreatedNotification } from '@/trigger/notifications/send-customer-subscription-created-notification'
 import { idempotentSendCustomerSubscriptionUpgradedNotification } from '@/trigger/notifications/send-customer-subscription-upgraded-notification'
@@ -54,9 +54,10 @@ export const createSubscriptionWorkflow = async (
   params: CreateSubscriptionParams,
   ctx: TransactionEffectsContext
 ): Promise<
-  TransactionOutput<
+  Result<
     | StandardCreateSubscriptionResult
-    | NonRenewingCreateSubscriptionResult
+    | NonRenewingCreateSubscriptionResult,
+    Error
   >
 > => {
   // Destructure context for cleaner code below
@@ -400,7 +401,5 @@ export const createSubscriptionWorkflow = async (
   // Emit subscription created event via effects context
   emitEvent(...eventInserts)
 
-  return {
-    result: transactionResult,
-  }
+  return Result.ok(transactionResult)
 }
