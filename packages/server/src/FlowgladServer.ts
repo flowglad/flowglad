@@ -637,9 +637,13 @@ export class FlowgladServer {
       throw new Error('Subscription is not owned by the current user')
     }
 
-    return this.flowgladNode.get(
-      `/api/v1/resource-claims/${subscriptionId}/usage`
-    )
+    const response = await this.flowgladNode.get<
+      Array<{ usage: ResourceUsage; claims: unknown[] }>
+    >(`/api/v1/resource-claims/${subscriptionId}/usages`)
+
+    return {
+      resources: response.map((item) => item.usage),
+    }
   }
 
   /**
