@@ -140,7 +140,7 @@ const commonColumnRefinements = {
   billingAddress: billingAddressSchema.nullable().optional(),
   contactEmail: z.email().nullable().optional(),
   featureFlags: z.record(z.string(), z.boolean()),
-  stripeConnectContractType: z.nativeEnum(StripeConnectContractType),
+  stripeConnectContractType: z.enum(StripeConnectContractType),
   monthlyBillingVolumeFreeTier: core.safeZodNonNegativeInteger,
 }
 

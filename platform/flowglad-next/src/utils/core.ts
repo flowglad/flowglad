@@ -377,7 +377,7 @@ export const createSafeZodEnum = <
   enumType: T
 ) => {
   // Use nativeEnum so the inferred type is the TS enum type
-  return z.nativeEnum(enumType)
+  return z.enum(enumType)
 }
 
 /**

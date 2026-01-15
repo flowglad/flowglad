@@ -341,7 +341,7 @@ export const subscriptionsTableRowDataSchema = z.object({
 export const subscriptionsPaginatedSelectSchema =
   createPaginatedSelectSchema(
     z.object({
-      status: z.nativeEnum(SubscriptionStatus).optional(),
+      status: z.enum(SubscriptionStatus).optional(),
       priceId: z.string().optional(),
       customerId: z.string().optional(),
       organizationId: z.string().optional(),
@@ -458,7 +458,7 @@ export const createSubscriptionInputSchema = z.object({
     .describe(
       'The time when the subscription starts. If not provided, defaults to current time.'
     ),
-  interval: z.nativeEnum(IntervalUnit),
+  interval: z.enum(IntervalUnit),
   intervalCount: z
     .number()
     .optional()

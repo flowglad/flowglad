@@ -166,7 +166,7 @@ export const paymentRefundedLedgerCommandSchema = z.object({
   type: z.literal(LedgerTransactionType.PaymentRefunded),
   payload: z.object({
     refund: refundsSelectSchema, // Its id is initiatingSourceId
-    adjustmentBehavior: z.nativeEnum(
+    adjustmentBehavior: z.enum(
       PaymentRefundedLedgerCommandAdjustmentBehavior
     ),
   }),

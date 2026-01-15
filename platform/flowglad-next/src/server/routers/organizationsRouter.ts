@@ -152,7 +152,7 @@ const getRevenueData = protectedProcedure
 const getMRRCalculationInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
-  granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  granularity: z.enum(RevenueChartIntervalUnit),
   productId: z.string().nullish(),
 })
 
@@ -227,7 +227,7 @@ const getMRRBreakdown = protectedProcedure
 const getActiveSubscribersInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
-  granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  granularity: z.enum(RevenueChartIntervalUnit),
   productId: z.string().nullish(),
 })
 
