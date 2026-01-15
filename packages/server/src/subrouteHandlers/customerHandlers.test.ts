@@ -3,16 +3,16 @@ import { HTTPMethod } from '@flowglad/shared'
 import { describe, expect, it, vi } from 'vitest'
 import type { FlowgladServer } from '../FlowgladServer'
 import {
-  findOrCreateCustomer,
-  getCustomerBilling,
-  updateCustomer,
-} from './customerHandlers'
-import {
   assert200Success,
   assert401Unauthorized,
   assert404NotFound,
   assert405MethodNotAllowed,
-} from './test-utils'
+} from './__tests__/test-utils'
+import {
+  findOrCreateCustomer,
+  getCustomerBilling,
+  updateCustomer,
+} from './customerHandlers'
 import type { InferRouteHandlerParams } from './types'
 
 type GetCustomerBillingParams =
