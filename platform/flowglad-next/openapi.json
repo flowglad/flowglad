@@ -9988,6 +9988,9 @@
       "DefaultDiscountClientInsertSchema": {
         "type": "object",
         "properties": {
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -10027,6 +10030,9 @@
       "NumberOfPaymentsDiscountClientInsertSchema": {
         "type": "object",
         "properties": {
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -10070,6 +10076,9 @@
       "ForeverDiscountClientInsertSchema": {
         "type": "object",
         "properties": {
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
