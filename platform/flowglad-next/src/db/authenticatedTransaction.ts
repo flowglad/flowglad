@@ -1,4 +1,5 @@
 import { SpanKind } from '@opentelemetry/api'
+import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import type {
   AuthenticatedTransactionParams,
@@ -14,7 +15,30 @@ import {
   invalidateCacheAfterCommit,
   processEffectsInTransaction,
 } from './transactionEffectsHelpers'
-import { isError, type Result } from './transactionEnhacementTypes'
+import type { TransactionOutput } from './transactionEnhacementTypes'
+
+/**
+ * Type that accepts both the new Result pattern and the legacy TransactionOutput pattern.
+ * This provides backwards compatibility during migration.
+ */
+type ComprehensiveTransactionReturn<T> =
+  | Result<T, Error>
+  | TransactionOutput<T>
+
+/**
+ * Normalizes the callback return value to a Result type.
+ * Handles both legacy { result: T } pattern and new Result<T, Error> pattern.
+ */
+function normalizeToResult<T>(
+  value: ComprehensiveTransactionReturn<T>
+): Result<T, Error> {
+  // Check if it's a better-result Result (has 'status' property)
+  if ('status' in value) {
+    return value
+  }
+  // Otherwise it's a legacy TransactionOutput { result: T }
+  return Result.ok(value.result)
+}
 
 interface AuthenticatedTransactionOptions {
   apiKey?: string
@@ -39,21 +63,21 @@ export async function authenticatedTransaction<T>(
 ): Promise<T> {
   return comprehensiveAuthenticatedTransaction(async (params) => {
     const result = await fn(params)
-    return { result }
+    return Result.ok(result)
   }, options)
 }
 
 /**
  * Core comprehensive authenticated transaction logic without tracing.
- * Returns the full TransactionOutput plus auth info and processed counts so the traced wrapper can extract accurate metrics.
+ * Returns the full Result plus auth info and processed counts so the traced wrapper can extract accurate metrics.
  */
 const executeComprehensiveAuthenticatedTransaction = async <T>(
   fn: (
     params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<Result<T>>,
+  ) => Promise<ComprehensiveTransactionReturn<T>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<{
-  output: Result<T>
+  output: Result<T, Error>
   userId: string
   organizationId?: string
   livemode: boolean
@@ -126,10 +150,11 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       enqueueLedgerCommand,
     }
 
-    const output = await fn(paramsForFn)
+    const rawOutput = await fn(paramsForFn)
+    const output = normalizeToResult(rawOutput)
 
     // Check for error early to skip effects and roll back transaction
-    if (isError(output)) {
+    if (output.status === 'error') {
       throw output.error
     }
 
@@ -168,7 +193,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
 export async function comprehensiveAuthenticatedTransaction<T>(
   fn: (
     params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<Result<T>>,
+  ) => Promise<ComprehensiveTransactionReturn<T>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
   // Static attributes are set at span creation for debugging failed transactions
@@ -194,10 +219,10 @@ export async function comprehensiveAuthenticatedTransaction<T>(
     () => executeComprehensiveAuthenticatedTransaction(fn, options)
   )()
 
-  if (isError(output)) {
+  if (output.status === 'error') {
     throw output.error
   }
-  return output.result
+  return output.value
 }
 
 export type AuthenticatedProcedureResolver<
@@ -238,7 +263,7 @@ export const authenticatedProcedureTransaction = <
     TContext
   >(async (params) => {
     const result = await handler(params)
-    return { result }
+    return Result.ok(result)
   })
 }
 
@@ -249,7 +274,7 @@ export const authenticatedProcedureComprehensiveTransaction = <
 >(
   handler: (
     params: AuthenticatedProcedureTransactionParams<TInput, TContext>
-  ) => Promise<Result<TOutput>>
+  ) => Promise<ComprehensiveTransactionReturn<TOutput>>
 ) => {
   return async (opts: { input: TInput; ctx: TContext }) => {
     return comprehensiveAuthenticatedTransaction(

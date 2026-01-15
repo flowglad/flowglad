@@ -8,7 +8,10 @@ import {
   setupSubscription,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import type { UsageEventProcessedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
@@ -116,9 +119,9 @@ describe('bulkInsertUsageEventsTransaction', () => {
         )
       )
 
-      expect(result.result.usageEvents).toHaveLength(1)
-      expect(result.result.usageEvents[0].priceId).toBe(price.id)
-      expect(result.result.usageEvents[0].usageMeterId).toBe(
+      expect(result.unwrap().usageEvents).toHaveLength(1)
+      expect(result.unwrap().usageEvents[0].priceId).toBe(price.id)
+      expect(result.unwrap().usageEvents[0].usageMeterId).toBe(
         usageMeter.id
       )
     })
@@ -143,16 +146,16 @@ describe('bulkInsertUsageEventsTransaction', () => {
         )
       )
 
-      expect(result.result.usageEvents).toHaveLength(1)
-      expect(result.result.usageEvents[0].priceId).toBeNull()
-      expect(result.result.usageEvents[0].usageMeterId).toBe(
+      expect(result.unwrap().usageEvents).toHaveLength(1)
+      expect(result.unwrap().usageEvents[0].priceId).toBeNull()
+      expect(result.unwrap().usageEvents[0].usageMeterId).toBe(
         usageMeter.id
       )
     })
 
     it('should throw error when priceSlug not found', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) =>
+        comprehensiveAdminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -175,7 +178,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should throw error when usageMeterSlug not found', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) =>
+        comprehensiveAdminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -219,7 +222,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       await expect(
-        adminTransaction(async ({ transaction }) =>
+        comprehensiveAdminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -256,7 +259,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       await expect(
-        adminTransaction(async ({ transaction }) =>
+        comprehensiveAdminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -310,7 +313,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Try to create a usage event for our customer's subscription using a priceId
       // from a different pricing model - this should throw an error
       await expect(
-        adminTransaction(async ({ transaction }) =>
+        comprehensiveAdminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -373,7 +376,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       await expect(
-        adminTransaction(async ({ transaction }) =>
+        comprehensiveAdminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -449,7 +452,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
       // Test with undefined properties
       await expect(
-        adminTransaction(async ({ transaction }) =>
+        comprehensiveAdminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -472,7 +475,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
       // Test with empty object properties
       await expect(
-        adminTransaction(async ({ transaction }) =>
+        comprehensiveAdminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -519,13 +522,13 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
       const after = Date.now()
 
-      expect(result.result.usageEvents).toHaveLength(1)
-      expect(result.result.usageEvents[0].properties).toEqual({})
+      expect(result.unwrap().usageEvents).toHaveLength(1)
+      expect(result.unwrap().usageEvents[0].properties).toEqual({})
       expect(
-        result.result.usageEvents[0].usageDate
+        result.unwrap().usageEvents[0].usageDate
       ).toBeGreaterThanOrEqual(before)
       expect(
-        result.result.usageEvents[0].usageDate
+        result.unwrap().usageEvents[0].usageDate
       ).toBeLessThanOrEqual(after)
     })
   })
@@ -558,7 +561,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
         }
       )
 
-      expect(firstResult.result.usageEvents).toHaveLength(1)
+      expect(firstResult.unwrap().usageEvents).toHaveLength(1)
       expect(firstEffects.ledgerCommands.length).toBe(1)
 
       // Resubmit the same payload
@@ -587,7 +590,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       // Should return empty array (no new events inserted)
-      expect(secondResult.result.usageEvents).toHaveLength(0)
+      expect(secondResult.unwrap().usageEvents).toHaveLength(0)
       // Should not generate ledger commands for deduped entries
       expect(secondEffects.ledgerCommands.length).toBe(0)
     })
@@ -627,7 +630,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
         }
       )
 
-      expect(firstResult.result.usageEvents).toHaveLength(2)
+      expect(firstResult.unwrap().usageEvents).toHaveLength(2)
       expect(firstEffects.ledgerCommands.length).toBe(2)
 
       // Resubmit with one duplicate and one new
@@ -662,8 +665,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       // Should only insert the new event
-      expect(secondResult.result.usageEvents).toHaveLength(1)
-      expect(secondResult.result.usageEvents[0].amount).toBe(300)
+      expect(secondResult.unwrap().usageEvents).toHaveLength(1)
+      expect(secondResult.unwrap().usageEvents[0].amount).toBe(300)
       // The first result should have generated commands for 2 events
       expect(firstEffects.ledgerCommands.length).toBe(2)
       // The second result should only have commands for 1 new event (the duplicate should not generate commands)
@@ -704,9 +707,9 @@ describe('bulkInsertUsageEventsTransaction', () => {
         }
       )
 
-      expect(result.result.usageEvents).toHaveLength(2)
-      expect(result.result.usageEvents[0].amount).toBe(100)
-      expect(result.result.usageEvents[1].amount).toBe(200)
+      expect(result.unwrap().usageEvents).toHaveLength(2)
+      expect(result.unwrap().usageEvents[0].amount).toBe(100)
+      expect(result.unwrap().usageEvents[1].amount).toBe(200)
       expect(effects.ledgerCommands.length).toBe(2)
     })
 
@@ -795,15 +798,19 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       // Should successfully insert all 4 events
-      expect(result.result.usageEvents).toHaveLength(4)
+      expect(result.unwrap().usageEvents).toHaveLength(4)
 
       // Verify each event has the correct customer and subscription
-      const eventsForSub1 = result.result.usageEvents.filter(
-        (e) => e.subscriptionId === subscription.id
-      )
-      const eventsForSub2 = result.result.usageEvents.filter(
-        (e) => e.subscriptionId === subscription2.id
-      )
+      const eventsForSub1 = result
+        .unwrap()
+        .usageEvents.filter(
+          (e) => e.subscriptionId === subscription.id
+        )
+      const eventsForSub2 = result
+        .unwrap()
+        .usageEvents.filter(
+          (e) => e.subscriptionId === subscription2.id
+        )
 
       expect(eventsForSub1).toHaveLength(2)
       expect(eventsForSub2).toHaveLength(2)
@@ -820,15 +827,15 @@ describe('bulkInsertUsageEventsTransaction', () => {
       })
 
       // Verify all events resolved to the correct price
-      result.result.usageEvents.forEach((event) => {
+      result.unwrap().usageEvents.forEach((event) => {
         expect(event.priceId).toBe(price.id)
       })
 
       // Verify amounts match the input
-      expect(result.result.usageEvents[0].amount).toBe(100)
-      expect(result.result.usageEvents[1].amount).toBe(200)
-      expect(result.result.usageEvents[2].amount).toBe(150)
-      expect(result.result.usageEvents[3].amount).toBe(250)
+      expect(result.unwrap().usageEvents[0].amount).toBe(100)
+      expect(result.unwrap().usageEvents[1].amount).toBe(200)
+      expect(result.unwrap().usageEvents[2].amount).toBe(150)
+      expect(result.unwrap().usageEvents[3].amount).toBe(250)
 
       expect(effects.ledgerCommands.length).toBe(4)
       // Verify each ledger command is linked to a usage event
@@ -838,9 +845,11 @@ describe('bulkInsertUsageEventsTransaction', () => {
           LedgerTransactionType.UsageEventProcessed
         )
         const ledgerCmd = cmd as UsageEventProcessedLedgerCommand
-        const linkedEvent = result.result.usageEvents.find(
-          (e) => e.id === ledgerCmd.payload.usageEvent.id
-        )
+        const linkedEvent = result
+          .unwrap()
+          .usageEvents.find(
+            (e) => e.id === ledgerCmd.payload.usageEvent.id
+          )
         // Verify subscription linkage
         expect(ledgerCmd.subscriptionId).toBe(
           linkedEvent!.subscriptionId

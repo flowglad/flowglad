@@ -1,4 +1,5 @@
 import { SpanKind } from '@opentelemetry/api'
+import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import type {
   AdminTransactionParams,
@@ -12,7 +13,30 @@ import {
   invalidateCacheAfterCommit,
   processEffectsInTransaction,
 } from './transactionEffectsHelpers'
-import { isError, type Result } from './transactionEnhacementTypes'
+import type { TransactionOutput } from './transactionEnhacementTypes'
+
+/**
+ * Type that accepts both the new Result pattern and the legacy TransactionOutput pattern.
+ * This provides backwards compatibility during migration.
+ */
+type ComprehensiveTransactionReturn<T> =
+  | Result<T, Error>
+  | TransactionOutput<T>
+
+/**
+ * Normalizes the callback return value to a Result type.
+ * Handles both legacy { result: T } pattern and new Result<T, Error> pattern.
+ */
+function normalizeToResult<T>(
+  value: ComprehensiveTransactionReturn<T>
+): Result<T, Error> {
+  // Check if it's a better-result Result (has 'status' property)
+  if ('status' in value) {
+    return value
+  }
+  // Otherwise it's a legacy TransactionOutput { result: T }
+  return Result.ok(value.result)
+}
 
 interface AdminTransactionOptions {
   livemode?: boolean
@@ -32,21 +56,21 @@ export async function adminTransaction<T>(
 ): Promise<T> {
   return comprehensiveAdminTransaction(async (params) => {
     const result = await fn(params)
-    return { result }
+    return Result.ok(result)
   }, options)
 }
 
 /**
  * Core comprehensive admin transaction logic without tracing.
- * Returns the full TransactionOutput plus processed counts so the traced wrapper can extract accurate metrics.
+ * Returns the full Result plus processed counts so the traced wrapper can extract accurate metrics.
  */
 const executeComprehensiveAdminTransaction = async <T>(
   fn: (
     params: ComprehensiveAdminTransactionParams
-  ) => Promise<Result<T>>,
+  ) => Promise<ComprehensiveTransactionReturn<T>>,
   effectiveLivemode: boolean
 ): Promise<{
-  output: Result<T>
+  output: Result<T, Error>
   processedEventsCount: number
   processedLedgerCommandsCount: number
 }> => {
@@ -78,10 +102,11 @@ const executeComprehensiveAdminTransaction = async <T>(
       enqueueLedgerCommand,
     }
 
-    const output = await fn(paramsForFn)
+    const rawOutput = await fn(paramsForFn)
+    const output = normalizeToResult(rawOutput)
 
     // Check for error early to skip effects and roll back transaction
-    if (isError(output)) {
+    if (output.status === 'error') {
       throw output.error
     }
 
@@ -112,7 +137,7 @@ const executeComprehensiveAdminTransaction = async <T>(
  * events and ledger commands via callback functions.
  *
  * @param fn - Function that receives admin transaction parameters (including emitEvent, enqueueLedgerCommand,
- *   invalidateCache callbacks) and returns a TransactionOutput containing the result
+ *   invalidateCache callbacks) and returns a Result containing the result
  * @param options - Transaction options including livemode flag
  * @returns Promise resolving to the result value from the transaction function
  *
@@ -122,14 +147,14 @@ const executeComprehensiveAdminTransaction = async <T>(
  *   // ... perform operations ...
  *   emitEvent(event1, event2)
  *   enqueueLedgerCommand({ type: 'credit', amount: 100 })
- *   return { result: someValue }
+ *   return Result.ok(someValue)
  * })
  * ```
  */
 export async function comprehensiveAdminTransaction<T>(
   fn: (
     params: ComprehensiveAdminTransactionParams
-  ) => Promise<Result<T>>,
+  ) => Promise<ComprehensiveTransactionReturn<T>>,
   options: AdminTransactionOptions = {}
 ): Promise<T> {
   const { livemode = true } = options
@@ -156,8 +181,8 @@ export async function comprehensiveAdminTransaction<T>(
     () => executeComprehensiveAdminTransaction(fn, effectiveLivemode)
   )()
 
-  if (isError(output)) {
+  if (output.status === 'error') {
     throw output.error
   }
-  return output.result
+  return output.value
 }
