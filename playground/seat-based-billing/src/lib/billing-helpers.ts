@@ -4,8 +4,113 @@ import type {
   Product,
   UsageMeter,
 } from '@flowglad/nextjs'
+import type { PricingPlan } from '@/components/pricing-card'
 
 type UsageMeterSlug = 'fast_generations' | 'hd_video_minutes'
+
+/**
+ * The product name used to determine the "popular" plan in pricing displays.
+ * Change this constant to update the popular plan across all pricing grids.
+ */
+export const POPULAR_PLAN_NAME = 'Pro'
+
+/**
+ * Formats a price from cents to a display string (e.g., 1000 -> "$10")
+ */
+export function formatPriceFromCents(cents: number): string {
+  const dollars = cents / 100
+  return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+}
+
+/**
+ * Transforms products from the billing pricing model into PricingPlan objects
+ * for display in pricing grids.
+ *
+ * This function:
+ * - Filters out default/free products
+ * - Finds active subscription prices
+ * - Extracts feature names
+ * - Marks the popular plan (based on POPULAR_PLAN_NAME constant)
+ * - Sorts by price (lowest to highest)
+ *
+ * @param pricingModel - The billing pricing model (from billing.pricingModel)
+ * @returns Array of PricingPlan objects sorted by price
+ */
+export function transformProductsToPricingPlans(
+  pricingModel: BillingWithChecks['pricingModel'] | null | undefined
+): PricingPlan[] {
+  if (!pricingModel?.products) return []
+
+  const { products } = pricingModel
+
+  // Filter products: subscription type, active, not default/free
+  const filteredProducts = products.filter((product) => {
+    // Skip default/free products
+    if (product.default === true) return false
+
+    // Find active subscription price
+    const matchingPrice = product.prices.find(
+      (price) =>
+        price.type === 'subscription' && price.active === true
+    )
+
+    return !!matchingPrice
+  })
+
+  // Transform products to PricingPlan format
+  const transformedPlans = filteredProducts
+    .map((product) => {
+      const price = product.prices.find(
+        (p) => p.type === 'subscription' && p.active === true
+      )
+
+      if (!price || !price.slug) return null
+
+      const displayPrice = formatPriceFromCents(price.unitPrice)
+
+      // Build features list from feature objects (features have name and description)
+      const featureNames =
+        product.features
+          .map((feature) => feature.name)
+          .filter(
+            (name): name is string =>
+              typeof name === 'string' && name.length > 0
+          ) ?? []
+
+      const plan: PricingPlan = {
+        name: product.name,
+        displayPrice: displayPrice,
+        slug: price.slug,
+        features: featureNames,
+        unitPrice: price.unitPrice,
+        singularQuantityLabel:
+          product.singularQuantityLabel ?? undefined,
+        pluralQuantityLabel: product.pluralQuantityLabel ?? undefined,
+      }
+
+      if (product.description) {
+        plan.description = product.description
+      }
+
+      // Determine if popular (based on POPULAR_PLAN_NAME constant)
+      if (product.name === POPULAR_PLAN_NAME) {
+        plan.isPopular = true
+      }
+
+      return plan
+    })
+    .filter((plan): plan is PricingPlan => plan !== null)
+
+  // Sort by price (extract numeric value for sorting)
+  return transformedPlans.sort((a, b) => {
+    const getPriceValue = (priceStr: string) => {
+      return parseFloat(priceStr.replace(/[$,]/g, '')) || 0
+    }
+    return (
+      getPriceValue(a.displayPrice) - getPriceValue(b.displayPrice)
+    )
+  })
+}
 
 /**
  * Computes the total usage credits for a given usage meter slug from the current subscription's feature items.
