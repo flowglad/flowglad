@@ -344,8 +344,9 @@ describe('subscriptionItemFeatureMethods', () => {
         )
         const joined =
           await selectSubscriptionItemFeaturesWithFeatureSlug(
-            { subscriptionItemId: subscriptionItem.id },
-            transaction
+            subscriptionItem.id,
+            transaction,
+            true // livemode
           )
         expect(joined.length).toBe(1)
         expect(joined[0].slug).toBe(toggleFeature.slug)
@@ -1098,8 +1099,9 @@ describe('selectSubscriptionItemFeaturesWithFeatureSlug', () => {
 
       const features =
         await selectSubscriptionItemFeaturesWithFeatureSlug(
-          { subscriptionItemId: subscriptionItem.id },
-          transaction
+          subscriptionItem.id,
+          transaction,
+          true // livemode
         )
 
       expect(features.length).toBe(1)
@@ -1115,8 +1117,9 @@ describe('selectSubscriptionItemFeaturesWithFeatureSlug', () => {
     await adminTransaction(async ({ transaction }) => {
       const features =
         await selectSubscriptionItemFeaturesWithFeatureSlug(
-          { subscriptionItemId: subscriptionItem.id },
-          transaction
+          subscriptionItem.id,
+          transaction,
+          true // livemode
         )
 
       expect(features).toEqual([])

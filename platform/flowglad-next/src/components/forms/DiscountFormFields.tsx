@@ -2,6 +2,7 @@
 
 import { Percent } from 'lucide-react'
 import { Controller, useFormContext } from 'react-hook-form'
+import PricingModelSelect from '@/components/forms/PricingModelSelect'
 import StatusBadge from '@/components/StatusBadge'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import {
@@ -86,6 +87,12 @@ export default function DiscountFormFields({
           </FormItem>
         )}
       />
+      {!edit && (
+        <PricingModelSelect
+          name="discount.pricingModelId"
+          control={control}
+        />
+      )}
       <div className="flex flex-col md:flex-row gap-4">
         <Controller
           control={control}

@@ -3,7 +3,9 @@ import type {
   ChartDataParams,
   ChartDataPoint,
   MetricType,
+  StaticMetricType,
 } from '@/lib/metrics/types'
+import { getUsageMeterId, isUsageMetric } from '@/lib/metrics/types'
 import { formatDateUTC } from '@/utils/chart/dateFormatting'
 import { createChartTooltipMetadata } from '@/utils/chart/types'
 
@@ -82,9 +84,29 @@ export function useMetricData(
       { enabled: !!organizationId }
     )
 
+  // Extract usage meter ID if this is a usage metric
+  const usageMeterId = isUsageMetric(metric)
+    ? getUsageMeterId(metric)
+    : null
+
+  // Usage volume query - only enabled for usage metrics
+  const usageQuery = trpc.organizations.getUsageVolume.useQuery(
+    {
+      startDate: fromDate,
+      endDate: toDate,
+      granularity: interval,
+      usageMeterId: usageMeterId!,
+      productId: productId ?? undefined,
+    },
+    {
+      enabled:
+        isUsageMetric(metric) && !!organizationId && !!usageMeterId,
+    }
+  )
+
   // ─────────────────────────────────────────────────────────────────
-  // Query Registry: Maps metrics to their queries for unified access
-  // Adding a new metric? Just add it here and TypeScript will guide you.
+  // Query Registry: Maps static metrics to their queries for unified access
+  // Usage metrics are handled separately via usageQuery.
   // ─────────────────────────────────────────────────────────────────
   const queryRegistry = {
     revenue: revenueQuery,
@@ -92,9 +114,10 @@ export function useMetricData(
     subscribers: subscribersQuery,
   } as const
 
-  // Type safety: This will cause a TypeScript error if MetricType is extended but registry is not updated
+  // Type safety: This will cause a TypeScript error if StaticMetricType is extended but registry is not updated
+  // Note: Usage metrics (`usage:${string}`) are handled separately and not in this registry
   const _registryTypeCheck: Record<
-    MetricType,
+    StaticMetricType,
     (typeof queryRegistry)[keyof typeof queryRegistry]
   > = queryRegistry
 
@@ -116,7 +139,9 @@ export function useMetricData(
   // We also check for errors to prevent infinite loading state when a
   // query fails - without this, !data would be true forever after an error.
   // ─────────────────────────────────────────────────────────────────
-  const activeQuery = queryRegistry[metric]
+  const activeQuery = isUsageMetric(metric)
+    ? usageQuery
+    : queryRegistry[metric]
   const isLoading =
     activeQuery.isPending || (!activeQuery.data && !activeQuery.error)
 
@@ -201,6 +226,33 @@ export function useMetricData(
     return { data, rawValues }
   }
 
+  // Transform usage data to chart format
+  const transformUsageData = (): {
+    data: ChartDataPoint[]
+    rawValues: number[]
+  } => {
+    if (!usageQuery.data) return { data: [], rawValues: [] }
+    const rawValues: number[] = []
+    const data = usageQuery.data.map((item, index) => {
+      const dateObj = new Date(item.date)
+      const value = Number(item.amount)
+      rawValues.push(value)
+      return {
+        date: formatDateUTC(dateObj, interval),
+        value,
+        ...createChartTooltipMetadata({
+          date: dateObj,
+          intervalUnit: interval,
+          rangeStart: fromDate,
+          rangeEnd: toDate,
+          index,
+          totalPoints: usageQuery.data.length,
+        }),
+      }
+    })
+    return { data, rawValues }
+  }
+
   // ─────────────────────────────────────────────────────────────────
   // Data Selection: Get transformed data for current metric
   // Note: isLoading is NOT computed here - it's unified above
@@ -209,6 +261,12 @@ export function useMetricData(
     data: ChartDataPoint[]
     rawValues: number[]
   } => {
+    // Handle usage metrics first
+    if (isUsageMetric(metric)) {
+      return transformUsageData()
+    }
+
+    // Handle static metrics
     switch (metric) {
       case 'revenue':
         return transformRevenueData()

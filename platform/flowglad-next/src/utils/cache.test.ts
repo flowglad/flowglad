@@ -9,9 +9,17 @@ import {
 import { z } from 'zod'
 import {
   CacheDependency,
+  type CacheRecomputeMetadata,
   cached,
+  getRecomputeHandler,
   getTtlForNamespace,
   invalidateDependencies,
+  type RecomputeHandler,
+  recomputeCacheEntry,
+  recomputeDependencies,
+  registerRecomputeHandler,
+  type SerializableParams,
+  type TransactionContext,
 } from './cache'
 import { _setTestRedisClient, RedisKeyNamespace } from './redis'
 
@@ -368,7 +376,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
     ).resolves.toBeUndefined()
   })
 
-  it('deletes dependency registry Set after invalidation', async () => {
+  it('preserves dependency registry Set after invalidation for recomputation', async () => {
     const wrappedFn = vi.fn().mockResolvedValue({ val: 'test' })
     const testSchema = z.object({ val: z.string() })
 
@@ -392,8 +400,10 @@ describe('dependency-based invalidation (Redis-backed)', () => {
 
     await invalidateDependencies(['dep:cleanup'])
 
-    // The registry Set should be deleted
-    expect(mockRedis.sets[registryKey]).toBeUndefined()
+    // The registry Set should be preserved (expires via TTL) so recomputeDependencies can use it
+    expect(mockRedis.sets[registryKey]?.has(expectedCacheKey)).toBe(
+      true
+    )
   })
 })
 
@@ -411,5 +421,251 @@ describe('CacheDependency helpers', () => {
   it('creates consistent subscriptionLedger dependency keys', () => {
     const key = CacheDependency.subscriptionLedger('sub_456')
     expect(key).toBe('subscriptionLedger:sub_456')
+  })
+})
+
+describe('recompute registry', () => {
+  it('registerRecomputeHandler stores handler and getRecomputeHandler retrieves it', () => {
+    const mockHandler: RecomputeHandler = vi
+      .fn()
+      .mockResolvedValue({})
+
+    registerRecomputeHandler(
+      RedisKeyNamespace.SubscriptionsByCustomer,
+      mockHandler
+    )
+
+    const retrieved = getRecomputeHandler(
+      RedisKeyNamespace.SubscriptionsByCustomer
+    )
+    expect(retrieved).toBe(mockHandler)
+  })
+
+  it('getRecomputeHandler returns undefined for unregistered namespace', () => {
+    // Use a namespace we know wasn't registered by using a fresh namespace
+    // Note: We test this with MeterBalancesBySubscription which we know is not registered
+    const retrieved = getRecomputeHandler(
+      RedisKeyNamespace.MeterBalancesBySubscription
+    )
+    expect(retrieved).toBeUndefined()
+  })
+})
+
+describe('recomputeCacheEntry', () => {
+  let mockRedis: ReturnType<typeof createMockRedisClient>
+
+  beforeEach(() => {
+    mockRedis = createMockRedisClient()
+    _setTestRedisClient(mockRedis.client)
+  })
+
+  afterEach(() => {
+    _setTestRedisClient(null)
+  })
+
+  it('calls handler with params and transactionContext from metadata', async () => {
+    const mockHandler: RecomputeHandler = vi
+      .fn()
+      .mockResolvedValue({})
+    registerRecomputeHandler(
+      RedisKeyNamespace.ItemsBySubscription,
+      mockHandler
+    )
+
+    const params: SerializableParams = {
+      subscriptionId: 'sub_123',
+      livemode: true,
+    }
+    const transactionContext: TransactionContext = {
+      type: 'admin',
+      livemode: true,
+    }
+    const metadata: CacheRecomputeMetadata = {
+      namespace: RedisKeyNamespace.ItemsBySubscription,
+      params,
+      transactionContext,
+      createdAt: Date.now(),
+    }
+
+    const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:sub_123`
+    const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
+    mockRedis.store[metadataKey] = JSON.stringify(metadata)
+
+    await recomputeCacheEntry(cacheKey)
+
+    expect(mockHandler).toHaveBeenCalledTimes(1)
+    expect(mockHandler).toHaveBeenCalledWith(
+      params,
+      transactionContext
+    )
+  })
+
+  it('does nothing when metadata key does not exist', async () => {
+    const mockHandler: RecomputeHandler = vi
+      .fn()
+      .mockResolvedValue({})
+    registerRecomputeHandler(
+      RedisKeyNamespace.FeaturesBySubscriptionItem,
+      mockHandler
+    )
+
+    // No metadata stored for this cache key
+    const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:nonexistent`
+
+    await recomputeCacheEntry(cacheKey)
+
+    expect(mockHandler).not.toHaveBeenCalled()
+  })
+
+  it('logs warning when handler not registered for namespace but does not throw', async () => {
+    // Use a unique namespace that definitely has no handler registered
+    const params: SerializableParams = { id: 'test' }
+    const transactionContext: TransactionContext = {
+      type: 'authenticated',
+      livemode: false,
+      organizationId: 'org_123',
+      userId: 'user_456',
+    }
+    const metadata: CacheRecomputeMetadata = {
+      namespace: RedisKeyNamespace.BannerDismissals, // No handler for this
+      params,
+      transactionContext,
+      createdAt: Date.now(),
+    }
+
+    const cacheKey = `${RedisKeyNamespace.BannerDismissals}:test`
+    const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
+    mockRedis.store[metadataKey] = JSON.stringify(metadata)
+
+    // Should not throw - just logs warning
+    await expect(
+      recomputeCacheEntry(cacheKey)
+    ).resolves.toBeUndefined()
+  })
+
+  it('logs warning when handler throws error and does not propagate', async () => {
+    const throwingHandler: RecomputeHandler = vi
+      .fn()
+      .mockRejectedValue(new Error('Handler error'))
+    registerRecomputeHandler(
+      RedisKeyNamespace.StripeOAuthCsrfToken,
+      throwingHandler
+    )
+
+    const metadata: CacheRecomputeMetadata = {
+      namespace: RedisKeyNamespace.StripeOAuthCsrfToken,
+      params: { key: 'value' },
+      transactionContext: { type: 'admin', livemode: false },
+      createdAt: Date.now(),
+    }
+
+    const cacheKey = `${RedisKeyNamespace.StripeOAuthCsrfToken}:test`
+    const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
+    mockRedis.store[metadataKey] = JSON.stringify(metadata)
+
+    // Should not throw - logs warning and fails open
+    await expect(
+      recomputeCacheEntry(cacheKey)
+    ).resolves.toBeUndefined()
+    expect(throwingHandler).toHaveBeenCalled()
+  })
+})
+
+describe('recomputeDependencies', () => {
+  let mockRedis: ReturnType<typeof createMockRedisClient>
+
+  beforeEach(() => {
+    mockRedis = createMockRedisClient()
+    _setTestRedisClient(mockRedis.client)
+  })
+
+  afterEach(() => {
+    _setTestRedisClient(null)
+  })
+
+  it('recomputes all cache entries associated with dependencies', async () => {
+    const mockHandler: RecomputeHandler = vi
+      .fn()
+      .mockResolvedValue({})
+    registerRecomputeHandler(
+      RedisKeyNamespace.CacheDependencyRegistry,
+      mockHandler
+    )
+
+    // Set up two cache keys registered under one dependency
+    const cacheKey1 = `${RedisKeyNamespace.CacheDependencyRegistry}:key1`
+    const cacheKey2 = `${RedisKeyNamespace.CacheDependencyRegistry}:key2`
+    const depRegistryKey = `${RedisKeyNamespace.CacheDependencyRegistry}:dep:test`
+
+    mockRedis.sets[depRegistryKey] = new Set([cacheKey1, cacheKey2])
+
+    // Set up metadata for both cache keys
+    const metadata1: CacheRecomputeMetadata = {
+      namespace: RedisKeyNamespace.CacheDependencyRegistry,
+      params: { keyId: 'key1' },
+      transactionContext: { type: 'admin', livemode: true },
+      createdAt: Date.now(),
+    }
+    const metadata2: CacheRecomputeMetadata = {
+      namespace: RedisKeyNamespace.CacheDependencyRegistry,
+      params: { keyId: 'key2' },
+      transactionContext: { type: 'admin', livemode: true },
+      createdAt: Date.now(),
+    }
+
+    mockRedis.store[
+      `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey1}`
+    ] = JSON.stringify(metadata1)
+    mockRedis.store[
+      `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey2}`
+    ] = JSON.stringify(metadata2)
+
+    await recomputeDependencies(['dep:test'])
+
+    expect(mockHandler).toHaveBeenCalledTimes(2)
+    expect(mockHandler).toHaveBeenCalledWith(
+      { keyId: 'key1' },
+      { type: 'admin', livemode: true }
+    )
+    expect(mockHandler).toHaveBeenCalledWith(
+      { keyId: 'key2' },
+      { type: 'admin', livemode: true }
+    )
+  })
+
+  it('deduplicates cache keys across dependencies', async () => {
+    const mockHandler: RecomputeHandler = vi
+      .fn()
+      .mockResolvedValue({})
+    registerRecomputeHandler(RedisKeyNamespace.Telemetry, mockHandler)
+
+    // Same cache key appears under two different dependencies
+    const cacheKey = `${RedisKeyNamespace.Telemetry}:shared-key`
+    const depRegistryKey1 = `${RedisKeyNamespace.CacheDependencyRegistry}:dep:A`
+    const depRegistryKey2 = `${RedisKeyNamespace.CacheDependencyRegistry}:dep:B`
+
+    mockRedis.sets[depRegistryKey1] = new Set([cacheKey])
+    mockRedis.sets[depRegistryKey2] = new Set([cacheKey])
+
+    // Set up metadata for the cache key
+    const metadata: CacheRecomputeMetadata = {
+      namespace: RedisKeyNamespace.Telemetry,
+      params: { id: 'shared' },
+      transactionContext: { type: 'admin', livemode: false },
+      createdAt: Date.now(),
+    }
+
+    mockRedis.store[
+      `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
+    ] = JSON.stringify(metadata)
+
+    await recomputeDependencies(['dep:A', 'dep:B'])
+
+    // Handler should only be called once despite key appearing in both dependencies
+    expect(mockHandler).toHaveBeenCalledTimes(1)
+    expect(mockHandler).toHaveBeenCalledWith(
+      { id: 'shared' },
+      { type: 'admin', livemode: false }
+    )
   })
 })

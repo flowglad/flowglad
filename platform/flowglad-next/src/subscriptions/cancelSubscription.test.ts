@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -585,13 +586,14 @@ describe('Subscription Cancellation Test Suite', async () => {
           transaction
         )
 
-        const { result: canceledSubscription } =
+        const canceledSubscription = (
           await cancelSubscriptionImmediately(
             {
               subscription,
             },
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
 
         expect(canceledSubscription.status).toBe(
           SubscriptionStatus.Canceled
@@ -756,13 +758,14 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         // Call the function under test.
-        const { result: updatedSubscription } =
+        const updatedSubscription = (
           await cancelSubscriptionImmediately(
             {
               subscription,
             },
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
 
         // Verify subscription fields.
         expect(updatedSubscription.status).toBe(
@@ -806,12 +809,14 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
-        const { result } = await cancelSubscriptionImmediately(
-          {
-            subscription,
-          },
-          ctx
-        )
+        const result = (
+          await cancelSubscriptionImmediately(
+            {
+              subscription,
+            },
+            ctx
+          )
+        ).unwrap()
         expect(result.status).toBe(SubscriptionStatus.Canceled)
         // Verify captured callback events
         expect(effects.events).toHaveLength(1)
@@ -842,12 +847,14 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
-        const { result } = await cancelSubscriptionImmediately(
-          {
-            subscription: subscriptionWithTimestamp,
-          },
-          ctx
-        )
+        const result = (
+          await cancelSubscriptionImmediately(
+            {
+              subscription: subscriptionWithTimestamp,
+            },
+            ctx
+          )
+        ).unwrap()
         expect(result.status).toBe(SubscriptionStatus.Canceled)
         expect(result.canceledAt).toBe(canceledAt)
         expect(effects.events).toHaveLength(1)
@@ -879,12 +886,14 @@ describe('Subscription Cancellation Test Suite', async () => {
 
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
-        const { result } = await cancelSubscriptionImmediately(
-          {
-            subscription,
-          },
-          ctx
-        )
+        const result = (
+          await cancelSubscriptionImmediately(
+            {
+              subscription,
+            },
+            ctx
+          )
+        ).unwrap()
 
         // Verify subscription was canceled immediately
         expect(result.status).toBe(SubscriptionStatus.Canceled)
@@ -934,12 +943,14 @@ describe('Subscription Cancellation Test Suite', async () => {
 
           const { ctx, effects } =
             createCapturingEffectsContext(transaction)
-          const { result } = await cancelSubscriptionImmediately(
-            {
-              subscription,
-            },
-            ctx
-          )
+          const result = (
+            await cancelSubscriptionImmediately(
+              {
+                subscription,
+              },
+              ctx
+            )
+          ).unwrap()
 
           // Verify subscription was canceled regardless of initial status
           expect(result.status).toBe(SubscriptionStatus.Canceled)
@@ -1008,7 +1019,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-          result = output.result
+          result = output.unwrap()
         } catch (error) {
           result = null
         }
@@ -1037,13 +1048,14 @@ describe('Subscription Cancellation Test Suite', async () => {
         const originalDateNow = Date.now
         Date.now = () => fixedNow.getTime()
 
-        const { result: updatedSubscription } =
+        const updatedSubscription = (
           await cancelSubscriptionImmediately(
             {
               subscription,
             },
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Canceled
         )
@@ -1103,13 +1115,14 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         // Cancel the subscription
-        const { result: updatedSubscription } =
+        const updatedSubscription = (
           await cancelSubscriptionImmediately(
             {
               subscription,
             },
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
 
         // Verify subscription is canceled
         expect(updatedSubscription.status).toBe(
@@ -1753,10 +1766,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           }
         )
 
-        expect(response.result.subscription.id).toBe(
+        expect(response.unwrap().subscription.id).toBe(
           immediateSubscription.id
         )
-        expect(response.result.subscription.current).toBe(false)
+        expect(response.unwrap().subscription.current).toBe(false)
         // Verify events were captured via callbacks
         expect(effects.events).toHaveLength(1)
         expect(effects.cacheInvalidations).toContain(
@@ -1801,13 +1814,13 @@ describe('Subscription Cancellation Test Suite', async () => {
           }
         )
 
-        expect(response.result.subscription.status).toBe(
+        expect(response.unwrap().subscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
         )
         // Verify no events were captured via callbacks
         expect(effects.events).toHaveLength(0)
         // For AtEndOfCurrentBillingPeriod, cancelScheduledAt should be set to the billing period end
-        expect(response.result.subscription.cancelScheduledAt).toBe(
+        expect(response.unwrap().subscription.cancelScheduledAt).toBe(
           now + 60 * 60 * 1000
         )
       })
@@ -1835,7 +1848,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-          result = output.result
+          result = output.unwrap()
         } catch (error) {
           result = null
         }
@@ -1863,13 +1876,14 @@ describe('Subscription Cancellation Test Suite', async () => {
           startDate: new Date(now.getTime() - 60 * 60 * 1000),
           endDate: new Date(now.getTime() + 3 * 60 * 60 * 1000),
         })
-        const { result: updatedSubscription } =
+        const updatedSubscription = (
           await cancelSubscriptionImmediately(
             {
               subscription,
             },
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Canceled
         )
@@ -1894,37 +1908,46 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should handle concurrent cancellation requests without data inconsistencies', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const subscription = await setupSubscription({
+      // Set up subscription in its own transaction first
+      const subscription = await adminTransaction(async () => {
+        const sub = await setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
         await setupBillingPeriod({
-          subscriptionId: subscription.id,
+          subscriptionId: sub.id,
           startDate: new Date(Date.now() - 60 * 60 * 1000),
           endDate: new Date(Date.now() + 60 * 60 * 1000),
         })
-        // Fire off two concurrent cancellation calls.
-        const [{ result: result1 }, { result: result2 }] =
-          await Promise.all([
-            cancelSubscriptionImmediately(
-              {
-                subscription,
-              },
-              createDiscardingEffectsContext(transaction)
-            ),
-            cancelSubscriptionImmediately(
-              {
-                subscription,
-              },
-              createDiscardingEffectsContext(transaction)
-            ),
-          ])
-        expect(result1.status).toBe(SubscriptionStatus.Canceled)
-        expect(result2.status).toBe(SubscriptionStatus.Canceled)
+        return sub
       })
+
+      // Fire off two concurrent cancellation calls with separate transactions
+      // so they obtain separate DB connections and truly run concurrently
+      const [output1, output2] = await Promise.all([
+        adminTransaction(async ({ transaction }) =>
+          cancelSubscriptionImmediately(
+            {
+              subscription,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ),
+        adminTransaction(async ({ transaction }) =>
+          cancelSubscriptionImmediately(
+            {
+              subscription,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ),
+      ])
+      const result1 = output1.unwrap()
+      const result2 = output2.unwrap()
+      expect(result1.status).toBe(SubscriptionStatus.Canceled)
+      expect(result2.status).toBe(SubscriptionStatus.Canceled)
     })
 
     it('should throw an error for invalid subscription input', async () => {
@@ -1960,13 +1983,14 @@ describe('Subscription Cancellation Test Suite', async () => {
           startDate: new Date(Date.now() - 60 * 60 * 1000),
           endDate: new Date(Date.now() + 60 * 60 * 1000),
         })
-        const { result: updatedSubscription } =
+        const updatedSubscription = (
           await cancelSubscriptionImmediately(
             {
               subscription,
             },
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Canceled
         )
@@ -2139,12 +2163,14 @@ describe('Subscription Cancellation Test Suite', async () => {
       // Cancel subscription
       const canceledAt = await adminTransaction(
         async ({ transaction }) => {
-          const { result } = await cancelSubscriptionImmediately(
-            {
-              subscription,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
+          const result = (
+            await cancelSubscriptionImmediately(
+              {
+                subscription,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          ).unwrap()
           return result.canceledAt
         }
       )
@@ -2299,12 +2325,14 @@ describe('Subscription Cancellation Test Suite', async () => {
       // Cancel subscription
       const canceledAt = await adminTransaction(
         async ({ transaction }) => {
-          const { result } = await cancelSubscriptionImmediately(
-            {
-              subscription,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
+          const result = (
+            await cancelSubscriptionImmediately(
+              {
+                subscription,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          ).unwrap()
           return result.canceledAt
         }
       )
@@ -2461,7 +2489,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         }
       )
 
-      expect(response.result.subscription.status).toBe(
+      expect(response.unwrap().subscription.status).toBe(
         SubscriptionStatus.Canceled
       )
     })
@@ -2542,11 +2570,12 @@ describe('Subscription Cancellation Test Suite', async () => {
           cancelScheduledAt: Date.now() + 60 * 60 * 1000,
         })
 
-        const { result: updatedSubscription } =
+        const updatedSubscription = (
           await uncancelSubscription(
             subscription,
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
 
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Active
@@ -2568,11 +2597,12 @@ describe('Subscription Cancellation Test Suite', async () => {
           trialEnd: futureTrialEnd,
         })
 
-        const { result: updatedSubscription } =
+        const updatedSubscription = (
           await uncancelSubscription(
             subscription,
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
 
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Trialing
@@ -2591,11 +2621,12 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: SubscriptionStatus.Active,
         })
 
-        const { result: updatedSubscription } =
+        const updatedSubscription = (
           await uncancelSubscription(
             subscription,
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
 
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Active
@@ -2614,11 +2645,12 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: SubscriptionStatus.Canceled,
         })
 
-        const { result: updatedSubscription } =
+        const updatedSubscription = (
           await uncancelSubscription(
             subscription,
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
 
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Canceled
@@ -2705,11 +2737,12 @@ describe('Subscription Cancellation Test Suite', async () => {
           cancelScheduledAt: now + 60 * 60 * 1000,
         })
 
-        const { result: updatedSubscription } =
+        const updatedSubscription = (
           await uncancelSubscription(
             subscription,
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
 
         expect(updatedSubscription.cancelScheduledAt).toBeNull()
       })
@@ -2788,11 +2821,12 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: BillingPeriodStatus.ScheduledToCancel,
         })
 
-        const { result: updatedSubscription } =
+        const updatedSubscription = (
           await uncancelSubscription(
             freeSubscription,
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
 
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Active
@@ -2823,11 +2857,12 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         // Should succeed without payment method since it's doNotCharge
-        const { result: updatedSubscription } =
+        const updatedSubscription = (
           await uncancelSubscription(
             doNotChargeSubscription,
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
 
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Active
@@ -3237,14 +3272,18 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         // Call uncancel twice
-        const { result: first } = await uncancelSubscription(
-          subscription,
-          createDiscardingEffectsContext(transaction)
-        )
-        const { result: second } = await uncancelSubscription(
-          first,
-          createDiscardingEffectsContext(transaction)
-        )
+        const first = (
+          await uncancelSubscription(
+            subscription,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
+        const second = (
+          await uncancelSubscription(
+            first,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
         expect(first.status).toBe(SubscriptionStatus.Active)
         expect(second.status).toBe(SubscriptionStatus.Active)
@@ -3646,11 +3685,13 @@ describe('Subscription Cancellation Test Suite', async () => {
             },
           })
 
-        expect(response.result.subscription.id).toBe(subscription.id)
-        expect(response.result.subscription.status).toBe(
+        expect(response.unwrap().subscription.id).toBe(
+          subscription.id
+        )
+        expect(response.unwrap().subscription.status).toBe(
           SubscriptionStatus.Active
         )
-        expect(response.result.subscription.current).toBe(true)
+        expect(response.unwrap().subscription.current).toBe(true)
         // Verify no events were captured via callbacks
         expect(effects.events).toHaveLength(0)
       })

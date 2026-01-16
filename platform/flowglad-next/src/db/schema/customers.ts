@@ -250,7 +250,7 @@ export const customersPaginatedTableRowDataSchema = z.object({
   customer: customerClientSelectSchema,
   totalSpend: z.number().optional(),
   payments: z.number().optional(),
-  status: z.nativeEnum(InferredCustomerStatus),
+  status: z.enum(InferredCustomerStatus),
 })
 
 export const customersPaginatedTableRowOutputSchema =

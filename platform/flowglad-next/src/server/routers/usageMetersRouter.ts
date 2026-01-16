@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -41,7 +42,7 @@ export const createUsageMeter = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
+        const { transaction, invalidateCache } = transactionCtx
         const { livemode, organizationId } = ctx
         const userId = ctx.user?.id
         if (!userId) {
@@ -65,9 +66,10 @@ export const createUsageMeter = protectedProcedure
               userId,
               livemode,
               organizationId,
+              invalidateCache,
             }
           )
-          return { result: { usageMeter } }
+          return Result.ok({ usageMeter })
         } catch (error) {
           errorHandlers.usageMeter.handle(error, {
             operation: 'create',

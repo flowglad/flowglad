@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
@@ -1398,7 +1399,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         { input: event },
         createProcessingEffectsContext(params)
       )
-      return { result }
+      return Result.ok(result)
     })
 
     // Assertions
@@ -1583,7 +1584,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         { input: event },
         createProcessingEffectsContext(params)
       )
-      return { result }
+      return Result.ok(result)
     })
 
     // Assertions: similar to "Once" grant, as the first grant is always issued.
@@ -1772,7 +1773,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         { input: firstEvent },
         createProcessingEffectsContext(params)
       )
-      return { result }
+      return Result.ok(result)
     })
 
     // Verify credits were granted after first payment

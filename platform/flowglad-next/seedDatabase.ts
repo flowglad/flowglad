@@ -886,7 +886,7 @@ const baseSetupPriceSchema = z.object({
   unitPrice: z.number(),
   livemode: z.boolean(),
   isDefault: z.boolean(),
-  currency: z.nativeEnum(CurrencyCode).optional(),
+  currency: z.enum(CurrencyCode).optional(),
   externalId: z.string().optional(),
   active: z.boolean().optional(),
   slug: z.string().optional(),
@@ -903,7 +903,7 @@ const setupSinglePaymentPriceSchema = baseSetupPriceSchema.extend({
 
 const setupSubscriptionPriceSchema = baseSetupPriceSchema.extend({
   type: z.literal(PriceType.Subscription),
-  intervalUnit: z.nativeEnum(IntervalUnit).optional(),
+  intervalUnit: z.enum(IntervalUnit).optional(),
   intervalCount: z.number().optional(),
   trialPeriodDays: z.number().optional(),
   usageMeterId: z.never().optional(), // Subscriptions don't use usage meters
@@ -911,7 +911,7 @@ const setupSubscriptionPriceSchema = baseSetupPriceSchema.extend({
 
 const setupUsagePriceSchema = baseSetupPriceSchema.extend({
   type: z.literal(PriceType.Usage),
-  intervalUnit: z.nativeEnum(IntervalUnit).optional(),
+  intervalUnit: z.enum(IntervalUnit).optional(),
   intervalCount: z.number().optional(),
   usageMeterId: z.string(), // Required for Usage prices
   trialPeriodDays: z.never().optional(), // Usage prices don't have trial periods
@@ -1364,6 +1364,7 @@ export const setupCheckoutSession = async ({
 
 export const setupDiscount = async ({
   organizationId,
+  pricingModelId,
   name,
   amount,
   amountType = DiscountAmountType.Percent,
@@ -1371,6 +1372,7 @@ export const setupDiscount = async ({
   code,
 }: {
   organizationId: string
+  pricingModelId: string
   name: string
   amount: number
   code: string
@@ -1381,6 +1383,7 @@ export const setupDiscount = async ({
     return insertDiscount(
       {
         organizationId,
+        pricingModelId,
         name,
         amount,
         livemode,

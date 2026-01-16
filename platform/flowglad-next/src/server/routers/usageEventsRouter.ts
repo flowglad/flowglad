@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -74,7 +75,7 @@ export const createUsageEvent = protectedProcedure
             enqueueLedgerCommand,
           }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
   )

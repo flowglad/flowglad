@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import { publicProcedure } from '@/server/trpc'
@@ -20,6 +21,6 @@ export const confirmCheckoutSession = publicProcedure
         input,
         ctx
       )
-      return { result }
+      return Result.ok(result)
     })
   })

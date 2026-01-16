@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { headers } from 'next/headers'
 import { z } from 'zod'
 import {
@@ -291,17 +292,15 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
           input,
           ctx
         )
-        return {
-          result: {
-            subscription: {
-              ...subscription,
-              current: isSubscriptionCurrent(
-                subscription.status,
-                subscription.cancellationReason
-              ),
-            },
+        return Result.ok({
+          subscription: {
+            ...subscription,
+            current: isSubscriptionCurrent(
+              subscription.status,
+              subscription.cancellationReason
+            ),
           },
-        }
+        })
       },
       {
         livemode,
@@ -384,19 +383,20 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
           input.id,
           transaction
         )
-        const { result: updatedSubscription } =
-          await uncancelSubscription(subscription, ctx)
-        return {
-          result: {
-            subscription: {
-              ...updatedSubscription,
-              current: isSubscriptionCurrent(
-                updatedSubscription.status,
-                updatedSubscription.cancellationReason
-              ),
-            },
+        const uncancelResult = await uncancelSubscription(
+          subscription,
+          ctx
+        )
+        const updatedSubscription = uncancelResult.unwrap()
+        return Result.ok({
+          subscription: {
+            ...updatedSubscription,
+            current: isSubscriptionCurrent(
+              updatedSubscription.status,
+              updatedSubscription.cancellationReason
+            ),
           },
-        }
+        })
       },
       {
         livemode,
