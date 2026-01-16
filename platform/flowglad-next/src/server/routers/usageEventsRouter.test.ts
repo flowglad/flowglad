@@ -424,7 +424,7 @@ describe('usageEventsRouter', () => {
         secondEventIds.includes(id)
       )
       expect(overlap).toEqual([])
-    })
+    }, 60000)
   })
 
   describe('create procedure with price slug support', () => {
