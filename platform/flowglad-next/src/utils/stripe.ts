@@ -1184,7 +1184,7 @@ export const createPaymentIntentForCheckoutSession = async (params: {
     }
   const totalDue = feeCalculation
     ? await calculateTotalDueAmount(feeCalculation)
-    : price.unitPrice
+    : price.unitPrice * checkoutSession.quantity
   const totalFeeAmount = feeCalculation
     ? calculateTotalFeeAmount(feeCalculation)
     : calculatePlatformApplicationFee({
