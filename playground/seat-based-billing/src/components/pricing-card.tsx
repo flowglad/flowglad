@@ -23,6 +23,9 @@ export interface PricingPlan {
   slug: string
   features: string[]
   isPopular?: boolean
+  unitPrice: number
+  singularQuantityLabel?: string
+  pluralQuantityLabel?: string
 }
 
 interface PricingCardProps {
@@ -42,6 +45,10 @@ export function PricingCard({
   const billing = useBilling()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [quantity, setQuantity] = useState(1)
+
+  // Determine if this plan supports quantity selection (non-free plans with unitPrice > 0)
+  const supportsQuantity = plan.unitPrice > 0
 
   if (!billing.loaded) {
     return <div>Loading...</div>
@@ -64,6 +71,16 @@ export function PricingCard({
     priceSlug
   )
 
+  // Calculate total price for display
+  const totalPrice = supportsQuantity
+    ? (plan.unitPrice * quantity) / 100
+    : plan.unitPrice / 100
+  const displayTotalPrice = `$${totalPrice.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+  const quantityLabel =
+    quantity === 1
+      ? (plan.singularQuantityLabel ?? 'unit')
+      : (plan.pluralQuantityLabel ?? 'units')
+
   const handleCheckout = async () => {
     setError(null)
 
@@ -71,6 +88,7 @@ export function PricingCard({
     try {
       await billing.createCheckoutSession({
         priceSlug: priceSlug,
+        quantity: supportsQuantity ? quantity : undefined,
         successUrl: `${window.location.origin}/`,
         cancelUrl: window.location.href,
         autoRedirect: true,
@@ -114,13 +132,50 @@ export function PricingCard({
         <div className="mt-1 md:mt-2">
           <div className="flex items-baseline gap-1">
             <span className="text-2xl md:text-4xl font-bold">
-              {displayPrice}
+              {supportsQuantity ? displayTotalPrice : displayPrice}
             </span>
             <span className="text-muted-foreground text-xs md:text-sm">
               /month
             </span>
           </div>
+          {supportsQuantity && quantity > 1 && (
+            <div className="text-xs text-muted-foreground mt-1">
+              {displayPrice} × {quantity} {quantityLabel}
+            </div>
+          )}
         </div>
+
+        {/* Quantity Selector for paid plans */}
+        {supportsQuantity && (
+          <div className="mt-3 flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 w-8 p-0"
+              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              disabled={quantity <= 1}
+            >
+              -
+            </Button>
+            <span className="w-12 text-center font-medium">
+              {quantity}
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 w-8 p-0"
+              onClick={() => setQuantity(Math.min(100, quantity + 1))}
+              disabled={quantity >= 100}
+            >
+              +
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {quantityLabel}
+            </span>
+          </div>
+        )}
       </CardHeader>
 
       {!hideFeatures && (

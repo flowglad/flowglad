@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { transformProductsToPricingPlans } from '@/lib/billing-helpers'
 
 interface AdjustSubscriptionGridProps {
   onSuccess?: () => void
@@ -71,7 +72,7 @@ export function AdjustSubscriptionGrid({
     return 0
   }, [billing])
 
-  // Build plans from pricingModel
+  // Build plans from pricingModel using shared utility
   const plans = useMemo<PricingPlan[]>(() => {
     // Early return if billing isn't ready or has no pricing model
     if (
@@ -83,77 +84,7 @@ export function AdjustSubscriptionGrid({
       return []
     }
 
-    const { products } = billing.pricingModel
-
-    // Filter products: subscription type, active, not default/free
-    const filteredProducts = products.filter((product) => {
-      // Skip default/free products
-      if (product.default === true) return false
-
-      // Find active subscription price
-      const matchingPrice = product.prices.find(
-        (price) =>
-          price.type === 'subscription' && price.active === true
-      )
-
-      return !!matchingPrice
-    })
-
-    // Transform products to PricingPlan format
-    const transformedPlans = filteredProducts
-      .map((product) => {
-        const price = product.prices.find(
-          (p) => p.type === 'subscription' && p.active === true
-        )
-
-        if (!price || !price.slug) return null
-
-        // Format price from cents to display string
-        const formatPrice = (cents: number): string => {
-          const dollars = cents / 100
-          return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
-        }
-
-        const displayPrice = formatPrice(price.unitPrice)
-
-        // Build features list from feature objects (features have name and description)
-        const featureNames =
-          product.features
-            .map((feature) => feature.name)
-            .filter(
-              (name): name is string =>
-                typeof name === 'string' && name.length > 0
-            ) ?? []
-
-        const plan: PricingPlan = {
-          name: product.name,
-          displayPrice: displayPrice,
-          slug: price.slug,
-          features: featureNames,
-        }
-
-        if (product.description) {
-          plan.description = product.description
-        }
-
-        // Determine if popular (hardcoded "Team" as popular for seat-based billing)
-        if (product.name === 'Team') {
-          plan.isPopular = true
-        }
-
-        return plan
-      })
-      .filter((plan): plan is PricingPlan => plan !== null)
-
-    // Sort by price (extract numeric value for sorting)
-    return transformedPlans.sort((a, b) => {
-      const getPriceValue = (priceStr: string) => {
-        return parseFloat(priceStr.replace(/[$,]/g, '')) || 0
-      }
-      return (
-        getPriceValue(a.displayPrice) - getPriceValue(b.displayPrice)
-      )
-    })
+    return transformProductsToPricingPlans(billing.pricingModel)
   }, [billing])
 
   // Early returns after all hooks
