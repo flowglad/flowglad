@@ -39,11 +39,15 @@ jobs:
 
       - name: Get commit hash
         id: get-hash
+        env:
+          DEFAULT_HASH: d854d31e91def59b95839a8773e8fbb7f86bf97e
         run: |
           if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
             echo "hash=${{ github.event.client_payload.commit_hash }}" >> $GITHUB_OUTPUT
-          else
+          elif [ -n "${{ inputs.commit_hash }}" ]; then
             echo "hash=${{ inputs.commit_hash }}" >> $GITHUB_OUTPUT
+          else
+            echo "hash=$DEFAULT_HASH" >> $GITHUB_OUTPUT
           fi
 
       - name: Replace @flowglad/node with Stainless tarball
