@@ -101,15 +101,8 @@ export function transformProductsToPricingPlans(
     })
     .filter((plan): plan is PricingPlan => plan !== null)
 
-  // Sort by price (extract numeric value for sorting)
-  return transformedPlans.sort((a, b) => {
-    const getPriceValue = (priceStr: string) => {
-      return parseFloat(priceStr.replace(/[$,]/g, '')) || 0
-    }
-    return (
-      getPriceValue(a.displayPrice) - getPriceValue(b.displayPrice)
-    )
-  })
+  // Sort by price (lowest to highest)
+  return transformedPlans.sort((a, b) => a.unitPrice - b.unitPrice)
 }
 
 /**
