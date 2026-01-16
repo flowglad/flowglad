@@ -257,6 +257,298 @@ function extractCacheArgs<TArgs extends unknown[]>(
   return { fnArgs, options }
 }
 
+// ============================================================================
+// Cache Read/Write Helpers
+// ============================================================================
+
+interface CacheStatsParams {
+  namespace: RedisKeyNamespace
+  hit: boolean
+  latencyMs?: number
+  error?: boolean
+  validationFailed?: boolean
+  recomputable?: boolean
+  bulk?: boolean
+  hitCount?: number
+  missCount?: number
+  totalCount?: number
+}
+
+/**
+ * Log cache statistics in a consistent format.
+ */
+function logCacheStats(params: CacheStatsParams): void {
+  const {
+    namespace,
+    hit,
+    latencyMs,
+    error,
+    validationFailed,
+    recomputable,
+    bulk,
+    hitCount,
+    missCount,
+    totalCount,
+  } = params
+
+  logger.info('cache_stats', {
+    namespace,
+    hit_count: hitCount ?? (hit ? 1 : 0),
+    miss_count: missCount ?? (hit ? 0 : 1),
+    total_count: totalCount ?? 1,
+    ...(latencyMs !== undefined && { latency_ms: latencyMs }),
+    ...(error && { error: true }),
+    ...(validationFailed && { validation_failed: true }),
+    ...(recomputable && { recomputable: true }),
+    ...(bulk && { bulk: true }),
+  })
+}
+
+interface CacheReadResult<T> {
+  hit: true
+  data: T
+  latencyMs: number
+}
+
+interface CacheReadMiss {
+  hit: false
+  latencyMs: number
+  validationFailed?: boolean
+  error?: string
+}
+
+type CacheReadOutcome<T> = CacheReadResult<T> | CacheReadMiss
+
+/**
+ * Attempt to read a value from cache with schema validation.
+ *
+ * Returns either:
+ * - { hit: true, data, latencyMs } if cache hit and validation passed
+ * - { hit: false, latencyMs, validationFailed?, error? } if miss or error
+ *
+ * Always fails open - errors are logged but not thrown.
+ */
+async function tryGetFromCache<T>(
+  fullKey: string,
+  schema: z.ZodType<T>,
+  namespace: RedisKeyNamespace,
+  recomputable: boolean
+): Promise<CacheReadOutcome<T>> {
+  const span = trace.getActiveSpan()
+  const suffix = recomputable ? ' (recomputable)' : ''
+
+  try {
+    const redisClient = redis()
+    const startTime = Date.now()
+    const cachedValue = await redisClient.get(fullKey)
+    const latencyMs = Date.now() - startTime
+
+    span?.setAttribute('cache.latency_ms', latencyMs)
+
+    if (cachedValue !== null) {
+      // Parse the cached value
+      const jsonValue =
+        typeof cachedValue === 'string'
+          ? JSON.parse(cachedValue)
+          : cachedValue
+
+      // Validate with schema
+      const parsed = schema.safeParse(jsonValue)
+      if (parsed.success) {
+        span?.setAttribute('cache.hit', true)
+        logger.debug(`Cache hit${suffix}`, {
+          key: fullKey,
+          latency_ms: latencyMs,
+        })
+        logCacheStats({
+          namespace,
+          hit: true,
+          latencyMs,
+          recomputable,
+        })
+        return { hit: true, data: parsed.data, latencyMs }
+      } else {
+        // Schema validation failed - treat as cache miss
+        span?.setAttribute('cache.hit', false)
+        span?.setAttribute('cache.validation_failed', true)
+        logger.warn(`Cache schema validation failed${suffix}`, {
+          key: fullKey,
+          error: parsed.error.message,
+        })
+        logCacheStats({
+          namespace,
+          hit: false,
+          latencyMs,
+          validationFailed: true,
+          recomputable,
+        })
+        return { hit: false, latencyMs, validationFailed: true }
+      }
+    } else {
+      span?.setAttribute('cache.hit', false)
+      logger.debug(`Cache miss${suffix}`, {
+        key: fullKey,
+        latency_ms: latencyMs,
+      })
+      logCacheStats({
+        namespace,
+        hit: false,
+        latencyMs,
+        recomputable,
+      })
+      return { hit: false, latencyMs }
+    }
+  } catch (error) {
+    // Fail open - log error and return miss
+    const errorMessage =
+      error instanceof Error ? error.message : String(error)
+    span?.setAttribute('cache.hit', false)
+    span?.setAttribute('cache.error', errorMessage)
+    logger.error(`Cache read error${suffix}`, {
+      key: fullKey,
+      error: errorMessage,
+    })
+    logCacheStats({
+      namespace,
+      hit: false,
+      error: true,
+      recomputable,
+    })
+    return { hit: false, latencyMs: 0, error: errorMessage }
+  }
+}
+
+interface PopulateCacheParams {
+  fullKey: string
+  result: unknown
+  dependencies: CacheDependencyKey[]
+  namespace: RedisKeyNamespace
+  recomputable: boolean
+}
+
+/**
+ * Populate cache with a value, register dependencies, and track in LRU.
+ *
+ * Always fails open - errors are logged but not thrown.
+ */
+async function populateCache(
+  params: PopulateCacheParams
+): Promise<void> {
+  const { fullKey, result, dependencies, namespace, recomputable } =
+    params
+  const span = trace.getActiveSpan()
+  const suffix = recomputable ? ' (recomputable)' : ''
+
+  try {
+    const redisClient = redis()
+    const ttl = getTtlForNamespace(namespace)
+
+    await redisClient.set(fullKey, JSON.stringify(result), {
+      ex: ttl,
+    })
+
+    // Register dependencies in Redis
+    await registerDependencies(fullKey, dependencies)
+
+    // Track in LRU and evict oldest entries if over limit
+    await trackAndEvictLRU(namespace, fullKey)
+
+    span?.setAttribute('cache.ttl', ttl)
+    span?.setAttribute('cache.dependencies', dependencies)
+
+    logger.debug(`Cache populated${suffix}`, {
+      key: fullKey,
+      ttl,
+      dependencies,
+    })
+  } catch (error) {
+    // Fail open - log error but don't throw
+    const errorMessage =
+      error instanceof Error ? error.message : String(error)
+    span?.setAttribute('cache.error', errorMessage)
+    logger.error(`Cache write error${suffix}`, {
+      key: fullKey,
+      error: errorMessage,
+    })
+  }
+}
+
+interface PopulateRecomputableCacheParams
+  extends PopulateCacheParams {
+  params: SerializableParams
+}
+
+/**
+ * Populate cache with a value and store recomputation metadata.
+ *
+ * Extends populateCache by also storing metadata for cache recomputation.
+ * Always fails open - errors are logged but not thrown.
+ */
+async function populateRecomputableCache(
+  cacheParams: PopulateRecomputableCacheParams
+): Promise<void> {
+  const { fullKey, result, dependencies, namespace, params } =
+    cacheParams
+  const span = trace.getActiveSpan()
+
+  try {
+    const redisClient = redis()
+    const ttl = getTtlForNamespace(namespace)
+
+    // Store the cache value
+    await redisClient.set(fullKey, JSON.stringify(result), {
+      ex: ttl,
+    })
+
+    // Store recomputation metadata (if we have transaction context)
+    const transactionContext = getCurrentTransactionContext()
+    if (transactionContext) {
+      const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${fullKey}`
+      const metadata: CacheRecomputeMetadata = {
+        namespace,
+        params,
+        transactionContext,
+        createdAt: Date.now(),
+      }
+      await redisClient.set(metadataKey, JSON.stringify(metadata), {
+        ex: ttl,
+      })
+      span?.setAttribute('cache.metadata_stored', true)
+    } else {
+      // No transaction context available - can't store recompute metadata
+      logger.debug('No transaction context for recompute metadata', {
+        key: fullKey,
+      })
+      span?.setAttribute('cache.metadata_stored', false)
+    }
+
+    // Register dependencies in Redis
+    await registerDependencies(fullKey, dependencies)
+
+    // Track in LRU and evict oldest entries if over limit
+    await trackAndEvictLRU(namespace, fullKey)
+
+    span?.setAttribute('cache.ttl', ttl)
+    span?.setAttribute('cache.dependencies', dependencies)
+
+    logger.debug('Cache populated (recomputable)', {
+      key: fullKey,
+      ttl,
+      dependencies,
+      hasMetadata: !!transactionContext,
+    })
+  } catch (error) {
+    // Fail open - log error but don't throw
+    const errorMessage =
+      error instanceof Error ? error.message : String(error)
+    span?.setAttribute('cache.error', errorMessage)
+    logger.error('Cache write error (recomputable)', {
+      key: fullKey,
+      error: errorMessage,
+    })
+  }
+}
+
 /**
  * Combinator that adds caching to an async function.
  *
@@ -324,122 +616,28 @@ export function cached<TArgs extends unknown[], TResult>(
       }
 
       // Try to get from cache
-      try {
-        const redisClient = redis()
-        const startTime = Date.now()
-        const cachedValue = await redisClient.get(fullKey)
-        const latencyMs = Date.now() - startTime
+      const cacheResult = await tryGetFromCache(
+        fullKey,
+        config.schema,
+        config.namespace,
+        false // not recomputable
+      )
 
-        span?.setAttribute('cache.latency_ms', latencyMs)
-
-        if (cachedValue !== null) {
-          // Parse the cached value
-          const jsonValue =
-            typeof cachedValue === 'string'
-              ? JSON.parse(cachedValue)
-              : cachedValue
-
-          // Validate with schema
-          const parsed = config.schema.safeParse(jsonValue)
-          if (parsed.success) {
-            span?.setAttribute('cache.hit', true)
-            logger.debug('Cache hit', {
-              key: fullKey,
-              latency_ms: latencyMs,
-            })
-            logger.info('cache_stats', {
-              namespace: config.namespace,
-              hit_count: 1,
-              miss_count: 0,
-              total_count: 1,
-              latency_ms: latencyMs,
-            })
-            return parsed.data
-          } else {
-            // Schema validation failed - treat as cache miss
-            span?.setAttribute('cache.hit', false)
-            span?.setAttribute('cache.validation_failed', true)
-            logger.warn('Cache schema validation failed', {
-              key: fullKey,
-              error: parsed.error.message,
-            })
-            logger.info('cache_stats', {
-              namespace: config.namespace,
-              hit_count: 0,
-              miss_count: 1,
-              total_count: 1,
-              validation_failed: true,
-              latency_ms: latencyMs,
-            })
-          }
-        } else {
-          span?.setAttribute('cache.hit', false)
-          logger.debug('Cache miss', {
-            key: fullKey,
-            latency_ms: latencyMs,
-          })
-          logger.info('cache_stats', {
-            namespace: config.namespace,
-            hit_count: 0,
-            miss_count: 1,
-            total_count: 1,
-            latency_ms: latencyMs,
-          })
-        }
-      } catch (error) {
-        // Fail open - log error and continue to wrapped function
-        const errorMessage =
-          error instanceof Error ? error.message : String(error)
-        span?.setAttribute('cache.hit', false)
-        span?.setAttribute('cache.error', errorMessage)
-        logger.error('Cache read error', {
-          key: fullKey,
-          error: errorMessage,
-        })
-        logger.info('cache_stats', {
-          namespace: config.namespace,
-          hit_count: 0,
-          miss_count: 1,
-          total_count: 1,
-          error: true,
-        })
+      if (cacheResult.hit) {
+        return cacheResult.data
       }
 
       // Cache miss - call wrapped function
       const result = await fn(...fnArgs)
 
       // Store in cache and register dependencies (fire-and-forget)
-      try {
-        const redisClient = redis()
-        const ttl = getTtlForNamespace(config.namespace)
-        await redisClient.set(fullKey, JSON.stringify(result), {
-          ex: ttl,
-        })
-
-        // Register dependencies in Redis
-        await registerDependencies(fullKey, dependencies)
-
-        // Track in LRU and evict oldest entries if over limit
-        await trackAndEvictLRU(config.namespace, fullKey)
-
-        span?.setAttribute('cache.ttl', ttl)
-        span?.setAttribute('cache.dependencies', dependencies)
-
-        logger.debug('Cache populated', {
-          key: fullKey,
-          ttl,
-          dependencies,
-        })
-      } catch (error) {
-        // Fail open - log error but return result
-        const errorMessage =
-          error instanceof Error ? error.message : String(error)
-        span?.setAttribute('cache.error', errorMessage)
-        logger.error('Cache write error', {
-          key: fullKey,
-          error: errorMessage,
-        })
-      }
+      await populateCache({
+        fullKey,
+        result,
+        dependencies,
+        namespace: config.namespace,
+        recomputable: false,
+      })
 
       return result
     }
@@ -1022,161 +1220,31 @@ export function cachedRecomputable<
       const key = config.keyFn(params)
       const fullKey = `${config.namespace}:${key}`
       const dependencies = config.dependenciesFn(params)
-      const span = trace.getActiveSpan()
 
       // Try to get from cache
-      try {
-        const redisClient = redis()
-        const startTime = Date.now()
-        const cachedValue = await redisClient.get(fullKey)
-        const latencyMs = Date.now() - startTime
+      const cacheResult = await tryGetFromCache(
+        fullKey,
+        config.schema,
+        config.namespace,
+        true // recomputable
+      )
 
-        span?.setAttribute('cache.latency_ms', latencyMs)
-
-        if (cachedValue !== null) {
-          // Parse the cached value
-          const jsonValue =
-            typeof cachedValue === 'string'
-              ? JSON.parse(cachedValue)
-              : cachedValue
-
-          // Validate with schema
-          const parsed = config.schema.safeParse(jsonValue)
-          if (parsed.success) {
-            span?.setAttribute('cache.hit', true)
-            logger.debug('Cache hit (recomputable)', {
-              key: fullKey,
-              latency_ms: latencyMs,
-            })
-            logger.info('cache_stats', {
-              namespace: config.namespace,
-              hit_count: 1,
-              miss_count: 0,
-              total_count: 1,
-              latency_ms: latencyMs,
-              recomputable: true,
-            })
-            return parsed.data
-          } else {
-            // Schema validation failed - treat as cache miss
-            span?.setAttribute('cache.hit', false)
-            span?.setAttribute('cache.validation_failed', true)
-            logger.warn(
-              'Cache schema validation failed (recomputable)',
-              {
-                key: fullKey,
-                error: parsed.error.message,
-              }
-            )
-            logger.info('cache_stats', {
-              namespace: config.namespace,
-              hit_count: 0,
-              miss_count: 1,
-              total_count: 1,
-              validation_failed: true,
-              latency_ms: latencyMs,
-              recomputable: true,
-            })
-          }
-        } else {
-          span?.setAttribute('cache.hit', false)
-          logger.debug('Cache miss (recomputable)', {
-            key: fullKey,
-            latency_ms: latencyMs,
-          })
-          logger.info('cache_stats', {
-            namespace: config.namespace,
-            hit_count: 0,
-            miss_count: 1,
-            total_count: 1,
-            latency_ms: latencyMs,
-            recomputable: true,
-          })
-        }
-      } catch (error) {
-        // Fail open - log error and continue to wrapped function
-        const errorMessage =
-          error instanceof Error ? error.message : String(error)
-        span?.setAttribute('cache.hit', false)
-        span?.setAttribute('cache.error', errorMessage)
-        logger.error('Cache read error (recomputable)', {
-          key: fullKey,
-          error: errorMessage,
-        })
-        logger.info('cache_stats', {
-          namespace: config.namespace,
-          hit_count: 0,
-          miss_count: 1,
-          total_count: 1,
-          error: true,
-          recomputable: true,
-        })
+      if (cacheResult.hit) {
+        return cacheResult.data
       }
 
       // Cache miss - call wrapped function
       const result = await fn(params, transaction)
 
       // Store in cache, metadata, and register dependencies (fire-and-forget)
-      try {
-        const redisClient = redis()
-        const ttl = getTtlForNamespace(config.namespace)
-
-        // Store the cache value
-        await redisClient.set(fullKey, JSON.stringify(result), {
-          ex: ttl,
-        })
-
-        // Store recomputation metadata (if we have transaction context)
-        const transactionContext = getCurrentTransactionContext()
-        if (transactionContext) {
-          const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${fullKey}`
-          const metadata: CacheRecomputeMetadata = {
-            namespace: config.namespace,
-            params,
-            transactionContext,
-            createdAt: Date.now(),
-          }
-          await redisClient.set(
-            metadataKey,
-            JSON.stringify(metadata),
-            { ex: ttl }
-          )
-          span?.setAttribute('cache.metadata_stored', true)
-        } else {
-          // No transaction context available - can't store recompute metadata
-          // This happens if called outside of a transaction wrapper
-          logger.debug(
-            'No transaction context for recompute metadata',
-            { key: fullKey }
-          )
-          span?.setAttribute('cache.metadata_stored', false)
-        }
-
-        // Register dependencies in Redis
-        await registerDependencies(fullKey, dependencies)
-
-        // Track in LRU and evict oldest entries if over limit
-        await trackAndEvictLRU(config.namespace, fullKey)
-
-        span?.setAttribute('cache.ttl', ttl)
-        span?.setAttribute('cache.dependencies', dependencies)
-
-        logger.debug('Cache populated (recomputable)', {
-          key: fullKey,
-          ttl,
-          dependencies,
-          hasMetadata: !!transactionContext,
-        })
-      } catch (error) {
-        // Fail open - log error but return result
-        const errorMessage =
-          error instanceof Error ? error.message : String(error)
-        span?.setAttribute('cache.error', errorMessage)
-        logger.error('Cache write error (recomputable)', {
-          key: fullKey,
-          error: errorMessage,
-        })
-      }
+      await populateRecomputableCache({
+        fullKey,
+        result,
+        dependencies,
+        namespace: config.namespace,
+        recomputable: true,
+        params,
+      })
 
       return result
     }
