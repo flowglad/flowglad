@@ -29,9 +29,13 @@ export const MOCK_PRICES = {
 /**
  * Fixed reference date for consistent preview rendering.
  * Using a fixed date prevents visual regression test flakiness.
- * Updated to 2026 to keep previews looking current.
+ *
+ * MAINTENANCE NOTE: Update this date annually to stay ~1 year in the future.
+ * Last updated: January 2025 → Set to January 2026
+ * Next review: January 2026
  */
-export const PREVIEW_REFERENCE_DATE = new Date('2026-01-15T12:00:00Z')
+const REFERENCE_YEAR = 2026
+export const PREVIEW_REFERENCE_DATE = new Date(`${REFERENCE_YEAR}-01-15T12:00:00Z`)
 
 /** Calculate a future date relative to the reference date */
 export const getFutureDate = (daysFromNow: number): Date => {
@@ -204,7 +208,7 @@ export interface ParsedParams {
   isMoR: boolean
   emailType: EmailType
   isTrialing: boolean
-  isTestMode: boolean
+  livemode: boolean
   hasRetry: boolean
   viewType: ViewType
 }

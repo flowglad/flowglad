@@ -53,8 +53,8 @@ interface EmailPreviewWrapperProps {
   templateName: string
   /** A description of the scenario being previewed */
   scenario: string
-  /** Whether this preview is showing test mode (non-live) */
-  testMode?: boolean
+  /** Whether this preview is showing live mode */
+  livemode?: boolean
   /** The email subject line */
   subject?: string
   /** The email preview text */
@@ -219,13 +219,13 @@ const MetadataPanel = ({
   scenario,
   subject,
   previewText,
-  testMode,
+  livemode,
 }: {
   templateName: string
   scenario: string
   subject?: string
   previewText?: string
-  testMode: boolean
+  livemode: boolean
 }) => (
   <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm border-b pb-4 mb-4">
     <div>
@@ -252,7 +252,7 @@ const MetadataPanel = ({
         </span>
       </div>
     )}
-    {testMode && (
+    {!livemode && (
       <div className="col-span-2">
         <span className="inline-flex items-center px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
           TEST MODE
@@ -361,7 +361,7 @@ const SyntaxHighlightedCode = ({ code }: { code: string }) => {
 export const EmailPreviewWrapper = ({
   templateName,
   scenario,
-  testMode = false,
+  livemode = true,
   subject,
   previewText,
   children,
@@ -378,17 +378,7 @@ export const EmailPreviewWrapper = ({
     typeof setInterval
   > | null>(null)
 
-  /**
-   * Create a stable key for the email template based on its identity.
-   * This prevents unnecessary re-renders when parent components re-render
-   * but the actual template hasn't changed.
-   */
-  const templateKey = useMemo(
-    () => `${templateName}-${scenario}-${testMode}`,
-    [templateName, scenario, testMode]
-  )
-
-  // Render email to HTML when template identity changes
+  // Render email to HTML when children change
   useEffect(() => {
     const renderEmail = async () => {
       setIsLoading(true)
@@ -405,9 +395,7 @@ export const EmailPreviewWrapper = ({
       }
     }
     renderEmail()
-    // Use templateKey as the stable dependency instead of children
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateKey])
+  }, [children])
 
   // Update iframe height when content changes
   const updateIframeHeight = useCallback(() => {
@@ -490,7 +478,7 @@ export const EmailPreviewWrapper = ({
         scenario={scenario}
         subject={subject}
         previewText={previewText}
-        testMode={testMode}
+        livemode={livemode}
       />
 
       {/* Toolbar - wrapped in single TooltipProvider for all tooltips */}

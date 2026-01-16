@@ -188,7 +188,7 @@ const parseSearchParams = (
   isMoR: searchParams.get('mor') !== 'false',
   emailType: getEmailType(searchParams.get('email') ?? undefined),
   isTrialing: searchParams.get('trialing') === 'true',
-  isTestMode: searchParams.get('testMode') === 'true',
+  livemode: searchParams.get('testMode') !== 'true', // Invert once at source
   hasRetry: searchParams.get('hasRetry') !== 'false',
   viewType: getViewType(searchParams.get('view') ?? undefined),
 })
@@ -211,9 +211,11 @@ const buildTestModeHref = (
   params: ParsedParams
 ): string => {
   const currentParams = new URLSearchParams(searchParams.toString())
-  if (params.isTestMode) {
+  if (!params.livemode) {
+    // Currently in test mode, switch to live mode
     currentParams.delete('testMode')
   } else {
+    // Currently in live mode, switch to test mode
     currentParams.set('testMode', 'true')
   }
   return `/demo-route?${currentParams.toString()}`
@@ -231,7 +233,10 @@ export function DemoAppSidebar({
 
   // Build href with testMode preserved
   const buildHref = (baseHref: string): string => {
-    return params.isTestMode ? `${baseHref}&testMode=true` : baseHref
+    if (params.livemode) return baseHref
+    const url = new URL(baseHref, 'http://localhost') // base URL needed for relative paths
+    url.searchParams.set('testMode', 'true')
+    return `${url.pathname}${url.search}`
   }
 
   // Toggle test mode href - preserves all current query params
@@ -296,7 +301,7 @@ export function DemoAppSidebar({
                     >
                       <Link
                         href={
-                          params.isTestMode
+                          !params.livemode
                             ? `${item.href}&testMode=true`
                             : item.href
                         }
@@ -320,17 +325,15 @@ export function DemoAppSidebar({
               <Link
                 href={testModeHref}
                 className={
-                  params.isTestMode
+                  !params.livemode
                     ? 'text-yellow-800 dark:text-yellow-200'
                     : ''
                 }
               >
                 <span className="truncate">
-                  {params.isTestMode
-                    ? 'Test Mode ON'
-                    : 'Test Mode OFF'}
+                  {!params.livemode ? 'Test Mode ON' : 'Test Mode OFF'}
                 </span>
-                {params.isTestMode ? (
+                {!params.livemode ? (
                   <ToggleRight className="ml-auto size-4" />
                 ) : (
                   <ToggleLeft className="ml-auto size-4" />

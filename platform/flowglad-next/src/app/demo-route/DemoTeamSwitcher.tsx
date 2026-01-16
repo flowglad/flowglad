@@ -28,11 +28,13 @@ export function DemoTeamSwitcher({
   }[]
 }) {
   const { isMobile } = useSidebar()
-  const [activeTeam, setActiveTeam] = React.useState(teams[0])
 
-  if (!activeTeam) {
+  // Guard against empty teams array
+  if (teams.length === 0) {
     return null
   }
+
+  const [activeTeam, setActiveTeam] = React.useState(teams[0])
 
   return (
     <SidebarMenu>

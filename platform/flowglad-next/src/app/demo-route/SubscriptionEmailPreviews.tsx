@@ -32,11 +32,11 @@ import {
 // ============================================================================
 
 interface SubscriptionCreatedPreviewProps {
-  testMode?: boolean
+  livemode?: boolean
 }
 
 export const SubscriptionCreatedPreview = ({
-  testMode = false,
+  livemode = true,
 }: SubscriptionCreatedPreviewProps) => {
   return (
     <EmailPreviewWrapper
@@ -44,7 +44,7 @@ export const SubscriptionCreatedPreview = ({
       scenario="New paid subscription"
       subject="Payment method confirmed - Subscription active"
       previewText="Payment method confirmed - Subscription active"
-      testMode={testMode}
+      livemode={livemode}
       emailType="subscription-created"
     >
       <CustomerSubscriptionCreatedEmail
@@ -68,12 +68,12 @@ export const SubscriptionCreatedPreview = ({
 
 interface SubscriptionUpgradedPreviewProps {
   trialing?: boolean
-  testMode?: boolean
+  livemode?: boolean
 }
 
 export const SubscriptionUpgradedPreview = ({
   trialing = false,
-  testMode = false,
+  livemode = true,
 }: SubscriptionUpgradedPreviewProps) => {
   const scenario = trialing ? 'Free → Paid (Trial)' : 'Free → Paid'
 
@@ -83,7 +83,7 @@ export const SubscriptionUpgradedPreview = ({
       scenario={scenario}
       subject="Subscription upgraded"
       previewText="Payment method confirmed - Subscription upgraded"
-      testMode={testMode}
+      livemode={livemode}
       emailType="subscription-upgraded"
     >
       <CustomerSubscriptionUpgradedEmail
@@ -112,12 +112,12 @@ export const SubscriptionUpgradedPreview = ({
 
 interface SubscriptionAdjustedPreviewProps {
   adjustmentType: 'upgrade' | 'downgrade'
-  testMode?: boolean
+  livemode?: boolean
 }
 
 export const SubscriptionAdjustedPreview = ({
   adjustmentType,
-  testMode = false,
+  livemode = true,
 }: SubscriptionAdjustedPreviewProps) => {
   const isUpgrade = adjustmentType === 'upgrade'
   const subscriptionItems = createSubscriptionItems(isUpgrade)
@@ -131,7 +131,7 @@ export const SubscriptionAdjustedPreview = ({
       scenario={`Paid → Paid (${adjustmentType})`}
       subject={subjectText}
       previewText={subjectText}
-      testMode={testMode}
+      livemode={livemode}
       emailType={
         isUpgrade
           ? 'subscription-adjusted-upgrade'
@@ -161,11 +161,11 @@ export const SubscriptionAdjustedPreview = ({
 // ============================================================================
 
 interface SubscriptionCanceledPreviewProps {
-  testMode?: boolean
+  livemode?: boolean
 }
 
 export const SubscriptionCanceledPreview = ({
-  testMode = false,
+  livemode = true,
 }: SubscriptionCanceledPreviewProps) => {
   return (
     <EmailPreviewWrapper
@@ -173,7 +173,7 @@ export const SubscriptionCanceledPreview = ({
       scenario="Subscription canceled immediately"
       subject="Subscription Canceled"
       previewText="Your subscription has been canceled"
-      testMode={testMode}
+      livemode={livemode}
       emailType="subscription-canceled"
     >
       <CustomerSubscriptionCanceledEmail
@@ -182,7 +182,7 @@ export const SubscriptionCanceledPreview = ({
         {...commonOrganizationProps}
         subscriptionName="Pro Plan"
         cancellationDate={PREVIEW_REFERENCE_DATE}
-        livemode={!testMode}
+        livemode={livemode}
       />
     </EmailPreviewWrapper>
   )
@@ -193,11 +193,11 @@ export const SubscriptionCanceledPreview = ({
 // ============================================================================
 
 interface SubscriptionCancellationScheduledPreviewProps {
-  testMode?: boolean
+  livemode?: boolean
 }
 
 export const SubscriptionCancellationScheduledPreview = ({
-  testMode = false,
+  livemode = true,
 }: SubscriptionCancellationScheduledPreviewProps) => {
   return (
     <EmailPreviewWrapper
@@ -205,7 +205,7 @@ export const SubscriptionCancellationScheduledPreview = ({
       scenario="Cancellation scheduled for end of period"
       subject="Cancellation Scheduled"
       previewText="Your subscription cancellation has been scheduled"
-      testMode={testMode}
+      livemode={livemode}
       emailType="subscription-cancellation-scheduled"
     >
       <CustomerSubscriptionCancellationScheduledEmail
@@ -214,7 +214,7 @@ export const SubscriptionCancellationScheduledPreview = ({
         {...commonOrganizationProps}
         subscriptionName="Pro Plan"
         scheduledCancellationDate={getFutureDate(30)}
-        livemode={!testMode}
+        livemode={livemode}
       />
     </EmailPreviewWrapper>
   )
@@ -226,12 +226,12 @@ export const SubscriptionCancellationScheduledPreview = ({
 
 interface PaymentFailedPreviewProps {
   hasRetryDate?: boolean
-  testMode?: boolean
+  livemode?: boolean
 }
 
 export const PaymentFailedPreview = ({
   hasRetryDate = true,
-  testMode = false,
+  livemode = true,
 }: PaymentFailedPreviewProps) => {
   const scenario = hasRetryDate
     ? 'Payment failed (will retry)'
@@ -243,7 +243,7 @@ export const PaymentFailedPreview = ({
       scenario={scenario}
       subject="Payment Unsuccessful"
       previewText="Payment Failed for Your Order"
-      testMode={testMode}
+      livemode={livemode}
       emailType="payment-failed"
     >
       <PaymentFailedEmail
@@ -262,7 +262,7 @@ export const PaymentFailedPreview = ({
         retryDate={hasRetryDate ? getFutureDate(3) : undefined}
         failureReason="Your card was declined"
         customerPortalUrl="https://billing.example.com/portal"
-        livemode={!testMode}
+        livemode={livemode}
       />
     </EmailPreviewWrapper>
   )
@@ -273,11 +273,11 @@ export const PaymentFailedPreview = ({
 // ============================================================================
 
 interface BillingPortalOTPPreviewProps {
-  testMode?: boolean
+  livemode?: boolean
 }
 
 export const BillingPortalOTPPreview = ({
-  testMode = false,
+  livemode = true,
 }: BillingPortalOTPPreviewProps) => {
   return (
     <EmailPreviewWrapper
@@ -285,7 +285,7 @@ export const BillingPortalOTPPreview = ({
       scenario="Billing portal sign-in OTP"
       subject={`Sign in to your billing portal for ${commonOrganizationProps.organizationName}`}
       previewText={`Sign in to your billing portal for ${commonOrganizationProps.organizationName}`}
-      testMode={testMode}
+      livemode={livemode}
       emailType="billing-portal-otp"
     >
       <CustomerBillingPortalOTPEmail
@@ -293,7 +293,7 @@ export const BillingPortalOTPPreview = ({
         email="john.doe@example.com"
         otp="123456"
         organizationName={commonOrganizationProps.organizationName}
-        livemode={!testMode}
+        livemode={livemode}
       />
     </EmailPreviewWrapper>
   )
@@ -304,11 +304,11 @@ export const BillingPortalOTPPreview = ({
 // ============================================================================
 
 interface BillingPortalMagicLinkPreviewProps {
-  testMode?: boolean
+  livemode?: boolean
 }
 
 export const BillingPortalMagicLinkPreview = ({
-  testMode = false,
+  livemode = true,
 }: BillingPortalMagicLinkPreviewProps) => {
   return (
     <EmailPreviewWrapper
@@ -316,7 +316,7 @@ export const BillingPortalMagicLinkPreview = ({
       scenario="Billing portal magic link sign-in"
       subject={`Sign in to your billing portal for ${commonOrganizationProps.organizationName}`}
       previewText={`Sign in to your billing portal for ${commonOrganizationProps.organizationName}`}
-      testMode={testMode}
+      livemode={livemode}
       emailType="billing-portal-magic-link"
     >
       <CustomerBillingPortalMagicLinkEmail
@@ -324,7 +324,7 @@ export const BillingPortalMagicLinkPreview = ({
         email="john.doe@example.com"
         url="https://billing.example.com/magic-link/abc123"
         organizationName={commonOrganizationProps.organizationName}
-        livemode={!testMode}
+        livemode={livemode}
       />
     </EmailPreviewWrapper>
   )
@@ -335,11 +335,11 @@ export const BillingPortalMagicLinkPreview = ({
 // ============================================================================
 
 interface ForgotPasswordPreviewProps {
-  testMode?: boolean
+  livemode?: boolean
 }
 
 export const ForgotPasswordPreview = ({
-  testMode = false,
+  livemode = true,
 }: ForgotPasswordPreviewProps) => {
   return (
     <EmailPreviewWrapper
@@ -347,7 +347,7 @@ export const ForgotPasswordPreview = ({
       scenario="Password reset request"
       subject={`Reset your password, ${commonCustomerProps.customerName}`}
       previewText={`Reset your password, ${commonCustomerProps.customerName}`}
-      testMode={testMode}
+      livemode={livemode}
       emailType="forgot-password"
     >
       <ForgotPasswordEmail
@@ -363,11 +363,11 @@ export const ForgotPasswordPreview = ({
 // ============================================================================
 
 interface OrgSubscriptionCreatedPreviewProps {
-  testMode?: boolean
+  livemode?: boolean
 }
 
 export const OrgSubscriptionCreatedPreview = ({
-  testMode = false,
+  livemode = true,
 }: OrgSubscriptionCreatedPreviewProps) => {
   return (
     <EmailPreviewWrapper
@@ -375,7 +375,7 @@ export const OrgSubscriptionCreatedPreview = ({
       scenario="Org notification: New subscription"
       subject={`New Subscription: ${commonCustomerProps.customerName} subscribed to Pro Plan`}
       previewText={`New Subscription: ${commonCustomerProps.customerName} subscribed to Pro Plan`}
-      testMode={testMode}
+      livemode={livemode}
       emailType="org-subscription-created"
     >
       <OrganizationSubscriptionCreatedNotificationEmail
@@ -384,7 +384,7 @@ export const OrgSubscriptionCreatedPreview = ({
         customerId={mockCustomer.id}
         customerName={commonCustomerProps.customerName}
         customerEmail="john.doe@example.com"
-        livemode={!testMode}
+        livemode={livemode}
       />
     </EmailPreviewWrapper>
   )
@@ -395,11 +395,11 @@ export const OrgSubscriptionCreatedPreview = ({
 // ============================================================================
 
 interface OrgSubscriptionCanceledPreviewProps {
-  testMode?: boolean
+  livemode?: boolean
 }
 
 export const OrgSubscriptionCanceledPreview = ({
-  testMode = false,
+  livemode = true,
 }: OrgSubscriptionCanceledPreviewProps) => {
   return (
     <EmailPreviewWrapper
@@ -407,7 +407,7 @@ export const OrgSubscriptionCanceledPreview = ({
       scenario="Org notification: Subscription canceled"
       subject={`Subscription Cancelled: ${commonCustomerProps.customerName} canceled Pro Plan`}
       previewText={`Subscription Cancelled: ${commonCustomerProps.customerName} canceled Pro Plan`}
-      testMode={testMode}
+      livemode={livemode}
       emailType="org-subscription-canceled"
     >
       <OrganizationSubscriptionCanceledNotificationEmail
@@ -417,7 +417,7 @@ export const OrgSubscriptionCanceledPreview = ({
         customerName={commonCustomerProps.customerName}
         customerEmail="john.doe@example.com"
         cancellationDate={PREVIEW_REFERENCE_DATE}
-        livemode={!testMode}
+        livemode={livemode}
       />
     </EmailPreviewWrapper>
   )
@@ -428,11 +428,11 @@ export const OrgSubscriptionCanceledPreview = ({
 // ============================================================================
 
 interface OrgSubscriptionCancellationScheduledPreviewProps {
-  testMode?: boolean
+  livemode?: boolean
 }
 
 export const OrgSubscriptionCancellationScheduledPreview = ({
-  testMode = false,
+  livemode = true,
 }: OrgSubscriptionCancellationScheduledPreviewProps) => {
   return (
     <EmailPreviewWrapper
@@ -440,7 +440,7 @@ export const OrgSubscriptionCancellationScheduledPreview = ({
       scenario="Org notification: Cancellation scheduled"
       subject={`Cancellation Scheduled: ${commonCustomerProps.customerName} scheduled cancellation for Pro Plan`}
       previewText={`Cancellation Scheduled: ${commonCustomerProps.customerName} scheduled cancellation for Pro Plan`}
-      testMode={testMode}
+      livemode={livemode}
       emailType="org-subscription-cancellation-scheduled"
     >
       <OrganizationSubscriptionCancellationScheduledNotificationEmail
@@ -450,7 +450,7 @@ export const OrgSubscriptionCancellationScheduledPreview = ({
         customerName={commonCustomerProps.customerName}
         customerEmail="john.doe@example.com"
         scheduledCancellationDate={getFutureDate(30)}
-        livemode={!testMode}
+        livemode={livemode}
       />
     </EmailPreviewWrapper>
   )
@@ -461,11 +461,11 @@ export const OrgSubscriptionCancellationScheduledPreview = ({
 // ============================================================================
 
 interface PurchaseAccessTokenPreviewProps {
-  testMode?: boolean
+  livemode?: boolean
 }
 
 export const PurchaseAccessTokenPreview = ({
-  testMode = false,
+  livemode = true,
 }: PurchaseAccessTokenPreviewProps) => {
   return (
     <EmailPreviewWrapper
@@ -473,12 +473,12 @@ export const PurchaseAccessTokenPreview = ({
       scenario="Purchase access magic link"
       subject="Access your order with this magic link"
       previewText="Access your order with this magic link."
-      testMode={testMode}
+      livemode={livemode}
       emailType="purchase-access-token"
     >
       <SendPurchaseAccessSessionTokenEmail
         magicLink="https://app.flowglad.com/access/abc123xyz"
-        livemode={!testMode}
+        livemode={livemode}
       />
     </EmailPreviewWrapper>
   )

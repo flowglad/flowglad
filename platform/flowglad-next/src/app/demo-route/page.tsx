@@ -45,66 +45,55 @@ interface SearchParams {
 type EmailPreviewRenderer = (params: ParsedParams) => React.ReactNode
 
 const emailPreviewMap: Record<EmailType, EmailPreviewRenderer> = {
-  'order-receipt': ({ isMoR, isTestMode }) => (
-    <MoREmailPreview isMoR={isMoR} testMode={isTestMode} />
+  'order-receipt': ({ isMoR, livemode }) => (
+    <MoREmailPreview isMoR={isMoR} livemode={livemode} />
   ),
-  'subscription-created': ({ isTestMode }) => (
-    <SubscriptionCreatedPreview testMode={isTestMode} />
+  'subscription-created': ({ livemode }) => (
+    <SubscriptionCreatedPreview livemode={livemode} />
   ),
-  'subscription-upgraded': ({ isTrialing, isTestMode }) => (
-    <SubscriptionUpgradedPreview
-      trialing={isTrialing}
-      testMode={isTestMode}
-    />
+  'subscription-upgraded': ({ isTrialing, livemode }) => (
+    <SubscriptionUpgradedPreview trialing={isTrialing} livemode={livemode} />
   ),
-  'subscription-adjusted-upgrade': ({ isTestMode }) => (
-    <SubscriptionAdjustedPreview
-      adjustmentType="upgrade"
-      testMode={isTestMode}
-    />
+  'subscription-adjusted-upgrade': ({ livemode }) => (
+    <SubscriptionAdjustedPreview adjustmentType="upgrade" livemode={livemode} />
   ),
-  'subscription-adjusted-downgrade': ({ isTestMode }) => (
+  'subscription-adjusted-downgrade': ({ livemode }) => (
     <SubscriptionAdjustedPreview
       adjustmentType="downgrade"
-      testMode={isTestMode}
+      livemode={livemode}
     />
   ),
-  'subscription-canceled': ({ isTestMode }) => (
-    <SubscriptionCanceledPreview testMode={isTestMode} />
+  'subscription-canceled': ({ livemode }) => (
+    <SubscriptionCanceledPreview livemode={livemode} />
   ),
-  'subscription-cancellation-scheduled': ({ isTestMode }) => (
-    <SubscriptionCancellationScheduledPreview testMode={isTestMode} />
+  'subscription-cancellation-scheduled': ({ livemode }) => (
+    <SubscriptionCancellationScheduledPreview livemode={livemode} />
   ),
-  'payment-failed': ({ hasRetry, isTestMode }) => (
-    <PaymentFailedPreview
-      hasRetryDate={hasRetry}
-      testMode={isTestMode}
-    />
+  'payment-failed': ({ hasRetry, livemode }) => (
+    <PaymentFailedPreview hasRetryDate={hasRetry} livemode={livemode} />
   ),
-  'billing-portal-otp': ({ isTestMode }) => (
-    <BillingPortalOTPPreview testMode={isTestMode} />
+  'billing-portal-otp': ({ livemode }) => (
+    <BillingPortalOTPPreview livemode={livemode} />
   ),
-  'billing-portal-magic-link': ({ isTestMode }) => (
-    <BillingPortalMagicLinkPreview testMode={isTestMode} />
+  'billing-portal-magic-link': ({ livemode }) => (
+    <BillingPortalMagicLinkPreview livemode={livemode} />
   ),
-  'forgot-password': ({ isTestMode }) => (
-    <ForgotPasswordPreview testMode={isTestMode} />
+  'forgot-password': ({ livemode }) => (
+    <ForgotPasswordPreview livemode={livemode} />
   ),
   // Organization notification emails
-  'org-subscription-created': ({ isTestMode }) => (
-    <OrgSubscriptionCreatedPreview testMode={isTestMode} />
+  'org-subscription-created': ({ livemode }) => (
+    <OrgSubscriptionCreatedPreview livemode={livemode} />
   ),
-  'org-subscription-canceled': ({ isTestMode }) => (
-    <OrgSubscriptionCanceledPreview testMode={isTestMode} />
+  'org-subscription-canceled': ({ livemode }) => (
+    <OrgSubscriptionCanceledPreview livemode={livemode} />
   ),
-  'org-subscription-cancellation-scheduled': ({ isTestMode }) => (
-    <OrgSubscriptionCancellationScheduledPreview
-      testMode={isTestMode}
-    />
+  'org-subscription-cancellation-scheduled': ({ livemode }) => (
+    <OrgSubscriptionCancellationScheduledPreview livemode={livemode} />
   ),
   // Purchase access
-  'purchase-access-token': ({ isTestMode }) => (
-    <PurchaseAccessTokenPreview testMode={isTestMode} />
+  'purchase-access-token': ({ livemode }) => (
+    <PurchaseAccessTokenPreview livemode={livemode} />
   ),
 }
 
@@ -116,7 +105,7 @@ const parseSearchParams = (params: SearchParams): ParsedParams => ({
   isMoR: params.mor !== 'false',
   emailType: getEmailType(params.email),
   isTrialing: params.trialing === 'true',
-  isTestMode: params.testMode === 'true',
+  livemode: params.testMode !== 'true', // Invert once at source
   hasRetry: params.hasRetry !== 'false', // default to true
   viewType: getViewType(params.view),
 })

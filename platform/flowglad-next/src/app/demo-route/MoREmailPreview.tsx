@@ -10,12 +10,12 @@ import {
 
 interface MoREmailPreviewProps {
   isMoR?: boolean
-  testMode?: boolean
+  livemode?: boolean
 }
 
 export const MoREmailPreview = ({
   isMoR = true,
-  testMode = false,
+  livemode = true,
 }: MoREmailPreviewProps) => {
   const scenario = isMoR
     ? 'Order receipt (Merchant of Record)'
@@ -32,7 +32,7 @@ export const MoREmailPreview = ({
     <EmailPreviewWrapper
       templateName="customer-order-receipt"
       scenario={scenario}
-      testMode={testMode}
+      livemode={livemode}
       emailType="order-receipt"
     >
       <OrderReceiptEmail
@@ -47,7 +47,7 @@ export const MoREmailPreview = ({
         organizationName={commonOrganizationProps.organizationName}
         organizationId={commonOrganizationProps.organizationId}
         customerId={mockCustomer.id}
-        livemode={!testMode}
+        livemode={livemode}
         isMoR={isMoR}
       />
     </EmailPreviewWrapper>
