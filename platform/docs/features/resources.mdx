@@ -1,0 +1,389 @@
+---
+title: 'Resources'
+description: 'Manage claimable capacity entitlements like seats, API keys, and projects.'
+---
+
+Resources are claimable capacity entitlements included in subscriptions. They represent countable units that customers can reserve and release—like team seats, API keys, concurrent connections, or projects. Unlike [usage-based billing](/features/usage) which tracks consumption, resources track allocation: who has reserved what.
+
+## The Resource Data Model
+
+Resources let you implement allocation-based pricing models. Here's how the key components work together:
+
+1. **`Resources`**: Define the types of capacity you offer. Each resource has a slug (like `seats` or `api_keys`) and belongs to a pricing model. Think of it as describing *what* can be allocated.
+
+2. **`Subscription Item Features`**: When a customer subscribes to a product, their subscription includes features that grant resource capacity. For example, a "Team Plan" might include 10 seats. This defines *how much* of each resource a customer can claim.
+
+3. **`Resource Claims`**: Individual allocations from a customer's capacity pool. When a user joins a team and takes a seat, that's a claim. Claims can be anonymous (just a count) or named (with an identifier like a user ID).
+
+<Note>
+Resources differ from [Usage](/features/usage) in a key way: usage tracks *consumption* that gets billed, while resources track *allocations* that can be reserved and released. A seat can be claimed and later released when someone leaves the team; a consumed API token is gone forever.
+</Note>
+
+## Key Concepts
+
+### Capacity
+
+Each subscription has a capacity limit for resources, determined by the product features. If a customer subscribes to a plan with "10 seats included," their seat capacity is 10. Capacity can vary by pricing tier—a Pro plan might offer 25 seats while an Enterprise plan offers unlimited.
+
+### Resource Claims
+
+A claim represents an allocation from the capacity pool. When you claim a resource, you're reserving it for use. Claims track:
+
+- **When** it was claimed (`claimedAt`)
+- **Who** it's for (`externalId`, optional)
+- **Custom data** (`metadata`, optional)
+- **Release status** (`releasedAt`, `releaseReason`)
+
+### Named vs Anonymous Claims
+
+Resources support two claiming modes:
+
+**Named Claims** use an identifier (`externalId`) to track exactly what each allocation is for:
+- Idempotent—claiming the same ID twice returns the existing claim
+- Easy to look up and release by identifier
+- Ideal for tracking: "user_john has seat #3"
+
+**Anonymous Claims** use a simple quantity count:
+- No identifier attached
+- Released in FIFO order (oldest first)
+- Ideal for: "we need 3 more seats, don't care which"
+
+## Common Use Cases
+
+| Use Case | Resource Slug | Claim Mode |
+|----------|---------------|------------|
+| Team seats | `seats` | Named (track which users) |
+| API keys | `api_keys` | Named (track each key) |
+| Project limits | `projects` | Named (track each project) |
+| Concurrent connections | `connections` | Anonymous (just count) |
+| Workspace limits | `workspaces` | Named (track each workspace) |
+
+## Setting Up Resources
+
+### Step 1: Create a Resource in Your Pricing Model
+
+1. Navigate to the [Pricing Models](https://app.flowglad.com/pricing-models) page in your dashboard
+2. Select the pricing model you want to add the resource to
+3. Click "Create Resource"
+4. Provide a descriptive **name** (e.g., "Team Seats") and **slug** (e.g., `seats`)
+5. Save the resource
+
+### Step 2: Add Resource Capacity to a Product
+
+When creating or editing a product's features:
+
+1. Add a new feature of type **Resource**
+2. Select the resource you created
+3. Set the **capacity** (e.g., 10 seats)
+4. Save the product
+
+When customers subscribe to this product, they'll receive the specified capacity for that resource.
+
+## Working with Resources in Your App
+
+### Checking Available Capacity
+
+Before allowing users to claim resources, check what's available:
+
+```typescript lib/check-capacity.ts
+import { flowglad } from './flowglad'
+
+export async function checkSeatAvailability(customerExternalId: string) {
+  const server = flowglad(customerExternalId)
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+
+  return {
+    total: usage.capacity,
+    claimed: usage.claimed,
+    available: usage.available,
+    canAddMember: usage.available > 0
+  }
+}
+```
+
+### Claiming Resources
+
+Use named claims when you need to track what each allocation is for:
+
+```typescript lib/team-management.ts
+import { flowglad } from './flowglad'
+
+export async function addTeamMember(
+  customerExternalId: string,
+  memberId: string,
+  memberEmail: string
+) {
+  const server = flowglad(customerExternalId)
+
+  // Named claim with metadata
+  const result = await server.claimResource({
+    resourceSlug: 'seats',
+    externalId: memberId,
+    metadata: {
+      email: memberEmail,
+      addedAt: Date.now()
+    }
+  })
+
+  return {
+    claim: result.claims[0],
+    remainingSeats: result.usage.available
+  }
+}
+```
+
+Use anonymous claims when you just need a count:
+
+```typescript lib/connection-pool.ts
+import { flowglad } from './flowglad'
+
+export async function reserveConnections(
+  customerExternalId: string,
+  count: number
+) {
+  const server = flowglad(customerExternalId)
+
+  const result = await server.claimResource({
+    resourceSlug: 'connections',
+    quantity: count
+  })
+
+  return result.claims
+}
+```
+
+### Releasing Resources
+
+Release named claims by their identifier:
+
+```typescript lib/team-management.ts
+export async function removeTeamMember(
+  customerExternalId: string,
+  memberId: string
+) {
+  const server = flowglad(customerExternalId)
+
+  const result = await server.releaseResource({
+    resourceSlug: 'seats',
+    externalId: memberId
+  })
+
+  return {
+    released: result.claims,
+    availableSeats: result.usage.available
+  }
+}
+```
+
+Release anonymous claims by quantity (FIFO order):
+
+```typescript lib/connection-pool.ts
+export async function releaseConnections(
+  customerExternalId: string,
+  count: number
+) {
+  const server = flowglad(customerExternalId)
+
+  return server.releaseResource({
+    resourceSlug: 'connections',
+    quantity: count
+  })
+}
+```
+
+### Listing Active Claims
+
+View all active claims for a resource:
+
+```typescript lib/team-management.ts
+export async function getTeamMembers(customerExternalId: string) {
+  const server = flowglad(customerExternalId)
+
+  const { claims } = await server.listResourceClaims({
+    resourceSlug: 'seats'
+  })
+
+  return claims.map(claim => ({
+    id: claim.id,
+    memberId: claim.externalId,
+    email: claim.metadata?.email,
+    joinedAt: claim.claimedAt
+  }))
+}
+```
+
+## API Response Shapes
+
+### Resource Usage
+
+```typescript
+interface ResourceUsage {
+  resourceSlug: string    // e.g., "seats"
+  resourceId: string      // UUID
+  capacity: number        // Total available (e.g., 10)
+  claimed: number         // Currently in use (e.g., 3)
+  available: number       // Remaining (e.g., 7)
+}
+```
+
+### Resource Claim
+
+```typescript
+interface ResourceClaim {
+  id: string                        // Claim ID
+  resourceId: string                // Resource UUID
+  subscriptionId: string            // Subscription UUID
+  externalId: string | null         // Your identifier (null for anonymous)
+  claimedAt: number                 // Unix timestamp (ms)
+  releasedAt: number | null         // null = active
+  releaseReason: string | null      // Why it was released
+  metadata: Record<string, any> | null
+}
+```
+
+## Important Behaviors
+
+### Idempotent Named Claims
+
+Claiming with the same `externalId` twice returns the existing claim without creating a duplicate. This makes the API safe for retries:
+
+```typescript
+// First call creates the claim
+await server.claimResource({ resourceSlug: 'seats', externalId: 'user_123' })
+
+// Second call with same externalId returns the existing claim
+await server.claimResource({ resourceSlug: 'seats', externalId: 'user_123' })
+// No duplicate created!
+```
+
+### Capacity Enforcement
+
+Claims fail if they would exceed capacity. Always check availability before attempting to claim, or handle the error gracefully:
+
+```typescript
+const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+
+if (usage.available < 1) {
+  throw new Error('No seats available. Please upgrade your plan.')
+}
+
+await server.claimResource({ resourceSlug: 'seats', externalId: userId })
+```
+
+### Subscription Lifecycle
+
+When a subscription is canceled, all associated resource claims are automatically released. This ensures clean capacity management without manual cleanup.
+
+When downgrading to a plan with lower capacity, Flowglad prevents the change if the current claimed count exceeds the new capacity. The customer must first release enough resources before downgrading.
+
+### Auto-Resolution
+
+If a customer has exactly one active subscription, the `subscriptionId` parameter is optional—Flowglad automatically resolves it. For customers with multiple subscriptions, you must specify which one:
+
+```typescript
+// Single subscription - auto-resolved
+await server.claimResource({ resourceSlug: 'seats', externalId: userId })
+
+// Multiple subscriptions - must specify
+await server.claimResource({
+  resourceSlug: 'seats',
+  externalId: userId,
+  subscriptionId: 'sub_abc123'
+})
+```
+
+## Full Example: Team Seat Management
+
+Here's a complete example showing how to implement team seat management:
+
+```typescript lib/team-seats.ts
+import { flowglad } from './flowglad'
+
+// Check if team can add more members
+export async function canAddTeamMember(orgId: string): Promise<boolean> {
+  const server = flowglad(orgId)
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+  return usage.available > 0
+}
+
+// Get current team capacity status
+export async function getTeamCapacity(orgId: string) {
+  const server = flowglad(orgId)
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+
+  return {
+    used: usage.claimed,
+    total: usage.capacity,
+    remaining: usage.available,
+    percentUsed: Math.round((usage.claimed / usage.capacity) * 100)
+  }
+}
+
+// Add a member to the team
+export async function addMember(
+  orgId: string,
+  userId: string,
+  userEmail: string
+) {
+  const server = flowglad(orgId)
+
+  // Check capacity first
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+  if (usage.available < 1) {
+    return {
+      success: false,
+      error: 'CAPACITY_EXCEEDED',
+      message: `Team is at capacity (${usage.capacity} seats). Upgrade to add more members.`
+    }
+  }
+
+  // Claim the seat (idempotent if user already has one)
+  const result = await server.claimResource({
+    resourceSlug: 'seats',
+    externalId: userId,
+    metadata: { email: userEmail, addedAt: new Date().toISOString() }
+  })
+
+  return {
+    success: true,
+    claim: result.claims[0],
+    remainingSeats: result.usage.available
+  }
+}
+
+// Remove a member from the team
+export async function removeMember(orgId: string, userId: string) {
+  const server = flowglad(orgId)
+
+  const result = await server.releaseResource({
+    resourceSlug: 'seats',
+    externalId: userId
+  })
+
+  return {
+    released: result.claims.length > 0,
+    availableSeats: result.usage.available
+  }
+}
+
+// List all team members with seats
+export async function listTeamMembers(orgId: string) {
+  const server = flowglad(orgId)
+  const { claims } = await server.listResourceClaims({ resourceSlug: 'seats' })
+
+  return claims
+    .filter(c => c.externalId !== null)
+    .map(c => ({
+      userId: c.externalId,
+      email: c.metadata?.email,
+      joinedAt: new Date(c.claimedAt)
+    }))
+}
+```
+
+## Related
+
+- [Subscriptions](/features/subscriptions) - Resources are attached to subscription features
+- [Usage](/features/usage) - For consumption-based tracking instead of allocation
+- [Products](/features/products) - Define resource capacity in product features
+- [SDK Reference](/sdks/server) - Full SDK documentation

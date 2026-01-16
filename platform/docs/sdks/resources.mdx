@@ -1,0 +1,346 @@
+---
+title: "Resources"
+description: "Claim and manage resource allocations with the Flowglad SDK"
+---
+
+## Overview
+
+Resources let you manage claimable capacity like seats, API keys, and project limits. Use `getResourceUsages` and `getResourceUsage` to check capacity, `claimResource` to reserve allocations, `releaseResource` to free them, and `listResourceClaims` to see active claims.
+
+### How to use
+
+- **`getResourceUsages`** (server): Returns all resources and their usage stats for a subscription
+- **`getResourceUsage`** (server): Returns usage for a single resource by slug or ID
+- **`claimResource`** (server): Reserves capacity. Use `quantity` for anonymous claims, `externalId` for named claims
+- **`releaseResource`** (server): Frees capacity. Use `quantity` for FIFO release, `externalId` for named release
+- **`listResourceClaims`** (server): Returns all active claims, optionally filtered by resource
+
+### What you can do
+
+- Check available capacity before allowing users to claim resources
+- Track who has claimed what using named claims with `externalId`
+- Reserve bulk capacity with anonymous claims
+- Release resources when users leave or resources are deleted
+- Display capacity usage in your UI
+
+### Example: Check Resource Capacity
+
+```ts lib/flowglad-utils.ts
+import { flowglad } from '@/utils/flowglad'
+
+export async function checkCapacity(customerExternalId: string) {
+  const server = flowglad(customerExternalId)
+
+  // Get all resource usages
+  const { resources } = await server.getResourceUsages()
+
+  // Or get a single resource
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+
+  return {
+    resources,
+    seatCapacity: usage.capacity,
+    seatsClaimed: usage.claimed,
+    seatsAvailable: usage.available
+  }
+}
+```
+
+### Example: Claim a Resource (Named)
+
+Named claims use an `externalId` to track exactly what each allocation is for. They're idempotent—claiming the same ID twice returns the existing claim.
+
+```ts lib/team-management.ts
+import { flowglad } from '@/utils/flowglad'
+
+export async function addTeamMember(
+  orgExternalId: string,
+  userId: string,
+  userEmail: string
+) {
+  const server = flowglad(orgExternalId)
+
+  const result = await server.claimResource({
+    resourceSlug: 'seats',
+    externalId: userId,
+    metadata: {
+      email: userEmail,
+      addedAt: new Date().toISOString()
+    }
+  })
+
+  return {
+    claim: result.claims[0],
+    seatsRemaining: result.usage.available
+  }
+}
+```
+
+### Example: Claim Resources (Anonymous)
+
+Anonymous claims don't track individual identifiers—just reserve a quantity:
+
+```ts lib/connection-pool.ts
+import { flowglad } from '@/utils/flowglad'
+
+export async function reserveConnections(
+  customerExternalId: string,
+  count: number
+) {
+  const server = flowglad(customerExternalId)
+
+  const result = await server.claimResource({
+    resourceSlug: 'connections',
+    quantity: count
+  })
+
+  return result.claims
+}
+```
+
+### Example: Release a Resource (Named)
+
+Release a specific claim by its `externalId`:
+
+```ts lib/team-management.ts
+import { flowglad } from '@/utils/flowglad'
+
+export async function removeTeamMember(orgExternalId: string, userId: string) {
+  const server = flowglad(orgExternalId)
+
+  const result = await server.releaseResource({
+    resourceSlug: 'seats',
+    externalId: userId
+  })
+
+  return {
+    wasReleased: result.claims.length > 0,
+    seatsNowAvailable: result.usage.available
+  }
+}
+```
+
+### Example: Release Resources (Anonymous)
+
+Release anonymous claims by quantity (FIFO—oldest first):
+
+```ts lib/connection-pool.ts
+import { flowglad } from '@/utils/flowglad'
+
+export async function releaseConnections(
+  customerExternalId: string,
+  count: number
+) {
+  const server = flowglad(customerExternalId)
+
+  const result = await server.releaseResource({
+    resourceSlug: 'connections',
+    quantity: count
+  })
+
+  return result.claims
+}
+```
+
+### Example: List Active Claims
+
+Get all active (unreleased) claims for a resource:
+
+```ts lib/team-management.ts
+import { flowglad } from '@/utils/flowglad'
+
+export async function getTeamMembers(orgExternalId: string) {
+  const server = flowglad(orgExternalId)
+
+  const { claims } = await server.listResourceClaims({
+    resourceSlug: 'seats'
+  })
+
+  return claims.map(claim => ({
+    userId: claim.externalId,
+    email: claim.metadata?.email,
+    claimedAt: new Date(claim.claimedAt)
+  }))
+}
+```
+
+## Server SDK Methods
+
+### `getResourceUsages`
+
+Get all resources and their usage for the customer's subscription.
+
+```ts
+const { resources } = await flowglad(customerExternalId).getResourceUsages()
+// Optional: specify subscription
+const { resources } = await flowglad(customerExternalId).getResourceUsages({
+  subscriptionId: 'sub_123'
+})
+```
+
+**Returns:** `{ resources: ResourceUsage[] }`
+
+### `getResourceUsage`
+
+Get usage for a single resource.
+
+```ts
+const { usage } = await flowglad(customerExternalId).getResourceUsage({
+  resourceSlug: 'seats'
+})
+// Or by ID
+const { usage } = await flowglad(customerExternalId).getResourceUsage({
+  resourceId: 'resource_uuid'
+})
+```
+
+**Returns:** `{ usage: ResourceUsage }`
+
+### `claimResource`
+
+Reserve resource capacity. Choose ONE mode:
+
+```ts
+// Named claim (idempotent)
+const result = await flowglad(customerExternalId).claimResource({
+  resourceSlug: 'seats',
+  externalId: 'user_123',
+  metadata: { name: 'John Doe' }  // optional
+})
+
+// Batch named claims
+const result = await flowglad(customerExternalId).claimResource({
+  resourceSlug: 'seats',
+  externalIds: ['user_123', 'user_456', 'user_789']
+})
+
+// Anonymous claims
+const result = await flowglad(customerExternalId).claimResource({
+  resourceSlug: 'seats',
+  quantity: 3
+})
+```
+
+**Returns:** `{ claims: ResourceClaim[], usage: ResourceUsage }`
+
+### `releaseResource`
+
+Free resource capacity. Choose ONE mode:
+
+```ts
+// Release by external ID
+const result = await flowglad(customerExternalId).releaseResource({
+  resourceSlug: 'seats',
+  externalId: 'user_123'
+})
+
+// Release multiple by external IDs
+const result = await flowglad(customerExternalId).releaseResource({
+  resourceSlug: 'seats',
+  externalIds: ['user_123', 'user_456']
+})
+
+// Release by quantity (FIFO)
+const result = await flowglad(customerExternalId).releaseResource({
+  resourceSlug: 'seats',
+  quantity: 2
+})
+
+// Release by claim IDs
+const result = await flowglad(customerExternalId).releaseResource({
+  resourceSlug: 'seats',
+  claimIds: ['claim_abc', 'claim_def']
+})
+```
+
+**Returns:** `{ claims: ResourceClaim[], usage: ResourceUsage }`
+
+### `listResourceClaims`
+
+List active claims for the subscription.
+
+```ts
+// All claims
+const { claims } = await flowglad(customerExternalId).listResourceClaims()
+
+// Filter by resource
+const { claims } = await flowglad(customerExternalId).listResourceClaims({
+  resourceSlug: 'seats'
+})
+
+// Specific subscription
+const { claims } = await flowglad(customerExternalId).listResourceClaims({
+  subscriptionId: 'sub_123',
+  resourceSlug: 'seats'
+})
+```
+
+**Returns:** `{ claims: ResourceClaim[] }`
+
+## TypeScript Types
+
+```typescript
+interface ResourceUsage {
+  resourceSlug: string    // e.g., "seats"
+  resourceId: string      // UUID
+  capacity: number        // Total limit
+  claimed: number         // Currently reserved
+  available: number       // capacity - claimed
+}
+
+interface ResourceClaim {
+  id: string                         // Claim ID
+  resourceId: string                 // Resource UUID
+  subscriptionId: string             // Subscription UUID
+  externalId: string | null          // Your identifier (null for anonymous)
+  claimedAt: number                  // Unix timestamp (ms)
+  releasedAt: number | null          // null if active
+  releaseReason: string | null
+  metadata: Record<string, unknown> | null
+}
+```
+
+## Handling Errors
+
+### Capacity Exceeded
+
+When a claim would exceed available capacity:
+
+```ts
+try {
+  await server.claimResource({ resourceSlug: 'seats', externalId: userId })
+} catch (error) {
+  if (error.message.includes('capacity')) {
+    // Handle capacity exceeded - prompt user to upgrade
+    return { error: 'CAPACITY_EXCEEDED', message: 'Upgrade to add more seats' }
+  }
+  throw error
+}
+```
+
+### Multiple Subscriptions
+
+When a customer has multiple active subscriptions:
+
+```ts
+try {
+  await server.claimResource({ resourceSlug: 'seats', externalId: userId })
+} catch (error) {
+  if (error.message.includes('multiple active subscriptions')) {
+    // Must specify subscriptionId
+    const billing = await server.getBilling()
+    const subscriptionId = billing.currentSubscriptions[0].id  // or let user choose
+    await server.claimResource({
+      resourceSlug: 'seats',
+      externalId: userId,
+      subscriptionId
+    })
+  }
+}
+```
+
+## Related
+
+- [Resources Feature](/features/resources) - Conceptual overview and setup
+- [Server SDK](/sdks/server) - Full server SDK documentation
+- [Feature Access & Usage](/sdks/feature-access-usage) - Related entitlement checking
