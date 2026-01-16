@@ -200,6 +200,236 @@ describe('bulkInsertUsageEventsTransaction', () => {
         'Usage meter with slug non-existent-slug not found'
       )
     })
+
+    it('should correctly resolve slugs when different customers have prices with the same slug', async () => {
+      // Create a second organization with its own pricing model
+      const org2Setup = await setupOrg()
+      const org2 = org2Setup.organization
+      const pricingModel2Id = org2Setup.pricingModel.id
+      const product2Id = org2Setup.product.id
+
+      // Create customer, payment method, usage meter, price, subscription for org2
+      const customer2 = await setupCustomer({
+        organizationId: org2.id,
+        pricingModelId: pricingModel2Id,
+      })
+
+      const paymentMethod2 = await setupPaymentMethod({
+        organizationId: org2.id,
+        customerId: customer2.id,
+      })
+
+      const usageMeter2 = await setupUsageMeter({
+        organizationId: org2.id,
+        name: 'Org2 Usage Meter',
+        livemode: true,
+        pricingModelId: pricingModel2Id,
+        // Use the same slug as the first org's usage meter
+        slug: usageMeter.slug ?? undefined,
+      })
+
+      const price2 = await setupPrice({
+        productId: product2Id,
+        name: 'Org2 Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 20, // Different unit price
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter2.id,
+        // Use the same slug as the first org's price
+        slug: price.slug ?? undefined,
+      })
+
+      const subscription2 = await setupSubscription({
+        organizationId: org2.id,
+        customerId: customer2.id,
+        paymentMethodId: paymentMethod2.id,
+        priceId: price2.id,
+      })
+
+      // Create billing period for subscription2
+      const now = new Date()
+      const endDate = new Date(now)
+      endDate.setDate(endDate.getDate() + 30)
+      await setupBillingPeriod({
+        subscriptionId: subscription2.id,
+        startDate: now,
+        endDate,
+      })
+
+      // Verify the slugs are the same but IDs are different
+      expect(price.slug).toBe(price2.slug)
+      expect(price.id).not.toBe(price2.id)
+      expect(usageMeter.slug).toBe(usageMeter2.slug)
+      expect(usageMeter.id).not.toBe(usageMeter2.id)
+
+      // Bulk insert events for both customers using the same slug
+      const timestamp = Date.now()
+      const result = await adminTransaction(async ({ transaction }) =>
+        bulkInsertUsageEventsTransaction(
+          {
+            input: {
+              usageEvents: [
+                {
+                  subscriptionId: subscription.id,
+                  priceSlug: price.slug ?? undefined,
+                  amount: 100,
+                  transactionId: `txn_slug_collision_1_${timestamp}`,
+                },
+                {
+                  subscriptionId: subscription2.id,
+                  priceSlug: price2.slug ?? undefined,
+                  amount: 200,
+                  transactionId: `txn_slug_collision_2_${timestamp}`,
+                },
+              ],
+            },
+            livemode: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      )
+
+      const events = result.unwrap().usageEvents
+      expect(events).toHaveLength(2)
+
+      // Find events by subscription - they should exist since we asserted length 2
+      const event1 = events.find(
+        (e) => e.subscriptionId === subscription.id
+      )
+      const event2 = events.find(
+        (e) => e.subscriptionId === subscription2.id
+      )
+
+      // Each event should resolve to the correct price for its customer
+      // Using toMatchObject to verify the relevant fields without non-null assertions
+      expect(event1).toMatchObject({
+        priceId: price.id,
+        usageMeterId: usageMeter.id,
+        customerId: customer.id,
+      })
+
+      expect(event2).toMatchObject({
+        priceId: price2.id,
+        usageMeterId: usageMeter2.id,
+        customerId: customer2.id,
+      })
+    })
+
+    it('should correctly resolve usageMeterSlugs when different customers have meters with the same slug', async () => {
+      // Create a second organization with its own pricing model
+      const org2Setup = await setupOrg()
+      const org2 = org2Setup.organization
+      const pricingModel2Id = org2Setup.pricingModel.id
+
+      // Create customer, payment method, usage meter, subscription for org2
+      const customer2 = await setupCustomer({
+        organizationId: org2.id,
+        pricingModelId: pricingModel2Id,
+      })
+
+      const paymentMethod2 = await setupPaymentMethod({
+        organizationId: org2.id,
+        customerId: customer2.id,
+      })
+
+      const usageMeter2 = await setupUsageMeter({
+        organizationId: org2.id,
+        name: 'Org2 Usage Meter For Meter Slug Test',
+        livemode: true,
+        pricingModelId: pricingModel2Id,
+        // Use the same slug as the first org's usage meter
+        slug: usageMeter.slug ?? undefined,
+      })
+
+      // Create a price for org2 that uses usageMeter2
+      const price2 = await setupPrice({
+        productId: org2Setup.product.id,
+        name: 'Org2 Usage Price For Meter Slug Test',
+        type: PriceType.Usage,
+        unitPrice: 15,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter2.id,
+      })
+
+      const subscription2 = await setupSubscription({
+        organizationId: org2.id,
+        customerId: customer2.id,
+        paymentMethodId: paymentMethod2.id,
+        priceId: price2.id,
+      })
+
+      // Create billing period for subscription2
+      const now = new Date()
+      const endDate = new Date(now)
+      endDate.setDate(endDate.getDate() + 30)
+      await setupBillingPeriod({
+        subscriptionId: subscription2.id,
+        startDate: now,
+        endDate,
+      })
+
+      // Verify the meter slugs are the same but IDs are different
+      expect(usageMeter.slug).toBe(usageMeter2.slug)
+      expect(usageMeter.id).not.toBe(usageMeter2.id)
+
+      // Bulk insert events for both customers using the same usageMeterSlug
+      const timestamp = Date.now()
+      const result = await adminTransaction(async ({ transaction }) =>
+        bulkInsertUsageEventsTransaction(
+          {
+            input: {
+              usageEvents: [
+                {
+                  subscriptionId: subscription.id,
+                  usageMeterSlug: usageMeter.slug ?? undefined,
+                  amount: 300,
+                  transactionId: `txn_meter_slug_collision_1_${timestamp}`,
+                },
+                {
+                  subscriptionId: subscription2.id,
+                  usageMeterSlug: usageMeter2.slug ?? undefined,
+                  amount: 400,
+                  transactionId: `txn_meter_slug_collision_2_${timestamp}`,
+                },
+              ],
+            },
+            livemode: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      )
+
+      const events = result.unwrap().usageEvents
+      expect(events).toHaveLength(2)
+
+      // Find events by subscription - they should exist since we asserted length 2
+      const event1 = events.find(
+        (e) => e.subscriptionId === subscription.id
+      )
+      const event2 = events.find(
+        (e) => e.subscriptionId === subscription2.id
+      )
+
+      // Each event should resolve to the correct meter for its customer
+      // Using toMatchObject to verify the relevant fields without non-null assertions
+      expect(event1).toMatchObject({
+        usageMeterId: usageMeter.id,
+        customerId: customer.id,
+      })
+
+      expect(event2).toMatchObject({
+        usageMeterId: usageMeter2.id,
+        customerId: customer2.id,
+      })
+    })
   })
 
   describe('validation', () => {
