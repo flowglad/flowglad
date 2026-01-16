@@ -67,7 +67,6 @@ export const verifyCustomerContract = async (
     externalId,
     {
       customer: {
-        id: createdCustomer.data.customer.id,
         email: 'test333@example.com',
         name: 'Test User',
       },

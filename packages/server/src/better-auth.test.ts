@@ -151,6 +151,7 @@ describe('flowgladPlugin', () => {
       'updateCustomer',
       'createUsageEvent',
       'getResources',
+      'getResourceUsage',
       'claimResource',
       'releaseResource',
       'listResourceClaims',

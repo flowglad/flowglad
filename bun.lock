@@ -1,10 +1,10 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@flowglad/javascript",
       "dependencies": {
+        "@flowglad/node": "0.28.0",
         "tsx": "4.17.0",
       },
       "devDependencies": {
@@ -27,9 +27,9 @@
     },
     "packages/nextjs": {
       "name": "@flowglad/nextjs",
-      "version": "0.16.2",
+      "version": "0.16.3",
       "dependencies": {
-        "@flowglad/node": "0.27.0",
+        "@flowglad/node": "0.28.0",
         "@flowglad/react": "workspace:*",
         "@flowglad/server": "workspace:*",
         "@flowglad/shared": "workspace:*",
@@ -51,9 +51,9 @@
     },
     "packages/react": {
       "name": "@flowglad/react",
-      "version": "0.16.2",
+      "version": "0.16.3",
       "dependencies": {
-        "@flowglad/node": "0.27.0",
+        "@flowglad/node": "0.28.0",
         "@flowglad/shared": "workspace:*",
         "@tanstack/react-query": "5.66.0",
         "clsx": "2.1.1",
@@ -80,9 +80,9 @@
     },
     "packages/server": {
       "name": "@flowglad/server",
-      "version": "0.16.2",
+      "version": "0.16.3",
       "dependencies": {
-        "@flowglad/node": "0.27.0",
+        "@flowglad/node": "0.28.0",
         "@flowglad/shared": "workspace:*",
         "nanoid": "^3.3.11",
         "zod": "4.1.5",
@@ -106,9 +106,9 @@
     },
     "packages/shared": {
       "name": "@flowglad/shared",
-      "version": "0.16.2",
+      "version": "0.16.3",
       "dependencies": {
-        "@flowglad/node": "0.27.0",
+        "@flowglad/node": "0.28.0",
         "date-fns": "4.1.0",
         "zod": "4.1.5",
       },
@@ -122,7 +122,7 @@
       "version": "1.0.1",
       "dependencies": {
         "@flowglad/nextjs": "workspace:*",
-        "@flowglad/node": "0.27.0",
+        "@flowglad/node": "0.28.0",
         "@flowglad/react": "workspace:*",
         "@flowglad/server": "workspace:*",
         "@flowglad/shared": "workspace:*",
@@ -666,7 +666,7 @@
 
     "@flowglad/nextjs": ["@flowglad/nextjs@workspace:packages/nextjs"],
 
-    "@flowglad/node": ["@flowglad/node@0.27.0", "", {}, "sha512-dcjEhOlzLl39Ch1A2gOs1KW7RBoyDsJ+Lj0yQ6eZiQOF3VsI2zeoiRKGS+Cm0fIxw7UtnqBmPNkpoZEQEyKwnw=="],
+    "@flowglad/node": ["@flowglad/node@0.28.0", "", {}, "sha512-u1Fr4dcseMtorTE/URA5nn8085ocEUbIgf9RcOpT4Amrc+Jgu1xcRDNa4M/ShGWSXaPLhlc3HDQGrxZaBY/dsg=="],
 
     "@flowglad/playground-express": ["@flowglad/playground-express@workspace:playground/express"],
 

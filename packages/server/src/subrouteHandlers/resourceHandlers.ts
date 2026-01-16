@@ -4,10 +4,10 @@ import type { SubRouteHandler } from './types'
 
 /**
  * Handler for getting all resources with their usage for a customer's subscription.
- * Validates HTTP method and delegates to FlowgladServer.getResources().
+ * Validates HTTP method and delegates to FlowgladServer.getResourceUsages().
  */
 export const getResources: SubRouteHandler<
-  FlowgladActionKey.GetResources
+  FlowgladActionKey.GetResourceUsages
 > = async (params, flowgladServer: FlowgladServer) => {
   if (params.method !== HTTPMethod.POST) {
     return {
@@ -21,7 +21,7 @@ export const getResources: SubRouteHandler<
   }
 
   try {
-    const result = await flowgladServer.getResources(params.data)
+    const result = await flowgladServer.getResourceUsages(params.data)
     return {
       data: result,
       status: 200,
@@ -32,6 +32,44 @@ export const getResources: SubRouteHandler<
       status: 500,
       error: {
         code: 'get_resources_failed',
+        json: {
+          message: (error as Error).message,
+        },
+      },
+    }
+  }
+}
+
+/**
+ * Handler for getting usage for a single resource for a customer's subscription.
+ * Validates HTTP method and delegates to FlowgladServer.getResourceUsage().
+ */
+export const getResourceUsage: SubRouteHandler<
+  FlowgladActionKey.GetResourceUsage
+> = async (params, flowgladServer: FlowgladServer) => {
+  if (params.method !== HTTPMethod.POST) {
+    return {
+      data: {},
+      status: 405,
+      error: {
+        code: 'Method not allowed',
+        json: {},
+      },
+    }
+  }
+
+  try {
+    const result = await flowgladServer.getResourceUsage(params.data)
+    return {
+      data: result,
+      status: 200,
+    }
+  } catch (error) {
+    return {
+      data: {},
+      status: 500,
+      error: {
+        code: 'get_resource_usage_failed',
         json: {
           message: (error as Error).message,
         },
