@@ -10,6 +10,11 @@ import 'server-only'
 
 import { SpanKind, trace } from '@opentelemetry/api'
 import { z } from 'zod'
+import { adminTransaction } from '@/db/adminTransaction'
+import {
+  recomputeWithCustomerContext,
+  recomputeWithMerchantContext,
+} from '@/db/recomputeTransaction'
 import type { DbTransaction } from '@/db/types'
 import {
   type CacheDependencyKey,
@@ -334,9 +339,6 @@ export function cachedRecomputable<
     // Set up transaction context and call the cached wrapper (not fn directly)
     // so cache repopulation and TTL refresh occur
     if (transactionContext.type === 'admin') {
-      const { adminTransaction } = await import(
-        '@/db/adminTransaction'
-      )
       return adminTransaction(
         async ({ transaction }) => {
           return cachedWrapper(
@@ -348,9 +350,6 @@ export function cachedRecomputable<
         { livemode: transactionContext.livemode }
       )
     } else if (transactionContext.type === 'merchant') {
-      const { recomputeWithMerchantContext } = await import(
-        '@/db/recomputeTransaction'
-      )
       return recomputeWithMerchantContext(
         transactionContext,
         async (transaction) =>
@@ -362,9 +361,6 @@ export function cachedRecomputable<
       )
     } else {
       // transactionContext.type === 'customer'
-      const { recomputeWithCustomerContext } = await import(
-        '@/db/recomputeTransaction'
-      )
       return recomputeWithCustomerContext(
         transactionContext,
         async (transaction) =>
