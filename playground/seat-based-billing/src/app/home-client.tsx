@@ -62,12 +62,14 @@ export function HomeClient() {
     }
   }, [session?.user?.id, billing])
 
-  // Initialize newQuantity when seat usage loads
+  // Initialize newQuantity when seat usage loads (only run once when capacity becomes available)
+  const hasInitializedQuantity = useRef(false)
   useEffect(() => {
-    if (seatUsage?.capacity && newQuantity !== seatUsage.capacity) {
+    if (seatUsage?.capacity && !hasInitializedQuantity.current) {
       setNewQuantity(seatUsage.capacity)
+      hasInitializedQuantity.current = true
     }
-  }, [seatUsage?.capacity, newQuantity])
+  }, [seatUsage?.capacity])
 
   // Check if user is on free plan and redirect to pricing page
   useEffect(() => {
@@ -162,6 +164,8 @@ export function HomeClient() {
         priceSlug: 'pro_monthly',
         quantity: newQuantity,
       })
+      // Reset initialized flag so the useEffect will update newQuantity after reload
+      hasInitializedQuantity.current = false
       // Reload billing to get updated subscription
       await billing.reload()
     } catch (err) {

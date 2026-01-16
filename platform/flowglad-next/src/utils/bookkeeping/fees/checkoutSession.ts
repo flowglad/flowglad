@@ -101,6 +101,7 @@ export const createCheckoutSessionFeeCalculationInsertForPrice =
     checkoutSessionId: string
     organizationCountry: Country.Record
     livemode: boolean
+    quantity?: number
   }): Promise<FeeCalculation.Insert> => {
     const {
       organization,
@@ -113,8 +114,10 @@ export const createCheckoutSessionFeeCalculationInsertForPrice =
       checkoutSessionId,
       organizationCountry,
       livemode,
+      quantity = 1,
     } = params
-    const base = calculatePriceBaseAmount({ price, purchase })
+    const base =
+      calculatePriceBaseAmount({ price, purchase }) * quantity
     const discountAmt = calculateDiscountAmount(base, discount)
     const insert = createBaseFeeCalculationInsert({
       organization,
@@ -201,6 +204,7 @@ export const createFeeCalculationForCheckoutSession = async (
       billingAddress: checkoutSession.billingAddress,
       paymentMethodType: checkoutSession.paymentMethodType,
       organizationCountry,
+      quantity: checkoutSession.quantity,
     },
     transaction
   )
