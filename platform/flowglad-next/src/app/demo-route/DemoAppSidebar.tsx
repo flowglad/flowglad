@@ -331,7 +331,9 @@ export function DemoAppSidebar({
                 }
               >
                 <span className="truncate">
-                  {!params.livemode ? 'Test Mode ON' : 'Test Mode OFF'}
+                  {!params.livemode
+                    ? 'Test Mode ON'
+                    : 'Test Mode OFF'}
                 </span>
                 {!params.livemode ? (
                   <ToggleRight className="ml-auto size-4" />

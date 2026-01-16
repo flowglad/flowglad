@@ -52,10 +52,16 @@ const emailPreviewMap: Record<EmailType, EmailPreviewRenderer> = {
     <SubscriptionCreatedPreview livemode={livemode} />
   ),
   'subscription-upgraded': ({ isTrialing, livemode }) => (
-    <SubscriptionUpgradedPreview trialing={isTrialing} livemode={livemode} />
+    <SubscriptionUpgradedPreview
+      trialing={isTrialing}
+      livemode={livemode}
+    />
   ),
   'subscription-adjusted-upgrade': ({ livemode }) => (
-    <SubscriptionAdjustedPreview adjustmentType="upgrade" livemode={livemode} />
+    <SubscriptionAdjustedPreview
+      adjustmentType="upgrade"
+      livemode={livemode}
+    />
   ),
   'subscription-adjusted-downgrade': ({ livemode }) => (
     <SubscriptionAdjustedPreview
@@ -70,7 +76,10 @@ const emailPreviewMap: Record<EmailType, EmailPreviewRenderer> = {
     <SubscriptionCancellationScheduledPreview livemode={livemode} />
   ),
   'payment-failed': ({ hasRetry, livemode }) => (
-    <PaymentFailedPreview hasRetryDate={hasRetry} livemode={livemode} />
+    <PaymentFailedPreview
+      hasRetryDate={hasRetry}
+      livemode={livemode}
+    />
   ),
   'billing-portal-otp': ({ livemode }) => (
     <BillingPortalOTPPreview livemode={livemode} />
@@ -89,7 +98,9 @@ const emailPreviewMap: Record<EmailType, EmailPreviewRenderer> = {
     <OrgSubscriptionCanceledPreview livemode={livemode} />
   ),
   'org-subscription-cancellation-scheduled': ({ livemode }) => (
-    <OrgSubscriptionCancellationScheduledPreview livemode={livemode} />
+    <OrgSubscriptionCancellationScheduledPreview
+      livemode={livemode}
+    />
   ),
   // Purchase access
   'purchase-access-token': ({ livemode }) => (

@@ -35,7 +35,9 @@ export const MOCK_PRICES = {
  * Next review: January 2026
  */
 const REFERENCE_YEAR = 2026
-export const PREVIEW_REFERENCE_DATE = new Date(`${REFERENCE_YEAR}-01-15T12:00:00Z`)
+export const PREVIEW_REFERENCE_DATE = new Date(
+  `${REFERENCE_YEAR}-01-15T12:00:00Z`
+)
 
 /** Calculate a future date relative to the reference date */
 export const getFutureDate = (daysFromNow: number): Date => {
