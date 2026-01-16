@@ -30,6 +30,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@flowglad/node": "0.28.0",
     "tsx": "4.17.0"
   },
   "devDependencies": {

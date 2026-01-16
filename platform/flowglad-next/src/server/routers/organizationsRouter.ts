@@ -38,7 +38,10 @@ import {
 } from '@/db/tableUtils'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
 import { protectedProcedure, router } from '@/server/trpc'
-import { RevenueChartIntervalUnit } from '@/types'
+import {
+  RevenueChartIntervalUnit,
+  UsageMeterAggregationType,
+} from '@/types'
 import { getSession } from '@/utils/auth'
 import {
   calculateARR,
@@ -50,6 +53,10 @@ import {
   calculateSubscriberBreakdown,
   getCurrentActiveSubscribers,
 } from '@/utils/billing-dashboard/subscriberCalculationHelpers'
+import {
+  calculateUsageVolumeByInterval,
+  getUsageMetersWithEvents,
+} from '@/utils/billing-dashboard/usageCalculationHelpers'
 import { createOrganizationTransaction } from '@/utils/organizationHelpers'
 import {
   getOrganizationCodebaseMarkdown,
@@ -152,7 +159,7 @@ const getRevenueData = protectedProcedure
 const getMRRCalculationInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
-  granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  granularity: z.enum(RevenueChartIntervalUnit),
   productId: z.string().nullish(),
 })
 
@@ -227,7 +234,7 @@ const getMRRBreakdown = protectedProcedure
 const getActiveSubscribersInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
-  granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  granularity: z.enum(RevenueChartIntervalUnit),
   productId: z.string().nullish(),
 })
 
@@ -301,6 +308,95 @@ const getCurrentSubscribers = protectedProcedure.query(
     }
   )
 )
+
+// Usage volume endpoints for billing dashboard
+const getUsageVolumeInputSchema = z.object({
+  startDate: z.date(),
+  endDate: z.date(),
+  granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  usageMeterId: z.string(),
+  productId: z.string().nullish(),
+})
+
+const getUsageVolume = protectedProcedure
+  .input(getUsageVolumeInputSchema)
+  .output(
+    z.array(
+      z.object({
+        date: z.date(),
+        amount: z.number(),
+      })
+    )
+  )
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        if (!ctx.organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'organizationId is required',
+          })
+        }
+
+        // Validate date range
+        if (input.startDate >= input.endDate) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'startDate must be before endDate',
+          })
+        }
+
+        return calculateUsageVolumeByInterval(
+          ctx.organizationId,
+          {
+            startDate: input.startDate,
+            endDate: input.endDate,
+            granularity: input.granularity,
+            usageMeterId: input.usageMeterId,
+            productId: input.productId ?? undefined,
+            livemode: ctx.livemode,
+          },
+          transaction
+        )
+      }
+    )
+  )
+
+// Empty input - meter list is decoupled from product filter
+const getUsageMetersWithEventsInputSchema = z.object({})
+
+const getUsageMetersWithEventsOutput = z.array(
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    aggregationType: z.nativeEnum(UsageMeterAggregationType),
+    pricingModelId: z.string(), // For future UX enhancements
+  })
+)
+
+const getUsageMetersWithEventsProcedure = protectedProcedure
+  .input(getUsageMetersWithEventsInputSchema)
+  .output(getUsageMetersWithEventsOutput)
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        if (!ctx.organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'organizationId is required',
+          })
+        }
+
+        return getUsageMetersWithEvents(
+          ctx.organizationId,
+          ctx.livemode,
+          transaction
+        )
+      }
+    )
+  )
 
 const getOrganizations = protectedProcedure.query(async ({ ctx }) => {
   return adminTransaction(async ({ transaction }) => {
@@ -615,4 +711,7 @@ export const organizationsRouter = router({
   getActiveSubscribers: getActiveSubscribers,
   getSubscriberBreakdown: getSubscriberBreakdown,
   getCurrentSubscribers: getCurrentSubscribers,
+  // Usage volume endpoints for the billing dashboard
+  getUsageVolume: getUsageVolume,
+  getUsageMetersWithEvents: getUsageMetersWithEventsProcedure,
 })

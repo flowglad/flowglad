@@ -4,6 +4,7 @@ import type { FlowgladServer } from '../FlowgladServer'
 import {
   claimResource,
   getResources,
+  getResourceUsage,
   listResourceClaims,
   releaseResource,
 } from './resourceHandlers'
@@ -38,13 +39,15 @@ const mockResourceClaim = {
  * Creates a mock FlowgladServer for testing handlers
  */
 const createMockFlowgladServer = () => {
-  const mockGetResources = vi.fn()
+  const mockGetResourceUsages = vi.fn()
+  const mockGetResourceUsage = vi.fn()
   const mockClaimResource = vi.fn()
   const mockReleaseResource = vi.fn()
   const mockListResourceClaims = vi.fn()
 
   const server = {
-    getResources: mockGetResources,
+    getResourceUsages: mockGetResourceUsages,
+    getResourceUsage: mockGetResourceUsage,
     claimResource: mockClaimResource,
     releaseResource: mockReleaseResource,
     listResourceClaims: mockListResourceClaims,
@@ -53,7 +56,8 @@ const createMockFlowgladServer = () => {
   return {
     server,
     mocks: {
-      getResources: mockGetResources,
+      getResourceUsages: mockGetResourceUsages,
+      getResourceUsage: mockGetResourceUsage,
       claimResource: mockClaimResource,
       releaseResource: mockReleaseResource,
       listResourceClaims: mockListResourceClaims,
@@ -118,7 +122,7 @@ describe('Resource subroute handlers', () => {
     it('returns { status: 200, data: { resources } } for valid POST request', async () => {
       const { server, mocks } = createMockFlowgladServer()
       const mockResources = [mockResourceUsage]
-      mocks.getResources.mockResolvedValue({
+      mocks.getResourceUsages.mockResolvedValue({
         resources: mockResources,
       })
 
@@ -133,13 +137,13 @@ describe('Resource subroute handlers', () => {
       expect(result.status).toBe(200)
       expect(result.data).toEqual({ resources: mockResources })
       expect(result.error).toBeUndefined()
-      expect(mocks.getResources).toHaveBeenCalledWith({})
+      expect(mocks.getResourceUsages).toHaveBeenCalledWith({})
     })
 
     it('returns { status: 200, data: { resources } } when subscriptionId is provided', async () => {
       const { server, mocks } = createMockFlowgladServer()
       const mockResources = [mockResourceUsage]
-      mocks.getResources.mockResolvedValue({
+      mocks.getResourceUsages.mockResolvedValue({
         resources: mockResources,
       })
 
@@ -153,14 +157,14 @@ describe('Resource subroute handlers', () => {
 
       expect(result.status).toBe(200)
       expect(result.data).toEqual({ resources: mockResources })
-      expect(mocks.getResources).toHaveBeenCalledWith({
+      expect(mocks.getResourceUsages).toHaveBeenCalledWith({
         subscriptionId: 'sub_123',
       })
     })
 
     it('returns { status: 500, error: { code: "get_resources_failed", json: { message } } } when FlowgladServer throws', async () => {
       const { server, mocks } = createMockFlowgladServer()
-      mocks.getResources.mockRejectedValue(
+      mocks.getResourceUsages.mockRejectedValue(
         new Error('No active subscription found for this customer')
       )
 
@@ -184,7 +188,7 @@ describe('Resource subroute handlers', () => {
 
     it('returns { status: 500, error } when server throws ownership error', async () => {
       const { server, mocks } = createMockFlowgladServer()
-      mocks.getResources.mockRejectedValue(
+      mocks.getResourceUsages.mockRejectedValue(
         new Error('Subscription is not owned by the current user')
       )
 
@@ -198,6 +202,179 @@ describe('Resource subroute handlers', () => {
 
       expect(result.status).toBe(500)
       expect(result.error?.code).toBe('get_resources_failed')
+      expect(result.error?.json).toEqual({
+        message: 'Subscription is not owned by the current user',
+      })
+    })
+  })
+
+  describe('getResourceUsage handler', () => {
+    it('returns { status: 405, error: { code: "Method not allowed" } } for GET request', async () => {
+      const { server } = createMockFlowgladServer()
+
+      // Use type assertion to test non-POST method handling
+      const result = await getResourceUsage(
+        {
+          method: HTTPMethod.GET as HTTPMethod.POST,
+          data: { resourceSlug: 'seats' },
+        },
+        server
+      )
+
+      expect(result.status).toBe(405)
+      expect(result.error).toEqual({
+        code: 'Method not allowed',
+        json: {},
+      })
+      expect(result.data).toEqual({})
+    })
+
+    it('returns { status: 405, error } for PUT request', async () => {
+      const { server } = createMockFlowgladServer()
+
+      // Use type assertion to test non-POST method handling
+      const result = await getResourceUsage(
+        {
+          method: HTTPMethod.PUT as HTTPMethod.POST,
+          data: { resourceSlug: 'seats' },
+        },
+        server
+      )
+
+      expect(result.status).toBe(405)
+      expect(result.error?.code).toBe('Method not allowed')
+    })
+
+    it('returns { status: 405, error } for DELETE request', async () => {
+      const { server } = createMockFlowgladServer()
+
+      // Use type assertion to test non-POST method handling
+      const result = await getResourceUsage(
+        {
+          method: HTTPMethod.DELETE as HTTPMethod.POST,
+          data: { resourceSlug: 'seats' },
+        },
+        server
+      )
+
+      expect(result.status).toBe(405)
+      expect(result.error?.code).toBe('Method not allowed')
+    })
+
+    it('returns { status: 200, data: { usage, claims } } for valid POST request with resourceSlug', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+      const mockResponse = {
+        usage: mockResourceUsage,
+        claims: [mockResourceClaim],
+      }
+      mocks.getResourceUsage.mockResolvedValue(mockResponse)
+
+      const result = await getResourceUsage(
+        {
+          method: HTTPMethod.POST,
+          data: { resourceSlug: 'seats' },
+        },
+        server
+      )
+
+      expect(result.status).toBe(200)
+      expect(result.data).toEqual(mockResponse)
+      expect(result.error).toBeUndefined()
+      expect(mocks.getResourceUsage).toHaveBeenCalledWith({
+        resourceSlug: 'seats',
+      })
+    })
+
+    it('returns { status: 200, data: { usage, claims } } for valid POST request with resourceId', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+      const mockResponse = {
+        usage: mockResourceUsage,
+        claims: [mockResourceClaim],
+      }
+      mocks.getResourceUsage.mockResolvedValue(mockResponse)
+
+      const result = await getResourceUsage(
+        {
+          method: HTTPMethod.POST,
+          data: { resourceId: 'res_123' },
+        },
+        server
+      )
+
+      expect(result.status).toBe(200)
+      expect(result.data).toEqual(mockResponse)
+      expect(mocks.getResourceUsage).toHaveBeenCalledWith({
+        resourceId: 'res_123',
+      })
+    })
+
+    it('returns { status: 200, data: { usage, claims } } when subscriptionId is provided', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+      const mockResponse = {
+        usage: mockResourceUsage,
+        claims: [mockResourceClaim],
+      }
+      mocks.getResourceUsage.mockResolvedValue(mockResponse)
+
+      const result = await getResourceUsage(
+        {
+          method: HTTPMethod.POST,
+          data: { resourceSlug: 'seats', subscriptionId: 'sub_123' },
+        },
+        server
+      )
+
+      expect(result.status).toBe(200)
+      expect(result.data).toEqual(mockResponse)
+      expect(mocks.getResourceUsage).toHaveBeenCalledWith({
+        resourceSlug: 'seats',
+        subscriptionId: 'sub_123',
+      })
+    })
+
+    it('returns { status: 500, error: { code: "get_resource_usage_failed", json: { message } } } when FlowgladServer throws', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+      mocks.getResourceUsage.mockRejectedValue(
+        new Error('No active subscription found for this customer')
+      )
+
+      const result = await getResourceUsage(
+        {
+          method: HTTPMethod.POST,
+          data: { resourceSlug: 'seats' },
+        },
+        server
+      )
+
+      expect(result.status).toBe(500)
+      expect(result.error).toEqual({
+        code: 'get_resource_usage_failed',
+        json: {
+          message: 'No active subscription found for this customer',
+        },
+      })
+      expect(result.data).toEqual({})
+    })
+
+    it('returns { status: 500, error } when server throws ownership error', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+      mocks.getResourceUsage.mockRejectedValue(
+        new Error('Subscription is not owned by the current user')
+      )
+
+      const result = await getResourceUsage(
+        {
+          method: HTTPMethod.POST,
+          data: {
+            resourceSlug: 'seats',
+            subscriptionId: 'sub_wrong',
+          },
+        },
+        server
+      )
+
+      expect(result.status).toBe(500)
+      expect(result.error?.code).toBe('get_resource_usage_failed')
       expect(result.error?.json).toEqual({
         message: 'Subscription is not owned by the current user',
       })

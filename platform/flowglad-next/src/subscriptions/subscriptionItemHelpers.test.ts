@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
@@ -444,7 +445,7 @@ describe('subscriptionItemHelpers', () => {
             )
           expect(activeItems.length).toBe(1)
           expect(activeItems[0].priceId).toBe(newPrice.id)
-          return { result: null }
+          return Result.ok(null)
         })
       })
 
@@ -486,7 +487,7 @@ describe('subscriptionItemHelpers', () => {
           expect(activeItems[0].addedDate).toBe(originalAddedDate)
           expect(activeItems[0].name).toBe('Updated Name')
           expect(activeItems[0].expiredAt).toBeNull()
-          return { result: null }
+          return Result.ok(null)
         })
       })
 
@@ -524,7 +525,7 @@ describe('subscriptionItemHelpers', () => {
           ).rejects.toThrow(
             `Cannot update subscription item with id ${fakeId} because it is non-existent`
           )
-          return { result: null }
+          return Result.ok(null)
         })
       })
 
@@ -603,7 +604,7 @@ describe('subscriptionItemHelpers', () => {
           })
           expect(stillActiveManualItem!.manuallyCreated).toBe(true)
           expect(stillActiveManualItem!.expiredAt).toBeNull()
-          return { result: null }
+          return Result.ok(null)
         })
       })
 
@@ -657,7 +658,7 @@ describe('subscriptionItemHelpers', () => {
           expect(activeItems[0].quantity).toBe(5)
           // New item should have a different id than the expired one
           expect(activeItems[0].id).not.toBe(subscriptionItem.id)
-          return { result: null }
+          return Result.ok(null)
         })
       })
     })
@@ -727,7 +728,7 @@ describe('subscriptionItemHelpers', () => {
             FeatureType.UsageCreditGrant
           )
           expect(createdFeatures[0].usageMeterId).toBe(usageMeter.id)
-          return { result: null }
+          return Result.ok(null)
         })
       })
 
@@ -773,7 +774,7 @@ describe('subscriptionItemHelpers', () => {
           expect(preAdjustmentFeatures.length).toBe(1)
           expect(preAdjustmentFeatures[0].id).toBe(manualFeature.id)
           expect(preAdjustmentFeatures[0].expiredAt).toBeNull()
-          return { result: null }
+          return Result.ok(null)
         })
 
         await comprehensiveAdminTransaction(async (ctx) => {
@@ -856,7 +857,7 @@ describe('subscriptionItemHelpers', () => {
               (f) => f.featureId === feature.id
             )
           expect(stillActiveWithSameFeature).toBeUndefined()
-          return { result: null }
+          return Result.ok(null)
         })
       })
     })
@@ -957,7 +958,7 @@ describe('subscriptionItemHelpers', () => {
           expect(ledgerEntries[0].entryType).toBe(
             LedgerEntryType.CreditGrantRecognized
           )
-          return { result: null }
+          return Result.ok(null)
         })
       })
 
@@ -1046,7 +1047,7 @@ describe('subscriptionItemHelpers', () => {
             transaction
           )
           expect(proratedCredits.length).toBe(0)
-          return { result: null }
+          return Result.ok(null)
         })
       })
 
@@ -1139,7 +1140,7 @@ describe('subscriptionItemHelpers', () => {
             transaction
           )
           expect(allManualAdjustmentCredits.length).toBe(1)
-          return { result: null }
+          return Result.ok(null)
         })
       })
 
@@ -1242,7 +1243,7 @@ describe('subscriptionItemHelpers', () => {
           expect(ledgerEntries[0].entryType).toBe(
             LedgerEntryType.CreditGrantRecognized
           )
-          return { result: null }
+          return Result.ok(null)
         })
       })
 
@@ -1347,7 +1348,7 @@ describe('subscriptionItemHelpers', () => {
           expect(creditsAfter[0].status).toBe(
             UsageCreditStatus.Posted
           )
-          return { result: null }
+          return Result.ok(null)
         })
       })
     })
@@ -1379,7 +1380,7 @@ describe('subscriptionItemHelpers', () => {
           )
           expect(expiredItem).toMatchObject({ expiredAt: now })
           expect(expiredItem!.expiredAt).toBe(now)
-          return { result: null }
+          return Result.ok(null)
         })
       })
 
@@ -1426,7 +1427,7 @@ describe('subscriptionItemHelpers', () => {
           expect(
             result.createdOrUpdatedSubscriptionItems[0].priceId
           ).toBe(price.id)
-          return { result: null }
+          return Result.ok(null)
         })
       })
 
@@ -1514,7 +1515,7 @@ describe('subscriptionItemHelpers', () => {
 
           expect(expiredItem1?.expiredAt).toBe(now)
           expect(expiredItem3?.expiredAt).toBe(now)
-          return { result: null }
+          return Result.ok(null)
         })
       })
 
@@ -1595,7 +1596,7 @@ describe('subscriptionItemHelpers', () => {
             0
           )
           expect(totalCredits).toBe(100) // 50 per item × 2 items (prorated)
-          return { result: null }
+          return Result.ok(null)
         })
       })
 
@@ -1674,7 +1675,7 @@ describe('subscriptionItemHelpers', () => {
               UsageCreditSourceReferenceType.ManualAdjustment
           )
           expect(creditsFromAdjustment.length).toBe(1)
-          return { result: null }
+          return Result.ok(null)
         })
       })
     })
@@ -1773,7 +1774,7 @@ describe('subscriptionItemHelpers', () => {
             )
             expect(allCredits.length).toBe(1)
             expect(allCredits[0].issuedAmount).toBe(firstCreditAmount)
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -1877,7 +1878,7 @@ describe('subscriptionItemHelpers', () => {
               transaction
             )
             expect(allCredits.length).toBe(2)
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -1967,7 +1968,7 @@ describe('subscriptionItemHelpers', () => {
             expect(allCredits[0].sourceReferenceId).toBe(
               originalSourceRefId
             )
-            return { result: null }
+            return Result.ok(null)
           })
         })
       })
@@ -2070,7 +2071,7 @@ describe('subscriptionItemHelpers', () => {
             )
             expect(allCredits.length).toBe(1)
             expect(allCredits[0].issuedAmount).toBe(50)
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -2141,7 +2142,7 @@ describe('subscriptionItemHelpers', () => {
             expect(allCredits[0].sourceReferenceId).toBe(
               subItemFeatureIds[0]
             )
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -2245,7 +2246,7 @@ describe('subscriptionItemHelpers', () => {
             expect(allCredits[0].sourceReferenceId).toBe(
               firstSubFeatureId
             )
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -2346,7 +2347,7 @@ describe('subscriptionItemHelpers', () => {
             expect(allCredits.length).toBe(1)
             expect(allCredits[0].issuedAmount).toBe(firstCreditAmount)
             // The credit amount was NOT reduced by later adjustments
-            return { result: null }
+            return Result.ok(null)
           })
         })
       })
@@ -2477,7 +2478,7 @@ describe('subscriptionItemHelpers', () => {
             )
             expect(finalOnceCredits.length).toBe(1)
             expect(finalOnceCredits[0].expiresAt).toBeNull()
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -2575,7 +2576,7 @@ describe('subscriptionItemHelpers', () => {
               transaction
             )
             expect(allCredits.length).toBe(2)
-            return { result: null }
+            return Result.ok(null)
           })
         })
       })
@@ -2659,7 +2660,7 @@ describe('subscriptionItemHelpers', () => {
             expect(allCredits[0].issuedAmount).toBe(
               existingCreditAmount
             )
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -2723,7 +2724,7 @@ describe('subscriptionItemHelpers', () => {
               transaction
             )
             expect(allCredits.length).toBe(1)
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -2796,7 +2797,7 @@ describe('subscriptionItemHelpers', () => {
               0
             )
             expect(totalCredits).toBe(50) // 20 + 30 = 50, which is the prorated amount
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -2872,7 +2873,7 @@ describe('subscriptionItemHelpers', () => {
             )
             expect(allCredits.length).toBe(1)
             expect(allCredits[0].issuedAmount).toBe(50) // Original amount unchanged
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -3014,7 +3015,7 @@ describe('subscriptionItemHelpers', () => {
                 0
               )
             expect(manualAdjustmentTotal).toBe(100) // Exactly the delta amount
-            return { result: null }
+            return Result.ok(null)
           })
         })
       })
@@ -3125,7 +3126,7 @@ describe('subscriptionItemHelpers', () => {
 
             expect(sub1Credits.length).toBe(1)
             expect(sub2Credits.length).toBe(1)
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -3251,7 +3252,7 @@ describe('subscriptionItemHelpers', () => {
                 ctx
               )
             expect(sub2Result2.usageCredits.length).toBe(0) // Deduplicated
-            return { result: null }
+            return Result.ok(null)
           })
         })
       })
@@ -3286,7 +3287,7 @@ describe('subscriptionItemHelpers', () => {
             expect(result.usageCredits.length).toBe(1)
             // 100 credits * (20/30) = 66.67, rounded = 67
             expect(result.usageCredits[0].issuedAmount).toBe(67)
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -3319,7 +3320,7 @@ describe('subscriptionItemHelpers', () => {
             expect(result.usageCredits.length).toBe(1)
             // 100 credits * (10/30) = 33.33, rounded = 33
             expect(result.usageCredits[0].issuedAmount).toBe(33)
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -3352,7 +3353,7 @@ describe('subscriptionItemHelpers', () => {
             expect(result.usageCredits.length).toBe(1)
             // 100 credits * (5/30) = 16.67, rounded = 17
             expect(result.usageCredits[0].issuedAmount).toBe(17)
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -3385,7 +3386,7 @@ describe('subscriptionItemHelpers', () => {
             expect(result.usageCredits.length).toBe(1)
             // 100 credits * (29/30) = 96.67, rounded = 97
             expect(result.usageCredits[0].issuedAmount).toBe(97)
-            return { result: null }
+            return Result.ok(null)
           })
         })
 
@@ -3418,7 +3419,7 @@ describe('subscriptionItemHelpers', () => {
             expect(result.usageCredits.length).toBe(1)
             // 100 credits * (1/30) = 3.33, rounded = 3
             expect(result.usageCredits[0].issuedAmount).toBe(3)
-            return { result: null }
+            return Result.ok(null)
           })
         })
       })

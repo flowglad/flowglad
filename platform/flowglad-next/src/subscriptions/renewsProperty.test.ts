@@ -278,22 +278,22 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         const { billingPeriods, nonRenewingSubscription } =
           await adminTransaction(async ({ transaction }) => {
             // Create a subscription price but set renews to false to simulate non-renewing behavior
-            const {
-              result: { subscription: nonRenewingSubscription },
-            } = await createSubscriptionWorkflow(
-              {
-                organization,
-                customer,
-                product,
-                price: singlePaymentPrice,
-                quantity: 1,
-                livemode: true,
-                startDate: new Date(),
-                interval: IntervalUnit.Month,
-                intervalCount: 1,
-              },
-              createDiscardingEffectsContext(transaction)
-            )
+            const { subscription: nonRenewingSubscription } = (
+              await createSubscriptionWorkflow(
+                {
+                  organization,
+                  customer,
+                  product,
+                  price: singlePaymentPrice,
+                  quantity: 1,
+                  livemode: true,
+                  startDate: new Date(),
+                  interval: IntervalUnit.Month,
+                  intervalCount: 1,
+                },
+                createDiscardingEffectsContext(transaction)
+              )
+            ).unwrap()
 
             const billingPeriods = await selectBillingPeriods(
               { subscriptionId: nonRenewingSubscription.id },
@@ -328,22 +328,22 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
             },
             transaction
           )
-          const {
-            result: { subscription: nonRenewingSubscription },
-          } = await createSubscriptionWorkflow(
-            {
-              organization,
-              customer,
-              product,
-              price: updatedPrice,
-              quantity: 1,
-              livemode: true,
-              startDate: new Date(),
-              interval: IntervalUnit.Month,
-              intervalCount: 1,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
+          const { subscription: nonRenewingSubscription } = (
+            await createSubscriptionWorkflow(
+              {
+                organization,
+                customer,
+                product,
+                price: updatedPrice,
+                quantity: 1,
+                livemode: true,
+                startDate: new Date(),
+                interval: IntervalUnit.Month,
+                intervalCount: 1,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          ).unwrap()
           const billingRuns = await selectBillingRuns(
             { subscriptionId: nonRenewingSubscription.id },
             transaction

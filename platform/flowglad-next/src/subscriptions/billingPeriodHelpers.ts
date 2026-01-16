@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type { StandardBillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
@@ -24,7 +25,6 @@ import {
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type {
   DbTransaction,
   TransactionEffectsContext,
@@ -207,11 +207,14 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
   currentBillingPeriod: BillingPeriod.Record,
   ctx: TransactionEffectsContext
 ): Promise<
-  TransactionOutput<{
-    subscription: Subscription.StandardRecord
-    billingRun: BillingRun.Record | null
-    updatedBillingPeriod: BillingPeriod.Record
-  }>
+  Result<
+    {
+      subscription: Subscription.StandardRecord
+      billingRun: BillingRun.Record | null
+      updatedBillingPeriod: BillingPeriod.Record
+    },
+    Error
+  >
 > => {
   const { transaction, invalidateCache, enqueueLedgerCommand } = ctx
   if (
@@ -243,9 +246,11 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
   }
   let billingRun: BillingRun.Record | null = null
   if (isSubscriptionInTerminalState(subscription.status)) {
-    return {
-      result: { subscription, billingRun, updatedBillingPeriod },
-    }
+    return Result.ok({
+      subscription,
+      billingRun,
+      updatedBillingPeriod,
+    })
   }
   if (
     subscription.cancelScheduledAt &&
@@ -273,13 +278,11 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     invalidateCache(
       CacheDependency.customerSubscriptions(subscription.customerId)
     )
-    return {
-      result: {
-        subscription,
-        billingRun,
-        updatedBillingPeriod,
-      },
-    }
+    return Result.ok({
+      subscription,
+      billingRun,
+      updatedBillingPeriod,
+    })
   }
 
   const allBillingPeriods = await selectBillingPeriods(
@@ -290,9 +293,11 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     (bp) => bp.startDate > currentBillingPeriod.startDate
   )
   if (existingFutureBillingPeriod) {
-    return {
-      result: { subscription, billingRun, updatedBillingPeriod },
-    }
+    return Result.ok({
+      subscription,
+      billingRun,
+      updatedBillingPeriod,
+    })
   }
   const result =
     await attemptToCreateFutureBillingPeriodForSubscription(
@@ -313,13 +318,11 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     invalidateCache(
       CacheDependency.customerSubscriptions(subscription.customerId)
     )
-    return {
-      result: {
-        subscription,
-        billingRun,
-        updatedBillingPeriod,
-      },
-    }
+    return Result.ok({
+      subscription,
+      billingRun,
+      updatedBillingPeriod,
+    })
   }
   const newBillingPeriod = result.billingPeriod
   const paymentMethodId =
@@ -437,9 +440,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     subscriptionId: subscription.id,
     payload: ledgerCommandPayload,
   })
-  return {
-    result: { subscription, billingRun, updatedBillingPeriod },
-  }
+  return Result.ok({ subscription, billingRun, updatedBillingPeriod })
 }
 
 export const createNextBillingPeriodBasedOnPreviousBillingPeriod =

@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupOrg,
@@ -111,7 +112,7 @@ describe('createCustomerBookkeeping', () => {
               enqueueLedgerCommand,
             }
           )
-          return { result: output }
+          return Result.ok(output)
         }
       )
 
@@ -220,7 +221,7 @@ describe('createCustomerBookkeeping', () => {
               enqueueLedgerCommand,
             }
           )
-          return { result: output }
+          return Result.ok(output)
         }
       )
 
@@ -309,7 +310,7 @@ describe('createCustomerBookkeeping', () => {
               enqueueLedgerCommand,
             }
           )
-          return { result: output }
+          return Result.ok(output)
         }
       )
 
@@ -416,7 +417,7 @@ describe('createCustomerBookkeeping', () => {
               enqueueLedgerCommand,
             }
           )
-          return { result: output }
+          return Result.ok(output)
         }
       )
       // expects:
@@ -484,7 +485,7 @@ describe('createCustomerBookkeeping', () => {
               enqueueLedgerCommand,
             }
           )
-          return { result: output }
+          return Result.ok(output)
         }
       )
 
@@ -579,7 +580,7 @@ describe('createCustomerBookkeeping', () => {
                 enqueueLedgerCommand,
               }
             )
-            return { result: null }
+            return Result.ok(null)
           }
         )
       } catch (err: unknown) {
@@ -626,7 +627,7 @@ describe('createCustomerBookkeeping', () => {
                 enqueueLedgerCommand,
               }
             )
-            return { result: null }
+            return Result.ok(null)
           }
         )
       ).rejects.toThrow(
@@ -663,7 +664,7 @@ describe('createCustomerBookkeeping', () => {
               enqueueLedgerCommand,
             }
           )
-          return { result: output }
+          return Result.ok(output)
         }
       )
 
@@ -719,9 +720,9 @@ describe('createCustomerBookkeeping', () => {
       )
 
       // Verify the pricing model has a SinglePayment default price
-      expect(singlePaymentPricingModel.result.defaultPrice.type).toBe(
-        PriceType.SinglePayment
-      )
+      expect(
+        singlePaymentPricingModel.unwrap().defaultPrice.type
+      ).toBe(PriceType.SinglePayment)
 
       // Create a customer without specifying pricing model (uses default)
       const result = await comprehensiveAdminTransaction(
@@ -750,7 +751,7 @@ describe('createCustomerBookkeeping', () => {
               enqueueLedgerCommand,
             }
           )
-          return { result: output }
+          return Result.ok(output)
         }
       )
 
@@ -799,9 +800,9 @@ describe('createCustomerBookkeeping', () => {
       )
 
       // Verify the pricing model has a Subscription default price
-      expect(subscriptionPricingModel.result.defaultPrice.type).toBe(
-        PriceType.Subscription
-      )
+      expect(
+        subscriptionPricingModel.unwrap().defaultPrice.type
+      ).toBe(PriceType.Subscription)
 
       // Create a customer without specifying pricing model (uses default)
       const result = await comprehensiveAdminTransaction(
@@ -830,7 +831,7 @@ describe('createCustomerBookkeeping', () => {
               enqueueLedgerCommand,
             }
           )
-          return { result: output }
+          return Result.ok(output)
         }
       )
 
@@ -923,7 +924,8 @@ describe('createCustomerBookkeeping', () => {
                   organizationId: organization.id,
                   externalId: `ext_${core.nanoid()}`,
                   pricingModelId:
-                    singlePaymentPricingModel.result.pricingModel.id,
+                    singlePaymentPricingModel.unwrap().pricingModel
+                      .id,
                 },
               },
               {
@@ -935,7 +937,7 @@ describe('createCustomerBookkeeping', () => {
                 enqueueLedgerCommand,
               }
             )
-            return { result: output }
+            return Result.ok(output)
           }
         )
 
@@ -963,7 +965,7 @@ describe('createCustomerBookkeeping', () => {
                   organizationId: organization.id,
                   externalId: `ext_${core.nanoid()}`,
                   pricingModelId:
-                    subscriptionPricingModel.result.pricingModel.id,
+                    subscriptionPricingModel.unwrap().pricingModel.id,
                 },
               },
               {
@@ -975,7 +977,7 @@ describe('createCustomerBookkeeping', () => {
                 enqueueLedgerCommand,
               }
             )
-            return { result: output }
+            return Result.ok(output)
           }
         )
 
@@ -1050,46 +1052,46 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify the pricing model was created
-      expect(result.result.pricingModel).toMatchObject({})
-      expect(result.result.pricingModel.name).toBe(
-        'New Pricing Model'
-      )
-      expect(result.result.pricingModel.isDefault).toBe(false)
-      expect(result.result.pricingModel.organizationId).toBe(
+      expect(unwrapped.pricingModel).toMatchObject({})
+      expect(unwrapped.pricingModel.name).toBe('New Pricing Model')
+      expect(unwrapped.pricingModel.isDefault).toBe(false)
+      expect(unwrapped.pricingModel.organizationId).toBe(
         organizationId
       )
-      expect(result.result.pricingModel.livemode).toBe(livemode)
+      expect(unwrapped.pricingModel.livemode).toBe(livemode)
 
       // Verify the default product was created
-      expect(result.result.defaultProduct).toMatchObject({})
-      expect(result.result.defaultProduct.name).toBe('Free Plan')
-      expect(result.result.defaultProduct.slug).toBe('free')
-      expect(result.result.defaultProduct.default).toBe(true)
-      expect(result.result.defaultProduct.pricingModelId).toBe(
-        result.result.pricingModel.id
+      expect(unwrapped.defaultProduct).toMatchObject({})
+      expect(unwrapped.defaultProduct.name).toBe('Free Plan')
+      expect(unwrapped.defaultProduct.slug).toBe('free')
+      expect(unwrapped.defaultProduct.default).toBe(true)
+      expect(unwrapped.defaultProduct.pricingModelId).toBe(
+        unwrapped.pricingModel.id
       )
-      expect(result.result.defaultProduct.organizationId).toBe(
+      expect(unwrapped.defaultProduct.organizationId).toBe(
         organizationId
       )
-      expect(result.result.defaultProduct.livemode).toBe(livemode)
-      expect(result.result.defaultProduct.active).toBe(true)
+      expect(unwrapped.defaultProduct.livemode).toBe(livemode)
+      expect(unwrapped.defaultProduct.active).toBe(true)
 
       // Verify the default price was created
-      expect(result.result.defaultPrice).toMatchObject({})
-      expect(result.result.defaultPrice.productId).toBe(
-        result.result.defaultProduct.id
+      expect(unwrapped.defaultPrice).toMatchObject({})
+      expect(unwrapped.defaultPrice.productId).toBe(
+        unwrapped.defaultProduct.id
       )
-      expect(result.result.defaultPrice.unitPrice).toBe(0)
-      expect(result.result.defaultPrice.isDefault).toBe(true)
-      expect(result.result.defaultPrice.type).toBe(
+      expect(unwrapped.defaultPrice.unitPrice).toBe(0)
+      expect(unwrapped.defaultPrice.isDefault).toBe(true)
+      expect(unwrapped.defaultPrice.type).toBe(
         PriceType.SinglePayment
       )
-      expect(result.result.defaultPrice.intervalUnit).toBe(null)
-      expect(result.result.defaultPrice.intervalCount).toBe(null)
-      expect(result.result.defaultPrice.livemode).toBe(livemode)
-      expect(result.result.defaultPrice.active).toBe(true)
-      expect(result.result.defaultPrice.name).toBe('Free Plan')
+      expect(unwrapped.defaultPrice.intervalUnit).toBe(null)
+      expect(unwrapped.defaultPrice.intervalCount).toBe(null)
+      expect(unwrapped.defaultPrice.livemode).toBe(livemode)
+      expect(unwrapped.defaultPrice.active).toBe(true)
+      expect(unwrapped.defaultPrice.name).toBe('Free Plan')
     })
 
     it('should create a non-default pricing model with default product', async () => {
@@ -1112,12 +1114,14 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify the pricing model is not marked as default (since one already exists)
-      expect(result.result.pricingModel.isDefault).toBe(false)
+      expect(unwrapped.pricingModel.isDefault).toBe(false)
 
       // Verify the default product and price were still created
-      expect(result.result.defaultProduct.default).toBe(true)
-      expect(result.result.defaultPrice.unitPrice).toBe(0)
+      expect(unwrapped.defaultProduct.default).toBe(true)
+      expect(unwrapped.defaultPrice.unitPrice).toBe(0)
     })
 
     it('should use organization default currency for the default price', async () => {
@@ -1141,7 +1145,7 @@ describe('createPricingModelBookkeeping', () => {
       )
 
       // Verify the price uses the organization's default currency
-      expect(result.result.defaultPrice.currency).toBe(
+      expect(result.unwrap().defaultPrice.currency).toBe(
         CurrencyCode.USD
       )
     })
@@ -1185,12 +1189,14 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify the new pricing model is created and is default
-      expect(result.result.pricingModel).toMatchObject({})
-      expect(result.result.pricingModel.name).toBe(
+      expect(unwrapped.pricingModel).toMatchObject({})
+      expect(unwrapped.pricingModel.name).toBe(
         'New Default Pricing Model'
       )
-      expect(result.result.pricingModel.isDefault).toBe(true)
+      expect(unwrapped.pricingModel.isDefault).toBe(true)
 
       // Verify the previous default pricing model is no longer default
       const previousDefaultPricingModel = await adminTransaction(
@@ -1219,7 +1225,7 @@ describe('createPricingModelBookkeeping', () => {
       )
       expect(defaultPricingModels).toHaveLength(1)
       expect(defaultPricingModels[0].id).toBe(
-        result.result.pricingModel.id
+        unwrapped.pricingModel.id
       )
     })
 
@@ -1240,7 +1246,7 @@ describe('createPricingModelBookkeeping', () => {
               livemode: false,
             }
           )
-          return output.result.pricingModel
+          return output.unwrap().pricingModel
         }
       )
 
@@ -1280,7 +1286,7 @@ describe('createPricingModelBookkeeping', () => {
               livemode: true,
             }
           )
-          return output.result.pricingModel
+          return output.unwrap().pricingModel
         }
       )
 
@@ -1385,11 +1391,11 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify the default price uses EUR currency
-      expect(result.result.defaultPrice.currency).toBe(
-        CurrencyCode.EUR
-      )
-      expect(result.result.pricingModel.organizationId).toBe(
+      expect(unwrapped.defaultPrice.currency).toBe(CurrencyCode.EUR)
+      expect(unwrapped.pricingModel.organizationId).toBe(
         eurOrganization.id
       )
     })
@@ -1439,11 +1445,11 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify the default price uses GBP currency
-      expect(result.result.defaultPrice.currency).toBe(
-        CurrencyCode.GBP
-      )
-      expect(result.result.pricingModel.organizationId).toBe(
+      expect(unwrapped.defaultPrice.currency).toBe(CurrencyCode.GBP)
+      expect(unwrapped.pricingModel.organizationId).toBe(
         gbpOrganization.id
       )
     })
@@ -1470,14 +1476,16 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify all default product attributes
-      const defaultProduct = result.result.defaultProduct
+      const defaultProduct = unwrapped.defaultProduct
       expect(defaultProduct.name).toBe('Free Plan')
       expect(defaultProduct.slug).toBe('free')
       expect(defaultProduct.default).toBe(true)
       expect(defaultProduct.description).toBe('Default plan')
       expect(defaultProduct.pricingModelId).toBe(
-        result.result.pricingModel.id
+        unwrapped.pricingModel.id
       )
       expect(defaultProduct.organizationId).toBe(organizationId)
       expect(defaultProduct.livemode).toBe(livemode)
@@ -1508,11 +1516,11 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify all default price attributes
-      const defaultPrice = result.result.defaultPrice
-      expect(defaultPrice.productId).toBe(
-        result.result.defaultProduct.id
-      )
+      const defaultPrice = unwrapped.defaultPrice
+      expect(defaultPrice.productId).toBe(unwrapped.defaultProduct.id)
       expect(defaultPrice.unitPrice).toBe(0)
       expect(defaultPrice.isDefault).toBe(true)
       /**
@@ -1578,10 +1586,12 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify livemode is propagated correctly
-      expect(result.result.pricingModel.livemode).toBe(testLivemode)
-      expect(result.result.defaultProduct.livemode).toBe(testLivemode)
-      expect(result.result.defaultPrice.livemode).toBe(testLivemode)
+      expect(unwrapped.pricingModel.livemode).toBe(testLivemode)
+      expect(unwrapped.defaultProduct.livemode).toBe(testLivemode)
+      expect(unwrapped.defaultPrice.livemode).toBe(testLivemode)
     })
   })
 
@@ -1608,19 +1618,21 @@ describe('createPricingModelBookkeeping', () => {
           }
         )
 
+        const unwrapped = result.unwrap()
+
         // Verify the default price is a subscription with Month interval
-        expect(result.result.defaultPrice.type).toBe(
+        expect(unwrapped.defaultPrice.type).toBe(
           PriceType.Subscription
         )
-        expect(result.result.defaultPrice.intervalUnit).toBe(
+        expect(unwrapped.defaultPrice.intervalUnit).toBe(
           IntervalUnit.Month
         )
-        expect(result.result.defaultPrice.intervalCount).toBe(1)
-        expect(result.result.defaultPrice.unitPrice).toBe(0)
+        expect(unwrapped.defaultPrice.intervalCount).toBe(1)
+        expect(unwrapped.defaultPrice.unitPrice).toBe(0)
         // Additional checks for subscription-specific fields
-        expect(result.result.defaultPrice.name).toBe('Free Plan')
-        expect(result.result.defaultPrice.isDefault).toBe(true)
-        expect(result.result.defaultPrice.active).toBe(true)
+        expect(unwrapped.defaultPrice.name).toBe('Free Plan')
+        expect(unwrapped.defaultPrice.isDefault).toBe(true)
+        expect(unwrapped.defaultPrice.active).toBe(true)
       })
 
       it('should create a subscription price with Year interval when Year is provided', async () => {
@@ -1644,15 +1656,17 @@ describe('createPricingModelBookkeeping', () => {
           }
         )
 
+        const unwrapped = result.unwrap()
+
         // Verify the default price is a subscription with year interval
-        expect(result.result.defaultPrice.type).toBe(
+        expect(unwrapped.defaultPrice.type).toBe(
           PriceType.Subscription
         )
-        expect(result.result.defaultPrice.intervalUnit).toBe(
+        expect(unwrapped.defaultPrice.intervalUnit).toBe(
           IntervalUnit.Year
         )
-        expect(result.result.defaultPrice.intervalCount).toBe(1)
-        expect(result.result.defaultPrice.unitPrice).toBe(0)
+        expect(unwrapped.defaultPrice.intervalCount).toBe(1)
+        expect(unwrapped.defaultPrice.unitPrice).toBe(0)
       })
 
       it('should create a subscription price with Week interval when Week is provided', async () => {
@@ -1677,14 +1691,14 @@ describe('createPricingModelBookkeeping', () => {
         )
 
         // Verify the default price is a subscription with Week interval
-        expect(result.result.defaultPrice.type).toBe(
+        expect(result.unwrap().defaultPrice.type).toBe(
           PriceType.Subscription
         )
-        expect(result.result.defaultPrice.intervalUnit).toBe(
+        expect(result.unwrap().defaultPrice.intervalUnit).toBe(
           IntervalUnit.Week
         )
-        expect(result.result.defaultPrice.intervalCount).toBe(1)
-        expect(result.result.defaultPrice.unitPrice).toBe(0)
+        expect(result.unwrap().defaultPrice.intervalCount).toBe(1)
+        expect(result.unwrap().defaultPrice.unitPrice).toBe(0)
       })
 
       it('should create a subscription price with Day interval when Day is provided', async () => {
@@ -1709,14 +1723,14 @@ describe('createPricingModelBookkeeping', () => {
         )
 
         // Verify the default price is a subscription with Day interval
-        expect(result.result.defaultPrice.type).toBe(
+        expect(result.unwrap().defaultPrice.type).toBe(
           PriceType.Subscription
         )
-        expect(result.result.defaultPrice.intervalUnit).toBe(
+        expect(result.unwrap().defaultPrice.intervalUnit).toBe(
           IntervalUnit.Day
         )
-        expect(result.result.defaultPrice.intervalCount).toBe(1)
-        expect(result.result.defaultPrice.unitPrice).toBe(0)
+        expect(result.unwrap().defaultPrice.intervalCount).toBe(1)
+        expect(result.unwrap().defaultPrice.unitPrice).toBe(0)
       })
 
       it('should always set intervalCount to 1 for subscription prices', async () => {
@@ -1750,11 +1764,15 @@ describe('createPricingModelBookkeeping', () => {
           )
 
           // Verify intervalCount is always 1
-          expect(result.result.defaultPrice.intervalCount).toBe(1)
-          expect(result.result.defaultPrice.intervalCount).not.toBe(2)
-          expect(result.result.defaultPrice.intervalCount).not.toBe(0)
+          expect(result.unwrap().defaultPrice.intervalCount).toBe(1)
+          expect(result.unwrap().defaultPrice.intervalCount).not.toBe(
+            2
+          )
+          expect(result.unwrap().defaultPrice.intervalCount).not.toBe(
+            0
+          )
           expect(
-            typeof result.result.defaultPrice.intervalCount
+            typeof result.unwrap().defaultPrice.intervalCount
           ).toBe('number')
         }
       })
@@ -1783,12 +1801,12 @@ describe('createPricingModelBookkeeping', () => {
         )
 
         // Verify the default price is a single payment
-        expect(result.result.defaultPrice.type).toBe(
+        expect(result.unwrap().defaultPrice.type).toBe(
           PriceType.SinglePayment
         )
-        expect(result.result.defaultPrice.intervalUnit).toBeNull()
-        expect(result.result.defaultPrice.intervalCount).toBeNull()
-        expect(result.result.defaultPrice.unitPrice).toBe(0)
+        expect(result.unwrap().defaultPrice.intervalUnit).toBeNull()
+        expect(result.unwrap().defaultPrice.intervalCount).toBeNull()
+        expect(result.unwrap().defaultPrice.unitPrice).toBe(0)
       })
     })
 
@@ -1822,13 +1840,13 @@ describe('createPricingModelBookkeeping', () => {
         )
 
         // Verify the correct interval unit is set
-        expect(result.result.defaultPrice.type).toBe(
+        expect(result.unwrap().defaultPrice.type).toBe(
           PriceType.Subscription
         )
-        expect(result.result.defaultPrice.intervalUnit).toBe(
+        expect(result.unwrap().defaultPrice.intervalUnit).toBe(
           intervalUnit
         )
-        expect(result.result.defaultPrice.intervalCount).toBe(1)
+        expect(result.unwrap().defaultPrice.intervalCount).toBe(1)
       }
     })
   })

@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
@@ -344,7 +345,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       // - no database transaction should be started
       await expect(
         comprehensiveAuthenticatedTransaction(
-          async () => ({ result: 'should not reach here' }),
+          async () => Result.ok('should not reach here'),
           { apiKey: 'invalid_key_that_does_not_exist' }
         )
       ).rejects.toThrow()
@@ -362,7 +363,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
         async ({ organizationId, userId }) => {
           expect(organizationId).toBe(testOrg1.id)
           expect(userId).toBe(userA.id)
-          return { result: 'comprehensive_success' }
+          return Result.ok('comprehensive_success')
         },
         { apiKey: apiKeyA.token }
       )
@@ -402,7 +403,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       const result = await comprehensiveAuthenticatedTransaction(
         async ({ emitEvent }) => {
           emitEvent(mockEvent)
-          return { result: 'events_processed' }
+          return Result.ok('events_processed')
         },
         { apiKey: apiKeyA.token }
       )
@@ -418,9 +419,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       // - transaction should complete successfully
       // - result should be returned from output.result
       const result = await comprehensiveAuthenticatedTransaction(
-        async () => ({
-          result: 'simple_result',
-        }),
+        async () => Result.ok('simple_result'),
         { apiKey: apiKeyA.token }
       )
       expect(result).toBe('simple_result')
@@ -836,7 +835,7 @@ describe('Error Handling Tests', () => {
         // Also verify comprehensiveAuthenticatedTransaction has the same check
         await expect(
           comprehensiveAuthenticatedTransaction(
-            async () => ({ result: 'should not reach here' }),
+            async () => Result.ok('should not reach here'),
             { __testOnlyOrganizationId: testOrg1.id }
           )
         ).rejects.toThrow(
@@ -999,9 +998,7 @@ describe('Procedure Wrapper Functions', () => {
               'function'
             )
 
-            return {
-              result: 'comprehensive_procedure_success',
-            }
+            return Result.ok('comprehensive_procedure_success')
           }
         )
 

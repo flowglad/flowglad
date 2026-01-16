@@ -21,10 +21,10 @@ import {
   createAddPaymentMethodCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
   createUsageEventSchema,
-  type GetResourcesParams,
   type ListResourceClaimsParams,
   type ReleaseResourceParams,
   type ResourceClaim,
+  type ResourceIdentifier,
   type ResourceUsage,
   type SubscriptionExperimentalFields,
   subscriptionAdjustmentTiming,
@@ -478,10 +478,9 @@ export class FlowgladServer {
             prorateCurrentBillingPeriod: prorate ?? true,
           }
 
-    return this.flowgladNode.post<FlowgladNode.Subscriptions.SubscriptionAdjustResponse>(
-      `/api/v1/subscriptions/${subscriptionId}/adjust`,
-      { body: { adjustment } }
-    )
+    return this.flowgladNode.subscriptions.adjust(subscriptionId, {
+      adjustment,
+    })
   }
 
   public createSubscription = async (
@@ -575,6 +574,26 @@ export class FlowgladServer {
     return { pricingModel: billing.pricingModel }
   }
 
+  private deriveSubscriptionId = async (
+    maybeSubscriptionId?: string
+  ): Promise<string> => {
+    if (maybeSubscriptionId) {
+      return maybeSubscriptionId
+    }
+    const billing = await this.getBilling()
+    const currentSubscriptions = billing.currentSubscriptions ?? []
+    if (currentSubscriptions.length === 0) {
+      throw new Error(
+        'No active subscription found for this customer'
+      )
+    }
+    if (currentSubscriptions.length > 1) {
+      throw new Error(
+        'Customer has multiple active subscriptions. Please specify subscriptionId.'
+      )
+    }
+    return currentSubscriptions[0].id
+  }
   /**
    * Get all resources and their usage for the customer's subscription.
    *
@@ -593,36 +612,24 @@ export class FlowgladServer {
    *
    * @example
    * // Get all resources for the customer's subscription
-   * const { resources } = await flowglad.getResources()
+   * const { resources } = await flowglad.getResourceUsages()
    * for (const resource of resources) {
    *   console.log(`${resource.resourceSlug}: ${resource.claimed}/${resource.capacity} used`)
    * }
    *
    * @example
    * // Get resources for a specific subscription
-   * const { resources } = await flowglad.getResources({ subscriptionId: 'sub_123' })
+   * const { resources } = await flowglad.getResourceUsages({ subscriptionId: 'sub_123' })
    */
-  public getResources = async (
-    params?: GetResourcesParams
+  public getResourceUsages = async (
+    params?: FlowgladNode.ResourceClaims.ResourceClaimListUsagesParams & {
+      subscriptionId?: string
+    }
   ): Promise<{ resources: ResourceUsage[] }> => {
     // Auto-resolve subscriptionId if not provided
-    let subscriptionId = params?.subscriptionId
-    if (!subscriptionId) {
-      const billing = await this.getBilling()
-      const currentSubscriptions = billing.currentSubscriptions ?? []
-      if (currentSubscriptions.length === 0) {
-        throw new Error(
-          'No active subscription found for this customer'
-        )
-      }
-      if (currentSubscriptions.length > 1) {
-        throw new Error(
-          'Customer has multiple active subscriptions. Please specify subscriptionId.'
-        )
-      }
-      subscriptionId = currentSubscriptions[0].id
-    }
-
+    const subscriptionId = await this.deriveSubscriptionId(
+      params?.subscriptionId
+    )
     // Validate ownership
     const { subscription } =
       await this.flowgladNode.subscriptions.retrieve(subscriptionId)
@@ -631,15 +638,64 @@ export class FlowgladServer {
       throw new Error('Subscription is not owned by the current user')
     }
 
-    const response = await this.flowgladNode.get<
-      Array<{ usage: ResourceUsage; claims: unknown[] }>
-    >(`/api/v1/resource-claims/${subscriptionId}/usages`)
+    // The Node SDK doesn't always expose a stable listUsages helper, so we call the API directly.
+    const usages = (await this.flowgladNode.get(
+      `/api/v1/resource-claims/${subscriptionId}/usages`
+    )) as Array<{ usage: ResourceUsage; claims: unknown[] }>
 
     return {
-      resources: response.map((item) => item.usage),
+      resources: usages.map((entry) => entry.usage),
     }
   }
 
+  /**
+   * Get usage for a single resource for the customer's subscription.
+   *
+   * Returns capacity, claimed count, available count, and active claims
+   * for a specific resource identified by slug or ID.
+   *
+   * @param params - Parameters for fetching resource usage
+   * @param params.resourceSlug - The slug identifying the resource type (e.g., 'seats', 'api_keys')
+   * @param params.resourceId - Alternative to resourceSlug: The ID of the resource
+   * @param params.subscriptionId - Optional. Auto-resolved if customer has exactly one active subscription.
+   *
+   * @returns A promise that resolves to an object containing usage data and active claims
+   *
+   * @throws {Error} If the customer is not authenticated
+   * @throws {Error} If no active subscription is found for the customer
+   * @throws {Error} If the customer has multiple active subscriptions and no subscriptionId is provided
+   * @throws {Error} If the specified subscription is not owned by the authenticated customer
+   *
+   * @example
+   * // Get usage for seats resource by slug
+   * const { usage, claims } = await flowglad.getResourceUsage({ resourceSlug: 'seats' })
+   * console.log(`${usage.claimed}/${usage.capacity} seats used`)
+   *
+   * @example
+   * // Get usage for a specific subscription
+   * const { usage, claims } = await flowglad.getResourceUsage({
+   *   resourceSlug: 'seats',
+   *   subscriptionId: 'sub_123'
+   * })
+   */
+  public getResourceUsage = async (
+    params: ResourceIdentifier & { subscriptionId?: string }
+  ): Promise<FlowgladNode.ResourceClaims.ResourceClaimRetrieveUsageResponse> => {
+    const subscriptionId = await this.deriveSubscriptionId(
+      params?.subscriptionId
+    )
+    // Validate ownership
+    const { subscription } =
+      await this.flowgladNode.subscriptions.retrieve(subscriptionId)
+    const { customer } = await this.getCustomer()
+    if (subscription.customerId !== customer.id) {
+      throw new Error('Subscription is not owned by the current user')
+    }
+    return await this.flowgladNode.resourceClaims.retrieveUsage(
+      subscriptionId,
+      params
+    )
+  }
   /**
    * Claim resources from a subscription's capacity.
    *

@@ -1354,7 +1354,8 @@ describe('flowgladActionValidators', () => {
       FlowgladActionKey.CreateSubscription,
       FlowgladActionKey.UpdateCustomer,
       FlowgladActionKey.CreateUsageEvent,
-      FlowgladActionKey.GetResources,
+      FlowgladActionKey.GetResourceUsages,
+      FlowgladActionKey.GetResourceUsage,
       FlowgladActionKey.ClaimResource,
       FlowgladActionKey.ReleaseResource,
       FlowgladActionKey.ListResourceClaims,
@@ -1372,7 +1373,6 @@ describe('flowgladActionValidators', () => {
       )
     }
   })
-
   it('all validators use POST method', () => {
     for (const key of Object.keys(
       flowgladActionValidators
@@ -1382,7 +1382,6 @@ describe('flowgladActionValidators', () => {
       )
     }
   })
-
   it('GetCustomerBilling validator accepts externalId', () => {
     const validator =
       flowgladActionValidators[FlowgladActionKey.GetCustomerBilling]

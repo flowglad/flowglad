@@ -582,7 +582,8 @@ export const selectRichSubscriptionsAndActiveItems = async (
   const allSubscriptionItemFeaturesPromise =
     selectSubscriptionItemFeaturesWithFeatureSlugs(
       activeSubscriptionItemIds,
-      transaction
+      transaction,
+      livemode
     )
 
   const [allSubscriptionItemFeatures, usageMeterBalances] =
