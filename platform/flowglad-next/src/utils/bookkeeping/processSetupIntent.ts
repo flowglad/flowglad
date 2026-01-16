@@ -466,38 +466,41 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     const startDate = Date.now()
     const now = Date.now()
 
-    const output = (
-      await createSubscriptionWorkflow(
-        {
-          stripeSetupIntentId: setupIntent.id,
-          defaultPaymentMethod: paymentMethod,
-          organization,
-          price,
-          customer,
-          interval: price.intervalUnit,
-          intervalCount: price.intervalCount,
-          discountRedemption,
-          /**
-           * If the price has a trial period, set the trial end date to the
-           * end of the period
-           */
-          trialEnd: calculateTrialEnd({
-            hasHadTrial,
-            trialPeriodDays: price.trialPeriodDays,
-          }),
-          startDate,
-          preserveBillingCycleAnchor:
-            checkoutSession.preserveBillingCycleAnchor ?? false,
-          autoStart: true,
-          quantity: checkoutSession.quantity,
-          metadata: checkoutSession.outputMetadata ?? {},
-          name: checkoutSession.outputName ?? undefined,
-          product,
-          livemode: checkoutSession.livemode,
-        },
-        ctx
-      )
-    ).unwrap()
+    const workflowResult = await createSubscriptionWorkflow(
+      {
+        stripeSetupIntentId: setupIntent.id,
+        defaultPaymentMethod: paymentMethod,
+        organization,
+        price,
+        customer,
+        interval: price.intervalUnit,
+        intervalCount: price.intervalCount,
+        discountRedemption,
+        /**
+         * If the price has a trial period, set the trial end date to the
+         * end of the period
+         */
+        trialEnd: calculateTrialEnd({
+          hasHadTrial,
+          trialPeriodDays: price.trialPeriodDays,
+        }),
+        startDate,
+        preserveBillingCycleAnchor:
+          checkoutSession.preserveBillingCycleAnchor ?? false,
+        autoStart: true,
+        quantity: checkoutSession.quantity,
+        metadata: checkoutSession.outputMetadata ?? {},
+        name: checkoutSession.outputName ?? undefined,
+        product,
+        livemode: checkoutSession.livemode,
+      },
+      ctx
+    )
+
+    if (workflowResult.status === 'error') {
+      return Result.err(workflowResult.error)
+    }
+    const output = workflowResult.value
 
     const updatedPurchase = await updatePurchase(
       {
