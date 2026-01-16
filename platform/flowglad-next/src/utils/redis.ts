@@ -220,6 +220,10 @@ const evictionPolicy: Record<
     max: 500000, // One metadata entry per recomputable cache key
     ttl: 86400, // 24 hours - same as dependency registry
   },
+  [RedisKeyNamespace.CacheRecomputeMetadata]: {
+    max: 500000, // One metadata entry per recomputable cache key
+    ttl: 86400, // 24 hours - same as dependency registry
+  },
 }
 
 export const setApiKeyVerificationResult = async (
