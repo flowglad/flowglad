@@ -18,6 +18,61 @@ const DEPENDENCY_REGISTRY_TTL = 86400 // 24 hours - longer than any cache TTL
  */
 export type CacheDependencyKey = string
 
+// Constrain to scalars only - prevents memory explosion
+type SerializableScalar = string | number | boolean
+type SerializableValue = SerializableScalar | SerializableScalar[]
+export type SerializableParams = Record<string, SerializableValue>
+
+// Discriminated union: authenticated requires identity, admin does not
+export type TransactionContext =
+  | { type: 'admin'; livemode: boolean }
+  | {
+      type: 'authenticated'
+      livemode: boolean
+      organizationId: string
+      userId: string
+    }
+
+export interface CacheRecomputeMetadata {
+  namespace: RedisKeyNamespace // Used to look up handler in registry
+  params: SerializableParams // The params object (sans transaction)
+  transactionContext: TransactionContext
+  createdAt: number
+}
+
+export type RecomputeHandler = (
+  params: SerializableParams,
+  transactionContext: TransactionContext
+) => Promise<unknown>
+
+// Namespace-keyed registry - same across all processes
+const recomputeRegistry = new Map<
+  RedisKeyNamespace,
+  RecomputeHandler
+>()
+
+export function registerRecomputeHandler(
+  namespace: RedisKeyNamespace,
+  handler: RecomputeHandler
+): void {
+  recomputeRegistry.set(namespace, handler)
+}
+
+export function getRecomputeHandler(
+  namespace: RedisKeyNamespace
+): RecomputeHandler | undefined {
+  return recomputeRegistry.get(namespace)
+}
+
+/**
+ * Get the Redis key for storing recomputation metadata for a cache key.
+ * Metadata is stored in a parallel key: if cache key is "foo:bar",
+ * metadata key is "cacheRecompute:foo:bar".
+ */
+function recomputeMetadataKey(cacheKey: string): string {
+  return `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
+}
+
 /**
  * Get the Redis key for storing cache keys that depend on a given dependency.
  * Uses Redis Sets to store the mapping: dependency -> Set of cache keys.
@@ -627,6 +682,125 @@ export async function invalidateDependencies(
   } catch (error) {
     // Log but don't throw - invalidation is fire-and-forget
     logger.error('Failed to invalidate cache dependencies', {
+      dependencies,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+}
+
+/**
+ * Recompute a single cache entry using stored metadata.
+ *
+ * This function:
+ * 1. Looks up recomputation metadata for the cache key
+ * 2. If found, looks up the registered handler for that namespace
+ * 3. Calls the handler with the stored params and transaction context
+ *
+ * Error handling:
+ * - If metadata not found: no-op (entry wasn't recomputable)
+ * - If handler not registered: logs warning (process may not have loaded the module)
+ * - If handler throws: logs warning, does not propagate (fail open)
+ */
+export async function recomputeCacheEntry(
+  cacheKey: string
+): Promise<void> {
+  const client = redis()
+
+  try {
+    // Get recomputation metadata
+    const metadataKey = recomputeMetadataKey(cacheKey)
+    const rawMetadata = await client.get(metadataKey)
+
+    if (rawMetadata === null) {
+      // No metadata means this wasn't a recomputable cache entry
+      logger.debug('No recompute metadata for cache key', {
+        cacheKey,
+      })
+      return
+    }
+
+    const metadata: CacheRecomputeMetadata =
+      typeof rawMetadata === 'string'
+        ? JSON.parse(rawMetadata)
+        : rawMetadata
+
+    // Look up handler in registry
+    const handler = getRecomputeHandler(metadata.namespace)
+
+    if (!handler) {
+      logger.warn('No recompute handler registered for namespace', {
+        namespace: metadata.namespace,
+        cacheKey,
+      })
+      return
+    }
+
+    // Call handler with stored params and context
+    await handler(metadata.params, metadata.transactionContext)
+
+    logger.debug('Recomputed cache entry', {
+      cacheKey,
+      namespace: metadata.namespace,
+    })
+  } catch (error) {
+    // Fail open - log warning but don't propagate
+    logger.warn('Failed to recompute cache entry', {
+      cacheKey,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+}
+
+/**
+ * Recompute all cache entries associated with the given dependencies.
+ *
+ * This function:
+ * 1. Collects all cache keys from all dependencies
+ * 2. Deduplicates the cache keys (same key may appear in multiple dependency sets)
+ * 3. Triggers recomputation for each unique cache key
+ *
+ * Called after invalidateDependencies() to trigger fire-and-forget recomputation
+ * for any cache entries that have recomputation metadata.
+ */
+export async function recomputeDependencies(
+  dependencies: CacheDependencyKey[]
+): Promise<void> {
+  if (dependencies.length === 0) return
+
+  const client = redis()
+
+  try {
+    // Collect all cache keys from all dependencies, deduplicating
+    const allCacheKeys = new Set<string>()
+
+    for (const dep of dependencies) {
+      const registryKey = dependencyRegistryKey(dep)
+      const cacheKeys = await client.smembers(registryKey)
+      for (const key of cacheKeys) {
+        allCacheKeys.add(key)
+      }
+    }
+
+    if (allCacheKeys.size === 0) {
+      logger.debug('No cache keys to recompute for dependencies', {
+        dependencies,
+      })
+      return
+    }
+
+    // Trigger recomputation for each unique cache key (fire-and-forget)
+    const recomputePromises = [...allCacheKeys].map((cacheKey) =>
+      recomputeCacheEntry(cacheKey)
+    )
+    await Promise.all(recomputePromises)
+
+    logger.debug('Triggered recomputation for dependencies', {
+      dependencies,
+      cacheKeyCount: allCacheKeys.size,
+    })
+  } catch (error) {
+    // Log but don't throw - recomputation is best-effort
+    logger.error('Failed to recompute dependencies', {
       dependencies,
       error: error instanceof Error ? error.message : String(error),
     })

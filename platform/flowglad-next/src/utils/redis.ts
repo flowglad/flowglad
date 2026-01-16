@@ -156,6 +156,7 @@ export enum RedisKeyNamespace {
   FeaturesBySubscriptionItem = 'featuresBySubscriptionItem',
   MeterBalancesBySubscription = 'meterBalancesBySubscription',
   CacheDependencyRegistry = 'cacheDeps',
+  CacheRecomputeMetadata = 'cacheRecompute',
 }
 
 const evictionPolicy: Record<
@@ -196,6 +197,10 @@ const evictionPolicy: Record<
   },
   [RedisKeyNamespace.CacheDependencyRegistry]: {
     max: 500000, // Higher limit - these are small Sets mapping deps to cache keys
+  },
+  [RedisKeyNamespace.CacheRecomputeMetadata]: {
+    max: 500000, // One metadata entry per recomputable cache key
+    ttl: 86400, // 24 hours - same as dependency registry
   },
 }
 
