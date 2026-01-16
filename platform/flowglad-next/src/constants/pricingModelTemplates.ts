@@ -1902,8 +1902,38 @@ export const AI_MEETING_NOTES_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
       // Usage Meters - None needed for seat-based billing
       usageMeters: [],
 
+      // Resources - defines the "seats" resource for this pricing model
+      resources: [
+        {
+          slug: 'seats',
+          name: 'Seats',
+          active: true,
+        },
+      ],
+
       // Features
       features: [
+        // Resource features - grant seat capacity per product tier
+        {
+          type: FeatureType.Resource,
+          slug: 'business_seats',
+          name: 'Business Plan Seats',
+          description:
+            'Seat allocation for Business plan subscribers',
+          resourceSlug: 'seats',
+          amount: 100,
+          active: true,
+        },
+        {
+          type: FeatureType.Resource,
+          slug: 'enterprise_seats',
+          name: 'Enterprise Plan Seats',
+          description:
+            'Seat allocation for Enterprise plan subscribers',
+          resourceSlug: 'seats',
+          amount: 1000,
+          active: true,
+        },
         // Basic (Free) tier features
         {
           type: FeatureType.Toggle,
@@ -2101,6 +2131,7 @@ export const AI_MEETING_NOTES_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 1400,
           },
           features: [
+            'business_seats',
             'ai_meeting_notes',
             '14_day_history',
             'ai_chat',
@@ -2139,6 +2170,7 @@ export const AI_MEETING_NOTES_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 3500,
           },
           features: [
+            'enterprise_seats',
             'ai_meeting_notes',
             '14_day_history',
             'ai_chat',
