@@ -358,6 +358,15 @@ export const updatePricingModelTransaction = async (
       existing: existingPrice,
       proposed: proposedPrice,
     } of priceDiff.toUpdate) {
+      // Skip no-op updates - only deactivate/recreate if something actually changed
+      const priceUpdateObj = computeUpdateObject(
+        existingPrice,
+        proposedPrice
+      )
+      if (Object.keys(priceUpdateObj).length === 0) {
+        continue
+      }
+
       const existingPriceId = idMaps.prices.get(
         existingPrice.slug ?? ''
       )
