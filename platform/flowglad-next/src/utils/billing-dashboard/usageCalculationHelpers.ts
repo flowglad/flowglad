@@ -187,9 +187,13 @@ async function calculateSumUsage(
     conditions.push(eq(usageEvents.pricingModelId, pricingModelId))
   }
 
+  // Use double AT TIME ZONE 'UTC' to ensure proper timestamptz return:
+  // 1. First AT TIME ZONE 'UTC' converts epoch ms to timestamp at UTC
+  // 2. Second AT TIME ZONE 'UTC' converts timestamp back to timestamptz
+  // This ensures the Postgres driver correctly interprets the result as UTC
   const results = await transaction
     .select({
-      date: sql<Date>`date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC')`.as(
+      date: sql<Date>`(date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')`.as(
         'date'
       ),
       amount: sql<number>`COALESCE(SUM(${usageEvents.amount}), 0)`.as(
@@ -199,10 +203,10 @@ async function calculateSumUsage(
     .from(usageEvents)
     .where(and(...conditions))
     .groupBy(
-      sql`date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC')`
+      sql`(date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')`
     )
     .orderBy(
-      sql`date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC')`
+      sql`(date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')`
     )
 
   const resultMap = new Map<string, number>()
@@ -248,9 +252,13 @@ async function calculateCountDistinctUsage(
     conditions.push(eq(usageEvents.pricingModelId, pricingModelId))
   }
 
+  // Use double AT TIME ZONE 'UTC' to ensure proper timestamptz return:
+  // 1. First AT TIME ZONE 'UTC' converts epoch ms to timestamp at UTC
+  // 2. Second AT TIME ZONE 'UTC' converts timestamp back to timestamptz
+  // This ensures the Postgres driver correctly interprets the result as UTC
   const results = await transaction
     .select({
-      date: sql<Date>`date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC')`.as(
+      date: sql<Date>`(date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')`.as(
         'date'
       ),
       amount:
@@ -261,10 +269,10 @@ async function calculateCountDistinctUsage(
     .from(usageEvents)
     .where(and(...conditions))
     .groupBy(
-      sql`date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC')`
+      sql`(date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')`
     )
     .orderBy(
-      sql`date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC')`
+      sql`(date_trunc(${sql.raw(`'${intervalSql}'`)}, ${usageEvents.usageDate} AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')`
     )
 
   const resultMap = new Map<string, number>()
