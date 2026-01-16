@@ -350,6 +350,72 @@ describe('price flow', () => {
     expect(result.taxAmount).toBe(90) // feeCalculation.taxAmountFixed
     expect(result.totalDueAmount).toBe(990) // calculateTotalDueAmount(feeCalculation)
   })
+
+  it('should multiply base amount by quantity when quantity is greater than 1', async () => {
+    // Arrange: price with unitPrice of 100, quantity of 5
+    const params = {
+      type: 'price' as const,
+      price: mockPrice, // unitPrice: 100
+      invoice: undefined,
+      purchase: undefined,
+      feeCalculation: null,
+      discount: null,
+      quantity: 5,
+    }
+
+    // Act: call function
+    const result = calculateTotalBillingDetails(params)
+
+    // Expect: base amount should be 100 * 5 = 500
+    expect(result.baseAmount).toBe(500)
+    expect(result.subtotalAmount).toBe(500)
+    expect(result.discountAmount).toBe(0)
+    expect(result.taxAmount).toBeNull()
+    expect(result.totalDueAmount).toBe(500)
+  })
+
+  it('should default quantity to 1 when not provided', async () => {
+    // Arrange: price without quantity specified
+    const params = {
+      type: 'price' as const,
+      price: mockPrice, // unitPrice: 100
+      invoice: undefined,
+      purchase: undefined,
+      feeCalculation: null,
+      discount: null,
+      // quantity not provided
+    }
+
+    // Act: call function
+    const result = calculateTotalBillingDetails(params)
+
+    // Expect: base amount should be 100 * 1 = 100
+    expect(result.baseAmount).toBe(100)
+    expect(result.subtotalAmount).toBe(100)
+    expect(result.totalDueAmount).toBe(100)
+  })
+
+  it('should apply discount to quantity-multiplied base amount', async () => {
+    // Arrange: price with unitPrice of 100, quantity of 3, fixed discount of 200
+    const params = {
+      type: 'price' as const,
+      price: mockPrice, // unitPrice: 100
+      invoice: undefined,
+      purchase: undefined,
+      feeCalculation: null,
+      discount: mockDiscount, // fixed 200 discount
+      quantity: 3,
+    }
+
+    // Act: call function
+    const result = calculateTotalBillingDetails(params)
+
+    // Expect: base amount should be 100 * 3 = 300, total due = 300 - 200 = 100
+    expect(result.baseAmount).toBe(300)
+    expect(result.subtotalAmount).toBe(300)
+    expect(result.discountAmount).toBe(200)
+    expect(result.totalDueAmount).toBe(100)
+  })
 })
 
 describe('invoice flow', () => {
