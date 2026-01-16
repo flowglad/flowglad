@@ -378,8 +378,7 @@ const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
  *
  * @param subscriptionId - The subscription ID to fetch items for
  * @param transaction - Database transaction
- * @param livemode - Required for cache key scoping to prevent mixing live/test data
- * @param transactionContext - Transaction context for cache recomputation
+ * @param transactionContext - Transaction context (includes livemode for cache key scoping)
  * @param options.ignoreCache - If true, bypasses cache and fetches directly from database
  * @returns Array of subscription items with their prices
  */
@@ -387,7 +386,6 @@ export const selectSubscriptionItemsWithPricesBySubscriptionId =
   async (
     subscriptionId: string,
     transaction: DbTransaction,
-    livemode: boolean,
     transactionContext: TransactionContext,
     options: { ignoreCache?: boolean } = {}
   ) => {
@@ -398,7 +396,7 @@ export const selectSubscriptionItemsWithPricesBySubscriptionId =
       )
     }
     return selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal(
-      { subscriptionId, livemode },
+      { subscriptionId, livemode: transactionContext.livemode },
       transaction,
       transactionContext
     )

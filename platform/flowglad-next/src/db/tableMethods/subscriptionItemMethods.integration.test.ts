@@ -113,7 +113,6 @@ describeIfRedisKey(
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
             transaction,
-            livemode,
             transactionContext
           )
 
@@ -145,7 +144,6 @@ describeIfRedisKey(
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
             transaction,
-            livemode,
             transactionContext
           )
 
@@ -172,7 +170,6 @@ describeIfRedisKey(
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
             transaction,
-            livemode,
             transactionContext
           )
         expect(result1.length).toBe(1)
@@ -205,7 +202,6 @@ describeIfRedisKey(
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
             transaction,
-            livemode,
             transactionContext
           )
         expect(result2.length).toBe(2)
@@ -230,7 +226,6 @@ describeIfRedisKey(
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             nonExistentId,
             transaction,
-            livemode,
             transactionContext
           )
         expect(result).toEqual([])
@@ -360,7 +355,6 @@ describeIfRedisKey(
         await selectSubscriptionItemsWithPricesBySubscriptionId(
           subscription1.id,
           transaction,
-          livemode,
           transactionContext
         )
       })

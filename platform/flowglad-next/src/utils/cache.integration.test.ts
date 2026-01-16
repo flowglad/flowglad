@@ -1948,7 +1948,6 @@ describeIfRedisKey(
         return selectSubscriptionItemsWithPricesBySubscriptionId(
           subscription.id,
           transaction,
-          true, // livemode
           transactionContext
         )
       })
