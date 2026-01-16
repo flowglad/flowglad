@@ -202,6 +202,23 @@ const isLinkActive = (
   return true
 }
 
+/**
+ * Builds a toggle href for test mode by cloning current query params
+ * and toggling the 'testMode' key based on current state.
+ */
+const buildTestModeHref = (
+  searchParams: URLSearchParams,
+  params: ParsedParams
+): string => {
+  const currentParams = new URLSearchParams(searchParams.toString())
+  if (params.isTestMode) {
+    currentParams.delete('testMode')
+  } else {
+    currentParams.set('testMode', 'true')
+  }
+  return `/demo-route?${currentParams.toString()}`
+}
+
 // ============================================================================
 // Component
 // ============================================================================
@@ -218,15 +235,7 @@ export function DemoAppSidebar({
   }
 
   // Toggle test mode href - preserves all current query params
-  const testModeHref = (() => {
-    const currentParams = new URLSearchParams(searchParams.toString())
-    if (params.isTestMode) {
-      currentParams.delete('testMode')
-    } else {
-      currentParams.set('testMode', 'true')
-    }
-    return `/demo-route?${currentParams.toString()}`
-  })()
+  const testModeHref = buildTestModeHref(searchParams, params)
 
   return (
     <Sidebar collapsible="icon" {...props}>

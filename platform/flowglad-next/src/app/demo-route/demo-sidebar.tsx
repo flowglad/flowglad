@@ -700,16 +700,28 @@ const SidebarMenuBadge = React.forwardRef<
 ))
 SidebarMenuBadge.displayName = 'SidebarMenuBadge'
 
+/**
+ * Fixed width pattern for skeleton items (values between 50-90%).
+ * Used to ensure deterministic rendering across server and client.
+ */
+const SKELETON_WIDTH_PATTERN = [65, 78, 52, 89, 71, 56, 84, 63, 75, 58] as const
+
 const SidebarMenuSkeleton = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<'div'> & {
     showIcon?: boolean
+    /**
+     * Index used to deterministically compute the skeleton width.
+     * Defaults to 0 if not provided.
+     */
+    index?: number
   }
->(({ className, showIcon = false, ...props }, ref) => {
-  // Random width between 50 to 90%.
+>(({ className, showIcon = false, index = 0, ...props }, ref) => {
+  // Deterministic width between 50 to 90% based on index.
   const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
-  }, [])
+    const patternIndex = Math.abs(index) % SKELETON_WIDTH_PATTERN.length
+    return `${SKELETON_WIDTH_PATTERN[patternIndex]}%`
+  }, [index])
 
   return (
     <div
