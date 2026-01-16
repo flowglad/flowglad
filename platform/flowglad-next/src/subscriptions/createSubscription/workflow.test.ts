@@ -1786,8 +1786,9 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       expect(effects.ledgerCommands[0].type).toBe(
         LedgerTransactionType.BillingPeriodTransition
       )
-      expect(workflowResult.unwrap().subscription).toMatchObject({})
-      expect(workflowResult.unwrap().subscription.renews).toBe(false)
+      const result = workflowResult.unwrap()
+      expect(result.subscription).toMatchObject({})
+      expect(result.subscription.renews).toBe(false)
     })
 
     it('should create billing period transition ledger command for free plan subscription', async () => {
@@ -1885,9 +1886,10 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       )
 
       expect(effects.ledgerCommands).toHaveLength(0)
-      expect(workflowResult.unwrap().subscription).toMatchObject({})
+      const result = workflowResult.unwrap()
+      expect(result.subscription).toMatchObject({})
       // Standard subscriptions should renew by default (unless they're default products with non-subscription prices)
-      expect(workflowResult.unwrap().subscription.renews).toBe(true)
+      expect(result.subscription.renews).toBe(true)
     })
 
     it('should NOT create billing period transition ledger command when subscription status is Incomplete', async () => {

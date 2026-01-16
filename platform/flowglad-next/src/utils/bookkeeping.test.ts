@@ -1052,46 +1052,46 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify the pricing model was created
-      expect(result.unwrap().pricingModel).toMatchObject({})
-      expect(result.unwrap().pricingModel.name).toBe(
-        'New Pricing Model'
-      )
-      expect(result.unwrap().pricingModel.isDefault).toBe(false)
-      expect(result.unwrap().pricingModel.organizationId).toBe(
+      expect(unwrapped.pricingModel).toMatchObject({})
+      expect(unwrapped.pricingModel.name).toBe('New Pricing Model')
+      expect(unwrapped.pricingModel.isDefault).toBe(false)
+      expect(unwrapped.pricingModel.organizationId).toBe(
         organizationId
       )
-      expect(result.unwrap().pricingModel.livemode).toBe(livemode)
+      expect(unwrapped.pricingModel.livemode).toBe(livemode)
 
       // Verify the default product was created
-      expect(result.unwrap().defaultProduct).toMatchObject({})
-      expect(result.unwrap().defaultProduct.name).toBe('Free Plan')
-      expect(result.unwrap().defaultProduct.slug).toBe('free')
-      expect(result.unwrap().defaultProduct.default).toBe(true)
-      expect(result.unwrap().defaultProduct.pricingModelId).toBe(
-        result.unwrap().pricingModel.id
+      expect(unwrapped.defaultProduct).toMatchObject({})
+      expect(unwrapped.defaultProduct.name).toBe('Free Plan')
+      expect(unwrapped.defaultProduct.slug).toBe('free')
+      expect(unwrapped.defaultProduct.default).toBe(true)
+      expect(unwrapped.defaultProduct.pricingModelId).toBe(
+        unwrapped.pricingModel.id
       )
-      expect(result.unwrap().defaultProduct.organizationId).toBe(
+      expect(unwrapped.defaultProduct.organizationId).toBe(
         organizationId
       )
-      expect(result.unwrap().defaultProduct.livemode).toBe(livemode)
-      expect(result.unwrap().defaultProduct.active).toBe(true)
+      expect(unwrapped.defaultProduct.livemode).toBe(livemode)
+      expect(unwrapped.defaultProduct.active).toBe(true)
 
       // Verify the default price was created
-      expect(result.unwrap().defaultPrice).toMatchObject({})
-      expect(result.unwrap().defaultPrice.productId).toBe(
-        result.unwrap().defaultProduct.id
+      expect(unwrapped.defaultPrice).toMatchObject({})
+      expect(unwrapped.defaultPrice.productId).toBe(
+        unwrapped.defaultProduct.id
       )
-      expect(result.unwrap().defaultPrice.unitPrice).toBe(0)
-      expect(result.unwrap().defaultPrice.isDefault).toBe(true)
-      expect(result.unwrap().defaultPrice.type).toBe(
+      expect(unwrapped.defaultPrice.unitPrice).toBe(0)
+      expect(unwrapped.defaultPrice.isDefault).toBe(true)
+      expect(unwrapped.defaultPrice.type).toBe(
         PriceType.SinglePayment
       )
-      expect(result.unwrap().defaultPrice.intervalUnit).toBe(null)
-      expect(result.unwrap().defaultPrice.intervalCount).toBe(null)
-      expect(result.unwrap().defaultPrice.livemode).toBe(livemode)
-      expect(result.unwrap().defaultPrice.active).toBe(true)
-      expect(result.unwrap().defaultPrice.name).toBe('Free Plan')
+      expect(unwrapped.defaultPrice.intervalUnit).toBe(null)
+      expect(unwrapped.defaultPrice.intervalCount).toBe(null)
+      expect(unwrapped.defaultPrice.livemode).toBe(livemode)
+      expect(unwrapped.defaultPrice.active).toBe(true)
+      expect(unwrapped.defaultPrice.name).toBe('Free Plan')
     })
 
     it('should create a non-default pricing model with default product', async () => {
@@ -1114,12 +1114,14 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify the pricing model is not marked as default (since one already exists)
-      expect(result.unwrap().pricingModel.isDefault).toBe(false)
+      expect(unwrapped.pricingModel.isDefault).toBe(false)
 
       // Verify the default product and price were still created
-      expect(result.unwrap().defaultProduct.default).toBe(true)
-      expect(result.unwrap().defaultPrice.unitPrice).toBe(0)
+      expect(unwrapped.defaultProduct.default).toBe(true)
+      expect(unwrapped.defaultPrice.unitPrice).toBe(0)
     })
 
     it('should use organization default currency for the default price', async () => {
@@ -1187,12 +1189,14 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify the new pricing model is created and is default
-      expect(result.unwrap().pricingModel).toMatchObject({})
-      expect(result.unwrap().pricingModel.name).toBe(
+      expect(unwrapped.pricingModel).toMatchObject({})
+      expect(unwrapped.pricingModel.name).toBe(
         'New Default Pricing Model'
       )
-      expect(result.unwrap().pricingModel.isDefault).toBe(true)
+      expect(unwrapped.pricingModel.isDefault).toBe(true)
 
       // Verify the previous default pricing model is no longer default
       const previousDefaultPricingModel = await adminTransaction(
@@ -1221,7 +1225,7 @@ describe('createPricingModelBookkeeping', () => {
       )
       expect(defaultPricingModels).toHaveLength(1)
       expect(defaultPricingModels[0].id).toBe(
-        result.unwrap().pricingModel.id
+        unwrapped.pricingModel.id
       )
     })
 
@@ -1387,11 +1391,11 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify the default price uses EUR currency
-      expect(result.unwrap().defaultPrice.currency).toBe(
-        CurrencyCode.EUR
-      )
-      expect(result.unwrap().pricingModel.organizationId).toBe(
+      expect(unwrapped.defaultPrice.currency).toBe(CurrencyCode.EUR)
+      expect(unwrapped.pricingModel.organizationId).toBe(
         eurOrganization.id
       )
     })
@@ -1441,11 +1445,11 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify the default price uses GBP currency
-      expect(result.unwrap().defaultPrice.currency).toBe(
-        CurrencyCode.GBP
-      )
-      expect(result.unwrap().pricingModel.organizationId).toBe(
+      expect(unwrapped.defaultPrice.currency).toBe(CurrencyCode.GBP)
+      expect(unwrapped.pricingModel.organizationId).toBe(
         gbpOrganization.id
       )
     })
@@ -1472,14 +1476,16 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify all default product attributes
-      const defaultProduct = result.unwrap().defaultProduct
+      const defaultProduct = unwrapped.defaultProduct
       expect(defaultProduct.name).toBe('Free Plan')
       expect(defaultProduct.slug).toBe('free')
       expect(defaultProduct.default).toBe(true)
       expect(defaultProduct.description).toBe('Default plan')
       expect(defaultProduct.pricingModelId).toBe(
-        result.unwrap().pricingModel.id
+        unwrapped.pricingModel.id
       )
       expect(defaultProduct.organizationId).toBe(organizationId)
       expect(defaultProduct.livemode).toBe(livemode)
@@ -1510,11 +1516,11 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify all default price attributes
-      const defaultPrice = result.unwrap().defaultPrice
-      expect(defaultPrice.productId).toBe(
-        result.unwrap().defaultProduct.id
-      )
+      const defaultPrice = unwrapped.defaultPrice
+      expect(defaultPrice.productId).toBe(unwrapped.defaultProduct.id)
       expect(defaultPrice.unitPrice).toBe(0)
       expect(defaultPrice.isDefault).toBe(true)
       /**
@@ -1580,12 +1586,12 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify livemode is propagated correctly
-      expect(result.unwrap().pricingModel.livemode).toBe(testLivemode)
-      expect(result.unwrap().defaultProduct.livemode).toBe(
-        testLivemode
-      )
-      expect(result.unwrap().defaultPrice.livemode).toBe(testLivemode)
+      expect(unwrapped.pricingModel.livemode).toBe(testLivemode)
+      expect(unwrapped.defaultProduct.livemode).toBe(testLivemode)
+      expect(unwrapped.defaultPrice.livemode).toBe(testLivemode)
     })
   })
 
@@ -1612,19 +1618,21 @@ describe('createPricingModelBookkeeping', () => {
           }
         )
 
+        const unwrapped = result.unwrap()
+
         // Verify the default price is a subscription with Month interval
-        expect(result.unwrap().defaultPrice.type).toBe(
+        expect(unwrapped.defaultPrice.type).toBe(
           PriceType.Subscription
         )
-        expect(result.unwrap().defaultPrice.intervalUnit).toBe(
+        expect(unwrapped.defaultPrice.intervalUnit).toBe(
           IntervalUnit.Month
         )
-        expect(result.unwrap().defaultPrice.intervalCount).toBe(1)
-        expect(result.unwrap().defaultPrice.unitPrice).toBe(0)
+        expect(unwrapped.defaultPrice.intervalCount).toBe(1)
+        expect(unwrapped.defaultPrice.unitPrice).toBe(0)
         // Additional checks for subscription-specific fields
-        expect(result.unwrap().defaultPrice.name).toBe('Free Plan')
-        expect(result.unwrap().defaultPrice.isDefault).toBe(true)
-        expect(result.unwrap().defaultPrice.active).toBe(true)
+        expect(unwrapped.defaultPrice.name).toBe('Free Plan')
+        expect(unwrapped.defaultPrice.isDefault).toBe(true)
+        expect(unwrapped.defaultPrice.active).toBe(true)
       })
 
       it('should create a subscription price with Year interval when Year is provided', async () => {
@@ -1648,15 +1656,17 @@ describe('createPricingModelBookkeeping', () => {
           }
         )
 
+        const unwrapped = result.unwrap()
+
         // Verify the default price is a subscription with year interval
-        expect(result.unwrap().defaultPrice.type).toBe(
+        expect(unwrapped.defaultPrice.type).toBe(
           PriceType.Subscription
         )
-        expect(result.unwrap().defaultPrice.intervalUnit).toBe(
+        expect(unwrapped.defaultPrice.intervalUnit).toBe(
           IntervalUnit.Year
         )
-        expect(result.unwrap().defaultPrice.intervalCount).toBe(1)
-        expect(result.unwrap().defaultPrice.unitPrice).toBe(0)
+        expect(unwrapped.defaultPrice.intervalCount).toBe(1)
+        expect(unwrapped.defaultPrice.unitPrice).toBe(0)
       })
 
       it('should create a subscription price with Week interval when Week is provided', async () => {
