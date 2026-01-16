@@ -225,6 +225,7 @@ function collectSlugResolutionEvents(
 }
 
 // Step 3: Resolve price slugs to IDs
+// Uses composite key (customerId:slug) to avoid collisions across customers
 async function resolvePriceSlugs(
   context: WithSlugEventsContext
 ): Promise<
@@ -257,7 +258,11 @@ async function resolvePriceSlugs(
         })
       )
     }
-    slugToPriceIdMap.set(event.slug, foundPrice.id)
+    // Use composite key to avoid slug collisions across customers
+    slugToPriceIdMap.set(
+      `${event.customerId}:${event.slug}`,
+      foundPrice.id
+    )
   }
 
   return Result.ok({
@@ -267,6 +272,7 @@ async function resolvePriceSlugs(
 }
 
 // Step 4: Resolve usage meter slugs to IDs
+// Uses composite key (customerId:slug) to avoid collisions across customers
 async function resolveUsageMeterSlugs(
   context: WithSlugEventsContext & {
     slugToPriceIdMap: Map<string, string>
@@ -295,7 +301,11 @@ async function resolveUsageMeterSlugs(
         })
       )
     }
-    slugToUsageMeterIdMap.set(event.slug, meter.id)
+    // Use composite key to avoid slug collisions across customers
+    slugToUsageMeterIdMap.set(
+      `${event.customerId}:${event.slug}`,
+      meter.id
+    )
   }
 
   return Result.ok({
@@ -306,6 +316,7 @@ async function resolveUsageMeterSlugs(
 }
 
 // Step 5: Apply resolved IDs to events
+// Uses composite key (customerId:slug) to look up IDs from the maps
 function resolveEventIdentifiers(
   context: WithResolvedSlugsContext
 ): Result<WithResolvedEventsContext, TRPCError> {
@@ -313,6 +324,7 @@ function resolveEventIdentifiers(
     usageInsertsWithoutBillingPeriodId,
     slugToPriceIdMap,
     slugToUsageMeterIdMap,
+    subscriptionsMap,
   } = context
 
   const resolvedUsageEvents: ResolvedUsageEvent[] =
@@ -320,20 +332,36 @@ function resolveEventIdentifiers(
       let priceId: string | null = null
       let usageMeterId: string | undefined = undefined
 
+      // Get customerId from subscription for composite key lookup
+      const subscription = subscriptionsMap.get(
+        usageEvent.subscriptionId
+      )
+      const customerId = subscription?.customerId
+
       if ('priceId' in usageEvent && usageEvent.priceId) {
         priceId = usageEvent.priceId
-      } else if ('priceSlug' in usageEvent && usageEvent.priceSlug) {
-        priceId = slugToPriceIdMap.get(usageEvent.priceSlug) ?? null
+      } else if (
+        'priceSlug' in usageEvent &&
+        usageEvent.priceSlug &&
+        customerId
+      ) {
+        // Use composite key (customerId:slug) to look up price ID
+        priceId =
+          slugToPriceIdMap.get(
+            `${customerId}:${usageEvent.priceSlug}`
+          ) ?? null
       }
 
       if ('usageMeterId' in usageEvent && usageEvent.usageMeterId) {
         usageMeterId = usageEvent.usageMeterId
       } else if (
         'usageMeterSlug' in usageEvent &&
-        usageEvent.usageMeterSlug
+        usageEvent.usageMeterSlug &&
+        customerId
       ) {
+        // Use composite key (customerId:slug) to look up meter ID
         usageMeterId = slugToUsageMeterIdMap.get(
-          usageEvent.usageMeterSlug
+          `${customerId}:${usageEvent.usageMeterSlug}`
         )
       }
 
