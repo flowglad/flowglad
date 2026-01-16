@@ -1364,6 +1364,7 @@ export const setupCheckoutSession = async ({
 
 export const setupDiscount = async ({
   organizationId,
+  pricingModelId,
   name,
   amount,
   amountType = DiscountAmountType.Percent,
@@ -1371,6 +1372,7 @@ export const setupDiscount = async ({
   code,
 }: {
   organizationId: string
+  pricingModelId: string
   name: string
   amount: number
   code: string
@@ -1381,6 +1383,7 @@ export const setupDiscount = async ({
     return insertDiscount(
       {
         organizationId,
+        pricingModelId,
         name,
         amount,
         livemode,

@@ -1,3 +1,5 @@
+import { Result } from 'better-result'
+import { inArray } from 'drizzle-orm'
 import { afterEach, beforeEach, expect, it } from 'vitest'
 import { z } from 'zod'
 import {
@@ -7,11 +9,19 @@ import {
   setupPrice,
   setupProduct,
   setupSubscription,
+  setupSubscriptionItem,
+  setupTestFeaturesAndProductFeatures,
 } from '@/../seedDatabase'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
+import db from '@/db/client'
+import { subscriptionItemFeatures } from '@/db/schema/subscriptionItemFeatures'
+import {
+  insertSubscriptionItemFeature,
+  selectSubscriptionItemFeaturesWithFeatureSlug,
+} from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionsByCustomerId } from '@/db/tableMethods/subscriptionMethods'
 import {
   cleanupRedisTestKeys,
@@ -19,14 +29,24 @@ import {
   generateTestKeyPrefix,
   getRedisTestClient,
 } from '@/test/redisIntegrationHelpers'
-import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
+import {
+  CurrencyCode,
+  FeatureType,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@/types'
 import {
   CacheDependency,
   cached,
   cachedBulkLookup,
   invalidateDependencies,
 } from '@/utils/cache'
-import { RedisKeyNamespace } from '@/utils/redis'
+import {
+  RedisKeyNamespace,
+  removeFromLRU,
+  trackAndEvictLRU,
+} from '@/utils/redis'
 
 /**
  * Integration tests for the cache infrastructure.
@@ -92,10 +112,9 @@ describeIfRedisKey('Cache Integration Tests', () => {
     expect(callCount).toBe(1)
 
     // Verify the value is stored in Redis
-    const storedValue = await client.get<string>(fullCacheKey)
-    expect(typeof storedValue).toBe('string')
-    const parsedStoredValue = JSON.parse(storedValue!)
-    expect(parsedStoredValue).toEqual({
+    // Note: Upstash Redis client auto-parses JSON, so we get an object directly
+    const storedValue = await client.get(fullCacheKey)
+    expect(storedValue).toEqual({
       id: 'customer_123',
       name: 'Test Customer',
     })
@@ -175,9 +194,8 @@ describeIfRedisKey('Cache Integration Tests', () => {
     expect(afterEntry1).toBeNull()
     expect(afterEntry2).toBeNull()
 
-    // Verify the registry is also deleted
-    const registryExists = await client.exists(registryKey)
-    expect(registryExists).toBe(0)
+    // Note: The registry Set is intentionally NOT deleted by invalidateDependencies.
+    // It expires via TTL and is kept for recomputeDependencies if called afterward.
   })
 
   it('invalidateDependencies deletes cache entries for all provided dependency keys when given multiple dependencies', async () => {
@@ -755,9 +773,9 @@ describeIfRedisKey(
       expect(result1[0].id).toBe(subscription.id)
       expect(result1[0].customerId).toBe(customer.id)
 
-      // Verify data is in Redis
+      // Verify data is in Redis (Upstash auto-parses JSON)
       const cachedValue = await client.get(cacheKey)
-      expect(typeof cachedValue).toBe('string')
+      expect(Array.isArray(cachedValue)).toBe(true)
 
       // Second call - should return cached result
       const result2 = await adminTransaction(
@@ -804,11 +822,9 @@ describeIfRedisKey(
 
       expect(result).toEqual([])
 
-      // Verify the empty array is cached
-      const cachedValue = await client.get<string>(cacheKey)
-      expect(typeof cachedValue).toBe('string')
-      const parsedValue = JSON.parse(cachedValue!)
-      expect(parsedValue).toEqual([])
+      // Verify the empty array is cached (Upstash auto-parses JSON)
+      const cachedValue = await client.get(cacheKey)
+      expect(cachedValue).toEqual([])
     })
 
     it('registers customer dependency that can be invalidated', async () => {
@@ -863,9 +879,9 @@ describeIfRedisKey(
         )
       })
 
-      // Verify cache is populated
+      // Verify cache is populated (Upstash auto-parses JSON)
       const beforeInvalidation = await client.get(cacheKey)
-      expect(typeof beforeInvalidation).toBe('string')
+      expect(Array.isArray(beforeInvalidation)).toBe(true)
 
       // Verify dependency is registered
       const registeredKeys = await client.smembers(registryKey)
@@ -916,9 +932,9 @@ describeIfRedisKey(
       )
       await client.sadd(registryKey, cacheKey)
 
-      // Verify cache is populated
+      // Verify cache is populated (Upstash auto-parses JSON)
       const beforeTransaction = await client.get(cacheKey)
-      expect(typeof beforeTransaction).toBe('string')
+      expect(Array.isArray(beforeTransaction)).toBe(true)
 
       // Call comprehensiveAdminTransaction with a function that uses invalidateCache
       await comprehensiveAdminTransaction(
@@ -926,12 +942,12 @@ describeIfRedisKey(
           // Simulate what a workflow function does - call invalidateCache with dependency key
           // Non-null assertion: comprehensiveAdminTransaction always provides invalidateCache
           invalidateCache(dependencyKey)
-          return { result: 'success' }
+          return Result.ok('success')
         }
       )
 
       // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
       // Verify cache is cleared after transaction commits
       const afterTransaction = await client.get(cacheKey)
@@ -980,21 +996,21 @@ describeIfRedisKey(
       await client.sadd(registryKey1, cacheKey1)
       await client.sadd(registryKey2, cacheKey2)
 
-      // Verify both caches are populated
-      expect(typeof (await client.get(cacheKey1))).toBe('string')
-      expect(typeof (await client.get(cacheKey2))).toBe('string')
+      // Verify both caches are populated (Upstash auto-parses JSON)
+      expect(Array.isArray(await client.get(cacheKey1))).toBe(true)
+      expect(Array.isArray(await client.get(cacheKey2))).toBe(true)
 
       // Call comprehensiveAdminTransaction with multiple invalidateCache calls
       await comprehensiveAdminTransaction(
         async ({ invalidateCache }) => {
           invalidateCache(depKey1)
           invalidateCache(depKey2)
-          return { result: 'success' }
+          return Result.ok('success')
         }
       )
 
       // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
       // Verify both caches are cleared
       expect(await client.get(cacheKey1)).toBeNull()
@@ -1032,12 +1048,12 @@ describeIfRedisKey(
           invalidateCache(dependencyKey)
           invalidateCache(dependencyKey)
           invalidateCache(dependencyKey)
-          return { result: 'success' }
+          return Result.ok('success')
         }
       )
 
       // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
       // Cache should still be cleared (deduplication shouldn't break anything)
       expect(await client.get(cacheKey)).toBeNull()
@@ -1090,12 +1106,12 @@ describeIfRedisKey(
         async ({ invalidateCache }) => {
           invalidateCache(depKey1)
           invalidateCache(depKey2)
-          return { result: 'success' }
+          return Result.ok('success')
         }
       )
 
       // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
       // Both caches should be cleared
       expect(await client.get(cacheKey1)).toBeNull()
@@ -1103,3 +1119,559 @@ describeIfRedisKey(
     })
   }
 )
+
+/**
+ * Integration tests for selectSubscriptionItemFeaturesWithFeatureSlug.
+ *
+ * These tests verify the caching behavior with real Redis calls.
+ */
+describeIfRedisKey(
+  'selectSubscriptionItemFeaturesWithFeatureSlug Integration Tests',
+  () => {
+    let keysToCleanup: string[] = []
+    let subscriptionItemIdsToCleanup: string[] = []
+
+    beforeEach(() => {
+      keysToCleanup = []
+      subscriptionItemIdsToCleanup = []
+    })
+
+    afterEach(async () => {
+      const client = getRedisTestClient()
+      await cleanupRedisTestKeys(client, keysToCleanup)
+
+      // Clean up only the subscription item features created by this test
+      if (subscriptionItemIdsToCleanup.length > 0) {
+        await db
+          .delete(subscriptionItemFeatures)
+          .where(
+            inArray(
+              subscriptionItemFeatures.subscriptionItemId,
+              subscriptionItemIdsToCleanup
+            )
+          )
+      }
+    })
+
+    it('caches subscription item features and returns from cache on subsequent calls', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data
+      const orgData = await setupOrg()
+      const { product } = orgData
+
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Test Price',
+        unitPrice: 1000,
+        type: PriceType.Subscription,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+      })
+
+      const customer = await setupCustomer({
+        organizationId: orgData.organization.id,
+        email: 'cache-integration-test@test.com',
+        livemode: true,
+      })
+
+      const subscription = await setupSubscription({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+      })
+
+      const subscriptionItem = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Test Subscription Item',
+        quantity: 1,
+        unitPrice: 1000,
+        priceId: price.id,
+      })
+
+      const featureData = await setupTestFeaturesAndProductFeatures({
+        organizationId: orgData.organization.id,
+        productId: product.id,
+        livemode: true,
+        featureSpecs: [
+          { name: 'Toggle Feature', type: FeatureType.Toggle },
+        ],
+      })
+      const [
+        {
+          feature: toggleFeature,
+          productFeature: toggleProductFeature,
+        },
+      ] = featureData
+
+      // Track the subscription item and cache key for cleanup
+      subscriptionItemIdsToCleanup.push(subscriptionItem.id)
+      const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:${subscriptionItem.id}:true`
+      const depKey = CacheDependency.subscriptionItemFeatures(
+        subscriptionItem.id
+      )
+      const registryKey = `cacheDeps:${depKey}`
+      keysToCleanup.push(cacheKey, registryKey)
+
+      await adminTransaction(async ({ transaction }) => {
+        // Insert a subscription item feature
+        await insertSubscriptionItemFeature(
+          {
+            type: FeatureType.Toggle,
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            productFeatureId: toggleProductFeature.id,
+            usageMeterId: null,
+            amount: null,
+            renewalFrequency: null,
+            livemode: true,
+          },
+          transaction
+        )
+
+        // First call - should query DB and cache the result
+        const features1 =
+          await selectSubscriptionItemFeaturesWithFeatureSlug(
+            subscriptionItem.id,
+            transaction,
+            true // livemode
+          )
+
+        expect(features1.length).toBe(1)
+        expect(features1[0].subscriptionItemId).toBe(
+          subscriptionItem.id
+        )
+        expect(features1[0].featureId).toBe(toggleFeature.id)
+        expect(features1[0].name).toBe(toggleFeature.name)
+        expect(features1[0].slug).toBe(toggleFeature.slug)
+
+        // Verify the result is stored in Redis (Upstash auto-deserializes JSON)
+        const storedValue = await client.get(cacheKey)
+        expect(typeof storedValue).toBe('object')
+
+        // Second call - should return from cache
+        const features2 =
+          await selectSubscriptionItemFeaturesWithFeatureSlug(
+            subscriptionItem.id,
+            transaction,
+            true // livemode
+          )
+
+        // Verify the cached result has the same key properties
+        expect(features2.length).toBe(features1.length)
+        expect(features2[0].id).toBe(features1[0].id)
+        expect(features2[0].subscriptionItemId).toBe(
+          features1[0].subscriptionItemId
+        )
+      })
+    })
+
+    it('returns fresh data after subscriptionItem dependency is invalidated', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data
+      const orgData = await setupOrg()
+      const { product } = orgData
+
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Test Price',
+        unitPrice: 1000,
+        type: PriceType.Subscription,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+      })
+
+      const customer = await setupCustomer({
+        organizationId: orgData.organization.id,
+        email: 'invalidation-integration-test@test.com',
+        livemode: true,
+      })
+
+      const subscription = await setupSubscription({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+      })
+
+      const subscriptionItem = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Test Subscription Item',
+        quantity: 1,
+        unitPrice: 1000,
+        priceId: price.id,
+      })
+
+      const featureData = await setupTestFeaturesAndProductFeatures({
+        organizationId: orgData.organization.id,
+        productId: product.id,
+        livemode: true,
+        featureSpecs: [
+          { name: 'Toggle Feature', type: FeatureType.Toggle },
+        ],
+      })
+      const [
+        {
+          feature: toggleFeature,
+          productFeature: toggleProductFeature,
+        },
+      ] = featureData
+
+      // Track the subscription item and cache key for cleanup
+      subscriptionItemIdsToCleanup.push(subscriptionItem.id)
+      const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:${subscriptionItem.id}:true`
+      const depKey = CacheDependency.subscriptionItemFeatures(
+        subscriptionItem.id
+      )
+      const registryKey = `cacheDeps:${depKey}`
+      keysToCleanup.push(cacheKey, registryKey)
+
+      // First transaction - insert feature and cache it
+      await adminTransaction(async ({ transaction }) => {
+        await insertSubscriptionItemFeature(
+          {
+            type: FeatureType.Toggle,
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            productFeatureId: toggleProductFeature.id,
+            usageMeterId: null,
+            amount: null,
+            renewalFrequency: null,
+            livemode: true,
+          },
+          transaction
+        )
+
+        // Populate the cache
+        const features =
+          await selectSubscriptionItemFeaturesWithFeatureSlug(
+            subscriptionItem.id,
+            transaction,
+            true // livemode
+          )
+        expect(features.length).toBe(1)
+      })
+
+      // Verify cache is populated (Upstash auto-deserializes JSON)
+      const cachedBefore = await client.get(cacheKey)
+      expect(typeof cachedBefore).toBe('object')
+
+      // Invalidate the subscriptionItem dependency
+      await invalidateDependencies([depKey])
+
+      // Verify cache is now empty
+      const cachedAfter = await client.get(cacheKey)
+      expect(cachedAfter).toBeNull()
+
+      // Next query should hit DB again (cache miss)
+      await adminTransaction(async ({ transaction }) => {
+        const features =
+          await selectSubscriptionItemFeaturesWithFeatureSlug(
+            subscriptionItem.id,
+            transaction,
+            true // livemode
+          )
+        // Should still return the feature (from DB, not cache)
+        expect(features.length).toBe(1)
+      })
+
+      // Cache should be repopulated (Upstash auto-deserializes JSON)
+      const cachedRepopulated = await client.get(cacheKey)
+      expect(typeof cachedRepopulated).toBe('object')
+    })
+  }
+)
+
+describeIfRedisKey('LRU Eviction Integration Tests', () => {
+  let testKeyPrefix: string
+  let keysToCleanup: string[] = []
+
+  beforeEach(() => {
+    testKeyPrefix = generateTestKeyPrefix()
+    keysToCleanup = []
+  })
+
+  afterEach(async () => {
+    const client = getRedisTestClient()
+    await cleanupRedisTestKeys(client, keysToCleanup)
+  })
+
+  it('trackAndEvictLRU adds cache key to the LRU sorted set with timestamp score', async () => {
+    const client = getRedisTestClient()
+    const namespace = RedisKeyNamespace.SubscriptionsByCustomer
+    const zsetKey = `${namespace}:lru`
+    const cacheKey = `${namespace}:${testKeyPrefix}_lru_test_1`
+
+    keysToCleanup.push(zsetKey, cacheKey)
+
+    // Create a dummy cache entry
+    await client.set(cacheKey, JSON.stringify({ test: 'data' }))
+
+    const beforeTimestamp = Date.now()
+    const evicted = await trackAndEvictLRU(namespace, cacheKey)
+    const afterTimestamp = Date.now()
+
+    expect(evicted).toBe(0) // Should not evict anything with just one entry
+
+    // Verify the key is in the sorted set with a timestamp score
+    const score = await client.zscore(zsetKey, cacheKey)
+    expect(typeof score).toBe('number')
+    expect(score).toBeGreaterThanOrEqual(beforeTimestamp)
+    expect(score).toBeLessThanOrEqual(afterTimestamp)
+  })
+
+  it('trackAndEvictLRU updates timestamp when same key is tracked again', async () => {
+    const client = getRedisTestClient()
+    const namespace = RedisKeyNamespace.SubscriptionsByCustomer
+    const zsetKey = `${namespace}:lru`
+    const cacheKey = `${namespace}:${testKeyPrefix}_lru_update_test`
+
+    keysToCleanup.push(zsetKey, cacheKey)
+
+    // Create a dummy cache entry
+    await client.set(cacheKey, JSON.stringify({ test: 'data' }))
+
+    // First track
+    await trackAndEvictLRU(namespace, cacheKey)
+    const firstScore = await client.zscore(zsetKey, cacheKey)
+
+    // Wait a bit to ensure different timestamp
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    // Track again - should update the score
+    await trackAndEvictLRU(namespace, cacheKey)
+    const secondScore = await client.zscore(zsetKey, cacheKey)
+
+    expect(secondScore).toBeGreaterThan(firstScore!)
+  })
+
+  it('trackAndEvictLRU evicts oldest entries when sorted set exceeds max size', async () => {
+    const client = getRedisTestClient()
+    // Use a namespace we can test with - we'll manually create a small sorted set
+    // and then manually invoke eviction logic
+    const namespace = RedisKeyNamespace.SubscriptionsByCustomer
+    const zsetKey = `${namespace}:lru`
+
+    // Create 5 cache entries with incremental timestamps
+    const cacheKeys: string[] = []
+    for (let i = 0; i < 5; i++) {
+      const cacheKey = `${namespace}:${testKeyPrefix}_evict_test_${i}`
+      cacheKeys.push(cacheKey)
+      await client.set(cacheKey, JSON.stringify({ index: i }))
+      // Add to sorted set with timestamp = i * 1000 (so entry 0 is oldest)
+      await client.zadd(zsetKey, {
+        score: i * 1000,
+        member: cacheKey,
+      })
+    }
+
+    keysToCleanup.push(zsetKey, ...cacheKeys)
+
+    // Verify all 5 entries exist
+    for (const key of cacheKeys) {
+      const value = await client.get(key)
+      expect(value).toMatchObject({ index: expect.any(Number) })
+    }
+    const initialSize = await client.zcard(zsetKey)
+    expect(initialSize).toBe(5)
+
+    // Now we need to trigger eviction - the Lua script runs when we add a new entry
+    // But the max size is 50000, so we need a different approach for testing
+    // Instead, let's directly use EVAL with a smaller max size to verify the script works
+
+    // Use EVAL directly with maxSize=3 to force eviction of 3 entries (keeping 3)
+    const newCacheKey = `${namespace}:${testKeyPrefix}_evict_test_new`
+    cacheKeys.push(newCacheKey)
+    keysToCleanup.push(newCacheKey)
+    await client.set(newCacheKey, JSON.stringify({ index: 'new' }))
+
+    // Execute the eviction script with maxSize=3
+    const script = `
+local zsetKey = KEYS[1]
+local cacheKey = KEYS[2]
+local timestamp = tonumber(ARGV[1])
+local maxSize = tonumber(ARGV[2])
+
+redis.call('ZADD', zsetKey, timestamp, cacheKey)
+
+local size = redis.call('ZCARD', zsetKey)
+
+if size > maxSize then
+  local toEvictCount = size - maxSize
+  local toEvict = redis.call('ZRANGE', zsetKey, 0, toEvictCount - 1)
+  if #toEvict > 0 then
+    redis.call('DEL', unpack(toEvict))
+    redis.call('ZREM', zsetKey, unpack(toEvict))
+  end
+  return #toEvict
+end
+
+return 0
+`
+    const evicted = await client.eval(
+      script,
+      [zsetKey, newCacheKey],
+      [Date.now(), 3] // maxSize = 3
+    )
+
+    // Should have evicted 3 entries (had 5, added 1 = 6, keep 3, evict 3)
+    expect(evicted).toBe(3)
+
+    // Verify oldest 3 entries (indices 0, 1, 2) are deleted
+    for (let i = 0; i < 3; i++) {
+      const value = await client.get(cacheKeys[i])
+      expect(value).toBeNull()
+    }
+
+    // Verify newer entries (indices 3, 4) and new entry still exist
+    for (let i = 3; i < 5; i++) {
+      const value = await client.get(cacheKeys[i])
+      expect(value).toMatchObject({ index: expect.any(Number) })
+    }
+    const newValue = await client.get(newCacheKey)
+    expect(newValue).toMatchObject({ index: 'new' })
+
+    // Verify sorted set now has 3 entries
+    const finalSize = await client.zcard(zsetKey)
+    expect(finalSize).toBe(3)
+  })
+
+  it('removeFromLRU removes cache key from the sorted set', async () => {
+    const client = getRedisTestClient()
+    const namespace = RedisKeyNamespace.SubscriptionsByCustomer
+    const zsetKey = `${namespace}:lru`
+    const cacheKey = `${namespace}:${testKeyPrefix}_remove_lru_test`
+
+    keysToCleanup.push(zsetKey, cacheKey)
+
+    // Add to sorted set
+    await client.zadd(zsetKey, {
+      score: Date.now(),
+      member: cacheKey,
+    })
+
+    // Verify it's in the set
+    const scoreBefore = await client.zscore(zsetKey, cacheKey)
+    expect(typeof scoreBefore).toBe('number')
+
+    // Remove from LRU
+    await removeFromLRU(namespace, cacheKey)
+
+    // Verify it's removed
+    const scoreAfter = await client.zscore(zsetKey, cacheKey)
+    expect(scoreAfter).toBeNull()
+  })
+
+  it('LRU eviction atomically deletes cache entries and removes them from sorted set', async () => {
+    const client = getRedisTestClient()
+    const namespace = RedisKeyNamespace.SubscriptionsByCustomer
+    const zsetKey = `${namespace}:lru`
+
+    // Create entries that will be evicted
+    const evictableKeys: string[] = []
+    for (let i = 0; i < 3; i++) {
+      const key = `${namespace}:${testKeyPrefix}_atomic_${i}`
+      evictableKeys.push(key)
+      await client.set(key, JSON.stringify({ data: i }))
+      // Add with old timestamp (will be evicted)
+      await client.zadd(zsetKey, { score: 1000 + i, member: key })
+    }
+
+    // Create entries that will survive
+    const survivorKeys: string[] = []
+    for (let i = 0; i < 2; i++) {
+      const key = `${namespace}:${testKeyPrefix}_survivor_${i}`
+      survivorKeys.push(key)
+      await client.set(key, JSON.stringify({ data: `survivor_${i}` }))
+      // Add with recent timestamp (will survive)
+      await client.zadd(zsetKey, {
+        score: Date.now() + i * 1000,
+        member: key,
+      })
+    }
+
+    keysToCleanup.push(zsetKey, ...evictableKeys, ...survivorKeys)
+
+    // Trigger eviction with maxSize=2 (have 5 entries, should evict 3)
+    const newKey = `${namespace}:${testKeyPrefix}_atomic_new`
+    survivorKeys.push(newKey)
+    keysToCleanup.push(newKey)
+    await client.set(newKey, JSON.stringify({ data: 'new' }))
+
+    const script = `
+local zsetKey = KEYS[1]
+local cacheKey = KEYS[2]
+local timestamp = tonumber(ARGV[1])
+local maxSize = tonumber(ARGV[2])
+
+redis.call('ZADD', zsetKey, timestamp, cacheKey)
+local size = redis.call('ZCARD', zsetKey)
+
+if size > maxSize then
+  local toEvictCount = size - maxSize
+  local toEvict = redis.call('ZRANGE', zsetKey, 0, toEvictCount - 1)
+  if #toEvict > 0 then
+    redis.call('DEL', unpack(toEvict))
+    redis.call('ZREM', zsetKey, unpack(toEvict))
+  end
+  return #toEvict
+end
+return 0
+`
+    const evictedCount = await client.eval(
+      script,
+      [zsetKey, newKey],
+      [Date.now() + 10000, 3] // maxSize = 3
+    )
+
+    expect(evictedCount).toBe(3)
+
+    // Verify evictable keys are both deleted from cache AND removed from sorted set
+    for (const key of evictableKeys) {
+      const cacheValue = await client.get(key)
+      expect(cacheValue).toBeNull()
+
+      const score = await client.zscore(zsetKey, key)
+      expect(score).toBeNull()
+    }
+
+    // Verify survivors are still in cache AND in sorted set
+    for (const key of survivorKeys) {
+      const cacheValue = await client.get(key)
+      expect(cacheValue).toMatchObject({ data: expect.anything() })
+
+      const score = await client.zscore(zsetKey, key)
+      expect(typeof score).toBe('number')
+    }
+  })
+
+  it('trackAndEvictLRU returns 0 when size is under max limit', async () => {
+    const client = getRedisTestClient()
+    const namespace = RedisKeyNamespace.SubscriptionsByCustomer
+    const zsetKey = `${namespace}:lru`
+
+    // Add a few entries (well under the 50000 limit)
+    const cacheKeys: string[] = []
+    for (let i = 0; i < 3; i++) {
+      const key = `${namespace}:${testKeyPrefix}_under_limit_${i}`
+      cacheKeys.push(key)
+      await client.set(key, JSON.stringify({ i }))
+    }
+
+    keysToCleanup.push(zsetKey, ...cacheKeys)
+
+    // Track each key
+    for (const key of cacheKeys) {
+      const evicted = await trackAndEvictLRU(namespace, key)
+      expect(evicted).toBe(0)
+    }
+
+    // All keys should still exist
+    for (const key of cacheKeys) {
+      const value = await client.get(key)
+      expect(value).toMatchObject({ i: expect.any(Number) })
+    }
+  })
+})

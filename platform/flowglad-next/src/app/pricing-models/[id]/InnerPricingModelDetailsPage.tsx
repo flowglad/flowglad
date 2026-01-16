@@ -40,7 +40,6 @@ import {
 } from '@/components/ui/popover'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Resource } from '@/db/schema/resources'
-import { IS_DEV } from '@/utils/core'
 
 export type InnerPricingModelDetailsPageProps = {
   pricingModel: PricingModel.ClientRecord
@@ -301,26 +300,23 @@ function InnerPricingModelDetailsPage({
             buttonVariant="secondary"
           />
         </ExpandSection>
-        {/* FIXME: Resource UI is temporarily dev-only while resource features are gated behind devOnlyProcedure. Remove IS_DEV check when resources are ready for production. */}
-        {IS_DEV && (
-          <ExpandSection
-            title="Resources"
-            defaultExpanded={false}
-            contentPadding={false}
-          >
-            <ResourcesDataTable
-              filters={{ pricingModelId: pricingModel.id }}
-              onCreateResource={() =>
-                setIsCreateResourceModalOpen(true)
-              }
-              onEditResource={(resource) => {
-                setResourceToEdit(resource)
-                setIsEditResourceModalOpen(true)
-              }}
-              buttonVariant="secondary"
-            />
-          </ExpandSection>
-        )}
+        <ExpandSection
+          title="Resources"
+          defaultExpanded={false}
+          contentPadding={false}
+        >
+          <ResourcesDataTable
+            filters={{ pricingModelId: pricingModel.id }}
+            onCreateResource={() =>
+              setIsCreateResourceModalOpen(true)
+            }
+            onEditResource={(resource) => {
+              setResourceToEdit(resource)
+              setIsEditResourceModalOpen(true)
+            }}
+            buttonVariant="secondary"
+          />
+        </ExpandSection>
         <ExpandSection
           title="Customers"
           defaultExpanded={false}
@@ -363,23 +359,18 @@ function InnerPricingModelDetailsPage({
         defaultPricingModelId={pricingModel.id}
         hidePricingModelSelect={true}
       />
-      {/* FIXME: Resource modals are temporarily dev-only while resource features are gated behind devOnlyProcedure. Remove IS_DEV check when resources are ready for production. */}
-      {IS_DEV && (
-        <>
-          <CreateResourceModal
-            isOpen={isCreateResourceModalOpen}
-            setIsOpen={setIsCreateResourceModalOpen}
-            defaultPricingModelId={pricingModel.id}
-            hidePricingModelSelect={true}
-          />
-          {resourceToEdit && (
-            <EditResourceModal
-              isOpen={isEditResourceModalOpen}
-              setIsOpen={setIsEditResourceModalOpen}
-              resource={resourceToEdit}
-            />
-          )}
-        </>
+      <CreateResourceModal
+        isOpen={isCreateResourceModalOpen}
+        setIsOpen={setIsCreateResourceModalOpen}
+        defaultPricingModelId={pricingModel.id}
+        hidePricingModelSelect={true}
+      />
+      {resourceToEdit && (
+        <EditResourceModal
+          isOpen={isEditResourceModalOpen}
+          setIsOpen={setIsEditResourceModalOpen}
+          resource={resourceToEdit}
+        />
       )}
       <PricingModelIntegrationGuideModal
         isOpen={isGetIntegrationGuideModalOpen}

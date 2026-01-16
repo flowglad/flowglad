@@ -144,6 +144,22 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
     maxSize: 150,
   },
   {
+    id: 'pricingModel',
+    accessorFn: (row) => row.pricingModel.name,
+    header: 'Pricing Model',
+    cell: ({ row }) => (
+      <div
+        className="truncate"
+        title={row.original.pricingModel.name}
+      >
+        {row.original.pricingModel.name}
+      </div>
+    ),
+    size: 150,
+    minSize: 120,
+    maxSize: 200,
+  },
+  {
     id: 'redemptions',
     accessorFn: (row) => row.redemptionCount,
     header: 'Redemptions',

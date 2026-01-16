@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import type { BillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
@@ -25,7 +26,6 @@ import {
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type {
   DbTransaction,
   TransactionEffectsContext,
@@ -132,22 +132,21 @@ export const safelyProcessCreationForExistingSubscription = async (
   subscriptionItems: SubscriptionItem.Record[],
   transaction: DbTransaction
 ): Promise<
-  TransactionOutput<
+  Result<
     | StandardCreateSubscriptionResult
-    | NonRenewingCreateSubscriptionResult
+    | NonRenewingCreateSubscriptionResult,
+    Error
   >
 > => {
   if (subscription.renews === false) {
-    return {
-      result: {
-        type: 'non_renewing',
-        subscription,
-        subscriptionItems,
-        billingPeriod: null,
-        billingPeriodItems: null,
-        billingRun: null,
-      },
-    }
+    return Result.ok({
+      type: 'non_renewing',
+      subscription,
+      subscriptionItems,
+      billingPeriod: null,
+      billingPeriodItems: null,
+      billingRun: null,
+    })
   }
 
   const billingPeriodAndItems =
@@ -198,16 +197,14 @@ export const safelyProcessCreationForExistingSubscription = async (
       billingRun,
     })
   }
-  return {
-    result: {
-      type: 'standard',
-      subscription,
-      subscriptionItems,
-      billingPeriod: billingPeriodAndItems.billingPeriod,
-      billingPeriodItems: billingPeriodAndItems.billingPeriodItems,
-      billingRun,
-    },
-  }
+  return Result.ok({
+    type: 'standard',
+    subscription,
+    subscriptionItems,
+    billingPeriod: billingPeriodAndItems.billingPeriod,
+    billingPeriodItems: billingPeriodAndItems.billingPeriodItems,
+    billingRun,
+  })
 }
 
 export const verifyCanCreateSubscription = async (

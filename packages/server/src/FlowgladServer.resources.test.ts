@@ -138,7 +138,7 @@ describe('FlowgladServer resource methods', () => {
         { usage: mockResourceUsage, claims: [] },
       ])
 
-      const result = await server.getResources()
+      const result = await server.getResourceUsages()
 
       expect(result).toEqual({ resources: [mockResourceUsage] })
       expect(mocks.get).toHaveBeenCalledWith(
@@ -153,7 +153,7 @@ describe('FlowgladServer resource methods', () => {
         { usage: mockResourceUsage, claims: [] },
       ])
 
-      const result = await server.getResources({
+      const result = await server.getResourceUsages({
         subscriptionId: mockSubscription.id,
       })
 
@@ -169,7 +169,7 @@ describe('FlowgladServer resource methods', () => {
         ],
       })
 
-      await expect(server.getResources()).rejects.toThrow(
+      await expect(server.getResourceUsages()).rejects.toThrow(
         'Customer has multiple active subscriptions. Please specify subscriptionId.'
       )
     })
@@ -179,7 +179,7 @@ describe('FlowgladServer resource methods', () => {
         currentSubscriptions: [],
       })
 
-      await expect(server.getResources()).rejects.toThrow(
+      await expect(server.getResourceUsages()).rejects.toThrow(
         'No active subscription found for this customer'
       )
     })
@@ -191,7 +191,9 @@ describe('FlowgladServer resource methods', () => {
       })
 
       await expect(
-        server.getResources({ subscriptionId: mockSubscription.id })
+        server.getResourceUsages({
+          subscriptionId: mockSubscription.id,
+        })
       ).rejects.toThrow(
         'Subscription is not owned by the current user'
       )

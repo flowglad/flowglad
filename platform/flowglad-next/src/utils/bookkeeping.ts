@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import * as R from 'ramda'
 import { createDefaultPriceConfig } from '@/constants/defaultPlanConfig'
 import type { Customer } from '@/db/schema/customers'
@@ -34,7 +35,6 @@ import {
   selectPurchaseById,
   updatePurchase,
 } from '@/db/tableMethods/purchaseMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type {
   AuthenticatedTransactionParams,
   DbTransaction,
@@ -354,44 +354,49 @@ export const createCustomerBookkeeping = async (
         )
 
         // Create the subscription - pass callbacks directly
-        const subscriptionResult = await createSubscriptionWorkflow(
-          {
-            organization,
-            customer: {
-              id: customer.id,
-              stripeCustomerId: customer.stripeCustomerId,
+        const subscriptionResult = (
+          await createSubscriptionWorkflow(
+            {
+              organization,
+              customer: {
+                id: customer.id,
+                stripeCustomerId: customer.stripeCustomerId,
+                livemode: customer.livemode,
+                organizationId: customer.organizationId,
+              },
+              product: defaultProduct,
+              price: defaultPrice,
+              quantity: 1,
               livemode: customer.livemode,
-              organizationId: customer.organizationId,
+              startDate: new Date(),
+              interval: defaultPrice.intervalUnit,
+              intervalCount: defaultPrice.intervalCount,
+              trialEnd: defaultPrice.trialPeriodDays
+                ? new Date(
+                    Date.now() +
+                      defaultPrice.trialPeriodDays *
+                        24 *
+                        60 *
+                        60 *
+                        1000
+                  )
+                : undefined,
+              autoStart: true,
+              name: `${defaultProduct.name} Subscription`,
             },
-            product: defaultProduct,
-            price: defaultPrice,
-            quantity: 1,
-            livemode: customer.livemode,
-            startDate: new Date(),
-            interval: defaultPrice.intervalUnit,
-            intervalCount: defaultPrice.intervalCount,
-            trialEnd: defaultPrice.trialPeriodDays
-              ? new Date(
-                  Date.now() +
-                    defaultPrice.trialPeriodDays * 24 * 60 * 60 * 1000
-                )
-              : undefined,
-            autoStart: true,
-            name: `${defaultProduct.name} Subscription`,
-          },
-          {
-            transaction,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }
-        )
+            {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
+          )
+        ).unwrap()
 
         return {
           customer,
-          subscription: subscriptionResult.result.subscription,
-          subscriptionItems:
-            subscriptionResult.result.subscriptionItems,
+          subscription: subscriptionResult.subscription,
+          subscriptionItems: subscriptionResult.subscriptionItems,
         }
       }
     }
@@ -424,11 +429,14 @@ export const createPricingModelBookkeeping = async (
     livemode,
   }: Omit<AuthenticatedTransactionParams, 'userId'>
 ): Promise<
-  TransactionOutput<{
-    pricingModel: PricingModel.Record
-    defaultProduct: Product.Record
-    defaultPrice: Price.Record
-  }>
+  Result<
+    {
+      pricingModel: PricingModel.Record
+      defaultProduct: Product.Record
+      defaultPrice: Price.Record
+    },
+    Error
+  >
 > => {
   // 1. Create the pricing model
   const pricingModel = await safelyInsertPricingModel(
@@ -462,11 +470,9 @@ export const createPricingModelBookkeeping = async (
     transaction
   )
 
-  return {
-    result: {
-      pricingModel,
-      defaultProduct,
-      defaultPrice,
-    },
-  }
+  return Result.ok({
+    pricingModel,
+    defaultProduct,
+    defaultPrice,
+  })
 }

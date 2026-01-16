@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 // Test database setup functions
 import {
@@ -97,7 +98,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         },
         transaction
       )
-      return { result: null }
+      return Result.ok(null)
     })
 
     // Set up customer
@@ -248,7 +249,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
 
       // Should have net positive charge since upgrading from $9.99 to $49.99
       expect(totalProrationAmount).toBeGreaterThan(0)
-      return { result: null }
+      return Result.ok(null)
     })
   })
 
@@ -331,7 +332,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         0
       )
       expect(999 + totalProrationAmount).toBeCloseTo(2999, 2) // Total ~$29.99, allow 2 cent tolerance
-      return { result: null }
+      return Result.ok(null)
     })
   })
 
@@ -418,7 +419,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       // Customer should pay full $29.99 since no successful payment exists
       // This means proration adjustments alone should equal ~$29.99
       expect(totalProrationAmount / 100).toBeCloseTo(2999 / 100, 0) // ~$29.99 from proration alone, allow 2 cent tolerance
-      return { result: null }
+      return Result.ok(null)
     })
   })
 
@@ -533,7 +534,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         // Net charge === 0: subscription name updated immediately
         expect(result.subscription.name).toBe('Add-on Feature')
       }
-      return { result: null }
+      return Result.ok(null)
     })
   })
 
@@ -595,7 +596,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       // Verify subscription record name remains unchanged when no active items
       // (The sync logic doesn't update when there are no active items)
       expect(result.subscription.name).toBe(subscription.name)
-      return { result: null }
+      return Result.ok(null)
     })
   })
 
@@ -703,7 +704,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         // Net charge === 0: subscription name updated immediately (downgrade with no refund)
         expect(result.subscription.name).toBe('Basic Plan')
       }
-      return { result: null }
+      return Result.ok(null)
     })
   })
 
@@ -809,7 +810,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       } else {
         expect(result.subscription.name).toBe('Replacement Plan')
       }
-      return { result: null }
+      return Result.ok(null)
     })
   })
 
@@ -894,7 +895,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
 
       // Verify subscription record reflects new plan
       expect(result.subscription.name).toBe('Free Plan')
-      return { result: null }
+      return Result.ok(null)
     })
   })
 
@@ -1034,7 +1035,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         // Net charge === 0: subscription name updated immediately
         expect(result.subscription.name).toBe('Premium Plan')
       }
-      return { result: null }
+      return Result.ok(null)
     })
   })
 
@@ -1132,7 +1133,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         // Net charge === 0: subscription name updated immediately
         expect(result.subscription.name).toBe('Standard Plan')
       }
-      return { result: null }
+      return Result.ok(null)
     })
   })
 
@@ -1231,7 +1232,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       // Verify no arithmetic errors occurred (test should complete without throwing)
       // With no proration items created, bpItems.length should be 0
       expect(bpItems.length).toBe(0)
-      return { result: null }
+      return Result.ok(null)
     })
   })
 })
