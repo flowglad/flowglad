@@ -247,10 +247,7 @@ export const cancelSubscriptionWithResourcesBehavior = defineBehavior(
               },
               ctx
             )
-            if (result.isErr()) {
-              throw result.error
-            }
-            return Result.ok(result.value)
+            return Result.ok(result.unwrap())
           },
           { livemode }
         )

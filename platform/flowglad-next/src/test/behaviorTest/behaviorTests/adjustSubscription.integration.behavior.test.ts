@@ -153,9 +153,9 @@ describe('adjustSubscription error cases', () => {
       intervalCount: setup.subscription.intervalCount,
       status: SubscriptionStatus.Canceled,
       currentBillingPeriodStart:
-        setup.subscription.currentBillingPeriodStart,
+        setup.subscription.currentBillingPeriodStart ?? undefined,
       currentBillingPeriodEnd:
-        setup.subscription.currentBillingPeriodEnd,
+        setup.subscription.currentBillingPeriodEnd ?? undefined,
       livemode,
       renews: true,
     })) as Subscription.StandardRecord
@@ -201,9 +201,9 @@ describe('adjustSubscription error cases', () => {
       intervalCount: setup.subscription.intervalCount,
       status: SubscriptionStatus.CreditTrial,
       currentBillingPeriodStart:
-        setup.subscription.currentBillingPeriodStart,
+        setup.subscription.currentBillingPeriodStart ?? undefined,
       currentBillingPeriodEnd:
-        setup.subscription.currentBillingPeriodEnd,
+        setup.subscription.currentBillingPeriodEnd ?? undefined,
       livemode,
       renews: true,
     })) as Subscription.Record
@@ -249,9 +249,9 @@ describe('adjustSubscription error cases', () => {
       intervalCount: setup.subscription.intervalCount,
       status: SubscriptionStatus.Active,
       currentBillingPeriodStart:
-        setup.subscription.currentBillingPeriodStart,
+        setup.subscription.currentBillingPeriodStart ?? undefined,
       currentBillingPeriodEnd:
-        setup.subscription.currentBillingPeriodEnd,
+        setup.subscription.currentBillingPeriodEnd ?? undefined,
       livemode,
       renews: false,
     })) as Subscription.StandardRecord
@@ -297,9 +297,9 @@ describe('adjustSubscription error cases', () => {
       intervalCount: setup.subscription.intervalCount,
       status: SubscriptionStatus.Active,
       currentBillingPeriodStart:
-        setup.subscription.currentBillingPeriodStart,
+        setup.subscription.currentBillingPeriodStart ?? undefined,
       currentBillingPeriodEnd:
-        setup.subscription.currentBillingPeriodEnd,
+        setup.subscription.currentBillingPeriodEnd ?? undefined,
       livemode,
       renews: true,
       doNotCharge: true,
@@ -346,9 +346,9 @@ describe('adjustSubscription error cases', () => {
       intervalCount: setup.subscription.intervalCount,
       status: SubscriptionStatus.Active,
       currentBillingPeriodStart:
-        setup.subscription.currentBillingPeriodStart,
+        setup.subscription.currentBillingPeriodStart ?? undefined,
       currentBillingPeriodEnd:
-        setup.subscription.currentBillingPeriodEnd,
+        setup.subscription.currentBillingPeriodEnd ?? undefined,
       livemode,
       renews: true,
       isFreePlan: true,
@@ -477,7 +477,7 @@ describe('adjustSubscription resource capacity validation', () => {
     // Create subscription item
     const subscriptionItem = await setupSubscriptionItem({
       subscriptionId: setup.subscription.id,
-      name: setup.initialPrice.name,
+      name: setup.initialPrice.name ?? 'Test Price',
       quantity: 1,
       unitPrice: setup.initialPrice.unitPrice,
       priceId: setup.initialPrice.id,

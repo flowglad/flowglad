@@ -224,9 +224,6 @@ export const setupSubscriptionBehavior = defineBehavior({
             livemode,
             pricingModelId: pricingModel.id,
             active: true,
-            displayFeatures: [],
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
             slug: `test-product-${nanoid}`,
           },
           transaction
@@ -261,15 +258,16 @@ export const setupSubscriptionBehavior = defineBehavior({
 
     // Create toggle feature if needed
     if (toggleFeatureDep.hasFeature) {
-      features.toggleFeature = await setupToggleFeature({
+      const toggleFeature = (await setupToggleFeature({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
         name: `Toggle Feature ${nanoid}`,
         livemode,
-      })
+      })) as Feature.ToggleRecord
+      features.toggleFeature = toggleFeature
       features.toggleProductFeature = await setupProductFeature({
         productId: product.id,
-        featureId: features.toggleFeature.id,
+        featureId: toggleFeature.id,
         organizationId: organization.id,
       })
     }
@@ -331,7 +329,7 @@ export const setupSubscriptionBehavior = defineBehavior({
             name: `Test Customer ${nanoid}`,
             organizationId: organization.id,
             livemode,
-            externalId: null,
+            externalId: `external-${nanoid}`,
             pricingModelId: pricingModel.id,
           },
           transaction
@@ -383,7 +381,7 @@ export const setupSubscriptionBehavior = defineBehavior({
     // Create subscription item
     await setupSubscriptionItem({
       subscriptionId: subscription.id,
-      name: initialPrice.name,
+      name: initialPrice.name ?? `Test Price ${nanoid}`,
       quantity: 1,
       unitPrice: initialPrice.unitPrice,
       priceId: initialPrice.id,
@@ -458,9 +456,6 @@ export const setupTargetPriceBehavior = defineBehavior({
             livemode,
             pricingModelId: pricingModel.id,
             active: true,
-            displayFeatures: [],
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
             slug: `target-product-${nanoid}`,
           },
           transaction
