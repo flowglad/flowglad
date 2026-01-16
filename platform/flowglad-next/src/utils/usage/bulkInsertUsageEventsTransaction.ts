@@ -463,20 +463,14 @@ async function validatePricesAndBuildMap(
     }
 
     // Validate price belongs to customer's pricing model
+    // Use price.pricingModelId directly since usage prices don't have productId
+    // and thus aren't nested within pricingModel.products[].prices[]
     const subscription = subscriptionsMap.get(event.subscriptionId)
     if (subscription) {
       const pricingModel = await getPricingModelForCustomer(
         subscription.customerId
       )
-      // Prices are nested within products
-      let priceInModel: { id: string } | undefined
-      for (const product of pricingModel.products) {
-        priceInModel = product.prices.find(
-          (p: { id: string }) => p.id === event.priceId
-        )
-        if (priceInModel) break
-      }
-      if (!priceInModel) {
+      if (price.pricingModelId !== pricingModel.id) {
         return Result.err(
           new TRPCError({
             code: 'NOT_FOUND',
