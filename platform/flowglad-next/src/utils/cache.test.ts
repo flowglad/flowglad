@@ -488,7 +488,6 @@ describe('dependency-based invalidation (Redis-backed)', () => {
   })
 
   it('deletes dependency registry Set after invalidation', async () => {
-    const wrappedFn = vi.fn().mockResolvedValue({ val: 'test' })
     const testSchema = z.object({ val: z.string() })
 
     const cachedFn = cached(
@@ -498,7 +497,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
         schema: testSchema,
         dependenciesFn: () => ['dep:cleanup'],
       },
-      wrappedFn
+      async () => ({ val: 'test' })
     )
 
     await cachedFn()
