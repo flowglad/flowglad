@@ -621,9 +621,11 @@ export class FlowgladServer {
    * // Get resources for a specific subscription
    * const { resources } = await flowglad.getResourceUsages({ subscriptionId: 'sub_123' })
    */
-  public getResourceUsages = async (params?: {
-    subscriptionId?: string
-  }): Promise<{ resources: ResourceUsage[] }> => {
+  public getResourceUsages = async (
+    params?: FlowgladNode.ResourceClaims.ResourceClaimListUsagesParams & {
+      subscriptionId?: string
+    }
+  ): Promise<{ resources: ResourceUsage[] }> => {
     // Auto-resolve subscriptionId if not provided
     const subscriptionId = await this.deriveSubscriptionId(
       params?.subscriptionId
