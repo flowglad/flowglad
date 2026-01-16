@@ -59,6 +59,8 @@ interface EmailPreviewWrapperProps {
   subject?: string
   /** The email preview text */
   previewText?: string
+  /** The type of email being previewed (for categorization) */
+  emailType?: string
   /** The email template component to render */
   children: React.ReactElement
 }
