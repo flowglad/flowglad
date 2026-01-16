@@ -2,15 +2,15 @@ import { HTTPMethod } from '@flowglad/shared'
 import { describe, expect, it, vi } from 'vitest'
 import type { FlowgladServer } from '../FlowgladServer'
 import {
+  assert200Success,
+  assert405MethodNotAllowed,
+  assertHandlerResponse,
+} from './__tests__/test-utils'
+import {
   createActivateSubscriptionCheckoutSession,
   createAddPaymentMethodCheckoutSession,
   createCheckoutSession,
 } from './checkoutSessionHandlers'
-import {
-  assert200Success,
-  assert405MethodNotAllowed,
-  assertHandlerResponse,
-} from './test-utils'
 
 const mockCheckoutSession = {
   id: 'cs_123',
