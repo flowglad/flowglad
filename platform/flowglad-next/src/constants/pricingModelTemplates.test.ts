@@ -82,46 +82,67 @@ describe('Pricing Model Templates', () => {
   describe('seat_based_subscription template', () => {
     const template = getTemplateById('seat_based_subscription')!
 
-    it('should have a resources array with a seats resource', () => {
+    it('should have a resources array with a teams resource', () => {
       expect(template.input.resources).toHaveLength(1)
       expect(template.input.resources![0]).toMatchObject({
-        slug: 'seats',
-        name: 'Seats',
+        slug: 'teams',
+        name: 'Teams',
         active: true,
       })
     })
 
-    it('should have resource features for Basic, Business, and Enterprise tiers', () => {
+    it('should have resource features for Free and Basic tiers with correct team limits', () => {
       const resourceFeatures = template.input.features.filter(
         (f) => f.type === FeatureType.Resource
       )
 
-      expect(resourceFeatures).toHaveLength(3)
+      expect(resourceFeatures).toHaveLength(2)
 
-      const slugs = resourceFeatures.map((f) => f.slug)
-      expect(slugs).toContain('basic_seats')
-      expect(slugs).toContain('business_seats')
-      expect(slugs).toContain('enterprise_seats')
+      const freeTeams = resourceFeatures.find(
+        (f) => f.slug === 'free_teams'
+      )
+      const basicTeams = resourceFeatures.find(
+        (f) => f.slug === 'basic_teams'
+      )
 
-      resourceFeatures.forEach((feature) => {
-        expect(feature).toMatchObject({
-          type: FeatureType.Resource,
-          resourceSlug: 'seats',
-          active: true,
-        })
-        expect(
-          'amount' in feature && typeof feature.amount === 'number'
-        ).toBe(true)
+      expect(freeTeams).toMatchObject({
+        type: FeatureType.Resource,
+        slug: 'free_teams',
+        resourceSlug: 'teams',
+        amount: 2,
+        active: true,
+      })
+
+      expect(basicTeams).toMatchObject({
+        type: FeatureType.Resource,
+        slug: 'basic_teams',
+        resourceSlug: 'teams',
+        amount: 5,
+        active: true,
       })
     })
 
-    it('should attach resource features to paid tier products', () => {
+    it('should attach free_teams to Free tier', () => {
+      const freeTier = template.input.products.find(
+        (p) => p.product.slug === 'free_tier'
+      )
+
+      expect(freeTier!.features).toContain('free_teams')
+    })
+
+    it('should attach basic_teams to Basic tier products', () => {
       const basicMonthly = template.input.products.find(
         (p) => p.product.slug === 'basic_monthly'
       )
       const basicYearly = template.input.products.find(
         (p) => p.product.slug === 'basic_yearly'
       )
+
+      expect(basicMonthly!.features).toContain('basic_teams')
+      expect(basicYearly!.features).toContain('basic_teams')
+    })
+
+    it('should not attach resource features to Business and Enterprise tiers (unlimited teams)', () => {
       const businessMonthly = template.input.products.find(
         (p) => p.product.slug === 'business_monthly'
       )
@@ -132,27 +153,18 @@ describe('Pricing Model Templates', () => {
         (p) => p.product.slug === 'enterprise'
       )
 
-      expect(basicMonthly!.features).toContain('basic_seats')
-      expect(basicYearly!.features).toContain('basic_seats')
-      expect(businessMonthly!.features).toContain('business_seats')
-      expect(businessYearly!.features).toContain('business_seats')
-      expect(enterprise!.features).toContain('enterprise_seats')
-    })
-
-    it('should not attach resource features to Free tier', () => {
-      const freeTier = template.input.products.find(
-        (p) => p.product.slug === 'free_tier'
-      )
-
-      const resourceFeatureSlugs = [
-        'basic_seats',
-        'business_seats',
-        'enterprise_seats',
-      ]
+      const resourceFeatureSlugs = ['free_teams', 'basic_teams']
 
       resourceFeatureSlugs.forEach((slug) => {
-        expect(freeTier!.features).not.toContain(slug)
+        expect(businessMonthly!.features).not.toContain(slug)
+        expect(businessYearly!.features).not.toContain(slug)
+        expect(enterprise!.features).not.toContain(slug)
       })
+
+      // Verify they have unlimited_teams toggle feature instead
+      expect(businessMonthly!.features).toContain('unlimited_teams')
+      expect(businessYearly!.features).toContain('unlimited_teams')
+      expect(enterprise!.features).toContain('unlimited_teams')
     })
 
     it('should pass validation with resource features', () => {
