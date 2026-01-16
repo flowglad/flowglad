@@ -312,9 +312,10 @@ describe('productFeaturesRouteConfigs', () => {
       expect(routeKeys).toContain('GET /product-features/:id') // get
       expect(routeKeys).toContain('GET /product-features') // list
       expect(routeKeys).toContain('DELETE /product-features/:id') // delete
+      expect(routeKeys).toContain('POST /product-features/:id/expire') // expire
 
       // Check that we have exactly the expected number of routes
-      expect(routeKeys).toHaveLength(5) // Standard CRUD operations
+      expect(routeKeys).toHaveLength(6) // CRUD + expire
     })
 
     it('should have consistent id parameter usage', () => {
@@ -322,6 +323,7 @@ describe('productFeaturesRouteConfigs', () => {
         'PUT /product-features/:id',
         'GET /product-features/:id',
         'DELETE /product-features/:id',
+        'POST /product-features/:id/expire',
       ]
 
       idRoutes.forEach((routeKey) => {
