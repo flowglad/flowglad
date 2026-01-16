@@ -846,14 +846,17 @@ async function cachedBulkLookupImpl<TKey, TResult>(
  *
  * This is the core invalidation function. It:
  * 1. For each dependency, uses SMEMBERS to get all cache keys from Redis Set
- * 2. Deletes all those cache keys from Redis
+ * 2. Checks which keys have recomputation metadata BEFORE deleting
+ * 3. Deletes all cache keys from Redis (waits for completion)
+ * 4. Deletes the dependency registry Set
+ * 5. Triggers fire-and-forget recomputation for keys that had metadata
  *
- * Note: The dependency registry Sets are NOT deleted here - they are left to
- * expire via TTL. This allows recomputeDependencies() to be called after
- * invalidation to trigger recomputation of cache entries that have metadata.
+ * Critical ordering: delete registry BEFORE recomputation. This avoids a race
+ * where recomputation re-registers the dependency and then we delete the
+ * freshly rebuilt registry.
  *
  * Observability:
- * - Logs invalidation at debug level (includes dependency and cache keys)
+ * - Logs invalidation at info level (includes dependency and cache keys)
  * - Logs errors but does not throw (fire-and-forget)
  */
 export async function invalidateDependencies(
@@ -862,11 +865,16 @@ export async function invalidateDependencies(
   if (dependencies.length === 0) return
 
   const client = redis()
+  // Track keys scheduled for recomputation to avoid duplicates across dependencies
+  const scheduledForRecomputation = new Set<string>()
+
   try {
     for (const dep of dependencies) {
       const registryKey = dependencyRegistryKey(dep)
-      // Get all cache keys that depend on this dependency
       const cacheKeys = await client.smembers(registryKey)
+
+      // Collect keys to recompute (populated inside if block, used after)
+      let keysToRecompute: string[] = []
 
       if (cacheKeys.length > 0) {
         logger.info('cache_invalidation', {
@@ -874,8 +882,21 @@ export async function invalidateDependencies(
           cacheKeys,
           invalidation_count: cacheKeys.length,
         })
-        // Delete all the cache keys (but NOT the registry Set - it expires via TTL
-        // and is needed by recomputeDependencies if called afterward)
+
+        // 1. Collect keys that have recomputation metadata BEFORE deleting
+        // Parallelize EXISTS checks to avoid sequential latency under large dependency sets
+        const metadataChecks = await Promise.all(
+          cacheKeys.map(async (cacheKey: string) => {
+            const metadataKey = recomputeMetadataKey(cacheKey)
+            const hasMetadata = await client.exists(metadataKey)
+            return { cacheKey, hasMetadata: hasMetadata > 0 }
+          })
+        )
+        keysToRecompute = metadataChecks
+          .filter((check) => check.hasMetadata)
+          .map((check) => check.cacheKey)
+
+        // 2. Delete all cache keys (wait for completion)
         await client.del(...cacheKeys)
 
         // Remove invalidated keys from LRU tracking
@@ -890,14 +911,23 @@ export async function invalidateDependencies(
             }
           }
         }
-      } else {
-        logger.debug('No cache keys to invalidate for dependency', {
-          dependency: dep,
-        })
+      }
+
+      // 3. Delete the registry Set BEFORE triggering recomputation
+      // This avoids a race condition where recomputation re-registers the
+      // dependency and then we delete the freshly rebuilt registry
+      await client.del(registryKey)
+
+      // 4. THEN trigger recomputation (fire-and-forget)
+      // Deduplicate: skip keys already scheduled from a previous dependency
+      for (const cacheKey of keysToRecompute) {
+        if (!scheduledForRecomputation.has(cacheKey)) {
+          scheduledForRecomputation.add(cacheKey)
+          void recomputeCacheEntry(cacheKey)
+        }
       }
     }
   } catch (error) {
-    // Log but don't throw - invalidation is fire-and-forget
     logger.error('Failed to invalidate cache dependencies', {
       dependencies,
       error: error instanceof Error ? error.message : String(error),
