@@ -8742,8 +8742,10 @@
             "type": "string"
           },
           "quantity": {
-            "description": "The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.",
-            "type": "number"
+            "description": "The quantity of the purchase or subscription created when this checkout session succeeds. Must be a positive integer. Defaults to 1 if not provided.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
           },
           "anonymous": {
             "type": "boolean",
@@ -8823,8 +8825,10 @@
             "type": "string"
           },
           "quantity": {
-            "description": "The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.",
-            "type": "number"
+            "description": "The quantity of the purchase or subscription created when this checkout session succeeds. Must be a positive integer. Defaults to 1 if not provided.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
           },
           "anonymous": {
             "type": "boolean",

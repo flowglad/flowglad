@@ -648,6 +648,24 @@ export class FlowgladServer {
     }
   }
 
+  public getResourceUsage = async (
+    params: ResourceIdentifier & { subscriptionId?: string }
+  ): Promise<FlowgladNode.ResourceClaims.ResourceClaimRetrieveUsageResponse> => {
+    const subscriptionId = await this.deriveSubscriptionId(
+      params?.subscriptionId
+    )
+    // Validate ownership
+    const { subscription } =
+      await this.flowgladNode.subscriptions.retrieve(subscriptionId)
+    const { customer } = await this.getCustomer()
+    if (subscription.customerId !== customer.id) {
+      throw new Error('Subscription is not owned by the current user')
+    }
+    return await this.flowgladNode.resourceClaims.retrieveUsage(
+      subscriptionId,
+      params
+    )
+  }
   /**
    * Get usage for a single resource for the customer's subscription.
    *
