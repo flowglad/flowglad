@@ -7,10 +7,12 @@ import {
   vi,
 } from 'vitest'
 import { z } from 'zod'
+import type { DbTransaction } from '@/db/types'
 import {
   CacheDependency,
   type CacheRecomputeMetadata,
   cached,
+  cachedRecomputable,
   getRecomputeHandler,
   getTtlForNamespace,
   invalidateDependencies,
@@ -22,6 +24,10 @@ import {
   type TransactionContext,
 } from './cache'
 import { _setTestRedisClient, RedisKeyNamespace } from './redis'
+import {
+  getCurrentTransactionContext,
+  runWithTransactionContext,
+} from './transactionContext'
 
 // In-memory mock Redis client for testing
 function createMockRedisClient() {
@@ -667,5 +673,297 @@ describe('recomputeDependencies', () => {
       { id: 'shared' },
       { type: 'admin', livemode: false }
     )
+  })
+})
+
+describe('cachedRecomputable', () => {
+  let mockRedis: ReturnType<typeof createMockRedisClient>
+
+  beforeEach(() => {
+    mockRedis = createMockRedisClient()
+    _setTestRedisClient(mockRedis.client)
+  })
+
+  afterEach(() => {
+    _setTestRedisClient(null)
+  })
+
+  it('auto-registers recomputation handler on definition', () => {
+    // Use a unique namespace for this test to avoid interference
+    const testNamespace = RedisKeyNamespace.SubscriptionsByCustomer
+
+    // Define a recomputable cached function - this should auto-register a handler
+    cachedRecomputable(
+      {
+        namespace: testNamespace,
+        keyFn: (params: { customerId: string }) => params.customerId,
+        schema: z.object({ id: z.string(), name: z.string() }),
+        dependenciesFn: (params) => [
+          CacheDependency.customerSubscriptions(params.customerId),
+        ],
+      },
+      vi.fn().mockResolvedValue({ id: 'test', name: 'Test' })
+    )
+
+    // The handler should be registered immediately after definition
+    const handler = getRecomputeHandler(testNamespace)
+    // Verify it's a function (implicitly confirms it's defined)
+    expect(typeof handler).toBe('function')
+  })
+
+  it('stores params metadata alongside cache value on cache miss', async () => {
+    const testSchema = z.object({ value: z.number() })
+    const wrappedFn = vi.fn().mockResolvedValue({ value: 42 })
+
+    const cachedFn = cachedRecomputable(
+      {
+        namespace: RedisKeyNamespace.ItemsBySubscription,
+        keyFn: (params: { subId: string }) => params.subId,
+        schema: testSchema,
+        dependenciesFn: () => [],
+      },
+      wrappedFn
+    )
+
+    // Call with transaction context so metadata can be stored
+    const transactionContext: TransactionContext = {
+      type: 'admin',
+      livemode: true,
+    }
+
+    await runWithTransactionContext(transactionContext, async () => {
+      const mockTransaction = {} as DbTransaction
+      await cachedFn({ subId: 'sub_123' }, mockTransaction)
+    })
+
+    // Verify cache value was stored
+    const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:sub_123`
+    expect(JSON.parse(mockRedis.store[cacheKey])).toEqual({
+      value: 42,
+    })
+
+    // Verify metadata was stored
+    const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
+    const metadataStr = mockRedis.store[metadataKey]
+    // Parsing will fail if undefined, so this test implicitly verifies it exists
+    const metadata = JSON.parse(metadataStr) as CacheRecomputeMetadata
+    expect(metadata.namespace).toBe(
+      RedisKeyNamespace.ItemsBySubscription
+    )
+    expect(metadata.params).toEqual({ subId: 'sub_123' })
+  })
+
+  it('metadata params match the input params exactly', async () => {
+    const testSchema = z.object({ count: z.number() })
+    const wrappedFn = vi.fn().mockResolvedValue({ count: 10 })
+
+    const cachedFn = cachedRecomputable(
+      {
+        namespace: RedisKeyNamespace.FeaturesBySubscriptionItem,
+        keyFn: (params: {
+          customerId: string
+          livemode: boolean
+          tags: string[]
+        }) => `${params.customerId}:${params.livemode}`,
+        schema: testSchema,
+        dependenciesFn: () => [],
+      },
+      wrappedFn
+    )
+
+    const inputParams = {
+      customerId: 'cust_1',
+      livemode: true,
+      tags: ['premium', 'active'],
+    }
+
+    const transactionContext: TransactionContext = {
+      type: 'authenticated',
+      livemode: true,
+      organizationId: 'org_123',
+      userId: 'user_456',
+    }
+
+    await runWithTransactionContext(transactionContext, async () => {
+      const mockTransaction = {} as DbTransaction
+      await cachedFn(inputParams, mockTransaction)
+    })
+
+    const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:cust_1:true`
+    const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
+    const metadata = JSON.parse(
+      mockRedis.store[metadataKey]
+    ) as CacheRecomputeMetadata
+
+    // Params should match exactly, including the array
+    expect(metadata.params).toEqual(inputParams)
+    expect(metadata.params.customerId).toBe('cust_1')
+    expect(metadata.params.livemode).toBe(true)
+    expect(metadata.params.tags).toEqual(['premium', 'active'])
+  })
+
+  it('stores transaction context in metadata for recomputation', async () => {
+    const testSchema = z.object({ data: z.string() })
+    const wrappedFn = vi.fn().mockResolvedValue({ data: 'test' })
+
+    const cachedFn = cachedRecomputable(
+      {
+        namespace: RedisKeyNamespace.MeterBalancesBySubscription,
+        keyFn: (params: { id: string }) => params.id,
+        schema: testSchema,
+        dependenciesFn: () => [],
+      },
+      wrappedFn
+    )
+
+    const transactionContext: TransactionContext = {
+      type: 'authenticated',
+      livemode: false,
+      organizationId: 'org_test_123',
+      userId: 'user_test_456',
+    }
+
+    await runWithTransactionContext(transactionContext, async () => {
+      const mockTransaction = {} as DbTransaction
+      await cachedFn({ id: 'meter_123' }, mockTransaction)
+    })
+
+    const cacheKey = `${RedisKeyNamespace.MeterBalancesBySubscription}:meter_123`
+    const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
+    const metadata = JSON.parse(
+      mockRedis.store[metadataKey]
+    ) as CacheRecomputeMetadata
+
+    // Transaction context should be preserved exactly
+    expect(metadata.transactionContext).toEqual(transactionContext)
+    expect(metadata.transactionContext.type).toBe('authenticated')
+    if (metadata.transactionContext.type === 'authenticated') {
+      expect(metadata.transactionContext.organizationId).toBe(
+        'org_test_123'
+      )
+      expect(metadata.transactionContext.userId).toBe('user_test_456')
+      expect(metadata.transactionContext.livemode).toBe(false)
+    }
+  })
+
+  it('returns cached value on cache hit without calling wrapped function', async () => {
+    const testSchema = z.object({ cached: z.boolean() })
+    const wrappedFn = vi.fn().mockResolvedValue({ cached: false })
+
+    const cachedFn = cachedRecomputable(
+      {
+        namespace: RedisKeyNamespace.SubscriptionsByCustomer,
+        keyFn: (params: { key: string }) => params.key,
+        schema: testSchema,
+        dependenciesFn: () => [],
+      },
+      wrappedFn
+    )
+
+    // Pre-populate cache
+    const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:hit-test`
+    mockRedis.store[cacheKey] = JSON.stringify({ cached: true })
+
+    const mockTransaction = {} as DbTransaction
+    const result = await cachedFn(
+      { key: 'hit-test' },
+      mockTransaction
+    )
+
+    // Should return cached value
+    expect(result).toEqual({ cached: true })
+    // Wrapped function should not be called on cache hit
+    expect(wrappedFn).not.toHaveBeenCalled()
+  })
+
+  it('does not store metadata when called outside transaction context', async () => {
+    const testSchema = z.object({ result: z.number() })
+    const wrappedFn = vi.fn().mockResolvedValue({ result: 99 })
+
+    const cachedFn = cachedRecomputable(
+      {
+        namespace: RedisKeyNamespace.ItemsBySubscription,
+        keyFn: (params: { id: string }) => params.id,
+        schema: testSchema,
+        dependenciesFn: () => [],
+      },
+      wrappedFn
+    )
+
+    // Call without transaction context
+    const mockTransaction = {} as DbTransaction
+    await cachedFn({ id: 'no-context' }, mockTransaction)
+
+    // Cache value should still be stored
+    const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:no-context`
+    expect(JSON.parse(mockRedis.store[cacheKey])).toEqual({
+      result: 99,
+    })
+
+    // But metadata should NOT be stored (no transaction context available)
+    const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
+    expect(mockRedis.store[metadataKey]).toBeUndefined()
+  })
+
+  it('registers dependencies for cache invalidation', async () => {
+    const testSchema = z.object({ items: z.array(z.string()) })
+    const wrappedFn = vi
+      .fn()
+      .mockResolvedValue({ items: ['item1', 'item2'] })
+
+    const cachedFn = cachedRecomputable(
+      {
+        namespace: RedisKeyNamespace.SubscriptionsByCustomer,
+        keyFn: (params: { customerId: string }) => params.customerId,
+        schema: testSchema,
+        dependenciesFn: (params) => [
+          CacheDependency.customerSubscriptions(params.customerId),
+          CacheDependency.subscriptionItems('sub_main'),
+        ],
+      },
+      wrappedFn
+    )
+
+    const transactionContext: TransactionContext = {
+      type: 'admin',
+      livemode: true,
+    }
+
+    await runWithTransactionContext(transactionContext, async () => {
+      const mockTransaction = {} as DbTransaction
+      await cachedFn({ customerId: 'cust_deps' }, mockTransaction)
+    })
+
+    // Verify dependencies were registered
+    const depKey1 = `${RedisKeyNamespace.CacheDependencyRegistry}:customerSubscriptions:cust_deps`
+    const depKey2 = `${RedisKeyNamespace.CacheDependencyRegistry}:subscriptionItems:sub_main`
+    const expectedCacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:cust_deps`
+
+    expect(mockRedis.sets[depKey1]?.has(expectedCacheKey)).toBe(true)
+    expect(mockRedis.sets[depKey2]?.has(expectedCacheKey)).toBe(true)
+  })
+})
+
+describe('transactionContext', () => {
+  it('runWithTransactionContext makes context available via getCurrentTransactionContext', () => {
+    const context: TransactionContext = {
+      type: 'authenticated',
+      livemode: true,
+      organizationId: 'org_test',
+      userId: 'user_test',
+    }
+
+    let capturedContext: TransactionContext | undefined
+
+    runWithTransactionContext(context, () => {
+      capturedContext = getCurrentTransactionContext()
+    })
+
+    expect(capturedContext).toEqual(context)
+  })
+
+  it('getCurrentTransactionContext returns undefined outside of context', () => {
+    const context = getCurrentTransactionContext()
+    expect(context).toBeUndefined()
   })
 })

@@ -1,9 +1,11 @@
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api'
 import { z } from 'zod'
+import type { DbTransaction } from '@/db/types'
 import core from './core'
 import { logger } from './logger'
 import { RedisKeyNamespace, redis } from './redis'
 import { traced } from './tracing'
+import { getCurrentTransactionContext } from './transactionContext'
 
 const DEFAULT_TTL = 300 // 5 minutes
 const DEPENDENCY_REGISTRY_TTL = 86400 // 24 hours - longer than any cache TTL
@@ -885,3 +887,237 @@ export const CacheDependency = {
   subscriptionLedger: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionLedger:${subscriptionId}`,
 } as const
+
+/**
+ * Signature constraint for recomputable cached functions.
+ * Enforces (params, transaction) pattern for clean serialization.
+ *
+ * Why this pattern?
+ * - Params are always serializable (enforced by SerializableParams)
+ * - Transaction is ephemeral and reconstructed during recomputation
+ * - No need for serializeArgsFn - params are inherently serializable
+ */
+type RecomputableFn<TParams extends SerializableParams, TResult> = (
+  params: TParams,
+  transaction: DbTransaction
+) => Promise<TResult>
+
+/**
+ * Configuration for recomputable cached functions.
+ * Similar to CacheConfig but enforces the (params, transaction) signature.
+ */
+export interface RecomputableCacheConfig<
+  TParams extends SerializableParams,
+  TResult,
+> {
+  namespace: RedisKeyNamespace
+  /** Extract a unique cache key suffix from params */
+  keyFn: (params: TParams) => string
+  /** Zod schema for validating cached data */
+  schema: z.ZodType<TResult>
+  /** Declare dependency keys for invalidation */
+  dependenciesFn: (params: TParams) => CacheDependencyKey[]
+}
+
+/**
+ * Combinator that adds caching with automatic recomputation support.
+ *
+ * Unlike `cached()`, this combinator:
+ * 1. Enforces a (params, transaction) signature for clean serialization
+ * 2. Auto-registers a recomputation handler in the registry
+ * 3. Stores recomputation metadata alongside cache entries
+ *
+ * When invalidateDependencies() + recomputeDependencies() is called,
+ * cache entries created by this combinator will be automatically
+ * recomputed using the stored params and transaction context.
+ *
+ * IMPORTANT: Only use for READ operations. Side-effect functions
+ * (those that emit events or ledger commands) must use `cached()` instead.
+ *
+ * @param config - Cache configuration
+ * @param fn - The underlying function (params, transaction) => Promise<TResult>
+ * @returns A cached version that auto-registers recomputation
+ */
+export function cachedRecomputable<
+  TParams extends SerializableParams,
+  TResult,
+>(
+  config: RecomputableCacheConfig<TParams, TResult>,
+  fn: RecomputableFn<TParams, TResult>
+): RecomputableFn<TParams, TResult> {
+  // Auto-register recomputation handler at definition time.
+  // All processes import the same modules, so all registries will have the same handlers.
+  const handler: RecomputeHandler = async (
+    params,
+    transactionContext
+  ) => {
+    // Discriminated union enables type narrowing
+    if (transactionContext.type === 'admin') {
+      const { adminTransaction } = await import(
+        '@/db/adminTransaction'
+      )
+      return adminTransaction(
+        async ({ transaction }) => {
+          // The handler will call the wrapped function which stores result + metadata
+          return fn(params as TParams, transaction)
+        },
+        { livemode: transactionContext.livemode }
+      )
+    } else {
+      const { recomputeWithAuthenticatedContext } = await import(
+        '@/db/recomputeTransaction'
+      )
+      return recomputeWithAuthenticatedContext(
+        transactionContext,
+        async (transaction) => fn(params as TParams, transaction)
+      )
+    }
+  }
+  registerRecomputeHandler(config.namespace, handler)
+
+  // Return wrapped function with caching + metadata storage
+  return traced(
+    {
+      options: (params: TParams, _transaction: DbTransaction) => ({
+        spanName: `cache.recomputable.${config.namespace}`,
+        tracerName: 'cache',
+        kind: SpanKind.CLIENT,
+        attributes: {
+          'cache.namespace': config.namespace,
+          'cache.key': config.keyFn(params),
+          'cache.recomputable': true,
+        },
+      }),
+      extractResultAttributes: () => ({}),
+    },
+    async (
+      params: TParams,
+      transaction: DbTransaction
+    ): Promise<TResult> => {
+      const key = config.keyFn(params)
+      const fullKey = `${config.namespace}:${key}`
+      const dependencies = config.dependenciesFn(params)
+      const span = trace.getActiveSpan()
+
+      // Try to get from cache
+      try {
+        const redisClient = redis()
+        const startTime = Date.now()
+        const cachedValue = await redisClient.get(fullKey)
+        const latencyMs = Date.now() - startTime
+
+        span?.setAttribute('cache.latency_ms', latencyMs)
+
+        if (cachedValue !== null) {
+          // Parse the cached value
+          const jsonValue =
+            typeof cachedValue === 'string'
+              ? JSON.parse(cachedValue)
+              : cachedValue
+
+          // Validate with schema
+          const parsed = config.schema.safeParse(jsonValue)
+          if (parsed.success) {
+            span?.setAttribute('cache.hit', true)
+            logger.debug('Cache hit (recomputable)', {
+              key: fullKey,
+              latency_ms: latencyMs,
+            })
+            return parsed.data
+          } else {
+            // Schema validation failed - treat as cache miss
+            span?.setAttribute('cache.hit', false)
+            span?.setAttribute('cache.validation_failed', true)
+            logger.warn(
+              'Cache schema validation failed (recomputable)',
+              {
+                key: fullKey,
+                error: parsed.error.message,
+              }
+            )
+          }
+        } else {
+          span?.setAttribute('cache.hit', false)
+          logger.debug('Cache miss (recomputable)', {
+            key: fullKey,
+            latency_ms: latencyMs,
+          })
+        }
+      } catch (error) {
+        // Fail open - log error and continue to wrapped function
+        const errorMessage =
+          error instanceof Error ? error.message : String(error)
+        span?.setAttribute('cache.hit', false)
+        span?.setAttribute('cache.error', errorMessage)
+        logger.error('Cache read error (recomputable)', {
+          key: fullKey,
+          error: errorMessage,
+        })
+      }
+
+      // Cache miss - call wrapped function
+      const result = await fn(params, transaction)
+
+      // Store in cache, metadata, and register dependencies (fire-and-forget)
+      try {
+        const redisClient = redis()
+        const ttl = getTtlForNamespace(config.namespace)
+
+        // Store the cache value
+        await redisClient.set(fullKey, JSON.stringify(result), {
+          ex: ttl,
+        })
+
+        // Store recomputation metadata (if we have transaction context)
+        const transactionContext = getCurrentTransactionContext()
+        if (transactionContext) {
+          const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${fullKey}`
+          const metadata: CacheRecomputeMetadata = {
+            namespace: config.namespace,
+            params,
+            transactionContext,
+            createdAt: Date.now(),
+          }
+          await redisClient.set(
+            metadataKey,
+            JSON.stringify(metadata),
+            { ex: ttl }
+          )
+          span?.setAttribute('cache.metadata_stored', true)
+        } else {
+          // No transaction context available - can't store recompute metadata
+          // This happens if called outside of a transaction wrapper
+          logger.debug(
+            'No transaction context for recompute metadata',
+            { key: fullKey }
+          )
+          span?.setAttribute('cache.metadata_stored', false)
+        }
+
+        // Register dependencies in Redis
+        await registerDependencies(fullKey, dependencies)
+
+        span?.setAttribute('cache.ttl', ttl)
+        span?.setAttribute('cache.dependencies', dependencies)
+
+        logger.debug('Cache populated (recomputable)', {
+          key: fullKey,
+          ttl,
+          dependencies,
+          hasMetadata: !!transactionContext,
+        })
+      } catch (error) {
+        // Fail open - log error but return result
+        const errorMessage =
+          error instanceof Error ? error.message : String(error)
+        span?.setAttribute('cache.error', errorMessage)
+        logger.error('Cache write error (recomputable)', {
+          key: fullKey,
+          error: errorMessage,
+        })
+      }
+
+      return result
+    }
+  )
+}
