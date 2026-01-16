@@ -268,7 +268,7 @@ function extractCacheArgs<TArgs extends unknown[]>(
 // Cache Read/Write Helpers
 // ============================================================================
 
-interface CacheStatsParams {
+export interface CacheStatsParams {
   namespace: RedisKeyNamespace
   hit: boolean
   latencyMs?: number
@@ -284,7 +284,7 @@ interface CacheStatsParams {
 /**
  * Log cache statistics in a consistent format.
  */
-function logCacheStats(params: CacheStatsParams): void {
+export function logCacheStats(params: CacheStatsParams): void {
   const {
     namespace,
     hit,

@@ -20,6 +20,7 @@ import {
   type CacheDependencyKey,
   type CacheRecomputeMetadata,
   getTtlForNamespace,
+  logCacheStats,
   type RecomputeHandler,
   registerRecomputeHandler,
   type SerializableParams,
@@ -151,9 +152,11 @@ async function tryGetFromCache<T>(
   schema: z.ZodType<T>,
   namespace: RedisKeyNamespace
 ): Promise<{ hit: true; data: T } | { hit: false }> {
+  const startTime = performance.now()
   try {
     const redisClient = redis()
     const cachedValue = await redisClient.get(fullKey)
+    const latencyMs = performance.now() - startTime
 
     if (cachedValue !== null) {
       const jsonValue =
@@ -163,22 +166,55 @@ async function tryGetFromCache<T>(
 
       const parsed = schema.safeParse(jsonValue)
       if (parsed.success) {
-        logger.debug('Cache hit (recomputable)', { key: fullKey })
+        logger.debug('Cache hit (recomputable)', {
+          key: fullKey,
+          latency_ms: latencyMs,
+        })
+        logCacheStats({
+          namespace,
+          hit: true,
+          latencyMs,
+          recomputable: true,
+        })
         return { hit: true, data: parsed.data }
       } else {
         logger.warn('Cache schema validation failed (recomputable)', {
           key: fullKey,
           error: parsed.error.message,
         })
+        logCacheStats({
+          namespace,
+          hit: false,
+          latencyMs,
+          validationFailed: true,
+          recomputable: true,
+        })
         return { hit: false }
       }
     }
-    logger.debug('Cache miss (recomputable)', { key: fullKey })
+    logger.debug('Cache miss (recomputable)', {
+      key: fullKey,
+      latency_ms: latencyMs,
+    })
+    logCacheStats({
+      namespace,
+      hit: false,
+      latencyMs,
+      recomputable: true,
+    })
     return { hit: false }
   } catch (error) {
+    const latencyMs = performance.now() - startTime
     logger.error('Cache read error (recomputable)', {
       key: fullKey,
       error: error instanceof Error ? error.message : String(error),
+    })
+    logCacheStats({
+      namespace,
+      hit: false,
+      latencyMs,
+      error: true,
+      recomputable: true,
     })
     return { hit: false }
   }
