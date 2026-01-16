@@ -14,11 +14,13 @@ import {
 import { selectCustomerByExternalIdAndOrganizationId } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
+  selectPriceById,
   selectPriceBySlugAndCustomerId,
   selectPriceBySlugForDefaultPricingModel,
   selectPriceProductAndOrganizationByPriceWhere,
 } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
+import { NotFoundError } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import {
   CheckoutSessionStatus,
@@ -228,14 +230,33 @@ export const createCheckoutSessionTransaction = async (
       resolvedPriceId = checkoutSessionInput.priceId
     }
 
+    const resolvedPriceRecord = await selectPriceById(
+      resolvedPriceId!,
+      transaction
+    ).catch((error) => {
+      if (error instanceof NotFoundError) {
+        throw new Error(
+          `Invalid or not-found price ID: no matching price found for id "${resolvedPriceId}"`
+        )
+      }
+      throw error
+    })
+
+    if (resolvedPriceRecord.type === PriceType.Usage) {
+      throw new Error(
+        'Checkout sessions are only supported for product prices (subscription/single payment), not usage prices'
+      )
+    }
+
     const [result] =
       await selectPriceProductAndOrganizationByPriceWhere(
         { id: resolvedPriceId! },
         transaction
       )
 
-    // When no result is found, it means the price doesn't exist or was filtered out
-    // (the query uses innerJoin on products, so usage prices with null productId return no results)
+    // When no result is found, the price doesn't exist or doesn't have a product attached.
+    // Checkout sessions only support product prices (subscription/single_payment), so we expect
+    // all valid checkout prices to have a product.
     if (!result) {
       throw new Error(
         `Invalid or not-found price ID: no matching price found for id "${resolvedPriceId}"`
@@ -246,24 +267,11 @@ export const createCheckoutSessionTransaction = async (
     product = result.product
     organization = result.organization
 
-    // Product checkout requires a product - usage prices (with null productId) are not supported
-    if (!product) {
-      throw new Error(
-        'Checkout sessions are only supported for product prices, not usage prices'
-      )
-    }
-
     if (product.default) {
       throw new Error(
         'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
       )
     }
-    // FIXME: Re-enable this once usage prices are deprecated
-    // if (price.type === PriceType.Usage) {
-    //   throw new Error(
-    //     `Price id: ${price.id} has usage price. Usage prices are not supported for checkout sessions.`
-    //   )
-    // }
   } else {
     organization = await selectOrganizationById(
       organizationId,
