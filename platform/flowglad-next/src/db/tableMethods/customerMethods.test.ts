@@ -1560,21 +1560,29 @@ describe('selectCustomerPricingInfoBatch', () => {
 
   it('should return only id, pricingModelId, organizationId, livemode fields', async () => {
     // Create 10 customers with different pricingModelIds
-    const customerIds: string[] = []
+    // Track which customers have which pricing model
+    const pricingModel1CustomerIds: string[] = []
+    const pricingModel2CustomerIds: string[] = []
+
     for (let i = 0; i < 5; i++) {
       const customer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel1.id,
       })
-      customerIds.push(customer.id)
+      pricingModel1CustomerIds.push(customer.id)
     }
     for (let i = 0; i < 5; i++) {
       const customer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel2.id,
       })
-      customerIds.push(customer.id)
+      pricingModel2CustomerIds.push(customer.id)
     }
+
+    const customerIds = [
+      ...pricingModel1CustomerIds,
+      ...pricingModel2CustomerIds,
+    ]
 
     const result = await adminTransaction(async ({ transaction }) => {
       return selectCustomerPricingInfoBatch(customerIds, transaction)
@@ -1585,19 +1593,27 @@ describe('selectCustomerPricingInfoBatch', () => {
 
     // Verify each customer has exactly 4 fields
     for (const [customerId, customerInfo] of result) {
-      expect(Object.keys(customerInfo)).toEqual([
+      expect(Object.keys(customerInfo).sort()).toEqual([
         'id',
-        'pricingModelId',
-        'organizationId',
         'livemode',
+        'organizationId',
+        'pricingModelId',
       ])
       expect(customerInfo.id).toBe(customerId)
       expect(customerInfo.organizationId).toBe(organization.id)
       expect(typeof customerInfo.livemode).toBe('boolean')
-      expect(
-        customerInfo.pricingModelId === pricingModel1.id ||
-          customerInfo.pricingModelId === pricingModel2.id
-      ).toBe(true)
+    }
+
+    // Verify specific customer-to-pricingModel mapping
+    for (const customerId of pricingModel1CustomerIds) {
+      expect(result.get(customerId)?.pricingModelId).toBe(
+        pricingModel1.id
+      )
+    }
+    for (const customerId of pricingModel2CustomerIds) {
+      expect(result.get(customerId)?.pricingModelId).toBe(
+        pricingModel2.id
+      )
     }
   })
 

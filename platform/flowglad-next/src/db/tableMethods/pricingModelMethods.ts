@@ -29,11 +29,7 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { PriceType } from '@/types'
-import {
-  type Feature,
-  features,
-  featuresSelectSchema,
-} from '../schema/features'
+import { type Feature } from '../schema/features'
 import {
   type Price,
   type PricingModelWithProductsAndUsageMeters,
@@ -555,12 +551,11 @@ export const selectPricingModelSlugResolutionData = async (
 
     // Only add usage meter if:
     // 1. usageMeterId is not null (from LEFT JOIN)
-    // 2. usageMeterSlug is not null AND not empty string
+    // 2. usageMeterSlug is not null (slug is NOT NULL in database and validated by safeZodSanitizedString)
     // 3. We haven't already seen this usage meter ID (de-dupe)
     if (
       row.usageMeterId &&
       row.usageMeterSlug &&
-      row.usageMeterSlug.trim() !== '' &&
       !pm.seenUsageMeterIds.has(row.usageMeterId)
     ) {
       pm.seenUsageMeterIds.add(row.usageMeterId)
@@ -577,7 +572,7 @@ export const selectPricingModelSlugResolutionData = async (
   }
 
   // Query 2: Fetch prices with minimal fields (skip products entirely)
-  // Only fetch prices where the product is active (matches selectPricingModelForCustomer behavior)
+  // Only fetch prices where the product is active
   const priceResults = await transaction
     .select({
       priceId: prices.id,
@@ -593,7 +588,8 @@ export const selectPricingModelSlugResolutionData = async (
     .where(
       and(
         inArray(products.pricingModelId, pricingModelIds),
-        eq(products.active, true) // Only active products (matches selectPricingModelForCustomer)
+        eq(products.active, true), // Only active products
+        eq(prices.active, true) // Only active prices
       )
     )
 

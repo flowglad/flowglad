@@ -1476,10 +1476,10 @@ describe('selectPricingModelSlugResolutionData', () => {
       active: true,
     })
 
-    const inactiveProductPrice = await setupPrice({
+    const priceFromInactiveProduct = await setupPrice({
       productId: inactiveProduct.id,
-      name: 'Inactive Product Price',
-      slug: 'inactive-product-price',
+      name: 'Price from Inactive Product',
+      slug: 'price-from-inactive-product',
       type: PriceType.Subscription,
       intervalUnit: IntervalUnit.Month,
       intervalCount: 1,
@@ -1501,7 +1501,7 @@ describe('selectPricingModelSlugResolutionData', () => {
     expect(result).toHaveLength(1)
     const priceIds = result[0].prices.map((p) => p.id)
     expect(priceIds).toContain(activePrice.id)
-    expect(priceIds).not.toContain(inactiveProductPrice.id)
+    expect(priceIds).not.toContain(priceFromInactiveProduct.id)
   })
 
   it('should de-duplicate prices by price ID', async () => {
