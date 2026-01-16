@@ -106,6 +106,11 @@ for PATCH_FILE in "${PATCH_FILES[@]}"; do
     git -C "$GIT_ROOT" worktree add "$WORKTREE_PATH" "$BRANCH_NAME"
   fi
 
+  # Copy patch file into worktree so Claude can read it without permission prompts
+  LOCAL_PATCH_PATH="$WORKTREE_PATH/AGENT_PROMPT.md"
+  cp "$PATCH_FILE" "$LOCAL_PATCH_PATH"
+  echo "  Copied prompt to: AGENT_PROMPT.md"
+
   WORKTREE_PATHS+=("$WORKTREE_PATH")
   BRANCH_NAMES+=("$BRANCH_NAME")
 done
@@ -138,7 +143,7 @@ if [ "$SESSION_EXISTS" = false ]; then
   FIRST_WORKTREE="${WORKTREE_PATHS[0]}"
 
   tmux new-session -d -s "$SESSION_NAME" -n "$FIRST_PATCH_NAME" -c "$FIRST_WORKTREE"
-  tmux send-keys -t "$SESSION_NAME:$FIRST_PATCH_NAME" "claude '$FIRST_PATCH'" Enter
+  tmux send-keys -t "$SESSION_NAME:$FIRST_PATCH_NAME" "claude 'AGENT_PROMPT.md'" Enter
   START_INDEX=1
 else
   START_INDEX=0
@@ -157,7 +162,7 @@ for ((i=START_INDEX; i<${#PATCH_FILES[@]}; i++)); do
   fi
 
   tmux new-window -t "$SESSION_NAME" -n "$PATCH_NAME" -c "$WORKTREE_PATH"
-  tmux send-keys -t "$SESSION_NAME:$PATCH_NAME" "claude '$PATCH_FILE'" Enter
+  tmux send-keys -t "$SESSION_NAME:$PATCH_NAME" "claude 'AGENT_PROMPT.md'" Enter
 done
 
 echo ""
