@@ -947,7 +947,7 @@ describeIfRedisKey(
       )
 
       // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
       // Verify cache is cleared after transaction commits
       const afterTransaction = await client.get(cacheKey)
@@ -1010,7 +1010,7 @@ describeIfRedisKey(
       )
 
       // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
       // Verify both caches are cleared
       expect(await client.get(cacheKey1)).toBeNull()
@@ -1053,7 +1053,7 @@ describeIfRedisKey(
       )
 
       // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
       // Cache should still be cleared (deduplication shouldn't break anything)
       expect(await client.get(cacheKey)).toBeNull()
@@ -1111,7 +1111,7 @@ describeIfRedisKey(
       )
 
       // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
       // Both caches should be cleared
       expect(await client.get(cacheKey1)).toBeNull()
@@ -1377,9 +1377,9 @@ describeIfRedisKey(
         expect(features.length).toBe(1)
       })
 
-      // Cache should be repopulated
+      // Cache should be repopulated (Upstash auto-deserializes JSON)
       const cachedRepopulated = await client.get(cacheKey)
-      expect(typeof cachedRepopulated).toBe('string')
+      expect(typeof cachedRepopulated).toBe('object')
     })
   }
 )
