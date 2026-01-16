@@ -157,6 +157,18 @@ function dependencyRegistryKey(
 }
 
 /**
+ * Type guard to check if a string is a valid RedisKeyNamespace.
+ * Uses Zod's safeParse for runtime validation.
+ */
+const redisKeyNamespaceSchema = z.nativeEnum(RedisKeyNamespace)
+
+function isRedisKeyNamespace(
+  value: string
+): value is RedisKeyNamespace {
+  return redisKeyNamespaceSchema.safeParse(value).success
+}
+
+/**
  * Register that a cache key depends on certain dependency keys.
  * Called internally by the cached combinator after populating the cache.
  *
@@ -954,15 +966,8 @@ export async function invalidateDependencies(
           if (colonIndex > 0) {
             const namespace = cacheKey.slice(0, colonIndex)
             // Only remove if it's a known namespace (avoid removing dependency registry keys)
-            if (
-              Object.values(RedisKeyNamespace).includes(
-                namespace as RedisKeyNamespace
-              )
-            ) {
-              await removeFromLRU(
-                namespace as RedisKeyNamespace,
-                cacheKey
-              )
+            if (isRedisKeyNamespace(namespace)) {
+              await removeFromLRU(namespace, cacheKey)
             }
           }
         }
