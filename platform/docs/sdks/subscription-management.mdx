@@ -55,7 +55,7 @@ There are three ways to specify the new plan:
 The `timing` parameter controls when the adjustment takes effect:
 - **`auto`** (default): Automatically determines timing based on whether this is an upgrade or downgrade. Upgrades happen immediately with proration; downgrades happen at the end of the current billing period.
 - **`immediately`**: Apply the change immediately. For upgrades, the customer is charged the prorated difference. For downgrades, the plan changes immediately but no refund is issued.
-- **`at_end_of_period`**: Apply the change at the end of the current billing period (only valid for downgrades).
+- **`at_end_of_current_billing_period`**: Apply the change at the end of the current billing period (only valid for downgrades).
 
 **How `auto` determines upgrade vs downgrade:**
 
