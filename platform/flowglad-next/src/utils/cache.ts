@@ -869,6 +869,9 @@ export async function invalidateDependencies(
       const registryKey = dependencyRegistryKey(dep)
       const cacheKeys = await client.smembers(registryKey)
 
+      // Collect keys to recompute (populated inside if block, used after)
+      let keysToRecompute: string[] = []
+
       if (cacheKeys.length > 0) {
         logger.info('cache_invalidation', {
           dependency: dep,
@@ -885,7 +888,7 @@ export async function invalidateDependencies(
             return { cacheKey, hasMetadata: hasMetadata > 0 }
           })
         )
-        const keysToRecompute = metadataChecks
+        keysToRecompute = metadataChecks
           .filter((check) => check.hasMetadata)
           .map((check) => check.cacheKey)
 
@@ -904,15 +907,18 @@ export async function invalidateDependencies(
             }
           }
         }
-
-        // 3. THEN trigger recomputation (fire-and-forget)
-        for (const cacheKey of keysToRecompute) {
-          void recomputeCacheEntry(cacheKey)
-        }
       }
 
-      // Delete the registry Set itself
+      // 3. Delete the registry Set BEFORE triggering recomputation
+      // This avoids a race condition where recomputation re-registers the
+      // dependency and then we delete the freshly rebuilt registry
       await client.del(registryKey)
+
+      // 4. THEN trigger recomputation (fire-and-forget)
+      // Any re-registration during recomputation creates a fresh registry set
+      for (const cacheKey of keysToRecompute) {
+        void recomputeCacheEntry(cacheKey)
+      }
     }
   } catch (error) {
     logger.error('Failed to invalidate cache dependencies', {
