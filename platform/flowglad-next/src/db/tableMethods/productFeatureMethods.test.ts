@@ -307,7 +307,7 @@ describe('batchUnexpireProductFeatures', () => {
           [pf1.id, pf2.id, pf3.id],
           { transaction, invalidateCache }
         )
-        return { result: unexpireResult }
+        return Result.ok(unexpireResult)
       }
     )
 
@@ -335,7 +335,7 @@ describe('batchUnexpireProductFeatures', () => {
           [],
           { transaction, invalidateCache }
         )
-        return { result: unexpireResult }
+        return Result.ok(unexpireResult)
       }
     )
 
@@ -364,7 +364,7 @@ describe('batchUnexpireProductFeatures', () => {
           [expiredPf.id, activePf.id],
           { transaction, invalidateCache }
         )
-        return { result: unexpireResult }
+        return Result.ok(unexpireResult)
       }
     )
 
@@ -396,7 +396,7 @@ describe('batchUnexpireProductFeatures', () => {
           [pf1.id, pf2.id],
           { transaction, invalidateCache }
         )
-        return { result: unexpireResult }
+        return Result.ok(unexpireResult)
       }
     )
 
@@ -422,7 +422,7 @@ describe('batchUnexpireProductFeatures', () => {
           [realPf.id, fakeId],
           { transaction, invalidateCache }
         )
-        return { result: unexpireResult }
+        return Result.ok(unexpireResult)
       }
     )
 
@@ -460,7 +460,7 @@ describe('batchUnexpireProductFeatures', () => {
           [expired1.id, active1.id, expired2.id],
           { transaction, invalidateCache }
         )
-        return { result: unexpireResult }
+        return Result.ok(unexpireResult)
       }
     )
 

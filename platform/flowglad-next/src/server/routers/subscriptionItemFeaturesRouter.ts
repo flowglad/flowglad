@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { kebabCase } from 'change-case'
 import { z } from 'zod'
 import {
@@ -92,7 +93,7 @@ const createSubscriptionItemFeature = protectedProcedure
         invalidateCache(
           CacheDependency.subscriptionItemFeatures(subscriptionItemId)
         )
-        return { result: { subscriptionItemFeature } }
+        return Result.ok({ subscriptionItemFeature })
       }
     )
   )
@@ -137,7 +138,7 @@ const updateSubscriptionItemFeature = protectedProcedure
             existingFeature.subscriptionItemId
           )
         )
-        return { result: { subscriptionItemFeature } }
+        return Result.ok({ subscriptionItemFeature })
       }
     )
   )
@@ -212,7 +213,7 @@ const expireSubscriptionItemFeature = protectedProcedure
             existingFeature.subscriptionItemId
           )
         )
-        return { result: { subscriptionItemFeature } }
+        return Result.ok({ subscriptionItemFeature })
       }
     )
   )

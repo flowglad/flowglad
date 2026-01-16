@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
@@ -315,7 +316,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             Date.now()
           )
 
-          return { result: undefined }
+          return Result.ok(undefined)
         }
       )
     })
@@ -369,7 +370,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
           expect(detachedFeature.featureId).toBe(feature.id) // Still has featureId
           expect(detachedFeature.expiredAt).toBeNull() // Not expired, just detached
 
-          return { result: undefined }
+          return Result.ok(undefined)
         }
       )
     })
@@ -406,7 +407,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
           // Should not create any features because the productFeature is expired
           expect(createdFeatures.length).toBe(0)
 
-          return { result: undefined }
+          return Result.ok(undefined)
         }
       )
     })
@@ -425,7 +426,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result: undefined }
+          return Result.ok(undefined)
         }
       )
     })
@@ -460,7 +461,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
           // expiredAt can be null or 0 (epoch) due to timestamptzMs type conversion
           expect([null, 0]).toContain(productFeatures[0].expiredAt)
 
-          return { result: undefined }
+          return Result.ok(undefined)
         }
       )
     })
@@ -498,7 +499,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
           expect(createdFeatures.length).toBeGreaterThan(0)
           expect(createdFeatures[0].featureId).toBe(feature.id)
 
-          return { result: undefined }
+          return Result.ok(undefined)
         }
       )
     })
@@ -545,7 +546,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
           // Still no features for this subscription item
           expect(existingFeatures.length).toBe(0)
 
-          return { result: undefined }
+          return Result.ok(undefined)
         }
       )
     })
@@ -581,7 +582,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
           expect(productFeatures[0].expiredAt).toBe(initialExpiredAt)
 
-          return { result: undefined }
+          return Result.ok(undefined)
         }
       )
     })

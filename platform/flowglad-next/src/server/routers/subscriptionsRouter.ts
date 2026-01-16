@@ -721,7 +721,7 @@ const updatePaymentMethodProcedure = protectedProcedure
           transaction
         )
 
-        return Result.ok({
+        return {
           subscription: {
             ...updatedSubscription,
             current: isSubscriptionCurrent(
@@ -729,7 +729,7 @@ const updatePaymentMethodProcedure = protectedProcedure
               updatedSubscription.cancellationReason
             ),
           },
-        })
+        }
       }
     )
   )

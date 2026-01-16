@@ -1003,7 +1003,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1073,7 +1073,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1151,7 +1151,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1226,7 +1226,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1288,7 +1288,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1350,7 +1350,7 @@ describe('updatePricingModelTransaction', () => {
               },
               { transaction, invalidateCache }
             )
-            return { result }
+            return Result.ok(result)
           },
           { livemode: false }
         )
@@ -1417,7 +1417,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1469,7 +1469,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1568,7 +1568,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )

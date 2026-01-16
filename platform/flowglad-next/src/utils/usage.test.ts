@@ -142,22 +142,23 @@ describe('createUsageMeterTransaction', () => {
       await expect(
         comprehensiveAdminTransaction(
           async ({ transaction, invalidateCache }) => {
-            const usageMeterResult = await createUsageMeterTransaction(
-              {
-                usageMeter: {
-                  name: 'New Usage Meter',
-                  slug,
-                  pricingModelId: pricingModel.id,
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'New Usage Meter',
+                    slug,
+                    pricingModelId: pricingModel.id,
+                  },
                 },
-              },
-              {
-                transaction,
-                userId,
-                livemode: false,
-                organizationId: organization.id,
-                invalidateCache,
-              }
-            )
+                {
+                  transaction,
+                  userId,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                }
+              )
             return Result.ok(usageMeterResult)
           }
         )
@@ -229,22 +230,23 @@ describe('createUsageMeterTransaction', () => {
       await expect(
         comprehensiveAdminTransaction(
           async ({ transaction, invalidateCache }) => {
-            const usageMeterResult = await createUsageMeterTransaction(
-              {
-                usageMeter: {
-                  name: 'New Usage Meter',
-                  slug,
-                  pricingModelId: pricingModel.id,
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'New Usage Meter',
+                    slug,
+                    pricingModelId: pricingModel.id,
+                  },
                 },
-              },
-              {
-                transaction,
-                userId,
-                livemode: false,
-                organizationId: organization.id,
-                invalidateCache,
-              }
-            )
+                {
+                  transaction,
+                  userId,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                }
+              )
             return Result.ok(usageMeterResult)
           }
         )
@@ -384,22 +386,23 @@ describe('createUsageMeterTransaction', () => {
       await expect(
         comprehensiveAdminTransaction(
           async ({ transaction, invalidateCache }) => {
-            const usageMeterResult = await createUsageMeterTransaction(
-              {
-                usageMeter: {
-                  name: 'Should Not Create',
-                  slug,
-                  pricingModelId: pricingModel.id,
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'Should Not Create',
+                    slug,
+                    pricingModelId: pricingModel.id,
+                  },
                 },
-              },
-              {
-                transaction,
-                userId,
-                livemode: false,
-                organizationId: organization.id,
-                invalidateCache,
-              }
-            )
+                {
+                  transaction,
+                  userId,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                }
+              )
             return Result.ok(usageMeterResult)
           }
         )
