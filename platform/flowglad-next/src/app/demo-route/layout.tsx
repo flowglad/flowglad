@@ -1,5 +1,6 @@
 'use client'
 
+import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import {
   Breadcrumb,
@@ -16,10 +17,50 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from './demo-sidebar'
+import { getViewType } from './mockData'
 
 // CSS variable values for the demo layout
 const SIDEBAR_WIDTH = '16rem'
 const SIDEBAR_WIDTH_ICON = '3rem'
+
+// ============================================================================
+// Breadcrumb Labels
+// ============================================================================
+
+const VIEW_LABELS = {
+  emails: 'Email Previews',
+  'pricing-table': 'Pricing Table',
+} as const
+
+// ============================================================================
+// Dynamic Breadcrumb Component
+// ============================================================================
+
+const DynamicBreadcrumb = () => {
+  const searchParams = useSearchParams()
+  const viewType = getViewType(searchParams.get('view') ?? undefined)
+  const label = VIEW_LABELS[viewType]
+
+  return (
+    <Breadcrumb>
+      <BreadcrumbList>
+        <BreadcrumbItem className="hidden md:block">
+          <BreadcrumbLink href="/demo-route">
+            Demo Tools
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator className="hidden md:block" />
+        <BreadcrumbItem>
+          <BreadcrumbPage>{label}</BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+  )
+}
+
+// ============================================================================
+// Layout Component
+// ============================================================================
 
 const DemoLayout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -51,19 +92,25 @@ const DemoLayout = ({ children }: { children: React.ReactNode }) => {
               orientation="vertical"
               className="mr-2 data-[orientation=vertical]:h-4"
             />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/demo-route">
-                    Demo Tools
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Email Previews</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+            <Suspense
+              fallback={
+                <Breadcrumb>
+                  <BreadcrumbList>
+                    <BreadcrumbItem className="hidden md:block">
+                      <BreadcrumbLink href="/demo-route">
+                        Demo Tools
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator className="hidden md:block" />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>Loading...</BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
+              }
+            >
+              <DynamicBreadcrumb />
+            </Suspense>
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">

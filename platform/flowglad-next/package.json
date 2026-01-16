@@ -169,6 +169,7 @@
     "postgres": "^3.4.4",
     "posthog-js": "1.261.0",
     "posthog-node": "^4.1.1",
+    "prism-react-renderer": "^2.4.1",
     "puppeteer": "^24.4.0",
     "query-string": "^9.1.1",
     "ramda": "^0.30.1",

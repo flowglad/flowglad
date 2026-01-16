@@ -28,6 +28,7 @@ import {
   type EmailType,
   getEmailType,
   getViewType,
+  type ParsedParams,
   type ViewType,
 } from './mockData'
 
@@ -60,20 +61,12 @@ interface NavItem {
   activeCondition?: (params: ParsedParams) => boolean
 }
 
-interface ParsedParams {
-  isMoR: boolean
-  emailType: EmailType
-  isTrialing: boolean
-  isTestMode: boolean
-  hasRetry: boolean
-  viewType: ViewType
-}
-
 // ============================================================================
 // Navigation Configuration
 // ============================================================================
 
 const emailItems: NavItem[] = [
+  // Order/Payment emails
   {
     href: '/demo-route?email=order-receipt&mor=true',
     label: 'Order Receipt (MoR)',
@@ -86,6 +79,19 @@ const emailItems: NavItem[] = [
     emailType: 'order-receipt',
     activeCondition: (p) => !p.isMoR,
   },
+  {
+    href: '/demo-route?email=payment-failed&hasRetry=true',
+    label: 'Payment Failed (With Retry)',
+    emailType: 'payment-failed',
+    activeCondition: (p) => p.hasRetry,
+  },
+  {
+    href: '/demo-route?email=payment-failed&hasRetry=false',
+    label: 'Payment Failed (No Retry)',
+    emailType: 'payment-failed',
+    activeCondition: (p) => !p.hasRetry,
+  },
+  // Subscription lifecycle emails
   {
     href: '/demo-route?email=subscription-created',
     label: 'Subscription Created',
@@ -120,20 +126,46 @@ const emailItems: NavItem[] = [
   },
   {
     href: '/demo-route?email=subscription-cancellation-scheduled',
-    label: 'Subscription Cancellation Scheduled',
+    label: 'Cancellation Scheduled',
     emailType: 'subscription-cancellation-scheduled',
   },
+  // Authentication emails
   {
-    href: '/demo-route?email=payment-failed&hasRetry=true',
-    label: 'Payment Failed (With Retry)',
-    emailType: 'payment-failed',
-    activeCondition: (p) => p.hasRetry,
+    href: '/demo-route?email=billing-portal-otp',
+    label: 'Billing Portal OTP',
+    emailType: 'billing-portal-otp',
   },
   {
-    href: '/demo-route?email=payment-failed&hasRetry=false',
-    label: 'Payment Failed (No Retry)',
-    emailType: 'payment-failed',
-    activeCondition: (p) => !p.hasRetry,
+    href: '/demo-route?email=billing-portal-magic-link',
+    label: 'Billing Portal Magic Link',
+    emailType: 'billing-portal-magic-link',
+  },
+  {
+    href: '/demo-route?email=forgot-password',
+    label: 'Forgot Password',
+    emailType: 'forgot-password',
+  },
+  // Organization notification emails (admin-facing)
+  {
+    href: '/demo-route?email=org-subscription-created',
+    label: 'Org: Subscription Created',
+    emailType: 'org-subscription-created',
+  },
+  {
+    href: '/demo-route?email=org-subscription-canceled',
+    label: 'Org: Subscription Canceled',
+    emailType: 'org-subscription-canceled',
+  },
+  {
+    href: '/demo-route?email=org-subscription-cancellation-scheduled',
+    label: 'Org: Cancellation Scheduled',
+    emailType: 'org-subscription-cancellation-scheduled',
+  },
+  // Purchase access
+  {
+    href: '/demo-route?email=purchase-access-token',
+    label: 'Purchase Access Token',
+    emailType: 'purchase-access-token',
   },
 ]
 
@@ -185,10 +217,16 @@ export function DemoAppSidebar({
     return params.isTestMode ? `${baseHref}&testMode=true` : baseHref
   }
 
-  // Toggle test mode href
-  const testModeHref = params.isTestMode
-    ? `/demo-route?email=${params.emailType}`
-    : `/demo-route?email=${params.emailType}&testMode=true`
+  // Toggle test mode href - preserves all current query params
+  const testModeHref = (() => {
+    const currentParams = new URLSearchParams(searchParams.toString())
+    if (params.isTestMode) {
+      currentParams.delete('testMode')
+    } else {
+      currentParams.set('testMode', 'true')
+    }
+    return `/demo-route?${currentParams.toString()}`
+  })()
 
   return (
     <Sidebar collapsible="icon" {...props}>

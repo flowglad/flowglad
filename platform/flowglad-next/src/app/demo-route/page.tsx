@@ -7,10 +7,17 @@ import {
   type EmailType,
   getEmailType,
   getViewType,
-  type ViewType,
+  type ParsedParams,
 } from './mockData'
 import {
+  BillingPortalMagicLinkPreview,
+  BillingPortalOTPPreview,
+  ForgotPasswordPreview,
+  OrgSubscriptionCanceledPreview,
+  OrgSubscriptionCancellationScheduledPreview,
+  OrgSubscriptionCreatedPreview,
   PaymentFailedPreview,
+  PurchaseAccessTokenPreview,
   SubscriptionAdjustedPreview,
   SubscriptionCanceledPreview,
   SubscriptionCancellationScheduledPreview,
@@ -29,15 +36,6 @@ interface SearchParams {
   testMode?: string
   hasRetry?: string
   view?: string
-}
-
-interface ParsedParams {
-  isMoR: boolean
-  emailType: EmailType
-  isTrialing: boolean
-  isTestMode: boolean
-  hasRetry: boolean
-  viewType: ViewType
 }
 
 // ============================================================================
@@ -83,6 +81,31 @@ const emailPreviewMap: Record<EmailType, EmailPreviewRenderer> = {
       testMode={isTestMode}
     />
   ),
+  'billing-portal-otp': ({ isTestMode }) => (
+    <BillingPortalOTPPreview testMode={isTestMode} />
+  ),
+  'billing-portal-magic-link': ({ isTestMode }) => (
+    <BillingPortalMagicLinkPreview testMode={isTestMode} />
+  ),
+  'forgot-password': ({ isTestMode }) => (
+    <ForgotPasswordPreview testMode={isTestMode} />
+  ),
+  // Organization notification emails
+  'org-subscription-created': ({ isTestMode }) => (
+    <OrgSubscriptionCreatedPreview testMode={isTestMode} />
+  ),
+  'org-subscription-canceled': ({ isTestMode }) => (
+    <OrgSubscriptionCanceledPreview testMode={isTestMode} />
+  ),
+  'org-subscription-cancellation-scheduled': ({ isTestMode }) => (
+    <OrgSubscriptionCancellationScheduledPreview
+      testMode={isTestMode}
+    />
+  ),
+  // Purchase access
+  'purchase-access-token': ({ isTestMode }) => (
+    <PurchaseAccessTokenPreview testMode={isTestMode} />
+  ),
 }
 
 // ============================================================================
@@ -121,28 +144,32 @@ const DemoPage = async ({
 
   // Render email preview section
   const renderEmailsView = () => (
-    <section className="p-6">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold">Email Preview</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+    <section className="p-6 max-w-[1536px] mx-auto">
+      {/* Title Block - 4px gap between heading/description, 16px horizontal padding */}
+      <div className="mb-4 px-4 flex flex-col gap-1">
+        <h1 className="text-2xl font-bold leading-8">
+          Email Preview
+        </h1>
+        <p className="text-sm leading-5 text-muted-foreground">
           Preview email templates with different configurations
         </p>
       </div>
 
       <EmailPreviewErrorBoundary templateName={params.emailType}>
-        <div className="rounded-lg border bg-card">
-          {renderEmailPreview()}
-        </div>
+        {renderEmailPreview()}
       </EmailPreviewErrorBoundary>
     </section>
   )
 
   // Render pricing table section
   const renderPricingTableView = () => (
-    <section className="p-6">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold">Pricing Table Demo</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+    <section className="p-6 max-w-[1536px] mx-auto">
+      {/* Title Block - 4px gap between heading/description */}
+      <div className="mb-4 px-4 flex flex-col gap-1">
+        <h1 className="text-2xl font-bold leading-8">
+          Pricing Table Demo
+        </h1>
+        <p className="text-sm leading-5 text-muted-foreground">
           Interactive pricing table component
         </p>
       </div>

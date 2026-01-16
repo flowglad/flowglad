@@ -33,6 +33,7 @@ export const MoREmailPreview = ({
       templateName="customer-order-receipt"
       scenario={scenario}
       testMode={testMode}
+      emailType="order-receipt"
     >
       <OrderReceiptEmail
         invoiceNumber="INV-2024-001"
