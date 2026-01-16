@@ -12,7 +12,6 @@ import {
   CacheDependency,
   type CacheRecomputeMetadata,
   cached,
-  cachedRecomputable,
   getRecomputeHandler,
   getTtlForNamespace,
   invalidateDependencies,
@@ -23,6 +22,7 @@ import {
   type SerializableParams,
   type TransactionContext,
 } from './cache'
+import { cachedRecomputable } from './cache-recomputable'
 import {
   _setTestRedisClient,
   RedisKeyNamespace,
@@ -869,16 +869,17 @@ describe('cachedRecomputable', () => {
       wrappedFn
     )
 
-    // Call with transaction context so metadata can be stored
     const transactionContext: TransactionContext = {
       type: 'admin',
       livemode: true,
     }
 
-    await runWithTransactionContext(transactionContext, async () => {
-      const mockTransaction = {} as DbTransaction
-      await cachedFn({ subId: 'sub_123' }, mockTransaction)
-    })
+    const mockTransaction = {} as DbTransaction
+    await cachedFn(
+      { subId: 'sub_123' },
+      mockTransaction,
+      transactionContext
+    )
 
     // Verify cache value was stored
     const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:sub_123`
@@ -942,10 +943,8 @@ describe('cachedRecomputable', () => {
       userId: 'user_456',
     }
 
-    await runWithTransactionContext(transactionContext, async () => {
-      const mockTransaction = {} as DbTransaction
-      await cachedFn(inputParams, mockTransaction)
-    })
+    const mockTransaction = {} as DbTransaction
+    await cachedFn(inputParams, mockTransaction, transactionContext)
 
     const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:cust_1:true`
     const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
@@ -987,10 +986,12 @@ describe('cachedRecomputable', () => {
       userId: 'user_test_456',
     }
 
-    await runWithTransactionContext(transactionContext, async () => {
-      const mockTransaction = {} as DbTransaction
-      await cachedFn({ id: 'meter_123' }, mockTransaction)
-    })
+    const mockTransaction = {} as DbTransaction
+    await cachedFn(
+      { id: 'meter_123' },
+      mockTransaction,
+      transactionContext
+    )
 
     const cacheKey = `${RedisKeyNamespace.MeterBalancesBySubscription}:meter_123`
     const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
@@ -1035,50 +1036,20 @@ describe('cachedRecomputable', () => {
     mockRedis.store[cacheKey] = JSON.stringify({ cached: true })
 
     const mockTransaction = {} as DbTransaction
+    const transactionContext: TransactionContext = {
+      type: 'admin',
+      livemode: true,
+    }
     const result = await cachedFn(
       { key: 'hit-test' },
-      mockTransaction
+      mockTransaction,
+      transactionContext
     )
 
     // Should return cached value
     expect(result).toEqual({ cached: true })
     // Wrapped function should not be called on cache hit
     expect(tracker.callCount).toBe(0)
-  })
-
-  it('does not store metadata when called outside transaction context', async () => {
-    const testSchema = z.object({ result: z.number() })
-    const { fn: wrappedFn } = createTrackableFn<
-      { id: string },
-      { result: number }
-    >({
-      result: 99,
-    })
-
-    const cachedFn = cachedRecomputable(
-      {
-        namespace: RedisKeyNamespace.ItemsBySubscription,
-        paramsSchema: z.object({ id: z.string() }),
-        keyFn: (params: { id: string }) => params.id,
-        schema: testSchema,
-        dependenciesFn: () => [],
-      },
-      wrappedFn
-    )
-
-    // Call without transaction context
-    const mockTransaction = {} as DbTransaction
-    await cachedFn({ id: 'no-context' }, mockTransaction)
-
-    // Cache value should still be stored
-    const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:no-context`
-    expect(JSON.parse(mockRedis.store[cacheKey])).toEqual({
-      result: 99,
-    })
-
-    // But metadata should NOT be stored (no transaction context available)
-    const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
-    expect(mockRedis.store[metadataKey]).toBeUndefined()
   })
 
   it('registers dependencies for cache invalidation', async () => {
@@ -1109,10 +1080,12 @@ describe('cachedRecomputable', () => {
       livemode: true,
     }
 
-    await runWithTransactionContext(transactionContext, async () => {
-      const mockTransaction = {} as DbTransaction
-      await cachedFn({ customerId: 'cust_deps' }, mockTransaction)
-    })
+    const mockTransaction = {} as DbTransaction
+    await cachedFn(
+      { customerId: 'cust_deps' },
+      mockTransaction,
+      transactionContext
+    )
 
     // Verify dependencies were registered
     const depKey1 = `${RedisKeyNamespace.CacheDependencyRegistry}:customerSubscriptions:cust_deps`
