@@ -157,7 +157,7 @@ const mockFailedCharge = (
 
 describe('Checkout Sessions', async () => {
   // Common variables for all tests
-  const { organization, price } = await setupOrg()
+  const { organization, price, pricingModel } = await setupOrg()
   let customer: Customer.Record
   let checkoutSession: CheckoutSession.Record
   let purchase: Purchase.Record
@@ -199,6 +199,7 @@ describe('Checkout Sessions', async () => {
 
     discount = await setupDiscount({
       organizationId: organization.id,
+      pricingModelId: pricingModel.id,
       name: 'TEST10',
       code: `${Date.now()}`,
       amount: 10,
@@ -613,6 +614,7 @@ describe('Checkout Sessions', async () => {
       // Create a 100% off discount that equals the full price amount (10000 cents = $100)
       const fullDiscount = await setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'FULL100',
         code: core.nanoid().slice(0, 10), // Short unique code
         amount: 10000, // $100.00 in cents - full price coverage
@@ -661,6 +663,7 @@ describe('Checkout Sessions', async () => {
       // Create a 100% off discount
       const fullDiscount = await setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'FULL100_PI',
         code: core.nanoid().slice(0, 10), // Short unique code
         amount: 10000, // $100.00 in cents - full price coverage

@@ -87,6 +87,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
     })
     testDiscount = await setupDiscount({
       organizationId: orgData.organization.id,
+      pricingModelId: orgData.pricingModel.id,
       name: '10% Off Sub',
       amount: 10,
       amountType: DiscountAmountType.Percent,

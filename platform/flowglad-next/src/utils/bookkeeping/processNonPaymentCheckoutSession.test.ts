@@ -33,10 +33,15 @@ describe('processNonPaymentCheckoutSession', () => {
   let customer: Customer.Record
   let checkoutSession: CheckoutSession.Record
 
+  let pricingModel: Awaited<
+    ReturnType<typeof setupOrg>
+  >['pricingModel']
+
   beforeEach(async () => {
     const setupData = await setupOrg()
     organization = setupData.organization
     product = setupData.product
+    pricingModel = setupData.pricingModel
 
     // Create a single payment price (not subscription) since processNonPaymentCheckoutSession
     // does not support subscriptions
@@ -70,6 +75,7 @@ describe('processNonPaymentCheckoutSession', () => {
       // Create a 100% off discount that equals the full price amount
       const fullDiscount = await setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'FULL100',
         code: core.nanoid().slice(0, 10),
         amount: price.unitPrice, // Full price coverage

@@ -68,6 +68,7 @@ describe('Discount Redemption Methods', () => {
 
     discount = await setupDiscount({
       organizationId: organization.id,
+      pricingModelId: pricingModel.id,
       name: 'Test Discount',
       code: `TEST${core.nanoid().substring(0, 15)}`, // Keep under 20 chars
       amount: 500,
