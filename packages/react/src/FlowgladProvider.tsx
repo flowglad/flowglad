@@ -5,6 +5,7 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query'
 import type React from 'react'
+import { FlowgladConfigProvider } from './FlowgladConfigContext'
 import {
   FlowgladContextProvider,
   type RequestConfig,
@@ -43,12 +44,14 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
   if ('__devMode' in props) {
     return (
       <QueryClientProvider client={queryClient}>
-        <FlowgladContextProvider
-          __devMode
-          billingMocks={props.billingMocks}
-        >
-          {props.children}
-        </FlowgladContextProvider>
+        <FlowgladConfigProvider __devMode>
+          <FlowgladContextProvider
+            __devMode
+            billingMocks={props.billingMocks}
+          >
+            {props.children}
+          </FlowgladContextProvider>
+        </FlowgladConfigProvider>
       </QueryClientProvider>
     )
   }
@@ -68,14 +71,20 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
   }
   return (
     <QueryClientProvider client={queryClient}>
-      <FlowgladContextProvider
+      <FlowgladConfigProvider
         baseURL={baseURL}
         betterAuthBasePath={betterAuthBasePath}
-        loadBilling={loadBilling}
         requestConfig={requestConfig}
       >
-        {children}
-      </FlowgladContextProvider>
+        <FlowgladContextProvider
+          baseURL={baseURL}
+          betterAuthBasePath={betterAuthBasePath}
+          loadBilling={loadBilling}
+          requestConfig={requestConfig}
+        >
+          {children}
+        </FlowgladContextProvider>
+      </FlowgladConfigProvider>
     </QueryClientProvider>
   )
 }

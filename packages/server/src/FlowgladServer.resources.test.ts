@@ -133,19 +133,25 @@ describe('FlowgladServer resource methods', () => {
   describe('getResources', () => {
     it('returns all resources with usage when customer has single subscription and no subscriptionId provided', async () => {
       const { server, mocks } = createMockFlowgladServer({})
-      mocks.get.mockResolvedValue({ resources: [mockResourceUsage] })
+      // Mock the /usages endpoint response format
+      mocks.get.mockResolvedValue([
+        { usage: mockResourceUsage, claims: [] },
+      ])
 
       const result = await server.getResources()
 
       expect(result).toEqual({ resources: [mockResourceUsage] })
       expect(mocks.get).toHaveBeenCalledWith(
-        `/api/v1/resource-claims/${mockSubscription.id}/usage`
+        `/api/v1/resource-claims/${mockSubscription.id}/usages`
       )
     })
 
     it('returns resources when subscriptionId is explicitly provided', async () => {
       const { server, mocks } = createMockFlowgladServer({})
-      mocks.get.mockResolvedValue({ resources: [mockResourceUsage] })
+      // Mock the /usages endpoint response format
+      mocks.get.mockResolvedValue([
+        { usage: mockResourceUsage, claims: [] },
+      ])
 
       const result = await server.getResources({
         subscriptionId: mockSubscription.id,

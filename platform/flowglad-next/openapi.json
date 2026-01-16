@@ -7188,7 +7188,7 @@
         }
       }
     },
-    "/api/v1/product-feature/{id}/expire": {
+    "/api/v1/product-features/{id}/expire": {
       "post": {
         "operationId": "productFeatures-expire",
         "summary": "Expire Product Feature",
