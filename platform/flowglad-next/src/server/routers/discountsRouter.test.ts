@@ -1,14 +1,13 @@
+import { TRPCError } from '@trpc/server'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { insertDiscount } from '@/db/tableMethods/discountMethods'
-import {
-  selectDefaultPricingModel,
-  selectPricingModels,
-} from '@/db/tableMethods/pricingModelMethods'
+import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { DiscountAmountType, DiscountDuration } from '@/types'
+import { validateAndResolvePricingModelId } from '@/utils/discountValidation'
 
-describe('discountsRouter - Cross-tenant pricingModelId validation', () => {
+describe('validateAndResolvePricingModelId', () => {
   let org1Id: string
   let org1PricingModelId: string
   let org2Id: string
@@ -41,27 +40,174 @@ describe('discountsRouter - Cross-tenant pricingModelId validation', () => {
     org2PricingModelId = result.org2PricingModelId
   })
 
-  describe('pricingModelId validation in createDiscount', () => {
-    it('should allow creating a discount with a valid pricingModelId from the same organization', async () => {
+  it('returns the provided pricingModelId when it belongs to the same organization', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return validateAndResolvePricingModelId({
+        pricingModelId: org1PricingModelId,
+        organizationId: org1Id,
+        livemode,
+        transaction,
+      })
+    })
+
+    expect(result).toBe(org1PricingModelId)
+  })
+
+  it('throws TRPCError with BAD_REQUEST when pricingModelId belongs to a different organization', async () => {
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        return validateAndResolvePricingModelId({
+          pricingModelId: org2PricingModelId, // org2's pricing model
+          organizationId: org1Id, // but trying to use in org1's context
+          livemode,
+          transaction,
+        })
+      })
+    ).rejects.toThrow(TRPCError)
+
+    // Verify the error details
+    try {
+      await adminTransaction(async ({ transaction }) => {
+        return validateAndResolvePricingModelId({
+          pricingModelId: org2PricingModelId,
+          organizationId: org1Id,
+          livemode,
+          transaction,
+        })
+      })
+    } catch (error) {
+      expect(error).toBeInstanceOf(TRPCError)
+      expect((error as TRPCError).code).toBe('BAD_REQUEST')
+      expect((error as TRPCError).message).toBe(
+        'Invalid pricing model: the specified pricing model does not exist or does not belong to this organization'
+      )
+    }
+  })
+
+  it('throws TRPCError with BAD_REQUEST when pricingModelId does not exist', async () => {
+    const nonExistentPricingModelId = 'pricing_model_nonexistent123'
+
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        return validateAndResolvePricingModelId({
+          pricingModelId: nonExistentPricingModelId,
+          organizationId: org1Id,
+          livemode,
+          transaction,
+        })
+      })
+    ).rejects.toThrow(TRPCError)
+
+    // Verify the error details
+    try {
+      await adminTransaction(async ({ transaction }) => {
+        return validateAndResolvePricingModelId({
+          pricingModelId: nonExistentPricingModelId,
+          organizationId: org1Id,
+          livemode,
+          transaction,
+        })
+      })
+    } catch (error) {
+      expect(error).toBeInstanceOf(TRPCError)
+      expect((error as TRPCError).code).toBe('BAD_REQUEST')
+      expect((error as TRPCError).message).toBe(
+        'Invalid pricing model: the specified pricing model does not exist or does not belong to this organization'
+      )
+    }
+  })
+
+  it('returns the default pricing model ID when pricingModelId is not provided', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const defaultPM = await selectDefaultPricingModel(
+        { organizationId: org1Id, livemode },
+        transaction
+      )
+
+      const resolvedId = await validateAndResolvePricingModelId({
+        pricingModelId: undefined,
+        organizationId: org1Id,
+        livemode,
+        transaction,
+      })
+
+      return { resolvedId, defaultPMId: defaultPM?.id }
+    })
+
+    expect(result.resolvedId).toBe(result.defaultPMId)
+    expect(result.resolvedId).toMatch(/^pricing_model_/)
+  })
+
+  it('returns the default pricing model ID when pricingModelId is null', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const defaultPM = await selectDefaultPricingModel(
+        { organizationId: org1Id, livemode },
+        transaction
+      )
+
+      const resolvedId = await validateAndResolvePricingModelId({
+        pricingModelId: null,
+        organizationId: org1Id,
+        livemode,
+        transaction,
+      })
+
+      return { resolvedId, defaultPMId: defaultPM?.id }
+    })
+
+    expect(result.resolvedId).toBe(result.defaultPMId)
+    expect(result.resolvedId).toMatch(/^pricing_model_/)
+  })
+
+  it('throws TRPCError when pricingModelId has wrong livemode', async () => {
+    // org1PricingModelId is a livemode pricing model (livemode: true)
+    // Attempting to use it in testmode (livemode: false) should fail
+
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        return validateAndResolvePricingModelId({
+          pricingModelId: org1PricingModelId,
+          organizationId: org1Id,
+          livemode: false, // testmode context
+          transaction,
+        })
+      })
+    ).rejects.toThrow(TRPCError)
+
+    // Verify the error details
+    try {
+      await adminTransaction(async ({ transaction }) => {
+        return validateAndResolvePricingModelId({
+          pricingModelId: org1PricingModelId,
+          organizationId: org1Id,
+          livemode: false,
+          transaction,
+        })
+      })
+    } catch (error) {
+      expect(error).toBeInstanceOf(TRPCError)
+      expect((error as TRPCError).code).toBe('BAD_REQUEST')
+    }
+  })
+
+  describe('integration with insertDiscount', () => {
+    it('creates a discount successfully after validation passes', async () => {
       const discount = await adminTransaction(
         async ({ transaction }) => {
-          // Verify the pricingModel belongs to org1
-          const [validPricingModel] = await selectPricingModels(
-            {
-              id: org1PricingModelId,
+          // First validate and resolve the pricingModelId
+          const resolvedPricingModelId =
+            await validateAndResolvePricingModelId({
+              pricingModelId: org1PricingModelId,
               organizationId: org1Id,
               livemode,
-            },
-            transaction
-          )
-          expect(validPricingModel.id).toBe(org1PricingModelId)
-          expect(validPricingModel.organizationId).toBe(org1Id)
+              transaction,
+            })
 
-          // Create discount with the valid pricingModelId
+          // Then create the discount
           return insertDiscount(
             {
               organizationId: org1Id,
-              pricingModelId: org1PricingModelId,
+              pricingModelId: resolvedPricingModelId,
               name: 'Test Discount',
               code: 'VALID10',
               amount: 10,
@@ -81,31 +227,23 @@ describe('discountsRouter - Cross-tenant pricingModelId validation', () => {
       expect(discount.organizationId).toBe(org1Id)
     })
 
-    it('should reject a pricingModelId that belongs to a different organization', async () => {
+    it('prevents discount creation with cross-tenant pricingModelId through validation', async () => {
       await expect(
         adminTransaction(async ({ transaction }) => {
-          // First verify that org2's pricingModel does NOT belong to org1
-          const [invalidPricingModel] = await selectPricingModels(
-            {
-              id: org2PricingModelId,
-              organizationId: org1Id, // Looking for org2's pricing model in org1's context
+          // Validation will throw before we can create the discount
+          const resolvedPricingModelId =
+            await validateAndResolvePricingModelId({
+              pricingModelId: org2PricingModelId, // wrong org
+              organizationId: org1Id,
               livemode,
-            },
-            transaction
-          )
+              transaction,
+            })
 
-          // This should be undefined because org2's pricing model doesn't belong to org1
-          if (!invalidPricingModel) {
-            throw new Error(
-              'Invalid pricing model: the specified pricing model does not exist or does not belong to this organization'
-            )
-          }
-
-          // This should never be reached
+          // This line should never be reached
           return insertDiscount(
             {
               organizationId: org1Id,
-              pricingModelId: org2PricingModelId, // Wrong org's pricing model
+              pricingModelId: resolvedPricingModelId,
               name: 'Test Discount',
               code: 'INVALID10',
               amount: 10,
@@ -118,144 +256,7 @@ describe('discountsRouter - Cross-tenant pricingModelId validation', () => {
             transaction
           )
         })
-      ).rejects.toThrow(
-        'Invalid pricing model: the specified pricing model does not exist or does not belong to this organization'
-      )
-    })
-
-    it('should reject a non-existent pricingModelId', async () => {
-      const nonExistentPricingModelId = 'pricing_model_nonexistent123'
-
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          // Verify the pricingModel does not exist
-          const [invalidPricingModel] = await selectPricingModels(
-            {
-              id: nonExistentPricingModelId,
-              organizationId: org1Id,
-              livemode,
-            },
-            transaction
-          )
-
-          if (!invalidPricingModel) {
-            throw new Error(
-              'Invalid pricing model: the specified pricing model does not exist or does not belong to this organization'
-            )
-          }
-
-          return insertDiscount(
-            {
-              organizationId: org1Id,
-              pricingModelId: nonExistentPricingModelId,
-              name: 'Test Discount',
-              code: 'INVALID10',
-              amount: 10,
-              amountType: DiscountAmountType.Percent,
-              duration: DiscountDuration.Once,
-              active: true,
-              livemode,
-              numberOfPayments: null,
-            },
-            transaction
-          )
-        })
-      ).rejects.toThrow(
-        'Invalid pricing model: the specified pricing model does not exist or does not belong to this organization'
-      )
-    })
-
-    it('should use the default pricing model when pricingModelId is not provided', async () => {
-      const discount = await adminTransaction(
-        async ({ transaction }) => {
-          // Get the default pricing model for org1
-          const defaultPM = await selectDefaultPricingModel(
-            { organizationId: org1Id, livemode },
-            transaction
-          )
-          expect(defaultPM?.id).toMatch(/^pricing_model_/)
-
-          // Create discount without specifying pricingModelId
-          const pricingModelId = defaultPM!.id
-
-          return insertDiscount(
-            {
-              organizationId: org1Id,
-              pricingModelId,
-              name: 'Test Discount Default PM',
-              code: 'DEFAULT10',
-              amount: 10,
-              amountType: DiscountAmountType.Percent,
-              duration: DiscountDuration.Once,
-              active: true,
-              livemode,
-              numberOfPayments: null,
-            },
-            transaction
-          )
-        }
-      )
-
-      expect(discount.id).toMatch(/^discount_/)
-      expect(discount.pricingModelId).toMatch(/^pricing_model_/)
-      expect(discount.organizationId).toBe(org1Id)
-    })
-
-    it('should reject a pricingModelId from the same organization but different livemode', async () => {
-      // Create a test mode pricing model for org1
-      const testmodePricingModelId = await adminTransaction(
-        async ({ transaction }) => {
-          // setupOrg creates livemode pricing models, let's check if there's a testmode one
-          // If not, we need to verify the validation correctly checks livemode
-          const [livemodeModel] = await selectPricingModels(
-            {
-              id: org1PricingModelId,
-              organizationId: org1Id,
-              livemode: true,
-            },
-            transaction
-          )
-
-          // Try to use a livemode pricingModel in testmode context
-          const [invalidInTestmode] = await selectPricingModels(
-            {
-              id: org1PricingModelId,
-              organizationId: org1Id,
-              livemode: false, // Different livemode
-            },
-            transaction
-          )
-
-          // The livemode model should not be found in testmode context
-          expect(invalidInTestmode).toBeUndefined()
-
-          return livemodeModel.id
-        }
-      )
-
-      // Verify that the validation rejects when livemode doesn't match
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          const [validPricingModel] = await selectPricingModels(
-            {
-              id: testmodePricingModelId,
-              organizationId: org1Id,
-              livemode: false, // Trying to use in testmode context
-            },
-            transaction
-          )
-
-          if (!validPricingModel) {
-            throw new Error(
-              'Invalid pricing model: the specified pricing model does not exist or does not belong to this organization'
-            )
-          }
-
-          return validPricingModel
-        })
-      ).rejects.toThrow(
-        'Invalid pricing model: the specified pricing model does not exist or does not belong to this organization'
-      )
+      ).rejects.toThrow(TRPCError)
     })
   })
 })
