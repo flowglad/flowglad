@@ -640,7 +640,7 @@ const getCountsByStatusProcedure = protectedProcedure
   .output(
     z.array(
       z.object({
-        status: z.nativeEnum(SubscriptionStatus),
+        status: z.enum(SubscriptionStatus),
         count: z.number(),
       })
     )
@@ -660,7 +660,7 @@ const getTableRows = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
-        status: z.nativeEnum(SubscriptionStatus).optional(),
+        status: z.enum(SubscriptionStatus).optional(),
         customerId: z.string().optional(),
         organizationId: z.string().optional(),
         productName: z.string().optional(),

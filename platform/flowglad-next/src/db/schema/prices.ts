@@ -418,7 +418,7 @@ export const pricesPaginatedSelectSchema =
   createPaginatedSelectSchema(
     z.object({
       productId: z.string().optional(),
-      type: z.nativeEnum(PriceType).optional(),
+      type: z.enum(PriceType).optional(),
       active: z.boolean().optional(),
     })
   ).meta({
