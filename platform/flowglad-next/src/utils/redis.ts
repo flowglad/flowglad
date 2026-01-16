@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis'
+import { createHash } from 'crypto'
 import { z } from 'zod'
 import type { TelemetryEntityType, TelemetryRecord } from '@/types'
 import { referralOptionEnum } from '@/utils/referrals'
@@ -197,6 +198,7 @@ const evictionPolicy: Record<
   },
   [RedisKeyNamespace.CacheDependencyRegistry]: {
     max: 500000, // Higher limit - these are small Sets mapping deps to cache keys
+    ttl: 86400, // 24 hours
   },
   [RedisKeyNamespace.CacheRecomputeMetadata]: {
     max: 500000, // One metadata entry per recomputable cache key
@@ -459,6 +461,48 @@ return 0
 `
 
 /**
+ * Pre-computed SHA1 hash of the LRU eviction script.
+ * Used with EVALSHA to avoid sending the full script on every call.
+ */
+const LRU_EVICTION_SCRIPT_SHA = createHash('sha1')
+  .update(LRU_EVICTION_SCRIPT)
+  .digest('hex')
+
+/**
+ * Execute a Lua script using EVALSHA with fallback to EVAL.
+ *
+ * Tries EVALSHA first (only sends script hash, not full script).
+ * If Redis returns NOSCRIPT (script not cached), falls back to EVAL
+ * which also caches the script for future EVALSHA calls.
+ *
+ * @param script - The full Lua script text
+ * @param sha - Pre-computed SHA1 hash of the script
+ * @param keys - KEYS array for the script
+ * @param args - ARGV array for the script
+ * @returns The script's return value
+ */
+async function evalWithShaFallback<T>(
+  script: string,
+  sha: string,
+  keys: string[],
+  args: (string | number)[]
+): Promise<T> {
+  const redisClient = redis()
+  try {
+    return (await redisClient.evalsha(sha, keys, args)) as T
+  } catch (evalError) {
+    const errorMessage =
+      evalError instanceof Error
+        ? evalError.message
+        : String(evalError)
+    if (errorMessage.includes('NOSCRIPT')) {
+      return (await redisClient.eval(script, keys, args)) as T
+    }
+    throw evalError
+  }
+}
+
+/**
  * Get the max size for a namespace from the eviction policy.
  */
 export function getMaxSizeForNamespace(
@@ -475,7 +519,8 @@ export function getMaxSizeForNamespace(
  * 2. Checks if the set exceeds max size
  * 3. Evicts oldest entries (by score) if needed
  *
- * Uses a Lua script for atomicity - no race conditions between size check and eviction.
+ * Uses EVALSHA to avoid sending the full script on every call. Falls back to
+ * EVAL if the script isn't cached in Redis (which also caches it for future calls).
  *
  * @param namespace - The cache namespace
  * @param cacheKey - The full cache key being written
@@ -486,14 +531,13 @@ export async function trackAndEvictLRU(
   cacheKey: string
 ): Promise<number> {
   try {
-    const redisClient = redis()
     const zsetKey = `${namespace}:lru`
     const maxSize = getMaxSizeForNamespace(namespace)
     const timestamp = Date.now()
 
-    // Execute the Lua script atomically
-    const evicted = await redisClient.eval(
+    const evicted = await evalWithShaFallback<unknown>(
       LRU_EVICTION_SCRIPT,
+      LRU_EVICTION_SCRIPT_SHA,
       [zsetKey, cacheKey],
       [timestamp, maxSize]
     )

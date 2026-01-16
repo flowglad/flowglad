@@ -58,19 +58,17 @@ export async function recomputeWithMerchantContext<T>(
       sql`SELECT set_config('request.jwt.claims', NULL, true);`
     )
 
-    // Set the RLS context
+    // Set the RLS context using parameterized binding for safety
+    const jwtClaimJson = JSON.stringify(jwtClaim)
+    const livemodeStr = Boolean(context.livemode).toString()
     await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', '${sql.raw(
-        JSON.stringify(jwtClaim)
-      )}', TRUE)`
+      sql`SELECT set_config('request.jwt.claims', ${jwtClaimJson}, TRUE)`
     )
     await transaction.execute(
       sql`SET LOCAL ROLE ${sql.raw(jwtClaim.role)};`
     )
     await transaction.execute(
-      sql`SELECT set_config('app.livemode', '${sql.raw(
-        Boolean(context.livemode).toString()
-      )}', TRUE);`
+      sql`SELECT set_config('app.livemode', ${livemodeStr}, TRUE);`
     )
 
     const result = await fn(transaction)
@@ -126,19 +124,17 @@ export async function recomputeWithCustomerContext<T>(
       sql`SELECT set_config('request.jwt.claims', NULL, true);`
     )
 
-    // Set the RLS context
+    // Set the RLS context using parameterized binding for safety
+    const jwtClaimJson = JSON.stringify(jwtClaim)
+    const livemodeStr = Boolean(context.livemode).toString()
     await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', '${sql.raw(
-        JSON.stringify(jwtClaim)
-      )}', TRUE)`
+      sql`SELECT set_config('request.jwt.claims', ${jwtClaimJson}, TRUE)`
     )
     await transaction.execute(
       sql`SET LOCAL ROLE ${sql.raw(jwtClaim.role)};`
     )
     await transaction.execute(
-      sql`SELECT set_config('app.livemode', '${sql.raw(
-        Boolean(context.livemode).toString()
-      )}', TRUE);`
+      sql`SELECT set_config('app.livemode', ${livemodeStr}, TRUE);`
     )
 
     const result = await fn(transaction)

@@ -35,6 +35,39 @@ function createMockRedisClient() {
   const sets: Record<string, Set<string>> = {}
   const zsets: Record<string, Map<string, number>> = {}
 
+  // Helper for LRU eviction script simulation (used by both eval and evalsha)
+  const executeLruScript = (
+    keys: string[],
+    args: (string | number)[]
+  ): number => {
+    const zsetKey = keys[0]
+    const cacheKey = keys[1]
+    const timestamp = Number(args[0])
+    const maxSize = Number(args[1])
+
+    // ZADD
+    if (!zsets[zsetKey]) {
+      zsets[zsetKey] = new Map()
+    }
+    zsets[zsetKey].set(cacheKey, timestamp)
+
+    // Check size and evict
+    const size = zsets[zsetKey].size
+    if (size > maxSize) {
+      const toEvictCount = size - maxSize
+      const sorted = [...zsets[zsetKey].entries()].sort(
+        (a, b) => a[1] - b[1]
+      )
+      const toEvict = sorted.slice(0, toEvictCount).map(([m]) => m)
+      for (const m of toEvict) {
+        delete store[m]
+        zsets[zsetKey].delete(m)
+      }
+      return toEvict.length
+    }
+    return 0
+  }
+
   return {
     store,
     sets,
@@ -136,34 +169,15 @@ function createMockRedisClient() {
         keys: string[],
         args: (string | number)[]
       ) => {
-        const zsetKey = keys[0]
-        const cacheKey = keys[1]
-        const timestamp = Number(args[0])
-        const maxSize = Number(args[1])
-
-        // ZADD
-        if (!zsets[zsetKey]) {
-          zsets[zsetKey] = new Map()
-        }
-        zsets[zsetKey].set(cacheKey, timestamp)
-
-        // Check size and evict
-        const size = zsets[zsetKey].size
-        if (size > maxSize) {
-          const toEvictCount = size - maxSize
-          const sorted = [...zsets[zsetKey].entries()].sort(
-            (a, b) => a[1] - b[1]
-          )
-          const toEvict = sorted
-            .slice(0, toEvictCount)
-            .map(([m]) => m)
-          for (const m of toEvict) {
-            delete store[m]
-            zsets[zsetKey].delete(m)
-          }
-          return toEvict.length
-        }
-        return 0
+        return executeLruScript(keys, args)
+      },
+      // EVALSHA - same behavior as eval for testing
+      evalsha: (
+        _sha: string,
+        keys: string[],
+        args: (string | number)[]
+      ) => {
+        return executeLruScript(keys, args)
       },
       expire: () => 1,
       exists: (...keys: string[]) => {
@@ -815,6 +829,7 @@ describe('cachedRecomputable', () => {
     cachedRecomputable(
       {
         namespace: testNamespace,
+        paramsSchema: z.object({ customerId: z.string() }),
         keyFn: (params: { customerId: string }) => params.customerId,
         schema: z.object({ id: z.string(), name: z.string() }),
         dependenciesFn: (params) => [
@@ -842,6 +857,7 @@ describe('cachedRecomputable', () => {
     const cachedFn = cachedRecomputable(
       {
         namespace: RedisKeyNamespace.ItemsBySubscription,
+        paramsSchema: z.object({ subId: z.string() }),
         keyFn: (params: { subId: string }) => params.subId,
         schema: testSchema,
         dependenciesFn: () => [],
@@ -891,9 +907,16 @@ describe('cachedRecomputable', () => {
       count: 10,
     })
 
+    const testParamsSchema = z.object({
+      customerId: z.string(),
+      livemode: z.boolean(),
+      tags: z.array(z.string()),
+    })
+
     const cachedFn = cachedRecomputable(
       {
         namespace: RedisKeyNamespace.FeaturesBySubscriptionItem,
+        paramsSchema: testParamsSchema,
         keyFn: (params: TestParams) =>
           `${params.customerId}:${params.livemode}`,
         schema: testSchema,
@@ -945,6 +968,7 @@ describe('cachedRecomputable', () => {
     const cachedFn = cachedRecomputable(
       {
         namespace: RedisKeyNamespace.MeterBalancesBySubscription,
+        paramsSchema: z.object({ id: z.string() }),
         keyFn: (params: { id: string }) => params.id,
         schema: testSchema,
         dependenciesFn: () => [],
@@ -994,6 +1018,7 @@ describe('cachedRecomputable', () => {
     const cachedFn = cachedRecomputable(
       {
         namespace: RedisKeyNamespace.SubscriptionsByCustomer,
+        paramsSchema: z.object({ key: z.string() }),
         keyFn: (params: { key: string }) => params.key,
         schema: testSchema,
         dependenciesFn: () => [],
@@ -1029,6 +1054,7 @@ describe('cachedRecomputable', () => {
     const cachedFn = cachedRecomputable(
       {
         namespace: RedisKeyNamespace.ItemsBySubscription,
+        paramsSchema: z.object({ id: z.string() }),
         keyFn: (params: { id: string }) => params.id,
         schema: testSchema,
         dependenciesFn: () => [],
@@ -1063,6 +1089,7 @@ describe('cachedRecomputable', () => {
     const cachedFn = cachedRecomputable(
       {
         namespace: RedisKeyNamespace.SubscriptionsByCustomer,
+        paramsSchema: z.object({ customerId: z.string() }),
         keyFn: (params: { customerId: string }) => params.customerId,
         schema: testSchema,
         dependenciesFn: (params) => [

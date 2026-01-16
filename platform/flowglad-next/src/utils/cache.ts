@@ -10,7 +10,10 @@ import {
   trackAndEvictLRU,
 } from './redis'
 import { traced } from './tracing'
-import { getCurrentTransactionContext } from './transactionContext'
+import {
+  getCurrentTransactionContext,
+  runWithTransactionContext,
+} from './transactionContext'
 
 const DEFAULT_TTL = 300 // 5 minutes
 const DEPENDENCY_REGISTRY_TTL = 86400 // 24 hours - longer than any cache TTL
@@ -961,6 +964,8 @@ export interface RecomputableCacheConfig<
   TResult,
 > {
   namespace: RedisKeyNamespace
+  /** Zod schema for validating params - used during recomputation */
+  paramsSchema: z.ZodType<TParams>
   /** Extract a unique cache key suffix from params */
   keyFn: (params: TParams) => string
   /** Zod schema for validating cached data */
@@ -995,47 +1000,8 @@ export function cachedRecomputable<
   config: RecomputableCacheConfig<TParams, TResult>,
   fn: RecomputableFn<TParams, TResult>
 ): RecomputableFn<TParams, TResult> {
-  // Auto-register recomputation handler at definition time.
-  // All processes import the same modules, so all registries will have the same handlers.
-  const handler: RecomputeHandler = async (
-    params,
-    transactionContext
-  ) => {
-    // Discriminated union enables type narrowing
-    if (transactionContext.type === 'admin') {
-      const { adminTransaction } = await import(
-        '@/db/adminTransaction'
-      )
-      return adminTransaction(
-        async ({ transaction }) => {
-          // The handler will call the wrapped function which stores result + metadata
-          return fn(params as TParams, transaction)
-        },
-        { livemode: transactionContext.livemode }
-      )
-    } else if (transactionContext.type === 'merchant') {
-      const { recomputeWithMerchantContext } = await import(
-        '@/db/recomputeTransaction'
-      )
-      return recomputeWithMerchantContext(
-        transactionContext,
-        async (transaction) => fn(params as TParams, transaction)
-      )
-    } else {
-      // transactionContext.type === 'customer'
-      const { recomputeWithCustomerContext } = await import(
-        '@/db/recomputeTransaction'
-      )
-      return recomputeWithCustomerContext(
-        transactionContext,
-        async (transaction) => fn(params as TParams, transaction)
-      )
-    }
-  }
-  registerRecomputeHandler(config.namespace, handler)
-
-  // Return wrapped function with caching + metadata storage
-  return traced(
+  // Create the cached wrapper first so the handler can reference it
+  const cachedWrapper: RecomputableFn<TParams, TResult> = traced(
     {
       options: (params: TParams, _transaction: DbTransaction) => ({
         spanName: `cache.recomputable.${config.namespace}`,
@@ -1215,4 +1181,57 @@ export function cachedRecomputable<
       return result
     }
   )
+
+  // Auto-register recomputation handler after wrapper is defined.
+  // All processes import the same modules, so all registries will have the same handlers.
+  const handler: RecomputeHandler = async (
+    params,
+    transactionContext
+  ) => {
+    // Validate params using the schema to ensure type safety
+    const validatedParams = config.paramsSchema.parse(params)
+
+    // Set up transaction context and call the cached wrapper (not fn directly)
+    // so cache repopulation and TTL refresh occur
+    if (transactionContext.type === 'admin') {
+      const { adminTransaction } = await import(
+        '@/db/adminTransaction'
+      )
+      return adminTransaction(
+        async ({ transaction }) => {
+          // Run within transaction context so metadata can be stored
+          return runWithTransactionContext(transactionContext, () =>
+            cachedWrapper(validatedParams, transaction)
+          )
+        },
+        { livemode: transactionContext.livemode }
+      )
+    } else if (transactionContext.type === 'merchant') {
+      const { recomputeWithMerchantContext } = await import(
+        '@/db/recomputeTransaction'
+      )
+      return recomputeWithMerchantContext(
+        transactionContext,
+        async (transaction) =>
+          runWithTransactionContext(transactionContext, () =>
+            cachedWrapper(validatedParams, transaction)
+          )
+      )
+    } else {
+      // transactionContext.type === 'customer'
+      const { recomputeWithCustomerContext } = await import(
+        '@/db/recomputeTransaction'
+      )
+      return recomputeWithCustomerContext(
+        transactionContext,
+        async (transaction) =>
+          runWithTransactionContext(transactionContext, () =>
+            cachedWrapper(validatedParams, transaction)
+          )
+      )
+    }
+  }
+  registerRecomputeHandler(config.namespace, handler)
+
+  return cachedWrapper
 }
