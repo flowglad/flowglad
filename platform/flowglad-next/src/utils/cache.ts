@@ -865,6 +865,9 @@ export async function invalidateDependencies(
   if (dependencies.length === 0) return
 
   const client = redis()
+  // Track keys scheduled for recomputation to avoid duplicates across dependencies
+  const scheduledForRecomputation = new Set<string>()
+
   try {
     for (const dep of dependencies) {
       const registryKey = dependencyRegistryKey(dep)
@@ -916,9 +919,12 @@ export async function invalidateDependencies(
       await client.del(registryKey)
 
       // 4. THEN trigger recomputation (fire-and-forget)
-      // Any re-registration during recomputation creates a fresh registry set
+      // Deduplicate: skip keys already scheduled from a previous dependency
       for (const cacheKey of keysToRecompute) {
-        void recomputeCacheEntry(cacheKey)
+        if (!scheduledForRecomputation.has(cacheKey)) {
+          scheduledForRecomputation.add(cacheKey)
+          void recomputeCacheEntry(cacheKey)
+        }
       }
     }
   } catch (error) {
