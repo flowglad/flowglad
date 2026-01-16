@@ -1,22 +1,37 @@
-import type { CacheDependencyKey } from '@/utils/cache'
-import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
-import type { Event } from './schema/events'
-
-// Unified output structure for functions running within our transactions
+/**
+ * Success variant of the Result type.
+ */
 export interface TransactionOutput<T> {
   result: T
-  eventsToInsert?: Event.Insert[]
-  ledgerCommand?: LedgerCommand
-  ledgerCommands?: LedgerCommand[]
-  /**
-   * Cache dependency keys to invalidate AFTER the transaction commits.
-   * Use CacheDependency helpers to construct these keys.
-   *
-   * Example:
-   * cacheInvalidations: [
-   *   CacheDependency.customerSubscriptions(customerId),
-   *   CacheDependency.subscriptionItems(subscriptionId),
-   * ]
-   */
-  cacheInvalidations?: CacheDependencyKey[]
+}
+
+/**
+ * Error variant of the Result type.
+ */
+export interface TransactionError {
+  error: Error
+}
+
+/**
+ * Result type for transaction functions.
+ * Can represent either a successful result or an error.
+ */
+export type Result<T> = TransactionOutput<T> | TransactionError
+
+/**
+ * Type guard to check if a Result is successful.
+ */
+export function isSuccess<T>(
+  result: Result<T>
+): result is TransactionOutput<T> {
+  return 'result' in result
+}
+
+/**
+ * Type guard to check if a Result is an error.
+ */
+export function isError<T>(
+  result: Result<T>
+): result is TransactionError {
+  return 'error' in result
 }

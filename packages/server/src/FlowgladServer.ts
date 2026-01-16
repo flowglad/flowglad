@@ -6,6 +6,7 @@ import {
   type BulkCreateUsageEventsParams,
   bulkCreateUsageEventsSchema,
   type CancelSubscriptionParams,
+  type ClaimResourceParams,
   type CreateActivateSubscriptionCheckoutSessionParams,
   type CreateAddPaymentMethodCheckoutSessionParams,
   type CreateProductCheckoutSessionParams,
@@ -20,6 +21,11 @@ import {
   createAddPaymentMethodCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
   createUsageEventSchema,
+  type GetResourcesParams,
+  type ListResourceClaimsParams,
+  type ReleaseResourceParams,
+  type ResourceClaim,
+  type ResourceUsage,
   type SubscriptionExperimentalFields,
   subscriptionAdjustmentTiming,
   type UncancelSubscriptionParams,
@@ -342,7 +348,7 @@ export class FlowgladServer {
    * // With timing override
    * await flowglad.adjustSubscription({
    *   priceSlug: 'pro-monthly',
-   *   timing: 'at_end_of_period'
+   *   timing: 'at_end_of_current_billing_period'
    * })
    *
    * // Explicit subscription ID (for multi-subscription customers)
@@ -367,10 +373,10 @@ export class FlowgladServer {
    * @param params.subscriptionItems - Array of items for multi-item adjustments (mutually exclusive with priceSlug and priceId)
    * @param params.quantity - Number of units for single-price adjustments (default: 1)
    * @param params.subscriptionId - Subscription ID (auto-resolves if customer has exactly 1 subscription)
-   * @param params.timing - 'immediately' | 'at_end_of_period' | 'auto' (default: 'auto')
+   * @param params.timing - 'immediately' | 'at_end_of_current_billing_period' | 'auto' (default: 'auto')
    *   - 'auto': Upgrades happen immediately, downgrades at end of period
    *   - 'immediately': Apply change now with proration
-   *   - 'at_end_of_period': Apply change at next billing period
+   *   - 'at_end_of_current_billing_period': Apply change at next billing period
    * @param params.prorate - Whether to prorate (default: true for immediate, false for end-of-period)
    * @returns The adjusted subscription and its items
    * @throws {Error} If customer has no active subscriptions
@@ -411,17 +417,10 @@ export class FlowgladServer {
       throw new Error('Subscription is not owned by the current user')
     }
 
+    // Timing values from SDK now match backend directly
     const timing =
       parsedParams.timing ?? subscriptionAdjustmentTiming.Auto
     const prorate = parsedParams.prorate
-
-    const serverTiming =
-      timing === subscriptionAdjustmentTiming.Immediately
-        ? 'immediately'
-        : timing ===
-            subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
-          ? 'at_end_of_current_billing_period'
-          : 'auto'
 
     // Build newSubscriptionItems based on the params form
     let newSubscriptionItems: Array<{
@@ -467,13 +466,14 @@ export class FlowgladServer {
     }
 
     const adjustment =
-      serverTiming === 'at_end_of_current_billing_period'
+      timing ===
+      subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
         ? {
-            timing: serverTiming,
+            timing,
             newSubscriptionItems,
           }
         : {
-            timing: serverTiming,
+            timing,
             newSubscriptionItems,
             prorateCurrentBillingPeriod: prorate ?? true,
           }
@@ -573,5 +573,337 @@ export class FlowgladServer {
   }> => {
     const billing = await this.getBilling()
     return { pricingModel: billing.pricingModel }
+  }
+
+  /**
+   * Get all resources and their usage for the customer's subscription.
+   *
+   * Returns capacity, claimed count, and available count for all resources
+   * in the subscription's pricing model.
+   *
+   * @param params - Optional parameters for fetching resources
+   * @param params.subscriptionId - Optional. Auto-resolved if customer has exactly one active subscription.
+   *
+   * @returns A promise that resolves to an object containing an array of resources with usage data
+   *
+   * @throws {Error} If the customer is not authenticated
+   * @throws {Error} If no active subscription is found for the customer
+   * @throws {Error} If the customer has multiple active subscriptions and no subscriptionId is provided
+   * @throws {Error} If the specified subscription is not owned by the authenticated customer
+   *
+   * @example
+   * // Get all resources for the customer's subscription
+   * const { resources } = await flowglad.getResources()
+   * for (const resource of resources) {
+   *   console.log(`${resource.resourceSlug}: ${resource.claimed}/${resource.capacity} used`)
+   * }
+   *
+   * @example
+   * // Get resources for a specific subscription
+   * const { resources } = await flowglad.getResources({ subscriptionId: 'sub_123' })
+   */
+  public getResources = async (
+    params?: GetResourcesParams
+  ): Promise<{ resources: ResourceUsage[] }> => {
+    // Auto-resolve subscriptionId if not provided
+    let subscriptionId = params?.subscriptionId
+    if (!subscriptionId) {
+      const billing = await this.getBilling()
+      const currentSubscriptions = billing.currentSubscriptions ?? []
+      if (currentSubscriptions.length === 0) {
+        throw new Error(
+          'No active subscription found for this customer'
+        )
+      }
+      if (currentSubscriptions.length > 1) {
+        throw new Error(
+          'Customer has multiple active subscriptions. Please specify subscriptionId.'
+        )
+      }
+      subscriptionId = currentSubscriptions[0].id
+    }
+
+    // Validate ownership
+    const { subscription } =
+      await this.flowgladNode.subscriptions.retrieve(subscriptionId)
+    const { customer } = await this.getCustomer()
+    if (subscription.customerId !== customer.id) {
+      throw new Error('Subscription is not owned by the current user')
+    }
+
+    const response = await this.flowgladNode.get<
+      Array<{ usage: ResourceUsage; claims: unknown[] }>
+    >(`/api/v1/resource-claims/${subscriptionId}/usages`)
+
+    return {
+      resources: response.map((item) => item.usage),
+    }
+  }
+
+  /**
+   * Claim resources from a subscription's capacity.
+   *
+   * Resources represent claimable capacity like seats, API keys, or other
+   * countable entitlements. This method reserves capacity from the subscription's
+   * available pool.
+   *
+   * ## Modes
+   *
+   * Choose ONE of the following modes per call:
+   *
+   * ### Anonymous Claims Mode
+   * Use `quantity` to claim N anonymous resources. These are interchangeable
+   * and released in FIFO order when releasing by quantity.
+   *
+   * ### Named Claims Mode
+   * Use `externalId` or `externalIds` to claim resources with identifiers.
+   * These are idempotent - claiming the same externalId twice returns the
+   * existing claim without creating a duplicate.
+   *
+   * @param params - Parameters for claiming resources
+   * @param params.resourceSlug - The slug identifying the resource type (e.g., 'seats', 'api_keys')
+   * @param params.subscriptionId - Optional. Auto-resolved if customer has exactly one active subscription.
+   * @param params.quantity - Anonymous mode: Number of anonymous resources to claim
+   * @param params.externalId - Named mode: Single identifier for a named resource
+   * @param params.externalIds - Named mode: Array of identifiers for multiple named resources
+   * @param params.metadata - Optional key-value data to attach to claims
+   *
+   * @returns A promise that resolves to an object containing the created claims and updated usage
+   *
+   * @throws {Error} If the customer is not authenticated
+   * @throws {Error} If no active subscription is found for the customer
+   * @throws {Error} If the customer has multiple active subscriptions and no subscriptionId is provided
+   * @throws {Error} If the specified subscription is not owned by the authenticated customer
+   * @throws {Error} If insufficient capacity is available to fulfill the claim
+   *
+   * @example
+   * // Claim 3 anonymous seats (anonymous mode)
+   * const result = await flowglad.claimResource({
+   *   resourceSlug: 'seats',
+   *   quantity: 3
+   * })
+   *
+   * @example
+   * // Claim a specific seat for a user (named mode, idempotent)
+   * const result = await flowglad.claimResource({
+   *   resourceSlug: 'seats',
+   *   externalId: 'user_123',
+   *   metadata: { assignedTo: 'John Doe' }
+   * })
+   *
+   * @example
+   * // Claim multiple named seats at once
+   * const result = await flowglad.claimResource({
+   *   resourceSlug: 'seats',
+   *   externalIds: ['user_123', 'user_456', 'user_789']
+   * })
+   */
+  public claimResource = async (
+    params: ClaimResourceParams
+  ): Promise<FlowgladNode.ResourceClaimClaimResponse> => {
+    // Auto-resolve subscriptionId if not provided
+    let subscriptionId = params.subscriptionId
+    if (!subscriptionId) {
+      const billing = await this.getBilling()
+      const currentSubscriptions = billing.currentSubscriptions ?? []
+      if (currentSubscriptions.length === 0) {
+        throw new Error(
+          'No active subscription found for this customer'
+        )
+      }
+      if (currentSubscriptions.length > 1) {
+        throw new Error(
+          'Customer has multiple active subscriptions. Please specify subscriptionId.'
+        )
+      }
+      subscriptionId = currentSubscriptions[0].id
+    }
+
+    // Validate ownership
+    const { subscription } =
+      await this.flowgladNode.subscriptions.retrieve(subscriptionId)
+    const { customer } = await this.getCustomer()
+    if (subscription.customerId !== customer.id) {
+      throw new Error('Subscription is not owned by the current user')
+    }
+
+    return this.flowgladNode.resourceClaims.claim(subscriptionId, {
+      resourceSlug: params.resourceSlug,
+      metadata: params.metadata,
+      quantity: params.quantity,
+      externalId: params.externalId,
+      externalIds: params.externalIds,
+    })
+  }
+
+  /**
+   * Release claimed resources back to the subscription's available pool.
+   *
+   * ## Modes
+   *
+   * Choose ONE of the following modes per call:
+   *
+   * ### Anonymous Mode
+   * Use `quantity` to release N anonymous claims in FIFO order (oldest first).
+   *
+   * ### Named Mode by External ID
+   * Use `externalId` or `externalIds` to release specific named claims.
+   *
+   * ### Direct Mode
+   * Use `claimIds` to release specific claims by their database IDs.
+   *
+   * @param params - Parameters for releasing resources
+   * @param params.resourceSlug - The slug identifying the resource type
+   * @param params.subscriptionId - Optional. Auto-resolved if customer has exactly one active subscription.
+   * @param params.quantity - Anonymous mode: Number of anonymous claims to release (FIFO)
+   * @param params.externalId - Named mode: Single identifier to release
+   * @param params.externalIds - Named mode: Array of identifiers to release
+   * @param params.claimIds - Direct mode: Array of claim IDs to release
+   *
+   * @returns A promise that resolves to an object containing the released claims and updated usage
+   *
+   * @throws {Error} If the customer is not authenticated
+   * @throws {Error} If no active subscription is found for the customer
+   * @throws {Error} If the customer has multiple active subscriptions and no subscriptionId is provided
+   * @throws {Error} If the specified subscription is not owned by the authenticated customer
+   *
+   * @example
+   * // Release 2 anonymous seats (anonymous mode, FIFO)
+   * const result = await flowglad.releaseResource({
+   *   resourceSlug: 'seats',
+   *   quantity: 2
+   * })
+   *
+   * @example
+   * // Release a specific user's seat (named mode)
+   * const result = await flowglad.releaseResource({
+   *   resourceSlug: 'seats',
+   *   externalId: 'user_123'
+   * })
+   *
+   * @example
+   * // Release multiple users' seats at once
+   * const result = await flowglad.releaseResource({
+   *   resourceSlug: 'seats',
+   *   externalIds: ['user_123', 'user_456']
+   * })
+   *
+   * @example
+   * // Release specific claims by their IDs
+   * const result = await flowglad.releaseResource({
+   *   resourceSlug: 'seats',
+   *   claimIds: ['claim_abc', 'claim_def']
+   * })
+   */
+  public releaseResource = async (
+    params: ReleaseResourceParams
+  ): Promise<FlowgladNode.ResourceClaimReleaseResponse> => {
+    // Auto-resolve subscriptionId if not provided
+    let subscriptionId = params.subscriptionId
+    if (!subscriptionId) {
+      const billing = await this.getBilling()
+      const currentSubscriptions = billing.currentSubscriptions ?? []
+      if (currentSubscriptions.length === 0) {
+        throw new Error(
+          'No active subscription found for this customer'
+        )
+      }
+      if (currentSubscriptions.length > 1) {
+        throw new Error(
+          'Customer has multiple active subscriptions. Please specify subscriptionId.'
+        )
+      }
+      subscriptionId = currentSubscriptions[0].id
+    }
+
+    // Validate ownership
+    const { subscription } =
+      await this.flowgladNode.subscriptions.retrieve(subscriptionId)
+    const { customer } = await this.getCustomer()
+    if (subscription.customerId !== customer.id) {
+      throw new Error('Subscription is not owned by the current user')
+    }
+
+    return this.flowgladNode.resourceClaims.release(subscriptionId, {
+      resourceSlug: params.resourceSlug,
+      quantity: params.quantity,
+      externalId: params.externalId,
+      externalIds: params.externalIds,
+      claimIds: params.claimIds,
+    })
+  }
+
+  /**
+   * List active resource claims for a subscription.
+   *
+   * Returns all active (unreleased) claims for the customer's subscription.
+   * Can optionally filter by resource type using the resourceSlug parameter.
+   *
+   * @param params - Optional parameters for listing claims
+   * @param params.subscriptionId - Optional. Auto-resolved if customer has exactly one active subscription.
+   * @param params.resourceSlug - Optional. Filter to specific resource type.
+   *
+   * @returns A promise that resolves to an object containing an array of active claims
+   *
+   * @throws {Error} If the customer is not authenticated
+   * @throws {Error} If no active subscription is found for the customer
+   * @throws {Error} If the customer has multiple active subscriptions and no subscriptionId is provided
+   * @throws {Error} If the specified subscription is not owned by the authenticated customer
+   *
+   * @example
+   * // List all active claims for the subscription
+   * const { claims } = await flowglad.listResourceClaims()
+   * console.log(`Total active claims: ${claims.length}`)
+   *
+   * @example
+   * // List only seat claims
+   * const { claims } = await flowglad.listResourceClaims({ resourceSlug: 'seats' })
+   * const namedSeats = claims.filter(c => c.externalId !== null)
+   * console.log(`Named seats: ${namedSeats.length}`)
+   *
+   * @example
+   * // List claims for a specific subscription
+   * const { claims } = await flowglad.listResourceClaims({
+   *   subscriptionId: 'sub_123',
+   *   resourceSlug: 'api_keys'
+   * })
+   */
+  public listResourceClaims = async (
+    params?: ListResourceClaimsParams
+  ): Promise<{ claims: ResourceClaim[] }> => {
+    // Auto-resolve subscriptionId if not provided
+    let subscriptionId = params?.subscriptionId
+    if (!subscriptionId) {
+      const billing = await this.getBilling()
+      const currentSubscriptions = billing.currentSubscriptions ?? []
+      if (currentSubscriptions.length === 0) {
+        throw new Error(
+          'No active subscription found for this customer'
+        )
+      }
+      if (currentSubscriptions.length > 1) {
+        throw new Error(
+          'Customer has multiple active subscriptions. Please specify subscriptionId.'
+        )
+      }
+      subscriptionId = currentSubscriptions[0].id
+    }
+
+    // Validate ownership
+    const { subscription } =
+      await this.flowgladNode.subscriptions.retrieve(subscriptionId)
+    const { customer } = await this.getCustomer()
+    if (subscription.customerId !== customer.id) {
+      throw new Error('Subscription is not owned by the current user')
+    }
+
+    return this.flowgladNode.get(
+      `/api/v1/resource-claims/${subscriptionId}/claims`,
+      {
+        query: params?.resourceSlug
+          ? { resourceSlug: params.resourceSlug }
+          : undefined,
+      }
+    )
   }
 }

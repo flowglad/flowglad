@@ -111,13 +111,12 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
         return bulkInsertUsageEventsTransaction(
           {
             input,
             livemode: ctx.livemode,
           },
-          transaction
+          transactionCtx
         )
       }
     )

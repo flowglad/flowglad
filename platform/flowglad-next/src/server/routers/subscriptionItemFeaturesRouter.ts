@@ -29,33 +29,26 @@ const resourceName = 'subscriptionItemFeature' // Using camelCase for resource n
 const pluralResourceName = 'subscriptionItemFeatures' // Explicitly define plural for openapi path
 const tags = ['Subscription Item Features']
 
-const { openApiMetas, routeConfigs: baseRouteConfigsObj } =
+const { openApiMetas, routeConfigs: baseRouteConfigs } =
   generateOpenApiMetas({
     resource: resourceName,
     tags,
   })
 
-// Ensure baseRouteConfigsObj is treated as a plain object if it has array-like properties
-const cleanedBaseRouteConfigs: Record<string, RouteConfig> = {}
-for (const key in baseRouteConfigsObj) {
-  if (Object.hasOwn(baseRouteConfigsObj, key)) {
-    cleanedBaseRouteConfigs[key] = (baseRouteConfigsObj as any)[key]
-  }
-}
-
-export const subscriptionItemFeaturesRouteConfigs: Record<
-  string,
-  RouteConfig
-> = {
-  ...cleanedBaseRouteConfigs,
-  [`POST /${kebabCase(pluralResourceName)}/:id/expire`]: {
-    procedure: 'subscriptionItemFeatures.expire',
-    pattern: new RegExp(
-      `^${kebabCase(pluralResourceName)}/([^/]+)/expire$`
-    ),
-    mapParams: (matches) => ({ id: matches[0] }),
+export const subscriptionItemFeaturesRouteConfigs: Array<
+  Record<string, RouteConfig>
+> = [
+  ...baseRouteConfigs,
+  {
+    [`POST /${kebabCase(pluralResourceName)}/:id/expire`]: {
+      procedure: 'subscriptionItemFeatures.expire',
+      pattern: new RegExp(
+        `^${kebabCase(pluralResourceName)}/([^/]+)/expire$`
+      ),
+      mapParams: (matches) => ({ id: matches[0] }),
+    },
   },
-}
+] as const
 
 const subscriptionItemFeatureClientResponse = z.object({
   subscriptionItemFeature: subscriptionItemFeaturesClientSelectSchema,
