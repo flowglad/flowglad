@@ -646,9 +646,39 @@ export class FlowgladServer {
     }
   }
 
+  /**
+   * Get usage for a single resource for the customer's subscription.
+   *
+   * Returns capacity, claimed count, available count, and active claims
+   * for a specific resource identified by slug or ID.
+   *
+   * @param params - Parameters for fetching resource usage
+   * @param params.resourceSlug - The slug identifying the resource type (e.g., 'seats', 'api_keys')
+   * @param params.resourceId - Alternative to resourceSlug: The ID of the resource
+   * @param params.subscriptionId - Optional. Auto-resolved if customer has exactly one active subscription.
+   *
+   * @returns A promise that resolves to an object containing usage data and active claims
+   *
+   * @throws {Error} If the customer is not authenticated
+   * @throws {Error} If no active subscription is found for the customer
+   * @throws {Error} If the customer has multiple active subscriptions and no subscriptionId is provided
+   * @throws {Error} If the specified subscription is not owned by the authenticated customer
+   *
+   * @example
+   * // Get usage for seats resource by slug
+   * const { usage, claims } = await flowglad.getResourceUsage({ resourceSlug: 'seats' })
+   * console.log(`${usage.claimed}/${usage.capacity} seats used`)
+   *
+   * @example
+   * // Get usage for a specific subscription
+   * const { usage, claims } = await flowglad.getResourceUsage({
+   *   resourceSlug: 'seats',
+   *   subscriptionId: 'sub_123'
+   * })
+   */
   public getResourceUsage = async (
     params: ResourceIdentifier & { subscriptionId?: string }
-  ): Promise<FlowgladNode.ResourceClaims.ResourceClaimUsageResponse> => {
+  ): Promise<FlowgladNode.ResourceClaims.ResourceClaimRetrieveUsageResponse> => {
     const subscriptionId = await this.deriveSubscriptionId(
       params?.subscriptionId
     )
@@ -659,7 +689,7 @@ export class FlowgladServer {
     if (subscription.customerId !== customer.id) {
       throw new Error('Subscription is not owned by the current user')
     }
-    return await this.flowgladNode.resourceClaims.usage(
+    return await this.flowgladNode.resourceClaims.retrieveUsage(
       subscriptionId,
       params
     )
