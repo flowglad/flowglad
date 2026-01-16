@@ -12,7 +12,7 @@ import {
 } from '@/db/tableMethods/resourceClaimMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
 import {
@@ -340,10 +340,12 @@ const getUsageProcedure = devOnlyProcedure
           })
         }
 
-        const subscriptionItemsList = await selectSubscriptionItems(
-          { subscriptionId: input.subscriptionId },
-          transaction
-        )
+        const subscriptionItemsList =
+          await selectCurrentlyActiveSubscriptionItems(
+            { subscriptionId: input.subscriptionId },
+            new Date(),
+            transaction
+          )
 
         if (subscriptionItemsList.length === 0) {
           throw new TRPCError({
@@ -360,7 +362,12 @@ const getUsageProcedure = devOnlyProcedure
           transaction
         )
 
-        const resourceFeature = allFeatures.find(
+        const now = Date.now()
+        const activeFeatures = allFeatures.filter(
+          (feature) => !feature.expiredAt || feature.expiredAt > now
+        )
+
+        const resourceFeature = activeFeatures.find(
           (
             feature
           ): feature is SubscriptionItemFeature.ResourceRecord =>
@@ -457,10 +464,12 @@ const listResourceUsagesProcedure = devOnlyProcedure
           transaction
         )
 
-        const subscriptionItemsList = await selectSubscriptionItems(
-          { subscriptionId: input.subscriptionId },
-          transaction
-        )
+        const subscriptionItemsList =
+          await selectCurrentlyActiveSubscriptionItems(
+            { subscriptionId: input.subscriptionId },
+            new Date(),
+            transaction
+          )
 
         if (subscriptionItemsList.length === 0) {
           return []
@@ -474,12 +483,14 @@ const listResourceUsagesProcedure = devOnlyProcedure
           transaction
         )
 
+        const now = Date.now()
         const resourceFeatures = allFeatures.filter(
           (
             feature
           ): feature is SubscriptionItemFeature.ResourceRecord =>
             feature.type === FeatureType.Resource &&
-            feature.resourceId !== null
+            feature.resourceId !== null &&
+            (!feature.expiredAt || feature.expiredAt > now)
         )
 
         if (resourceFeatures.length === 0) {
