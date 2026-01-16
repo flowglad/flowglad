@@ -1246,9 +1246,9 @@ describeIfRedisKey(
         expect(features1[0].name).toBe(toggleFeature.name)
         expect(features1[0].slug).toBe(toggleFeature.slug)
 
-        // Verify the result is stored in Redis
+        // Verify the result is stored in Redis (Upstash auto-deserializes JSON)
         const storedValue = await client.get(cacheKey)
-        expect(typeof storedValue).toBe('string')
+        expect(typeof storedValue).toBe('object')
 
         // Second call - should return from cache
         const features2 =
@@ -1354,9 +1354,9 @@ describeIfRedisKey(
         expect(features.length).toBe(1)
       })
 
-      // Verify cache is populated
+      // Verify cache is populated (Upstash auto-deserializes JSON)
       const cachedBefore = await client.get(cacheKey)
-      expect(typeof cachedBefore).toBe('string')
+      expect(typeof cachedBefore).toBe('object')
 
       // Invalidate the subscriptionItem dependency
       await invalidateDependencies([depKey])
