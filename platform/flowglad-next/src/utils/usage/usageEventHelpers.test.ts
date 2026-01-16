@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import * as core from 'nanoid'
 import { beforeEach, describe, expect, it } from 'vitest'
 // Setup helpers from seedDatabase.ts
@@ -132,8 +133,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
@@ -141,8 +142,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
 
@@ -209,8 +210,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: initialEventDetails },
                   livemode: true,
@@ -221,8 +222,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
 
@@ -260,8 +261,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: initialEventDetails },
                   livemode: true,
@@ -272,8 +273,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
 
@@ -392,8 +393,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: propsPresentDetails },
                   livemode: true,
@@ -404,8 +405,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       expect(resultWithProps.properties).toEqual({
@@ -428,8 +429,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: propsAbsentDetails },
                   livemode: true,
@@ -440,8 +441,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       expect(resultWithoutProps!.properties).toEqual({})
@@ -466,8 +467,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: datePresentDetails },
                   livemode: true,
@@ -478,8 +479,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       expect(resultWithDate.usageDate!).toBe(timestamp)
@@ -499,8 +500,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: dateAbsentDetails },
                   livemode: true,
@@ -511,8 +512,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       expect(typeof resultWithoutDate.usageDate).toBe('number')
@@ -534,8 +535,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: liveTrueDetails },
                   livemode: true,
@@ -546,8 +547,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       expect(resultLiveTrue.livemode).toBe(true)
@@ -605,8 +606,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: liveFalseDetails },
                   livemode: false,
@@ -617,8 +618,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       expect(resultLiveFalse.livemode).toBe(false)
@@ -719,8 +720,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: firstEventDetails },
                   livemode: true,
@@ -731,8 +732,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
 
@@ -783,8 +784,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: secondEventDetails },
                   livemode: true,
@@ -795,8 +796,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
 
@@ -849,8 +850,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: thirdEventDetails },
                   livemode: true,
@@ -861,8 +862,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       expect(thirdUsageEvent.properties).toEqual({
@@ -924,8 +925,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
@@ -933,8 +934,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       ).rejects.toThrow(
@@ -987,8 +988,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
@@ -996,8 +997,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       ).rejects.toThrow(
@@ -1025,8 +1026,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
@@ -1034,8 +1035,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
 
@@ -1088,8 +1089,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 { input: undefinedPropsInput, livemode: true },
                 {
                   transaction,
@@ -1097,8 +1098,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       ).rejects.toThrow('Properties are required')
@@ -1123,8 +1124,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 { input: emptyPropsInput, livemode: true },
                 {
                   transaction,
@@ -1132,8 +1133,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       ).rejects.toThrow('Properties are required')

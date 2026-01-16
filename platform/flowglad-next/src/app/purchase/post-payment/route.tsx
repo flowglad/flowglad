@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type { NextRequest } from 'next/server'
 import {
   adminTransaction,
@@ -95,9 +96,12 @@ const processPaymentIntent = async ({
           )
         }
       }
-      return {
-        result: { payment, purchase, checkoutSession, invoice },
-      }
+      return Result.ok({
+        payment,
+        purchase,
+        checkoutSession,
+        invoice,
+      })
     })
   return {
     purchase,
@@ -148,13 +152,11 @@ const processCheckoutSession = async ({
           emitEvent: params.emitEvent,
           enqueueLedgerCommand: params.enqueueLedgerCommand,
         })
-      return {
-        result: {
-          checkoutSession,
-          purchase,
-          invoice,
-        },
-      }
+      return Result.ok({
+        checkoutSession,
+        purchase,
+        invoice,
+      })
     }
   )
 

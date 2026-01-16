@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import {
@@ -43,7 +44,6 @@ import {
   subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
 import { externalIdInputSchema } from '@/db/tableUtils'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { protectedProcedure } from '@/server/trpc'
 import { migrateCustomerPricingModelProcedureTransaction } from '@/subscriptions/migratePricingModel'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
@@ -94,7 +94,7 @@ const createCustomerProcedure = protectedProcedure
         input,
         ctx,
         transactionCtx,
-      }): Promise<TransactionOutput<CreateCustomerOutputSchema>> => {
+      }): Promise<Result<CreateCustomerOutputSchema, Error>> => {
         const { transaction } = transactionCtx
         const { livemode, organizationId } = ctx
         try {
@@ -137,17 +137,15 @@ const createCustomerProcedure = protectedProcedure
             subscription,
             subscriptionItems,
           } = createdCustomerOutput
-          return {
-            result: {
-              data: {
-                customer: createdCustomer,
-                subscription: subscription
-                  ? subscriptionWithCurrent(subscription)
-                  : undefined,
-                subscriptionItems,
-              },
+          return Result.ok({
+            data: {
+              customer: createdCustomer,
+              subscription: subscription
+                ? subscriptionWithCurrent(subscription)
+                : undefined,
+              subscriptionItems,
             },
-          }
+          })
         } catch (error) {
           errorHandlers.customer.handle(error, {
             operation: 'create',

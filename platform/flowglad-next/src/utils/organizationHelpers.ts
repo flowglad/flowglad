@@ -187,37 +187,37 @@ export const createOrganizationTransaction = async (
     transaction
   )
 
-  const {
-    result: { pricingModel: defaultLivePricingModel },
-  } = await createPricingModelBookkeeping(
-    {
-      pricingModel: {
-        name: 'Pricing Model',
-        isDefault: true,
+  const { pricingModel: defaultLivePricingModel } = (
+    await createPricingModelBookkeeping(
+      {
+        pricingModel: {
+          name: 'Pricing Model',
+          isDefault: true,
+        },
       },
-    },
-    {
-      transaction,
-      organizationId,
-      livemode: true,
-    }
-  )
+      {
+        transaction,
+        organizationId,
+        livemode: true,
+      }
+    )
+  ).unwrap()
 
-  const {
-    result: { pricingModel: defaultTestmodePricingModel },
-  } = await createPricingModelBookkeeping(
-    {
-      pricingModel: {
-        name: '[TEST] Pricing Model',
-        isDefault: true,
+  const { pricingModel: defaultTestmodePricingModel } = (
+    await createPricingModelBookkeeping(
+      {
+        pricingModel: {
+          name: '[TEST] Pricing Model',
+          isDefault: true,
+        },
       },
-    },
-    {
-      transaction,
-      organizationId,
-      livemode: false,
-    }
-  )
+      {
+        transaction,
+        organizationId,
+        livemode: false,
+      }
+    )
+  ).unwrap()
 
   // Default products and prices for both livemode and testmode pricing models
   // are created by createPricingModelBookkeeping above (as "Free Plan").

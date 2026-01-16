@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Subscription } from '@/db/schema/subscriptions'
@@ -18,7 +19,6 @@ import {
   selectSubscriptions,
   subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { TransactionEffectsContext } from '@/db/types'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
@@ -32,7 +32,7 @@ const cancelSubscriptionForMigration = async (
   subscription: Subscription.Record,
   customer: Customer.Record,
   ctx: TransactionEffectsContext
-): Promise<TransactionOutput<Subscription.Record>> => {
+): Promise<Result<Subscription.Record, Error>> => {
   return cancelSubscriptionImmediately(
     {
       subscription,
@@ -69,9 +69,7 @@ export interface MigratePricingModelForCustomerResult {
 export const migratePricingModelForCustomer = async (
   params: MigratePricingModelForCustomerParams,
   ctx: TransactionEffectsContext
-): Promise<
-  TransactionOutput<MigratePricingModelForCustomerResult>
-> => {
+): Promise<Result<MigratePricingModelForCustomerResult, Error>> => {
   const { transaction } = ctx
   const { customer, oldPricingModelId, newPricingModelId } = params
 
@@ -109,12 +107,16 @@ export const migratePricingModelForCustomer = async (
 
     if (subscriptionsOnNewPricingModel.length === 0) {
       // Create default subscription
-      const newSubscription =
+      const newSubscriptionResult =
         await createDefaultSubscriptionOnPricingModel(
           customer,
           newPricingModelId,
           ctx
         )
+
+      if (newSubscriptionResult.status === 'error') {
+        return Result.err(newSubscriptionResult.error)
+      }
 
       // Update customer with new pricing model ID
       const updatedCustomer = await updateCustomerDb(
@@ -125,13 +127,11 @@ export const migratePricingModelForCustomer = async (
         transaction
       )
 
-      return {
-        result: {
-          customer: updatedCustomer,
-          canceledSubscriptions: [],
-          newSubscription,
-        },
-      }
+      return Result.ok({
+        customer: updatedCustomer,
+        canceledSubscriptions: [],
+        newSubscription: newSubscriptionResult.value,
+      })
     }
 
     // Find the subscription with default free price associated with a default product
@@ -161,12 +161,18 @@ export const migratePricingModelForCustomer = async (
     }
 
     if (!defaultFreeSubscription) {
-      defaultFreeSubscription =
+      const defaultFreeSubscriptionResult =
         await createDefaultSubscriptionOnPricingModel(
           customer,
           newPricingModelId,
           ctx
         )
+
+      if (defaultFreeSubscriptionResult.status === 'error') {
+        return Result.err(defaultFreeSubscriptionResult.error)
+      }
+
+      defaultFreeSubscription = defaultFreeSubscriptionResult.value
     }
 
     // Update customer with new pricing model ID (ensures it's set even in no-op case)
@@ -179,13 +185,11 @@ export const migratePricingModelForCustomer = async (
     )
 
     // Already on target model with subscriptions, nothing to do
-    return {
-      result: {
-        customer: updatedCustomer,
-        canceledSubscriptions: [],
-        newSubscription: defaultFreeSubscription,
-      },
-    }
+    return Result.ok({
+      customer: updatedCustomer,
+      canceledSubscriptions: [],
+      newSubscription: defaultFreeSubscription,
+    })
   }
 
   // Validate that the new pricing model exists
@@ -195,19 +199,23 @@ export const migratePricingModelForCustomer = async (
   )
 
   if (!newPricingModel) {
-    throw new Error(`Pricing model ${newPricingModelId} not found`)
+    return Result.err(
+      new Error(`Pricing model ${newPricingModelId} not found`)
+    )
   }
 
   // Validate that the new pricing model belongs to the same organization
   if (newPricingModel.organizationId !== customer.organizationId) {
-    throw new Error(
-      `Pricing model ${newPricingModelId} does not belong to organization ${customer.organizationId}`
+    return Result.err(
+      new Error(
+        `Pricing model ${newPricingModelId} does not belong to organization ${customer.organizationId}`
+      )
     )
   }
 
   if (newPricingModel.livemode !== customer.livemode) {
-    throw new Error(
-      `Pricing model livemode must match customer livemode`
+    return Result.err(
+      new Error(`Pricing model livemode must match customer livemode`)
     )
   }
 
@@ -224,22 +232,30 @@ export const migratePricingModelForCustomer = async (
   const canceledSubscriptions: Subscription.Record[] = []
 
   for (const subscription of currentSubscriptions) {
-    const { result: canceledSubscription } =
-      await cancelSubscriptionForMigration(
-        subscription,
-        customer,
-        ctx
-      )
-    canceledSubscriptions.push(canceledSubscription)
+    const cancelResult = await cancelSubscriptionForMigration(
+      subscription,
+      customer,
+      ctx
+    )
+    if (cancelResult.status === 'error') {
+      return Result.err(cancelResult.error)
+    }
+    canceledSubscriptions.push(cancelResult.value)
   }
 
   // Create default subscription on new pricing model
-  const newSubscription =
+  const newSubscriptionResult =
     await createDefaultSubscriptionOnPricingModel(
       customer,
       newPricingModelId,
       ctx
     )
+
+  if (newSubscriptionResult.status === 'error') {
+    return Result.err(newSubscriptionResult.error)
+  }
+
+  const newSubscription = newSubscriptionResult.value
 
   // Update customer with new pricing model ID
   const updatedCustomer = await updateCustomerDb(
@@ -250,24 +266,22 @@ export const migratePricingModelForCustomer = async (
     transaction
   )
 
-  return {
-    result: {
-      customer: updatedCustomer,
-      canceledSubscriptions,
-      newSubscription,
-    },
-  }
+  return Result.ok({
+    customer: updatedCustomer,
+    canceledSubscriptions,
+    newSubscription,
+  })
 }
 
 /**
  * Creates a default free plan subscription on the specified pricing model.
- * If no default product exists, one will be created.
+ * If no default product exists, returns an error.
  */
 async function createDefaultSubscriptionOnPricingModel(
   customer: Customer.Record,
   pricingModelId: string,
   ctx: TransactionEffectsContext
-): Promise<Subscription.Record> {
+): Promise<Result<Subscription.Record, Error>> {
   const { transaction } = ctx
   const organization = await selectOrganizationById(
     customer.organizationId,
@@ -284,22 +298,26 @@ async function createDefaultSubscriptionOnPricingModel(
     transaction
   )
 
-  // If no default product exists, throw an error
-  // We throw an error rather than auto-creating because it's unclear what price type
+  // If no default product exists, return an error
+  // We return an error rather than auto-creating because it's unclear what price type
   // the default price should be (Subscription vs SinglePayment, and if Subscription,
   // what interval unit). The user should create the default product themselves and
   // set the appropriate price type.
   if (!defaultProduct) {
-    throw new Error(
-      `No default product found for pricing model ${pricingModelId}. Please create a default product with a default price before migrating customers to this pricing model.`
+    return Result.err(
+      new Error(
+        `No default product found for pricing model ${pricingModelId}. Please create a default product with a default price before migrating customers to this pricing model.`
+      )
     )
   }
 
   const defaultPrice = defaultProduct.defaultPrice
 
   if (!defaultPrice) {
-    throw new Error(
-      `Default product ${defaultProduct.id} is missing a default price`
+    return Result.err(
+      new Error(
+        `Default product ${defaultProduct.id} is missing a default price`
+      )
     )
   }
 
@@ -334,7 +352,11 @@ async function createDefaultSubscriptionOnPricingModel(
     ctx
   )
 
-  return subscriptionResult.result.subscription
+  if (subscriptionResult.status === 'error') {
+    return Result.err(subscriptionResult.error)
+  }
+
+  return Result.ok(subscriptionResult.value.subscription)
 }
 
 /**
@@ -353,11 +375,14 @@ export const migrateCustomerPricingModelProcedureTransaction =
     ctx,
     transactionCtx,
   }: MigrateCustomerPricingModelProcedureParams): Promise<
-    TransactionOutput<{
-      customer: Customer.ClientRecord
-      canceledSubscriptions: Subscription.ClientRecord[]
-      newSubscription: Subscription.ClientRecord
-    }>
+    Result<
+      {
+        customer: Customer.ClientRecord
+        canceledSubscriptions: Subscription.ClientRecord[]
+        newSubscription: Subscription.ClientRecord
+      },
+      Error
+    >
   > => {
     const { transaction } = transactionCtx
     const { organizationId } = ctx
@@ -414,7 +439,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
     }
 
     // Perform the migration
-    const { result } = await migratePricingModelForCustomer(
+    const migrationResult = await migratePricingModelForCustomer(
       {
         customer,
         oldPricingModelId: customer.pricingModelId,
@@ -423,15 +448,19 @@ export const migrateCustomerPricingModelProcedureTransaction =
       transactionCtx
     )
 
-    return {
-      result: {
-        customer: result.customer,
-        canceledSubscriptions: result.canceledSubscriptions.map((s) =>
-          subscriptionWithCurrent(s)
-        ),
-        newSubscription: subscriptionWithCurrent(
-          result.newSubscription
-        ),
-      },
+    if (migrationResult.status === 'error') {
+      return Result.err(migrationResult.error)
     }
+
+    const result = migrationResult.value
+
+    return Result.ok({
+      customer: result.customer,
+      canceledSubscriptions: result.canceledSubscriptions.map((s) =>
+        subscriptionWithCurrent(s)
+      ),
+      newSubscription: subscriptionWithCurrent(
+        result.newSubscription
+      ),
+    })
   }

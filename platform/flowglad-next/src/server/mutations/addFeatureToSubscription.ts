@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { authenticatedProcedureComprehensiveTransaction } from '@/db/authenticatedTransaction'
 import { addFeatureToSubscriptionInputSchema } from '@/db/schema/subscriptionItemFeatures'
 import { selectClientSubscriptionItemFeatureAndFeatureById } from '@/db/tableMethods/subscriptionItemFeatureMethods'
@@ -25,9 +26,7 @@ export const addFeatureToSubscription = protectedProcedure
           )
         }
 
-        return {
-          result: { subscriptionItemFeature: enrichedFeature },
-        }
+        return Result.ok({ subscriptionItemFeature: enrichedFeature })
       }
     )
   )

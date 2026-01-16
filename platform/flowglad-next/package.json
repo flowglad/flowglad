@@ -139,6 +139,7 @@
     "axios": "^1.13.2",
     "bcrypt": "^5.1.1",
     "better-auth": "1.3.32",
+    "better-result": "^2.0.0",
     "change-case": "^5.4.4",
     "class-variance-authority": "0.7.1",
     "client-only": "^0.0.1",

@@ -1,4 +1,5 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
@@ -46,7 +47,7 @@ export const stripePaymentIntentSucceededTask = task({
                 { input: payload },
                 effectsCtx
               )
-              return { result: billingResult }
+              return Result.ok(billingResult)
             }
           )
           return result
@@ -114,7 +115,7 @@ export const stripePaymentIntentSucceededTask = task({
             payment,
           }
 
-          return { result }
+          return Result.ok(result)
         }, {})
 
         await comprehensiveAdminTransaction(
@@ -123,7 +124,7 @@ export const stripePaymentIntentSucceededTask = task({
               { organization, payment, invoice },
               transaction
             )
-            return { result: null }
+            return Result.ok(null)
           }
         )
 
