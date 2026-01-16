@@ -23,7 +23,10 @@ import {
   updateDiscount as updateDiscountDB,
 } from '@/db/tableMethods/discountMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
+import {
+  selectDefaultPricingModel,
+  selectPricingModels,
+} from '@/db/tableMethods/pricingModelMethods'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
@@ -58,7 +61,22 @@ export const createDiscount = protectedProcedure
 
         // Get pricingModelId from input or use default
         let pricingModelId = input.discount.pricingModelId
-        if (!pricingModelId) {
+        if (pricingModelId) {
+          // Validate that the provided pricingModelId belongs to this organization and livemode
+          const [validPricingModel] = await selectPricingModels(
+            {
+              id: pricingModelId,
+              organizationId: organization.id,
+              livemode,
+            },
+            transaction
+          )
+          if (!validPricingModel) {
+            throw new Error(
+              'Invalid pricing model: the specified pricing model does not exist or does not belong to this organization'
+            )
+          }
+        } else {
           const defaultPM = await selectDefaultPricingModel(
             { organizationId: organization.id, livemode },
             transaction
