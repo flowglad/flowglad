@@ -1,16 +1,10 @@
 name: Test Stainless SDK
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    # optional: only run when this workflow file changes (keeps it from running on unrelated PR updates)
-    # paths:
-    #   - ".github/workflows/test-stainless-sdk.yml"
-
   workflow_dispatch:
     inputs:
       commit_hash:
-        description: 'Stainless commit hash to test'
+        description: 'Stainless commit hash to test (7-40 hex characters)'
         required: true
         type: string
 
@@ -37,18 +31,24 @@ jobs:
         with:
           bun-version: '1.3.1'
 
-      - name: Get commit hash
+      - name: Get and validate commit hash
         id: get-hash
-        env:
-          DEFAULT_HASH: d854d31e91def59b95839a8773e8fbb7f86bf97e
         run: |
+          # Get the hash based on event type
           if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
-            echo "hash=${{ github.event.client_payload.commit_hash }}" >> $GITHUB_OUTPUT
-          elif [ -n "${{ inputs.commit_hash }}" ]; then
-            echo "hash=${{ inputs.commit_hash }}" >> $GITHUB_OUTPUT
+            HASH="${{ github.event.client_payload.commit_hash }}"
           else
-            echo "hash=$DEFAULT_HASH" >> $GITHUB_OUTPUT
+            HASH="${{ inputs.commit_hash }}"
           fi
+
+          # Validate hash is 7-40 hex characters (short or full git SHA)
+          if ! echo "$HASH" | grep -qE '^[a-fA-F0-9]{7,40}$'; then
+            echo "::error::Invalid commit hash: must be 7-40 hexadecimal characters" >&2
+            echo "::error::Received: '$HASH'" >&2
+            exit 1
+          fi
+
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
 
       - name: Replace @flowglad/node with Stainless tarball
         run: |
