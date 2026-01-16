@@ -44,7 +44,7 @@ describe('validateSetupPricingModelInput', () => {
     usageMeters: [],
   })
 
-  // PR 5: Usage prices are optional for usage meters per the gameplan.
+  // Usage prices are optional for usage meters.
   // A usage meter can exist without prices (e.g., for meters that only track usage
   // for credit grants, not billing).
 
@@ -99,10 +99,10 @@ describe('validateSetupPricingModelInput', () => {
       )
     })
 
-    // PR 5: Usage prices now live under usage meters, not products
+    // Usage prices live under usage meters, not products
     it('should accept when UsageCreditGrant feature references an existing usage meter', () => {
       const input = createMinimalValidInput()
-      // PR 5: Usage meters have nested prices
+      // Usage meters have nested prices
       input.usageMeters = [
         {
           usageMeter: {
@@ -184,7 +184,7 @@ describe('validateSetupPricingModelInput', () => {
     })
   })
 
-  // PR 5: Usage prices now live under usage meters, not products
+  // Usage prices live under usage meters, not products
   // The usageMeterSlug field is no longer needed since prices are nested under meters
   describe('usage meter prices validation', () => {
     it('should accept when usage prices are nested under usage meters', () => {
@@ -246,11 +246,11 @@ describe('validateSetupPricingModelInput', () => {
       expect(result.usageMeters[0].prices?.[0].isDefault).toBe(false)
     })
 
-    // PR 5: Empty prices array is valid - usage meters can exist without prices
+    // Empty prices array is valid - usage meters can exist without prices
     // (e.g., meters that only track usage for credit grants, not billing)
   })
 
-  // PR 5: This describe block is obsolete - usage prices are now nested under usage meters
+  // This describe block is obsolete - usage prices are nested under usage meters
   // directly, so there's no need to validate usage meter references via usageMeterSlug
   // The validation is now implicit - a usage price exists under a specific meter
 
@@ -394,7 +394,7 @@ describe('validateSetupPricingModelInput', () => {
       ).not.toThrow()
     })
 
-    // PR 5: Usage prices now live under usage meters, not products
+    // Usage prices live under usage meters, not products
     it('should accept UsageCreditGrant features with required fields', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [
@@ -473,7 +473,7 @@ describe('validateSetupPricingModelInput', () => {
       ).not.toThrow()
     })
 
-    // PR 5: Usage prices now live under usage meters, not products
+    // Usage prices live under usage meters, not products
     it('should accept usage prices with required fields when nested under usage meters', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [

@@ -12,7 +12,6 @@ import {
   pricesPaginatedListSchema,
   pricesPaginatedSelectSchema,
   pricesTableRowDataSchema,
-  usagePriceClientSelectSchema,
 } from '@/db/schema/prices'
 import {
   safelyUpdatePrice,
@@ -224,28 +223,6 @@ export const getTableRows = protectedProcedure
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
         return selectPricesTableRowData({ input, transaction })
-      }
-    )
-  )
-
-export const listUsagePricesForProduct = protectedProcedure
-  .input(z.object({ productId: z.string() }))
-  .output(z.array(usagePriceClientSelectSchema))
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const prices = await selectPrices(
-          {
-            type: PriceType.Usage,
-            productId: input.productId,
-            active: true,
-          },
-          transaction
-        )
-        return prices.filter(
-          (price) => price.type === PriceType.Usage
-        )
       }
     )
   )

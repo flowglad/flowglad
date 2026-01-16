@@ -917,16 +917,14 @@ const setupSubscriptionPriceSchema = baseSetupPriceSchema.extend({
 })
 
 // Usage prices do NOT have productId - they belong to usage meters
-// Extends baseSetupPriceSchema (same as other price types) to enable proper
-// TypeScript discriminated union narrowing, then overrides productId to z.never().
-const setupUsagePriceSchema = baseSetupPriceSchema.extend({
-  type: z.literal(PriceType.Usage),
-  intervalUnit: z.nativeEnum(IntervalUnit).optional(),
-  intervalCount: z.number().optional(),
-  usageMeterId: z.string(), // Required for Usage prices - replaces productId
-  trialPeriodDays: z.never().optional(), // Usage prices don't have trial periods
-  productId: z.never().optional(), // Override: Usage prices do NOT have productId
-})
+const setupUsagePriceSchema =
+  baseSetupPriceSchemaWithoutProductId.extend({
+    type: z.literal(PriceType.Usage),
+    intervalUnit: z.nativeEnum(IntervalUnit).optional(),
+    intervalCount: z.number().optional(),
+    usageMeterId: z.string(), // Required for Usage prices - replaces productId
+    trialPeriodDays: z.never().optional(), // Usage prices don't have trial periods
+  })
 
 const setupPriceInputSchema = z.discriminatedUnion('type', [
   setupSinglePaymentPriceSchema,
@@ -2567,11 +2565,8 @@ export const setupUsageLedgerScenario = async (params: {
   })
   // Build price params for Usage type, excluding incompatible fields from priceArgs
   // Usage prices don't have productId - they belong to usage meters
-  const {
-    trialPeriodDays: _,
-    productId: __,
-    ...compatiblePriceArgs
-  } = params.priceArgs ?? {}
+  const { trialPeriodDays: _, ...compatiblePriceArgs } =
+    params.priceArgs ?? {}
   const price = await setupPrice({
     name: 'Test Price',
     unitPrice: 1000,

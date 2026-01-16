@@ -66,7 +66,7 @@ export const USAGE_LIMIT_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
       name: 'Usage-Limit Subscription',
       isDefault: false,
 
-      // Usage Meters with their prices (PR 5 structure)
+      // Usage Meters with their prices
       usageMeters: [
         {
           usageMeter: {
@@ -295,7 +295,7 @@ export const USAGE_LIMIT_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             'priority_access',
           ],
         },
-        // Note: Usage prices are now under usageMeters[].prices (PR 5)
+        // Note: Usage prices are under usageMeters[].prices
         // The "Fast Request Overages" product has been moved to usageMeters
       ],
     },
@@ -340,7 +340,7 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
       name: 'Unlimited Usage Subscription',
       isDefault: false,
 
-      // Usage Meters with their prices (PR 5 structure)
+      // Usage Meters with their prices
       // This template uses UsageCreditGrant features for limits
       // $0 tracking prices are used to track usage events
       usageMeters: [
@@ -856,7 +856,7 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           displayGroup: 'business',
           displayOrder: 1,
         },
-        // Note: Usage tracking prices have been moved to usageMeters[].prices (PR 5)
+        // Note: Usage tracking prices are under usageMeters[].prices
       ],
     },
   }
@@ -900,7 +900,7 @@ export const AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
       name: 'AI Image Generation Subscription',
       isDefault: false,
 
-      // Usage Meters with their prices (PR 5 structure)
+      // Usage Meters with their prices
       usageMeters: [
         {
           usageMeter: {
@@ -1284,7 +1284,7 @@ export const AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           displayGroup: 'hd_video_minute_top_ups',
           displayOrder: 2,
         },
-        // Note: Usage prices have been moved to usageMeters[].prices (PR 5)
+        // Note: Usage prices are under usageMeters[].prices
       ],
     },
   }
@@ -2165,7 +2165,7 @@ export const AI_TOKEN_USAGE_TEMPLATE: PricingModelTemplate = {
     name: 'AI Token Usage',
     isDefault: false,
 
-    // Usage Meters with their prices (PR 5 structure)
+    // Usage Meters with their prices
     usageMeters: [
       {
         usageMeter: {
@@ -2387,7 +2387,7 @@ export const AI_TOKEN_USAGE_TEMPLATE: PricingModelTemplate = {
         displayGroup: 'business',
         displayOrder: 1,
       },
-      // Note: Usage prices are now under usageMeters[].prices (PR 5)
+      // Note: Usage prices are under usageMeters[].prices
       // The "Token Overages" product has been moved to usageMeters
     ],
   },

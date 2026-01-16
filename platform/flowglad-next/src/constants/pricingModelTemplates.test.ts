@@ -44,7 +44,7 @@ describe('Pricing Model Templates', () => {
   })
 
   describe('Usage Meters and Pricing', () => {
-    // PR 5: Usage prices now belong to usage meters, not products
+    // Usage prices belong to usage meters, not products
     it('should have at least one usage type price for each usage meter', () => {
       PRICING_MODEL_TEMPLATES.forEach((template) => {
         const { usageMeters } = template.input
@@ -54,7 +54,7 @@ describe('Pricing Model Templates', () => {
           return
         }
 
-        // PR 5: Each usage meter should have nested prices
+        // Each usage meter should have nested prices
         usageMeters.forEach((meter) => {
           const meterSlug = meter.usageMeter.slug
           const meterPrices = meter.prices ?? []

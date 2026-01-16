@@ -33,14 +33,14 @@ afterEach(async () => {
 })
 
 describe('getPricingModelSetupData', () => {
-  // PR 5: Rewritten test to use new usage meter structure where usage prices
+  // Rewritten test to use usage meter structure where usage prices
   // belong to usage meters, not products
   it('should fetch and transform a complete pricing model with all related entities', async () => {
     // First, create a pricing model with all the complex parts
     const originalInput: SetupPricingModelInput = {
       name: 'Test Pricing Model',
       isDefault: false,
-      // PR 5: Usage meters now have nested prices
+      // Usage meters have nested prices
       usageMeters: [
         {
           usageMeter: {
@@ -103,7 +103,7 @@ describe('getPricingModelSetupData', () => {
           active: true,
         },
       ],
-      // PR 5: Products only have subscription/single payment prices now
+      // Products only have subscription/single payment prices
       products: [
         {
           product: {
@@ -204,7 +204,7 @@ describe('getPricingModelSetupData', () => {
     expect(fetchedData.name).toBe(originalInput.name)
     expect(fetchedData.isDefault).toBe(originalInput.isDefault)
 
-    // PR 5: Verify usage meters with nested structure
+    // Verify usage meters with nested structure
     expect(fetchedData.usageMeters).toHaveLength(
       originalInput.usageMeters.length
     )
@@ -215,7 +215,7 @@ describe('getPricingModelSetupData', () => {
       expect.arrayContaining(['api-calls', 'storage'])
     )
 
-    // PR 5: Verify usage prices are nested under meters
+    // Verify usage prices are nested under meters
     const apiCallsMeter = fetchedData.usageMeters.find(
       (m) => m.usageMeter.slug === 'api-calls'
     )
@@ -253,7 +253,7 @@ describe('getPricingModelSetupData', () => {
       expect(creditFeature.amount).toBe(1000)
     }
 
-    // PR 5: Verify products (now only 3 - no usage price products)
+    // Verify products (now only 3 - no usage price products)
     expect(fetchedData.products.length).toBeGreaterThanOrEqual(3)
 
     const starterProduct = fetchedData.products.find(

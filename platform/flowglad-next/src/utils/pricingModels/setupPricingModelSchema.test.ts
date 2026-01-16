@@ -189,7 +189,7 @@ describe('setupPricingModelSchema', () => {
       expect(result.success).toBe(true)
     })
 
-    // PR 5: Usage meters now use nested structure with prices
+    // Usage meters use nested structure with prices
     it('should reject when usage meters have duplicate slugs', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [
@@ -242,7 +242,7 @@ describe('setupPricingModelSchema', () => {
       }
     })
 
-    // PR 5: Usage meters now use nested structure with prices
+    // Usage meters use nested structure with prices
     it('should accept when all usage meter slugs are unique', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [

@@ -178,7 +178,7 @@ export async function getPricingModelSetupData(
     ])
   }
 
-  // Group usage prices by their meter ID for the new structure (PR 5)
+  // Group usage prices by their meter ID
   // Usage prices now belong directly to usage meters, not products
   const usagePricesByMeterId = new Map<string, Price.UsageRecord[]>()
   for (const price of usagePricesWithoutProducts) {
@@ -195,7 +195,7 @@ export async function getPricingModelSetupData(
     ])
   }
 
-  // Transform usage meters with their nested prices (PR 5 structure)
+  // Transform usage meters with their nested prices
   const transformedUsageMeters = usageMeters.map((meter) => {
     const meterPrices = usagePricesByMeterId.get(meter.id) || []
 
@@ -290,7 +290,7 @@ export async function getPricingModelSetupData(
     }
   })
 
-  // Transform products with prices (PR 5: products only have subscription/single payment prices)
+  // Transform products with prices (products only have subscription/single payment prices)
   // Usage prices now belong to usage meters, not products
   const transformedProducts = productsWithPrices.map(
     ({ prices, ...product }) => {
@@ -369,7 +369,7 @@ export async function getPricingModelSetupData(
     }
   )
 
-  // PR 5: Usage prices are now nested under their meters in transformedUsageMeters
+  // Usage prices are nested under their meters in transformedUsageMeters
   // No need for virtualProductsForUsagePrices - that pattern is deprecated
 
   return validateSetupPricingModelInput({

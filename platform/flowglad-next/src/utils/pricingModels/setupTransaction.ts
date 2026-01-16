@@ -239,7 +239,7 @@ export const setupPricingModelTransaction = async (
     }
   )
 
-  // Build usage price inserts from usageMeters[].prices (PR 5)
+  // Build usage price inserts from usageMeters[].prices
   // Usage prices belong directly to usage meters, not products
   const usagePriceInserts: Price.Insert[] = input.usageMeters.flatMap(
     (meterWithPrices) => {

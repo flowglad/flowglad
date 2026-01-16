@@ -891,7 +891,7 @@ export const validatePriceChange = (
 
   // If immutable fields are changing, this will be a price replacement.
   // We still need to validate the proposed price is well-formed using the insert schema.
-  // Note: Usage prices are now handled separately under usage meters (PR 5),
+  // Note: Usage prices are handled separately under usage meters,
   // so product prices are only subscription or single payment.
   if (hasImmutableFieldChanges) {
     let insertResult: { success: boolean; error?: z.ZodError }
@@ -923,7 +923,7 @@ export const validatePriceChange = (
   }
 
   // Select the appropriate schema based on price type and try to parse with strict mode
-  // Note: Product prices are only subscription or single payment (PR 5)
+  // Note: Product prices are only subscription or single payment
   let result: { success: boolean; error?: z.ZodError }
   switch (existing.type) {
     case PriceType.Subscription:

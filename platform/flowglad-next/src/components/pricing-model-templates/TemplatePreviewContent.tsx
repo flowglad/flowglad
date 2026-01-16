@@ -95,7 +95,7 @@ export function TemplatePreviewContent({
 
   // Get the appropriate suffix for a price based on its type and product labels
   // Note: Product prices are only subscription or single payment.
-  // Usage prices are now nested under usageMeters[].prices (PR 5).
+  // Usage prices are nested under usageMeters[].prices.
   const getPriceSuffix = (
     price: (typeof template.input.products)[0]['price'],
     _product: (typeof template.input.products)[0]

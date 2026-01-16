@@ -170,12 +170,12 @@ describe('setupPricingModelTransaction (integration)', () => {
     ).rejects.toThrow('Usage meter with slug missing does not exist')
   })
 
-  // PR 5: Updated to use nested usage meter structure with prices
+  // Updated to use nested usage meter structure with prices
   it('creates pricingModel, features, products, prices, and productFeatures on happy path', async () => {
     const input: SetupPricingModelInput = {
       name: 'MyPricingModel',
       isDefault: true,
-      // PR 5: Usage meters now have nested structure with prices
+      // Usage meters have nested structure with prices
       usageMeters: [
         {
           usageMeter: { slug: 'um', name: 'UM' },
@@ -215,7 +215,7 @@ describe('setupPricingModelTransaction (integration)', () => {
           active: true,
         },
       ],
-      // PR 5: Products only have subscription/single payment prices now
+      // Products only have subscription/single payment prices
       products: [
         {
           product: {
@@ -281,7 +281,7 @@ describe('setupPricingModelTransaction (integration)', () => {
     ).toBe(true)
 
     // Prices - should have product prices + usage prices + auto-generated default price
-    // PR 5: Usage prices now come from usage meters, not products
+    // Usage prices come from usage meters, not products
     const productPriceSlugs = input.products.map((p) => p.price.slug!)
     const usagePriceSlugs = input.usageMeters.flatMap(
       (m) => m.prices?.map((p) => p.slug!) ?? []

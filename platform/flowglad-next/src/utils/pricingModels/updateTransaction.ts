@@ -185,7 +185,7 @@ export const updatePricingModelTransaction = async (
   }
 
   // Step 7: Batch create new usage meters
-  // PR 5: Usage meter data is now nested under the usageMeter property
+  // Usage meter data is nested under the usageMeter property
   if (diff.usageMeters.toCreate.length > 0) {
     const usageMeterInserts: UsageMeter.Insert[] =
       diff.usageMeters.toCreate.map((meter) => ({
@@ -259,10 +259,10 @@ export const updatePricingModelTransaction = async (
   }
 
   // Step 8: Update existing usage meters (parallel)
-  // PR 5: Usage meter data is now nested under the usageMeter property
+  // Usage meter data is nested under the usageMeter property
   const usageMeterUpdatePromises = diff.usageMeters.toUpdate
     .map(({ existing, proposed }) => {
-      // PR 5: Compare the nested usageMeter objects
+      // Compare the nested usageMeter objects
       const updateObj = computeUpdateObject(
         existing.usageMeter,
         proposed.usageMeter
@@ -729,7 +729,7 @@ export const updatePricingModelTransaction = async (
           )
         }
 
-        // PR 5: Product prices can only be Subscription or SinglePayment.
+        // Product prices can only be Subscription or SinglePayment.
         // Usage prices belong to usage meters, not products.
         return createProductPriceInsert(productInput.price, {
           productId: product.id,
@@ -840,7 +840,7 @@ export const updatePricingModelTransaction = async (
   }
 
   // Now create new prices for changed products
-  // PR 5: Product prices can only be Subscription or SinglePayment.
+  // Product prices can only be Subscription or SinglePayment.
   // Usage prices belong to usage meters, not products.
   if (priceChanges.length > 0) {
     const newPriceInserts: Price.Insert[] = priceChanges.map(

@@ -1065,7 +1065,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
   })
 })
 
-describe('pricesRouter - PR 4: API Contract Updates', () => {
+describe('pricesRouter - API Contract Updates', () => {
   let organizationId: string
   let pricingModelId: string
   let usageMeterId: string

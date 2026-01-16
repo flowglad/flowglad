@@ -42,7 +42,7 @@ describe('resolveExistingIds', () => {
     const input: SetupPricingModelInput = {
       name: 'Test Pricing Model',
       isDefault: false,
-      // PR 5: Usage meters now use nested structure with prices
+      // Usage meters use nested structure with prices
       usageMeters: [
         {
           usageMeter: {
@@ -144,7 +144,7 @@ describe('resolveExistingIds', () => {
           },
           features: ['feature-a', 'api-credits'],
         },
-        // PR 5: Removed usage price products - usage prices now belong to usage meters
+        // Removed usage price products - usage prices belong to usage meters
       ],
     }
 

@@ -1786,7 +1786,7 @@ describe('validateFeatureDiff', () => {
 
 /**
  * Helper function to create test prices for validation tests.
- * PR 5: Product prices can only be Subscription or SinglePayment.
+ * Product prices can only be Subscription or SinglePayment.
  * Usage prices now belong to usage meters, not products.
  */
 const createTestPrice = (
@@ -1993,7 +1993,7 @@ describe('validatePriceChange', () => {
     ).not.toThrow()
   })
 
-  // Note: Usage price tests removed in PR 5 - Usage prices now belong to usage meters, not products
+  // Note: Usage price tests removed - Usage prices belong to usage meters, not products
 
   it('throws error when create-only fields change but proposed price is malformed (missing required fields)', () => {
     // Create a malformed subscription price missing intervalUnit

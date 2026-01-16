@@ -403,7 +403,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const countDistinctPrice = await adminTransaction(
         async ({ transaction }) =>
           setupPrice({
-            productId: undefined, // Usage prices don't have products
             name: 'Count Distinct Price Empty Props',
             type: PriceType.Usage,
             unitPrice: 10,

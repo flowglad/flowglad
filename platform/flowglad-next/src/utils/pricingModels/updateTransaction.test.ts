@@ -37,12 +37,12 @@ afterEach(async () => {
 
 /**
  * Helper to create a basic pricing model for testing updates.
- * PR 5: Usage prices now belong to usage meters, not products.
+ * Usage prices belong to usage meters, not products.
  */
 const createBasicPricingModel = async (
   overrides: Partial<SetupPricingModelInput> = {}
 ) => {
-  // PR 5: Usage meters have nested structure with prices
+  // Usage meters have nested structure with prices
   // Transform any old-style flat usage meters to nested structure with default prices
   const processedUsageMeters: SetupPricingModelInput['usageMeters'] =
     (overrides.usageMeters ?? []).map((meter) => {
@@ -96,7 +96,7 @@ const createBasicPricingModel = async (
     },
   ]
 
-  // PR 5: Products only contain subscription/single payment prices now
+  // Products only contain subscription/single payment prices
   // No more usage price products - usage prices live under usage meters
   const finalProducts = overrides.products ?? baseProducts
 
@@ -327,7 +327,7 @@ describe('updatePricingModelTransaction', () => {
                     active: true,
                   },
                 ],
-                // PR 5: Products only have subscription/single payment prices
+                // Products only have subscription/single payment prices
                 products: [
                   {
                     product: {
