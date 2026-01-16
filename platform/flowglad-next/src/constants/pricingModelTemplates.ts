@@ -1429,8 +1429,37 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
       // Usage Meters - None needed for seat-based billing
       usageMeters: [],
 
+      // Resources - defines the "teams" resource for this pricing model
+      resources: [
+        {
+          slug: 'teams',
+          name: 'Teams',
+          active: true,
+        },
+      ],
+
       // Features
       features: [
+        // Resource features - grant team capacity per product tier
+        {
+          type: FeatureType.Resource,
+          slug: 'free_teams',
+          name: 'Free Plan Teams',
+          description: 'Team allocation for Free plan subscribers',
+          resourceSlug: 'teams',
+          amount: 2,
+          active: true,
+        },
+        {
+          type: FeatureType.Resource,
+          slug: 'basic_teams',
+          name: 'Basic Plan Teams',
+          description: 'Team allocation for Basic plan subscribers',
+          resourceSlug: 'teams',
+          amount: 5,
+          active: true,
+        },
+
         // Core features
         {
           type: FeatureType.Toggle,
@@ -1675,6 +1704,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 0,
           },
           features: [
+            'free_teams',
             'unlimited_members',
             'slack_github',
             'ai_agents',
@@ -1711,6 +1741,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 1000,
           },
           features: [
+            'basic_teams',
             'unlimited_members',
             'slack_github',
             'ai_agents',
@@ -1752,6 +1783,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 12000,
           },
           features: [
+            'basic_teams',
             'unlimited_members',
             'slack_github',
             'ai_agents',
