@@ -68,7 +68,6 @@ export const usageEvents = pgTable(
   },
   livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.customerId]),
-    constructIndex(TABLE_NAME, [table.usageMeterId]),
     constructIndex(TABLE_NAME, [table.billingPeriodId]),
     constructIndex(TABLE_NAME, [table.subscriptionId]),
     constructIndex(TABLE_NAME, [table.priceId]),

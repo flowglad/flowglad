@@ -336,10 +336,15 @@ export async function calculateUsageVolumeByInterval(
         pricingModelId: products.pricingModelId,
       })
       .from(products)
-      .where(eq(products.id, productId))
+      .where(
+        and(
+          eq(products.id, productId),
+          eq(products.organizationId, organizationId)
+        )
+      )
       .limit(1)
 
-    // If product not found or has no pricing model, return zeros
+    // If product not found (or doesn't belong to org) or has no pricing model, return zeros
     if (!product || !product.pricingModelId) {
       return fillMissingIntervals(
         startDate,

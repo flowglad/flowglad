@@ -3,6 +3,7 @@ import {
   setupCustomer,
   setupOrg,
   setupPaymentMethod,
+  setupPricingModel,
   setupProduct,
   setupSubscription,
   setupUsageEvent,
@@ -468,6 +469,51 @@ describe('calculateUsageVolumeByInterval', () => {
         })
       ).rejects.toThrow('Usage meter not found')
     })
+
+    it('returns zeros when product belongs to different org (cross-tenant protection)', async () => {
+      const {
+        organization: org1,
+        pricingModel: pm1,
+        product: productInOrg1,
+      } = await setupOrg()
+      const { organization: org2, pricingModel: pm2 } =
+        await setupOrg()
+
+      // Create meter in org2
+      const usageMeter = await setupUsageMeter({
+        organizationId: org2.id,
+        name: 'API Calls',
+        pricingModelId: pm2.id,
+      })
+
+      const startDate = new Date('2023-01-01T00:00:00.000Z')
+      const endDate = new Date('2023-01-07T23:59:59.999Z')
+
+      // Request from org2 with product from org1 should return zeros
+      // (product should not be found due to org validation)
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return calculateUsageVolumeByInterval(
+            org2.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Day,
+              usageMeterId: usageMeter.id,
+              productId: productInOrg1.id, // Product from different org
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Should return zeros - product from different org is effectively "not found"
+      expect(result).toHaveLength(7)
+      result.forEach((point) => {
+        expect(point.amount).toBe(0)
+      })
+    })
   })
 
   describe('Product filter', () => {
@@ -725,8 +771,11 @@ describe('getUsageMetersWithEvents', () => {
       price: price1,
     } = await setupOrg()
 
-    // Create a second pricing model
-    const { pricingModel: pm2 } = await setupOrg()
+    // Create a second pricing model within the same organization
+    const pm2 = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Second Pricing Model',
+    })
 
     const customer = await setupCustomer({
       organizationId: organization.id,
