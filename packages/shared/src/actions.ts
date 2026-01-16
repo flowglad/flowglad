@@ -553,18 +553,16 @@ export const listResourceClaimsSchema = z.object({
   resourceSlug: z.string().optional(),
 })
 
-const subscriptionIdObject = z.object({
-  subscriptionId: z.string(),
-})
-
-export const getResourceUsageSchema = z.union([
-  subscriptionIdObject.extend({
-    resourceSlug: z.string(),
-  }),
-  subscriptionIdObject.extend({
-    resourceId: z.string(),
-  }),
-])
+export const getResourceUsageSchema = z
+  .object({
+    subscriptionId: z.string().optional(),
+  })
+  .and(
+    z.union([
+      z.object({ resourceSlug: z.string() }),
+      z.object({ resourceId: z.string() }),
+    ])
+  )
 
 export type GetResourceUsageParams = z.infer<
   typeof getResourceUsageSchema
