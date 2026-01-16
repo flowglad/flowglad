@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCheckoutSession,
@@ -87,7 +88,7 @@ describe('processNonPaymentCheckoutSession', () => {
               } as CheckoutSession.Update,
               transaction
             )
-            return { result }
+            return Result.ok(result)
           }
         )
 
@@ -97,18 +98,18 @@ describe('processNonPaymentCheckoutSession', () => {
           updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        return { result }
+        return Result.ok(result)
       })
 
       // Process the non-payment checkout session
       const result = await comprehensiveAdminTransaction(
         async (params) => {
-          return {
-            result: await processNonPaymentCheckoutSession(
+          return Result.ok(
+            await processNonPaymentCheckoutSession(
               updatedCheckoutSession,
               createProcessingEffectsContext(params)
-            ),
-          }
+            )
+          )
         }
       )
 
@@ -139,18 +140,18 @@ describe('processNonPaymentCheckoutSession', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        return { result }
+        return Result.ok(result)
       })
 
       // Attempt to process non-payment checkout should fail
       await expect(
         comprehensiveAdminTransaction(async (params) => {
-          return {
-            result: await processNonPaymentCheckoutSession(
+          return Result.ok(
+            await processNonPaymentCheckoutSession(
               checkoutSession,
               createProcessingEffectsContext(params)
-            ),
-          }
+            )
+          )
         })
       ).rejects.toThrow('Total due for purchase session')
     })

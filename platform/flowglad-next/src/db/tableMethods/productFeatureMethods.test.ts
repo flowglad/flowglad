@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupOrg,
@@ -451,7 +452,7 @@ describe('syncProductFeatures', () => {
           },
           { transaction }
         )
-        return { result: syncResult }
+        return Result.ok(syncResult)
       }
     )
 
@@ -504,7 +505,7 @@ describe('syncProductFeatures', () => {
           },
           { transaction }
         )
-        return { result: syncResult }
+        return Result.ok(syncResult)
       }
     )
 
@@ -544,7 +545,7 @@ describe('syncProductFeatures', () => {
           },
           { transaction }
         )
-        return { result: syncResult }
+        return Result.ok(syncResult)
       }
     )
     // - The function should return an array of the two now-active `ProductFeature.Record`s.
@@ -597,7 +598,7 @@ describe('syncProductFeatures', () => {
           },
           { transaction }
         )
-        return { result: syncResult }
+        return Result.ok(syncResult)
       }
     )
 
@@ -652,7 +653,7 @@ describe('syncProductFeatures', () => {
           },
           { transaction }
         )
-        return { result: syncResult }
+        return Result.ok(syncResult)
       }
     )
 

@@ -140,14 +140,14 @@ describe('doNotCharge subscription creation', () => {
       metadata: { testKey: 'testValue' },
     }
 
-    const {
-      result: { subscription, subscriptionItems },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(
-        params,
-        createDiscardingEffectsContext(transaction)
-      )
-    })
+    const { subscription, subscriptionItems } = (
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     expect(subscriptionItems).toHaveLength(1)
     expect(subscriptionItems[0].unitPrice).toBe(0)
@@ -180,14 +180,14 @@ describe('doNotCharge subscription creation', () => {
       doNotCharge: true,
     }
 
-    const {
-      result: { subscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(
-        params,
-        createDiscardingEffectsContext(transaction)
-      )
-    })
+    const { subscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     expect(subscription.isFreePlan).toBe(false)
   })
@@ -263,14 +263,14 @@ describe('doNotCharge subscription creation', () => {
       doNotCharge: true,
     }
 
-    const {
-      result: { subscription: newSubscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(
-        params,
-        createDiscardingEffectsContext(transaction)
-      )
-    })
+    const { subscription: newSubscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
       const canceledFree = await selectSubscriptionById(
@@ -310,14 +310,14 @@ describe('doNotCharge subscription creation', () => {
       doNotCharge: false,
     }
 
-    const {
-      result: { subscriptionItems },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(
-        params,
-        createDiscardingEffectsContext(transaction)
-      )
-    })
+    const { subscriptionItems } = (
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     expect(subscriptionItems).toHaveLength(1)
     expect(subscriptionItems[0].unitPrice).toBe(paidPrice.unitPrice)
@@ -346,14 +346,14 @@ describe('doNotCharge subscription creation', () => {
       // doNotCharge not provided
     }
 
-    const {
-      result: { subscriptionItems },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(
-        params,
-        createDiscardingEffectsContext(transaction)
-      )
-    })
+    const { subscriptionItems } = (
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     expect(subscriptionItems).toHaveLength(1)
     expect(subscriptionItems[0].unitPrice).toBe(paidPrice.unitPrice)
@@ -382,14 +382,14 @@ describe('doNotCharge subscription creation', () => {
       doNotCharge: true,
     }
 
-    const {
-      result: { subscriptionItems },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(
-        params,
-        createDiscardingEffectsContext(transaction)
-      )
-    })
+    const { subscriptionItems } = (
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // All subscription items should have unitPrice 0
     expect(subscriptionItems).toHaveLength(1) // Single item with quantity
@@ -482,14 +482,14 @@ describe('doNotCharge subscription creation', () => {
       doNotCharge: true,
     }
 
-    const {
-      result: { subscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(
-        params,
-        createDiscardingEffectsContext(transaction)
-      )
-    })
+    const { subscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Should be treated as paid plan (isFreePlan = false)
     expect(subscription.isFreePlan).toBe(false)
@@ -520,14 +520,14 @@ describe('doNotCharge subscription creation', () => {
       doNotCharge: true,
     }
 
-    const {
-      result: { subscription, subscriptionItems },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(
-        params,
-        createDiscardingEffectsContext(transaction)
-      )
-    })
+    const { subscription, subscriptionItems } = (
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     expect(subscriptionItems).toHaveLength(1)
     expect(subscriptionItems[0].unitPrice).toBe(0)
@@ -563,14 +563,14 @@ describe('doNotCharge subscription creation', () => {
       doNotCharge: false,
     }
 
-    const {
-      result: { subscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(
-        params,
-        createDiscardingEffectsContext(transaction)
-      )
-    })
+    const { subscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Subscription should be Incomplete without payment method when doNotCharge is false
     expect(subscription.status).toBe(SubscriptionStatus.Incomplete)
@@ -603,14 +603,14 @@ describe('doNotCharge subscription creation', () => {
         doNotCharge: true,
       }
 
-      const {
-        result: { billingRun },
-      } = await adminTransaction(async ({ transaction }) => {
-        return createSubscriptionWorkflow(
-          params,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      const { billingRun } = (
+        await adminTransaction(async ({ transaction }) => {
+          return createSubscriptionWorkflow(
+            params,
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
       // No billing run should be created when doNotCharge is true
       // (even though payment method exists, since unitPrice is 0)

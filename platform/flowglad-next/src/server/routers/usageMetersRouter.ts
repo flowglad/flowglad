@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -67,7 +68,7 @@ export const createUsageMeter = protectedProcedure
               organizationId,
             }
           )
-          return { result: { usageMeter } }
+          return Result.ok({ usageMeter })
         } catch (error) {
           errorHandlers.usageMeter.handle(error, {
             operation: 'create',

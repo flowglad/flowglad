@@ -1,5 +1,6 @@
 import { runs } from '@trigger.dev/sdk/v3'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -144,13 +145,13 @@ const adjustSubscriptionProcedure = protectedProcedure
     const adjustmentResult =
       await comprehensiveAuthenticatedTransaction(
         async (transactionCtx) => {
-          return {
-            result: await adjustSubscription(
+          return Result.ok(
+            await adjustSubscription(
               input,
               ctx.organization!,
               transactionCtx
-            ),
-          }
+            )
+          )
         },
         {
           apiKey: ctx.apiKey,
@@ -614,23 +615,21 @@ const createSubscriptionProcedure = protectedProcedure
             enqueueLedgerCommand,
           }
         )
+        const outputValue = output.unwrap()
         const finalResult = {
           subscription: {
-            ...output.result.subscription,
+            ...outputValue.subscription,
             current: isSubscriptionCurrent(
-              output.result.subscription.status,
-              output.result.subscription.cancellationReason
+              outputValue.subscription.status,
+              outputValue.subscription.cancellationReason
             ),
           },
         }
 
-        return {
-          ...output,
-          result: {
-            ...output.result,
-            ...finalResult,
-          },
-        }
+        return Result.ok({
+          ...outputValue,
+          ...finalResult,
+        })
       }
     )
   )
@@ -730,17 +729,15 @@ const updatePaymentMethodProcedure = protectedProcedure
           )
         )
 
-        return {
-          result: {
-            subscription: {
-              ...updatedSubscription,
-              current: isSubscriptionCurrent(
-                updatedSubscription.status,
-                updatedSubscription.cancellationReason
-              ),
-            },
+        return Result.ok({
+          subscription: {
+            ...updatedSubscription,
+            current: isSubscriptionCurrent(
+              updatedSubscription.status,
+              updatedSubscription.cancellationReason
+            ),
           },
-        }
+        })
       }
     )
   )

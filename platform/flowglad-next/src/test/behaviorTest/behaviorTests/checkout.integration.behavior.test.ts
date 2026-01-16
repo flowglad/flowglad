@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 /**
  * Checkout Integration Behavior Tests
  *
@@ -160,7 +161,7 @@ const confirmCheckoutSessionBehavior = defineBehavior({
 
       // Confirm the checkout session
       await confirmCheckoutSessionTransaction({ id: session.id }, ctx)
-      return { result: null }
+      return Result.ok(null)
     })
 
     return {
@@ -255,7 +256,7 @@ const processPaymentSuccessBehavior = defineBehavior({
           },
           createProcessingEffectsContext(params)
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 

@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import {
@@ -175,7 +176,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -236,7 +237,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -340,7 +341,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -422,7 +423,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -509,7 +510,7 @@ describe('updatePricingModelTransaction', () => {
               },
               { transaction, invalidateCache }
             )
-            return { result }
+            return Result.ok(result)
           },
           { livemode: false }
         )
@@ -570,7 +571,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -635,7 +636,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -686,7 +687,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -751,7 +752,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -802,7 +803,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -878,7 +879,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -931,7 +932,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1616,7 +1617,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1672,7 +1673,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1769,7 +1770,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1858,7 +1859,7 @@ describe('updatePricingModelTransaction', () => {
               },
               { transaction, invalidateCache }
             )
-            return { result }
+            return Result.ok(result)
           },
           { livemode: false }
         )
@@ -1934,7 +1935,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1999,7 +2000,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2109,7 +2110,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2179,7 +2180,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2299,7 +2300,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2401,7 +2402,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2457,7 +2458,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2542,7 +2543,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2647,7 +2648,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2804,7 +2805,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2977,7 +2978,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -3142,7 +3143,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -3243,7 +3244,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -3371,7 +3372,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -3530,7 +3531,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )

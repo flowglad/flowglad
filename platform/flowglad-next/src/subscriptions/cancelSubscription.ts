@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
@@ -31,7 +32,6 @@ import {
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type {
   DbTransaction,
   TransactionEffectsContext,
@@ -244,7 +244,7 @@ export interface CancelSubscriptionImmediatelyParams {
 export const cancelSubscriptionImmediately = async (
   params: CancelSubscriptionImmediatelyParams,
   ctx: TransactionEffectsContext
-): Promise<TransactionOutput<Subscription.Record>> => {
+): Promise<Result<Subscription.Record, Error>> => {
   const { transaction, invalidateCache, emitEvent } = ctx
   const {
     subscription,
@@ -266,7 +266,7 @@ export const cancelSubscriptionImmediately = async (
     emitEvent(
       constructSubscriptionCanceledEventInsert(subscription, customer)
     )
-    return { result: subscription }
+    return Result.ok(subscription)
   }
   if (
     subscription.canceledAt &&
@@ -283,7 +283,7 @@ export const cancelSubscriptionImmediately = async (
         customer
       )
     )
-    return { result: updatedSubscription }
+    return Result.ok(updatedSubscription)
   }
   const endDate = Date.now()
   const status = SubscriptionStatus.Canceled
@@ -435,7 +435,7 @@ export const cancelSubscriptionImmediately = async (
       customer
     )
   )
-  return { result: updatedSubscription }
+  return Result.ok(updatedSubscription)
 }
 
 // Schedule a subscription cancellation for the future
@@ -598,13 +598,13 @@ type CancelSubscriptionProcedureParams =
  * @param params.input - Cancellation request with subscription ID and timing arrangement
  * @param params.transactionCtx - Transaction context with database transaction and effect callbacks
  * @param params.ctx - Request context (may contain apiKey)
- * @returns Promise resolving to TransactionOutput with the updated subscription (formatted for client) and events to insert
+ * @returns Promise resolving to Result with the updated subscription (formatted for client) and events to insert
  */
 export const cancelSubscriptionProcedureTransaction = async ({
   input,
   transactionCtx,
 }: CancelSubscriptionProcedureParams): Promise<
-  TransactionOutput<{ subscription: Subscription.ClientRecord }>
+  Result<{ subscription: Subscription.ClientRecord }, Error>
 > => {
   const {
     transaction,
@@ -648,19 +648,18 @@ export const cancelSubscriptionProcedureTransaction = async ({
     SubscriptionCancellationArrangement.Immediately
   ) {
     // Note: subscription is already fetched above, can reuse it
-    const { result: updatedSubscription } =
+    const updatedSubscription = (
       await cancelSubscriptionImmediately({ subscription }, ctx)
-    return {
-      result: {
-        subscription: {
-          ...updatedSubscription,
-          current: isSubscriptionCurrent(
-            updatedSubscription.status,
-            updatedSubscription.cancellationReason
-          ),
-        },
+    ).unwrap()
+    return Result.ok({
+      subscription: {
+        ...updatedSubscription,
+        current: isSubscriptionCurrent(
+          updatedSubscription.status,
+          updatedSubscription.cancellationReason
+        ),
       },
-    }
+    })
   }
   const updatedSubscription = await scheduleSubscriptionCancellation(
     input,
@@ -672,17 +671,15 @@ export const cancelSubscriptionProcedureTransaction = async ({
       updatedSubscription.customerId
     )
   )
-  return {
-    result: {
-      subscription: {
-        ...updatedSubscription,
-        current: isSubscriptionCurrent(
-          updatedSubscription.status,
-          updatedSubscription.cancellationReason
-        ),
-      },
+  return Result.ok({
+    subscription: {
+      ...updatedSubscription,
+      current: isSubscriptionCurrent(
+        updatedSubscription.status,
+        updatedSubscription.cancellationReason
+      ),
     },
-  }
+  })
 }
 
 // ============================================================================
@@ -825,7 +822,7 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
 export const uncancelSubscription = async (
   subscription: Subscription.Record,
   ctx: TransactionEffectsContext
-): Promise<TransactionOutput<Subscription.Record>> => {
+): Promise<Result<Subscription.Record, Error>> => {
   const { transaction, invalidateCache } = ctx
   // Cache invalidation for this customer's subscriptions
   invalidateCache(
@@ -834,18 +831,14 @@ export const uncancelSubscription = async (
 
   // Idempotent behavior: If subscription is in terminal state, silently succeed
   if (isSubscriptionInTerminalState(subscription.status)) {
-    return {
-      result: subscription,
-    }
+    return Result.ok(subscription)
   }
 
   // Idempotent behavior: If subscription is not scheduled to cancel, silently succeed
   if (
     subscription.status !== SubscriptionStatus.CancellationScheduled
   ) {
-    return {
-      result: subscription,
-    }
+    return Result.ok(subscription)
   }
 
   // Check if there's anything to undo
@@ -862,9 +855,7 @@ export const uncancelSubscription = async (
     !subscription.cancelScheduledAt &&
     !hasScheduledToCancelPeriods
   ) {
-    return {
-      result: subscription,
-    }
+    return Result.ok(subscription)
   }
 
   // Security check for paid subscriptions (moved before state changes)
@@ -907,9 +898,7 @@ export const uncancelSubscription = async (
   )
 
   // Note: No events are emitted for uncancel
-  return {
-    result: updatedSubscription,
-  }
+  return Result.ok(updatedSubscription)
 }
 
 type UncancelSubscriptionProcedureParams =
@@ -931,7 +920,7 @@ export const uncancelSubscriptionProcedureTransaction = async ({
   input,
   transactionCtx,
 }: UncancelSubscriptionProcedureParams): Promise<
-  TransactionOutput<{ subscription: Subscription.ClientRecord }>
+  Result<{ subscription: Subscription.ClientRecord }, Error>
 > => {
   const {
     transaction,
@@ -951,20 +940,17 @@ export const uncancelSubscriptionProcedureTransaction = async ({
     transaction
   )
 
-  const { result: updatedSubscription } = await uncancelSubscription(
-    subscription,
-    ctx
-  )
+  const updatedSubscription = (
+    await uncancelSubscription(subscription, ctx)
+  ).unwrap()
 
-  return {
-    result: {
-      subscription: {
-        ...updatedSubscription,
-        current: isSubscriptionCurrent(
-          updatedSubscription.status,
-          updatedSubscription.cancellationReason
-        ),
-      },
+  return Result.ok({
+    subscription: {
+      ...updatedSubscription,
+      current: isSubscriptionCurrent(
+        updatedSubscription.status,
+        updatedSubscription.cancellationReason
+      ),
     },
-  }
+  })
 }

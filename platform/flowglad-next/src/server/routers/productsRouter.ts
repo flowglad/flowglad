@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import * as R from 'ramda'
 import { z } from 'zod'
 import {
@@ -100,11 +101,9 @@ export const createProduct = protectedProcedure
               organizationId,
             }
           )
-          return {
-            result: {
-              product: txResult.product,
-            },
-          }
+          return Result.ok({
+            product: txResult.product,
+          })
         } catch (error) {
           errorHandlers.product.handle(error, {
             operation: 'create',
@@ -158,11 +157,9 @@ export const updateProduct = protectedProcedure
             }
           )
 
-          return {
-            result: {
-              product: updatedProduct,
-            },
-          }
+          return Result.ok({
+            product: updatedProduct,
+          })
         } catch (error) {
           // Re-throw with enhanced error handling
           errorHandlers.product.handle(error, {
