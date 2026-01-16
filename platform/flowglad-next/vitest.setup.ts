@@ -6,6 +6,10 @@ import { afterAll, afterEach, beforeAll, vi } from 'vitest'
 import { server } from './mocks/server'
 import { seedDatabase } from './seedDatabase'
 
+// Mock server-only package since we're running in Node.js test environment
+// (Vitest is not Next.js's bundler, so server-only throws by default)
+vi.mock('server-only', () => ({}))
+
 // Ensure Unkey env vars are set for tests (MSW mocks the actual API calls)
 process.env.UNKEY_API_ID = process.env.UNKEY_API_ID || 'api_test_mock'
 process.env.UNKEY_ROOT_KEY =
