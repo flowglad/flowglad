@@ -376,7 +376,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
     ).resolves.toBeUndefined()
   })
 
-  it('deletes dependency registry Set after invalidation', async () => {
+  it('preserves dependency registry Set after invalidation for recomputation', async () => {
     const wrappedFn = vi.fn().mockResolvedValue({ val: 'test' })
     const testSchema = z.object({ val: z.string() })
 
@@ -400,8 +400,10 @@ describe('dependency-based invalidation (Redis-backed)', () => {
 
     await invalidateDependencies(['dep:cleanup'])
 
-    // The registry Set should be deleted
-    expect(mockRedis.sets[registryKey]).toBeUndefined()
+    // The registry Set should be preserved (expires via TTL) so recomputeDependencies can use it
+    expect(mockRedis.sets[registryKey]?.has(expectedCacheKey)).toBe(
+      true
+    )
   })
 })
 

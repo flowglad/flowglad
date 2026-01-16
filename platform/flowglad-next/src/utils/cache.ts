@@ -45,7 +45,9 @@ export type RecomputeHandler = (
   transactionContext: TransactionContext
 ) => Promise<unknown>
 
-// Namespace-keyed registry - same across all processes
+// In-memory registry for recompute handlers. Each process has its own registry,
+// but they contain the same handlers because all processes import the same modules
+// that call registerRecomputeHandler() as a side effect during module initialization.
 const recomputeRegistry = new Map<
   RedisKeyNamespace,
   RecomputeHandler
@@ -644,7 +646,10 @@ async function cachedBulkLookupImpl<TKey, TResult>(
  * This is the core invalidation function. It:
  * 1. For each dependency, uses SMEMBERS to get all cache keys from Redis Set
  * 2. Deletes all those cache keys from Redis
- * 3. Deletes the dependency registry Set itself
+ *
+ * Note: The dependency registry Sets are NOT deleted here - they are left to
+ * expire via TTL. This allows recomputeDependencies() to be called after
+ * invalidation to trigger recomputation of cache entries that have metadata.
  *
  * Observability:
  * - Logs invalidation at debug level (includes dependency and cache keys)
@@ -668,16 +673,14 @@ export async function invalidateDependencies(
           cacheKeys,
           invalidation_count: cacheKeys.length,
         })
-        // Delete all the cache keys
+        // Delete all the cache keys (but NOT the registry Set - it expires via TTL
+        // and is needed by recomputeDependencies if called afterward)
         await client.del(...cacheKeys)
       } else {
         logger.debug('No cache keys to invalidate for dependency', {
           dependency: dep,
         })
       }
-
-      // Delete the registry Set itself
-      await client.del(registryKey)
     }
   } catch (error) {
     // Log but don't throw - invalidation is fire-and-forget
