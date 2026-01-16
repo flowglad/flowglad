@@ -1,7 +1,7 @@
-import { sql } from 'drizzle-orm'
 import type { TransactionContext } from '@/utils/cache'
 import db from './client'
 import type { DbTransaction } from './types'
+import { withRLS } from './withRLS'
 
 type MerchantTransactionContext = Extract<
   TransactionContext,
@@ -53,30 +53,11 @@ export async function recomputeWithMerchantContext<T>(
       app_metadata: { provider: 'recompute' },
     }
 
-    // Clear any existing JWT claims
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', NULL, true);`
+    return withRLS(
+      transaction,
+      { jwtClaim, livemode: context.livemode },
+      () => fn(transaction)
     )
-
-    // Set the RLS context using parameterized binding for safety
-    const jwtClaimJson = JSON.stringify(jwtClaim)
-    const livemodeStr = Boolean(context.livemode).toString()
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', ${jwtClaimJson}, TRUE)`
-    )
-    await transaction.execute(
-      sql`SET LOCAL ROLE ${sql.raw(jwtClaim.role)};`
-    )
-    await transaction.execute(
-      sql`SELECT set_config('app.livemode', ${livemodeStr}, TRUE);`
-    )
-
-    const result = await fn(transaction)
-
-    // Reset role at end of transaction
-    await transaction.execute(sql`RESET ROLE;`)
-
-    return result
   })
 }
 
@@ -119,29 +100,10 @@ export async function recomputeWithCustomerContext<T>(
       },
     }
 
-    // Clear any existing JWT claims
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', NULL, true);`
+    return withRLS(
+      transaction,
+      { jwtClaim, livemode: context.livemode },
+      () => fn(transaction)
     )
-
-    // Set the RLS context using parameterized binding for safety
-    const jwtClaimJson = JSON.stringify(jwtClaim)
-    const livemodeStr = Boolean(context.livemode).toString()
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', ${jwtClaimJson}, TRUE)`
-    )
-    await transaction.execute(
-      sql`SET LOCAL ROLE ${sql.raw(jwtClaim.role)};`
-    )
-    await transaction.execute(
-      sql`SELECT set_config('app.livemode', ${livemodeStr}, TRUE);`
-    )
-
-    const result = await fn(transaction)
-
-    // Reset role at end of transaction
-    await transaction.execute(sql`RESET ROLE;`)
-
-    return result
   })
 }
