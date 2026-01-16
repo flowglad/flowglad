@@ -624,7 +624,7 @@ export const flowgladActionValidators = {
     inputValidator: clientCreateUsageEventSchema,
   },
   [FlowgladActionKey.GetResourceUsages]: {
-    method: HTTPMethod.GET,
+    method: HTTPMethod.POST,
     inputValidator: getResourcesSchema,
   },
   [FlowgladActionKey.ClaimResource]: {
@@ -636,11 +636,11 @@ export const flowgladActionValidators = {
     inputValidator: releaseResourceSchema,
   },
   [FlowgladActionKey.ListResourceClaims]: {
-    method: HTTPMethod.GET,
+    method: HTTPMethod.POST,
     inputValidator: listResourceClaimsSchema,
   },
   [FlowgladActionKey.GetResourceUsage]: {
-    method: HTTPMethod.GET,
+    method: HTTPMethod.POST,
     inputValidator: getResourceUsageSchema,
   },
 } as const satisfies FlowgladActionValidatorMap

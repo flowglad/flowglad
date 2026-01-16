@@ -9,7 +9,7 @@ import type { SubRouteHandler } from './types'
 export const getResources: SubRouteHandler<
   FlowgladActionKey.GetResourceUsages
 > = async (params, flowgladServer: FlowgladServer) => {
-  if (params.method !== HTTPMethod.GET) {
+  if (params.method !== HTTPMethod.POST) {
     return {
       data: {},
       status: 405,
@@ -47,7 +47,7 @@ export const getResources: SubRouteHandler<
 export const getResourceUsage: SubRouteHandler<
   FlowgladActionKey.GetResourceUsage
 > = async (params, flowgladServer: FlowgladServer) => {
-  if (params.method !== HTTPMethod.GET) {
+  if (params.method !== HTTPMethod.POST) {
     return {
       data: {},
       status: 405,
@@ -165,7 +165,7 @@ export const releaseResource: SubRouteHandler<
 export const listResourceClaims: SubRouteHandler<
   FlowgladActionKey.ListResourceClaims
 > = async (params, flowgladServer: FlowgladServer) => {
-  if (params.method !== HTTPMethod.GET) {
+  if (params.method !== HTTPMethod.POST) {
     return {
       data: {},
       status: 405,
