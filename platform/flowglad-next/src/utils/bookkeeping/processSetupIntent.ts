@@ -176,7 +176,7 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
       await pullStripeSetupIntentDataToDatabase(
         setupIntent,
         customer,
-        transaction
+        ctx
       )
     return {
       purchase,
@@ -215,8 +215,9 @@ export const pullStripeSetupIntentDataToDatabase = async (
     Customer.Record,
     'id' | 'stripeCustomerId' | 'livemode'
   >,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction } = ctx
   const stripeCustomerId = setupIntent.customer
     ? stripeIdFromObjectOrId(setupIntent.customer)
     : null
@@ -240,7 +241,7 @@ export const pullStripeSetupIntentDataToDatabase = async (
       livemode: customer.livemode,
       customerId: customer.id,
     },
-    transaction
+    ctx
   )
   return {
     customer,
@@ -295,8 +296,9 @@ interface ProcessAddPaymentMethodSetupIntentSucceededResult {
 
 export const processAddPaymentMethodSetupIntentSucceeded = async (
   setupIntent: CoreSripeSetupIntent,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<ProcessAddPaymentMethodSetupIntentSucceededResult> => {
+  const { transaction, invalidateCache } = ctx
   const initialCheckoutSession = await checkoutSessionFromSetupIntent(
     setupIntent,
     transaction
@@ -318,7 +320,7 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
     await pullStripeSetupIntentDataToDatabase(
       setupIntent,
       initialCustomer,
-      transaction
+      ctx
     )
   if (checkoutSession.targetSubscriptionId) {
     const subscription = await selectSubscriptionById(
@@ -351,6 +353,9 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
     checkoutSession.organizationId,
     transaction
   )
+
+  // Invalidate payment methods cache after adding a new payment method
+  invalidateCache(CacheDependency.customerPaymentMethods(customer.id))
 
   return {
     type: CheckoutSessionType.AddPaymentMethod,
@@ -511,6 +516,10 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
       transaction
     )
+    // Invalidate purchase cache after updating purchase status
+    ctx.invalidateCache(
+      CacheDependency.customerPurchases(customer.id)
+    )
 
     // Emit purchase completed event
     emitEvent({
@@ -593,7 +602,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       await pullStripeSetupIntentDataToDatabase(
         setupIntent,
         customer,
-        transaction
+        ctx
       )
 
     // Defense-in-depth: Check if this exact setup intent was already processed
@@ -660,7 +669,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
           livemode: checkoutSession.livemode,
           customerId: checkoutSession.customerId!,
         },
-        transaction
+        ctx
       ),
       billingRun,
       subscription: activatedSubscription,
@@ -793,7 +802,7 @@ export const processSetupIntentSucceeded = async (
   ) {
     const result = await processAddPaymentMethodSetupIntentSucceeded(
       setupIntent,
-      transaction
+      ctx
     )
     return Result.ok(result)
   }

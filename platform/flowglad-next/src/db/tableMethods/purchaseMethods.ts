@@ -31,6 +31,8 @@ import {
   PriceType,
   PurchaseStatus,
 } from '@/types'
+import { CacheDependency, cached } from '@/utils/cache'
+import { RedisKeyNamespace } from '@/utils/redis'
 import { checkoutSessionClientSelectSchema } from '../schema/checkoutSessions'
 import {
   customerClientInsertSchema,
@@ -79,6 +81,41 @@ const config: ORMMethodCreatorConfig<
 export const selectPurchaseById = createSelectById(purchases, config)
 
 export const selectPurchases = createSelectFunction(purchases, config)
+
+/**
+ * Selects purchases by customer ID with caching enabled by default.
+ * Pass { ignoreCache: true } as the last argument to bypass the cache.
+ *
+ * This cache entry depends on customerPurchases - invalidate when
+ * purchases for this customer are created or updated.
+ *
+ * Cache key includes livemode to prevent cross-mode data leakage, since RLS
+ * filters purchases by livemode and the same customer could have different
+ * purchases in live vs test mode.
+ */
+export const selectPurchasesByCustomerId = cached(
+  {
+    namespace: RedisKeyNamespace.PurchasesByCustomer,
+    keyFn: (
+      customerId: string,
+      _transaction: DbTransaction,
+      livemode: boolean
+    ) => `${customerId}:${livemode}`,
+    schema: purchasesSelectSchema.array(),
+    dependenciesFn: (customerId: string) => [
+      CacheDependency.customerPurchases(customerId),
+    ],
+  },
+  async (
+    customerId: string,
+    transaction: DbTransaction,
+    // livemode is used by keyFn for cache key generation, not in the query itself
+    // (RLS filters by livemode context set on the transaction)
+    _livemode: boolean
+  ) => {
+    return selectPurchases({ customerId }, transaction)
+  }
+)
 
 const baseInsertPurchase = createInsertFunction(purchases, config)
 

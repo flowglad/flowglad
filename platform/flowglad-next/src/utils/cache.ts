@@ -1091,6 +1091,15 @@ export const CacheDependency = {
   /** Invalidate when ledger entries for this subscription change */
   subscriptionLedger: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionLedger:${subscriptionId}`,
+  /** Invalidate when payment methods for this customer change */
+  customerPaymentMethods: (customerId: string): CacheDependencyKey =>
+    `customerPaymentMethods:${customerId}`,
+  /** Invalidate when purchases for this customer change */
+  customerPurchases: (customerId: string): CacheDependencyKey =>
+    `customerPurchases:${customerId}`,
+  /** Invalidate when invoices for this customer change */
+  customerInvoices: (customerId: string): CacheDependencyKey =>
+    `customerInvoices:${customerId}`,
 } as const
 
 // NOTE: cachedRecomputable() has been moved to './cache-recomputable.ts'
