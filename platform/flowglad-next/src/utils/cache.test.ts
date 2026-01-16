@@ -23,7 +23,11 @@ import {
   type SerializableParams,
   type TransactionContext,
 } from './cache'
-import { _setTestRedisClient, RedisKeyNamespace } from './redis'
+import {
+  _setTestRedisClient,
+  RedisKeyNamespace,
+  trackAndEvictLRU,
+} from './redis'
 import {
   getCurrentTransactionContext,
   runWithTransactionContext,
@@ -1141,5 +1145,117 @@ describe('transactionContext', () => {
   it('getCurrentTransactionContext returns undefined outside of context', () => {
     const context = getCurrentTransactionContext()
     expect(context).toBeUndefined()
+  })
+})
+
+describe('evalWithShaFallback behavior (via trackAndEvictLRU)', () => {
+  afterEach(() => {
+    _setTestRedisClient(null)
+  })
+
+  it('falls back to EVAL when EVALSHA returns NOSCRIPT error', async () => {
+    let evalshaCallCount = 0
+    let evalCallCount = 0
+
+    const mockClient = {
+      evalsha: () => {
+        evalshaCallCount++
+        throw new Error('NOSCRIPT No matching script')
+      },
+      eval: () => {
+        evalCallCount++
+        // Return 0 (no eviction needed)
+        return 0
+      },
+      zadd: () => 1,
+      zcard: () => 1,
+      zrange: () => [],
+      zrem: () => 0,
+      del: () => 0,
+    }
+
+    _setTestRedisClient(mockClient)
+
+    const result = await trackAndEvictLRU(
+      RedisKeyNamespace.SubscriptionsByCustomer,
+      'test-key'
+    )
+
+    expect(evalshaCallCount).toBe(1)
+    expect(evalCallCount).toBe(1)
+    expect(result).toBe(0)
+  })
+
+  it('re-throws non-NOSCRIPT errors from EVALSHA', async () => {
+    const mockClient = {
+      evalsha: () => {
+        throw new Error('ERR some other Redis error')
+      },
+      eval: () => {
+        throw new Error('eval should not be called')
+      },
+      zadd: () => 1,
+      zcard: () => 1,
+      zrange: () => [],
+      zrem: () => 0,
+      del: () => 0,
+    }
+
+    _setTestRedisClient(mockClient)
+
+    // trackAndEvictLRU catches errors and fails open (returns 0)
+    // but we need to verify the error was not a NOSCRIPT fallback
+    let evalCalled = false
+    const mockClientWithTracking = {
+      ...mockClient,
+      eval: () => {
+        evalCalled = true
+        return 0
+      },
+    }
+
+    _setTestRedisClient(mockClientWithTracking)
+
+    const result = await trackAndEvictLRU(
+      RedisKeyNamespace.SubscriptionsByCustomer,
+      'test-key'
+    )
+
+    // Since non-NOSCRIPT error is thrown, eval should NOT be called
+    expect(evalCalled).toBe(false)
+    // trackAndEvictLRU fails open and returns 0
+    expect(result).toBe(0)
+  })
+
+  it('EVALSHA success path does not call EVAL', async () => {
+    let evalshaCallCount = 0
+    let evalCallCount = 0
+
+    const mockClient = {
+      evalsha: () => {
+        evalshaCallCount++
+        return 0 // Success
+      },
+      eval: () => {
+        evalCallCount++
+        return 0
+      },
+      zadd: () => 1,
+      zcard: () => 1,
+      zrange: () => [],
+      zrem: () => 0,
+      del: () => 0,
+    }
+
+    _setTestRedisClient(mockClient)
+
+    const result = await trackAndEvictLRU(
+      RedisKeyNamespace.SubscriptionsByCustomer,
+      'test-key'
+    )
+
+    expect(evalshaCallCount).toBe(1)
+    expect(evalCallCount).toBe(0)
+    expect(result).toBe(0)
   })
 })
