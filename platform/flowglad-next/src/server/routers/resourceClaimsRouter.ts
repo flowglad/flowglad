@@ -12,7 +12,7 @@ import {
 } from '@/db/tableMethods/resourceClaimMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
 import {
@@ -340,13 +340,10 @@ const getUsageProcedure = devOnlyProcedure
           })
         }
 
-        // Get only currently active subscription items (not expired)
-        const subscriptionItemsList =
-          await selectCurrentlyActiveSubscriptionItems(
-            { subscriptionId: input.subscriptionId },
-            new Date(),
-            transaction
-          )
+        const subscriptionItemsList = await selectSubscriptionItems(
+          { subscriptionId: input.subscriptionId },
+          transaction
+        )
 
         if (subscriptionItemsList.length === 0) {
           throw new TRPCError({
@@ -363,13 +360,7 @@ const getUsageProcedure = devOnlyProcedure
           transaction
         )
 
-        // Filter to only non-expired features
-        const now = Date.now()
-        const activeFeatures = allFeatures.filter(
-          (feature) => !feature.expiredAt || feature.expiredAt > now
-        )
-
-        const resourceFeature = activeFeatures.find(
+        const resourceFeature = allFeatures.find(
           (
             feature
           ): feature is SubscriptionItemFeature.ResourceRecord =>
@@ -466,13 +457,10 @@ const listResourceUsagesProcedure = devOnlyProcedure
           transaction
         )
 
-        // Get only currently active subscription items (not expired)
-        const subscriptionItemsList =
-          await selectCurrentlyActiveSubscriptionItems(
-            { subscriptionId: input.subscriptionId },
-            new Date(),
-            transaction
-          )
+        const subscriptionItemsList = await selectSubscriptionItems(
+          { subscriptionId: input.subscriptionId },
+          transaction
+        )
 
         if (subscriptionItemsList.length === 0) {
           return []
@@ -486,15 +474,12 @@ const listResourceUsagesProcedure = devOnlyProcedure
           transaction
         )
 
-        // Filter to only non-expired features that are resources
-        const now = Date.now()
         const resourceFeatures = allFeatures.filter(
           (
             feature
           ): feature is SubscriptionItemFeature.ResourceRecord =>
             feature.type === FeatureType.Resource &&
-            feature.resourceId !== null &&
-            (!feature.expiredAt || feature.expiredAt > now)
+            feature.resourceId !== null
         )
 
         if (resourceFeatures.length === 0) {
