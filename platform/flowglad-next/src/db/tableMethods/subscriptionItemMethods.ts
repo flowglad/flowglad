@@ -28,9 +28,9 @@ import {
 import type { SubscriptionStatus } from '@/types'
 import {
   CacheDependency,
-  cached,
   cachedBulkLookup,
 } from '@/utils/cache'
+import { cachedRecomputable } from '@/utils/cache-recomputable'
 import core from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'
 import {
@@ -323,35 +323,48 @@ const subscriptionItemWithPriceSchema = z.object({
 })
 
 /**
- * Internal cached implementation for single subscription lookup.
+ * Params schema for selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal.
+ * Used by cachedRecomputable() for validation during recomputation.
+ */
+const selectSubscriptionItemsParamsSchema = z.object({
+  subscriptionId: z.string(),
+  livemode: z.boolean(),
+})
+
+/**
+ * Params type for selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal.
+ * Uses params object pattern required by cachedRecomputable().
+ * Must be a type (not interface) to satisfy SerializableParams constraint.
+ */
+type SelectSubscriptionItemsParams = z.infer<
+  typeof selectSubscriptionItemsParamsSchema
+>
+
+/**
+ * Internal cached implementation for single subscription lookup with automatic recomputation.
  * Cache key includes livemode to prevent mixing live/test data.
  */
 const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
-  cached(
+  cachedRecomputable<
+    SelectSubscriptionItemsParams,
+    {
+      subscriptionItem: SubscriptionItem.Record
+      price: Price.ClientRecord | null
+    }[]
+  >(
     {
       namespace: RedisKeyNamespace.ItemsBySubscription,
-      keyFn: (
-        subscriptionId: string,
-        _transaction: DbTransaction,
-        livemode: boolean
-      ) => `${subscriptionId}:${livemode}`,
+      paramsSchema: selectSubscriptionItemsParamsSchema,
+      keyFn: (params) =>
+        `${params.subscriptionId}:${params.livemode}`,
       schema: subscriptionItemWithPriceSchema.array(),
-      dependenciesFn: (items, subscriptionId: string) => [
-        // Set membership: invalidate when items are added/removed for this subscription
-        CacheDependency.subscriptionItems(subscriptionId),
-        // Content: invalidate when any item's properties change
-        ...items.map((item) =>
-          CacheDependency.subscriptionItem(item.subscriptionItem.id)
-        ),
+      dependenciesFn: (params) => [
+        CacheDependency.subscriptionItems(params.subscriptionId),
       ],
     },
-    async (
-      subscriptionId: string,
-      transaction: DbTransaction,
-      _livemode: boolean
-    ) => {
+    async (params, transaction) => {
       return selectSubscriptionItemsWithPricesInternal(
-        [subscriptionId],
+        [params.subscriptionId],
         transaction
       )
     }
@@ -381,9 +394,8 @@ export const selectSubscriptionItemsWithPricesBySubscriptionId =
       )
     }
     return selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal(
-      subscriptionId,
-      transaction,
-      livemode
+      { subscriptionId, livemode },
+      transaction
     )
   }
 
@@ -544,9 +556,8 @@ export const selectRichSubscriptionsAndActiveItems = async (
 
   if (isSimpleCustomerIdQuery) {
     subscriptionRecords = await selectSubscriptionsByCustomerId(
-      customerId,
-      transaction,
-      livemode
+      { customerId, livemode },
+      transaction
     )
   } else {
     subscriptionRecords = await selectSubscriptions(
