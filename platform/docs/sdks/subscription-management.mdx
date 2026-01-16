@@ -39,11 +39,70 @@ If a subscription has been scheduled for cancellation (status `cancellation_sche
 - The subscription status reverts to `active` (or `trialing` if still in trial period)
 - Any billing runs that were aborted due to the cancellation are rescheduled
 
+### Adjust Subscriptions
+
+You can upgrade or downgrade a subscription using `useBilling`'s `adjustSubscription` from client side or `flowgladServer`'s `adjustSubscription` from server side. This allows customers to change their plan mid-billing cycle with automatic proration handling.
+
+**Input Options:**
+
+There are three ways to specify the new plan:
+- `priceSlug`: Reference a price by its slug (simplest form)
+- `priceId`: Reference a price by its ID
+- `subscriptionItems`: Array of subscription items for complex multi-item adjustments
+
+**Timing Options:**
+
+The `timing` parameter controls when the adjustment takes effect:
+- **`auto`** (default): Automatically determines timing based on whether this is an upgrade or downgrade. Upgrades happen immediately with proration; downgrades happen at the end of the current billing period.
+- **`immediately`**: Apply the change immediately. For upgrades, the customer is charged the prorated difference. For downgrades, the plan changes immediately but no refund is issued.
+- **`at_end_of_period`**: Apply the change at the end of the current billing period (only valid for downgrades).
+
+**How `auto` determines upgrade vs downgrade:**
+
+The `auto` timing compares the total monetary value of the current subscription items against the new subscription items:
+- **Upgrade:** New total price > current total price → applies immediately
+- **Downgrade:** New total price < current total price → applies at end of period
+- **Same price:** New total price = current total price → applies immediately
+
+The total price is calculated as the sum of `unitPrice × quantity` across all subscription items. This means switching between plans at the same price point (e.g., changing from "Pro Monthly" to "Pro Annual" with equivalent monthly cost) is treated as a same-price change and applies immediately.
+
+**Proration:**
+
+By default, immediate adjustments are prorated (`prorate: true`). This means:
+- **Upgrades**: Customer is charged the prorated difference for the remainder of the billing period
+- **Downgrades**: No refund is issued; the plan changes take effect based on timing
+
+Set `prorate: false` to skip the mid-period proration charge. The plan change still happens immediately, but the customer isn't charged until the next billing period. This effectively gives the customer the upgraded features for free until the period ends.
+
+<Note>
+The `prorate` option only applies to `immediately` and `auto` timing. The `at_end_of_period` timing has no proration since changes take effect at the next billing cycle.
+</Note>
+
+**Subscription ID Resolution:**
+
+If the customer has exactly one active subscription, the `subscriptionId` is automatically resolved. If the customer has multiple subscriptions, you must specify which subscription to adjust using the `subscriptionId` parameter.
+
+**Requirements:**
+- The subscription must be active (not in a terminal state like `canceled`)
+- The subscription must be a renewing subscription (not a one-time purchase)
+- The subscription cannot be on a free plan (use `createSubscription` to upgrade from free instead)
+- A valid payment method is required for proration charges (upgrades with `prorate: true`)
+- The new price must belong to the same pricing model as the subscription and be an active, recurring price
+
+<Warning>
+For subscriptions on a free trial without a payment method, proration upgrades will fail. Either collect a payment method first using `createAddPaymentMethodCheckoutSession`, or use `prorate: false` to skip the immediate charge.
+</Warning>
+
+**Usage-Based Pricing:**
+
+Subscription adjustments only affect recurring (subscription-type) prices. Usage-based charges are **not** prorated during adjustments—they continue to accumulate and are billed at the end of the billing period based on actual consumption, regardless of any plan changes.
+
 ### What you can do
 
 - Allow customer to complete a subscription product checkout which will create a subscription automatically.
 - Create subscriptions server-side using the Flowglad Server SDK.
 - Trigger cancellations and uncancellations from server or client flows.
+- Adjust existing subscriptions to upgrade or downgrade plans with automatic proration.
 - Check entitlements for feature access or usage credits based on customer subscription.
 
 ### Example: Create subscription
@@ -332,6 +391,292 @@ If a subscription has been scheduled for cancellation (status `cancellation_sche
     // Pass YOUR app's user/organization ID, not Flowglad's customer ID
     const response = await flowglad(customerExternalId).uncancelSubscription({
       id: subscriptionId,
+    })
+
+    return response.subscription
+  }
+  ```
+
+  </Tab>
+</Tabs>
+
+### Example: Adjust subscription (upgrade)
+
+<Tabs>
+  <Tab title="Client">
+
+  ```tsx
+  'use client'
+
+  import { useState } from 'react'
+  import { useBilling } from '@flowglad/nextjs'
+
+  export function UpgradePlanButton({
+    newPriceSlug,
+  }: {
+    newPriceSlug: string
+  }) {
+    const { adjustSubscription } = useBilling()
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const handleUpgrade = async () => {
+      setError(null)
+
+      if (!adjustSubscription) {
+        setError('Plan adjustment is not available right now.')
+        return
+      }
+
+      try {
+        setIsLoading(true)
+        await adjustSubscription({
+          priceSlug: newPriceSlug,
+          // timing defaults to 'auto' - upgrades apply immediately
+        })
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to upgrade subscription.'
+        )
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    return (
+      <>
+        <button onClick={handleUpgrade} disabled={isLoading}>
+          {isLoading ? 'Upgrading…' : 'Upgrade Plan'}
+        </button>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </>
+    )
+  }
+  ```
+
+  </Tab>
+  <Tab title="Server">
+
+  ```ts
+  import { FlowgladServer } from '@flowglad/server'
+/**
+* Note: this only demonstrates how to
+* adjust a subscription from your backend.
+* If you initiate the adjustment using `adjustSubscription`
+* from your frontend, your Flowglad route handler
+* will handle this automatically
+*/
+  const flowglad = (customerExternalId: string) => {
+    // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (externalId) => {
+        const user = await db.users.findOne({ id: externalId })
+        return {
+          email: user.email,
+          name: user.name,
+        }
+      },
+    })
+  }
+
+  export async function upgradeSubscription(customerExternalId: string, newPriceSlug: string) {
+    // Pass YOUR app's user/organization ID, not Flowglad's customer ID
+    const response = await flowglad(customerExternalId).adjustSubscription({
+      priceSlug: newPriceSlug,
+      // timing defaults to 'auto' - upgrades apply immediately with proration
+    })
+
+    return response.subscription
+  }
+  ```
+
+  </Tab>
+</Tabs>
+
+### Example: Adjust subscription (downgrade)
+
+<Tabs>
+  <Tab title="Client">
+
+  ```tsx
+  'use client'
+
+  import { useState } from 'react'
+  import { useBilling } from '@flowglad/nextjs'
+
+  export function DowngradePlanButton({
+    newPriceSlug,
+  }: {
+    newPriceSlug: string
+  }) {
+    const { adjustSubscription } = useBilling()
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const handleDowngrade = async () => {
+      setError(null)
+
+      if (!adjustSubscription) {
+        setError('Plan adjustment is not available right now.')
+        return
+      }
+
+      try {
+        setIsLoading(true)
+        await adjustSubscription({
+          priceSlug: newPriceSlug,
+          // timing defaults to 'auto' - downgrades apply at end of billing period
+        })
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to downgrade subscription.'
+        )
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    return (
+      <>
+        <button onClick={handleDowngrade} disabled={isLoading}>
+          {isLoading ? 'Processing…' : 'Downgrade Plan'}
+        </button>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </>
+    )
+  }
+  ```
+
+  </Tab>
+  <Tab title="Server">
+
+  ```ts
+  import { FlowgladServer } from '@flowglad/server'
+
+  const flowglad = (customerExternalId: string) => {
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (externalId) => {
+        const user = await db.users.findOne({ id: externalId })
+        return {
+          email: user.email,
+          name: user.name,
+        }
+      },
+    })
+  }
+
+  export async function downgradeSubscription(customerExternalId: string, newPriceSlug: string) {
+    const response = await flowglad(customerExternalId).adjustSubscription({
+      priceSlug: newPriceSlug,
+      // timing defaults to 'auto' - downgrades apply at end of billing period
+      // No refund is issued; customer keeps current plan features until period ends
+    })
+
+    return response.subscription
+  }
+  ```
+
+  </Tab>
+</Tabs>
+
+### Example: Adjust subscription with explicit timing
+
+<Tabs>
+  <Tab title="Client">
+
+  ```tsx
+  'use client'
+
+  import { useState } from 'react'
+  import { useBilling } from '@flowglad/nextjs'
+
+  export function ImmediateUpgradeButton({
+    newPriceSlug,
+  }: {
+    newPriceSlug: string
+  }) {
+    const { adjustSubscription } = useBilling()
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const handleUpgrade = async () => {
+      setError(null)
+
+      if (!adjustSubscription) {
+        setError('Plan adjustment is not available right now.')
+        return
+      }
+
+      try {
+        setIsLoading(true)
+        await adjustSubscription({
+          priceSlug: newPriceSlug,
+          timing: 'immediately', // Force immediate application with proration
+        })
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to upgrade subscription.'
+        )
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    return (
+      <>
+        <button onClick={handleUpgrade} disabled={isLoading}>
+          {isLoading ? 'Upgrading…' : 'Upgrade Now'}
+        </button>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </>
+    )
+  }
+  ```
+
+  </Tab>
+  <Tab title="Server">
+
+  ```ts
+  import { FlowgladServer } from '@flowglad/server'
+
+  const flowglad = (customerExternalId: string) => {
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (externalId) => {
+        const user = await db.users.findOne({ id: externalId })
+        return {
+          email: user.email,
+          name: user.name,
+        }
+      },
+    })
+  }
+
+  // Upgrade with explicit immediate timing and proration
+  export async function immediateUpgrade(customerExternalId: string, newPriceSlug: string) {
+    const response = await flowglad(customerExternalId).adjustSubscription({
+      priceSlug: newPriceSlug,
+      timing: 'immediately',
+      prorate: true, // Charge prorated difference (this is the default)
+    })
+
+    return response.subscription
+  }
+
+  // Upgrade immediately without mid-period charge
+  export async function immediateUpgradeNoProration(customerExternalId: string, newPriceSlug: string) {
+    const response = await flowglad(customerExternalId).adjustSubscription({
+      priceSlug: newPriceSlug,
+      timing: 'immediately',
+      prorate: false, // Skip mid-period charge; new price charged at next billing period
     })
 
     return response.subscription
