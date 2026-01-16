@@ -91,9 +91,6 @@ describe('Resource Capacity Integration Tests', () => {
             livemode,
             pricingModelId,
             active: true,
-            displayFeatures: [],
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
             slug: `test-product-${nanoid}`,
           },
           transaction
@@ -192,7 +189,7 @@ describe('Resource Capacity Integration Tests', () => {
     // Create subscription item
     await setupSubscriptionItem({
       subscriptionId,
-      name: price.name,
+      name: price.name ?? 'Test Price',
       quantity: 1,
       unitPrice: price.unitPrice,
       priceId,
