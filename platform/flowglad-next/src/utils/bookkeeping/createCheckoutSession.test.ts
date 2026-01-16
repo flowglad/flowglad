@@ -163,6 +163,34 @@ describe('checkoutSessionInsertFromInput', () => {
     expect(result.preserveBillingCycleAnchor).toBe(true)
   })
 
+  it('includes quantity in the insert when provided for product checkouts', () => {
+    const input = buildProductCheckoutInput({
+      quantity: 5,
+    })
+
+    const result = checkoutSessionInsertFromInput({
+      checkoutSessionInput: input,
+      customer,
+      organizationId: DEFAULT_ORGANIZATION_ID,
+      livemode: false,
+    })
+
+    expect(result.quantity).toBe(5)
+  })
+
+  it('defaults quantity to 1 when not provided for product checkouts', () => {
+    const input = buildProductCheckoutInput()
+
+    const result = checkoutSessionInsertFromInput({
+      checkoutSessionInput: input,
+      customer,
+      organizationId: DEFAULT_ORGANIZATION_ID,
+      livemode: false,
+    })
+
+    expect(result.quantity).toBe(1)
+  })
+
   it('allows anonymous product checkouts without a customer record', () => {
     const input = buildProductCheckoutInput({
       anonymous: true,
