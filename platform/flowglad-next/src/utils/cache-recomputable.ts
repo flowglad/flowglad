@@ -29,28 +29,6 @@ import { logger } from './logger'
 import { RedisKeyNamespace, redis, trackAndEvictLRU } from './redis'
 import { traced } from './tracing'
 
-// Re-export common types for convenience
-export type {
-  CacheDependencyKey,
-  CacheRecomputeMetadata,
-  RecomputeHandler,
-  SerializableParams,
-  TransactionContext,
-} from './cache'
-
-// Re-export common functions
-export {
-  CacheDependency,
-  cached,
-  cachedBulkLookup,
-  getRecomputeHandler,
-  getTtlForNamespace,
-  invalidateDependencies,
-  recomputeCacheEntry,
-  recomputeDependencies,
-  registerRecomputeHandler,
-} from './cache'
-
 /**
  * Register that a cache key depends on certain dependency keys.
  * Called internally by the cached combinator after populating the cache.
