@@ -848,11 +848,12 @@ async function cachedBulkLookupImpl<TKey, TResult>(
  * 1. For each dependency, uses SMEMBERS to get all cache keys from Redis Set
  * 2. Checks which keys have recomputation metadata BEFORE deleting
  * 3. Deletes all cache keys from Redis (waits for completion)
- * 4. Triggers fire-and-forget recomputation for keys that had metadata
- * 5. Deletes the dependency registry Set
+ * 4. Deletes the dependency registry Set
+ * 5. Triggers fire-and-forget recomputation for keys that had metadata
  *
- * Critical ordering: delete THEN recompute. This prevents data races where
- * recomputation reads stale data or writes values that get immediately deleted.
+ * Critical ordering: delete registry BEFORE recomputation. This avoids a race
+ * where recomputation re-registers the dependency and then we delete the
+ * freshly rebuilt registry.
  *
  * Observability:
  * - Logs invalidation at info level (includes dependency and cache keys)
