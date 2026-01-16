@@ -120,7 +120,9 @@ export const calculateTotalBillingDetails = (
 
   // Get quantity from params (only available for price type)
   const quantity =
-    'quantity' in params && params.quantity != null ? params.quantity : 1
+    'quantity' in params && params.quantity != null
+      ? params.quantity
+      : 1
 
   // Only multiply by quantity when no purchase exists.
   // When a purchase exists, calculatePriceBaseAmount returns values like
