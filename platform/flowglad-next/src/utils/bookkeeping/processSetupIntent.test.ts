@@ -1375,7 +1375,7 @@ describe('Process setup intent', async () => {
               await createSubscriptionFromSetupIntentableCheckoutSession(
                 {
                   ...initialResult,
-                  setupIntent: localFirstSetupIntent,
+                  setupIntent: localSecondSetupIntent,
                 },
                 createDiscardingEffectsContext(transaction)
               )

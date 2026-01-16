@@ -107,12 +107,16 @@ export const migratePricingModelForCustomer = async (
 
     if (subscriptionsOnNewPricingModel.length === 0) {
       // Create default subscription
-      const newSubscription =
+      const newSubscriptionResult =
         await createDefaultSubscriptionOnPricingModel(
           customer,
           newPricingModelId,
           ctx
         )
+
+      if (newSubscriptionResult.status === 'error') {
+        return Result.err(newSubscriptionResult.error)
+      }
 
       // Update customer with new pricing model ID
       const updatedCustomer = await updateCustomerDb(
@@ -126,7 +130,7 @@ export const migratePricingModelForCustomer = async (
       return Result.ok({
         customer: updatedCustomer,
         canceledSubscriptions: [],
-        newSubscription,
+        newSubscription: newSubscriptionResult.value,
       })
     }
 
@@ -157,12 +161,18 @@ export const migratePricingModelForCustomer = async (
     }
 
     if (!defaultFreeSubscription) {
-      defaultFreeSubscription =
+      const defaultFreeSubscriptionResult =
         await createDefaultSubscriptionOnPricingModel(
           customer,
           newPricingModelId,
           ctx
         )
+
+      if (defaultFreeSubscriptionResult.status === 'error') {
+        return Result.err(defaultFreeSubscriptionResult.error)
+      }
+
+      defaultFreeSubscription = defaultFreeSubscriptionResult.value
     }
 
     // Update customer with new pricing model ID (ensures it's set even in no-op case)
@@ -234,12 +244,18 @@ export const migratePricingModelForCustomer = async (
   }
 
   // Create default subscription on new pricing model
-  const newSubscription =
+  const newSubscriptionResult =
     await createDefaultSubscriptionOnPricingModel(
       customer,
       newPricingModelId,
       ctx
     )
+
+  if (newSubscriptionResult.status === 'error') {
+    return Result.err(newSubscriptionResult.error)
+  }
+
+  const newSubscription = newSubscriptionResult.value
 
   // Update customer with new pricing model ID
   const updatedCustomer = await updateCustomerDb(
@@ -259,13 +275,13 @@ export const migratePricingModelForCustomer = async (
 
 /**
  * Creates a default free plan subscription on the specified pricing model.
- * If no default product exists, one will be created.
+ * If no default product exists, returns an error.
  */
 async function createDefaultSubscriptionOnPricingModel(
   customer: Customer.Record,
   pricingModelId: string,
   ctx: TransactionEffectsContext
-): Promise<Subscription.Record> {
+): Promise<Result<Subscription.Record, Error>> {
   const { transaction } = ctx
   const organization = await selectOrganizationById(
     customer.organizationId,
@@ -282,22 +298,26 @@ async function createDefaultSubscriptionOnPricingModel(
     transaction
   )
 
-  // If no default product exists, throw an error
-  // We throw an error rather than auto-creating because it's unclear what price type
+  // If no default product exists, return an error
+  // We return an error rather than auto-creating because it's unclear what price type
   // the default price should be (Subscription vs SinglePayment, and if Subscription,
   // what interval unit). The user should create the default product themselves and
   // set the appropriate price type.
   if (!defaultProduct) {
-    throw new Error(
-      `No default product found for pricing model ${pricingModelId}. Please create a default product with a default price before migrating customers to this pricing model.`
+    return Result.err(
+      new Error(
+        `No default product found for pricing model ${pricingModelId}. Please create a default product with a default price before migrating customers to this pricing model.`
+      )
     )
   }
 
   const defaultPrice = defaultProduct.defaultPrice
 
   if (!defaultPrice) {
-    throw new Error(
-      `Default product ${defaultProduct.id} is missing a default price`
+    return Result.err(
+      new Error(
+        `Default product ${defaultProduct.id} is missing a default price`
+      )
     )
   }
 
@@ -309,32 +329,34 @@ async function createDefaultSubscriptionOnPricingModel(
     : undefined
 
   // Create the subscription
-  const subscriptionResult = (
-    await createSubscriptionWorkflow(
-      {
-        organization,
-        customer: {
-          id: customer.id,
-          stripeCustomerId: customer.stripeCustomerId,
-          livemode: customer.livemode,
-          organizationId: customer.organizationId,
-        },
-        product: defaultProduct,
-        price: defaultPrice,
-        quantity: 1,
+  const subscriptionResult = await createSubscriptionWorkflow(
+    {
+      organization,
+      customer: {
+        id: customer.id,
+        stripeCustomerId: customer.stripeCustomerId,
         livemode: customer.livemode,
-        startDate: new Date(),
-        interval: defaultPrice.intervalUnit,
-        intervalCount: defaultPrice.intervalCount,
-        trialEnd,
-        autoStart: true,
-        name: `${defaultProduct.name} Subscription`,
+        organizationId: customer.organizationId,
       },
-      ctx
-    )
-  ).unwrap()
+      product: defaultProduct,
+      price: defaultPrice,
+      quantity: 1,
+      livemode: customer.livemode,
+      startDate: new Date(),
+      interval: defaultPrice.intervalUnit,
+      intervalCount: defaultPrice.intervalCount,
+      trialEnd,
+      autoStart: true,
+      name: `${defaultProduct.name} Subscription`,
+    },
+    ctx
+  )
 
-  return subscriptionResult.subscription
+  if (subscriptionResult.status === 'error') {
+    return Result.err(subscriptionResult.error)
+  }
+
+  return Result.ok(subscriptionResult.value.subscription)
 }
 
 /**
@@ -417,16 +439,20 @@ export const migrateCustomerPricingModelProcedureTransaction =
     }
 
     // Perform the migration
-    const result = (
-      await migratePricingModelForCustomer(
-        {
-          customer,
-          oldPricingModelId: customer.pricingModelId,
-          newPricingModelId,
-        },
-        transactionCtx
-      )
-    ).unwrap()
+    const migrationResult = await migratePricingModelForCustomer(
+      {
+        customer,
+        oldPricingModelId: customer.pricingModelId,
+        newPricingModelId,
+      },
+      transactionCtx
+    )
+
+    if (migrationResult.status === 'error') {
+      return Result.err(migrationResult.error)
+    }
+
+    const result = migrationResult.value
 
     return Result.ok({
       customer: result.customer,

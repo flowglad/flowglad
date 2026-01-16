@@ -440,9 +440,9 @@ describe('Pricing Model Migration Test Suite', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      // Execute migration - should throw error
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      // Execute migration - should return Result.err
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return await migratePricingModelForCustomer(
             {
               customer,
@@ -451,8 +451,15 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow('No default product found for pricing model')
+        }
+      )
+
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error.message).toContain(
+          'No default product found for pricing model'
+        )
+      }
     })
 
     it('should handle customer already on target pricing model as no-op', async () => {
@@ -1230,7 +1237,9 @@ describe('Pricing Model Migration Test Suite', async () => {
   })
 
   describe('Validation', () => {
-    it('should fail when new pricing model does not exist', async () => {
+    it('should throw when new pricing model does not exist', async () => {
+      // Note: selectPricingModelById throws NotFoundError, which is not
+      // converted to Result.err (database methods throw for not found)
       await expect(
         adminTransaction(async ({ transaction }) => {
           return await migratePricingModelForCustomer(
@@ -1245,7 +1254,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       ).rejects.toThrow('No pricing models found with id')
     })
 
-    it('should fail when new pricing model belongs to different organization', async () => {
+    it('should return Result.err when new pricing model belongs to different organization', async () => {
       // Setup: Create pricing model for different organization
       const { organization: org2 } = await setupOrg()
       const otherPricingModel = await setupPricingModel({
@@ -1253,8 +1262,8 @@ describe('Pricing Model Migration Test Suite', async () => {
         name: 'Other Org Pricing Model',
       })
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return await migratePricingModelForCustomer(
             {
               customer,
@@ -1263,8 +1272,15 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow('does not belong to organization')
+        }
+      )
+
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error.message).toContain(
+          'does not belong to organization'
+        )
+      }
     })
   })
 
