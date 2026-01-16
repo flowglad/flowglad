@@ -23,6 +23,21 @@ type SerializableScalar = string | number | boolean
 type SerializableValue = SerializableScalar | SerializableScalar[]
 export type SerializableParams = Record<string, SerializableValue>
 
+// Zod schemas for runtime validation of serializable params
+const serializableScalarSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+])
+const serializableValueSchema = z.union([
+  serializableScalarSchema,
+  z.array(serializableScalarSchema),
+])
+const serializableParamsSchema = z.record(
+  z.string(),
+  serializableValueSchema
+)
+
 // Discriminated union: authenticated requires identity, admin does not
 export type TransactionContext =
   | { type: 'admin'; livemode: boolean }
@@ -33,12 +48,34 @@ export type TransactionContext =
       userId: string
     }
 
+// Zod schema for transaction context (discriminated union)
+const transactionContextSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('admin'),
+    livemode: z.boolean(),
+  }),
+  z.object({
+    type: z.literal('authenticated'),
+    livemode: z.boolean(),
+    organizationId: z.string(),
+    userId: z.string(),
+  }),
+])
+
 export interface CacheRecomputeMetadata {
   namespace: RedisKeyNamespace // Used to look up handler in registry
   params: SerializableParams // The params object (sans transaction)
   transactionContext: TransactionContext
   createdAt: number
 }
+
+// Zod schema for runtime validation of recompute metadata
+const cacheRecomputeMetadataSchema = z.object({
+  namespace: z.nativeEnum(RedisKeyNamespace),
+  params: serializableParamsSchema,
+  transactionContext: transactionContextSchema,
+  createdAt: z.number(),
+})
 
 export type RecomputeHandler = (
   params: SerializableParams,
@@ -722,10 +759,22 @@ export async function recomputeCacheEntry(
       return
     }
 
-    const metadata: CacheRecomputeMetadata =
+    // Parse and validate metadata with Zod schema
+    const jsonValue =
       typeof rawMetadata === 'string'
         ? JSON.parse(rawMetadata)
         : rawMetadata
+    const parsed = cacheRecomputeMetadataSchema.safeParse(jsonValue)
+
+    if (!parsed.success) {
+      logger.warn('Invalid recompute metadata', {
+        cacheKey,
+        error: parsed.error.message,
+      })
+      return
+    }
+
+    const metadata = parsed.data
 
     // Look up handler in registry
     const handler = getRecomputeHandler(metadata.namespace)
