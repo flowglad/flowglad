@@ -1,14 +1,21 @@
 name: Test Stainless SDK
 
 on:
-  repository_dispatch:
-    types: [test-stainless-sdk]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    # optional: only run when this workflow file changes (keeps it from running on unrelated PR updates)
+    # paths:
+    #   - ".github/workflows/test-stainless-sdk.yml"
+
   workflow_dispatch:
     inputs:
       commit_hash:
         description: 'Stainless commit hash to test'
         required: true
         type: string
+
+  repository_dispatch:
+    types: [test-stainless-sdk]
 
 permissions: read-all
 
