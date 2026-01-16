@@ -516,6 +516,43 @@ describe('dependency-based invalidation (Redis-backed)', () => {
   })
 })
 
+// Helper to create a real handler with explicit state tracking
+function createTestHandler(): {
+  handler: RecomputeHandler
+  calls: Array<{
+    params: SerializableParams
+    context: TransactionContext
+  }>
+} {
+  const calls: Array<{
+    params: SerializableParams
+    context: TransactionContext
+  }> = []
+  const handler: RecomputeHandler = async (params, context) => {
+    calls.push({ params, context })
+  }
+  return { handler, calls }
+}
+
+// Helper to create a handler that throws (for error handling tests)
+function createThrowingHandler(): {
+  handler: RecomputeHandler
+  calls: Array<{
+    params: SerializableParams
+    context: TransactionContext
+  }>
+} {
+  const calls: Array<{
+    params: SerializableParams
+    context: TransactionContext
+  }> = []
+  const handler: RecomputeHandler = async (params, context) => {
+    calls.push({ params, context })
+    throw new Error('Handler error')
+  }
+  return { handler, calls }
+}
+
 describe('invalidateDependencies with recomputation', () => {
   let mockRedis: ReturnType<typeof createMockRedisClient>
 
@@ -529,12 +566,10 @@ describe('invalidateDependencies with recomputation', () => {
   })
 
   it('triggers recomputation for cache entries that have recomputation metadata', async () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const { handler, calls } = createTestHandler()
     registerRecomputeHandler(
       RedisKeyNamespace.SubscriptionsByCustomer,
-      mockHandler
+      handler
     )
 
     // Set up a cache key with recomputation metadata
@@ -565,20 +600,18 @@ describe('invalidateDependencies with recomputation', () => {
     // Handler should have been called with the stored params and context
     // Give a small delay for fire-and-forget to execute
     await new Promise((resolve) => setTimeout(resolve, 10))
-    expect(mockHandler).toHaveBeenCalledTimes(1)
-    expect(mockHandler).toHaveBeenCalledWith(
-      { customerId: 'cust_123' },
-      { type: 'admin', livemode: true }
-    )
+    expect(calls).toHaveLength(1)
+    expect(calls[0]).toEqual({
+      params: { customerId: 'cust_123' },
+      context: { type: 'admin', livemode: true },
+    })
   })
 
   it('does not attempt recomputation for cache entries without metadata', async () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const { handler, calls } = createTestHandler()
     registerRecomputeHandler(
       RedisKeyNamespace.ItemsBySubscription,
-      mockHandler
+      handler
     )
 
     // Set up a cache key WITHOUT recomputation metadata (created by cached() not cachedRecomputable())
@@ -598,13 +631,12 @@ describe('invalidateDependencies with recomputation', () => {
 
     // Handler should NOT have been called (no metadata means no recomputation)
     await new Promise((resolve) => setTimeout(resolve, 10))
-    expect(mockHandler).not.toHaveBeenCalled()
+    expect(calls).toHaveLength(0)
   })
 
   it('continues invalidation even if recomputation handler throws error', async () => {
-    const throwingHandler: RecomputeHandler = vi
-      .fn()
-      .mockRejectedValue(new Error('Handler error'))
+    const { handler: throwingHandler, calls } =
+      createThrowingHandler()
     registerRecomputeHandler(
       RedisKeyNamespace.FeaturesBySubscriptionItem,
       throwingHandler
@@ -650,7 +682,7 @@ describe('invalidateDependencies with recomputation', () => {
 
     // Handler should have been called for both (fire-and-forget)
     await new Promise((resolve) => setTimeout(resolve, 10))
-    expect(throwingHandler).toHaveBeenCalledTimes(2)
+    expect(calls).toHaveLength(2)
   })
 
   it('only checks metadata existence, does not recompute entries where handler is not registered', async () => {

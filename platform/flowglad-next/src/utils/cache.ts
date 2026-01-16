@@ -877,14 +877,17 @@ export async function invalidateDependencies(
         })
 
         // 1. Collect keys that have recomputation metadata BEFORE deleting
-        const keysToRecompute: string[] = []
-        for (const cacheKey of cacheKeys) {
-          const metadataKey = recomputeMetadataKey(cacheKey)
-          const hasMetadata = await client.exists(metadataKey)
-          if (hasMetadata) {
-            keysToRecompute.push(cacheKey)
-          }
-        }
+        // Parallelize EXISTS checks to avoid sequential latency under large dependency sets
+        const metadataChecks = await Promise.all(
+          cacheKeys.map(async (cacheKey: string) => {
+            const metadataKey = recomputeMetadataKey(cacheKey)
+            const hasMetadata = await client.exists(metadataKey)
+            return { cacheKey, hasMetadata: hasMetadata > 0 }
+          })
+        )
+        const keysToRecompute = metadataChecks
+          .filter((check) => check.hasMetadata)
+          .map((check) => check.cacheKey)
 
         // 2. Delete all cache keys (wait for completion)
         await client.del(...cacheKeys)
