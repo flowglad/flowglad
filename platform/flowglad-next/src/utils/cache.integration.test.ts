@@ -22,6 +22,7 @@ import {
   insertSubscriptionItemFeature,
   selectSubscriptionItemFeaturesWithFeatureSlug,
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectSubscriptionItemsWithPricesBySubscriptionId } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectSubscriptionsByCustomerId } from '@/db/tableMethods/subscriptionMethods'
 import {
   cleanupRedisTestKeys,
@@ -41,6 +42,7 @@ import {
   cached,
   cachedBulkLookup,
   invalidateDependencies,
+  recomputeDependencies,
 } from '@/utils/cache'
 import {
   RedisKeyNamespace,
@@ -762,9 +764,8 @@ describeIfRedisKey(
       const result1 = await adminTransaction(
         async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerId(
-            customer.id,
-            transaction,
-            livemode
+            { customerId: customer.id, livemode },
+            transaction
           )
         }
       )
@@ -781,9 +782,8 @@ describeIfRedisKey(
       const result2 = await adminTransaction(
         async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerId(
-            customer.id,
-            transaction,
-            livemode
+            { customerId: customer.id, livemode },
+            transaction
           )
         }
       )
@@ -813,9 +813,8 @@ describeIfRedisKey(
       const result = await adminTransaction(
         async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerId(
-            customerWithNoSubs.id,
-            transaction,
-            livemode
+            { customerId: customerWithNoSubs.id, livemode },
+            transaction
           )
         }
       )
@@ -873,9 +872,8 @@ describeIfRedisKey(
       // Populate cache
       await adminTransaction(async ({ transaction, livemode }) => {
         return selectSubscriptionsByCustomerId(
-          customer.id,
-          transaction,
-          livemode
+          { customerId: customer.id, livemode },
+          transaction
         )
       })
 
@@ -1675,3 +1673,270 @@ return 0
     }
   })
 })
+
+describeIfRedisKey(
+  'selectSubscriptionsByCustomerId recomputation Integration Tests',
+  () => {
+    let keysToCleanup: string[] = []
+
+    afterEach(async () => {
+      const client = getRedisTestClient()
+      await cleanupRedisTestKeys(client, keysToCleanup)
+      keysToCleanup = []
+    })
+
+    it('stores recompute metadata with params when populating cache', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data
+      const { organization, pricingModel } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      const product = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Recompute Test Product',
+      })
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Recompute Test Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+      })
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      // Track keys for cleanup
+      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
+      const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
+      const dependencyKey = CacheDependency.customerSubscriptions(
+        customer.id
+      )
+      const registryKey = `cacheDeps:${dependencyKey}`
+      keysToCleanup.push(cacheKey, metadataKey, registryKey)
+
+      // Populate cache by calling the function
+      await adminTransaction(async ({ transaction, livemode }) => {
+        return selectSubscriptionsByCustomerId(
+          { customerId: customer.id, livemode },
+          transaction
+        )
+      })
+
+      // Verify cache is populated
+      const cachedValue = await client.get(cacheKey)
+      expect(typeof cachedValue).toBe('string')
+
+      // Verify recompute metadata is stored with correct params
+      const metadataValue = await client.get(metadataKey)
+      expect(typeof metadataValue).toBe('string')
+
+      const metadata = JSON.parse(metadataValue as string)
+      expect(metadata.namespace).toBe(
+        RedisKeyNamespace.SubscriptionsByCustomer
+      )
+      expect(metadata.params).toEqual({
+        customerId: customer.id,
+        livemode: true,
+      })
+      expect(metadata.transactionContext.type).toBe('admin')
+      expect(metadata.transactionContext.livemode).toBe(true)
+      expect(metadata.createdAt).toBeGreaterThan(0)
+    })
+
+    it('recomputation handler fetches fresh data and repopulates cache after invalidation', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data
+      const { organization, pricingModel } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      const product = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Recompute Invalidation Test Product',
+      })
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Recompute Invalidation Test Price',
+        type: PriceType.Subscription,
+        unitPrice: 2000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+      })
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      // Track keys for cleanup
+      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
+      const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
+      const dependencyKey = CacheDependency.customerSubscriptions(
+        customer.id
+      )
+      const registryKey = `cacheDeps:${dependencyKey}`
+      keysToCleanup.push(cacheKey, metadataKey, registryKey)
+
+      // Populate cache
+      const initialResult = await adminTransaction(
+        async ({ transaction, livemode }) => {
+          return selectSubscriptionsByCustomerId(
+            { customerId: customer.id, livemode },
+            transaction
+          )
+        }
+      )
+
+      expect(initialResult).toHaveLength(1)
+      expect(initialResult[0].id).toBe(subscription.id)
+
+      // Verify cache and metadata are populated
+      const cachedValueBefore = await client.get(cacheKey)
+      expect(typeof cachedValueBefore).toBe('string')
+      const metadataBefore = await client.get(metadataKey)
+      expect(typeof metadataBefore).toBe('string')
+
+      // Invalidate the cache (but keep the metadata for recomputation test)
+      await invalidateDependencies([dependencyKey])
+
+      // Verify cache is cleared but registry still has the key (for recomputation)
+      const cachedValueAfterInvalidation = await client.get(cacheKey)
+      expect(cachedValueAfterInvalidation).toBeNull()
+
+      // Trigger recomputation using the stored metadata
+      await recomputeDependencies([dependencyKey])
+
+      // Wait for recomputation to complete
+      await new Promise((resolve) => setTimeout(resolve, 200))
+
+      // Verify cache is repopulated with fresh data
+      const cachedValueAfterRecompute = await client.get(cacheKey)
+      expect(typeof cachedValueAfterRecompute).toBe('string')
+
+      const repopulatedData = JSON.parse(
+        cachedValueAfterRecompute as string
+      )
+      expect(repopulatedData).toHaveLength(1)
+      expect(repopulatedData[0].id).toBe(subscription.id)
+    })
+  }
+)
+
+describeIfRedisKey(
+  'selectSubscriptionItemsWithPricesBySubscriptionId recomputation Integration Tests',
+  () => {
+    let keysToCleanup: string[] = []
+
+    afterEach(async () => {
+      const client = getRedisTestClient()
+      await cleanupRedisTestKeys(client, keysToCleanup)
+      keysToCleanup = []
+    })
+
+    it('stores recompute metadata with params when populating cache', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data
+      const { organization, pricingModel } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      const product = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Subscription Items Recompute Test Product',
+      })
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Subscription Items Recompute Test Price',
+        type: PriceType.Subscription,
+        unitPrice: 3000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+      })
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Active,
+      })
+      await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        priceId: price.id,
+        name: 'Test Subscription Item',
+        quantity: 1,
+        unitPrice: 3000,
+      })
+
+      // Track keys for cleanup
+      const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}:true`
+      const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
+      const dependencyKey = CacheDependency.subscriptionItems(
+        subscription.id
+      )
+      const registryKey = `cacheDeps:${dependencyKey}`
+      keysToCleanup.push(cacheKey, metadataKey, registryKey)
+
+      // Populate cache by calling the function
+      await adminTransaction(async ({ transaction }) => {
+        return selectSubscriptionItemsWithPricesBySubscriptionId(
+          subscription.id,
+          transaction,
+          true // livemode
+        )
+      })
+
+      // Verify cache is populated
+      const cachedValue = await client.get(cacheKey)
+      expect(typeof cachedValue).toBe('string')
+
+      // Verify recompute metadata is stored with correct params
+      const metadataValue = await client.get(metadataKey)
+      expect(typeof metadataValue).toBe('string')
+
+      const metadata = JSON.parse(metadataValue as string)
+      expect(metadata.namespace).toBe(
+        RedisKeyNamespace.ItemsBySubscription
+      )
+      expect(metadata.params).toEqual({
+        subscriptionId: subscription.id,
+        livemode: true,
+      })
+      expect(metadata.transactionContext.type).toBe('admin')
+      expect(metadata.transactionContext.livemode).toBe(true)
+      expect(metadata.createdAt).toBeGreaterThan(0)
+    })
+  }
+)

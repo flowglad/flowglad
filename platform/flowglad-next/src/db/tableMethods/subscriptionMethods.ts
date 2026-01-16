@@ -37,7 +37,7 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { CancellationReason, SubscriptionStatus } from '@/types'
-import { CacheDependency, cached } from '@/utils/cache'
+import { CacheDependency, cachedRecomputable } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import {
   customerClientSelectSchema,
@@ -123,37 +123,44 @@ export const selectSubscriptions = createSelectFunction(
 )
 
 /**
- * Selects subscriptions by customer ID with caching enabled by default.
- * Pass { ignoreCache: true } as the last argument to bypass the cache.
+ * Params type for selectSubscriptionsByCustomerId.
+ * Uses params object pattern required by cachedRecomputable().
+ * Must be a type (not interface) to satisfy SerializableParams constraint.
+ */
+type SelectSubscriptionsByCustomerParams = {
+  customerId: string
+  livemode: boolean
+}
+
+/**
+ * Selects subscriptions by customer ID with caching and automatic recomputation enabled.
  *
  * This cache entry depends on customerSubscriptions - invalidate when
  * subscriptions for this customer are created, updated, or deleted.
+ * When invalidated, the cache will be automatically recomputed using
+ * the stored params and transaction context.
  *
  * Cache key includes livemode to prevent cross-mode data leakage, since RLS
  * filters subscriptions by livemode and the same customer could have different
  * subscriptions in live vs test mode.
  */
-export const selectSubscriptionsByCustomerId = cached(
+export const selectSubscriptionsByCustomerId = cachedRecomputable<
+  SelectSubscriptionsByCustomerParams,
+  Subscription.Record[]
+>(
   {
     namespace: RedisKeyNamespace.SubscriptionsByCustomer,
-    keyFn: (
-      customerId: string,
-      _transaction: DbTransaction,
-      livemode: boolean
-    ) => `${customerId}:${livemode}`,
+    keyFn: (params) => `${params.customerId}:${params.livemode}`,
     schema: subscriptionsSelectSchema.array(),
-    dependenciesFn: (customerId: string) => [
-      CacheDependency.customerSubscriptions(customerId),
+    dependenciesFn: (params) => [
+      CacheDependency.customerSubscriptions(params.customerId),
     ],
   },
-  async (
-    customerId: string,
-    transaction: DbTransaction,
-    // livemode is used by keyFn for cache key generation, not in the query itself
-    // (RLS filters by livemode context set on the transaction)
-    _livemode: boolean
-  ) => {
-    return selectSubscriptions({ customerId }, transaction)
+  async (params, transaction) => {
+    return selectSubscriptions(
+      { customerId: params.customerId },
+      transaction
+    )
   }
 )
 
