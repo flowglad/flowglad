@@ -10,5 +10,10 @@ export type {
   NotAuthenticatedFlowgladContextValues,
   NotLoadedFlowgladContextValues,
 } from '@flowglad/react'
-export { FlowgladProvider, useBilling } from '@flowglad/react'
+export {
+  FlowgladProvider,
+  useBilling,
+  useResource,
+  useResources,
+} from '@flowglad/react'
 export type * from '@flowglad/shared'
