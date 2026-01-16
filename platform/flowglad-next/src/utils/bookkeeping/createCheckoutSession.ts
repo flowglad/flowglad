@@ -234,11 +234,11 @@ export const createCheckoutSessionTransaction = async (
         transaction
       )
 
-    // When no result is found, it means the price either doesn't exist or is a usage price
-    // (usage prices have null productId, so the innerJoin in the query returns no results)
+    // When no result is found, it means the price doesn't exist or was filtered out
+    // (the query uses innerJoin on products, so usage prices with null productId return no results)
     if (!result) {
       throw new Error(
-        'Checkout sessions are only supported for product prices (subscription/single payment), not usage prices'
+        `Invalid or not-found price ID: no matching price found for id "${resolvedPriceId}"`
       )
     }
 
@@ -246,10 +246,10 @@ export const createCheckoutSessionTransaction = async (
     product = result.product
     organization = result.organization
 
-    // Product checkout requires a product - usage prices (with null product) are not supported here
+    // Product checkout requires a product - usage prices (with null productId) are not supported
     if (!product) {
       throw new Error(
-        'Checkout sessions are only supported for product prices (subscription/single payment), not usage prices'
+        'Checkout sessions are only supported for product prices, not usage prices'
       )
     }
 
