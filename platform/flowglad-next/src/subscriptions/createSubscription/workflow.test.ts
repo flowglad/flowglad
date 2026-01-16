@@ -1,4 +1,3 @@
-import { Result } from 'better-result'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
@@ -1681,28 +1680,25 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
           },
           transaction
         )
-        const result = (
-          await createSubscriptionWorkflow(
-            {
-              organization,
-              product,
-              price: defaultPrice,
-              quantity: 1,
-              livemode: true,
-              startDate: new Date(),
-              interval: IntervalUnit.Month,
-              intervalCount: 1,
-              defaultPaymentMethod: paymentMethod,
-              customer,
-              stripeSetupIntentId,
-              autoStart: true,
-              trialEnd,
-              discountRedemption,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
-        ).unwrap()
-        return Result.ok(result)
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: defaultPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            trialEnd,
+            discountRedemption,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
       })
 
     expect(typeof subscription).toBe('object')
