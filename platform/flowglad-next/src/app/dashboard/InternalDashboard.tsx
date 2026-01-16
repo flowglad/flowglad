@@ -1,6 +1,6 @@
 'use client'
 
-import { startOfDay, subMonths } from 'date-fns'
+import { endOfDay, startOfDay, subMonths } from 'date-fns'
 import { useEffect, useState } from 'react'
 import { ChartDivider, ChartGrid } from '@/components/charts'
 import { DashboardChart } from '@/components/DashboardChart'
@@ -26,12 +26,13 @@ function InternalDashboardPage({
     ? `Hello, ${firstName}`
     : 'Hello there :)'
   const today = startOfDay(new Date())
+  const todayEnd = endOfDay(new Date())
   const [range, setRange] = useState<{
     from: Date
     to: Date
   }>({
     from: subMonths(today, 12),
-    to: today,
+    to: todayEnd,
   })
 
   // Global interval state for all charts

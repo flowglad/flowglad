@@ -1,9 +1,36 @@
 import type { CurrencyCode, RevenueChartIntervalUnit } from '@/types'
 
 /**
- * Available metric types for the dashboard chart selector.
+ * Static metric types (built-in dashboard metrics).
  */
-export type MetricType = 'revenue' | 'mrr' | 'subscribers'
+export type StaticMetricType = 'revenue' | 'mrr' | 'subscribers'
+
+/**
+ * Available metric types for the dashboard chart selector.
+ * Includes static metrics and dynamic usage meter metrics.
+ * Usage metrics use the format `usage:${meterId}`.
+ */
+export type MetricType = StaticMetricType | `usage:${string}`
+
+/**
+ * Type guard to check if a metric is a usage metric.
+ * @param metric - The metric type to check
+ * @returns True if the metric is a usage metric (starts with 'usage:')
+ */
+export function isUsageMetric(
+  metric: MetricType
+): metric is `usage:${string}` {
+  return metric.startsWith('usage:')
+}
+
+/**
+ * Extracts the meter ID from a usage metric type.
+ * @param metric - The usage metric type (e.g., 'usage:meter_123')
+ * @returns The meter ID (e.g., 'meter_123')
+ */
+export function getUsageMeterId(metric: `usage:${string}`): string {
+  return metric.replace('usage:', '')
+}
 
 /**
  * Mode for computing the display value shown in the chart header.

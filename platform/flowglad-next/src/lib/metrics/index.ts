@@ -3,7 +3,8 @@ import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
 } from '@/utils/stripe'
-import type { MetricConfig, MetricType } from './types'
+import type { MetricConfig, StaticMetricType } from './types'
+import { isUsageMetric } from './types'
 
 export type {
   ChartDataParams,
@@ -11,7 +12,10 @@ export type {
   DisplayValueMode,
   MetricConfig,
   MetricType,
+  StaticMetricType,
 } from './types'
+
+export { getUsageMeterId, isUsageMetric } from './types'
 
 /**
  * Format a currency value for display.
@@ -48,13 +52,31 @@ function formatCount(value: number): string {
 }
 
 /**
- * Metric configurations for the dashboard chart.
+ * Format a usage count value for display (same as formatCount).
+ */
+function formatUsageCount(value: number): string {
+  return value.toLocaleString()
+}
+
+/**
+ * Format a usage count value for Y-axis (shorter format).
+ */
+function formatUsageCountShort(value: number): string {
+  if (value >= 1_000_000_000)
+    return `${(value / 1_000_000_000).toFixed(1)}B`
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`
+  return value.toString()
+}
+
+/**
+ * Static metric configurations for the dashboard chart.
  * Each metric defines how to display, format, and compute its values.
  *
  * NOTE: Data fetching is handled separately in useMetricData hook
  * to avoid hook rules violations.
  */
-export const METRICS: Record<MetricType, MetricConfig> = {
+export const METRICS: Record<StaticMetricType, MetricConfig> = {
   revenue: {
     label: 'All revenue',
     infoTooltip:
@@ -85,11 +107,53 @@ export const METRICS: Record<MetricType, MetricConfig> = {
 }
 
 /**
- * Get all available metric types as an array.
+ * Creates a MetricConfig for a usage meter.
+ * @param meterName - The display name of the usage meter
+ * @returns MetricConfig for the usage meter
  */
-export const METRIC_TYPES = Object.keys(METRICS) as MetricType[]
+export function createUsageMetricConfig(
+  meterName: string
+): MetricConfig {
+  return {
+    label: meterName,
+    infoTooltip: `Total ${meterName.toLowerCase()} recorded in the selected period.`,
+    category: 'value',
+    displayValueMode: 'cumulative',
+    formatValue: (_value, _currency) => formatUsageCount(_value),
+    formatYAxisValue: (_value, _currency) =>
+      formatUsageCountShort(_value),
+  }
+}
+
+/**
+ * Gets the MetricConfig for a metric type.
+ * For static metrics, returns from METRICS record.
+ * For usage metrics, creates a config using the meter name.
+ *
+ * @param metric - The metric type
+ * @param meterName - Required for usage metrics, the display name of the meter
+ * @returns MetricConfig for the metric
+ * @throws Error if meterName is not provided for usage metrics
+ */
+export function getMetricConfig(
+  metric: StaticMetricType | `usage:${string}`,
+  meterName?: string
+): MetricConfig {
+  if (isUsageMetric(metric)) {
+    if (!meterName) {
+      throw new Error('meterName is required for usage metrics')
+    }
+    return createUsageMetricConfig(meterName)
+  }
+  return METRICS[metric]
+}
+
+/**
+ * Get all available static metric types as an array.
+ */
+export const METRIC_TYPES = Object.keys(METRICS) as StaticMetricType[]
 
 /**
  * Default metric to display when no metric is selected.
  */
-export const DEFAULT_METRIC: MetricType = 'revenue'
+export const DEFAULT_METRIC: StaticMetricType = 'revenue'
