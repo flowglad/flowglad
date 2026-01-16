@@ -894,7 +894,7 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
       type: PriceType.Subscription,
     } as Price.Record
 
-    const { billingRun, subscription } = (
+    const { billingRun } = (
       await adminTransaction(async ({ transaction }) => {
         const stripeSetupIntentId = `setupintent_br_no_autostart_${core.nanoid()}`
         return createSubscriptionWorkflow(
@@ -916,7 +916,6 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
         )
       })
     ).unwrap()
-    // expect(subscription.status).toBe(SubscriptionStatus.Incomplete)
     expect(billingRun).toBeNull()
   })
 

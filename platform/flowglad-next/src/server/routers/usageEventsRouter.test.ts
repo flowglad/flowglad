@@ -1001,7 +1001,7 @@ describe('usageEventsRouter', () => {
           ],
         })
       ).rejects.toThrow(
-        `Usage meter ${usageMeter2.id} not found at index 0`
+        `Usage meter ${usageMeter2.id} not found for this customer's pricing model at index 0`
       )
     })
   })

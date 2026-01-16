@@ -530,7 +530,7 @@ async function validateUsageMeters(
       return Result.err(
         new TRPCError({
           code: 'NOT_FOUND',
-          message: `Usage meter ${usageMeterId} not found at index ${i}`,
+          message: `Usage meter ${usageMeterId} not found for this customer's pricing model at index ${i}`,
         })
       )
     }
