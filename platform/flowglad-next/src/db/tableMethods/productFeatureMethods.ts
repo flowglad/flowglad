@@ -424,22 +424,21 @@ export const syncProductFeatures = async (
     )
   }
 
-  const featureIdsToUnexpire = allProductFeaturesForProduct
+  const productFeatureIdsToUnexpire = allProductFeaturesForProduct
     .filter(
       (pf) => desiredFeatureIdsSet.has(pf.featureId) && pf.expiredAt
     )
-    .map((pf) => pf.featureId)
+    .map((pf) => pf.id)
 
   // Only call unexpire if there are features to unexpire
   const unexpiredFeatures =
-    featureIdsToUnexpire.length > 0
-      ? await unexpireProductFeatures(
+    productFeatureIdsToUnexpire.length > 0
+      ? await batchUnexpireProductFeatures(
+          productFeatureIdsToUnexpire,
           {
-            featureIds: featureIdsToUnexpire,
-            productId: product.id,
-            organizationId: product.organizationId,
-          },
-          transaction
+            transaction,
+            invalidateCache,
+          }
         )
       : []
 
