@@ -415,13 +415,12 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     customer = customerResult.customer
   }
   if (!purchase) {
-    const quantity = checkoutSession.quantity
     const corePurchaseFields = {
       name: checkoutSession.outputName ?? product.name,
       organizationId: product.organizationId,
       customerId: customer.id,
       priceId: price.id,
-      quantity,
+      quantity: 1,
       billingAddress: checkoutSession.billingAddress,
       livemode: checkoutSession.livemode,
       metadata: checkoutSession.outputMetadata,
@@ -438,11 +437,10 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
           totalPurchaseValue: null,
           trialPeriodDays: price.trialPeriodDays ?? 0,
           priceType: PriceType.Subscription,
-          pricePerBillingCycle: price.unitPrice * quantity,
+          pricePerBillingCycle: price.unitPrice,
         }
       purchaseInsert = subscriptionPurchaseInsert
     } else if (price.type === PriceType.SinglePayment) {
-      const totalPrice = (price.unitPrice ?? 0) * quantity
       const singlePaymentPurchaseInsert: Purchase.SinglePaymentPurchaseInsert =
         {
           ...corePurchaseFields,
@@ -450,21 +448,20 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
           intervalUnit: null,
           intervalCount: null,
           pricePerBillingCycle: null,
-          firstInvoiceValue: totalPrice,
-          totalPurchaseValue: totalPrice,
+          firstInvoiceValue: price.unitPrice ?? 0,
+          totalPurchaseValue: price.unitPrice,
           priceType: PriceType.SinglePayment,
         }
       purchaseInsert = singlePaymentPurchaseInsert
     } else if (price.type === PriceType.Usage) {
-      const totalPrice = (price.unitPrice ?? 0) * quantity
       const usagePurchaseInsert: Purchase.UsagePurchaseInsert = {
         ...corePurchaseFields,
         trialPeriodDays: null,
         intervalUnit: null,
         intervalCount: null,
         pricePerBillingCycle: null,
-        firstInvoiceValue: totalPrice,
-        totalPurchaseValue: totalPrice,
+        firstInvoiceValue: price.unitPrice ?? 0,
+        totalPurchaseValue: price.unitPrice,
         priceType: PriceType.Usage,
       }
       purchaseInsert = usagePurchaseInsert

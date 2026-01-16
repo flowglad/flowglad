@@ -87,7 +87,6 @@ interface PriceTotalBillingDetailsParams
   price: Price.ClientRecord
   invoice: undefined
   type: 'price'
-  quantity?: number
 }
 
 interface InvoiceTotalBillingDetailsParams
@@ -118,11 +117,6 @@ export const calculateTotalBillingDetails = (
     )
   }
 
-  // Get quantity from params (only available for price type)
-  // Only apply quantity multiplier when no purchase exists, since purchase totals
-  // (firstInvoiceValue, pricePerBillingCycle) already include quantity
-  const quantity = type === 'price' ? (params.quantity ?? 1) : 1
-
   const baseAmount =
     type === 'invoice'
       ? calculateInvoiceBaseAmount({
@@ -131,7 +125,7 @@ export const calculateTotalBillingDetails = (
       : calculatePriceBaseAmount({
           price,
           purchase,
-        }) * (purchase ? 1 : quantity)
+        })
 
   const subtotalAmount: number = baseAmount
   const discountAmount: number = calculateDiscountAmount(
@@ -206,8 +200,6 @@ export const TotalBillingDetails = React.forwardRef<
           discount,
           invoice: undefined,
           feeCalculation,
-          quantity:
-            checkoutPageContext.checkoutSession?.quantity ?? 1,
         }
 
   const {

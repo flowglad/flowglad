@@ -1184,12 +1184,12 @@ export const createPaymentIntentForCheckoutSession = async (params: {
     }
   const totalDue = feeCalculation
     ? await calculateTotalDueAmount(feeCalculation)
-    : price.unitPrice * checkoutSession.quantity
+    : price.unitPrice
   const totalFeeAmount = feeCalculation
     ? calculateTotalFeeAmount(feeCalculation)
     : calculatePlatformApplicationFee({
         organization,
-        subtotal: price.unitPrice * checkoutSession.quantity,
+        subtotal: price.unitPrice,
         currency: price.currency,
       })
 

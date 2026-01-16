@@ -619,11 +619,9 @@ const identifiedProductCheckoutSessionInputSchemaBase =
       ),
     quantity: z
       .number()
-      .int()
-      .min(1)
       .optional()
       .describe(
-        'The quantity of the purchase or subscription created when this checkout session succeeds. Must be a positive integer. Defaults to 1 if not provided.'
+        'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
       ),
     anonymous: z.literal(false).optional(),
     preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,

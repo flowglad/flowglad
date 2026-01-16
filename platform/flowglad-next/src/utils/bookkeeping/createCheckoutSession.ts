@@ -89,7 +89,6 @@ export const checkoutSessionInsertFromInput = ({
       customerName: isAnonymous ? null : customer!.name,
       preserveBillingCycleAnchor:
         checkoutSessionInput.preserveBillingCycleAnchor ?? false,
-      quantity: checkoutSessionInput.quantity ?? 1,
     }
   } else if (
     checkoutSessionInput.type === CheckoutSessionType.AddPaymentMethod
