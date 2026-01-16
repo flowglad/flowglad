@@ -12,6 +12,7 @@ import {
 import {
   claimResource,
   getResources,
+  getResourceUsage,
   listResourceClaims,
   releaseResource,
 } from './resourceHandlers'
@@ -48,7 +49,8 @@ export const routeToHandlerMap: {
     }
   },
   [FlowgladActionKey.CreateUsageEvent]: createUsageEvent,
-  [FlowgladActionKey.GetResources]: getResources,
+  [FlowgladActionKey.GetResourceUsages]: getResources,
+  [FlowgladActionKey.GetResourceUsage]: getResourceUsage,
   [FlowgladActionKey.ClaimResource]: claimResource,
   [FlowgladActionKey.ReleaseResource]: releaseResource,
   [FlowgladActionKey.ListResourceClaims]: listResourceClaims,

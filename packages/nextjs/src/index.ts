@@ -9,9 +9,13 @@ export type {
   LoadedFlowgladContextValues,
   NotAuthenticatedFlowgladContextValues,
   NotLoadedFlowgladContextValues,
+  UseResourceResult,
+  UseResourcesResult,
 } from '@flowglad/react'
 export {
   FlowgladProvider,
+  RESOURCE_CLAIMS_QUERY_KEY,
+  RESOURCES_QUERY_KEY,
   useBilling,
   useResource,
   useResources,

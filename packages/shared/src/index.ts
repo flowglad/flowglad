@@ -11,6 +11,7 @@ export type {
   CreateUsageEventParams,
   FlowgladActionValidatorMap,
   GetResourcesParams,
+  GetResourceUsageParams,
   ListResourceClaimsParams,
   ReleaseResourceParams,
   SubscriptionAdjustmentTiming,
@@ -47,6 +48,7 @@ export * from './types/payment'
 export * from './types/paymentMethod'
 export {
   type ResourceClaim,
+  type ResourceIdentifier,
   type ResourceUsage,
 } from './types/resource'
 export {
