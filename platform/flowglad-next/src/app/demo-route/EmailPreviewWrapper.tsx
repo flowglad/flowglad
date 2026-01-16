@@ -34,13 +34,13 @@ import { cn } from '@/lib/utils'
 type ViewportSize = 'desktop' | 'tablet' | 'mobile'
 
 const VIEWPORT_WIDTHS: Record<ViewportSize, number> = {
-  desktop: 600, // Standard email width
+  desktop: 1200,
   tablet: 480,
   mobile: 320,
 }
 
 const VIEWPORT_LABELS: Record<ViewportSize, string> = {
-  desktop: 'Desktop (600px)',
+  desktop: 'Desktop (1200px)',
   tablet: 'Tablet (480px)',
   mobile: 'Mobile (320px)',
 }
