@@ -533,6 +533,7 @@ async function cachedBulkLookupImpl<TKey, TResult>(
       }
 
       // Add to results and write to cache
+      const writeClient = redis()
       for (const [key, items] of fetchedByKey) {
         results.set(key, items)
 
@@ -542,8 +543,7 @@ async function cachedBulkLookupImpl<TKey, TResult>(
         const dependencies = config.dependenciesFn(key)
 
         try {
-          const redisClient = redis()
-          await redisClient.set(fullKey, JSON.stringify(items), {
+          await writeClient.set(fullKey, JSON.stringify(items), {
             ex: ttl,
           })
           await registerDependencies(fullKey, dependencies)
@@ -650,6 +650,11 @@ export const CacheDependency = {
   /** Invalidate when items for this subscription change */
   subscriptionItems: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionItems:${subscriptionId}`,
+  /** Invalidate when features for this subscription item change */
+  subscriptionItemFeatures: (
+    subscriptionItemId: string
+  ): CacheDependencyKey =>
+    `subscriptionItemFeatures:${subscriptionItemId}`,
   /** Invalidate when ledger entries for this subscription change */
   subscriptionLedger: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionLedger:${subscriptionId}`,

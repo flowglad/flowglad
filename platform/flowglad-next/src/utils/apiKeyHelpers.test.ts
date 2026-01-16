@@ -1,6 +1,6 @@
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { unkeyServer } from '@/../mocks/unkeyServer'
+import { server } from '@/../mocks/server'
 import {
   setupCustomer,
   setupMemberships,
@@ -400,7 +400,7 @@ describe('apiKeyHelpers', () => {
 
     it('should NOT delete the database record if Unkey deletion fails', async () => {
       // Configure MSW to return an error for deleteKey requests
-      unkeyServer.use(
+      server.use(
         http.post('https://api.unkey.com/v2/keys.deleteKey', () => {
           return HttpResponse.json(
             {
