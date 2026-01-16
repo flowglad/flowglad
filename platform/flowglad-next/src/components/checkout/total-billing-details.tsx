@@ -121,6 +121,9 @@ export const calculateTotalBillingDetails = (
   // Get quantity from params (only available for price type)
   const quantity = type === 'price' ? (params.quantity ?? 1) : 1
 
+  // Only multiply by quantity when no purchase exists.
+  // When a purchase exists, calculatePriceBaseAmount returns values like
+  // firstInvoiceValue or pricePerBillingCycle which already include quantity.
   const baseAmount =
     type === 'invoice'
       ? calculateInvoiceBaseAmount({
@@ -129,7 +132,7 @@ export const calculateTotalBillingDetails = (
       : calculatePriceBaseAmount({
           price,
           purchase,
-        }) * quantity
+        }) * (purchase ? 1 : quantity)
 
   const subtotalAmount: number = baseAmount
   const discountAmount: number = calculateDiscountAmount(
