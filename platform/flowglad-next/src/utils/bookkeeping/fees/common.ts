@@ -1,3 +1,4 @@
+import BigNumber from 'bignumber.js'
 import Stripe from 'stripe'
 import type { Country } from '@/db/schema/countries'
 import type { DiscountRedemption } from '@/db/schema/discountRedemptions'
@@ -38,13 +39,48 @@ const SEPA_DEBIT_MAX_FEE_CENTS = 600
 const MOR_SURCHARGE_PERCENTAGE = 1.1
 
 /* Helper Functions */
-export const parseFeePercentage = (feePercentage: string): number =>
-  parseFloat(feePercentage)
 
+/**
+ * Validates that a string represents a valid numeric percentage.
+ * @internal - Use calculatePercentageFee for calculations
+ */
+const validatePercentageString = (
+  percentageString: string,
+  fieldName: string
+): void => {
+  const bn = new BigNumber(percentageString)
+  if (bn.isNaN()) {
+    throw Error(
+      `${fieldName} is not a valid number: ${percentageString}`
+    )
+  }
+}
+
+/**
+ * Calculates a percentage fee from an amount.
+ * Uses BigNumber for precise decimal arithmetic, avoiding floating point issues.
+ *
+ * @param amount - The base amount in cents
+ * @param percentage - The percentage as a string (e.g., "0.65" for 0.65%) or number.
+ *                     Prefer passing strings from database values to maintain precision.
+ * @returns The fee amount in cents, rounded to nearest integer
+ *
+ * @example
+ * // For a 0.65% fee on $100 (10000 cents):
+ * calculatePercentageFee(10000, "0.65") // returns 65
+ *
+ * // For a 10% discount:
+ * calculatePercentageFee(10000, 10) // returns 1000
+ */
 export const calculatePercentageFee = (
   amount: number,
-  percentage: number
-): number => Math.round((amount * percentage) / 100)
+  percentage: BigNumber.Value
+): number =>
+  new BigNumber(amount)
+    .times(percentage)
+    .dividedBy(100)
+    .decimalPlaces(0, BigNumber.ROUND_HALF_UP)
+    .toNumber()
 
 export const validateNumericAmount = (
   amount: number,
@@ -129,26 +165,39 @@ export const calculateDiscountAmountFromRedemption = (
 }
 
 /* Fee Percentage Calculations */
+
+/**
+ * Returns the organization's Flowglad fee percentage as a string.
+ * Returns the raw string value from the database to preserve precision.
+ */
 export const calculateFlowgladFeePercentage = ({
   organization,
 }: {
   organization: Organization.Record
-}): number => parseFeePercentage(organization.feePercentage)
+}): string => organization.feePercentage
 
+/**
+ * Returns the MoR surcharge percentage as a string.
+ * Returns "0" if not applicable, or the surcharge percentage as a string.
+ */
 export const calculateMoRSurchargePercentage = ({
   organization,
 }: {
   organization: Organization.Record
-}): number => {
+}): string => {
   if (
     organization.stripeConnectContractType ===
     StripeConnectContractType.MerchantOfRecord
   ) {
-    return MOR_SURCHARGE_PERCENTAGE
+    return MOR_SURCHARGE_PERCENTAGE.toString()
   }
-  return 0
+  return '0'
 }
 
+/**
+ * Returns the international fee percentage as a string.
+ * Returns "0" if not applicable, or the fee percentage as a string.
+ */
 export const calculateInternationalFeePercentage = ({
   paymentMethod,
   paymentMethodCountry,
@@ -159,13 +208,13 @@ export const calculateInternationalFeePercentage = ({
   paymentMethodCountry: CountryCode
   organization: Organization.Record
   organizationCountry: Country.Record
-}): number => {
+}): string => {
   if (
     organization.stripeConnectContractType ===
       StripeConnectContractType.MerchantOfRecord &&
     paymentMethodCountry.toUpperCase() === 'US'
   ) {
-    return 0
+    return '0'
   }
   const orgCode = organizationCountry.code.toUpperCase()
   const payCode = paymentMethodCountry.toUpperCase()
@@ -177,14 +226,14 @@ export const calculateInternationalFeePercentage = ({
       `Billing address country ${payCode} is not in the list of country codes`
     )
   }
-  if (orgCode === payCode) return 0
+  if (orgCode === payCode) return '0'
   if (
     paymentMethod === PaymentMethodType.Card ||
     paymentMethod === PaymentMethodType.SEPADebit
   ) {
-    return CARD_CROSS_BORDER_FEE_PERCENTAGE
+    return CARD_CROSS_BORDER_FEE_PERCENTAGE.toString()
   }
-  return 0
+  return '0'
 }
 
 /* Payment Method Fee Calculations */
@@ -193,32 +242,37 @@ export const calculatePaymentMethodFeeAmount = (
   paymentMethod: PaymentMethodType
 ): number => {
   if (totalAmountToCharge <= 0) return 0
+  const amount = new BigNumber(totalAmountToCharge)
   switch (paymentMethod) {
     case PaymentMethodType.Card:
     case PaymentMethodType.Link:
-      return Math.round(
-        totalAmountToCharge * (CARD_BASE_FEE_PERCENTAGE / 100) +
-          CARD_FIXED_FEE_CENTS
-      )
+      return amount
+        .times(CARD_BASE_FEE_PERCENTAGE)
+        .dividedBy(100)
+        .plus(CARD_FIXED_FEE_CENTS)
+        .decimalPlaces(0, BigNumber.ROUND_HALF_UP)
+        .toNumber()
     case PaymentMethodType.USBankAccount:
-      return Math.round(
-        Math.min(
-          totalAmountToCharge * (BANK_ACCOUNT_FEE_PERCENTAGE / 100),
-          BANK_ACCOUNT_MAX_FEE_CENTS
-        )
+      return BigNumber.min(
+        amount.times(BANK_ACCOUNT_FEE_PERCENTAGE).dividedBy(100),
+        BANK_ACCOUNT_MAX_FEE_CENTS
       )
+        .decimalPlaces(0, BigNumber.ROUND_HALF_UP)
+        .toNumber()
     case PaymentMethodType.SEPADebit:
-      return Math.round(
-        Math.min(
-          totalAmountToCharge * (SEPA_DEBIT_FEE_PERCENTAGE / 100),
-          SEPA_DEBIT_MAX_FEE_CENTS
-        )
+      return BigNumber.min(
+        amount.times(SEPA_DEBIT_FEE_PERCENTAGE).dividedBy(100),
+        SEPA_DEBIT_MAX_FEE_CENTS
       )
+        .decimalPlaces(0, BigNumber.ROUND_HALF_UP)
+        .toNumber()
     default:
-      return Math.round(
-        totalAmountToCharge * (CARD_BASE_FEE_PERCENTAGE / 100) +
-          CARD_FIXED_FEE_CENTS
-      )
+      return amount
+        .times(CARD_BASE_FEE_PERCENTAGE)
+        .dividedBy(100)
+        .plus(CARD_FIXED_FEE_CENTS)
+        .decimalPlaces(0, BigNumber.ROUND_HALF_UP)
+        .toNumber()
   }
 }
 
@@ -302,12 +356,12 @@ export const calculateTotalFeeAmount = (
     discountAmountFixed ?? 0,
     'Discount amount fixed'
   )
-  validateNumericAmount(
-    parseFloat(morSurchargePercentage ?? '0'),
+  validatePercentageString(
+    morSurchargePercentage ?? '0',
     'MoR surcharge percentage'
   )
-  validateNumericAmount(
-    parseFloat(internationalFeePercentage),
+  validatePercentageString(
+    internationalFeePercentage,
     'International fee percentage'
   )
   const safeDiscount = discountAmountFixed
@@ -316,15 +370,15 @@ export const calculateTotalFeeAmount = (
   const discountInclusiveAmount = baseAmount - safeDiscount
   const flowFixed = calculatePercentageFee(
     discountInclusiveAmount,
-    parseFloat(flowgladFeePercentage!)
+    flowgladFeePercentage!
   )
   const intlFixed = calculatePercentageFee(
     discountInclusiveAmount,
-    parseFloat(internationalFeePercentage!)
+    internationalFeePercentage!
   )
   const morSurchargeFixed = calculatePercentageFee(
     discountInclusiveAmount,
-    parseFloat(morSurchargePercentage ?? '0')
+    morSurchargePercentage ?? '0'
   )
   return Math.round(
     flowFixed +
@@ -401,7 +455,7 @@ export const finalizeFeeCalculation = async (
     0
   )
 
-  const organizationFeePercentage = parseFeePercentage(
+  const organizationFeePercentage = new BigNumber(
     organization.feePercentage
   )
   const currentTransactionAmount = feeCalculation.pretaxTotal ?? 0
@@ -421,13 +475,17 @@ export const finalizeFeeCalculation = async (
 
   const finalFlowgladFeePercentage =
     currentTransactionAmount > 0
-      ? (organizationFeePercentage * chargeableAmount) /
-        currentTransactionAmount
-      : 0
+      ? organizationFeePercentage
+          .times(chargeableAmount)
+          .dividedBy(currentTransactionAmount)
+      : new BigNumber(0)
+
+  const finalFlowgladFeePercentageNumber =
+    finalFlowgladFeePercentage.toNumber()
 
   const internalNotes = generateFeeCalculationNotesWithCredits({
     currentTransactionAmount,
-    finalFlowgladFeePercentage,
+    finalFlowgladFeePercentage: finalFlowgladFeePercentageNumber,
     totalProcessedLifetime,
     upfrontProcessingCredits: organization.upfrontProcessingCredits,
   })

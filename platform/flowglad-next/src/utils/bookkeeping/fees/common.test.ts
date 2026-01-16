@@ -151,7 +151,7 @@ describe('calculateInternationalFeePercentage', () => {
     code: CountryCode.US,
   } as Country.Record
 
-  it('returns 0 for Merchant Of Record transactions with US billing addresses', () => {
+  it('returns "0" for Merchant Of Record transactions with US billing addresses', () => {
     expect(
       calculateInternationalFeePercentage({
         paymentMethod: PaymentMethodType.Card,
@@ -163,10 +163,10 @@ describe('calculateInternationalFeePercentage', () => {
         },
         organizationCountry,
       })
-    ).toBe(0)
+    ).toBe('0')
   })
 
-  it('returns base fee for non-card international payments when not MoR or non-US', () => {
+  it('returns "0" for non-card international payments when not MoR or non-US', () => {
     expect(
       calculateInternationalFeePercentage({
         paymentMethod: PaymentMethodType.USBankAccount,
@@ -181,10 +181,10 @@ describe('calculateInternationalFeePercentage', () => {
           code: CountryCode.DE,
         },
       })
-    ).toBe(0)
+    ).toBe('0')
   })
 
-  it('returns increased fee for international card payments when not MoR or non-US', () => {
+  it('returns "1.5" for international card payments when not MoR or non-US', () => {
     expect(
       calculateInternationalFeePercentage({
         paymentMethod: PaymentMethodType.Card,
@@ -199,7 +199,7 @@ describe('calculateInternationalFeePercentage', () => {
           code: CountryCode.DE,
         },
       })
-    ).toBe(1.5)
+    ).toBe('1.5')
   })
 
   it('handles invalid paymentMethodCountry by throwing an error', () => {
@@ -235,7 +235,7 @@ describe('calculateInternationalFeePercentage', () => {
           code: CountryCode.US,
         },
       })
-    ).toBe(0)
+    ).toBe('0')
   })
 })
 
@@ -308,7 +308,7 @@ describe('calculatePaymentMethodFeeAmount', () => {
 })
 
 describe('calculateMoRSurchargePercentage', () => {
-  it('returns 1.1 for MerchantOfRecord organizations', () => {
+  it('returns "1.1" for MerchantOfRecord organizations', () => {
     const organization = {
       stripeConnectContractType:
         StripeConnectContractType.MerchantOfRecord,
@@ -316,17 +316,19 @@ describe('calculateMoRSurchargePercentage', () => {
     } as Organization.Record
 
     expect(calculateMoRSurchargePercentage({ organization })).toBe(
-      1.1
+      '1.1'
     )
   })
 
-  it('returns 0 for non-MerchantOfRecord organizations', () => {
+  it('returns "0" for non-MerchantOfRecord organizations', () => {
     const organization = {
       stripeConnectContractType: StripeConnectContractType.Platform,
       feePercentage: '0',
     } as Organization.Record
 
-    expect(calculateMoRSurchargePercentage({ organization })).toBe(0)
+    expect(calculateMoRSurchargePercentage({ organization })).toBe(
+      '0'
+    )
   })
 })
 
@@ -517,7 +519,7 @@ describe('calculateInternationalFeePercentage', () => {
     stripeConnectContractType: StripeConnectContractType.Platform,
   } as Organization.Record
   const orgCountry = { code: CountryCode.US } as Country.Record
-  it('returns 0 for same-country transactions', () => {
+  it('returns "0" for same-country transactions', () => {
     expect(
       calculateInternationalFeePercentage({
         paymentMethod: PaymentMethodType.Card,
@@ -525,9 +527,9 @@ describe('calculateInternationalFeePercentage', () => {
         organization: org,
         organizationCountry: orgCountry,
       })
-    ).toBe(0)
+    ).toBe('0')
   })
-  it('returns 1.5 for international card transactions', () => {
+  it('returns "1.5" for international card transactions', () => {
     expect(
       calculateInternationalFeePercentage({
         paymentMethod: PaymentMethodType.Card,
@@ -535,7 +537,7 @@ describe('calculateInternationalFeePercentage', () => {
         organization: org,
         organizationCountry: orgCountry,
       })
-    ).toBe(1.5)
+    ).toBe('1.5')
   })
 })
 
@@ -585,7 +587,7 @@ describe('calculateTotalFeeAmount & calculateTotalDueAmount', () => {
 })
 
 describe('calculateMoRSurchargePercentage', () => {
-  it('returns 1.1 for MerchantOfRecord organizations', () => {
+  it('returns "1.1" for MerchantOfRecord organizations', () => {
     const organization = {
       stripeConnectContractType:
         StripeConnectContractType.MerchantOfRecord,
@@ -593,17 +595,19 @@ describe('calculateMoRSurchargePercentage', () => {
     } as Organization.Record
 
     expect(calculateMoRSurchargePercentage({ organization })).toBe(
-      1.1
+      '1.1'
     )
   })
 
-  it('returns 0 for Platform organizations', () => {
+  it('returns "0" for Platform organizations', () => {
     const organization = {
       stripeConnectContractType: StripeConnectContractType.Platform,
       feePercentage: '2.0',
     } as Organization.Record
 
-    expect(calculateMoRSurchargePercentage({ organization })).toBe(0)
+    expect(calculateMoRSurchargePercentage({ organization })).toBe(
+      '0'
+    )
   })
 })
 
