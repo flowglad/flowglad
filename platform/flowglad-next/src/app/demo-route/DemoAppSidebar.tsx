@@ -167,6 +167,24 @@ const emailItems: NavItem[] = [
     label: 'Purchase Access Token',
     emailType: 'purchase-access-token',
   },
+  // Trial-related emails
+  {
+    href: '/demo-route?email=trial-ending-soon&hasPayment=true',
+    label: 'Trial Ending Soon (With Payment)',
+    emailType: 'trial-ending-soon',
+    activeCondition: (p) => p.hasPaymentMethod !== false,
+  },
+  {
+    href: '/demo-route?email=trial-ending-soon&hasPayment=false',
+    label: 'Trial Ending Soon (No Payment)',
+    emailType: 'trial-ending-soon',
+    activeCondition: (p) => p.hasPaymentMethod === false,
+  },
+  {
+    href: '/demo-route?email=trial-expired-no-payment',
+    label: 'Trial Expired (No Payment)',
+    emailType: 'trial-expired-no-payment',
+  },
 ]
 
 // Separate components navigation (view-based, not email-based)
@@ -191,6 +209,7 @@ const parseSearchParams = (
   livemode: searchParams.get('testMode') !== 'true', // Invert once at source
   hasRetry: searchParams.get('hasRetry') !== 'false',
   viewType: getViewType(searchParams.get('view') ?? undefined),
+  hasPaymentMethod: searchParams.get('hasPayment') !== 'false',
 })
 
 const isLinkActive = (

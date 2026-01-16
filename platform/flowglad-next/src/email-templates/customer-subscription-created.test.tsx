@@ -23,6 +23,14 @@ describe('CustomerSubscriptionCreatedEmail', () => {
     paymentMethodLast4: '4242',
   }
 
+  const trialProps = {
+    ...baseProps,
+    trial: {
+      trialEndDate: new Date('2025-01-15'),
+      trialDurationDays: 14,
+    },
+  }
+
   it('renders subject line correctly', () => {
     const { getByText } = render(
       <CustomerSubscriptionCreatedEmail {...baseProps} />
@@ -268,5 +276,110 @@ describe('CustomerSubscriptionCreatedEmail', () => {
     )
 
     expect(getByTestId('price')).toHaveTextContent('Price: $1.00/day')
+  })
+
+  // Trial subscription tests
+  describe('trial subscription', () => {
+    it('displays trial-specific header when trial info is present', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionCreatedEmail {...trialProps} />
+      )
+
+      expect(getByTestId('email-title')).toHaveTextContent(
+        'Subscription Confirmed'
+      )
+    })
+
+    it('shows trial duration and first charge date', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionCreatedEmail {...trialProps} />
+      )
+
+      expect(getByTestId('trial-info')).toHaveTextContent(
+        'Trial: Free for 14 days'
+      )
+      expect(getByTestId('first-charge-date')).toHaveTextContent(
+        'First charge:'
+      )
+      expect(getByTestId('first-charge-date')).toHaveTextContent(
+        '2025'
+      )
+      expect(getByTestId('first-charge-date')).toHaveTextContent(
+        '$25.00/month'
+      )
+    })
+
+    it('does NOT show regular price detail for trial subscriptions', () => {
+      const { queryByTestId } = render(
+        <CustomerSubscriptionCreatedEmail {...trialProps} />
+      )
+
+      expect(queryByTestId('price')).not.toBeInTheDocument()
+    })
+
+    it('does NOT show next billing date for trial subscriptions', () => {
+      const { queryByTestId } = render(
+        <CustomerSubscriptionCreatedEmail {...trialProps} />
+      )
+
+      expect(
+        queryByTestId('next-billing-date')
+      ).not.toBeInTheDocument()
+    })
+
+    it('shows auto-renew notice with cancellation deadline', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionCreatedEmail {...trialProps} />
+      )
+
+      const notice = getByTestId('trial-auto-renew-notice')
+      expect(notice).toHaveTextContent(
+        'Your subscription automatically renews until canceled'
+      )
+      expect(notice).toHaveTextContent(
+        'To avoid being charged, you must cancel at least a day before'
+      )
+    })
+
+    it('shows payment method will be used when trial ends', () => {
+      const { getByText } = render(
+        <CustomerSubscriptionCreatedEmail {...trialProps} />
+      )
+
+      expect(
+        getByText(
+          /The payment method ending in 4242 will be used when your trial ends/
+        )
+      ).toBeInTheDocument()
+    })
+
+    it('shows trial started message', () => {
+      const { getByText } = render(
+        <CustomerSubscriptionCreatedEmail {...trialProps} />
+      )
+
+      expect(
+        getByText(/Your free trial has started/)
+      ).toBeInTheDocument()
+    })
+
+    it('still includes manage subscription button for trials', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionCreatedEmail {...trialProps} />
+      )
+
+      const button = getByTestId('manage-subscription-button')
+      expect(button).toHaveTextContent('Manage Subscription →')
+    })
+
+    it('displays payment method for trials', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionCreatedEmail {...trialProps} />
+      )
+
+      expect(getByTestId('payment-method')).toHaveTextContent(
+        'Payment method: •••• 4242'
+      )
+    })
   })
 })

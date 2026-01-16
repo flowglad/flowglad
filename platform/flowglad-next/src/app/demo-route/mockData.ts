@@ -162,6 +162,9 @@ export const EMAIL_TYPES = [
   'org-subscription-cancellation-scheduled',
   // Purchase access
   'purchase-access-token',
+  // Trial-related emails
+  'trial-ending-soon',
+  'trial-expired-no-payment',
 ] as const
 
 export type EmailType = (typeof EMAIL_TYPES)[number]
@@ -213,6 +216,7 @@ export interface ParsedParams {
   livemode: boolean
   hasRetry: boolean
   viewType: ViewType
+  hasPaymentMethod: boolean
 }
 
 // ============================================================================
@@ -694,6 +698,84 @@ export const TRIGGER_DOCS: Record<EmailType, TriggerInfo> = {
           email: 'john@example.com',
           expires_at: '2024-01-15T12:15:00Z',
         },
+      },
+      null,
+      2
+    ),
+  },
+
+  'trial-ending-soon': {
+    event: 'subscription.trial_will_end',
+    description:
+      'Sent when a trial subscription is about to end, typically 3 days before expiration.',
+    conditions: [
+      'Subscription has an active trial',
+      'Trial end date is within the reminder window (e.g., 3 days)',
+      'Customer has not yet been notified for this trial period',
+    ],
+    relatedEvents: ['subscription.updated', 'subscription.canceled'],
+    docsUrl: 'https://docs.flowglad.com/webhooks/subscription-trial-will-end',
+    samplePayload: JSON.stringify(
+      {
+        id: 'evt_6tuv678',
+        type: 'subscription.trial_will_end',
+        data: {
+          object: {
+            id: 'sub_1xyz789',
+            customer: 'cus_abc123',
+            status: 'trialing',
+            trial_end: '2024-01-18T00:00:00Z',
+            plan: {
+              id: 'plan_pro',
+              name: 'Pro Plan',
+              amount: 2900,
+              currency: 'usd',
+              interval: 'month',
+            },
+            default_payment_method: 'pm_card_visa',
+          },
+        },
+        created: '2024-01-15T12:00:00Z',
+      },
+      null,
+      2
+    ),
+  },
+
+  'trial-expired-no-payment': {
+    event: 'subscription.updated',
+    description:
+      'Sent when a trial expires and the customer has no payment method on file.',
+    conditions: [
+      'Trial period has ended',
+      'No payment method is attached to the subscription',
+      'Subscription status changes to inactive or past_due',
+    ],
+    relatedEvents: ['subscription.canceled', 'customer.subscription.paused'],
+    docsUrl: 'https://docs.flowglad.com/webhooks/subscription-trial-expired',
+    samplePayload: JSON.stringify(
+      {
+        id: 'evt_7wxy901',
+        type: 'subscription.updated',
+        data: {
+          object: {
+            id: 'sub_1xyz789',
+            customer: 'cus_abc123',
+            status: 'past_due',
+            trial_end: '2024-01-15T00:00:00Z',
+            plan: {
+              id: 'plan_pro',
+              name: 'Pro Plan',
+              amount: 2900,
+              currency: 'usd',
+            },
+            default_payment_method: null,
+          },
+          previous_attributes: {
+            status: 'trialing',
+          },
+        },
+        created: '2024-01-15T00:00:01Z',
       },
       null,
       2

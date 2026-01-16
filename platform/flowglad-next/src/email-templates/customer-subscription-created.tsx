@@ -12,6 +12,11 @@ import {
   Signature,
 } from './components/themed'
 
+export interface TrialInfo {
+  trialEndDate: Date
+  trialDurationDays: number
+}
+
 export const CustomerSubscriptionCreatedEmail = ({
   customerName,
   organizationName,
@@ -24,6 +29,7 @@ export const CustomerSubscriptionCreatedEmail = ({
   interval,
   nextBillingDate,
   paymentMethodLast4,
+  trial,
 }: {
   customerName: string
   organizationName: string
@@ -36,6 +42,7 @@ export const CustomerSubscriptionCreatedEmail = ({
   interval?: IntervalUnit
   nextBillingDate?: Date
   paymentMethodLast4?: string
+  trial?: TrialInfo
 }) => {
   const formattedPrice =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(currency, price)
@@ -60,25 +67,52 @@ export const CustomerSubscriptionCreatedEmail = ({
     ? `${formattedPrice}/${getIntervalText(interval)}`
     : formattedPrice
 
+  // Determine header title and preview text based on whether this is a trial
+  const headerTitle = trial
+    ? 'Subscription Confirmed'
+    : 'Payment method confirmed'
+  const previewText = trial
+    ? 'Your Subscription is Confirmed'
+    : 'Payment method confirmed - Subscription active'
+
   return (
-    <EmailLayout previewText="Payment method confirmed - Subscription active">
+    <EmailLayout previewText={previewText}>
       <Header
-        title="Payment method confirmed"
+        title={headerTitle}
         organizationLogoUrl={organizationLogoUrl}
       />
 
       <Paragraph>Hi {customerName},</Paragraph>
 
-      <Paragraph>Your subscription has been activated.</Paragraph>
+      {trial ? (
+        <Paragraph>
+          Your subscription has been confirmed. Your free trial has
+          started!
+        </Paragraph>
+      ) : (
+        <Paragraph>Your subscription has been activated.</Paragraph>
+      )}
 
       <DetailSection>
         <DetailItem dataTestId="plan-name">
           Plan: {planName}
         </DetailItem>
-        <DetailItem dataTestId="price">
-          Price: {formattedPriceWithInterval}
-        </DetailItem>
-        {nextBillingDate && (
+        {trial ? (
+          <>
+            <DetailItem dataTestId="trial-info">
+              Trial: Free for {trial.trialDurationDays} days
+            </DetailItem>
+            <DetailItem dataTestId="first-charge-date">
+              First charge: {formatDate(trial.trialEndDate)} for{' '}
+              {formattedPriceWithInterval}
+            </DetailItem>
+          </>
+        ) : (
+          <DetailItem dataTestId="price">
+            Price: {formattedPriceWithInterval}
+          </DetailItem>
+        )}
+        {!trial && nextBillingDate && (
           <DetailItem dataTestId="next-billing-date">
             Next billing date: {formatDate(nextBillingDate)}
           </DetailItem>
@@ -90,11 +124,34 @@ export const CustomerSubscriptionCreatedEmail = ({
         )}
       </DetailSection>
 
-      <Paragraph style={{ marginTop: '24px' }}>
-        The payment method
-        {paymentMethodLast4 ? ` ending in ${paymentMethodLast4}` : ''}{' '}
-        will be used for future charges.
-      </Paragraph>
+      {trial ? (
+        <>
+          <div data-testid="trial-auto-renew-notice">
+            <Paragraph style={{ marginTop: '24px' }}>
+              Your subscription automatically renews until canceled.
+              To avoid being charged, you must cancel at least a day
+              before {formatDate(trial.trialEndDate)}.
+            </Paragraph>
+          </div>
+          <Paragraph style={{ marginTop: '16px' }}>
+            The payment method
+            {paymentMethodLast4
+              ? ` ending in ${paymentMethodLast4}`
+              : ''}{' '}
+            will be used when your trial ends.
+          </Paragraph>
+        </>
+      ) : (
+        <>
+          <Paragraph style={{ marginTop: '24px' }}>
+            The payment method
+            {paymentMethodLast4
+              ? ` ending in ${paymentMethodLast4}`
+              : ''}{' '}
+            will be used for future charges.
+          </Paragraph>
+        </>
+      )}
 
       <Paragraph style={{ marginTop: '16px' }}>
         You can manage your subscription and payment methods at any

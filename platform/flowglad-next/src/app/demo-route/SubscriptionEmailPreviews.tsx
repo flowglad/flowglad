@@ -6,6 +6,8 @@ import { CustomerSubscriptionCanceledEmail } from '@/email-templates/customer-su
 import { CustomerSubscriptionCancellationScheduledEmail } from '@/email-templates/customer-subscription-cancellation-scheduled'
 import { CustomerSubscriptionCreatedEmail } from '@/email-templates/customer-subscription-created'
 import { CustomerSubscriptionUpgradedEmail } from '@/email-templates/customer-subscription-upgraded'
+import { CustomerTrialEndingSoonEmail } from '@/email-templates/customer-trial-ending-soon'
+import { CustomerTrialExpiredNoPaymentEmail } from '@/email-templates/customer-trial-expired-no-payment'
 import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
 import {
   OrganizationSubscriptionCanceledNotificationEmail,
@@ -478,6 +480,90 @@ export const PurchaseAccessTokenPreview = ({
     >
       <SendPurchaseAccessSessionTokenEmail
         magicLink="https://app.flowglad.com/access/abc123xyz"
+        livemode={livemode}
+      />
+    </EmailPreviewWrapper>
+  )
+}
+
+// ============================================================================
+// Trial Ending Soon Preview
+// ============================================================================
+
+interface TrialEndingSoonPreviewProps {
+  hasPaymentMethod?: boolean
+  daysRemaining?: number
+  livemode?: boolean
+}
+
+export const TrialEndingSoonPreview = ({
+  hasPaymentMethod = true,
+  daysRemaining = 3,
+  livemode = true,
+}: TrialEndingSoonPreviewProps) => {
+  const scenario = hasPaymentMethod
+    ? `Trial ending (${daysRemaining} days, with payment method)`
+    : `Trial ending (${daysRemaining} days, no payment method)`
+
+  return (
+    <EmailPreviewWrapper
+      templateName="customer-trial-ending-soon"
+      scenario={scenario}
+      subject={
+        daysRemaining === 1
+          ? 'Your Trial Ends Tomorrow'
+          : `Your Trial Ends in ${daysRemaining} Days`
+      }
+      previewText={
+        daysRemaining === 1
+          ? 'Your Trial Ends Tomorrow'
+          : `Your Trial Ends in ${daysRemaining} Days`
+      }
+      livemode={livemode}
+      emailType="trial-ending-soon"
+    >
+      <CustomerTrialEndingSoonEmail
+        customerName={commonCustomerProps.customerName}
+        {...commonOrganizationProps}
+        customerId={commonCustomerProps.customerId}
+        planName="Pro Plan"
+        trialEndDate={getFutureDate(daysRemaining)}
+        daysRemaining={daysRemaining}
+        price={MOCK_PRICES.PRO_PLAN}
+        currency={DEFAULT_CURRENCY}
+        interval={DEFAULT_INTERVAL}
+        hasPaymentMethod={hasPaymentMethod}
+        livemode={livemode}
+      />
+    </EmailPreviewWrapper>
+  )
+}
+
+// ============================================================================
+// Trial Expired No Payment Preview
+// ============================================================================
+
+interface TrialExpiredNoPaymentPreviewProps {
+  livemode?: boolean
+}
+
+export const TrialExpiredNoPaymentPreview = ({
+  livemode = true,
+}: TrialExpiredNoPaymentPreviewProps) => {
+  return (
+    <EmailPreviewWrapper
+      templateName="customer-trial-expired-no-payment"
+      scenario="Trial expired without payment method"
+      subject="Your Trial Has Ended - Add Payment to Continue"
+      previewText="Your Trial Has Ended - Add Payment to Continue"
+      livemode={livemode}
+      emailType="trial-expired-no-payment"
+    >
+      <CustomerTrialExpiredNoPaymentEmail
+        customerName={commonCustomerProps.customerName}
+        {...commonOrganizationProps}
+        customerId={commonCustomerProps.customerId}
+        planName="Pro Plan"
         livemode={livemode}
       />
     </EmailPreviewWrapper>

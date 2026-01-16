@@ -5,6 +5,7 @@ import { attemptCancelScheduledSubscriptionsTask } from './attempt-cancel-schedu
 import { attemptBillingRunsTask } from './attempt-run-all-billings'
 import { attemptTransitionBillingPeriodsTask } from './attempt-transition-billing-periods'
 import { failStalePaymentsTask } from './fail-stale-payments'
+import { sendTrialEndingRemindersTask } from './send-trial-ending-reminders'
 
 export const hourlyCron = schedules.task({
   id: 'hourly-cron',
@@ -51,6 +52,17 @@ export const hourlyCron = schedules.task({
         },
         {
           idempotencyKey: `fail-stale-payments:${timestamp.toISOString()}`,
+        }
+      )
+
+      // Send trial ending reminders for trials ending in 3 days
+      await sendTrialEndingRemindersTask.trigger(
+        {
+          timestamp,
+          reminderDays: 3,
+        },
+        {
+          idempotencyKey: `send-trial-ending-reminders:${timestamp.toISOString()}`,
         }
       )
     })
