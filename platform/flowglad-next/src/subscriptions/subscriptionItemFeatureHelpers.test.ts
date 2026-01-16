@@ -56,6 +56,7 @@ import {
   UsageCreditStatus,
   UsageCreditType,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import { core } from '@/utils/core'
 
 // Helper to create features and productFeatures for tests
@@ -972,6 +973,37 @@ describe('SubscriptionItemFeatureHelpers', () => {
           transaction
         )
         expect(sif.manuallyCreated).toBe(true)
+      })
+    })
+
+    it('emits cache invalidation for the manual subscription item features', async () => {
+      const [{ feature: toggleFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [{ name: 'Cache Test Feature', type: FeatureType.Toggle }]
+        )
+
+      await adminTransaction(async ({ transaction }) => {
+        const { ctx, effects } =
+          createCapturingEffectsContext(transaction)
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            grantCreditsImmediately: false,
+          },
+          ctx
+        )
+
+        // Verify cache invalidation was emitted for the manual subscription item
+        const manualItemId =
+          result.subscriptionItemFeature.subscriptionItemId
+        expect(effects.cacheInvalidations).toContainEqual(
+          CacheDependency.subscriptionItemFeatures(manualItemId)
+        )
       })
     })
 

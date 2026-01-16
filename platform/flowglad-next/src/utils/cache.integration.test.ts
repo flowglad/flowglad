@@ -1,4 +1,5 @@
 import { Result } from 'better-result'
+import { inArray } from 'drizzle-orm'
 import { afterEach, beforeEach, expect, it } from 'vitest'
 import { z } from 'zod'
 import {
@@ -8,11 +9,19 @@ import {
   setupPrice,
   setupProduct,
   setupSubscription,
+  setupSubscriptionItem,
+  setupTestFeaturesAndProductFeatures,
 } from '@/../seedDatabase'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
+import db from '@/db/client'
+import { subscriptionItemFeatures } from '@/db/schema/subscriptionItemFeatures'
+import {
+  insertSubscriptionItemFeature,
+  selectSubscriptionItemFeaturesWithFeatureSlug,
+} from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionsByCustomerId } from '@/db/tableMethods/subscriptionMethods'
 import {
   cleanupRedisTestKeys,
@@ -20,7 +29,13 @@ import {
   generateTestKeyPrefix,
   getRedisTestClient,
 } from '@/test/redisIntegrationHelpers'
-import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
+import {
+  CurrencyCode,
+  FeatureType,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@/types'
 import {
   CacheDependency,
   cached,
@@ -1101,6 +1116,270 @@ describeIfRedisKey(
       // Both caches should be cleared
       expect(await client.get(cacheKey1)).toBeNull()
       expect(await client.get(cacheKey2)).toBeNull()
+    })
+  }
+)
+
+/**
+ * Integration tests for selectSubscriptionItemFeaturesWithFeatureSlug.
+ *
+ * These tests verify the caching behavior with real Redis calls.
+ */
+describeIfRedisKey(
+  'selectSubscriptionItemFeaturesWithFeatureSlug Integration Tests',
+  () => {
+    let keysToCleanup: string[] = []
+    let subscriptionItemIdsToCleanup: string[] = []
+
+    beforeEach(() => {
+      keysToCleanup = []
+      subscriptionItemIdsToCleanup = []
+    })
+
+    afterEach(async () => {
+      const client = getRedisTestClient()
+      await cleanupRedisTestKeys(client, keysToCleanup)
+
+      // Clean up only the subscription item features created by this test
+      if (subscriptionItemIdsToCleanup.length > 0) {
+        await db
+          .delete(subscriptionItemFeatures)
+          .where(
+            inArray(
+              subscriptionItemFeatures.subscriptionItemId,
+              subscriptionItemIdsToCleanup
+            )
+          )
+      }
+    })
+
+    it('caches subscription item features and returns from cache on subsequent calls', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data
+      const orgData = await setupOrg()
+      const { product } = orgData
+
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Test Price',
+        unitPrice: 1000,
+        type: PriceType.Subscription,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+      })
+
+      const customer = await setupCustomer({
+        organizationId: orgData.organization.id,
+        email: 'cache-integration-test@test.com',
+        livemode: true,
+      })
+
+      const subscription = await setupSubscription({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+      })
+
+      const subscriptionItem = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Test Subscription Item',
+        quantity: 1,
+        unitPrice: 1000,
+        priceId: price.id,
+      })
+
+      const featureData = await setupTestFeaturesAndProductFeatures({
+        organizationId: orgData.organization.id,
+        productId: product.id,
+        livemode: true,
+        featureSpecs: [
+          { name: 'Toggle Feature', type: FeatureType.Toggle },
+        ],
+      })
+      const [
+        {
+          feature: toggleFeature,
+          productFeature: toggleProductFeature,
+        },
+      ] = featureData
+
+      // Track the subscription item and cache key for cleanup
+      subscriptionItemIdsToCleanup.push(subscriptionItem.id)
+      const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:${subscriptionItem.id}:true`
+      const depKey = CacheDependency.subscriptionItemFeatures(
+        subscriptionItem.id
+      )
+      const registryKey = `cacheDeps:${depKey}`
+      keysToCleanup.push(cacheKey, registryKey)
+
+      await adminTransaction(async ({ transaction }) => {
+        // Insert a subscription item feature
+        await insertSubscriptionItemFeature(
+          {
+            type: FeatureType.Toggle,
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            productFeatureId: toggleProductFeature.id,
+            usageMeterId: null,
+            amount: null,
+            renewalFrequency: null,
+            livemode: true,
+          },
+          transaction
+        )
+
+        // First call - should query DB and cache the result
+        const features1 =
+          await selectSubscriptionItemFeaturesWithFeatureSlug(
+            subscriptionItem.id,
+            transaction,
+            true // livemode
+          )
+
+        expect(features1.length).toBe(1)
+        expect(features1[0].subscriptionItemId).toBe(
+          subscriptionItem.id
+        )
+        expect(features1[0].featureId).toBe(toggleFeature.id)
+        expect(features1[0].name).toBe(toggleFeature.name)
+        expect(features1[0].slug).toBe(toggleFeature.slug)
+
+        // Verify the result is stored in Redis
+        const storedValue = await client.get(cacheKey)
+        expect(typeof storedValue).toBe('string')
+
+        // Second call - should return from cache
+        const features2 =
+          await selectSubscriptionItemFeaturesWithFeatureSlug(
+            subscriptionItem.id,
+            transaction,
+            true // livemode
+          )
+
+        // Verify the cached result has the same key properties
+        expect(features2.length).toBe(features1.length)
+        expect(features2[0].id).toBe(features1[0].id)
+        expect(features2[0].subscriptionItemId).toBe(
+          features1[0].subscriptionItemId
+        )
+      })
+    })
+
+    it('returns fresh data after subscriptionItem dependency is invalidated', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data
+      const orgData = await setupOrg()
+      const { product } = orgData
+
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Test Price',
+        unitPrice: 1000,
+        type: PriceType.Subscription,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+      })
+
+      const customer = await setupCustomer({
+        organizationId: orgData.organization.id,
+        email: 'invalidation-integration-test@test.com',
+        livemode: true,
+      })
+
+      const subscription = await setupSubscription({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+      })
+
+      const subscriptionItem = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Test Subscription Item',
+        quantity: 1,
+        unitPrice: 1000,
+        priceId: price.id,
+      })
+
+      const featureData = await setupTestFeaturesAndProductFeatures({
+        organizationId: orgData.organization.id,
+        productId: product.id,
+        livemode: true,
+        featureSpecs: [
+          { name: 'Toggle Feature', type: FeatureType.Toggle },
+        ],
+      })
+      const [
+        {
+          feature: toggleFeature,
+          productFeature: toggleProductFeature,
+        },
+      ] = featureData
+
+      // Track the subscription item and cache key for cleanup
+      subscriptionItemIdsToCleanup.push(subscriptionItem.id)
+      const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:${subscriptionItem.id}:true`
+      const depKey = CacheDependency.subscriptionItemFeatures(
+        subscriptionItem.id
+      )
+      const registryKey = `cacheDeps:${depKey}`
+      keysToCleanup.push(cacheKey, registryKey)
+
+      // First transaction - insert feature and cache it
+      await adminTransaction(async ({ transaction }) => {
+        await insertSubscriptionItemFeature(
+          {
+            type: FeatureType.Toggle,
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            productFeatureId: toggleProductFeature.id,
+            usageMeterId: null,
+            amount: null,
+            renewalFrequency: null,
+            livemode: true,
+          },
+          transaction
+        )
+
+        // Populate the cache
+        const features =
+          await selectSubscriptionItemFeaturesWithFeatureSlug(
+            subscriptionItem.id,
+            transaction,
+            true // livemode
+          )
+        expect(features.length).toBe(1)
+      })
+
+      // Verify cache is populated
+      const cachedBefore = await client.get(cacheKey)
+      expect(typeof cachedBefore).toBe('string')
+
+      // Invalidate the subscriptionItem dependency
+      await invalidateDependencies([depKey])
+
+      // Verify cache is now empty
+      const cachedAfter = await client.get(cacheKey)
+      expect(cachedAfter).toBeNull()
+
+      // Next query should hit DB again (cache miss)
+      await adminTransaction(async ({ transaction }) => {
+        const features =
+          await selectSubscriptionItemFeaturesWithFeatureSlug(
+            subscriptionItem.id,
+            transaction,
+            true // livemode
+          )
+        // Should still return the feature (from DB, not cache)
+        expect(features.length).toBe(1)
+      })
+
+      // Cache should be repopulated
+      const cachedRepopulated = await client.get(cacheKey)
+      expect(typeof cachedRepopulated).toBe('string')
     })
   }
 )
