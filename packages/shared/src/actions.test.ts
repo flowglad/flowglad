@@ -1355,6 +1355,7 @@ describe('flowgladActionValidators', () => {
       FlowgladActionKey.UpdateCustomer,
       FlowgladActionKey.CreateUsageEvent,
       FlowgladActionKey.GetResourceUsages,
+      FlowgladActionKey.GetResourceUsage,
       FlowgladActionKey.ClaimResource,
       FlowgladActionKey.ReleaseResource,
       FlowgladActionKey.ListResourceClaims,
