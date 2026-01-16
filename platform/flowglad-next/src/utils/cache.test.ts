@@ -527,7 +527,7 @@ describe('recomputeCacheEntry', () => {
     // Use a unique namespace that definitely has no handler registered
     const params: SerializableParams = { id: 'test' }
     const transactionContext: TransactionContext = {
-      type: 'authenticated',
+      type: 'merchant',
       livemode: false,
       organizationId: 'org_123',
       userId: 'user_456',
@@ -676,6 +676,31 @@ describe('recomputeDependencies', () => {
   })
 })
 
+/**
+ * Creates a trackable async function for testing.
+ * Returns the function and a tracker object to check call count.
+ * This avoids using vi.fn() which should only be used for network calls.
+ */
+function createTrackableFn<TParams, TResult>(
+  result: TResult
+): {
+  fn: (
+    params: TParams,
+    transaction: DbTransaction
+  ) => Promise<TResult>
+  tracker: { callCount: number }
+} {
+  const tracker = { callCount: 0 }
+  const fn = async (
+    _params: TParams,
+    _transaction: DbTransaction
+  ): Promise<TResult> => {
+    tracker.callCount++
+    return result
+  }
+  return { fn, tracker }
+}
+
 describe('cachedRecomputable', () => {
   let mockRedis: ReturnType<typeof createMockRedisClient>
 
@@ -693,6 +718,13 @@ describe('cachedRecomputable', () => {
     const testNamespace = RedisKeyNamespace.SubscriptionsByCustomer
 
     // Define a recomputable cached function - this should auto-register a handler
+    const { fn } = createTrackableFn<
+      { customerId: string },
+      { id: string; name: string }
+    >({
+      id: 'test',
+      name: 'Test',
+    })
     cachedRecomputable(
       {
         namespace: testNamespace,
@@ -702,7 +734,7 @@ describe('cachedRecomputable', () => {
           CacheDependency.customerSubscriptions(params.customerId),
         ],
       },
-      vi.fn().mockResolvedValue({ id: 'test', name: 'Test' })
+      fn
     )
 
     // The handler should be registered immediately after definition
@@ -713,7 +745,12 @@ describe('cachedRecomputable', () => {
 
   it('stores params metadata alongside cache value on cache miss', async () => {
     const testSchema = z.object({ value: z.number() })
-    const wrappedFn = vi.fn().mockResolvedValue({ value: 42 })
+    const { fn: wrappedFn } = createTrackableFn<
+      { subId: string },
+      { value: number }
+    >({
+      value: 42,
+    })
 
     const cachedFn = cachedRecomputable(
       {
@@ -755,16 +792,23 @@ describe('cachedRecomputable', () => {
 
   it('metadata params match the input params exactly', async () => {
     const testSchema = z.object({ count: z.number() })
-    const wrappedFn = vi.fn().mockResolvedValue({ count: 10 })
+    type TestParams = {
+      customerId: string
+      livemode: boolean
+      tags: string[]
+    }
+    const { fn: wrappedFn } = createTrackableFn<
+      TestParams,
+      { count: number }
+    >({
+      count: 10,
+    })
 
     const cachedFn = cachedRecomputable(
       {
         namespace: RedisKeyNamespace.FeaturesBySubscriptionItem,
-        keyFn: (params: {
-          customerId: string
-          livemode: boolean
-          tags: string[]
-        }) => `${params.customerId}:${params.livemode}`,
+        keyFn: (params: TestParams) =>
+          `${params.customerId}:${params.livemode}`,
         schema: testSchema,
         dependenciesFn: () => [],
       },
@@ -778,7 +822,7 @@ describe('cachedRecomputable', () => {
     }
 
     const transactionContext: TransactionContext = {
-      type: 'authenticated',
+      type: 'merchant',
       livemode: true,
       organizationId: 'org_123',
       userId: 'user_456',
@@ -804,7 +848,12 @@ describe('cachedRecomputable', () => {
 
   it('stores transaction context in metadata for recomputation', async () => {
     const testSchema = z.object({ data: z.string() })
-    const wrappedFn = vi.fn().mockResolvedValue({ data: 'test' })
+    const { fn: wrappedFn } = createTrackableFn<
+      { id: string },
+      { data: string }
+    >({
+      data: 'test',
+    })
 
     const cachedFn = cachedRecomputable(
       {
@@ -817,7 +866,7 @@ describe('cachedRecomputable', () => {
     )
 
     const transactionContext: TransactionContext = {
-      type: 'authenticated',
+      type: 'merchant',
       livemode: false,
       organizationId: 'org_test_123',
       userId: 'user_test_456',
@@ -836,8 +885,8 @@ describe('cachedRecomputable', () => {
 
     // Transaction context should be preserved exactly
     expect(metadata.transactionContext).toEqual(transactionContext)
-    expect(metadata.transactionContext.type).toBe('authenticated')
-    if (metadata.transactionContext.type === 'authenticated') {
+    expect(metadata.transactionContext.type).toBe('merchant')
+    if (metadata.transactionContext.type === 'merchant') {
       expect(metadata.transactionContext.organizationId).toBe(
         'org_test_123'
       )
@@ -848,7 +897,12 @@ describe('cachedRecomputable', () => {
 
   it('returns cached value on cache hit without calling wrapped function', async () => {
     const testSchema = z.object({ cached: z.boolean() })
-    const wrappedFn = vi.fn().mockResolvedValue({ cached: false })
+    const { fn: wrappedFn, tracker } = createTrackableFn<
+      { key: string },
+      { cached: boolean }
+    >({
+      cached: false,
+    })
 
     const cachedFn = cachedRecomputable(
       {
@@ -873,12 +927,17 @@ describe('cachedRecomputable', () => {
     // Should return cached value
     expect(result).toEqual({ cached: true })
     // Wrapped function should not be called on cache hit
-    expect(wrappedFn).not.toHaveBeenCalled()
+    expect(tracker.callCount).toBe(0)
   })
 
   it('does not store metadata when called outside transaction context', async () => {
     const testSchema = z.object({ result: z.number() })
-    const wrappedFn = vi.fn().mockResolvedValue({ result: 99 })
+    const { fn: wrappedFn } = createTrackableFn<
+      { id: string },
+      { result: number }
+    >({
+      result: 99,
+    })
 
     const cachedFn = cachedRecomputable(
       {
@@ -907,9 +966,12 @@ describe('cachedRecomputable', () => {
 
   it('registers dependencies for cache invalidation', async () => {
     const testSchema = z.object({ items: z.array(z.string()) })
-    const wrappedFn = vi
-      .fn()
-      .mockResolvedValue({ items: ['item1', 'item2'] })
+    const { fn: wrappedFn } = createTrackableFn<
+      { customerId: string },
+      { items: string[] }
+    >({
+      items: ['item1', 'item2'],
+    })
 
     const cachedFn = cachedRecomputable(
       {
@@ -947,7 +1009,7 @@ describe('cachedRecomputable', () => {
 describe('transactionContext', () => {
   it('runWithTransactionContext makes context available via getCurrentTransactionContext', () => {
     const context: TransactionContext = {
-      type: 'authenticated',
+      type: 'merchant',
       livemode: true,
       organizationId: 'org_test',
       userId: 'user_test',

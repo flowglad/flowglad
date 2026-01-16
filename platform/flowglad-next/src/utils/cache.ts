@@ -40,14 +40,27 @@ const serializableParamsSchema = z.record(
   serializableValueSchema
 )
 
-// Discriminated union: authenticated requires identity, admin does not
+/**
+ * Transaction context types for cache recomputation.
+ * The type discriminator determines what RLS context is needed:
+ * - 'admin': No RLS, full database access (for background jobs)
+ * - 'merchant': Merchant dashboard context with organization-scoped RLS
+ * - 'customer': Customer billing portal context with customer-scoped RLS
+ */
 export type TransactionContext =
   | { type: 'admin'; livemode: boolean }
   | {
-      type: 'authenticated'
+      type: 'merchant'
       livemode: boolean
       organizationId: string
       userId: string
+    }
+  | {
+      type: 'customer'
+      livemode: boolean
+      organizationId: string
+      userId: string
+      customerId: string
     }
 
 // Zod schema for transaction context (discriminated union)
@@ -57,10 +70,17 @@ const transactionContextSchema = z.discriminatedUnion('type', [
     livemode: z.boolean(),
   }),
   z.object({
-    type: z.literal('authenticated'),
+    type: z.literal('merchant'),
     livemode: z.boolean(),
     organizationId: z.string(),
     userId: z.string(),
+  }),
+  z.object({
+    type: z.literal('customer'),
+    livemode: z.boolean(),
+    organizationId: z.string(),
+    userId: z.string(),
+    customerId: z.string(),
   }),
 ])
 
@@ -963,11 +983,20 @@ export function cachedRecomputable<
         },
         { livemode: transactionContext.livemode }
       )
-    } else {
-      const { recomputeWithAuthenticatedContext } = await import(
+    } else if (transactionContext.type === 'merchant') {
+      const { recomputeWithMerchantContext } = await import(
         '@/db/recomputeTransaction'
       )
-      return recomputeWithAuthenticatedContext(
+      return recomputeWithMerchantContext(
+        transactionContext,
+        async (transaction) => fn(params as TParams, transaction)
+      )
+    } else {
+      // transactionContext.type === 'customer'
+      const { recomputeWithCustomerContext } = await import(
+        '@/db/recomputeTransaction'
+      )
+      return recomputeWithCustomerContext(
         transactionContext,
         async (transaction) => fn(params as TParams, transaction)
       )
@@ -1023,6 +1052,14 @@ export function cachedRecomputable<
               key: fullKey,
               latency_ms: latencyMs,
             })
+            logger.info('cache_stats', {
+              namespace: config.namespace,
+              hit_count: 1,
+              miss_count: 0,
+              total_count: 1,
+              latency_ms: latencyMs,
+              recomputable: true,
+            })
             return parsed.data
           } else {
             // Schema validation failed - treat as cache miss
@@ -1035,12 +1072,29 @@ export function cachedRecomputable<
                 error: parsed.error.message,
               }
             )
+            logger.info('cache_stats', {
+              namespace: config.namespace,
+              hit_count: 0,
+              miss_count: 1,
+              total_count: 1,
+              validation_failed: true,
+              latency_ms: latencyMs,
+              recomputable: true,
+            })
           }
         } else {
           span?.setAttribute('cache.hit', false)
           logger.debug('Cache miss (recomputable)', {
             key: fullKey,
             latency_ms: latencyMs,
+          })
+          logger.info('cache_stats', {
+            namespace: config.namespace,
+            hit_count: 0,
+            miss_count: 1,
+            total_count: 1,
+            latency_ms: latencyMs,
+            recomputable: true,
           })
         }
       } catch (error) {
@@ -1052,6 +1106,14 @@ export function cachedRecomputable<
         logger.error('Cache read error (recomputable)', {
           key: fullKey,
           error: errorMessage,
+        })
+        logger.info('cache_stats', {
+          namespace: config.namespace,
+          hit_count: 0,
+          miss_count: 1,
+          total_count: 1,
+          error: true,
+          recomputable: true,
         })
       }
 
