@@ -1908,38 +1908,46 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should handle concurrent cancellation requests without data inconsistencies', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const subscription = await setupSubscription({
+      // Set up subscription in its own transaction first
+      const subscription = await adminTransaction(async () => {
+        const sub = await setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
         await setupBillingPeriod({
-          subscriptionId: subscription.id,
+          subscriptionId: sub.id,
           startDate: new Date(Date.now() - 60 * 60 * 1000),
           endDate: new Date(Date.now() + 60 * 60 * 1000),
         })
-        // Fire off two concurrent cancellation calls.
-        const [output1, output2] = await Promise.all([
-          cancelSubscriptionImmediately(
-            {
-              subscription,
-            },
-            createDiscardingEffectsContext(transaction)
-          ),
-          cancelSubscriptionImmediately(
-            {
-              subscription,
-            },
-            createDiscardingEffectsContext(transaction)
-          ),
-        ])
-        const result1 = output1.unwrap()
-        const result2 = output2.unwrap()
-        expect(result1.status).toBe(SubscriptionStatus.Canceled)
-        expect(result2.status).toBe(SubscriptionStatus.Canceled)
+        return sub
       })
+
+      // Fire off two concurrent cancellation calls with separate transactions
+      // so they obtain separate DB connections and truly run concurrently
+      const [output1, output2] = await Promise.all([
+        adminTransaction(async ({ transaction }) =>
+          cancelSubscriptionImmediately(
+            {
+              subscription,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ),
+        adminTransaction(async ({ transaction }) =>
+          cancelSubscriptionImmediately(
+            {
+              subscription,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ),
+      ])
+      const result1 = output1.unwrap()
+      const result2 = output2.unwrap()
+      expect(result1.status).toBe(SubscriptionStatus.Canceled)
+      expect(result2.status).toBe(SubscriptionStatus.Canceled)
     })
 
     it('should throw an error for invalid subscription input', async () => {

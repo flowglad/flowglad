@@ -189,19 +189,23 @@ export const migratePricingModelForCustomer = async (
   )
 
   if (!newPricingModel) {
-    throw new Error(`Pricing model ${newPricingModelId} not found`)
+    return Result.err(
+      new Error(`Pricing model ${newPricingModelId} not found`)
+    )
   }
 
   // Validate that the new pricing model belongs to the same organization
   if (newPricingModel.organizationId !== customer.organizationId) {
-    throw new Error(
-      `Pricing model ${newPricingModelId} does not belong to organization ${customer.organizationId}`
+    return Result.err(
+      new Error(
+        `Pricing model ${newPricingModelId} does not belong to organization ${customer.organizationId}`
+      )
     )
   }
 
   if (newPricingModel.livemode !== customer.livemode) {
-    throw new Error(
-      `Pricing model livemode must match customer livemode`
+    return Result.err(
+      new Error(`Pricing model livemode must match customer livemode`)
     )
   }
 
@@ -218,14 +222,15 @@ export const migratePricingModelForCustomer = async (
   const canceledSubscriptions: Subscription.Record[] = []
 
   for (const subscription of currentSubscriptions) {
-    const canceledSubscription = (
-      await cancelSubscriptionForMigration(
-        subscription,
-        customer,
-        ctx
-      )
-    ).unwrap()
-    canceledSubscriptions.push(canceledSubscription)
+    const cancelResult = await cancelSubscriptionForMigration(
+      subscription,
+      customer,
+      ctx
+    )
+    if (cancelResult.status === 'error') {
+      return Result.err(cancelResult.error)
+    }
+    canceledSubscriptions.push(cancelResult.value)
   }
 
   // Create default subscription on new pricing model

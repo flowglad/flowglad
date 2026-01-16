@@ -1,4 +1,3 @@
-import { Result } from 'better-result'
 import Stripe from 'stripe'
 import {
   afterEach,
