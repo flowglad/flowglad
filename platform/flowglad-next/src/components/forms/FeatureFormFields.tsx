@@ -27,7 +27,7 @@ import {
   usageCreditGrantFeatureDefaultColumns,
 } from '@/db/schema/features'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
-import core, { IS_DEV, titleCase } from '@/utils/core'
+import core, { titleCase } from '@/utils/core'
 import ResourcesSelect from './ResourcesSelect'
 import UsageMetersSelect from './UsageMetersSelect'
 
@@ -121,8 +121,7 @@ const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
                       usageCreditGrantFeatureDefaultColumns
                     ).forEach(assignFeatureValueFromTuple)
                   }
-                  // FIXME: Resource feature type is temporarily dev-only while resource features are gated behind devOnlyProcedure. Remove IS_DEV check when resources are ready for production.
-                  if (IS_DEV && value === FeatureType.Resource) {
+                  if (value === FeatureType.Resource) {
                     Object.entries(
                       resourceFeatureDefaultColumns
                     ).forEach(assignFeatureValueFromTuple)
@@ -149,17 +148,14 @@ const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
                       </div>
                     </div>
                   </SelectItem>
-                  {/* FIXME: Resource feature type is temporarily dev-only while resource features are gated behind devOnlyProcedure. Remove IS_DEV check when resources are ready for production. */}
-                  {IS_DEV && (
-                    <SelectItem value={FeatureType.Resource}>
-                      <div>
-                        <div>Resource</div>
-                        <div className="text-xs text-muted-foreground">
-                          Claimable capacity (seats, API keys, etc.)
-                        </div>
+                  <SelectItem value={FeatureType.Resource}>
+                    <div>
+                      <div>Resource</div>
+                      <div className="text-xs text-muted-foreground">
+                        Claimable capacity (seats, API keys, etc.)
                       </div>
-                    </SelectItem>
-                  )}
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </FormControl>
@@ -237,8 +233,7 @@ const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
         </>
       )}
 
-      {/* FIXME: Resource form fields are temporarily dev-only while resource features are gated behind devOnlyProcedure. Remove IS_DEV check when resources are ready for production. */}
-      {IS_DEV && featureType === FeatureType.Resource && (
+      {featureType === FeatureType.Resource && (
         <>
           <FormField
             control={form.control}
