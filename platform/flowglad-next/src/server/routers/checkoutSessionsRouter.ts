@@ -185,7 +185,7 @@ export const setPaymentMethodTypeProcedure = publicProcedure
   .input(
     z.object({
       id: z.string(),
-      paymentMethodType: z.nativeEnum(PaymentMethodType),
+      paymentMethodType: z.enum(PaymentMethodType),
     })
   )
   .mutation(async ({ input, ctx }) => {

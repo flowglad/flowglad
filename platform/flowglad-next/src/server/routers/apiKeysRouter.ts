@@ -55,7 +55,7 @@ const getTableRowsProcedure = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
-        type: z.nativeEnum(FlowgladApiKeyType).optional(),
+        type: z.enum(FlowgladApiKeyType).optional(),
       })
     )
   )

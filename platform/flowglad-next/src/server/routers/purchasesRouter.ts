@@ -47,7 +47,7 @@ const getTableRows = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
-        status: z.nativeEnum(PurchaseStatus).optional(),
+        status: z.enum(PurchaseStatus).optional(),
         customerId: z.string().optional(),
         organizationId: z.string().optional(),
       })
