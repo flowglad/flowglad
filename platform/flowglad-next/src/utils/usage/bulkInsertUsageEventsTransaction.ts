@@ -161,12 +161,22 @@ function collectSlugResolutionEvents(
   const eventsWithPriceSlugs: SlugResolutionEvent[] = []
   const eventsWithUsageMeterSlugs: SlugResolutionEvent[] = []
 
-  usageInsertsWithoutBillingPeriodId.forEach((usageEvent, index) => {
+  for (
+    let index = 0;
+    index < usageInsertsWithoutBillingPeriodId.length;
+    index++
+  ) {
+    const usageEvent = usageInsertsWithoutBillingPeriodId[index]
     const subscription = subscriptionsMap.get(
       usageEvent.subscriptionId
     )
     if (!subscription) {
-      return // Will be caught later
+      return Result.err(
+        new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Subscription ${usageEvent.subscriptionId} not found for usage event at index ${index}`,
+        })
+      )
     }
 
     if ('priceSlug' in usageEvent && usageEvent.priceSlug) {
@@ -184,7 +194,7 @@ function collectSlugResolutionEvents(
         customerId: subscription.customerId,
       })
     }
-  })
+  }
 
   // Cache for pricing models
   const pricingModelCache = new Map<
@@ -574,6 +584,16 @@ function assembleFinalInserts(
     const subscription = subscriptionsMap.get(event.subscriptionId)
     const billingPeriod = billingPeriodsMap.get(event.subscriptionId)
 
+    // Validate subscription exists (should have been validated in collectSlugResolutionEvents)
+    if (!subscription) {
+      return Result.err(
+        new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Subscription ${event.subscriptionId} not found for usage event at index ${i}`,
+        })
+      )
+    }
+
     // Get usageMeterId from event or from price
     let usageMeterId = event.usageMeterId
     if (!usageMeterId && event.priceId) {
@@ -600,12 +620,22 @@ function assembleFinalInserts(
       pricingModelId = price?.pricingModelId
     }
 
+    // Validate pricingModelId exists
+    if (!pricingModelId) {
+      return Result.err(
+        new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Could not determine pricingModelId for usage event at index ${i}. Neither the usage meter nor the price has a pricingModelId.`,
+        })
+      )
+    }
+
     usageInsertsWithBillingPeriodId.push({
       subscriptionId: event.subscriptionId,
-      customerId: subscription?.customerId ?? '',
+      customerId: subscription.customerId,
       priceId: event.priceId,
       usageMeterId,
-      pricingModelId: pricingModelId ?? '',
+      pricingModelId,
       amount: event.amount,
       transactionId: event.transactionId,
       livemode: event.livemode,
