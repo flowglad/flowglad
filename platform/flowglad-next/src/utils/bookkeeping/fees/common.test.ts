@@ -370,18 +370,51 @@ describe('calculateTotalFeeAmount', () => {
     expect(calculateTotalFeeAmount(feeCalculation)).toBe(272)
   })
 
-  it('handles null or undefined fee percentages by throwing error for parseFloat', () => {
+  it('handles null or undefined fee percentages by throwing error', () => {
     const feeCalculation: FeeCalculation.Record = {
       ...coreFeeCalculation,
-      // @ts-expect-error Intentionally pass null to verify runtime parseFloat error handling.
+      // @ts-expect-error Intentionally pass null to verify runtime error handling.
       flowgladFeePercentage: null,
-      // @ts-expect-error Intentionally pass null to verify runtime parseFloat error handling.
+      // @ts-expect-error Intentionally pass null to verify runtime error handling.
       morSurchargePercentage: null,
-      // @ts-expect-error Intentionally pass null to verify runtime parseFloat error handling.
+      // @ts-expect-error Intentionally pass null to verify runtime error handling.
       internationalFeePercentage: null,
     }
 
     expect(() => calculateTotalFeeAmount(feeCalculation)).toThrow()
+  })
+
+  it('throws error for invalid flowgladFeePercentage string', () => {
+    const feeCalculation = {
+      ...coreFeeCalculation,
+      flowgladFeePercentage: 'invalid',
+    } satisfies TotalFeeAmountInput
+
+    expect(() => calculateTotalFeeAmount(feeCalculation)).toThrow(
+      'Flowglad fee percentage is not a valid number: invalid'
+    )
+  })
+
+  it('throws error for invalid morSurchargePercentage string', () => {
+    const feeCalculation = {
+      ...coreFeeCalculation,
+      morSurchargePercentage: 'abc',
+    } satisfies TotalFeeAmountInput
+
+    expect(() => calculateTotalFeeAmount(feeCalculation)).toThrow(
+      'MoR surcharge percentage is not a valid number: abc'
+    )
+  })
+
+  it('throws error for invalid internationalFeePercentage string', () => {
+    const feeCalculation = {
+      ...coreFeeCalculation,
+      internationalFeePercentage: 'xyz',
+    } satisfies TotalFeeAmountInput
+
+    expect(() => calculateTotalFeeAmount(feeCalculation)).toThrow(
+      'International fee percentage is not a valid number: xyz'
+    )
   })
 
   it('handles negative discountAmountFixed by treating it as 0 reduction', () => {

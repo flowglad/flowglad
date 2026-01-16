@@ -357,6 +357,10 @@ export const calculateTotalFeeAmount = (
     'Discount amount fixed'
   )
   validatePercentageString(
+    flowgladFeePercentage!,
+    'Flowglad fee percentage'
+  )
+  validatePercentageString(
     morSurchargePercentage ?? '0',
     'MoR surcharge percentage'
   )
